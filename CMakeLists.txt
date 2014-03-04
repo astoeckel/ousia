@@ -25,7 +25,13 @@ INCLUDE_DIRECTORIES(src/)
 
 ADD_LIBRARY(ousia_core
 	src/model/GraphNode
-	src/model/domain/Domain
+	src/model/domain/Structure
+	src/model/domain/Layer
+	src/model/domain/Annotation
+	src/model/domain/Anchor
+	src/model/domain/Field
+	src/model/types/Type
+	src/model/types/Value
 )
 
 ADD_EXECUTABLE(ousia
@@ -48,6 +54,7 @@ if(test)
 	# Add all unit test files
 	ADD_EXECUTABLE(ousia_test
 		test/model/GraphNode
+		test/model/domain/Layer
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test
