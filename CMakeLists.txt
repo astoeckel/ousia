@@ -25,6 +25,7 @@ INCLUDE_DIRECTORIES(src/)
 
 ADD_LIBRARY(ousia_core
 	src/model/GraphNode
+	src/model/domain/Domain
 )
 
 ADD_EXECUTABLE(ousia

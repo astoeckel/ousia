@@ -16,11 +16,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef _DOMAIN_HPP_
+#define _DOMAIN_HPP_
+
 #include <memory>
 #include <string>
 #include <vector>
 
 #include <model/GraphNode.hpp>
+
+#include "Class.hpp"
+#include "Structure.hpp"
+#include "Category.hpp"
+#include "Layer.hpp"
 
 namespace ousia {
 namespace domain {
@@ -33,8 +41,32 @@ private:
 	std::vector<std::shared_ptr<Category>> categories;
 	std::vector<std::shared_ptr<Layer>> layers;
 
+public:
+
+	std::shared_ptr<Class>& getRoot()
+	{
+		return root;
+	}
+
+	std::vector<std::shared_ptr<Structure>>& getStructures()
+	{
+		return structures;
+	}
+
+	std::vector<std::shared_ptr<Category>>& getCategories()
+	{
+		return categories;
+	}
+
+	std::vector<std::shared_ptr<Layer>>& getLayers()
+	{
+		return layers;
+	}
+
 };
 
 }
 }
+
+#endif /* _DOMAIN_HPP_ */
 

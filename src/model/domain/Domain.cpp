@@ -1,5 +1,5 @@
 /*
-    BasicWriter
+    Ousía
     Copyright (C) 2014  Benjamin Paaßen, Andreas Stöckel
 
     This program is free software: you can redistribute it and/or modify
@@ -16,5 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "Domain.hpp"
 
+namespace ousia {
+namespace domain {
+
+}
+}
 
