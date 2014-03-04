@@ -1,4 +1,3 @@
-#include <gui/notepad.hpp>
 #include <QApplication>
 #include <QFile>
 #include <QIODevice>
@@ -7,11 +6,18 @@
 #include <vector>
 #include <iostream>
 
+#include <model/GraphNode.hpp>
+
+using namespace ousia;
+
 int main(int argc, char *argv[])
 {
-	QApplication a(argc, argv);
-	Notepad w;
-	w.show();
+	std::shared_ptr<GraphNode> nd1{new GraphNode("node1")};
+	std::shared_ptr<GraphNode> nd2{new GraphNode("node2", nd1)};
+
+	std::cout << nd2->getParent()->getName() << std::endl;
+
+	return 0;
 
 	// Open the file given as first argument
 /*	QFile file(argv[1]);
@@ -31,6 +37,5 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	return 0;*/
-
-	return a.exec();
 }
+
