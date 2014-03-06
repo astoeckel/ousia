@@ -16,13 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _RANGE_SET_HPP_
-#define _RANGE_SET_HPP_
+#ifndef _OUSIA_MODEL_RANGE_SET_HPP_
+#define _OUSIA_MODEL_RANGE_SET_HPP_
 
 #include <limits>
 
 namespace ousia {
-
+namespace model {
 /**
  * The Range structure represents an interval of numerical values of type T.
  */
@@ -150,7 +150,7 @@ struct Range {
 	 * Returns a range that represents the spans the complete set defined by the
 	 * given type T.
 	 */
-	static Range<T> hull()
+	static Range<T> typeRange()
 	{
 		return Range(std::numeric_limits<T>::min(),
 				std::numeric_limits<T>::max());
@@ -163,7 +163,7 @@ struct Range {
 	 * @param till is the value up to which the range should be defined (till is
 	 * included in the set).
 	 */
-	 static Range<T> hullUntil(const T &till)
+	 static Range<T> typeRangeUntil(const T &till)
 	{
 		return Range(std::numeric_limits<T>::min(), till);
 	}
@@ -175,7 +175,7 @@ struct Range {
 	 * @param from is the value from which the range should be defined (from is
 	 * included in the set).
 	 */
-	static Range<T> hullFrom(const T &from)
+	static Range<T> typeRangeFrom(const T &from)
 	{
 		return Range(from, std::numeric_limits<T>::max());
 	}
@@ -319,6 +319,7 @@ public:
 };
 
 }
+}
 
-#endif /* _RANGE_SET_HPP_ */
+#endif /* _OUSIA_MODEL_RANGE_SET_HPP_ */
 

@@ -55,7 +55,8 @@ bool XmlReader::expectOneOf(std::vector<XmlElementHandler> &handlers)
 						<< xml.name().toString().toStdString()
 						<< "\" instead!" << std::endl;
 				return false;
-			case QXmlStreamReader::EndElement:
+			/* This is Benjamins noob way of handling things: We just ignore them.
+				case QXmlStreamReader::EndElement:
 				// Expected tag was not found, instead we found a closing tag!
 				// TODO: Use better logging mechanism!
 				std::cout << "Expected one of the following tags: ("
@@ -63,7 +64,7 @@ bool XmlReader::expectOneOf(std::vector<XmlElementHandler> &handlers)
 						<< "); but found end of element \""
 						<< xml.name().toString().toStdString()
 						<< "\" instead!" << std::endl;
-				return false;
+				return false;*/
 			default:
 				continue;
 		}

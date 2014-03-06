@@ -21,6 +21,7 @@
 #include <model/RangeSet.hpp>
 
 namespace ousia {
+namespace model {
 
 TEST(Range, IsValid)
 {
@@ -216,5 +217,6 @@ TEST(RangeSet, Contains)
 	ASSERT_TRUE(s.contains(Range<int>(70, 74)));
 }
 
+}
 }
 
