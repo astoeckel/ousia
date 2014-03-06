@@ -18,9 +18,11 @@
 
 #include <QXmlStreamReader>
 
-#include <sstream>
+#include <functional>
 #include <iostream>
+#include <sstream>
 
+#include "XmlAttributeHandler.hpp"
 #include "XmlElementHandler.hpp"
 #include "XmlReader.hpp"
 
@@ -70,6 +72,51 @@ bool XmlReader::expectOneOf(std::vector<XmlElementHandler> &handlers)
 		}
 	}
 	return false;
+}
+
+bool XmlReader::parseArguments(std::map<std::string, XmlAttributeHandler> &handlers)
+{
+	// Iterate the attributes of the current xml node
+	for (auto &attr : xml.attributes()) {
+		// Convert the name to a std string
+		const std::string name = attr.name().toString().toStdString();
+		const std::string value = attr.value().toString().toStdString();
+
+		// Try to fetch a corresponding attribute in the handlers map
+		auto it = handlers.find(name);
+		if (it != handlers.end()) {
+			XmlAttributeHandler &handler = (*it).second;
+			if (handler.isValid(value)) {
+				handler.executeSettter(value);
+			} else {
+				std::cout << "Invalid attribute value \"" << value
+						<< "\" for attribute " << name << std::endl;
+				return false;
+			}
+		} else {
+			std::cout << "Unexpected attribute " << name << std::endl;
+			return false;
+		}
+	}
+
+	// Iterate over all handlers to check whether all required handlers have
+	// been handled and in order to pass the default value to unhandled handlers
+	for (auto &it : handlers) {
+		// Fetch the name of the attribute and the handler
+		const std::string &name = it.first;
+		XmlAttributeHandler &handler = it.second;
+		if (!handler.isHandled()) {
+			if (handler.isRequired()) {
+				std::cout << "Attribute " << name
+						<< " is required but was not set!" << std::endl;
+				return false;
+			} else if (handler.getDefaultValue()) {
+				handler.executeSettter(handler.getDefaultValue());
+			}
+		}
+	}
+
+	return true;
 }
 
 std::shared_ptr<model::GraphNode> XmlReader::process()

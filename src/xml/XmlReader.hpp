@@ -19,8 +19,9 @@
 #ifndef _OUSIA_XML_XML_READER_HPP_
 #define _OUSIA_XML_XML_READER_HPP_
 
-#include <functional>
+#include <map>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <model/GraphNode.hpp>
@@ -32,6 +33,7 @@ namespace ousia {
 namespace xml {
 
 class XmlElementHandler;
+class XmlAttributeHandler;
 
 /**
  * The XmlReader class is responsible for parsing the ousia XML documents and
@@ -52,9 +54,16 @@ private:
 	std::shared_ptr<model::domain::Domain> readDomain();
 
 	/**
-	 * Used internally in order to conveniently expect one of a set of elements.
+	 * Used internally in order to conveniently expect one xml tag in a set of
+	 * elements. Returns true if there was an error while waiting for the tag,
+	 * false otherwise.
 	 */
 	bool expectOneOf(std::vector<XmlElementHandler> &handlers);
+
+	/**
+	 * Used internally to parse the current argument map.
+	 */
+	bool parseArguments(std::map<std::string, XmlAttributeHandler> &handlers);
 
 public:
 
