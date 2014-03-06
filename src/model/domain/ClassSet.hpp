@@ -16,35 +16,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gtest/gtest.h>
-
-#include <model/GraphNode.hpp>
-
 namespace ousia {
-namespace model {
+namespace domain {
 
-// Make the protected constructor of GraphNode available
-class TestGraphNode : public GraphNode {
+#include "Class.hpp";
 
-public:
-	TestGraphNode(GraphNodeType type, std::shared_ptr<GraphNode> parent,
-			const std::string &name) :
-		GraphNode(type, parent, name)
-	{
-		// Do nothing here
-	}
+class ClassSet {
+
+private:
+	std::vector<Class> classes;
 
 };
-
-TEST(GraphNodeTest, FullyQuallifiedNameTest)
-{
-	std::shared_ptr<GraphNode> nd1{new TestGraphNode(
-			GraphNodeType::None, nullptr, "node1")};
-	std::shared_ptr<GraphNode> nd2{new TestGraphNode(
-			GraphNodeType::None, nd1, "node2")};
-
-	ASSERT_STREQ("node1.node2", nd2->getFullyQualifiedName().c_str());
-}
 
 }
 }

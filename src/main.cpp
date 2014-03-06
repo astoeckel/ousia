@@ -6,36 +6,31 @@
 #include <vector>
 #include <iostream>
 
-#include <model/GraphNode.hpp>
+#include <xml/XmlReader.hpp>
 
-using namespace ousia;
+using namespace ousia::xml;
 
 int main(int argc, char *argv[])
 {
-	std::shared_ptr<GraphNode> nd1{new GraphNode("node1")};
-	std::shared_ptr<GraphNode> nd2{new GraphNode("node2", nd1)};
-
-	std::cout << nd2->getParent()->getName() << std::endl;
-
-	return 0;
-
 	// Open the file given as first argument
-/*	QFile file(argv[1]);
+	if (argc < 2) {
+		std::cout << "No filename specified!" << std::endl;
+		return 1;
+	}
+
+	QFile file(argv[1]);
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
 		std::cout << "Error while opening file " << argv[1] << std::endl;
 		return 1;
 	}
 
-	// Read all tags using the xml stream reader
+	// Create the QXmlStreamReader instance
 	QXmlStreamReader xml(&file);
 
-	while (!xml.atEnd()) {
-		xml.readNext();
-	}
-	if (xml.hasError()) {
-		std::cout << "Error while parsing XML: " << xml.errorString().toStdString() << " at line " << xml.lineNumber() << std::endl;
-		return 1;
-	}
-	return 0;*/
+	// Pass it to the XmlReader
+	XmlReader xmlReader(xml);
+	xmlReader.process();
+
+	return 0;
 }
 

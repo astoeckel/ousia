@@ -22,21 +22,11 @@
 #include <sstream>
 
 namespace ousia {
+namespace model {
 
-GraphNode::GraphNode() :
-	parent(nullptr)
-{
-	// Do nothing here
-}
-
-GraphNode::GraphNode(std::shared_ptr<GraphNode> parent) :
-	parent(parent)
-{
-	// Do nothing here
-}
-
-GraphNode::GraphNode(const std::string &name, std::shared_ptr<GraphNode> parent) :
-	name(name), parent(parent)
+GraphNode::GraphNode(GraphNodeType type, std::shared_ptr<GraphNode> parent,
+		const std::string &name) :
+	type(type), parent(parent), name(name)
 {
 	// Do nothing here
 }
@@ -52,3 +42,5 @@ const std::string GraphNode::getFullyQualifiedName()
 }
 
 }
+}
+

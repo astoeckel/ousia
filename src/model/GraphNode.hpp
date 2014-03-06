@@ -16,33 +16,38 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _GRAPH_NODE_HPP_
-#define _GRAPH_NODE_HPP_
+#ifndef _OUSIA_MODEL_GRAPH_NODE_HPP_
+#define _OUSIA_MODEL_GRAPH_NODE_HPP_
 
 #include <string>
 #include <memory>
 
 namespace ousia {
+namespace model {
+
+enum class GraphNodeType {
+	None, Domain, Class, Annotation, Structure, ClassCategory,
+	AnnotationCategory
+};
 
 class GraphNode {
 
 private:
-	std::string name;
+	GraphNodeType type;
 	std::shared_ptr<GraphNode> parent;
+	std::string name;
+
+protected:
+	GraphNode(GraphNodeType type, std::shared_ptr<GraphNode> parent = nullptr,
+			const std::string &name = "");
 
 public:
-	GraphNode();
-
-	GraphNode(std::shared_ptr<GraphNode> parent);
-
-	GraphNode(const std::string &name, std::shared_ptr<GraphNode> parent = nullptr);
+	const std::string getFullyQualifiedName();
 
 	const std::string& getName()
 	{
 		return name;
 	}
-
-	const std::string getFullyQualifiedName();
 
 	void setName(const std::string &name)
 	{
@@ -51,7 +56,7 @@ public:
 
 	std::shared_ptr<GraphNode> getParent()
 	{
-		return std::shared_ptr<GraphNode>(parent);
+		return parent;
 	}
 
 	void setParent(std::shared_ptr<GraphNode> parent)
@@ -59,10 +64,15 @@ public:
 		this->parent = parent;
 	}
 
+	GraphNodeType getType()
+	{
+		return type;
+	}
 
 };
 
 }
+}
 
-#endif /* _GRAPH_NODE_HPP_ */
+#endif /* _OUSIA_MODEL_GRAPH_NODE_HPP_ */
 

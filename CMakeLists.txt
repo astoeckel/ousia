@@ -54,18 +54,25 @@ INCLUDE_DIRECTORIES(
 	src/
 )
 
-# ousia_core library (containing the code of the most important data structures
-# and deduction algorithms)
-ADD_LIBRARY(ousia_core
+# ousia_model library (containing the code of the most important data structures
+# and deduction algorithms -- this code does not depend on Qt).
+ADD_LIBRARY(ousia_model
 	src/model/GraphNode
-	src/model/domain/Structure
-	src/model/domain/Layer
-	src/model/domain/Annotation
-	src/model/domain/Anchor
-	src/model/domain/Field
-	src/model/types/Type
-	src/model/types/Value
+	src/model/domain/Domain
 )
+
+# ousia_xml library (containing the XML serialization/deserializing code for the
+# data structures defined in the ousia_model library)
+ADD_LIBRARY(ousia_xml
+	src/xml/XmlReader
+)
+
+TARGET_LINK_LIBRARIES(ousia_xml
+	ousia_model
+)
+
+# Link the ousia xml model against the core module of Qt5
+QT5_USE_MODULES(ousia_xml Core)
 
 # Definition of the main program
 ADD_EXECUTABLE(ousia
@@ -74,7 +81,8 @@ ADD_EXECUTABLE(ousia
 
 # Link the ousia executable against ousia_core
 TARGET_LINK_LIBRARIES(ousia
-	ousia_core
+	ousia_model
+	ousia_xml
 )
 
 # Link the ousia executable against the Widgets module of Qt5
@@ -92,12 +100,12 @@ IF(test)
 	ADD_EXECUTABLE(ousia_test
 		test/model/RangeSet
 		test/model/GraphNode
-		test/model/domain/Layer
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test
 		${GTEST_LIBRARIES}
-		ousia_core
+		ousia_model
+		ousia_xml
 	)
 
 	# Register the unit test
