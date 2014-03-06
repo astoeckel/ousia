@@ -16,32 +16,42 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _LAYER_HPP_
-#define _LAYER_HPP_
+#ifndef _OUSIA_MODEL_DOMAIN_LAYER_HPP_
+#define _OUSIA_MODEL_DOMAIN_LAYER_HPP_
 
-#include <memory>
-#include <vector>
-
-#include <model/GraphNode.hpp>
-#include <model/domain/Annotation.hpp>
+#include "AnnotationReference.hpp"
 
 namespace ousia {
+namespace model {
 namespace domain {
 
-class Layer : public GraphNode {
+/**
+ * A Layer lazily defines references to annotations that are allowed upon
+ * certain classes. You can interpret a layer as a ClassReferenceSet minus the
+ * cardinality.
+ */
+class Layer {
 
 private:
-	std::vector<std::shared_ptr<Annotation>> annotations;
+	std::vector<std::shared_ptr<AnnotationReference>> conjunctions;
 
 public:
-	using GraphNode::GraphNode;
 
-	std::vector<std::shared_ptr<Annotation>>& getAnnotations()
+	/**
+	 * This defines the conjunctions of references to annotations that are allowed
+	 * Please note that each AnnotationReference again does not have to reference to
+	 * a single class but can also reference to multiple classes in a *
+	 * expression.
+	 */
+	std::vector<std::shared_ptr<AnnotationReference>>& getConjunctions()
 	{
-		return annotations;
+		return conjunctions;
 	}
 };
+
+}
 }
 }
 
-#endif /* _LAYER_HPP_ */
+#endif /* _OUSIA_MODEL_DOMAIN_LAYER_HPP_ */
+

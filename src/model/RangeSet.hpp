@@ -20,6 +20,7 @@
 #define _OUSIA_MODEL_RANGE_SET_HPP_
 
 #include <limits>
+#include <set>
 
 namespace ousia {
 namespace model {

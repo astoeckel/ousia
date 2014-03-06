@@ -39,9 +39,9 @@ public:
 TEST(GraphNodeTest, FullyQuallifiedNameTest)
 {
 	std::shared_ptr<GraphNode> nd1{new TestGraphNode(
-			GraphNodeType::None, nullptr, "node1")};
+			GraphNodeType::Domain, nullptr, "node1")};
 	std::shared_ptr<GraphNode> nd2{new TestGraphNode(
-			GraphNodeType::None, nd1, "node2")};
+			GraphNodeType::Domain, nd1, "node2")};
 
 	ASSERT_STREQ("node1.node2", nd2->getFullyQualifiedName().c_str());
 }

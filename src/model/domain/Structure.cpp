@@ -20,10 +20,12 @@
 #include <model/domain/Structure.hpp>
 
 namespace ousia {
+namespace model {
 namespace domain {
 
 	//This class for now has no special features that would distinguish it
 	//from an abstract GraphNode.
 
+}
 }
 }

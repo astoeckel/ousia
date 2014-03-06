@@ -16,22 +16,22 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _ANNOTATION_HPP_
-#define _ANNOTATION_HPP_
+#ifndef _OUSIA_MODEL_DOMAIN_ANNOTATION_HPP_
+#define _OUSIA_MODEL_DOMAIN_ANNOTATION_HPP_
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <model/GraphNode.hpp>
-#include <model/domain/Anchor.hpp>
-#include <model/domain/Structure.hpp>
-#include <model/domain/Field.hpp>
+#include "Structure.hpp"
+#include "Field.hpp"
 
 namespace ousia {
+namespace model {
 namespace domain {
 
 //class Structure;
-//class Anchor;
 //class Field;
 
 class Annotation : public GraphNode {
@@ -39,11 +39,15 @@ class Annotation : public GraphNode {
 private:
 	std::vector<std::shared_ptr<Structure>> structures;
 	std::vector<std::shared_ptr<Field>> fields;
-	std::shared_ptr<Anchor> start;
-	std::shared_ptr<Anchor> end;
 
 public:
-	using GraphNode::GraphNode;
+
+	Annotation(std::shared_ptr<GraphNode> parent = nullptr,
+			const std::string &name = "") :
+		GraphNode(GraphNodeType::Annotation, parent, name)
+	{
+		// Do nothing here
+	}
 
 	std::vector<std::shared_ptr<Structure>>& getStructures()
 	{
@@ -54,28 +58,8 @@ public:
 	{
 		return fields;
 	}
-
-	std::shared_ptr<Anchor> getStart()
-	{
-		return start;
-	}
-
-	void setStart(std::shared_ptr<Anchor> start)
-	{
-		this->start = start;
-	}
-
-	std::shared_ptr<Anchor> getEnd()
-	{
-		return end;
-	}
-
-	void setEnd(std::shared_ptr<Anchor> end)
-	{
-		this->end = end;
-	}
 };
 }
 }
-
-#endif /* _ANNOTATION_HPP_ */
+}
+#endif /* _OUSIA_MODEL_DOMAIN_ANNOTATION_HPP_ */

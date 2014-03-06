@@ -26,8 +26,7 @@ namespace ousia {
 namespace model {
 
 enum class GraphNodeType {
-	None, Domain, Class, Annotation, Structure, ClassCategory,
-	AnnotationCategory
+	Domain, Class, Annotation, Structure, ClassCategory, AnnotationCategory
 };
 
 class GraphNode {

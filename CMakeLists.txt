@@ -59,6 +59,17 @@ INCLUDE_DIRECTORIES(
 ADD_LIBRARY(ousia_model
 	src/model/GraphNode
 	src/model/domain/Domain
+	src/model/domain/Structure
+	src/model/domain/ClassCategory
+	src/model/domain/Class
+	src/model/domain/ClassReferenceSet
+	src/model/domain/ClassReference
+	src/model/domain/Layer
+	src/model/domain/AnnotationReference
+	src/model/domain/Field
+	src/model/domain/AnnotationCategory
+	src/model/domain/Annotation
+	src/model/types/Type
 )
 
 # ousia_xml library (containing the XML serialization/deserializing code for the

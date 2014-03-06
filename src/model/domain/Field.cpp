@@ -19,9 +19,11 @@
 #include <model/domain/Field.hpp>
 
 namespace ousia {
+namespace model {
 namespace domain {
 
 	//This class is fully specified by its header.
 
+}
 }
 }

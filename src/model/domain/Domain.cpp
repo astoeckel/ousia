@@ -19,8 +19,9 @@
 #include "Domain.hpp"
 
 namespace ousia {
+namespace model {
 namespace domain {
 
 }
 }
-
+}

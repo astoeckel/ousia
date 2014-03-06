@@ -16,29 +16,27 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _FIELD_HPP_
-#define _FIELD_HPP_
+#ifndef _OUSIA_MODEL_DOMAIN_FIELD_HPP_
+#define _OUSIA_MODEL_DOMAIN_FIELD_HPP_
 
 #include <memory>
 
 #include <model/GraphNode.hpp>
 #include <model/types/Type.hpp>
-#include <model/types/Value.hpp>
 
-namespace ousia {
+namespace ousia{
 
 //namespace types {
 //	class Type;
 //	class Value;
 //}
-
+namespace model {
 namespace domain {
 
 class Field : public GraphNode {
 
 private:
 	std::shared_ptr<types::Type> type;
-	std::shared_ptr<types::Value> value;
 	bool optional;
 
 public:
@@ -54,16 +52,6 @@ public:
 		this->type = type;
 	}
 
-	std::shared_ptr<types::Value> getValue()
-	{
-		return value;
-	}
-
-	void setValue(std::shared_ptr<types::Value> value)
-	{
-		this->value = value;
-	}
-
 	bool getOptional()
 	{
 		return optional;
@@ -76,5 +64,6 @@ public:
 };
 }
 }
+}
 
-#endif /* _FIELD_HPP_ */
+#endif /* _OUSIA_MODEL_DOMAIN_FIELD_HPP_ */

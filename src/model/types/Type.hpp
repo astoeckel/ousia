@@ -16,18 +16,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _TYPE_HPP_
-#define _TYPE_HPP_
-
-#include <model/GraphNode.hpp>
+#ifndef _OUSIA_TYPES_TYPE_HPP_
+#define _OUSIA_TYPES_TYPE_HPP_
 
 namespace ousia {
 namespace types {
 
-class Type : public GraphNode {
+class Type {
 
 //TODO: THIS IS A DUMMY CLASS DECLARATION
 };
 }
 }
-#endif /* _TYPE_HPP_ */
+#endif /* _OUSIA_TYPES_TYPE_HPP_ */

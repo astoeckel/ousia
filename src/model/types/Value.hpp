@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _VALUE_HPP_
-#define _VALUE_HPP_
+#ifndef _OUSIA_TYPES_VALUE_HPP_
+#define _OUSIA_TYPES_VALUE_HPP_
 
 namespace ousia {
 namespace types {
@@ -28,4 +28,4 @@ class Value {
 };
 }
 }
-#endif /* _VALUE_HPP_ */
+#endif /* _OUSIA_TYPES_VALUE_HPP_ */

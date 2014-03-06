@@ -16,18 +16,32 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _STRUCTURE_HPP_
-#define _STRUCTURE_HPP_
+#ifndef _OUSIA_MODEL_DOMAIN_STRUCTURE_HPP_
+#define _OUSIA_MODEL_DOMAIN_STRUCTURE_HPP_
+
+#include <memory>
+#include <string>
 
 #include <model/GraphNode.hpp>
 
 namespace ousia {
+namespace model {
 namespace domain {
 
 class Structure : public GraphNode {
-	using GraphNode::GraphNode;
+
+public:
+	Structure(std::shared_ptr<GraphNode> parent = nullptr,
+			const std::string &name = "") :
+		GraphNode(GraphNodeType::Structure, parent, name)
+	{
+		// Do nothing here
+	}
+
+
 };
 }
 }
+}
 
-#endif /* _STRUCTURE_HPP_ */
+#endif /* _OUSIA_MODEL_DOMAIN_STRUCTURE_HPP_ */

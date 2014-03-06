@@ -19,10 +19,12 @@
 #include <model/domain/Annotation.hpp>
 
 namespace ousia {
+namespace model {
 namespace domain {
 
 //This class is fully defined by its header.
 
+}
 }
 }
 

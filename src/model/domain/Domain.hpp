@@ -19,16 +19,16 @@
 #ifndef _OUSIA_MODEL_DOMAIN_DOMAIN_HPP_
 #define _OUSIA_MODEL_DOMAIN_DOMAIN_HPP_
 
-//#include <memory>
-//#include <string>
-//#include <vector>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include <model/GraphNode.hpp>
 
-//#include "Class.hpp"
-//#include "Structure.hpp"
-//#include "Category.hpp"
-//#include "Layer.hpp"
+#include "Structure.hpp"
+#include "ClassCategory.hpp"
+#include "AnnotationCategory.hpp"
+#include "ClassReferenceSet.hpp"
 
 namespace ousia {
 namespace model {
@@ -37,10 +37,10 @@ namespace domain {
 class Domain : public GraphNode {
 
 private:
-//	std::shared_ptr<Class> root;
-//	std::vector<std::shared_ptr<Structure>> structures;
-//	std::vector<std::shared_ptr<Category>> categories;
-//	std::vector<std::shared_ptr<Layer>> layers;
+	std::shared_ptr<ClassReferenceSet> root;
+	std::vector<std::shared_ptr<Structure>> structures;
+	std::vector<std::shared_ptr<ClassCategory>> classCategories;
+	std::vector<std::shared_ptr<AnnotationCategory>> annotationCategories;
 
 public:
 
@@ -51,7 +51,7 @@ public:
 		// Do nothing here
 	}
 
-/*	std::shared_ptr<Class>& getRoot()
+	std::shared_ptr<ClassReferenceSet>& getRoot()
 	{
 		return root;
 	}
@@ -61,15 +61,15 @@ public:
 		return structures;
 	}
 
-	std::vector<std::shared_ptr<Category>>& getCategories()
+	std::vector<std::shared_ptr<ClassCategory>>& getClassCategories()
 	{
-		return categories;
+		return classCategories;
 	}
 
-	std::vector<std::shared_ptr<Layer>>& getLayers()
+	std::vector<std::shared_ptr<AnnotationCategory>>& getAnnotationCategories()
 	{
-		return layers;
-	}*/
+		return annotationCategories;
+	}
 
 };
 
