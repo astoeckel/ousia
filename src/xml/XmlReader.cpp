@@ -144,6 +144,7 @@ std::shared_ptr<model::domain::Domain> XmlReader::readDomain()
 	};
 	if (!parseArguments(handlers)) {
 		std::cout << "Errors while parsing arguments for domain node!" << std::endl;
+		return nullptr;
 	}
 	std::cout << res->getName() << std::endl;
 	return res;
