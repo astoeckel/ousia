@@ -19,6 +19,9 @@
 #ifndef _OUSIA_MODEL_DOMAIN_LAYER_HPP_
 #define _OUSIA_MODEL_DOMAIN_LAYER_HPP_
 
+#include <memory>
+#include <vector>
+
 #include "AnnotationReference.hpp"
 
 namespace ousia {
