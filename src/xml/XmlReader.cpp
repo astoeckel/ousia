@@ -134,12 +134,19 @@ std::shared_ptr<model::GraphNode> XmlReader::process()
 
 std::shared_ptr<model::domain::Domain> XmlReader::readDomain()
 {
-	if (!xml.attributes().hasAttribute("name")) {
-		std::cout << "Expected name attribute!" << std::endl;
-		return nullptr;
+	std::shared_ptr<model::domain::Domain> res{new model::domain::Domain()};
+	std::map<std::string, XmlAttributeHandler> handlers{
+		std::make_pair("name", XmlAttributeHandler(
+			true,
+			[&](const std::string& v) -> bool {return true;}, 
+			[&](const std::string& v) -> void {res->setName(v);}
+		))
+	};
+	if (!parseArguments(handlers)) {
+		std::cout << "Errors while parsing arguments for domain node!" << std::endl;
 	}
-	std::cout << "domain name: " << xml.attributes().value("name").toString().toStdString() << std::endl;
-	return std::shared_ptr<model::domain::Domain>(new model::domain::Domain());
+	std::cout << res->getName() << std::endl;
+	return res;
 }
 
 }
