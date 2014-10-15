@@ -1,0 +1,6 @@
+The following packages have to be installed (for Fedora)
+
+- cmake
+- qt5-qtbase-devel
+- qt5-qtscript-devel
+

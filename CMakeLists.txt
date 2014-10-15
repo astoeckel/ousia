@@ -22,7 +22,7 @@ PROJECT(basicwriter)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.9)
 
 SET(CMAKE_AUTOMOC ON)
-FIND_PACKAGE(Qt5Widgets REQUIRED)
+FIND_PACKAGE(Qt5Core REQUIRED)
 
 # Option for enabling testing. Turn on with 'cmake -Dtest=ON'.
 OPTION(test "Build all tests." OFF) # Makes boolean 'test' available.
@@ -83,7 +83,7 @@ TARGET_LINK_LIBRARIES(ousia_xml
 )
 
 # Link the ousia xml model against the core module of Qt5
-QT5_USE_MODULES(ousia_xml Core)
+QT5_USE_MODULES(ousia_xml Core Script)
 
 # Definition of the main program
 ADD_EXECUTABLE(ousia

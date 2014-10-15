@@ -2,6 +2,8 @@
 #include <QFile>
 #include <QIODevice>
 #include <QXmlStreamReader>
+#include <QScriptEngine>
+#include <QDebug>
 
 #include <vector>
 #include <iostream>
@@ -12,24 +14,27 @@ using namespace ousia::xml;
 
 int main(int argc, char *argv[])
 {
-	// Open the file given as first argument
-	if (argc < 2) {
-		std::cout << "No filename specified!" << std::endl;
-		return 1;
-	}
+	QScriptEngine engine;
+	qDebug() << "JS Test: " << engine.evaluate("Test");
 
-	QFile file(argv[1]);
-	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-		std::cout << "Error while opening file " << argv[1] << std::endl;
-		return 1;
-	}
+	// Open the file given as first argument
+//	if (argc < 2) {
+//		std::cout << "No filename specified!" << std::endl;
+//		return 1;
+//	}
+
+//	QFile file(argv[1]);
+//	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+//		std::cout << "Error while opening file " << argv[1] << std::endl;
+//		return 1;
+//	}
 
 	// Create the QXmlStreamReader instance
-	QXmlStreamReader xml(&file);
+//	QXmlStreamReader xml(&file);
 
 	// Pass it to the XmlReader
-	XmlReader xmlReader(xml);
-	xmlReader.process();
+//	XmlReader xmlReader(xml);
+//	xmlReader.process();
 
 	return 0;
 }
