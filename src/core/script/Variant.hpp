@@ -233,7 +233,7 @@ public:
 		}
 	}
 
-	std::string getStringValue() const
+	const std::string& getStringValue() const
 	{
 		switch (type) {
 			case VariantType::string:

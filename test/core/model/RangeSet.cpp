@@ -41,18 +41,18 @@ TEST(Range, InRange)
 	ASSERT_TRUE(r.inRange(15));
 }
 
-TEST(Range, Overlapps)
+TEST(Range, overlaps)
 {
-	ASSERT_FALSE(Range<int>(10, 20).overlapps(Range<int>(0, 9)));
-	ASSERT_FALSE(Range<int>(10, 20).overlapps(Range<int>(21, 30)));
-	ASSERT_TRUE(Range<int>(10, 20).overlapps(Range<int>(0, 10)));
-	ASSERT_TRUE(Range<int>(10, 20).overlapps(Range<int>(20, 30)));
-	ASSERT_TRUE(Range<int>(10, 20).overlapps(Range<int>(5, 15)));
-	ASSERT_TRUE(Range<int>(10, 20).overlapps(Range<int>(15, 25)));
-	ASSERT_TRUE(Range<int>(10, 20).overlapps(Range<int>(15, 19)));
-	ASSERT_TRUE(Range<int>(10, 20).overlapps(Range<int>(15, 15)));
-	ASSERT_TRUE(Range<int>(10, 20).overlapps(Range<int>(10, 20)));
-	ASSERT_TRUE(Range<int>(10, 20).overlapps(Range<int>(0, 30)));
+	ASSERT_FALSE(Range<int>(10, 20).overlaps(Range<int>(0, 9)));
+	ASSERT_FALSE(Range<int>(10, 20).overlaps(Range<int>(21, 30)));
+	ASSERT_TRUE(Range<int>(10, 20).overlaps(Range<int>(0, 10)));
+	ASSERT_TRUE(Range<int>(10, 20).overlaps(Range<int>(20, 30)));
+	ASSERT_TRUE(Range<int>(10, 20).overlaps(Range<int>(5, 15)));
+	ASSERT_TRUE(Range<int>(10, 20).overlaps(Range<int>(15, 25)));
+	ASSERT_TRUE(Range<int>(10, 20).overlaps(Range<int>(15, 19)));
+	ASSERT_TRUE(Range<int>(10, 20).overlaps(Range<int>(15, 15)));
+	ASSERT_TRUE(Range<int>(10, 20).overlaps(Range<int>(10, 20)));
+	ASSERT_TRUE(Range<int>(10, 20).overlaps(Range<int>(0, 30)));
 }
 
 TEST(Range, CoveredBy)

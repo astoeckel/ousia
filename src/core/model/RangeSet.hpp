@@ -97,13 +97,13 @@ struct Range {
 	}
 
 	/**
-	 * Checks whether the given range overlapps with another range. Not that
+	 * Checks whether the given range overlaps with another range. Not that
 	 * this check is only meaningful if both ranges are valid.
 	 *
 	 * @param r is the range that should be checked for overlapping with this
 	 * range.
 	 */
-	bool overlapps(const Range<T> &r) const
+	bool overlaps(const Range<T> &r) const
 	{
 		return (((r.start >= start) || (r.end >= start))
 				&& ((r.start <= end) || (r.end <= end)));
@@ -208,7 +208,7 @@ protected:
 	std::set<Range<T>, RangeComp<T>> ranges;
 
 	/**
-	 * Returns an iterator to the first element in the ranges list that overlapps
+	 * Returns an iterator to the first element in the ranges list that overlaps
 	 * with the given range.
 	 *
 	 * @param r is the range for which the first overlapping element should be
@@ -229,7 +229,7 @@ protected:
 		}
 
 		// Iterate until an overlapping element is found
-		while (!(it->overlapps(r) || (allowNeighbours && it->neighbours(r)))
+		while (!(it->overlaps(r) || (allowNeighbours && it->neighbours(r)))
 				&& (it != ranges.end())) {
 			it++;
 		}
@@ -247,7 +247,7 @@ public:
 		// Calculate a new range that covers both the new range and all old
 		// ranges in the set -- delete all old elements on the way
 		auto it = firstOverlapping(r, true);
-		while ((it->overlapps(r) || it->neighbours(r)) && it != ranges.end()) {
+		while ((it->overlaps(r) || it->neighbours(r)) && it != ranges.end()) {
 				r = r.merge(*it);
 				it = ranges.erase(it);
 		}

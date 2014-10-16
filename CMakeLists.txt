@@ -76,6 +76,7 @@ IF(test)
 	# Add all unit test files
 	ADD_EXECUTABLE(ousia_test
 		test/core/model/RangeSet
+		test/core/script/Variant
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test
