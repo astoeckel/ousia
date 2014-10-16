@@ -21,9 +21,6 @@
 PROJECT(basicwriter)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.9)
 
-SET(CMAKE_AUTOMOC ON)
-FIND_PACKAGE(Qt5Core REQUIRED)
-
 # Option for enabling testing. Turn on with 'cmake -Dtest=ON'.
 OPTION(test "Build all tests." OFF) # Makes boolean 'test' available.
 
@@ -54,50 +51,19 @@ INCLUDE_DIRECTORIES(
 	src/
 )
 
-# ousia_model library (containing the code of the most important data structures
-# and deduction algorithms -- this code does not depend on Qt).
-ADD_LIBRARY(ousia_model
-	src/model/GraphNode
-	src/model/domain/Domain
-	src/model/domain/Structure
-	src/model/domain/ClassCategory
-	src/model/domain/Class
-	src/model/domain/ClassReferenceSet
-	src/model/domain/ClassReference
-	src/model/domain/Layer
-	src/model/domain/AnnotationReference
-	src/model/domain/Field
-	src/model/domain/AnnotationCategory
-	src/model/domain/Annotation
-	src/model/types/Type
+# ousia_script library (containing the code of t
+ADD_LIBRARY(ousia_script
+	src/core/script/Variant.cpp
 )
-
-# ousia_xml library (containing the XML serialization/deserializing code for the
-# data structures defined in the ousia_model library)
-ADD_LIBRARY(ousia_xml
-	src/xml/XmlReader
-)
-
-TARGET_LINK_LIBRARIES(ousia_xml
-	ousia_model
-)
-
-# Link the ousia xml model against the core module of Qt5
-QT5_USE_MODULES(ousia_xml Core Script)
 
 # Definition of the main program
-ADD_EXECUTABLE(ousia
-	src/main
-)
+#ADD_EXECUTABLE(ousia
+#)
 
 # Link the ousia executable against ousia_core
-TARGET_LINK_LIBRARIES(ousia
-	ousia_model
-	ousia_xml
-)
-
-# Link the ousia executable against the Widgets module of Qt5
-QT5_USE_MODULES(ousia Widgets)
+#TARGET_LINK_LIBRARIES(ousia
+#	ousia_script
+#)
 
 # If testing is enabled, build the unit tests
 IF(test)
@@ -109,14 +75,12 @@ IF(test)
 
 	# Add all unit test files
 	ADD_EXECUTABLE(ousia_test
-		test/model/RangeSet
-		test/model/GraphNode
+		test/core/model/RangeSet
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test
 		${GTEST_LIBRARIES}
-		ousia_model
-		ousia_xml
+		ousia_script
 	)
 
 	# Register the unit test

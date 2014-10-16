@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include <model/RangeSet.hpp>
+#include <core/model/RangeSet.hpp>
 
 namespace ousia {
 namespace model {
