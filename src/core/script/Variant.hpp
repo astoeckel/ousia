@@ -28,11 +28,13 @@
 namespace ousia {
 namespace script {
 
+// TODO: Make Variant immutable (?), store large objects in heap buffer
+
 /**
  * Enum containing the possible types a variant may have.
  */
 enum class VariantType {
-	none, integer, number, string, array, map, function, object, buffer
+	null, boolean, integer, number, string, array, map, function, object, buffer
 };
 
 /**
@@ -45,6 +47,7 @@ private:
 	VariantType type;
 
 	union {
+		bool booleanValue;
 		int64_t integerValue;
 		double numberValue;
 		std::string stringValue;
