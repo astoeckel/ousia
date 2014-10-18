@@ -19,6 +19,8 @@
 #ifndef _OUSIA_VARIANT_HPP_
 #define _OUSIA_VARIANT_HPP_
 
+#include <iostream>
+
 #include <cstdint>
 #include <ostream>
 #include <string>
@@ -27,8 +29,6 @@
 
 namespace ousia {
 namespace script {
-
-// TODO: Make Variant immutable (?), store large objects in heap buffer
 
 /**
  * Enum containing the possible types a variant may have.
@@ -44,177 +44,160 @@ enum class VariantType {
 class Variant {
 
 private:
-	VariantType type;
+	const VariantType type;
 
 	union {
 		bool booleanValue;
 		int64_t integerValue;
 		double numberValue;
-		std::string stringValue;
-		std::vector<Variant> arrayValue;
-		std::map<std::string, Variant> mapValue;
+		void *objectValue = nullptr;
 	};
-
-	/**
-	 * Private function calling the destructor of the currently used union
-	 * member.
-	 */
-	void free() {
-		// Explicitly call the destructor
-		switch (type) {
-			case VariantType::string:
-				stringValue.std::string::~string();
-				break;
-			case VariantType::array:
-				arrayValue.std::vector<Variant>::~vector();
-				break;
-			case VariantType::map:
-				mapValue.std::map<std::string, Variant>::~map();
-				break;
-			default:
-				break;
-		}
-
-		// Reset the type
-		type = VariantType::none;
-	}
-
-	/**
-	 * Function for copying the content of the given instance v to this
-	 * instance. Callers must make sure the storage space has been freed
-	 * beforehand.
-	 */
-	void copy(const Variant &v)
-	{
-		type = v.type;
-		switch (type) {
-			case VariantType::integer:
-				integerValue = v.integerValue;
-				break;
-			case VariantType::number:
-				numberValue = v.numberValue;
-				break;
-			case VariantType::string:
-				new (&stringValue) std::string(v.stringValue);
-				break;
-			case VariantType::array:
-				new (&arrayValue) std::vector<Variant>(v.arrayValue);
-				break;
-			case VariantType::map:
-				new (&mapValue) std::map<std::string, Variant>(v.mapValue);
-				break;
-			default:
-				break;
-		}
-	}
-
-	/**
-	 * Function for moving the content of the given instance v to this instance.
-	 * No copy operation is used. Callers must make sure the storage space has
-	 * been freed beforehand.
-	 */
-	void move(Variant &v)
-	{
-		type = v.type;
-		switch (type) {
-			case VariantType::integer:
-				integerValue = v.integerValue;
-				break;
-			case VariantType::number:
-				numberValue = v.numberValue;
-				break;
-			case VariantType::string:
-				new (&stringValue) std::string(std::move(v.stringValue));
-				break;
-			case VariantType::array:
-				new (&arrayValue) std::vector<Variant>(std::move(v.arrayValue));
-				break;
-			case VariantType::map:
-				new (&mapValue) std::map<std::string, Variant>(std::move(v.mapValue));
-				break;
-			default:
-				break;
-		}
-
-		// Reset the type of v to "none"
-		v.type = VariantType::none;
-	}
 
 public:
 
 	class EBadEntry {};
 
-	Variant(const Variant &v)
+	Variant(const Variant &v) :
+		type(v.type)
 	{
-		copy(v);
+		switch (v.type) {
+			case VariantType::null:
+				break;
+			case VariantType::boolean:
+				booleanValue = v.booleanValue;
+				break;
+			case VariantType::integer:
+				integerValue = v.integerValue;
+				break;
+			case VariantType::number:
+				numberValue = v.numberValue;
+				break;
+			case VariantType::string:
+				objectValue = new std::string(
+						*static_cast<std::string*>(v.objectValue));
+				break;
+			case VariantType::array:
+				objectValue = new std::vector<Variant>(
+						*static_cast<std::vector<Variant>*>(v.objectValue));
+				break;
+			case VariantType::map:
+				objectValue = new std::map<std::string, Variant>(
+						*static_cast<std::map<std::string, Variant>*>(v.objectValue));
+				break;
+			case VariantType::function:
+			case VariantType::object:
+			case VariantType::buffer:
+				// TODO
+				break;
+		}
 	}
 
-	Variant(Variant &&v)
+	Variant(Variant &&v) :
+		type(v.type)
 	{
-		move(v);
-	}
-
-	Variant& operator=(const Variant &v)
-	{
-		free();
-		copy(v);
-		return *this;
-	}
-
-	Variant& operator=(Variant &&v)
-	{
-		free();
-		move(v);
-		return *this;
-	}
-
-
-	Variant(int64_t i) :
-		type(VariantType::integer),
-		integerValue(i)
-	{
-		// Do nothing here
-	}
-
-	Variant(double d) :
-		type(VariantType::number),
-		numberValue(d)
-	{
-		// Do nothing here
-	}
-
-	Variant(const char *s) :
-		type(VariantType::string)
-	{
-		new (&stringValue) std::string(s);
-	}
-
-	Variant(const std::vector<Variant> &a) :
-		type(VariantType::array)
-	{
-		new (&arrayValue) std::vector<Variant>(a);
-	}
-
-
-	Variant(const std::map<std::string, Variant> &m) :
-		type(VariantType::map)
-	{
-		new (&mapValue) std::map<std::string, Variant>(m);
+		switch (type) {
+			case VariantType::null:
+				break;
+			case VariantType::boolean:
+				booleanValue = v.booleanValue;
+				break;
+			case VariantType::integer:
+				integerValue = v.integerValue;
+				break;
+			case VariantType::number:
+				numberValue = v.numberValue;
+				break;
+			case VariantType::string:
+			case VariantType::array:
+			case VariantType::map:
+			case VariantType::function:
+			case VariantType::object:
+			case VariantType::buffer:
+				objectValue = v.objectValue;
+				v.objectValue = nullptr;
+				break;
+		}
 	}
 
 	~Variant()
 	{
-		free();
+		switch (type) {
+			case VariantType::string:
+				delete static_cast<std::string*>(objectValue);
+				break;
+			case VariantType::array:
+				delete static_cast<std::vector<Variant>*>(objectValue);
+				break;
+			case VariantType::map:
+				delete static_cast<std::map<std::string, Variant>*>(objectValue);
+				break;
+			default:
+				break;
+		}
 	}
+
+	Variant& operator=(const Variant &v) = delete;
+	Variant& operator=(Variant &&v) = delete;
+
+	Variant() :
+		type(VariantType::null) {}
+
+	Variant(bool b) :
+		type(VariantType::boolean),
+		booleanValue(b) {}
+
+	Variant(int64_t i) :
+		type(VariantType::integer),
+		integerValue(i) {}
+
+	Variant(double d) :
+		type(VariantType::number),
+		numberValue(d) {}
+
+	Variant(const char *s) :
+		type(VariantType::string),
+		objectValue(new std::string(s)) {}
+
+	Variant(const std::vector<Variant> &a) :
+		type(VariantType::array),
+		objectValue(new std::vector<Variant>(a)) {}
+
+	Variant(const std::map<std::string, Variant> &m) :
+		type(VariantType::map),
+		objectValue(new std::map<std::string, Variant>(m)) {}
 
 	VariantType getType() const
 	{
 		return type;
 	}
 
+	bool getBooleanValue() const
+	{
+		switch (type) {
+			case VariantType::null:
+				return false;
+			case VariantType::boolean:
+				return booleanValue;
+			case VariantType::integer:
+				return integerValue != 0;
+			case VariantType::number:
+				return numberValue != 0.0;
+			case VariantType::string:
+				return !getStringValue().empty();
+			case VariantType::array:
+				return !getArrayValue().empty();
+			case VariantType::map:
+				return !getMapValue().empty();
+			default:
+				throw EBadEntry{};
+		}
+	}
+
 	int64_t getIntegerValue() const
 	{
 		switch (type) {
+			case VariantType::boolean:
+				return booleanValue ? 1 : 0;
 			case VariantType::integer:
 				return integerValue;
 			case VariantType::number:
@@ -227,6 +210,8 @@ public:
 	double getNumberValue() const
 	{
 		switch (type) {
+			case VariantType::boolean:
+				return booleanValue ? 1.0 : 0.0;
 			case VariantType::integer:
 				return static_cast<double>(integerValue);
 			case VariantType::number:
@@ -240,7 +225,7 @@ public:
 	{
 		switch (type) {
 			case VariantType::string:
-				return stringValue;
+				return *(static_cast<std::string*>(objectValue));
 			default:
 				throw EBadEntry {};
 		}
@@ -250,7 +235,7 @@ public:
 	{
 		switch (type) {
 			case VariantType::array:
-				return arrayValue;
+				return *(static_cast<std::vector<Variant>*>(objectValue));
 			default:
 				throw EBadEntry {};
 		}
@@ -260,7 +245,7 @@ public:
 	{
 		switch (type) {
 			case VariantType::map:
-				return mapValue;
+				return *(static_cast<std::map<std::string, Variant>*>(objectValue));
 			default:
 				throw EBadEntry {};
 		}

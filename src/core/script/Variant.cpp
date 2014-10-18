@@ -24,8 +24,11 @@ namespace script {
 std::ostream& operator<< (std::ostream& os, const Variant &v)
 {
 	switch (v.type) {
-		case VariantType::none:
+		case VariantType::null:
 			os << "null";
+			break;
+		case VariantType::boolean:
+			os << (v.booleanValue ? "true" : "false");
 			break;
 		case VariantType::integer:
 			os << v.integerValue;
@@ -34,12 +37,12 @@ std::ostream& operator<< (std::ostream& os, const Variant &v)
 			os << v.numberValue;
 			break;
 		case VariantType::string:
-			os << "\"" << v.stringValue << "\"";
+			os << "\"" << v.getStringValue() << "\"";
 			break;
 		case VariantType::array: {
 			bool first = true;
 			os << "[";
-			for (auto &v2 : v.arrayValue) {
+			for (auto &v2 : v.getArrayValue()) {
 				if (!first) {
 					os << ", ";
 				}
@@ -52,7 +55,7 @@ std::ostream& operator<< (std::ostream& os, const Variant &v)
 		case VariantType::map: {
 			bool first = true;
 			os << "{";
-			for (auto &v2 : v.mapValue) {
+			for (auto &v2 : v.getMapValue()) {
 				if (!first) {
 					os << ", ";
 				}

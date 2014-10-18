@@ -51,18 +51,25 @@ INCLUDE_DIRECTORIES(
 	src/
 )
 
+# ousia_utils library
+ADD_LIBRARY(ousia_utils
+	src/core/utils/Utils.cpp
+)
+
 # ousia_script library (containing the code of t
 ADD_LIBRARY(ousia_script
 	src/core/script/Variant.cpp
+	src/core/script/ScriptEngine.cpp
+	src/core/script/
+)
+
+# Link the ousia executable against ousia_core
+TARGET_LINK_LIBRARIES(ousia_script
+	ousia_utils
 )
 
 # Definition of the main program
 #ADD_EXECUTABLE(ousia
-#)
-
-# Link the ousia executable against ousia_core
-#TARGET_LINK_LIBRARIES(ousia
-#	ousia_script
 #)
 
 # If testing is enabled, build the unit tests
@@ -76,11 +83,13 @@ IF(test)
 	# Add all unit test files
 	ADD_EXECUTABLE(ousia_test
 		test/core/model/RangeSet
+		test/core/utils/Utils
 		test/core/script/Variant
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test
 		${GTEST_LIBRARIES}
+		ousia_utils
 		ousia_script
 	)
 

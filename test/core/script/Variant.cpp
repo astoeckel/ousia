@@ -23,6 +23,17 @@
 namespace ousia {
 namespace script {
 
+TEST(Variant, getBooleanValue)
+{
+	ASSERT_TRUE((Variant{true}).getBooleanValue());
+	ASSERT_FALSE((Variant{false}).getBooleanValue());
+	ASSERT_FALSE((Variant{(int64_t)0}).getBooleanValue());
+	ASSERT_TRUE((Variant{(int64_t)1}).getBooleanValue());
+	ASSERT_FALSE((Variant{0.0}).getBooleanValue());
+	ASSERT_TRUE((Variant{1.2}).getBooleanValue());
+	ASSERT_FALSE((Variant{""}).getBooleanValue());
+}
+
 TEST(Variant, getIntegerValue)
 {
 	Variant vi{(int64_t)42};
@@ -30,6 +41,8 @@ TEST(Variant, getIntegerValue)
 
 	ASSERT_EQ(42, vi.getIntegerValue());
 	ASSERT_EQ(42, vf.getIntegerValue());
+	ASSERT_EQ(1, (Variant{true}).getIntegerValue());
+	ASSERT_EQ(0, (Variant{false}).getIntegerValue());
 }
 
 TEST(Variant, getNumberValue)
@@ -39,6 +52,8 @@ TEST(Variant, getNumberValue)
 
 	ASSERT_EQ(42, vi.getNumberValue());
 	ASSERT_EQ(42.5, vf.getNumberValue());
+	ASSERT_EQ(1.0, (Variant{true}).getIntegerValue());
+	ASSERT_EQ(0.0, (Variant{false}).getIntegerValue());
 }
 
 TEST(Variant, getStringValue)
