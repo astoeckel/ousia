@@ -67,7 +67,7 @@ public:
 	/**
 	 * Returns the error message.
 	 */
-	virtual const char* what() const noexcept;
+	virtual const char* what() const noexcept override;
 
 };
 

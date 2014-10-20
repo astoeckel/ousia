@@ -21,6 +21,49 @@
 namespace ousia {
 namespace script {
 
+/* Class VariantTypeException */
+
+static const char* getVariantTypeName(VariantType type)
+{
+	switch (type) {
+		case VariantType::null:
+			return "null";
+		case VariantType::boolean:
+			return "boolean";
+		case VariantType::integer:
+			return "integer";
+		case VariantType::number:
+			return "number";
+		case VariantType::string:
+			return "string";
+		case VariantType::array:
+			return "array";
+		case VariantType::map:
+			return "map";
+		case VariantType::function:
+			return "function";
+		case VariantType::object:
+			return "object";
+		case VariantType::buffer:
+			return "buffer";
+	}
+	return "unknown";
+}
+
+VariantTypeException::VariantTypeException(VariantType actualType,
+		VariantType requestedType) :
+	msg(std::string("Cannot get value of variant of type \"")
+			+ getVariantTypeName(actualType)
+			+ std::string("\" as \"") + getVariantTypeName(requestedType)),
+	actualType(actualType), requestedType(requestedType) {}
+
+const char* VariantTypeException::what() const noexcept
+{
+	return msg.c_str();
+}
+
+/* Global scope operator */
+
 std::ostream& operator<< (std::ostream& os, const Variant &v)
 {
 	switch (v.type) {

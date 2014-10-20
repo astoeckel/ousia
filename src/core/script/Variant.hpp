@@ -19,13 +19,12 @@
 #ifndef _OUSIA_VARIANT_HPP_
 #define _OUSIA_VARIANT_HPP_
 
-#include <iostream>
-
 #include <cstdint>
+#include <exception>
+#include <map>
 #include <ostream>
 #include <string>
 #include <vector>
-#include <map>
 
 namespace ousia {
 namespace script {
@@ -33,17 +32,68 @@ namespace script {
 /**
  * Enum containing the possible types a variant may have.
  */
-enum class VariantType {
-	null, boolean, integer, number, string, array, map, function, object, buffer
+enum class VariantType : int16_t {
+	null = 0x0001,
+	boolean = 0x0002,
+	integer = 0x0004,
+	number = 0x0008,
+	string = 0x0010,
+	array = 0x0020,
+	map = 0x0040,
+	function = 0x0080,
+	object = 0x0100,
+	buffer = 0x0200
+};
+
+/**
+ * Exception thrown whenever a variant is accessed via a getter function that
+ * is not supported for the current variant type.
+ */
+class VariantTypeException : std::exception {
+
+private:
+	/**
+	 * Internally used string holding the exception message.
+	 */
+	const std::string msg;
+
+public:
+	/**
+	 * Contains the actual type of the variant.
+	 */
+	const VariantType actualType;
+
+	/**
+	 * Contains the requested type of the variant.
+	 */
+	const VariantType requestedType;
+
+	/**
+	 * Constructor of the VariantTypeException.
+	 *
+	 * @param actualType describes the actual type of the variant.
+	 * @param requestedType describes the type in which the variant was
+	 * requested.
+	 */
+	VariantTypeException(VariantType actualType, VariantType requestedType);
+
+	/**
+	 * Returns the error message of the exception.
+	 *
+	 * @return the error message as C string.
+	 */
+	virtual const char* what() const noexcept override;
+
 };
 
 /**
  * Instances of the Variant class represent any kind of data that is exchanged
- * between the host application and the script engine.
+ * between the host application and the script engine. Variants are immutable.
  */
 class Variant {
 
 private:
+
 	const VariantType type;
 
 	union {
@@ -54,8 +104,6 @@ private:
 	};
 
 public:
-
-	class EBadEntry {};
 
 	Variant(const Variant &v) :
 		type(v.type)
@@ -189,7 +237,7 @@ public:
 			case VariantType::map:
 				return !getMapValue().empty();
 			default:
-				throw EBadEntry{};
+				throw VariantTypeException{type, VariantType::boolean};
 		}
 	}
 
@@ -203,7 +251,7 @@ public:
 			case VariantType::number:
 				return static_cast<int64_t>(numberValue);
 			default:
-				throw EBadEntry{};
+				throw VariantTypeException{type, VariantType::integer};
 		}
 	}
 
@@ -217,7 +265,7 @@ public:
 			case VariantType::number:
 				return numberValue;
 			default:
-				throw EBadEntry{};
+				throw VariantTypeException{type, VariantType::number};
 		}
 	}
 
@@ -227,7 +275,7 @@ public:
 			case VariantType::string:
 				return *(static_cast<std::string*>(objectValue));
 			default:
-				throw EBadEntry {};
+				throw VariantTypeException{type, VariantType::string};
 		}
 	}
 
@@ -237,7 +285,7 @@ public:
 			case VariantType::array:
 				return *(static_cast<std::vector<Variant>*>(objectValue));
 			default:
-				throw EBadEntry {};
+				throw VariantTypeException{type, VariantType::array};
 		}
 	}
 
@@ -247,13 +295,19 @@ public:
 			case VariantType::map:
 				return *(static_cast<std::map<std::string, Variant>*>(objectValue));
 			default:
-				throw EBadEntry {};
+				throw VariantTypeException{type, VariantType::map};
 		}
 	}
 
 	friend std::ostream& operator<< (std::ostream& os, const Variant &v);
 
 };
+
+
+/**
+ * Shorthand for a constant representing a "null" as a variant.
+ */
+static const Variant VarNull;
 
 }
 }
