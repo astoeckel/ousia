@@ -29,7 +29,7 @@
 namespace ousia {
 namespace script {
 
-/* Class forward declarations */
+/* Class forward declarations to avoid cyclic dependencies in the header */
 class Object;
 class Function;
 
@@ -94,33 +94,136 @@ public:
  */
 class Variant {
 private:
+	/**
+	 * Used to store the actual type of the variant.
+	 */
 	const VariantType type;
 
+	/**
+	 * Anonymous union containing the possible value of the variant.
+	 */
 	union {
+		/**
+		 * The boolean value. Only valid if type is VariantType::boolean.
+		 */
 		bool booleanValue;
+		/**
+		 * The integer value. Only valid if type is VariantType::integer.
+		 */
 		int64_t integerValue;
+		/**
+		 * The number value. Only valid if type is VariantType::double.
+		 */
 		double numberValue;
+		/**
+		 * Pointer to the more complex data structures on the free store. Only
+		 * valid if type is one of VariantType::string, VariantType::array,
+		 * VariantType::map, VariantType::function, VariantType::object.
+		 */
 		void *objectValue = nullptr;
 	};
 
 public:
+	/**
+	 * Copy constructor of the Variant class.
+	 *
+	 * @param v is the Variant instance that should be cloned.
+	 */
 	Variant(const Variant &v);
+
+	/**
+	 * Move constructor of the Variant class.
+	 *
+	 * @param v is the reference to the Variant instance that should be moved,
+	 * this instance is invalidated afterwards.
+	 */
 	Variant(Variant &&v);
 
+	/**
+	 * Default constructor. Type is set to VariantType:null.
+	 */
 	Variant();
+
+	/**
+	 * Constructor for boolean values.
+	 *
+	 * @param b boolean value.
+	 */
 	Variant(bool b);
+
+	/**
+	 * Constructor for integer values.
+	 *
+	 * @param i integer value.
+	 */
 	Variant(int64_t i);
+
+	/**
+	 * Constructor for number values.
+	 *
+	 * @param d number (double) value.
+	 */
 	Variant(double d);
+
+	/**
+	 * Constructor for string values. The given string is copied and managed by
+	 * the new Variant instance.
+	 *
+	 * @param s is a reference to a C-Style string used as string value.
+	 */
 	Variant(const char *s);
+
+	/**
+	 * Constructor for array values. The given array is copied and managed by
+	 * the new Variant instance.
+	 *
+	 * @param a is a reference to the array
+	 */
 	Variant(const std::vector<Variant> &a);
+
+	/**
+	 * Constructor for map values. The given map is copied and managed by the new
+	 * Variant instance.
+	 *
+	 * @param m is a reference to the map.
+	 */
 	Variant(const std::map<std::string, Variant> &m);
+
+	/**
+	 * Constructor for function values. The given pointer to the function object is cloned and managed by the new Variant instance.
+	 *
+	 * @param f is a reference to the function.
+	 */
 	Variant(const Function *f);
+
+	/**
+	 * Constructor for object values. The given Object is copied and managed by
+	 * the new Variant instance.
+	 *
+	 * @param o is a reference to the object.
+	 */
 	Variant(const Object &o);
+
+	/**
+	 * Destructor of the Variant class.
+	 */
 	~Variant();
 
+	/**
+	 * Assign operator.
+	 */
 	Variant &operator=(const Variant &v) = delete;
+
+	/**
+	 * Move assign operator.
+	 */
 	Variant &operator=(Variant &&v) = delete;
 
+	/**
+	 * Returns the current type of the Variant.
+	 *
+	 * @return the current type of the Variant.
+	 */
 	VariantType getType() const
 	{
 		return type;
@@ -135,15 +238,22 @@ public:
 	const Function *getFunctionValue() const;
 	const Object &getObjectValue() const;
 
+	/**
+	 * Shorthand for a constant representing a "null" as a variant.
+	 */
+	static const Variant Null;
+
+	/**
+	 * Returns the name of the given variant type as C-style string.
+	 */
 	static const char *getTypeName(VariantType type);
 
+	/**
+	 * Prints the object as JSON to the output stream.
+	 */
 	friend std::ostream &operator<<(std::ostream &os, const Variant &v);
 };
 
-/**
- * Shorthand for a constant representing a "null" as a variant.
- */
-static const Variant VarNull;
 }
 }
 

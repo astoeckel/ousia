@@ -28,7 +28,7 @@ TEST(HostFunction, callDirect)
 	int v = 0;
 	HostFunction f{[](const std::vector<Variant> &args, void *data) {
 		*(static_cast<int*>(data)) = args[0].getIntegerValue();
-		return VarNull;
+		return Variant::Null;
 	}, {Argument{VariantType::integer}}, &v};
 	ASSERT_EQ(VariantType::null, f.call({{(int64_t)42}}).getType());
 	ASSERT_EQ(42, v);

@@ -307,7 +307,7 @@ protected:
 			throw "Setter not defined";
 		}
 		callback(args[0], data);
-		return VarNull;
+		return Variant::Null;
 	}
 
 public:

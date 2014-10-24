@@ -25,6 +25,8 @@ namespace script {
 
 /* Class Variant */
 
+const Variant Variant::Null;
+
 Variant::Variant(const Variant &v) : type(v.type)
 {
 	switch (v.type) {
