@@ -49,7 +49,7 @@ enum class VariantType : int16_t {
  * Exception thrown whenever a variant is accessed via a getter function that
  * is not supported for the current variant type.
  */
-class VariantTypeException : std::exception {
+class VariantTypeException : public std::exception {
 
 private:
 	/**
@@ -298,6 +298,8 @@ public:
 				throw VariantTypeException{type, VariantType::map};
 		}
 	}
+
+	static const char* getTypeName(VariantType type);
 
 	friend std::ostream& operator<< (std::ostream& os, const Variant &v);
 

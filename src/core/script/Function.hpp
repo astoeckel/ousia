@@ -46,6 +46,13 @@ public:
 	 */
 	virtual Variant call(const std::vector<Variant> &args) const = 0;
 
+	/**
+	 * Calls the underlying function with no arguments.
+	 *
+	 * @return a Variant containing the return value.
+	 */
+	Variant call() const { return call({}); }
+
 };
 
 /**
@@ -70,7 +77,7 @@ struct ArgumentDescriptor {
  * ArgumentValidatorError is an exception type used to represent argument
  * validator errors.
  */
-class ArgumentValidatorError : std::exception {
+class ArgumentValidatorError : public std::exception {
 
 public:
 
@@ -109,6 +116,11 @@ private:
 	 * Error message for the last validation error.
 	 */
 	std::string errorMessage;
+
+	std::pair<bool, std::vector<Variant>> setError(int idx,
+			const std::string &msg, std::vector<Variant> &res);
+
+	void resetError();
 
 public:
 
@@ -153,6 +165,59 @@ public:
 /**
  * The HostFunction class represents a function that resides in the script host.
  */
+template<class T>
+class HostFunction : public Function {
+
+private:
+	T callback;
+	ArgumentValidator *validator;
+	void *data;
+
+public:
+
+	HostFunction(T callback, std::vector<ArgumentDescriptor> signature,
+			void *data = nullptr) :
+		callback(callback), validator(new ArgumentValidator(signature)),
+		data(data) {}
+
+	HostFunction(T callback, void *data = nullptr) :
+		callback(callback), validator(nullptr), data(data) {}
+
+	~HostFunction()
+	{
+		delete validator;
+	}
+
+	virtual Variant call(const std::vector<Variant> &args) const override
+	{
+		if (validator) {
+			std::pair<bool, std::vector<Variant>> res = validator->validate(args);
+			if (!res.first) {
+				throw validator->error();
+			}
+			return callback(res.second, data);
+		} else {
+			return callback(args, data);
+		}
+	}
+
+	using Function::call;
+
+};
+
+template<class T>
+static HostFunction<T> createHostFunction(T callback,
+		std::vector<ArgumentDescriptor> signature, void *data = nullptr)
+{
+	return HostFunction<T>(callback, signature, data);
+}
+
+template<class T>
+static HostFunction<T> createHostFunction(T callback, void *data = nullptr)
+{
+	return HostFunction<T>(callback, data);
+}
+
 
 }
 }

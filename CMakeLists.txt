@@ -85,6 +85,7 @@ IF(test)
 	ADD_EXECUTABLE(ousia_test
 		test/core/model/RangeSet
 		test/core/utils/Utils
+		test/core/script/Function
 		test/core/script/Variant
 	)
 

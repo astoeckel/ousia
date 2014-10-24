@@ -23,7 +23,7 @@ namespace script {
 
 /* Class VariantTypeException */
 
-static const char* getVariantTypeName(VariantType type)
+const char* Variant::getTypeName(VariantType type)
 {
 	switch (type) {
 		case VariantType::null:
@@ -53,8 +53,9 @@ static const char* getVariantTypeName(VariantType type)
 VariantTypeException::VariantTypeException(VariantType actualType,
 		VariantType requestedType) :
 	msg(std::string("Cannot get value of variant of type \"")
-			+ getVariantTypeName(actualType)
-			+ std::string("\" as \"") + getVariantTypeName(requestedType)),
+			+ Variant::getTypeName(actualType)
+			+ std::string("\" as \"") + Variant::getTypeName(requestedType)
+			+ std::string("\"")),
 	actualType(actualType), requestedType(requestedType) {}
 
 const char* VariantTypeException::what() const noexcept
