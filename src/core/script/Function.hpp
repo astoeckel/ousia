@@ -29,12 +29,23 @@ namespace ousia {
 namespace script {
 
 /**
- * The abstract Function class is most basic version of a function handle --
- * just a virtual "call" function which calls the underlying code.
+ * The abstract Function class is most basic version of a function handle,
+ * maintaining a "call" function and basic virtual functions for lifecyle
+ * management.
  */
 class Function {
-
 public:
+	/**
+	 * Virtual clone function (e.g. used in the variant class).
+	 */
+	virtual Function *clone() const = 0;
+
+	/**
+	 * Virtual destructor.
+	 */
+	virtual ~Function()
+	{
+	}
 
 	/**
 	 * Abstract function which is meant to call the underlying function (be it
@@ -51,26 +62,27 @@ public:
 	 *
 	 * @return a Variant containing the return value.
 	 */
-	Variant call() const { return call({}); }
+	Variant call() const
+	{
+		return call({});
+	}
 
+	// TODO: Use () operator instead of the call function
 };
 
 /**
- * The ArgumentDescriptor class is used to describe the type of a function
+ * The Argument class is used to describe the type of a function
  * argument.
  */
-struct ArgumentDescriptor {
-
+struct Argument {
 	const VariantType type;
 	const bool hasDefault;
 	const Variant defaultValue;
 
-	ArgumentDescriptor(VariantType type) :
-		type(type), hasDefault(false) {};
+	Argument(VariantType type) : type(type), hasDefault(false){};
 
-	ArgumentDescriptor(VariantType type, const Variant &defaultValue) :
-		type(type), hasDefault(true), defaultValue(defaultValue) {};
-
+	Argument(VariantType type, const Variant &defaultValue)
+	    : type(type), hasDefault(true), defaultValue(defaultValue){};
 };
 
 /**
@@ -78,21 +90,18 @@ struct ArgumentDescriptor {
  * validator errors.
  */
 class ArgumentValidatorError : public std::exception {
-
 public:
-
 	const int index;
 
 	const std::string msg;
 
-	ArgumentValidatorError(int index, const std::string &msg) :
-		index(index), msg(msg) {};
+	ArgumentValidatorError(int index, const std::string &msg)
+	    : index(index), msg(msg){};
 
-	virtual const char* what() const noexcept override
+	virtual const char *what() const noexcept override
 	{
 		return msg.c_str();
 	}
-
 };
 
 /**
@@ -100,12 +109,11 @@ public:
  * arguments passed to a function match the description.
  */
 class ArgumentValidator {
-
 private:
 	/**
 	 * List containing the argument descriptors.
 	 */
-	const std::vector<ArgumentDescriptor> descriptors;
+	const std::vector<Argument> descriptors;
 
 	/**
 	 * Argument index in the input array, at which the last error occured.
@@ -118,20 +126,22 @@ private:
 	std::string errorMessage;
 
 	std::pair<bool, std::vector<Variant>> setError(int idx,
-			const std::string &msg, std::vector<Variant> &res);
+	                                               const std::string &msg,
+	                                               std::vector<Variant> &res);
 
 	void resetError();
 
 public:
-
 	/**
 	 * Constructor of the argument validator class.
 	 *
-	 * @param descriptors is a list of ArgumentDescriptors which should be used
+	 * @param descriptors is a list of Arguments which should be used
 	 * for the validation.
 	 */
-	ArgumentValidator(const std::vector<ArgumentDescriptor> &descriptors) :
-		descriptors(descriptors) {}
+	ArgumentValidator(const std::vector<Argument> &descriptors)
+	    : descriptors(descriptors)
+	{
+	}
 
 	/**
 	 * Validates and augments the given argument list (e.g. adds the default
@@ -143,7 +153,8 @@ public:
 	 * list of arguments. If false is returned, use the error function to get
 	 * more information about the error.
 	 */
-	std::pair<bool, std::vector<Variant>> validate(const std::vector<Variant> &args);
+	std::pair<bool, std::vector<Variant>> validate(
+	    const std::vector<Variant> &args);
 
 	/**
 	 * Returns an ArgumentValidatorError instance containing the argument index
@@ -157,68 +168,174 @@ public:
 	 */
 	ArgumentValidatorError error()
 	{
-		return ArgumentValidatorError(errorIndex, errorMessage);
+		return ArgumentValidatorError{errorIndex, errorMessage};
 	}
-
 };
 
 /**
- * The HostFunction class represents a function that resides in the script host.
+ * A validating function
  */
-template<class T>
-class HostFunction : public Function {
-
+class ValidatingFunction : public Function {
 private:
-	T callback;
 	ArgumentValidator *validator;
-	void *data;
 
-public:
-
-	HostFunction(T callback, std::vector<ArgumentDescriptor> signature,
-			void *data = nullptr) :
-		callback(callback), validator(new ArgumentValidator(signature)),
-		data(data) {}
-
-	HostFunction(T callback, void *data = nullptr) :
-		callback(callback), validator(nullptr), data(data) {}
-
-	~HostFunction()
-	{
-		delete validator;
-	}
+protected:
+	virtual Variant validatedCall(const std::vector<Variant> &args) const = 0;
 
 	virtual Variant call(const std::vector<Variant> &args) const override
 	{
 		if (validator) {
-			std::pair<bool, std::vector<Variant>> res = validator->validate(args);
+			std::pair<bool, std::vector<Variant>> res =
+			    validator->validate(args);
 			if (!res.first) {
 				throw validator->error();
 			}
-			return callback(res.second, data);
-		} else {
-			return callback(args, data);
+			return validatedCall(res.second);
 		}
+		return validatedCall(args);
 	}
 
 	using Function::call;
 
+public:
+	ValidatingFunction() : validator(nullptr)
+	{
+	}
+
+	ValidatingFunction(std::vector<Argument> signature)
+	    : validator(new ArgumentValidator(signature))
+	{
+	}
+
+	~ValidatingFunction() override
+	{
+		delete validator;
+	}
 };
 
-template<class T>
-static HostFunction<T> createHostFunction(T callback,
-		std::vector<ArgumentDescriptor> signature, void *data = nullptr)
-{
-	return HostFunction<T>(callback, signature, data);
-}
+using HostFunctionCallback = Variant (*)(const std::vector<Variant> &args,
+                                         void *data);
+using GetterCallback = Variant (*)(void *data);
+using SetterCallback = void (*)(Variant arg, void *data);
 
-template<class T>
-static HostFunction<T> createHostFunction(T callback, void *data = nullptr)
-{
-	return HostFunction<T>(callback, data);
-}
+class HostFunction : public ValidatingFunction {
+private:
+	HostFunctionCallback callback;
+	void *data;
 
+protected:
+	virtual Variant validatedCall(
+	    const std::vector<Variant> &args) const override
+	{
+		return callback(args, data);
+	}
 
+public:
+	HostFunction(HostFunctionCallback callback, std::vector<Argument> signature,
+	             void *data = nullptr)
+	    : ValidatingFunction(signature), callback(callback), data(data)
+	{
+	}
+
+	HostFunction(HostFunctionCallback callback, void *data = nullptr)
+	    : ValidatingFunction(), callback(callback), data(data)
+	{
+	}
+
+	Function *clone() const override
+	{
+		return new HostFunction(*this);
+	}
+
+	using ValidatingFunction::call;
+};
+
+class Getter : public ValidatingFunction {
+private:
+	GetterCallback callback;
+	void *data;
+
+protected:
+	virtual Variant validatedCall(
+	    const std::vector<Variant> &args) const override
+	{
+		if (!callback) {
+			// TODO: Use another exception class here
+			throw "Getter not defined";
+		}
+		return callback(data);
+	}
+
+public:
+	Getter(GetterCallback callback, void *data = nullptr)
+	    : ValidatingFunction(std::vector<Argument>{}),
+	      callback(callback),
+	      data(data){};
+
+	Function *clone() const override
+	{
+		return new Getter(*this);
+	}
+
+	Variant call() const
+	{
+		return ValidatingFunction::call();
+	}
+
+	Variant operator()() const
+	{
+		return call();
+	}
+
+	bool exists()
+	{
+		return callback != nullptr;
+	}
+};
+
+class Setter : public ValidatingFunction {
+private:
+	SetterCallback callback;
+	void *data;
+
+protected:
+	virtual Variant validatedCall(
+	    const std::vector<Variant> &args) const override
+	{
+		if (!callback) {
+			// TODO: Use another exception class here
+			throw "Setter not defined";
+		}
+		callback(args[0], data);
+		return VarNull;
+	}
+
+public:
+	Setter(VariantType type, SetterCallback callback, void *data = nullptr)
+	    : ValidatingFunction({Argument{type}}),
+	      callback(callback),
+	      data(data){};
+
+	Function *clone() const override
+	{
+		return new Setter(*this);
+	}
+
+	void call(Variant arg) const
+	{
+		ValidatingFunction::call({arg});
+	}
+
+	void operator()(Variant arg) const
+	{
+		return call(arg);
+	}
+
+	bool exists()
+	{
+		return callback != nullptr;
+	}
+};
 }
 }
 

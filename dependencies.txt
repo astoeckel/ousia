@@ -1,6 +1,40 @@
+Hard dependencies
+=================
+
 The following packages have to be installed (for Fedora)
 
 - cmake
-# - qt5-qtbase-devel (not needed for now)
-# - qt5-qtscript-devel (not needed for now)
+- mozjs24-devel
 
+Documentation
+=============
+
+In order to build the documentation (make doc)
+
+- doxygen
+
+Tools
+=====
+
+Automated code formating (clang-format)
+---------------------------------------
+
+Download Pre-built binary of "LLVM" from
+
+http://llvm.org/releases/download.html
+
+use the "clang-format" program in the bin/ directory. The following gedit tool can be used for automated code formating:
+
+(Active "External Tools" plugin, add the following lines to ./config/gedit/tools/, without indentation)
+
+	#!/bin/sh
+	# [Gedit Tool]
+	# Input=document
+	# Shortcut=<Shift><Alt>f
+	# Applicability=all
+	# Save-files=nothing
+	# Output=replace-document
+	# Name=Clang Format
+
+
+	cd $GEDIT_CURRENT_DOCUMENT_DIR && <INSERT CORRECT PATH HERE>/clang-format

@@ -18,14 +18,46 @@
 # Basic Project Definitions and Dependencies                                   #
 ################################################################################
 
-PROJECT(basicwriter)
+PROJECT(ousia)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.9)
 
 # Option for enabling testing. Turn on with 'cmake -Dtest=ON'.
 OPTION(test "Build all tests." OFF) # Makes boolean 'test' available.
 
+# Option for building the documentation.
+FIND_PACKAGE(Doxygen)
+OPTION(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
+
 # Enable C++11 and all warnings
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0  -Wall -pedantic -std=c++11")
+
+# Use PkgConfig to find mozjs-24
+FIND_PACKAGE(PkgConfig REQUIRED)
+PKG_CHECK_MODULES(MOZJS REQUIRED mozjs-24)
+
+################################################################################
+# Inclusion of doxygen                                                         #
+################################################################################
+
+IF(BUILD_DOCUMENTATION)
+	IF(NOT DOXYGEN_FOUND)
+		MESSAGE(FATAL_ERROR "Doxygen is needed to build the documentation.")
+	ENDIF()
+
+	SET(DOXYFILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
+	SET(DOXYFILE ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+
+	CONFIGURE_FILE(${DOXYFILE_IN} ${DOXYFILE} @ONLY)
+
+	ADD_CUSTOM_TARGET(doc
+		COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+		COMMENT "Generating API documentation with Doxygen"
+		VERBATIM)
+
+	INSTALL(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
+ENDIF()
+
 
 ################################################################################
 # Inclusion of gtest                                                           #
@@ -46,9 +78,19 @@ ENDIF()
 # Commands for building Ousía                                                  #
 ################################################################################
 
-# Includ directories
+# Include directories
 INCLUDE_DIRECTORIES(
 	src/
+	${MOZJS_INCLUDE_DIRS}
+)
+
+# Link directories
+LINK_DIRECTORIES(
+	${MOZJS_LIBRARY_DIRS}
+)
+
+ADD_DEFINITIONS(
+	${MOZJS_CFLAGS_OTHER}
 )
 
 # ousia_utils library
@@ -61,7 +103,7 @@ ADD_LIBRARY(ousia_script
 	src/core/script/Function.cpp
 	src/core/script/Variant.cpp
 	src/core/script/ScriptEngine.cpp
-	src/core/script/
+	src/core/script/Object.cpp
 )
 
 # Link the ousia executable against ousia_core

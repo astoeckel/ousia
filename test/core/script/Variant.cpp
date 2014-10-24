@@ -19,6 +19,8 @@
 #include <gtest/gtest.h>
 
 #include <core/script/Variant.hpp>
+#include <core/script/Function.hpp>
+#include <core/script/Object.hpp>
 
 namespace ousia {
 namespace script {
@@ -80,6 +82,21 @@ TEST(Variant, getMapValue)
 	ASSERT_EQ("entry1", (*map.find("key1")).second.getStringValue());
 	ASSERT_EQ("entry2", (*map.find("key2")).second.getStringValue());
 }
+
+TEST(Variant, getFunctionValue)
+{
+	int64_t i = 0;
+	HostFunction f{[](const std::vector<Variant> &args, void *data) {
+		*((int64_t*)data) = args[0].getIntegerValue();
+		return Variant{"Hello World"};
+	}, &i};
+
+	Variant v{&f};
+	ASSERT_TRUE(v.getFunctionValue() != nullptr);
+	ASSERT_EQ("Hello World", v.getFunctionValue()->call({{(int64_t)42}}).getStringValue());
+	ASSERT_EQ(42, i);
+}
+
 
 }
 }
