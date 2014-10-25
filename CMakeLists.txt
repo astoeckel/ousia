@@ -29,7 +29,7 @@ FIND_PACKAGE(Doxygen)
 OPTION(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
 
 # Enable C++11 and all warnings
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0  -Wall -pedantic -std=c++11")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall -pedantic-errors -std=c++11")
 
 # Use PkgConfig to find mozjs-24
 FIND_PACKAGE(PkgConfig REQUIRED)
@@ -93,30 +93,32 @@ ADD_DEFINITIONS(
 	${MOZJS_CFLAGS_OTHER}
 )
 
-# ousia_utils library
-ADD_LIBRARY(ousia_utils
-	src/core/utils/Utils.cpp
-)
-
-# ousia_script library (containing the code of t
-ADD_LIBRARY(ousia_script
+# ousia_script library (containing the bindings needed for script engines)
+ADD_LIBRARY(ousia_core
 	src/core/script/Function.cpp
 	src/core/script/Object.cpp
 	src/core/script/ScriptEngine.cpp
 	src/core/script/Variant.cpp
+	src/core/utils/Utils.cpp
 )
 
-# Link the ousia executable against ousia_core
-TARGET_LINK_LIBRARIES(ousia_script
-	ousia_utils
+# ousia_plugin_mozjs library
+
+ADD_LIBRARY(ousia_plugin_mozjs
+	src/plugins/mozjs/MozJsScriptEngine.cpp
 )
 
-# Definition of the main program
-#ADD_EXECUTABLE(ousia
-#)
+TARGET_LINK_LIBRARIES(ousia_plugin_mozjs
+	ousia_core
+)
 
 # If testing is enabled, build the unit tests
 IF(test)
+
+	#
+	# Core Test
+	#
+
 	# Include the gtest include files and the src directory
 	INCLUDE_DIRECTORIES(
 		${GTEST_INCLUDE_DIR}
@@ -124,21 +126,43 @@ IF(test)
 	)
 
 	# Add all unit test files
-	ADD_EXECUTABLE(ousia_test
-		test/core/model/RangeSet
-		test/core/utils/Utils
-		test/core/script/Function
-		test/core/script/Object
-		test/core/script/Variant
+	ADD_EXECUTABLE(ousia_test_core
+		test/core/utils/RangeSetTest
+		test/core/utils/UtilsTest
+		test/core/script/FunctionTest
+		test/core/script/ObjectTest
+		test/core/script/VariantTest
 	)
 
-	TARGET_LINK_LIBRARIES(ousia_test
+	TARGET_LINK_LIBRARIES(ousia_test_core
 		${GTEST_LIBRARIES}
-		ousia_utils
-		ousia_script
+		ousia_core
 	)
 
-	# Register the unit test
-	ADD_TEST(ousia_test ousia_test)
+	#
+	# Plugin Tests
+	#
+
+	# Include the gtest include files and the src directory
+	INCLUDE_DIRECTORIES(
+		${MOZJS_INCLUDE_DIRS}
+		${GTEST_INCLUDE_DIR}
+		src/
+	)
+
+	# Add all unit test files
+	ADD_EXECUTABLE(ousia_test_plugin_mozjs
+		test/plugins/mozjs/MozJsScriptEngineTest.cpp
+	)
+
+	TARGET_LINK_LIBRARIES(ousia_test_plugin_mozjs
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_plugin_mozjs
+	)
+
+	# Register the unit tests
+	ADD_TEST(ousia_test_core ousia_test_core)
+	ADD_TEST(ousia_test_plugin_mozjs ousia_test_plugin_mozjs)
 ENDIF()
 

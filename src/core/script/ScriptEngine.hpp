@@ -35,7 +35,6 @@ namespace script {
  * in the script engine.
  */
 class ScriptEngineException : public std::exception {
-
 public:
 	/**
 	 * Line and column at which the exception occured. Set to -1 if the error
@@ -67,18 +66,15 @@ public:
 	/**
 	 * Returns the error message.
 	 */
-	virtual const char* what() const noexcept override;
-
+	virtual const char *what() const noexcept override;
 };
 
 /**
  * The ScriptEngineScope class represents an execution scope -- an execution
- * scope is the base class 
+ * scope is the base class
  */
 class ScriptEngineScope {
-
 private:
-
 	/**
 	 * Helper used to check the given identifiers for their validity.
 	 *
@@ -93,29 +89,27 @@ private:
 	}
 
 protected:
-
 	/**
-	 * Implementation of the @see run function.
+	 * Implementation of the run function.
 	 */
 	virtual Variant doRun(const std::string &code) = 0;
 
 	/**
-	 * Implementation of the @see setVariable function.
+	 * Implementation of the setVariable function.
 	 */
 	virtual void doSetVariable(const std::string &name, const Variant &val,
-			bool constant) = 0;
+	                           bool constant) = 0;
 
 	/**
-	 * Implementation of the @see getVariable function.
+	 * Implementation of the getVariable function.
 	 */
 	virtual Variant doGetVariable(const std::string &name) = 0;
 
 public:
-
 	/**
 	 * Virtual destructor. Must be overwritten by implementing classes.
 	 */
-	virtual ~ScriptEngineScope() {};
+	virtual ~ScriptEngineScope(){};
 
 	/**
 	 * Runs the given code in the excution context.
@@ -124,10 +118,7 @@ public:
 	 * @return a variant containg the result of the executed code.
 	 * @throws ScriptEngineException if an error occured during code execution.
 	 */
-	Variant run(const std::string &code)
-	{
-		return doRun(code);
-	}
+	Variant run(const std::string &code) { return doRun(code); }
 
 	/**
 	 * Sets the value of a variable in the scope with the given name.
@@ -140,7 +131,7 @@ public:
 	 * @throws ScriptEngineException if name is not a well-formed identifier.
 	 */
 	void setVariable(const std::string &name, const Variant &val,
-			bool constant = false)
+	                 bool constant = false)
 	{
 		checkIdentifier(name);
 		doSetVariable(name, val, constant);
@@ -159,7 +150,6 @@ public:
 		checkIdentifier(name);
 		return doGetVariable(name);
 	}
-
 };
 
 /**
@@ -168,14 +158,12 @@ public:
  * function which creates an execution scope.
  */
 class ScriptEngine {
-
 public:
 	/**
 	 * Requests an execution scope from the script engine implementation. The
 	 * calling code is responsible for disposing the returned pointer.
 	 */
-	virtual ScriptEngineScope* createScope() const = 0;
-
+	virtual ScriptEngineScope *createScope() = 0;
 };
 
 /**
@@ -184,16 +172,14 @@ public:
  * language.
  */
 class ScriptEngineFactory {
-
 private:
 	/**
 	 * Internal map between the script language name and the actual script
 	 * engine instance.
 	 */
-	std::map<std::string, ScriptEngine*> registry;
+	std::map<std::string, ScriptEngine *> registry;
 
 public:
-
 	/**
 	 * Registers a ScriptEngine instance for a new scripting language.
 	 *
@@ -206,7 +192,7 @@ public:
 	/**
 	 * Removes a script engine from the registry.
 	 *
-	 * @param name is the name of the script engine that 
+	 * @param name is the name of the script engine that
 	 */
 	bool unregisterScriptEngine(const std::string &name);
 
@@ -218,16 +204,12 @@ public:
 	 * is being created.
 	 * @return a pointer to the new execution scope or null if a script engine
 	 * with the given name does not exist. The caller of this function is
-	 * responsible 
+	 * responsible
 	 */
-	ScriptEngineScope* createScope(const std::string &name) const;
-
+	ScriptEngineScope *createScope(const std::string &name) const;
 };
-
 }
 }
-
 
 #endif /* _OUSIA_SCRIPT_ENGINE_HPP_ */
-
 

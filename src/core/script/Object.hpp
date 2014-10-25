@@ -27,6 +27,8 @@
 namespace ousia {
 namespace script {
 
+// TODO: Check names for being proper identifiers!
+
 /**
  * The Property struct represents an object property with corresponding getter
  * and setter function.

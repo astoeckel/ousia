@@ -23,21 +23,27 @@
 namespace ousia {
 namespace script {
 
+/* Class ScriptEngineException */
+
 ScriptEngineException::ScriptEngineException(int line, int col,
-		const std::string &msg) :
-	line(line), col(col),
-	msg(std::to_string(line) + ":" + std::to_string(col) + " " + msg) {}
-
-ScriptEngineException::ScriptEngineException(const std::string &msg) :
-	line(-1), col(-1), msg(msg) {}
-
-const char* ScriptEngineException::what() const noexcept
+                                             const std::string &msg)
+    : line(line),
+      col(col),
+      msg(std::to_string(line) + ":" + std::to_string(col) + " " + msg)
 {
-	return msg.c_str();
 }
 
+ScriptEngineException::ScriptEngineException(const std::string &msg)
+    : line(-1), col(-1), msg(msg)
+{
+}
+
+const char *ScriptEngineException::what() const noexcept { return msg.c_str(); }
+
+/* Class ScriptEngineFactory */
+
 void ScriptEngineFactory::registerScriptEngine(const std::string &name,
-		ScriptEngine *engine)
+                                               ScriptEngine *engine)
 {
 	registry[name] = engine;
 }
@@ -47,10 +53,8 @@ bool ScriptEngineFactory::unregisterScriptEngine(const std::string &name)
 	return registry.erase(name) > 0;
 }
 
-/* Class ScriptEngineFactory */
-
-ScriptEngineScope* ScriptEngineFactory::createScope(
-		const std::string &name) const
+ScriptEngineScope *ScriptEngineFactory::createScope(
+    const std::string &name) const
 {
 	auto it = registry.find(name);
 	if (it != registry.end()) {
@@ -58,8 +62,6 @@ ScriptEngineScope* ScriptEngineFactory::createScope(
 	}
 	return nullptr;
 }
-
-
 }
 }
 
