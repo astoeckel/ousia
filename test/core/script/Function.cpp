@@ -27,9 +27,11 @@ TEST(HostFunction, callDirect)
 {
 	int v = 0;
 	HostFunction f{[](const std::vector<Variant> &args, void *data) {
-		*(static_cast<int*>(data)) = args[0].getIntegerValue();
-		return Variant::Null;
-	}, {Argument{VariantType::integer}}, &v};
+		               *(static_cast<int *>(data)) = args[0].getIntegerValue();
+		               return Variant::Null;
+		           },
+	               {Argument{VariantType::integer}},
+	               &v};
 	ASSERT_EQ(VariantType::null, f.call({{(int64_t)42}}).getType());
 	ASSERT_EQ(42, v);
 }
@@ -38,9 +40,11 @@ TEST(HostFunction, callDefaults)
 {
 	int v = 0;
 	HostFunction f{[](const std::vector<Variant> &args, void *data) {
-		*(static_cast<int*>(data)) = args[0].getIntegerValue();
-		return Variant{"Hallo Welt"};
-	}, {Argument{VariantType::integer, {(int64_t)42}}}, &v};
+		               *(static_cast<int *>(data)) = args[0].getIntegerValue();
+		               return Variant{"Hallo Welt"};
+		           },
+	               {Argument{VariantType::integer, {(int64_t)42}}},
+	               &v};
 	ASSERT_EQ("Hallo Welt", f.call().getStringValue());
 	ASSERT_EQ(42, v);
 }
@@ -49,8 +53,10 @@ TEST(Setter, call)
 {
 	int v = 0;
 	Setter f{VariantType::integer, [](Variant arg, void *data) {
-		*(static_cast<int*>(data)) = arg.getIntegerValue();
-	}, &v};
+		                               *(static_cast<int *>(data)) =
+		                                   arg.getIntegerValue();
+		                           },
+	         &v};
 	f.call({(int64_t)42});
 	ASSERT_EQ(42, v);
 }
@@ -59,11 +65,11 @@ TEST(Getter, call)
 {
 	int v = 42;
 	Getter f{[](void *data) {
-		return Variant{int64_t(*(static_cast<int*>(data)))};
-	}, &v};
+		         return Variant{int64_t(*(static_cast<int *>(data)))};
+		     },
+	         &v};
 	ASSERT_EQ(v, f.call().getIntegerValue());
 }
-
 }
 }
 

@@ -38,7 +38,7 @@ struct Property {
 	 * @param get is the getter that should be used for the property.
 	 * @param set is the setter that should be used for the property.
 	 */
-	Property(const Getter &get, const Setter &set) : get(get), set(set){};
+	Property(const Getter &get, const Setter &set) : get(get), set(set) {};
 
 	/**
 	 * Constructor of the Property struct. Creates new Getter and Setter
@@ -51,7 +51,7 @@ struct Property {
 	 */
 	Property(VariantType type, const GetterCallback get,
 	         const SetterCallback set, void *data = nullptr)
-	    : get(get, data), set(type, set, data){};
+	    : get(get, data), set(type, set, data) {};
 
 	/**
 	 * Getter function.
@@ -92,35 +92,45 @@ private:
 
 public:
 	Object() : data(nullptr){};
-
+	
 	Object(void *data) : data(data){};
 
-	bool hasElement(std::string name) const;
+	bool hasElement(const std::string &name) const;
 
-	void addProperty(std::string name, const Property &property);
+	void addProperty(const std::string &name, const Property &property);
 
-	void addProperty(std::string name, const Getter &get, const Setter &set);
+	void addProperty(const std::string &name, const Getter &get, const Setter &set);
 
-	void addProperty(std::string name, VariantType type,
+	void addProperty(const std::string &name, VariantType type,
 	                 const GetterCallback get, const SetterCallback set);
 
-	void addReadonlyProperty(std::string name, const Getter &get);
+	void addReadonlyProperty(const std::string &name, const Getter &get);
 
-	void addReadonlyProperty(std::string name, const GetterCallback get);
+	void addReadonlyProperty(const std::string &name, const GetterCallback get);
 
-	void addMethod(std::string name, const HostFunction &fun);
+	void addMethod(const std::string &name, const HostFunction &fun);
 
-	void addMethod(std::string name, const HostFunctionCallback fun);
+	void addMethod(const std::string &name, const HostFunctionCallback fun);
 
-	void addMethod(std::string name, const HostFunctionCallback fun,
+	void addMethod(const std::string &name, const HostFunctionCallback fun,
 	               const std::vector<Argument> &signature);
 
-	const std::map<std::string, Property> &getProperties()
+	const Property *getProperty(const std::string &name) const;
+
+	const Function *getMethod(const std::string &name) const;
+
+	bool removeElement(const std::string &name);
+
+	bool removeProperty(const std::string &name);
+
+	bool removeMethod(const std::string &name);
+
+	const std::map<std::string, Property> &getProperties() const
 	{
 		return properties;
 	}
 
-	const std::map<std::string, HostFunction> &getMethods()
+	const std::map<std::string, HostFunction> &getMethods() const
 	{
 		return methods;
 	}

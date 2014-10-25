@@ -43,9 +43,7 @@ public:
 	/**
 	 * Virtual destructor.
 	 */
-	virtual ~Function()
-	{
-	}
+	virtual ~Function() {}
 
 	/**
 	 * Abstract function which is meant to call the underlying function (be it
@@ -62,10 +60,7 @@ public:
 	 *
 	 * @return a Variant containing the return value.
 	 */
-	Variant call() const
-	{
-		return call({});
-	}
+	Variant call() const { return call({}); }
 
 	// TODO: Use () operator instead of the call function
 };
@@ -98,10 +93,7 @@ public:
 	ArgumentValidatorError(int index, const std::string &msg)
 	    : index(index), msg(msg){};
 
-	virtual const char *what() const noexcept override
-	{
-		return msg.c_str();
-	}
+	virtual const char *what() const noexcept override { return msg.c_str(); }
 };
 
 /**
@@ -113,7 +105,7 @@ private:
 	/**
 	 * List containing the argument descriptors.
 	 */
-	const std::vector<Argument> descriptors;
+	const std::vector<Argument> signature;
 
 	/**
 	 * Argument index in the input array, at which the last error occured.
@@ -125,21 +117,28 @@ private:
 	 */
 	std::string errorMessage;
 
+	/**
+	 * Used internally to update the errorIndex and the errorMessage fields.
+	 */
 	std::pair<bool, std::vector<Variant>> setError(int idx,
 	                                               const std::string &msg,
 	                                               std::vector<Variant> &res);
 
+	/**
+	 * Resets the error state.
+	 */
 	void resetError();
 
 public:
+
 	/**
 	 * Constructor of the argument validator class.
 	 *
 	 * @param descriptors is a list of Arguments which should be used
 	 * for the validation.
 	 */
-	ArgumentValidator(const std::vector<Argument> &descriptors)
-	    : descriptors(descriptors)
+	ArgumentValidator(const std::vector<Argument> &signature)
+	    : signature(signature)
 	{
 	}
 
@@ -177,39 +176,30 @@ public:
  */
 class ValidatingFunction : public Function {
 private:
-	ArgumentValidator *validator;
+	/**
+	 * Specifies whether the validating function should actually run or just
+	 * pass the arguments through.
+	 */
+	bool validate;
+
+	/**
+	 * Signature for which the function should be validated.
+	 */
+	const std::vector<Argument> signature;
 
 protected:
 	virtual Variant validatedCall(const std::vector<Variant> &args) const = 0;
 
-	virtual Variant call(const std::vector<Variant> &args) const override
-	{
-		if (validator) {
-			std::pair<bool, std::vector<Variant>> res =
-			    validator->validate(args);
-			if (!res.first) {
-				throw validator->error();
-			}
-			return validatedCall(res.second);
-		}
-		return validatedCall(args);
-	}
+	virtual Variant call(const std::vector<Variant> &args) const override;
 
 	using Function::call;
 
 public:
-	ValidatingFunction() : validator(nullptr)
-	{
-	}
+	ValidatingFunction() : validate(false) {}
 
-	ValidatingFunction(std::vector<Argument> signature)
-	    : validator(new ArgumentValidator(signature))
+	ValidatingFunction(const std::vector<Argument> &signature)
+	    : validate(true), signature(signature)
 	{
-	}
-
-	~ValidatingFunction() override
-	{
-		delete validator;
 	}
 };
 
@@ -242,10 +232,7 @@ public:
 	{
 	}
 
-	Function *clone() const override
-	{
-		return new HostFunction(*this);
-	}
+	Function *clone() const override { return new HostFunction(*this); }
 
 	using ValidatingFunction::call;
 };
@@ -272,25 +259,13 @@ public:
 	      callback(callback),
 	      data(data){};
 
-	Function *clone() const override
-	{
-		return new Getter(*this);
-	}
+	Function *clone() const override { return new Getter(*this); }
 
-	Variant call() const
-	{
-		return ValidatingFunction::call();
-	}
+	Variant call() const { return ValidatingFunction::call(); }
 
-	Variant operator()() const
-	{
-		return call();
-	}
+	Variant operator()() const { return call(); }
 
-	bool exists()
-	{
-		return callback != nullptr;
-	}
+	bool exists() const { return callback != nullptr; }
 };
 
 class Setter : public ValidatingFunction {
@@ -316,25 +291,13 @@ public:
 	      callback(callback),
 	      data(data){};
 
-	Function *clone() const override
-	{
-		return new Setter(*this);
-	}
+	Function *clone() const override { return new Setter(*this); }
 
-	void call(Variant arg) const
-	{
-		ValidatingFunction::call({arg});
-	}
+	void call(Variant arg) const { ValidatingFunction::call({arg}); }
 
-	void operator()(Variant arg) const
-	{
-		return call(arg);
-	}
+	void operator()(Variant arg) const { return call(arg); }
 
-	bool exists()
-	{
-		return callback != nullptr;
-	}
+	bool exists() const { return callback != nullptr; }
 };
 }
 }

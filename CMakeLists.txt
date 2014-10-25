@@ -101,9 +101,9 @@ ADD_LIBRARY(ousia_utils
 # ousia_script library (containing the code of t
 ADD_LIBRARY(ousia_script
 	src/core/script/Function.cpp
-	src/core/script/Variant.cpp
-	src/core/script/ScriptEngine.cpp
 	src/core/script/Object.cpp
+	src/core/script/ScriptEngine.cpp
+	src/core/script/Variant.cpp
 )
 
 # Link the ousia executable against ousia_core
@@ -128,6 +128,7 @@ IF(test)
 		test/core/model/RangeSet
 		test/core/utils/Utils
 		test/core/script/Function
+		test/core/script/Object
 		test/core/script/Variant
 	)
 

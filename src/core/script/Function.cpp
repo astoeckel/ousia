@@ -21,8 +21,10 @@
 namespace ousia {
 namespace script {
 
-std::pair<bool, std::vector<Variant>> ArgumentValidator::setError(int idx,
-		const std::string &msg, std::vector<Variant> &res)
+/* Class ArgumentValidator */
+
+std::pair<bool, std::vector<Variant>> ArgumentValidator::setError(
+    int idx, const std::string &msg, std::vector<Variant> &res)
 {
 	errorIndex = idx;
 	errorMessage = msg;
@@ -36,7 +38,7 @@ void ArgumentValidator::resetError()
 }
 
 std::pair<bool, std::vector<Variant>> ArgumentValidator::validate(
-		const std::vector<Variant> &args)
+    const std::vector<Variant> &args)
 {
 	std::vector<Variant> res;
 
@@ -44,36 +46,56 @@ std::pair<bool, std::vector<Variant>> ArgumentValidator::validate(
 	resetError();
 
 	// Sanity check: Do not allow too many arguments
-	if (args.size() > descriptors.size()) {
-		return setError(descriptors.size(), "Expected " + std::to_string(descriptors.size()) +
-				" arguments but got " + std::to_string(args.size()), res);
+	if (args.size() > signature.size()) {
+		return setError(signature.size(),
+		                "Expected " + std::to_string(signature.size()) +
+		                    " arguments but got " + std::to_string(args.size()),
+		                res);
 	}
 
 	// Iterate over the given arguments and check their type
-	res.reserve(descriptors.size());
+	res.reserve(signature.size());
 	for (unsigned int i = 0; i < args.size(); i++) {
 		// TODO: Implicit type conversion
 		const VariantType tGiven = args[i].getType();
-		const VariantType tExpected = descriptors[i].type;
+		const VariantType tExpected = signature[i].type;
 		if (tGiven != tExpected) {
-			return setError(i, std::string("Expected type ") + Variant::getTypeName(tExpected)
-				+ " but got " + Variant::getTypeName(tGiven), res);
+			return setError(i, std::string("Expected type ") +
+			                       Variant::getTypeName(tExpected) +
+			                       " but got " + Variant::getTypeName(tGiven),
+			                res);
 		}
 		res.push_back(args[i]);
 	}
 
 	// Make sure the remaining arguments have a default value, and if they have
 	// one, add it to the result
-	for (unsigned int i = args.size(); i < descriptors.size(); i++) {
-		if (!descriptors[i].hasDefault) {
+	for (unsigned int i = args.size(); i < signature.size(); i++) {
+		if (!signature[i].hasDefault) {
 			return setError(i, "Expected argument " + std::to_string(i), res);
 		}
-		res.push_back(descriptors[i].defaultValue);
+		res.push_back(signature[i].defaultValue);
 	}
 
 	return std::make_pair(true, res);
 }
 
+/* Class ValidatingFunction */
+
+Variant ValidatingFunction::call(const std::vector<Variant> &args) const
+{
+	if (validate) {
+		ArgumentValidator validator{signature};
+
+		std::pair<bool, std::vector<Variant>> res = validator.validate(args);
+		if (!res.first) {
+			throw validator.error();
+		}
+		return validatedCall(res.second);
+	}
+
+	return validatedCall(args);
+}
 }
 }
 
