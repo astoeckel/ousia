@@ -99,7 +99,7 @@ TEST(GENERIC_JS_TEST_NAME, returnObject)
 {
 	GENERIC_JS_TEST_SCOPE
 	Variant res = scope->run(
-	    "var obj = {\"key1\": 42, \"key2\": \"Hello World\", \"key3\": false}; obj");
+	    "({\"key1\": 42, \"key2\": \"Hello World\", \"key3\": false})");
 	ASSERT_EQ(VariantType::map, res.getType());
 
 	std::map<std::string, Variant> m = res.getMapValue();

@@ -22,6 +22,7 @@ PROJECT(ousia)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.9)
 
 # Option for enabling testing. Turn on with 'cmake -Dtest=ON'.
+# TODO: Automatically activate tests if gtest is available
 OPTION(test "Build all tests." OFF) # Makes boolean 'test' available.
 
 # Option for building the documentation.

@@ -4,7 +4,12 @@ Hard dependencies
 The following packages have to be installed (for Fedora)
 
 - cmake
-- mozjs24-devel
+- mozjs24-devel (for the mandatory mozjs plugin)
+
+Test dependencies
+=================
+
+Tests are based on the gtest library. Run the ./lib/download_dependencies.sh script to fetch this dependency.
 
 Documentation
 =============
@@ -25,7 +30,7 @@ http://llvm.org/releases/download.html
 
 use the "clang-format" program in the bin/ directory. The following gedit tool can be used for automated code formating:
 
-(Active "External Tools" plugin, add the following lines to ./config/gedit/tools/, without indentation)
+(Activate the "External Tools" plugin, add the following lines to .config/gedit/tools/clang-format, without indentation)
 
 	#!/bin/sh
 	# [Gedit Tool]
