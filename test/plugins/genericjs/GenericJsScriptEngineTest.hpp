@@ -130,5 +130,203 @@ TEST(GENERIC_JS_TEST_NAME, returnFunction)
 	ASSERT_EQ("Hello World", fres.getStringValue());
 }
 
+TEST(GENERIC_JS_TEST_NAME, exchangeNull)
+{
+	GENERIC_JS_TEST_SCOPE
+	scope->setVariable("test", Variant::Null);
+
+	{
+		Variant res = scope->run("test");
+		ASSERT_EQ(VariantType::null, res.getType());
+	}
+
+	{
+		Variant res = scope->getVariable("test");
+		ASSERT_EQ(VariantType::null, res.getType());
+	}
+}
+
+TEST(GENERIC_JS_TEST_NAME, exchangeBoolean)
+{
+	GENERIC_JS_TEST_SCOPE
+	scope->setVariable("test", Variant{false});
+
+	{
+		Variant res = scope->run("test");
+		ASSERT_EQ(VariantType::boolean, res.getType());
+		ASSERT_FALSE(res.getBooleanValue());
+	}
+
+	{
+		Variant res = scope->getVariable("test");
+		ASSERT_EQ(VariantType::boolean, res.getType());
+		ASSERT_FALSE(res.getBooleanValue());
+	}
+}
+
+TEST(GENERIC_JS_TEST_NAME, exchangeInteger)
+{
+	GENERIC_JS_TEST_SCOPE
+	scope->setVariable("test", Variant{(int64_t)42});
+
+	{
+		Variant res = scope->run("test");
+		ASSERT_EQ(VariantType::integer, res.getType());
+		ASSERT_EQ(42, res.getIntegerValue());
+	}
+
+	{
+		Variant res = scope->getVariable("test");
+		ASSERT_EQ(VariantType::integer, res.getType());
+		ASSERT_EQ(42, res.getIntegerValue());
+	}
+}
+
+TEST(GENERIC_JS_TEST_NAME, exchangeNumber)
+{
+	GENERIC_JS_TEST_SCOPE
+	scope->setVariable("test", Variant{42.5});
+
+	{
+		Variant res = scope->run("test");
+		ASSERT_EQ(VariantType::number, res.getType());
+		ASSERT_EQ(42.5, res.getNumberValue());
+	}
+
+	{
+		Variant res = scope->getVariable("test");
+		ASSERT_EQ(VariantType::number, res.getType());
+		ASSERT_EQ(42.5, res.getNumberValue());
+	}
+}
+
+TEST(GENERIC_JS_TEST_NAME, exchangeString)
+{
+	GENERIC_JS_TEST_SCOPE
+	scope->setVariable("test", Variant{"Hello World!"});
+
+	{
+		Variant res = scope->run("test");
+		ASSERT_EQ(VariantType::string, res.getType());
+		ASSERT_EQ("Hello World!", res.getStringValue());
+	}
+
+	{
+		Variant res = scope->getVariable("test");
+		ASSERT_EQ(VariantType::string, res.getType());
+		ASSERT_EQ("Hello World!", res.getStringValue());
+	}
+}
+
+TEST(GENERIC_JS_TEST_NAME, exchangeArray)
+{
+	GENERIC_JS_TEST_SCOPE
+	scope->setVariable("test", Variant{{"Hello World!", (int64_t)42, false}});
+
+	{
+		Variant res = scope->run("test");
+		ASSERT_EQ(VariantType::array, res.getType());
+		std::vector<Variant> a = res.getArrayValue();
+		ASSERT_EQ(3, a.size());
+
+		ASSERT_EQ(VariantType::string, a[0].getType());
+		ASSERT_EQ("Hello World!", a[0].getStringValue());
+
+		ASSERT_EQ(VariantType::integer, a[1].getType());
+		ASSERT_EQ(42, a[1].getIntegerValue());
+
+		ASSERT_EQ(VariantType::boolean, a[2].getType());
+		ASSERT_FALSE(a[2].getBooleanValue());
+	}
+
+	{
+		Variant res = scope->getVariable("test");
+		ASSERT_EQ(VariantType::array, res.getType());
+		std::vector<Variant> a = res.getArrayValue();
+		ASSERT_EQ(3, a.size());
+
+		ASSERT_EQ(VariantType::string, a[0].getType());
+		ASSERT_EQ("Hello World!", a[0].getStringValue());
+
+		ASSERT_EQ(VariantType::integer, a[1].getType());
+		ASSERT_EQ(42, a[1].getIntegerValue());
+
+		ASSERT_EQ(VariantType::boolean, a[2].getType());
+		ASSERT_FALSE(a[2].getBooleanValue());
+	}
+}
+
+TEST(GENERIC_JS_TEST_NAME, exchangeMap)
+{
+	GENERIC_JS_TEST_SCOPE
+	scope->setVariable(
+	    "test",
+	    Variant{{{"key1", "s1"}, {"key2", (int64_t)42}, {"key3", true}}});
+
+	{
+		Variant res = scope->run("test");
+		ASSERT_EQ(VariantType::map, res.getType());
+		std::map<std::string, Variant> m = res.getMapValue();
+		ASSERT_EQ(3, m.size());
+
+		ASSERT_TRUE(m.find("key1") != m.end());
+		ASSERT_TRUE(m.find("key2") != m.end());
+		ASSERT_TRUE(m.find("key3") != m.end());
+
+		ASSERT_EQ(VariantType::string, m["key1"].getType());
+		ASSERT_EQ("s1", m["key1"].getStringValue());
+
+		ASSERT_EQ(VariantType::integer, m["key2"].getType());
+		ASSERT_EQ(42, m["key2"].getIntegerValue());
+
+		ASSERT_EQ(VariantType::boolean, m["key3"].getType());
+		ASSERT_TRUE(m["key3"].getBooleanValue());
+	}
+
+	{
+		Variant res = scope->getVariable("test");
+		ASSERT_EQ(VariantType::map, res.getType());
+		std::map<std::string, Variant> m = res.getMapValue();
+		ASSERT_EQ(3, m.size());
+
+		ASSERT_TRUE(m.find("key1") != m.end());
+		ASSERT_TRUE(m.find("key2") != m.end());
+		ASSERT_TRUE(m.find("key3") != m.end());
+
+		ASSERT_EQ(VariantType::string, m["key1"].getType());
+		ASSERT_EQ("s1", m["key1"].getStringValue());
+
+		ASSERT_EQ(VariantType::integer, m["key2"].getType());
+		ASSERT_EQ(42, m["key2"].getIntegerValue());
+
+		ASSERT_EQ(VariantType::boolean, m["key3"].getType());
+		ASSERT_TRUE(m["key3"].getBooleanValue());
+	}
+}
+
+static HostFunction cat{[](const std::vector<Variant> &args, void *data) {
+	std::stringstream ss;
+	for (unsigned i = 0; i < args.size(); i++) {
+		ss << args[i].getStringValue();
+		if (i + 1 < args.size()) {
+			ss << ' ';
+		}
+	}
+	return Variant{ss.str().c_str()};
+}};
+
+TEST(GENERIC_JS_TEST_NAME, hostFunction)
+{
+	GENERIC_JS_TEST_SCOPE
+
+	Variant f{&cat};
+
+	scope->setVariable("cat", f);
+	Variant res = scope->run("cat('Hello', 'World');");
+
+	ASSERT_EQ(VariantType::string, res.getType());
+	ASSERT_EQ("Hello World", res.getStringValue());
+}
+
 #endif /* _GENERIC_JS_SCRIPT_ENGINE_TEST_HPP_ */
 

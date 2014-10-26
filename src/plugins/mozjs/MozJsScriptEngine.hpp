@@ -51,7 +51,8 @@ private:
 	JS::RootedObject *parent;
 
 public:
-	MozJsScriptEngineFunction(MozJsScriptEngineScope &scope, JS::Value &fun, JSObject *parent);
+	MozJsScriptEngineFunction(MozJsScriptEngineScope &scope, JS::Value &fun,
+	                          JSObject *parent);
 
 	~MozJsScriptEngineFunction();
 
@@ -61,8 +62,7 @@ public:
 };
 
 class MozJsScriptEngineScope : public ScriptEngineScope {
-
-friend MozJsScriptEngineFunction;
+	friend MozJsScriptEngineFunction;
 
 private:
 	JSRuntime *rt;
@@ -71,6 +71,19 @@ private:
 	JS::RootedObject *global;
 
 	void handleErr(bool ok = false);
+
+protected:
+	Variant doRun(const std::string &code) override;
+	void doSetVariable(const std::string &name, const Variant &var,
+	                   bool constant) override;
+	Variant doGetVariable(const std::string &name) override;
+
+public:
+	MozJsScriptEngineScope(JSRuntime *rt);
+
+	~MozJsScriptEngineScope() override;
+
+	/* JS -> Host */
 
 	Variant arrayToVariant(JSObject *obj);
 
@@ -82,16 +95,12 @@ private:
 
 	std::string toString(JSString *str);
 
-protected:
-	Variant doRun(const std::string &code) override;
-	void doSetVariable(const std::string &name, const Variant &val,
-	                   bool constant) override;
-	Variant doGetVariable(const std::string &name) override;
+	/* Host -> JS */
 
-public:
-	MozJsScriptEngineScope(JSRuntime *rt);
+	void variantToValue(const Variant &var, JS::RootedValue &val);
 
-	~MozJsScriptEngineScope() override;
+	void setObjectProperty(JS::RootedObject &obj, const std::string &name,
+	                       const Variant &var, bool constant);
 };
 
 class MozJsScriptEngine : public ScriptEngine {

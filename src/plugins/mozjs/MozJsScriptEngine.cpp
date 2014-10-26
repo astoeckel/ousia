@@ -16,6 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cassert>
+#include <cstring>
+#include <iostream>
+#include <memory>
+
 #include <jsapi.h>
 
 #include "MozJsScriptEngine.hpp"
@@ -73,6 +78,102 @@ Variant MozJsScriptEngineFunction::call(const std::vector<Variant> &args) const
 
 /* Class MozJsScriptEngineScope */
 
+static const uint32_t MOZJS_FUNCTION_DATA_MAGIC = 0x87aac4ca;
+
+struct MozJsFunctionData {
+	/**
+	 * Magic number used to make sure a pointer points to an instance of this
+	 * struct.
+	 */
+	uint32_t magic;
+
+	/**
+	 * Reference to the script engine scope.
+	 */
+	MozJsScriptEngineScope &scope;
+
+	/**
+	 * Actual function associated with the object.
+	 */
+	std::unique_ptr<Function> function;
+
+	/**
+	 * Constructor of the MozJsPrivateFunctionData instance.
+	 */
+	MozJsFunctionData(MozJsScriptEngineScope &scope, Function *function)
+	    : magic(MOZJS_FUNCTION_DATA_MAGIC), scope(scope), function(function)
+	{
+	}
+
+	/**
+	 * Destructor, resets the magic to zero, marking this instance as invalid.
+	 */
+	~MozJsFunctionData() { magic = 0; }
+
+	/**
+	 * Returns true if the magic is set to the correct value, indicating that
+	 * this actually is an instance of MozPrivateFunctionData.
+	 */
+	bool valid() { return magic == MOZJS_FUNCTION_DATA_MAGIC; }
+};
+
+/**
+ * Function used for deleting the private data that may be associated to a
+ * JSObject.
+ */
+void finalizeFunction(JSFreeOp *fop, JSObject *obj)
+{
+	MozJsFunctionData *data =
+	    static_cast<MozJsFunctionData *>(JS_GetPrivate(obj));
+	if (data) {
+		assert(data->valid());
+		delete data;
+	}
+}
+
+/**
+ * Function used for calling back into the host.
+ */
+JSBool callFunction(JSContext *cx, unsigned argc, JS::Value *vp)
+{
+	// Fetch the arguments (including the callee and the parent/this object)
+	JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+	// Fetch the underlying function object
+	JSObject &callee = args.callee();
+	MozJsFunctionData *data =
+	    static_cast<MozJsFunctionData *>(JS_GetPrivate(&callee));
+	if (!data || !data->valid()) {
+		JS_ReportError(cx, "No valid function data attached to callable!");
+		return JS_FALSE;
+	}
+
+	// Assemble the function arguments
+	std::vector<Variant> arguments;
+	arguments.reserve(args.length());
+	for (unsigned i = 0; i < args.length(); i++) {
+		JS::Value val = args.get(i);
+		arguments.push_back(data->scope.valueToVariant(val));
+	}
+
+	try {
+		// Call the host function
+		Variant res = data->function->call(arguments);
+
+		// Convert the result to a JS::RootedValue
+		JS::RootedValue rval(cx);
+		data->scope.variantToValue(res, rval);
+
+		// Return the result to the script code
+		args.rval().set(rval);
+		return JS_TRUE;
+	}
+	catch (ArgumentValidatorError ex) {
+		JS_ReportError(cx, ex.what());
+		return JS_FALSE;
+	}
+}
+
 /**
  * The class of the global object.
  */
@@ -81,6 +182,13 @@ static JSClass globalClass = {
     JS_DeletePropertyStub, JS_PropertyStub,      JS_StrictPropertyStub,
     JS_EnumerateStub,      JS_ResolveStub,       JS_ConvertStub,
     nullptr,               nullptr,              nullptr,
+    nullptr,               nullptr};
+
+static JSClass functionClass = {
+    "function",            JSCLASS_HAS_PRIVATE, JS_PropertyStub,
+    JS_DeletePropertyStub, JS_PropertyStub,     JS_StrictPropertyStub,
+    JS_EnumerateStub,      JS_ResolveStub,      JS_ConvertStub,
+    finalizeFunction,      nullptr,             callFunction,
     nullptr,               nullptr};
 
 MozJsScriptEngineScope::MozJsScriptEngineScope(JSRuntime *rt) : rt(rt)
@@ -264,6 +372,94 @@ std::string MozJsScriptEngineScope::toString(JSString *str)
 	return res;
 }
 
+void MozJsScriptEngineScope::variantToValue(const Variant &var,
+                                            JS::RootedValue &val)
+{
+	switch (var.getType()) {
+		case VariantType::null: {
+			val.setNull();
+			return;
+		}
+		case VariantType::boolean: {
+			val.setBoolean(var.getBooleanValue());
+			return;
+		}
+		case VariantType::integer: {
+			val.setInt32(var.getIntegerValue());
+			return;
+		}
+		case VariantType::number: {
+			val.setDouble(var.getNumberValue());
+			return;
+		}
+		case VariantType::string: {
+			// Allocate enough memory for the string stored in the variant
+			const size_t size = var.getStringValue().size();
+			const char *src = var.getStringValue().c_str();
+			JS::RootedString s(cx, JS_NewStringCopyN(cx, src, size));
+			if (!s) {
+				throw ScriptEngineException{"Out of JavaScript heap memory"};
+			}
+			val.setString(s);
+			return;
+		}
+		case VariantType::array: {
+			const std::vector<Variant> &src = var.getArrayValue();
+			JS::RootedObject a(cx, JS_NewArrayObject(cx, src.size(), nullptr));
+			for (size_t i = 0; i < src.size(); i++) {
+				JS::RootedValue aval(cx);
+				variantToValue(src[i], aval);
+				JS_DefineElement(cx, a, i, aval, JS_PropertyStub,
+				                 JS_StrictPropertyStub,
+				                 JSPROP_ENUMERATE | JSPROP_INDEX);
+			}
+			val.setObjectOrNull(a.get());
+			return;
+		}
+		case VariantType::map: {
+			const std::map<std::string, Variant> &src = var.getMapValue();
+			JS::RootedObject m(cx, JS_NewObject(cx, nullptr, nullptr, nullptr));
+			for (auto &e : src) {
+				setObjectProperty(m, e.first, e.second, false);
+			}
+			val.setObjectOrNull(m.get());
+			return;
+		}
+		case VariantType::function: {
+			JS::RootedObject f(cx, JS_NewObject(cx, &functionClass, nullptr, nullptr));
+			JS_SetPrivate(f, new MozJsFunctionData(*this, var.getFunctionValue()->clone()));
+			JS_FreezeObject(cx, f);
+			val.setObjectOrNull(f.get());
+			return;
+		}
+		default: {
+			val.setNull();
+			return;
+		}
+	}
+}
+
+void MozJsScriptEngineScope::setObjectProperty(JS::RootedObject &obj,
+                                               const std::string &name,
+                                               const Variant &var,
+                                               bool constant)
+{
+	// Construct the property flags for the given variant type -- objects and
+	// functions are treated as readonly properties no matter what "constant"
+	// is set to.
+	int flags = JSPROP_PERMANENT | JSPROP_ENUMERATE;
+	if (constant || var.getType() == VariantType::object ||
+	    var.getType() == VariantType::function) {
+		flags |= JSPROP_READONLY;
+	}
+
+	// Handle errors occuring while setting the property
+	JS::RootedValue val(cx);
+	variantToValue(var, val);
+	handleErr(JS_DefineProperty(cx, obj, name.c_str(), val, JS_PropertyStub,
+	                            JS_StrictPropertyStub, flags));
+}
+
 Variant MozJsScriptEngineScope::doRun(const std::string &code)
 {
 	JS::Value rval;
@@ -273,15 +469,16 @@ Variant MozJsScriptEngineScope::doRun(const std::string &code)
 }
 
 void MozJsScriptEngineScope::doSetVariable(const std::string &name,
-                                           const Variant &val, bool constant)
+                                           const Variant &var, bool constant)
 {
-	// TODO
+	setObjectProperty(*global, name, var, constant);
 }
 
 Variant MozJsScriptEngineScope::doGetVariable(const std::string &name)
 {
-	// TODO
-	return Variant::Null;
+	JS::Value rval;
+	handleErr(JS_GetProperty(cx, *global, name.c_str(), &rval));
+	return valueToVariant(rval);
 }
 
 /* Class MozJsScriptEngine */

@@ -173,7 +173,7 @@ bool Variant::getBooleanValue() const
 		case VariantType::map:
 			return !getMapValue().empty();
 		default:
-			throw VariantTypeException{type, VariantType::boolean};
+			throw VariantTypeException{VariantType::boolean, type};
 	}
 }
 
@@ -187,7 +187,7 @@ int64_t Variant::getIntegerValue() const
 		case VariantType::number:
 			return static_cast<int64_t>(numberValue);
 		default:
-			throw VariantTypeException{type, VariantType::integer};
+			throw VariantTypeException{VariantType::integer, type};
 	}
 }
 
@@ -201,7 +201,7 @@ double Variant::getNumberValue() const
 		case VariantType::number:
 			return numberValue;
 		default:
-			throw VariantTypeException{type, VariantType::number};
+			throw VariantTypeException{VariantType::number, type};
 	}
 }
 
@@ -211,7 +211,7 @@ const std::string &Variant::getStringValue() const
 		case VariantType::string:
 			return *(static_cast<std::string *>(objectValue));
 		default:
-			throw VariantTypeException{type, VariantType::string};
+			throw VariantTypeException{VariantType::string, type};
 	}
 }
 
@@ -221,7 +221,7 @@ const std::vector<Variant> &Variant::getArrayValue() const
 		case VariantType::array:
 			return *(static_cast<std::vector<Variant> *>(objectValue));
 		default:
-			throw VariantTypeException{type, VariantType::array};
+			throw VariantTypeException{VariantType::array, type};
 	}
 }
 
@@ -232,7 +232,7 @@ const std::map<std::string, Variant> &Variant::getMapValue() const
 			return *(static_cast<std::map<std::string, Variant> *>(
 			    objectValue));
 		default:
-			throw VariantTypeException{type, VariantType::map};
+			throw VariantTypeException{VariantType::map, type};
 	}
 }
 
@@ -241,7 +241,7 @@ const Function *Variant::getFunctionValue() const
 	switch (type) {
 		case VariantType::function: return static_cast<Function *>(objectValue);
 		    default:
-			throw VariantTypeException{type, VariantType::function};
+			throw VariantTypeException{VariantType::function, type};
 	}
 }
 
@@ -250,7 +250,7 @@ const Object &Variant::getObjectValue() const
 	switch (type) {
 		case VariantType::object: return *(static_cast<Object *>(objectValue));
 		    default:
-			throw VariantTypeException{type, VariantType::function};
+			throw VariantTypeException{VariantType::object, type};
 	}
 }
 

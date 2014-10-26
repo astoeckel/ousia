@@ -31,6 +31,7 @@
 // TODO: Use std::unique_ptr for *Function
 // TODO: Move semantic in complex constructors
 // TODO: Delete default constructors/assignment operators in pretty much everything
+// TODO: Remove implicit type conversions, but add explicit conversion function!
 
 namespace ousia {
 namespace script {
