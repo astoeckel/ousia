@@ -25,6 +25,11 @@
 
 /* Forward declarations from header jsapi.h */
 
+// TODO: Implement objects
+// TODO: Handle returning function objects or methods (no deep copies!)
+// TODO: Handle recursion in return values! (use hash set of visited objects
+// while dumping the tree)
+
 class JSRuntime;
 class JSContext;
 class JSCompartment;
