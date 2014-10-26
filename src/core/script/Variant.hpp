@@ -26,6 +26,12 @@
 #include <string>
 #include <vector>
 
+// TODO: Replace VariantType::number with VariantType::double
+// TODO: Convert VariantType::integer to int32_t
+// TODO: Use std::unique_ptr for *Function
+// TODO: Move semantic in complex constructors
+// TODO: Delete default constructors/assignment operators in pretty much everything
+
 namespace ousia {
 namespace script {
 
@@ -124,6 +130,9 @@ private:
 	};
 
 public:
+
+	using Int = int32_t;
+
 	/**
 	 * Copy constructor of the Variant class.
 	 *
@@ -182,7 +191,8 @@ public:
 	Variant(const std::vector<Variant> &a);
 
 	/**
-	 * Constructor for map values. The given map is copied and managed by the new
+	 * Constructor for map values. The given map is copied and managed by the
+	 *new
 	 * Variant instance.
 	 *
 	 * @param m is a reference to the map.
@@ -190,7 +200,8 @@ public:
 	Variant(const std::map<std::string, Variant> &m);
 
 	/**
-	 * Constructor for function values. The given pointer to the function object is cloned and managed by the new Variant instance.
+	 * Constructor for function values. The given pointer to the function object
+	 *is cloned and managed by the new Variant instance.
 	 *
 	 * @param f is a reference to the function.
 	 */
@@ -224,10 +235,7 @@ public:
 	 *
 	 * @return the current type of the Variant.
 	 */
-	VariantType getType() const
-	{
-		return type;
-	}
+	VariantType getType() const { return type; }
 
 	bool getBooleanValue() const;
 	int64_t getIntegerValue() const;
@@ -253,7 +261,6 @@ public:
 	 */
 	friend std::ostream &operator<<(std::ostream &os, const Variant &v);
 };
-
 }
 }
 

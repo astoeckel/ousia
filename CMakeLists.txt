@@ -110,6 +110,7 @@ ADD_LIBRARY(ousia_plugin_mozjs
 
 TARGET_LINK_LIBRARIES(ousia_plugin_mozjs
 	ousia_core
+	${MOZJS_LIBRARIES}
 )
 
 # If testing is enabled, build the unit tests

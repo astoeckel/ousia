@@ -19,14 +19,50 @@
 #ifndef _MOZ_JS_SCRIPT_ENGINE_HPP_
 #define _MOZ_JS_SCRIPT_ENGINE_HPP_
 
-#include <jsapi.h>
-
 #include <core/script/ScriptEngine.hpp>
+#include <core/script/Function.hpp>
+#include <core/script/Object.hpp>
+
+/* Forward declarations from header jsapi.h */
+
+class JSRuntime;
+class JSContext;
+class JSCompartment;
+class JSString;
+class JSObject;
+
+namespace JS {
+class Value;
+template <typename T>
+class Rooted;
+typedef Rooted<JSObject *> RootedObject;
+typedef Rooted<Value> RootedValue;
+}
 
 namespace ousia {
 namespace script {
 
+class MozJsScriptEngineScope;
+
+class MozJsScriptEngineFunction : public Function {
+private:
+	MozJsScriptEngineScope &scope;
+	JS::RootedValue *fun;
+	JS::RootedObject *parent;
+
+public:
+	MozJsScriptEngineFunction(MozJsScriptEngineScope &scope, JS::Value &fun, JSObject *parent);
+
+	~MozJsScriptEngineFunction();
+
+	MozJsScriptEngineFunction *clone() const override;
+
+	Variant call(const std::vector<Variant> &args) const override;
+};
+
 class MozJsScriptEngineScope : public ScriptEngineScope {
+
+friend MozJsScriptEngineFunction;
 
 private:
 	JSRuntime *rt;
@@ -34,11 +70,15 @@ private:
 	JSCompartment *oldCompartment;
 	JS::RootedObject *global;
 
-	void handleErr(bool ok);
+	void handleErr(bool ok = false);
 
-	Variant toVariant(const JS::Value &val);
+	Variant arrayToVariant(JSObject *obj);
 
-	std::string toString(const JS::Value &val);
+	Variant objectToVariant(JSObject *obj);
+
+	Variant valueToVariant(JS::Value &val, JSObject *parent = nullptr);
+
+	std::string toString(JS::Value &val);
 
 	std::string toString(JSString *str);
 
@@ -52,22 +92,18 @@ public:
 	MozJsScriptEngineScope(JSRuntime *rt);
 
 	~MozJsScriptEngineScope() override;
-
 };
 
 class MozJsScriptEngine : public ScriptEngine {
-
 private:
 	JSRuntime *rt;
 
 public:
-
 	MozJsScriptEngine();
 
 	~MozJsScriptEngine();
 
 	MozJsScriptEngineScope *createScope() override;
-
 };
 }
 }

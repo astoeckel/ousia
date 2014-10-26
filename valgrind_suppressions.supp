@@ -1,0 +1,8 @@
+{
+	libnspr4/PR_NewLock
+	Memcheck:Leak
+	match-leak-kinds: reachable
+	...
+	obj:/usr/lib64/libnspr4.so
+	...
+}

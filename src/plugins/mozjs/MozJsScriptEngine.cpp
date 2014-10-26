@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <jsapi.h>
+
 #include "MozJsScriptEngine.hpp"
 
 namespace ousia {
@@ -38,6 +40,36 @@ namespace script {
 
 static const uint32_t MOZJS_RT_MEMSIZE = 64L * 1024L * 1024L;
 static const uint32_t MOZJS_CTX_STACK_CHUNK_SIZE = 8192;
+
+/* Class MozJsScriptEngineFunction */
+
+MozJsScriptEngineFunction::MozJsScriptEngineFunction(
+    MozJsScriptEngineScope &scope, JS::Value &fun, JSObject *parent)
+    : scope(scope)
+{
+	this->fun = new JS::RootedValue(scope.cx, fun);
+	this->parent = new JS::RootedObject(scope.cx, parent);
+}
+
+MozJsScriptEngineFunction::~MozJsScriptEngineFunction()
+{
+	delete parent;
+	delete fun;
+}
+
+MozJsScriptEngineFunction *MozJsScriptEngineFunction::clone() const
+{
+	return new MozJsScriptEngineFunction(scope, fun->get(), parent->get());
+}
+
+Variant MozJsScriptEngineFunction::call(const std::vector<Variant> &args) const
+{
+	// TODO: Input parameter
+	JS::Value val;
+	scope.handleErr(JS_CallFunctionValue(scope.cx, parent->get(), fun->get(), 0,
+	                                     nullptr, &val));
+	return scope.valueToVariant(val);
+}
 
 /* Class MozJsScriptEngineScope */
 
@@ -94,8 +126,51 @@ MozJsScriptEngineScope::~MozJsScriptEngineScope()
 	JS_DestroyContext(cx);
 }
 
-Variant MozJsScriptEngineScope::toVariant(const JS::Value &val)
+Variant MozJsScriptEngineScope::arrayToVariant(JSObject *obj)
 {
+	// Retrieve the array length
+	uint32_t len = 0;
+	handleErr(JS_GetArrayLength(cx, obj, &len));
+
+	// Create the result vector and reserve as much memory as needed
+	std::vector<Variant> array;
+	array.reserve(len);
+
+	// Fill the result vector
+	JS::Value arrayVal;
+	for (uint32_t i = 0; i < len; i++) {
+		handleErr(JS_GetElement(cx, obj, i, &arrayVal));
+		array.push_back(valueToVariant(arrayVal, obj));
+	}
+	return Variant{array};
+}
+
+Variant MozJsScriptEngineScope::objectToVariant(JSObject *obj)
+{
+	// Enumerate all object properties, perform error handling
+	JS::AutoIdArray ids(cx, JS_Enumerate(cx, obj));
+	if (!ids) {
+		handleErr();
+	}
+
+	// Iterate over all ids, add them to a map
+	std::map<std::string, Variant> map;
+	JS::Value key;
+	JS::Value val;
+	for (size_t i = 0; i < ids.length(); i++) {
+		handleErr(JS_IdToValue(cx, ids[i], &key));
+		handleErr(JS_GetPropertyById(cx, obj, ids[i], &val));
+		map.insert(std::make_pair<std::string, Variant>(
+		    toString(key), valueToVariant(val, obj)));
+	}
+	return Variant{map};
+}
+
+Variant MozJsScriptEngineScope::valueToVariant(JS::Value &val, JSObject *parent)
+{
+	if (val.isNull()) {
+		return Variant::Null;
+	}
 	if (val.isBoolean()) {
 		return Variant{val.toBoolean()};
 	}
@@ -108,6 +183,22 @@ Variant MozJsScriptEngineScope::toVariant(const JS::Value &val)
 	if (val.isString()) {
 		// TODO: Remove the need for using "c_str"!
 		return Variant{toString(val.toString()).c_str()};
+	}
+	if (val.isObject()) {
+		JSObject &obj = val.toObject();
+
+		if (JS_IsArrayObject(cx, &obj)) {
+			return arrayToVariant(&obj);
+		}
+
+		if (JS_ObjectIsFunction(cx, &obj)) {
+			// TODO: Variant of the Variant function constructor which grants
+			// ownership of the pointer
+			MozJsScriptEngineFunction fun(*this, val, parent);
+			return Variant{&fun};
+		}
+
+		return objectToVariant(&obj);
 	}
 	return Variant::Null;
 }
@@ -143,7 +234,7 @@ void MozJsScriptEngineScope::handleErr(bool ok)
 	}
 }
 
-std::string MozJsScriptEngineScope::toString(const JS::Value &val)
+std::string MozJsScriptEngineScope::toString(JS::Value &val)
 {
 	// If the given value already is a Javascript string, return it directly.
 	if (val.isString()) {
@@ -178,7 +269,7 @@ Variant MozJsScriptEngineScope::doRun(const std::string &code)
 	JS::Value rval;
 	handleErr(JS_EvaluateScript(cx, *global, code.c_str(), code.length(), "", 0,
 	                            &rval));
-	return toVariant(rval);
+	return valueToVariant(rval);
 }
 
 void MozJsScriptEngineScope::doSetVariable(const std::string &name,

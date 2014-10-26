@@ -27,6 +27,14 @@
 
 #include "Variant.hpp"
 
+// TODO: Provide more Exception classes than ScriptEngineException -- one for
+// internal errors, one for script errors
+
+// TODO: Allow reporting multiple exceptions (e.g. to report all syntax errors
+// at once)
+
+// TODO: Add API that allow pre-compilation of scripts
+
 namespace ousia {
 namespace script {
 
