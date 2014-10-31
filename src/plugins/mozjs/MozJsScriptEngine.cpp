@@ -426,8 +426,10 @@ void MozJsScriptEngineScope::variantToValue(const Variant &var,
 			return;
 		}
 		case VariantType::function: {
-			JS::RootedObject f(cx, JS_NewObject(cx, &functionClass, nullptr, nullptr));
-			JS_SetPrivate(f, new MozJsFunctionData(*this, var.getFunctionValue()->clone()));
+			JS::RootedObject f(
+			    cx, JS_NewObject(cx, &functionClass, nullptr, nullptr));
+			JS_SetPrivate(f, new MozJsFunctionData(
+			                     *this, var.getFunctionValue()->clone()));
 			JS_FreezeObject(cx, f);
 			val.setObjectOrNull(f.get());
 			return;
@@ -497,8 +499,7 @@ MozJsScriptEngine::~MozJsScriptEngine()
 	JS_ShutDown();
 }
 
-MozJsScriptEngineScope *MozJsScriptEngine::createScope()
-{
+MozJsScriptEngineScope *MozJsScriptEngine::createScope() {
 	return new MozJsScriptEngineScope(rt);
 }
 }
