@@ -96,18 +96,19 @@ ADD_DEFINITIONS(
 
 # ousia_script library (containing the bindings needed for script engines)
 ADD_LIBRARY(ousia_core
-	src/core/script/Function.cpp
-	src/core/script/Object.cpp
-	src/core/script/ScriptEngine.cpp
-	src/core/script/Variant.cpp
-	src/core/utils/Tokenizer.cpp
-	src/core/utils/Utils.cpp
+	src/core/script/Function
+	src/core/script/Object
+	src/core/script/ScriptEngine
+	src/core/script/Variant
+	src/core/utils/BufferedCharReader
+	src/core/utils/Tokenizer
+	src/core/utils/Utils
 )
 
 # ousia_plugin_mozjs library
 
 ADD_LIBRARY(ousia_plugin_mozjs
-	src/plugins/mozjs/MozJsScriptEngine.cpp
+	src/plugins/mozjs/MozJsScriptEngine
 )
 
 TARGET_LINK_LIBRARIES(ousia_plugin_mozjs
@@ -130,12 +131,13 @@ IF(test)
 
 	# Add all unit test files
 	ADD_EXECUTABLE(ousia_test_core
-		test/core/utils/RangeSetTest
-		test/core/utils/TokenizerTest
-		test/core/utils/UtilsTest
 		test/core/script/FunctionTest
 		test/core/script/ObjectTest
 		test/core/script/VariantTest
+		test/core/utils/BufferedCharReaderTest
+		test/core/utils/RangeSetTest
+		test/core/utils/TokenizerTest
+		test/core/utils/UtilsTest
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test_core
@@ -156,7 +158,7 @@ IF(test)
 
 	# Add all unit test files
 	ADD_EXECUTABLE(ousia_test_plugin_mozjs
-		test/plugins/mozjs/MozJsScriptEngineTest.cpp
+		test/plugins/mozjs/MozJsScriptEngineTest
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test_plugin_mozjs

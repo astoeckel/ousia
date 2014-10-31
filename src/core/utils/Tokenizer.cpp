@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sstream>
+
 #include "Tokenizer.hpp"
 
 namespace ousia {
@@ -52,10 +54,10 @@ static std::map<char, TokenTreeNode> buildChildren(
 
 static int buildId(const std::map<std::string, int> &inputs)
 {
-	int tokenId = -1;
+	int tokenId = TOKEN_NONE;
 	for (auto &e : inputs) {
 		if (e.first.empty()) {
-			if (tokenId != -1) {
+			if (tokenId != TOKEN_NONE) {
 				throw TokenizerException{std::string{"Ambigous token found: "} +
 				                         std::to_string(e.second)};
 			} else {
@@ -68,8 +70,115 @@ static int buildId(const std::map<std::string, int> &inputs)
 
 TokenTreeNode::TokenTreeNode(const std::map<std::string, int> &inputs)
     : children(buildChildren(inputs)), tokenId(buildId(inputs))
-
 {
+}
+
+Tokenizer::Tokenizer(BufferedCharReader &input, const TokenTreeNode &root)
+    : input(input), root(root)
+{
+}
+
+bool Tokenizer::prepare()
+{
+	std::stringstream buffer;
+	char c;
+	const int startColumn = input.getColumn();
+	const int startLine = input.getLine();
+	bool bufEmpty = true;
+	while (input.peek(&c)) {
+		if (root.children.find(c) != root.children.end()) {
+			// if there might be a special token, keep peeking forward
+			// until we find the token (or we don't).
+			TokenTreeNode const *n = &root;
+			std::stringstream tBuf;
+			int match = TOKEN_NONE;
+			while (true) {
+				tBuf << c;
+				n = &(n->children.at(c));
+				if (n->tokenId != TOKEN_NONE) {
+					// from here on we found a token. If we have something
+					// in our buffer already, we end the search now.
+					if (!bufEmpty) {
+						break;
+					} else {
+						// if we want to return this token ( = we have nothing
+						// in our buffer yet) we look greedily for the longest
+						// possible token we can construct.
+						input.consumePeek();
+					}
+				}
+				if (!input.peek(&c)) {
+					// if we are at the end we break off the search.
+					break;
+				}
+				if (n->children.find(c) == root.children.end()) {
+					// if we do not find a possible continuation anymore,
+					// break off the search.
+					break;
+				}
+			}
+			// check if we did indeed find a special token.
+			if (match != TOKEN_NONE) {
+				input.resetPeek();
+				if (bufEmpty) {
+					// if we did not have text before, construct that token.
+					peeked.push_back(Token{match, tBuf.str(), startColumn,
+					                       startLine, input.getColumn(),
+					                       input.getLine()});
+					return true;
+				} else {
+					// otherwise we return the text before the token.
+					peeked.push_back(Token{TOKEN_TEXT, buffer.str(),
+					                       startColumn, startLine,
+					                       input.getColumn(), input.getLine()});
+					return true;
+				}
+			}
+		}
+		buffer << c;
+		bufEmpty = false;
+		input.consumePeek();
+	}
+	if (!bufEmpty) {
+		peeked.push_back(Token{TOKEN_TEXT, buffer.str(), startColumn, startLine,
+		                       input.getColumn(), input.getLine()});
+		return true;
+	}
+	return false;
+}
+
+bool Tokenizer::next(Token &t)
+{
+	if (peeked.empty()) {
+		if (!prepare()) {
+			return false;
+		}
+	}
+	t = peeked.front();
+	peeked.pop_front();
+	resetPeek();
+	return true;
+}
+
+bool Tokenizer::peek(Token &t)
+{
+	if (peekCursor >= peeked.size()) {
+		if (!prepare()) {
+			return false;
+		}
+	}
+	t = peeked[peekCursor];
+	return true;
+}
+
+void Tokenizer::resetPeek() { peekCursor = 0; }
+
+void Tokenizer::consumePeek()
+{
+	while (peekCursor > 0) {
+		peeked.pop_front();
+		peekCursor--;
+	}
 }
 }
 }

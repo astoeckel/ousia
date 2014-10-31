@@ -1,6 +1,6 @@
 /*
-    SCAENEA IDL Compiler (scidlc)
-    Copyright (C) 2014  Andreas Stöckel
+    Ousía
+    Copyright (C) 2014, 2015  Benjamin Paaßen, Andreas Stöckel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -236,5 +236,5 @@ public:
 }
 }
 
-#endif /* _OUSISA_UTILS_BUFFERED_CHAR_READER_H_ */
+#endif /* _OUSIA_UTILS_BUFFERED_CHAR_READER_H_ */
 

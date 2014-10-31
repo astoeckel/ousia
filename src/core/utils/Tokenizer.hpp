@@ -21,7 +21,9 @@
 
 #include <istream>
 #include <map>
-#include <queue>
+#include <deque>
+
+#include "BufferedCharReader.hpp"
 
 namespace ousia {
 namespace utils {
@@ -44,33 +46,47 @@ public:
 };
 
 struct Token {
-	const int tokenId;
-	const std::string content;
-	const int column;
-	const int line;
+	int tokenId;
+	std::string content;
+	int startColumn;
+	int startLine;
+	int endColumn;
+	int endLine;
 
-	Token(int tokenId, std::string content, int column, int line)
-	    : tokenId(tokenId), content(content), column(column), line(line)
+	Token(int tokenId, std::string content, int startColumn, int startLine,
+	      int endColumn, int endLine)
+	    : tokenId(tokenId),
+	      content(content),
+	      startColumn(startColumn),
+	      startLine(startLine),
+	      endColumn(endColumn),
+	      endLine(endLine)
 	{
 	}
 };
 
+static const int TOKEN_NONE = -1;
+static const int TOKEN_TEXT = -2;
+
 class Tokenizer {
 private:
-	const std::istream &input;
-	const TokenTreeNode root;
-	const std::queue<Token> peekQueue;
+	BufferedCharReader &input;
+	const TokenTreeNode &root;
+	std::deque<Token> peeked;
+	unsigned int peekCursor = 0;
+
+	bool prepare();
 
 public:
-	Tokenizer(const TokenTreeNode &root, std::istream &input);
+	Tokenizer(BufferedCharReader &input, const TokenTreeNode &root);
 
-	bool hasNext();
+	bool next(Token &t);
 
-	const Token &next();
+	bool peek(Token &t);
 
-	const Token &peek();
+	void resetPeek();
 
-	void reset();
+	void consumePeek();
 };
 }
 }

@@ -21,7 +21,10 @@
 
 #include "gtest/gtest.h"
 
-#include "BufferedCharReader.hpp"
+#include <core/utils/BufferedCharReader.hpp>
+
+namespace ousia{
+namespace utils{
 
 TEST(BufferedCharReaderTest, SimpleReadTest)
 {
@@ -29,7 +32,7 @@ TEST(BufferedCharReaderTest, SimpleReadTest)
 	char c;
 
 	// Feed a test string into the reader
-	scaenea::compiler::BufferedCharReader reader;
+	BufferedCharReader reader;
 	reader.feed(testStr);
 	reader.close();
 
@@ -58,7 +61,7 @@ TEST(BufferedCharReaderTest, SimplePeekTest)
 	char c;
 
 	// Feed a test string into the reader
-	scaenea::compiler::BufferedCharReader reader;
+	BufferedCharReader reader;
 	reader.feed(testStr);
 	reader.close();
 
@@ -97,7 +100,7 @@ TEST(BufferedCharReaderTest, SplittedPeakTest)
 	char c;
 
 	// Feed a test string into the reader
-	scaenea::compiler::BufferedCharReader reader;
+	BufferedCharReader reader;
 
 	// Try to peek the test string, feed char after char into the reader
 	std::string res;
@@ -132,7 +135,7 @@ TEST(BufferedCharReaderTest, RowColumnCounterTest)
 	char c;
 
 	// Feed a test string into the reader
-	scaenea::compiler::BufferedCharReader reader;
+	BufferedCharReader reader;
 	reader.feed(testStr);
 	reader.close();
 
@@ -162,7 +165,7 @@ TEST(BufferedCharReaderTest, LinebreakSubstitutionTest)
 	const std::string expStr("this\nis\njust\na test\n\ntest\n");
 
 	// Feed a test string into the reader
-	scaenea::compiler::BufferedCharReader reader;
+	BufferedCharReader reader;
 	reader.feed(testStr);
 
 	// Read all characters from the test string
@@ -183,7 +186,7 @@ TEST(BufferedCharReaderTest, RowColumnCounterUTF8Test)
 	char c;
 
 	// Feed a test string into the reader
-	scaenea::compiler::BufferedCharReader reader;
+	BufferedCharReader reader;
 	reader.feed(testStr);
 	reader.close();
 
@@ -196,3 +199,5 @@ TEST(BufferedCharReaderTest, RowColumnCounterUTF8Test)
 	ASSERT_EQ(6, reader.getColumn());
 }
 
+}
+}
