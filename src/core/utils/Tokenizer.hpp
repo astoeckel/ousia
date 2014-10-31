@@ -20,7 +20,7 @@
 #define _OUSIA_UTILS_TOKENIZER_HPP_
 
 #include <istream>
-#include <unordered_map>
+#include <map>
 #include <queue>
 
 namespace ousia {
@@ -30,14 +30,14 @@ class TokenizerException : public std::exception {
 public:
 	const std::string msg;
 
-	ArgumentValidatorError(const std::string &msg) : msg(msg){};
+	TokenizerException(const std::string &msg) : msg(msg){};
 
 	virtual const char *what() const noexcept override { return msg.c_str(); }
 };
 
 class TokenTreeNode {
 public:
-	const std::unordered_map<char, TokenTreeNode> children;
+	const std::map<char, TokenTreeNode> children;
 	const int tokenId;
 
 	TokenTreeNode(const std::map<std::string, int> &inputs);
@@ -59,7 +59,7 @@ class Tokenizer {
 private:
 	const std::istream &input;
 	const TokenTreeNode root;
-	const std::queue<Token> peek;
+	const std::queue<Token> peekQueue;
 
 public:
 	Tokenizer(const TokenTreeNode &root, std::istream &input);

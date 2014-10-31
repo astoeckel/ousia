@@ -21,11 +21,11 @@
 namespace ousia {
 namespace utils {
 
-static std::unordered_map<char, TokenTreeNode> buildChildren(
+static std::map<char, TokenTreeNode> buildChildren(
     const std::map<std::string, int> &inputs)
 {
-	std::std::unordered_map<char, TokenTreeNode> children;
-	std::unordered_map<char, std::map<std::string, int>> nexts;
+	std::map<char, TokenTreeNode> children;
+	std::map<char, std::map<std::string, int>> nexts;
 
 	for (auto &e : inputs) {
 		const std::string &s = e.first;
@@ -57,7 +57,7 @@ static int buildId(const std::map<std::string, int> &inputs)
 		if (e.first.empty()) {
 			if (tokenId != -1) {
 				throw TokenizerException{std::string{"Ambigous token found: "} +
-				                         e.second};
+				                         std::to_string(e.second)};
 			} else {
 				tokenId = e.second;
 			}
@@ -67,10 +67,9 @@ static int buildId(const std::map<std::string, int> &inputs)
 }
 
 TokenTreeNode::TokenTreeNode(const std::map<std::string, int> &inputs)
-    : children(buildChildren(inputs), tokenId(buildId(inputs)))
+    : children(buildChildren(inputs)), tokenId(buildId(inputs))
+
 {
 }
-
 }
 }
-

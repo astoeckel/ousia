@@ -100,6 +100,7 @@ ADD_LIBRARY(ousia_core
 	src/core/script/Object.cpp
 	src/core/script/ScriptEngine.cpp
 	src/core/script/Variant.cpp
+	src/core/utils/Tokenizer.cpp
 	src/core/utils/Utils.cpp
 )
 
@@ -130,6 +131,7 @@ IF(test)
 	# Add all unit test files
 	ADD_EXECUTABLE(ousia_test_core
 		test/core/utils/RangeSetTest
+		test/core/utils/TokenizerTest
 		test/core/utils/UtilsTest
 		test/core/script/FunctionTest
 		test/core/script/ObjectTest
