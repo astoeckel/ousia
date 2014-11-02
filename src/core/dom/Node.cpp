@@ -207,15 +207,14 @@ void NodeManager::delRef(Node *tar, Node *src, bool all)
 		if (dTar->refInCount() == 0) {
 			delNode(tar, dTar);
 		} else if (dTar->rootRefCount == 0) {
+			// Call the tracing garbage collector if the number of marked nodes
+			// is larger than the threshold value and this function was not
+			// called from inside the delNode function
 			marked.insert(tar);
+			if (marked.size() >= threshold) {
+				sweep();
+			}
 		}
-	}
-
-	// Call the tracing garbage collector if the number of marked nodes is
-	// larger than the threshold value and this function was not called from
-	// inside the delNode function
-	if (deletionRecursionDepth == 0 && marked.size() >= threshold) {
-		sweep();
 	}
 }
 
@@ -236,21 +235,21 @@ void NodeManager::delNode(Node *n, NodeDescriptor *descr)
 		}
 	}
 
-	// Perform the actual deletion if the recursion level is zero
-	if (deletionRecursionDepth == 0) {
-		purgeDeleted();
-	}
+	purgeDeleted();
 }
 
 void NodeManager::purgeDeleted()
 {
-	ScopedIncrement incr{deletionRecursionDepth};
-	for (Node *n : deleted) {
-		marked.erase(n);
-		nodes.erase(n);
-		delete n;
+	// Perform the actual deletion if the recursion level is zero
+	if (deletionRecursionDepth == 0 && !deleted.empty()) {
+		ScopedIncrement incr{deletionRecursionDepth};
+		for (Node *n : deleted) {
+			marked.erase(n);
+			nodes.erase(n);
+			delete n;
+		}
+		deleted.clear();
 	}
-	deleted.clear();
 }
 
 void NodeManager::sweep()
@@ -263,8 +262,8 @@ void NodeManager::sweep()
 	while (!marked.empty()) {
 		// Repeat until all nodes in the "marked" list have been visited
 		while (!marked.empty()) {
-			// Increment the deletionRecursionDepth counter to prevent deletion of nodes
-			// while sweep is running
+			// Increment the deletionRecursionDepth counter to prevent deletion
+			// of nodes while sweep is running
 			ScopedIncrement incr{deletionRecursionDepth};
 			// Fetch the next node in the "marked" list and remove it
 			Node *curNode = *(marked.begin());
@@ -286,14 +285,20 @@ void NodeManager::sweep()
 					continue;
 				}
 
+				// If this node is rooted, the complete visited subgraph is
+				// rooted
+				if (descr->rootRefCount > 0) {
+					isReachable = true;
+					break;
+				}
+
 				// Iterate over all nodes leading to the current one
 				for (auto &src : descr->refIn) {
 					Node *srcNode = src.first;
 
 					// Abort if the node is nullptr or already in the reachable
 					// list
-					if (srcNode == nullptr ||
-					    reachable.find(srcNode) != reachable.end()) {
+					if (reachable.find(srcNode) != reachable.end()) {
 						isReachable = true;
 						break;
 					} else if (visited.find(srcNode) == visited.end()) {
@@ -315,9 +320,6 @@ void NodeManager::sweep()
 				}
 			}
 		}
-
-		// Decrement deletionRecursionDepth
-		deletionRecursionDepth--;
 
 		// Now purge all nodes marked for deletion
 		purgeDeleted();

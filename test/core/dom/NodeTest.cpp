@@ -178,10 +178,7 @@ public:
 
 	~TestNode() override { alive = false; }
 
-	void addRef(BaseHandle<Node> h)
-	{
-		refs.push_back(acquire(h));
-	}
+	void addRef(BaseHandle<Node> h) { refs.push_back(acquire(h)); }
 };
 
 TEST(NodeManager, linearDependencies)
@@ -251,6 +248,47 @@ TEST(NodeManager, cyclicDependencies)
 	}
 }
 
+TEST(NodeManager, doubleRooted)
+{
+	std::array<bool, 4> a;
+	a.fill(false);
+
+	NodeManager mgr(1);
+	{
+		TestNode *n1, *n2;
+		n1 = new TestNode(mgr, a[1]);
+		n2 = new TestNode(mgr, a[2]);
+
+		{
+			RootedHandle<TestNode> hr1{new TestNode(mgr, a[0])};
+			{
+				RootedHandle<TestNode> hr2{new TestNode(mgr, a[3])};
+
+				// All nodes must have set their "alive" flag to true
+				for (bool v : a) {
+					ASSERT_TRUE(v);
+				}
+
+				// Create cyclical dependency between n2 and n1
+				n1->addRef(n2);
+				n2->addRef(n1);
+
+				// Reference n1 and n2 in the rooted nodes
+				hr1->addRef(n1);
+				hr2->addRef(n2);
+			}
+
+			// hr2 is dead, all other nodes are still alive
+			ASSERT_FALSE(a[3]);
+			ASSERT_TRUE(a[0] && a[1] && a[2]);
+		}
+
+		// All nodes are dead
+		for (bool v : a) {
+			ASSERT_FALSE(v);
+		}
+	}
+}
 }
 }
 
