@@ -257,13 +257,21 @@ void NodeManager::purgeDeleted()
 {
 	// Perform the actual deletion if the recursion level is zero
 	if (deletionRecursionDepth == 0 && !deleted.empty()) {
+		// Increment the recursion depth so this function does not get called
+		// again while deleting nodes
 		ScopedIncrement incr{deletionRecursionDepth};
-		for (Node *n : deleted) {
+
+		// Deleting nodes might add new nodes to the deleted list, thus the
+		// iterator would get invalid and we have to use this awkward
+		// construction
+		while (!deleted.empty()) {
+			auto it = deleted.begin();
+			Node *n = *it;
+			deleted.erase(it);
 			marked.erase(n);
 			nodes.erase(n);
 			delete n;
 		}
-		deleted.clear();
 	}
 }
 
