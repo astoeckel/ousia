@@ -170,7 +170,7 @@ TEST(NodeDescriptor, rootRefCount)
 
 /* Class Handle */
 
-TEST(Handle, operations)
+TEST(Handle, equalsAndAssign)
 {
 	NodeManager mgr(1);
 
@@ -178,6 +178,7 @@ TEST(Handle, operations)
 
 	RootedNode rh1{n1};
 	RootedNode rh2{n2};
+
 	NodeHandle h2{n2, n1};
 
 	// Equals operator
@@ -197,6 +198,16 @@ TEST(Handle, operations)
 
 	rh2b = h2;
 	ASSERT_TRUE(rh2b == h2);
+
+	NodeHandle h2b;
+	ASSERT_FALSE(rh2 == h2b);
+	ASSERT_FALSE(h2 == h2b);
+	h2b = h2;
+	ASSERT_TRUE(rh2 == h2b);
+	ASSERT_TRUE(h2 == h2b);
+
+	NodeHandle h2c{h2b, n1};
+	ASSERT_TRUE(h2b == h2c);
 }
 
 /* Class NodeManager */
@@ -331,6 +342,46 @@ TEST(NodeManager, doubleRooted)
 		}
 
 		// All nodes are dead
+		for (bool v : a) {
+			ASSERT_FALSE(v);
+		}
+	}
+}
+
+TEST(NodeManager, disconnectSubgraph)
+{
+	std::array<bool, 4> a;
+	a.fill(false);
+
+	NodeManager mgr(1);
+	{
+		TestNode *n1, *n2, *n3;
+		n1 = new TestNode(mgr, a[1]);
+		n2 = new TestNode(mgr, a[2]);
+		n3 = new TestNode(mgr, a[3]);
+
+		{
+			RootedHandle<TestNode> hr{new TestNode(mgr, a[0])};
+
+			// Create a linear dependency chain
+			hr->addRef(n1);
+			n1->addRef(n2);
+			n2->addRef(n3);
+
+			// All nodes must have set their "alive" flag to true
+			for (bool v : a) {
+				ASSERT_TRUE(v);
+			}
+
+			// Remove the reference from n1 to n2
+			n1->deleteRef(n2);
+
+			// Nodes 2 and 3 must be dead, all others alive
+			ASSERT_FALSE(a[2] || a[3]);
+			ASSERT_TRUE(a[0] && a[1]);
+		}
+
+		// All nodes must have set their "alive" flag to false
 		for (bool v : a) {
 			ASSERT_FALSE(v);
 		}
