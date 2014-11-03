@@ -23,14 +23,14 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.9)
 
 # Option for enabling testing. Turn on with 'cmake -Dtest=ON'.
 # TODO: Automatically activate tests if gtest is available
-OPTION(test "Build all tests." OFF) # Makes boolean 'test' available.
+OPTION(TEST "Build all tests." OFF) # Makes boolean 'test' available.
 
 # Option for building the documentation.
 FIND_PACKAGE(Doxygen)
 OPTION(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
 
 # Enable C++11 and all warnings
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall -pedantic-errors -std=c++11")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic-errors -std=c++11")
 
 # Use PkgConfig to find mozjs-24
 FIND_PACKAGE(PkgConfig REQUIRED)
@@ -65,7 +65,7 @@ ENDIF()
 ################################################################################
 
 # Unit test handling
-IF(test)
+IF(TEST)
 	# Compile gtest
 	ADD_SUBDIRECTORY(lib/gtest-1.7.0)
 
@@ -118,7 +118,7 @@ TARGET_LINK_LIBRARIES(ousia_plugin_mozjs
 )
 
 # If testing is enabled, build the unit tests
-IF(test)
+IF(TEST)
 
 	#
 	# Core Test

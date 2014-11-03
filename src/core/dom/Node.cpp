@@ -17,8 +17,6 @@
 */
 
 #include <cassert>
-#include <iostream>
-
 #include <queue>
 
 #include "Node.hpp"
@@ -151,10 +149,12 @@ NodeManager::~NodeManager()
 	// Perform a final sweep
 	sweep();
 
-	// Free all nodes managed by the node manager
+	// All nodes should have been deleted!
+	assert(nodes.empty());
+
+	// Free all nodes managed by the node manager (we'll get here if assertions
+	// are disabled)
 	if (!nodes.empty()) {
-		std::cout << "[NodeManager] Warning: " << nodes.size()
-		          << " nodes have not been deleted!" << std::endl;
 		ScopedIncrement incr{deletionRecursionDepth};
 		for (auto &e : nodes) {
 			delete e.first;
@@ -162,25 +162,36 @@ NodeManager::~NodeManager()
 	}
 }
 
-NodeDescriptor *NodeManager::getDescriptor(Node *n, bool create)
+NodeDescriptor *NodeManager::getDescriptor(Node *n)
 {
 	if (n) {
 		auto it = nodes.find(n);
 		if (it != nodes.end()) {
 			return &(it->second);
-		} else if (create) {
-			return &(nodes.emplace(std::make_pair(n, NodeDescriptor{}))
-			             .first->second);
 		}
 	}
 	return nullptr;
 }
 
+void NodeManager::registerNode(Node *n)
+{
+	nodes.emplace(std::make_pair(n, NodeDescriptor{}));
+}
+
 void NodeManager::addRef(Node *tar, Node *src)
 {
-	getDescriptor(tar, true)->incrNodeDegree(RefDir::in, src);
+	// Fetch the node descriptors for the two nodes
+	NodeDescriptor *dTar = getDescriptor(tar);
+	NodeDescriptor *dSrc = getDescriptor(src);
+
+	// Store the tar <- src reference
+	assert(dTar);
+	dTar->incrNodeDegree(RefDir::in, src);
+
 	if (src) {
-		getDescriptor(src, true)->incrNodeDegree(RefDir::out, tar);
+		// Store the src -> tar reference
+		assert(dSrc);
+		dSrc->incrNodeDegree(RefDir::out, tar);
 	} else {
 		// We have just added a root reference, remove the element from the
 		// list of marked nodes
@@ -188,11 +199,11 @@ void NodeManager::addRef(Node *tar, Node *src)
 	}
 }
 
-void NodeManager::delRef(Node *tar, Node *src, bool all)
+void NodeManager::deleteRef(Node *tar, Node *src, bool all)
 {
 	// Fetch the node descriptors for the two nodes
-	NodeDescriptor *dTar = getDescriptor(tar, false);
-	NodeDescriptor *dSrc = getDescriptor(src, false);
+	NodeDescriptor *dTar = getDescriptor(tar);
+	NodeDescriptor *dSrc = getDescriptor(src);
 
 	// Decrement the output degree of the source node first
 	if (dSrc) {
@@ -205,11 +216,11 @@ void NodeManager::delRef(Node *tar, Node *src, bool all)
 		// if it has no root reference, add it to the "marked" set which is
 		// subject to tracing garbage collection
 		if (dTar->refInCount() == 0) {
-			delNode(tar, dTar);
+			deleteNode(tar, dTar);
 		} else if (dTar->rootRefCount == 0) {
 			// Call the tracing garbage collector if the number of marked nodes
 			// is larger than the threshold value and this function was not
-			// called from inside the delNode function
+			// called from inside the deleteNode function
 			marked.insert(tar);
 			if (marked.size() >= threshold) {
 				sweep();
@@ -218,9 +229,10 @@ void NodeManager::delRef(Node *tar, Node *src, bool all)
 	}
 }
 
-void NodeManager::delNode(Node *n, NodeDescriptor *descr)
+void NodeManager::deleteNode(Node *n, NodeDescriptor *descr)
 {
-	// Increment the recursion depth counter. The "delRef" function called below
+	// Increment the recursion depth counter. The "deleteRef" function called
+	// below
 	// may descend further into this function and the actual deletion should be
 	// done in a single step.
 	{
@@ -231,8 +243,11 @@ void NodeManager::delNode(Node *n, NodeDescriptor *descr)
 
 		// Remove all output references of this node
 		while (!descr->refOut.empty()) {
-			delRef(descr->refOut.begin()->first, n, true);
+			deleteRef(descr->refOut.begin()->first, n, true);
 		}
+
+		// Remove the node from the "marked" set
+		marked.erase(n);
 	}
 
 	purgeDeleted();
@@ -265,6 +280,7 @@ void NodeManager::sweep()
 			// Increment the deletionRecursionDepth counter to prevent deletion
 			// of nodes while sweep is running
 			ScopedIncrement incr{deletionRecursionDepth};
+
 			// Fetch the next node in the "marked" list and remove it
 			Node *curNode = *(marked.begin());
 
@@ -280,7 +296,7 @@ void NodeManager::sweep()
 				marked.erase(curNode);
 
 				// Fetch the node descriptor
-				NodeDescriptor *descr = getDescriptor(curNode, false);
+				NodeDescriptor *descr = getDescriptor(curNode);
 				if (!descr) {
 					continue;
 				}
@@ -296,8 +312,8 @@ void NodeManager::sweep()
 				for (auto &src : descr->refIn) {
 					Node *srcNode = src.first;
 
-					// Abort if the node is nullptr or already in the reachable
-					// list
+					// Abort if the node already in the reachable list,
+					// otherwise add the node to the queue if it was not visited
 					if (reachable.find(srcNode) != reachable.end()) {
 						isReachable = true;
 						break;
@@ -316,7 +332,7 @@ void NodeManager::sweep()
 				}
 			} else {
 				for (auto n : visited) {
-					delNode(n, getDescriptor(n, false));
+					deleteNode(n, getDescriptor(n));
 				}
 			}
 		}

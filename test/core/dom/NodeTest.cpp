@@ -27,114 +27,118 @@
 namespace ousia {
 namespace dom {
 
+/* Class NodeDescriptor */
+
 TEST(NodeDescriptor, nodeDegree)
 {
-	NodeManager mgr;
+	// Do not use actual Node in this test -- we don't want to test their
+	// behaviour
 	NodeDescriptor nd;
-	Node n1{mgr}, n2{mgr};
+	Node *n1 = reinterpret_cast<Node*>(intptr_t{0x10});
+	Node *n2 = reinterpret_cast<Node*>(intptr_t{0x20});
 
 	// Input degree
 	ASSERT_EQ(0, nd.refIn.size());
-	ASSERT_EQ(0, nd.refInCount(&n1));
+	ASSERT_EQ(0, nd.refInCount(n1));
 
-	nd.incrNodeDegree(RefDir::in, &n1);
+	nd.incrNodeDegree(RefDir::in, n1);
 	ASSERT_EQ(1, nd.refInCount());
-	ASSERT_EQ(1, nd.refInCount(&n1));
-	ASSERT_EQ(0, nd.refInCount(&n2));
+	ASSERT_EQ(1, nd.refInCount(n1));
+	ASSERT_EQ(0, nd.refInCount(n2));
 	ASSERT_EQ(1, nd.refIn.size());
 
-	nd.incrNodeDegree(RefDir::in, &n1);
+	nd.incrNodeDegree(RefDir::in, n1);
 	ASSERT_EQ(2, nd.refInCount());
-	ASSERT_EQ(2, nd.refInCount(&n1));
-	ASSERT_EQ(0, nd.refInCount(&n2));
+	ASSERT_EQ(2, nd.refInCount(n1));
+	ASSERT_EQ(0, nd.refInCount(n2));
 	ASSERT_EQ(1, nd.refIn.size());
 
-	nd.incrNodeDegree(RefDir::in, &n2);
+	nd.incrNodeDegree(RefDir::in, n2);
 	ASSERT_EQ(3, nd.refInCount());
-	ASSERT_EQ(2, nd.refInCount(&n1));
-	ASSERT_EQ(1, nd.refInCount(&n2));
+	ASSERT_EQ(2, nd.refInCount(n1));
+	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(2, nd.refIn.size());
 
 	nd.incrNodeDegree(RefDir::in, nullptr);
 	ASSERT_EQ(4, nd.refInCount());
-	ASSERT_EQ(2, nd.refInCount(&n1));
-	ASSERT_EQ(1, nd.refInCount(&n2));
+	ASSERT_EQ(2, nd.refInCount(n1));
+	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(2, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, &n1));
+	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, n1));
 	ASSERT_EQ(3, nd.refInCount());
-	ASSERT_EQ(1, nd.refInCount(&n1));
-	ASSERT_EQ(1, nd.refInCount(&n2));
+	ASSERT_EQ(1, nd.refInCount(n1));
+	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(2, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, &n1));
+	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, n1));
 	ASSERT_EQ(2, nd.refInCount());
-	ASSERT_EQ(0, nd.refInCount(&n1));
-	ASSERT_EQ(1, nd.refInCount(&n2));
+	ASSERT_EQ(0, nd.refInCount(n1));
+	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(1, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, &n2));
+	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, n2));
 	ASSERT_EQ(1, nd.refInCount());
-	ASSERT_EQ(0, nd.refInCount(&n1));
-	ASSERT_EQ(0, nd.refInCount(&n2));
+	ASSERT_EQ(0, nd.refInCount(n1));
+	ASSERT_EQ(0, nd.refInCount(n2));
 	ASSERT_EQ(0, nd.refIn.size());
 
 	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, nullptr));
 	ASSERT_EQ(0, nd.refInCount());
-	ASSERT_EQ(0, nd.refInCount(&n1));
-	ASSERT_EQ(0, nd.refInCount(&n2));
+	ASSERT_EQ(0, nd.refInCount(n1));
+	ASSERT_EQ(0, nd.refInCount(n2));
 	ASSERT_EQ(0, nd.refIn.size());
 
 	// Output degree
 	ASSERT_EQ(0, nd.refOut.size());
-	ASSERT_EQ(0, nd.refOutCount(&n1));
+	ASSERT_EQ(0, nd.refOutCount(n1));
 
-	nd.incrNodeDegree(RefDir::out, &n1);
+	nd.incrNodeDegree(RefDir::out, n1);
 	ASSERT_EQ(1, nd.refOutCount());
-	ASSERT_EQ(1, nd.refOutCount(&n1));
-	ASSERT_EQ(0, nd.refOutCount(&n2));
+	ASSERT_EQ(1, nd.refOutCount(n1));
+	ASSERT_EQ(0, nd.refOutCount(n2));
 	ASSERT_EQ(1, nd.refOut.size());
 
-	nd.incrNodeDegree(RefDir::out, &n1);
+	nd.incrNodeDegree(RefDir::out, n1);
 	ASSERT_EQ(2, nd.refOutCount());
-	ASSERT_EQ(2, nd.refOutCount(&n1));
-	ASSERT_EQ(0, nd.refOutCount(&n2));
+	ASSERT_EQ(2, nd.refOutCount(n1));
+	ASSERT_EQ(0, nd.refOutCount(n2));
 	ASSERT_EQ(1, nd.refOut.size());
 
-	nd.incrNodeDegree(RefDir::out, &n2);
+	nd.incrNodeDegree(RefDir::out, n2);
 	ASSERT_EQ(3, nd.refOutCount());
-	ASSERT_EQ(2, nd.refOutCount(&n1));
-	ASSERT_EQ(1, nd.refOutCount(&n2));
+	ASSERT_EQ(2, nd.refOutCount(n1));
+	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(2, nd.refOut.size());
 
 	nd.incrNodeDegree(RefDir::out, nullptr);
 	ASSERT_EQ(3, nd.refOutCount());
-	ASSERT_EQ(2, nd.refOutCount(&n1));
-	ASSERT_EQ(1, nd.refOutCount(&n2));
+	ASSERT_EQ(2, nd.refOutCount(n1));
+	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(2, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, &n1));
+	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, n1));
 	ASSERT_EQ(2, nd.refOutCount());
-	ASSERT_EQ(1, nd.refOutCount(&n1));
-	ASSERT_EQ(1, nd.refOutCount(&n2));
+	ASSERT_EQ(1, nd.refOutCount(n1));
+	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(2, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, &n1));
+	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, n1));
 	ASSERT_EQ(1, nd.refOutCount());
-	ASSERT_EQ(0, nd.refOutCount(&n1));
-	ASSERT_EQ(1, nd.refOutCount(&n2));
+	ASSERT_EQ(0, nd.refOutCount(n1));
+	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(1, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, &n2));
+	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, n2));
 	ASSERT_EQ(0, nd.refOutCount());
-	ASSERT_EQ(0, nd.refOutCount(&n1));
-	ASSERT_EQ(0, nd.refOutCount(&n2));
+	ASSERT_EQ(0, nd.refOutCount(n1));
+	ASSERT_EQ(0, nd.refOutCount(n2));
 	ASSERT_EQ(0, nd.refOut.size());
 
 	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, nullptr));
 	ASSERT_EQ(0, nd.refOutCount());
-	ASSERT_EQ(0, nd.refOutCount(&n1));
-	ASSERT_EQ(0, nd.refOutCount(&n2));
+	ASSERT_EQ(0, nd.refOutCount(n1));
+	ASSERT_EQ(0, nd.refOutCount(n2));
 	ASSERT_EQ(0, nd.refOut.size());
 }
 
@@ -164,6 +168,39 @@ TEST(NodeDescriptor, rootRefCount)
 	ASSERT_EQ(0, nd.rootRefCount);
 }
 
+/* Class Handle */
+
+TEST(Handle, operations)
+{
+	NodeManager mgr(1);
+
+	Node *n1 = new Node(mgr), *n2 = new Node(mgr);
+
+	RootedNode rh1{n1};
+	RootedNode rh2{n2};
+	NodeHandle h2{n2, n1};
+
+	// Equals operator
+	ASSERT_TRUE(rh1 == n1);
+	ASSERT_TRUE(n1 == rh1);
+	ASSERT_FALSE(rh1 == rh2);
+	ASSERT_TRUE(rh2 == h2);
+	ASSERT_TRUE(h2 == rh2);
+
+	// Assignment operator
+	RootedNode rh2b;
+
+	ASSERT_FALSE(rh2b == rh2);
+	rh2b = rh2;
+	ASSERT_TRUE(rh2b == rh2);
+	ASSERT_TRUE(rh2b == h2);
+
+	rh2b = h2;
+	ASSERT_TRUE(rh2b == h2);
+}
+
+/* Class NodeManager */
+
 class TestNode : public Node {
 private:
 	bool &alive;
@@ -179,6 +216,16 @@ public:
 	~TestNode() override { alive = false; }
 
 	void addRef(BaseHandle<Node> h) { refs.push_back(acquire(h)); }
+
+	void deleteRef(BaseHandle<Node> h) {
+		for (auto it = refs.begin(); it != refs.end();) {
+			if (*it == h) {
+				it = refs.erase(it);
+			} else {
+				it++;
+			}
+		}
+	}
 };
 
 TEST(NodeManager, linearDependencies)
@@ -289,6 +336,8 @@ TEST(NodeManager, doubleRooted)
 		}
 	}
 }
+
+
 }
 }
 

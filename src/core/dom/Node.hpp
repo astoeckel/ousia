@@ -172,7 +172,7 @@ protected:
 	 * Creates it if it does not exist and the "create" parameter is set to
 	 * true.
 	 */
-	NodeDescriptor *getDescriptor(Node *n, bool create);
+	NodeDescriptor *getDescriptor(Node *n);
 
 	/**
 	 * Purges the nodes in the "deleted" set.
@@ -186,10 +186,10 @@ protected:
 	 * @param n is the node that should be deleted.
 	 * @param
 	 */
-	void delNode(Node *n, NodeDescriptor *descr);
+	void deleteNode(Node *n, NodeDescriptor *descr);
 
 	/**
-	 * Internal version of the delRef function with an additional "all"
+	 * Internal version of the deleteRef function with an additional "all"
 	 * parameter. Removes a reference to the given target node from the source
 	 * node.
 	 *
@@ -202,7 +202,7 @@ protected:
 	 * given node is deleted and all references to it should be purged, no
 	 * matter what.
 	 */
-	void delRef(Node *tar, Node *src, bool all);
+	void deleteRef(Node *tar, Node *src, bool all);
 
 public:
 	NodeManager() : threshold(NODE_MANAGER_SWEEP_THRESHOLD) {}
@@ -213,6 +213,14 @@ public:
 	 * Deletes all nodes which are managed by this class.
 	 */
 	~NodeManager();
+
+	/**
+	 * Registers a node for being used with the NodeManager.
+	 *
+	 * @param n is the node which is registered for being used with the
+	 * NodeManager.
+	 */
+	void registerNode(Node *n);
 
 	/**
 	 * Stores a reference to the given target node from the given source node.
@@ -235,7 +243,7 @@ public:
 	 * @param src is the source node from which the target node was referenced
 	 * or nullptr if the target node is referenced from the local scope.
 	 */
-	void delRef(Node *tar, Node *src) { delRef(tar, src, false); }
+	void deleteRef(Node *tar, Node *src) { deleteRef(tar, src, false); }
 
 	/**
 	 * Performs garbage collection.
@@ -243,13 +251,13 @@ public:
 	void sweep();
 };
 
-template<class T>
+template <class T>
 class BaseHandle;
 
-template<class T>
+template <class T>
 class RootedHandle;
 
-template<class T>
+template <class T>
 class Handle;
 
 /**
@@ -263,27 +271,29 @@ protected:
 	NodeManager &mgr;
 
 public:
-	Node(NodeManager &mgr) : mgr(mgr){};
+	Node(NodeManager &mgr) : mgr(mgr) { mgr.registerNode(this); };
 
 	virtual ~Node(){};
 
 	NodeManager &getManager() { return mgr; }
 
 	template <class T>
-	Handle<T> acquire(const BaseHandle<T> &h) {
+	Handle<T> acquire(const BaseHandle<T> &h)
+	{
 		return Handle<T>(h, this);
 	}
 
 	template <class T>
-	Handle<T> acquire(BaseHandle<T> &&h) {
+	Handle<T> acquire(BaseHandle<T> &&h)
+	{
 		return Handle<T>(h, this);
 	}
 
 	template <class T>
-	Handle<T> acquire(T *t) {
+	Handle<T> acquire(T *t)
+	{
 		return Handle<T>(t, this);
 	}
-
 };
 
 template <class T>
@@ -300,7 +310,6 @@ protected:
 	T *ptr;
 
 public:
-
 	/**
 	 * Constructor of the base handle class.
 	 *
@@ -317,6 +326,27 @@ public:
 	 * Provides access to the underlying node.
 	 */
 	T &operator*() { return *ptr; }
+
+	/**
+	 * Comparison operator between base handle and base handle.
+	 */
+	bool operator==(const BaseHandle &h) const { return ptr == h.ptr; }
+
+	/**
+	 * Comparison operator between base handle and pointer.
+	 */
+	friend bool operator==(const BaseHandle &h, const Node *n)
+	{
+		return h.ptr == n;
+	}
+
+	/**
+	 * Comparison operator between base handle and pointer.
+	 */
+	friend bool operator==(const Node *n, const BaseHandle &h)
+	{
+		return h.ptr == n;
+	}
 };
 
 /**
@@ -326,7 +356,6 @@ public:
  */
 template <class T>
 class RootedHandle : public BaseHandle<T> {
-
 private:
 	void addRef()
 	{
@@ -336,11 +365,11 @@ private:
 		}
 	}
 
-	void delRef()
+	void deleteRef()
 	{
 		if (BaseHandle<T>::ptr) {
-			BaseHandle<T>::ptr->getManager().delRef(BaseHandle<T>::ptr,
-			                                        nullptr);
+			BaseHandle<T>::ptr->getManager().deleteRef(BaseHandle<T>::ptr,
+			                                           nullptr);
 		}
 	}
 
@@ -374,9 +403,37 @@ public:
 	 *
 	 * @param h is the handle that should be asigned to this instance.
 	 */
+	RootedHandle<T> &operator=(const RootedHandle<T> &h)
+	{
+		deleteRef();
+		this->ptr = h.ptr;
+		addRef();
+		return *this;
+	}
+
+	/**
+	 * Move assignment operator. Moves the given rvalue handle into this
+	 * instance.
+	 *
+	 * @param h is the handle to be moved to this instance.
+	 */
+	RootedHandle<T> &operator=(RootedHandle<T> &&h)
+	{
+		deleteRef();
+		this->ptr = h.ptr;
+		h.ptr = nullptr;
+		return *this;
+	}
+
+	/**
+	 * Assignment operator. Assigns the given handle to this handle instance.
+	 * Both handles are indistinguishable after the operation.
+	 *
+	 * @param h is the handle that should be asigned to this instance.
+	 */
 	RootedHandle<T> &operator=(const BaseHandle<T> &h)
 	{
-		delRef();
+		deleteRef();
 		this->ptr = h.ptr;
 		addRef();
 		return *this;
@@ -390,7 +447,7 @@ public:
 	 */
 	RootedHandle<T> &operator=(BaseHandle<T> &&h)
 	{
-		delRef();
+		deleteRef();
 		this->ptr = h.ptr;
 		h.ptr = nullptr;
 		return *this;
@@ -414,7 +471,7 @@ public:
 	 * Destructor of the RootedHandle class, deletes all refrences the class is
 	 * still holding.
 	 */
-	~RootedHandle() { delRef(); }
+	~RootedHandle() { deleteRef(); }
 };
 
 /**
@@ -434,10 +491,10 @@ private:
 		}
 	}
 
-	void delRef()
+	void deleteRef()
 	{
 		if (BaseHandle<T>::ptr && owner) {
-			owner->getManager().delRef(BaseHandle<T>::ptr, owner);
+			owner->getManager().deleteRef(BaseHandle<T>::ptr, owner);
 		}
 	}
 
@@ -478,7 +535,7 @@ public:
 	 */
 	Handle<T> &operator=(const Handle<T> &h)
 	{
-		delRef();
+		deleteRef();
 		this->ptr = h.ptr;
 		this->owner = h.owner;
 		addRef();
@@ -493,7 +550,7 @@ public:
 	 */
 	Handle<T> &operator=(Handle<T> &&h)
 	{
-		delRef();
+		deleteRef();
 		this->ptr = h.ptr;
 		this->owner = h.owner;
 		h.ptr = nullptr;
@@ -529,8 +586,7 @@ public:
 	 * @param owner is the node which owns this handle instance. The ptr node
 	 * is guaranteed to live at least as long as the owner.
 	 */
-	Handle(BaseHandle<T> &&h, Node *owner)
-	    : BaseHandle<T>(h.ptr), owner(owner)
+	Handle(BaseHandle<T> &&h, Node *owner) : BaseHandle<T>(h.ptr), owner(owner)
 	{
 		h.ptr = nullptr;
 	}
@@ -539,8 +595,11 @@ public:
 	 * Destructor of the Handle class, deletes all refrences the class is still
 	 * holding.
 	 */
-	~Handle() { delRef(); }
+	~Handle() { deleteRef(); }
 };
+
+using RootedNode = RootedHandle<Node>;
+using NodeHandle = Handle<Node>;
 
 }
 }

@@ -1,4 +1,4 @@
 #!/bin/sh
 
-cd build && cmake .. -Dtest=on && make && make test
+cd build && cmake .. -DTEST=on -DCMAKE_BUILD_TYPE=Debug && make && make test
 
