@@ -280,19 +280,19 @@ public:
 	template <class T>
 	Handle<T> acquire(const BaseHandle<T> &h)
 	{
-		return Handle<T>(h, this);
+		return Handle<T>{h, this};
 	}
 
 	template <class T>
 	Handle<T> acquire(BaseHandle<T> &&h)
 	{
-		return Handle<T>(h, this);
+		return Handle<T>{h, this};
 	}
 
 	template <class T>
 	Handle<T> acquire(T *t)
 	{
-		return Handle<T>(t, this);
+		return Handle<T>{t, this};
 	}
 };
 
@@ -316,6 +316,11 @@ public:
 	 * @param ptr is the pointer to the node the handle should represent.
 	 */
 	BaseHandle(T *ptr) : ptr(ptr) {}
+
+	/**
+	 * Returns the underlying pointer.
+	 */
+	T *get() const { return ptr; }
 
 	/**
 	 * Provides access to the underlying node.
@@ -398,6 +403,25 @@ public:
 	}
 
 	/**
+	 * Constructor of the handle class.
+	 *
+	 * @param ptr is the node the handle should represent.
+	 */
+	RootedHandle(T *ptr) : BaseHandle<T>(ptr) { addRef(); }
+
+	/**
+	 * Constructor of the handle class.
+	 *
+	 * @param h is another handle whose Node should be used.
+	 */
+	template <class T2>
+	RootedHandle(const BaseHandle<T2> &h)
+	    : BaseHandle<T>(h.get())
+	{
+		addRef();
+	}
+
+	/**
 	 * Assignment operator. Assigns the given handle to this handle instance.
 	 * Both handles are indistinguishable after the operation.
 	 *
@@ -454,20 +478,6 @@ public:
 	}
 
 	/**
-	 * Constructor of the handle class.
-	 *
-	 * @param ptr is the node the handle should represent.
-	 */
-	RootedHandle(T *ptr) : BaseHandle<T>(ptr) { addRef(); }
-
-	/**
-	 * Constructor of the handle class.
-	 *
-	 * @param h is another handle whose Node should be used.
-	 */
-	RootedHandle(BaseHandle<T> h) : BaseHandle<T>(h.ptr) { addRef(); }
-
-	/**
 	 * Destructor of the RootedHandle class, deletes all refrences the class is
 	 * still holding.
 	 */
@@ -511,7 +521,20 @@ public:
 	 *
 	 * @param h is the handle that should be asigned to this instance.
 	 */
-	Handle(const Handle<T> &h) : BaseHandle<T>(h.ptr), owner(h.owner)
+	Handle(const Handle<T> &h) : BaseHandle<T>(h.get()), owner(h.getOwner())
+	{
+		addRef();
+	}
+
+	/**
+	 * Copies the given handle of another derived type to this handle instance.
+	 * Both handles are indistinguishable after the operation (except for the
+	 * type). Note that especially the handle owner is copied.
+	 *
+	 * @param h is the handle that should be asigned to this instance.
+	 */
+	template<class T2>
+	Handle(const Handle<T2> &h) : BaseHandle<T>(h.get()), owner(h.getOwner())
 	{
 		addRef();
 	}
@@ -521,7 +544,7 @@ public:
 	 *
 	 * @param h is the handle to be moved to this instance.
 	 */
-	Handle(Handle<T> &&h) : BaseHandle<T>(h.ptr), owner(h.owner)
+	Handle(Handle<T> &&h) : BaseHandle<T>(h.get()), owner(h.getOwner())
 	{
 		h.ptr = nullptr;
 	}
@@ -537,7 +560,7 @@ public:
 	{
 		deleteRef();
 		this->ptr = h.ptr;
-		this->owner = h.owner;
+		this->owner = h.getOwner();
 		addRef();
 		return *this;
 	}
@@ -552,7 +575,7 @@ public:
 	{
 		deleteRef();
 		this->ptr = h.ptr;
-		this->owner = h.owner;
+		this->owner = h.getOwner();
 		h.ptr = nullptr;
 		return *this;
 	}
@@ -573,22 +596,11 @@ public:
 	 * @param owner is the node which owns this handle instance. The ptr node
 	 * is guaranteed to live at least as long as the owner.
 	 */
-	Handle(const BaseHandle<T> &h, Node *owner)
-	    : BaseHandle<T>(h.ptr), owner(owner)
+	template <class T2>
+	Handle(const BaseHandle<T2> &h, Node *owner)
+	    : BaseHandle<T>(h.get()), owner(owner)
 	{
 		addRef();
-	}
-
-	/**
-	 * Constructor of the handle class.
-	 *
-	 * @param h is another handle whose Node should be used.
-	 * @param owner is the node which owns this handle instance. The ptr node
-	 * is guaranteed to live at least as long as the owner.
-	 */
-	Handle(BaseHandle<T> &&h, Node *owner) : BaseHandle<T>(h.ptr), owner(owner)
-	{
-		h.ptr = nullptr;
 	}
 
 	/**
@@ -596,11 +608,19 @@ public:
 	 * holding.
 	 */
 	~Handle() { deleteRef(); }
+
+	/**
+	 * Returns the reference to the owner of the handle.
+	 *
+	 * @return the handle owner.
+	 */
+	Node* getOwner() const {
+		return owner;
+	}
 };
 
 using RootedNode = RootedHandle<Node>;
 using NodeHandle = Handle<Node>;
-
 }
 }
 

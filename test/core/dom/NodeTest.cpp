@@ -176,10 +176,10 @@ TEST(Handle, equalsAndAssign)
 
 	Node *n1 = new Node(mgr), *n2 = new Node(mgr);
 
-	RootedNode rh1{n1};
-	RootedNode rh2{n2};
+	RootedHandle<Node> rh1{n1};
+	RootedHandle<Node> rh2{n2};
 
-	NodeHandle h2{n2, n1};
+	Handle<Node> h2{n2, n1};
 
 	// Equals operator
 	ASSERT_TRUE(rh1 == n1);
@@ -189,7 +189,7 @@ TEST(Handle, equalsAndAssign)
 	ASSERT_TRUE(h2 == rh2);
 
 	// Assignment operator
-	RootedNode rh2b;
+	RootedHandle<Node> rh2b;
 
 	ASSERT_FALSE(rh2b == rh2);
 	rh2b = rh2;
@@ -199,14 +199,14 @@ TEST(Handle, equalsAndAssign)
 	rh2b = h2;
 	ASSERT_TRUE(rh2b == h2);
 
-	NodeHandle h2b;
+	Handle<Node> h2b;
 	ASSERT_FALSE(rh2 == h2b);
 	ASSERT_FALSE(h2 == h2b);
 	h2b = h2;
 	ASSERT_TRUE(rh2 == h2b);
 	ASSERT_TRUE(h2 == h2b);
 
-	NodeHandle h2c{h2b, n1};
+	Handle<Node> h2c{h2b, n1};
 	ASSERT_TRUE(h2b == h2c);
 }
 
@@ -221,17 +221,24 @@ private:
 public:
 	TestNode(NodeManager &mgr, bool &alive) : Node(mgr), alive(alive)
 	{
+		//std::cout << "create TestNode @" << this << std::endl;
 		alive = true;
 	}
 
-	~TestNode() override { alive = false; }
+	~TestNode() override
+	{
+		//std::cout << "delete TestNode @" << this << std::endl;
+		alive = false;
+	}
 
-	void addRef(BaseHandle<Node> h) { refs.push_back(acquire(h)); }
+	template<class T>
+	void addRef(T n) { refs.push_back(acquire(n)); }
 
-	void deleteRef(BaseHandle<Node> h)
+	template<class T>
+	void deleteRef(T n)
 	{
 		for (auto it = refs.begin(); it != refs.end();) {
-			if (*it == h) {
+			if (*it == n) {
 				it = refs.erase(it);
 			} else {
 				it++;
@@ -243,7 +250,6 @@ public:
 TEST(NodeManager, linearDependencies)
 {
 	std::array<bool, 4> a;
-	a.fill(false);
 
 	NodeManager mgr(1);
 	{
@@ -276,7 +282,6 @@ TEST(NodeManager, linearDependencies)
 TEST(NodeManager, cyclicDependencies)
 {
 	std::array<bool, 4> a;
-	a.fill(false);
 
 	NodeManager mgr(1);
 	{
@@ -307,10 +312,30 @@ TEST(NodeManager, cyclicDependencies)
 	}
 }
 
+TEST(NodeManager, selfReferentialCyclicDependencies)
+{
+	std::array<bool, 2> a;
+
+	NodeManager mgr(1);
+	{
+		TestNode *n1;
+		n1 = new TestNode(mgr, a[1]);
+
+		{
+			RootedHandle<TestNode> hr{new TestNode(mgr, a[0])};
+			ASSERT_TRUE(a[0] && a[1]);
+			hr->addRef(n1);
+			n1->addRef(n1);
+		}
+
+		// All nodes must have set their "alive" flag to false
+		ASSERT_FALSE(a[0] || a[1]);
+	}
+}
+
 TEST(NodeManager, doubleRooted)
 {
 	std::array<bool, 4> a;
-	a.fill(false);
 
 	NodeManager mgr(1);
 	{
@@ -328,13 +353,13 @@ TEST(NodeManager, doubleRooted)
 					ASSERT_TRUE(v);
 				}
 
-				// Create cyclical dependency between n2 and n1
-				n1->addRef(n2);
-				n2->addRef(n1);
-
 				// Reference n1 and n2 in the rooted nodes
 				hr1->addRef(n1);
 				hr2->addRef(n2);
+
+				// Create cyclical dependency between n2 and n1
+				n1->addRef(n2);
+				n2->addRef(n1);
 			}
 
 			// hr2 is dead, all other nodes are still alive
@@ -352,7 +377,6 @@ TEST(NodeManager, doubleRooted)
 TEST(NodeManager, disconnectSubgraph)
 {
 	std::array<bool, 4> a;
-	a.fill(false);
 
 	NodeManager mgr(1);
 	{
@@ -388,6 +412,139 @@ TEST(NodeManager, disconnectSubgraph)
 		}
 	}
 }
+
+TEST(NodeManager, disconnectDoubleRootedSubgraph)
+{
+	std::array<bool, 5> a;
+
+	NodeManager mgr(1);
+	{
+		TestNode *n1, *n2, *n3;
+		n1 = new TestNode(mgr, a[1]);
+		n2 = new TestNode(mgr, a[2]);
+		n3 = new TestNode(mgr, a[3]);
+
+		{
+			RootedHandle<TestNode> hr1{new TestNode(mgr, a[0])};
+			{
+				RootedHandle<TestNode> hr2{new TestNode(mgr, a[4])};
+
+				// Create a cyclic dependency chain with two rooted nodes
+				hr1->addRef(n1);
+				n1->addRef(n2);
+				n2->addRef(n3);
+				n3->addRef(n1);
+				hr2->addRef(n3);
+
+				// All nodes must have set their "alive" flag to true
+				for (bool v : a) {
+					ASSERT_TRUE(v);
+				}
+
+				// Remove the reference from n3 to n1
+				n3->deleteRef(n1);
+
+				// Still all nodes must have set their "alive" flag to true
+				for (bool v : a) {
+					ASSERT_TRUE(v);
+				}
+
+				// Remove the reference from n1 to n2
+				n1->deleteRef(n2);
+
+				// Node 2 must be dead, all others alive
+				ASSERT_FALSE(a[2]);
+				ASSERT_TRUE(a[0] && a[1] && a[3] && a[4]);
+			}
+
+			// Node 2, 3, hr2 must be dead, all others alive
+			ASSERT_FALSE(a[2] || a[3] || a[4]);
+			ASSERT_TRUE(a[0] && a[1]);
+		}
+
+		// All nodes must have set their "alive" flag to false
+		for (bool v : a) {
+			ASSERT_FALSE(v);
+		}
+	}
+}
+
+RootedHandle<TestNode> createFullyConnectedGraph(NodeManager &mgr, int nElem,
+                                             bool alive[])
+{
+	std::vector<RootedHandle<TestNode>> nodes;
+
+	// Create the nodes
+	for (int i = 0; i < nElem; i++) {
+		nodes.push_back(RootedHandle<TestNode>{new TestNode{mgr, alive[i]}});
+	}
+
+	// Add all connections
+	for (int i = 0; i < nElem; i++) {
+		for (int j = 0; j < nElem; j++) {
+			nodes[i]->addRef(nodes[j]);
+		}
+	}
+
+	return nodes[0];
+}
+
+TEST(NodeManager, fullyConnectedGraph)
+{
+	constexpr int nElem = 64;
+	std::array<bool, nElem> a;
+
+	NodeManager mgr(1);
+	{
+		RootedHandle<TestNode> n = createFullyConnectedGraph(mgr, nElem, &a[0]);
+		for (bool v : a) {
+			ASSERT_TRUE(v);
+		}
+	}
+	for (bool v : a) {
+		ASSERT_FALSE(v);
+	}
+}
+
+class HidingTestNode : public TestNode {
+
+private:
+	RootedHandle<Node> hidden;
+
+public:
+
+	HidingTestNode(NodeManager &mgr, bool &alive) : TestNode(mgr, alive) {};
+
+	template<class T>
+	void setHiddenRef(T t) {
+		hidden = t;
+	}
+
+};
+
+TEST(NodeManager, hiddenRootedGraph)
+{
+	constexpr int nElem = 16;
+	std::array<bool, nElem> a;
+	bool b;
+	NodeManager mgr(1);
+
+	{
+		RootedHandle<HidingTestNode> n{new HidingTestNode{mgr, b}};
+		n->setHiddenRef(createFullyConnectedGraph(mgr, nElem, &a[0]));
+
+		ASSERT_TRUE(b);
+		for (bool v : a) {
+			ASSERT_TRUE(v);
+		}
+	}
+
+	ASSERT_FALSE(b);
+	for (bool v : a) {
+		ASSERT_FALSE(v);
+	}
+}
+
 }
 }
 

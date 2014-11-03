@@ -187,7 +187,6 @@ void NodeManager::addRef(Node *tar, Node *src)
 	// Store the tar <- src reference
 	assert(dTar);
 	dTar->incrNodeDegree(RefDir::in, src);
-
 	if (src) {
 		// Store the src -> tar reference
 		assert(dSrc);
@@ -222,15 +221,23 @@ void NodeManager::deleteRef(Node *tar, Node *src, bool all)
 			// is larger than the threshold value and this function was not
 			// called from inside the deleteNode function
 			marked.insert(tar);
-			if (marked.size() >= threshold) {
-				sweep();
-			}
 		}
+	}
+
+	// Call the garbage collector if the marked size is larger than the actual
+	// value
+	if (marked.size() >= threshold) {
+		sweep();
 	}
 }
 
 void NodeManager::deleteNode(Node *n, NodeDescriptor *descr)
 {
+	// Abort if the node already is on the "deleted" list
+	if (deleted.find(n) != deleted.end()) {
+		return;
+	}
+
 	// Increment the recursion depth counter. The "deleteRef" function called
 	// below
 	// may descend further into this function and the actual deletion should be
@@ -277,6 +284,11 @@ void NodeManager::purgeDeleted()
 
 void NodeManager::sweep()
 {
+	// Only execute sweep on the highest recursion level
+	if (deletionRecursionDepth > 0) {
+		return;
+	}
+
 	// Set containing nodes which are reachable from a rooted node
 	std::unordered_set<Node *> reachable;
 
