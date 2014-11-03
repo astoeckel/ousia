@@ -34,8 +34,8 @@ TEST(NodeDescriptor, nodeDegree)
 	// Do not use actual Node in this test -- we don't want to test their
 	// behaviour
 	NodeDescriptor nd;
-	Node *n1 = reinterpret_cast<Node*>(intptr_t{0x10});
-	Node *n2 = reinterpret_cast<Node*>(intptr_t{0x20});
+	Node *n1 = reinterpret_cast<Node *>(intptr_t{0x10});
+	Node *n2 = reinterpret_cast<Node *>(intptr_t{0x20});
 
 	// Input degree
 	ASSERT_EQ(0, nd.refIn.size());
@@ -228,7 +228,8 @@ public:
 
 	void addRef(BaseHandle<Node> h) { refs.push_back(acquire(h)); }
 
-	void deleteRef(BaseHandle<Node> h) {
+	void deleteRef(BaseHandle<Node> h)
+	{
 		for (auto it = refs.begin(); it != refs.end();) {
 			if (*it == h) {
 				it = refs.erase(it);
@@ -387,8 +388,6 @@ TEST(NodeManager, disconnectSubgraph)
 		}
 	}
 }
-
-
 }
 }
 
