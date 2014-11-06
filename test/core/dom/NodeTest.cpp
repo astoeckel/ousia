@@ -168,18 +168,18 @@ TEST(NodeDescriptor, rootRefCount)
 	ASSERT_EQ(0, nd.rootRefCount);
 }
 
-/* Class Handle */
+/* Class Owned */
 
-TEST(Handle, equalsAndAssign)
+TEST(Owned, equalsAndAssign)
 {
 	NodeManager mgr(1);
 
 	Node *n1 = new Node(mgr), *n2 = new Node(mgr);
 
-	RootedHandle<Node> rh1{n1};
-	RootedHandle<Node> rh2{n2};
+	Rooted<Node> rh1{n1};
+	Rooted<Node> rh2{n2};
 
-	Handle<Node> h2{n2, n1};
+	Owned<Node> h2{n2, n1};
 
 	// Equals operator
 	ASSERT_TRUE(rh1 == n1);
@@ -189,7 +189,7 @@ TEST(Handle, equalsAndAssign)
 	ASSERT_TRUE(h2 == rh2);
 
 	// Assignment operator
-	RootedHandle<Node> rh2b;
+	Rooted<Node> rh2b;
 
 	ASSERT_FALSE(rh2b == rh2);
 	rh2b = rh2;
@@ -199,14 +199,14 @@ TEST(Handle, equalsAndAssign)
 	rh2b = h2;
 	ASSERT_TRUE(rh2b == h2);
 
-	Handle<Node> h2b;
+	Owned<Node> h2b;
 	ASSERT_FALSE(rh2 == h2b);
 	ASSERT_FALSE(h2 == h2b);
 	h2b = h2;
 	ASSERT_TRUE(rh2 == h2b);
 	ASSERT_TRUE(h2 == h2b);
 
-	Handle<Node> h2c{h2b, n1};
+	Owned<Node> h2c{h2b, n1};
 	ASSERT_TRUE(h2b == h2c);
 }
 
@@ -216,7 +216,7 @@ class TestNode : public Node {
 private:
 	bool &alive;
 
-	std::vector<Handle<Node>> refs;
+	std::vector<Owned<Node>> refs;
 
 public:
 	TestNode(NodeManager &mgr, bool &alive) : Node(mgr), alive(alive)
@@ -231,14 +231,12 @@ public:
 		alive = false;
 	}
 
-	template<class T>
-	void addRef(T n) { refs.push_back(acquire(n)); }
+	void addRef(Handle<Node> h) { refs.push_back(acquire(h)); }
 
-	template<class T>
-	void deleteRef(T n)
+	void deleteRef(Handle<Node> h)
 	{
 		for (auto it = refs.begin(); it != refs.end();) {
-			if (*it == n) {
+			if (*it == h) {
 				it = refs.erase(it);
 			} else {
 				it++;
@@ -259,7 +257,7 @@ TEST(NodeManager, linearDependencies)
 		n3 = new TestNode(mgr, a[3]);
 
 		{
-			RootedHandle<TestNode> hr{new TestNode(mgr, a[0])};
+			Rooted<TestNode> hr{new TestNode(mgr, a[0])};
 
 			// All nodes must have set their "alive" flag to true
 			for (bool v : a) {
@@ -291,7 +289,7 @@ TEST(NodeManager, cyclicDependencies)
 		n3 = new TestNode(mgr, a[3]);
 
 		{
-			RootedHandle<TestNode> hr{new TestNode(mgr, a[0])};
+			Rooted<TestNode> hr{new TestNode(mgr, a[0])};
 
 			// All nodes must have set their "alive" flag to true
 			for (bool v : a) {
@@ -322,7 +320,7 @@ TEST(NodeManager, selfReferentialCyclicDependencies)
 		n1 = new TestNode(mgr, a[1]);
 
 		{
-			RootedHandle<TestNode> hr{new TestNode(mgr, a[0])};
+			Rooted<TestNode> hr{new TestNode(mgr, a[0])};
 			ASSERT_TRUE(a[0] && a[1]);
 			hr->addRef(n1);
 			n1->addRef(n1);
@@ -344,9 +342,9 @@ TEST(NodeManager, doubleRooted)
 		n2 = new TestNode(mgr, a[2]);
 
 		{
-			RootedHandle<TestNode> hr1{new TestNode(mgr, a[0])};
+			Rooted<TestNode> hr1{new TestNode(mgr, a[0])};
 			{
-				RootedHandle<TestNode> hr2{new TestNode(mgr, a[3])};
+				Rooted<TestNode> hr2{new TestNode(mgr, a[3])};
 
 				// All nodes must have set their "alive" flag to true
 				for (bool v : a) {
@@ -386,7 +384,7 @@ TEST(NodeManager, disconnectSubgraph)
 		n3 = new TestNode(mgr, a[3]);
 
 		{
-			RootedHandle<TestNode> hr{new TestNode(mgr, a[0])};
+			Rooted<TestNode> hr{new TestNode(mgr, a[0])};
 
 			// Create a linear dependency chain
 			hr->addRef(n1);
@@ -425,9 +423,9 @@ TEST(NodeManager, disconnectDoubleRootedSubgraph)
 		n3 = new TestNode(mgr, a[3]);
 
 		{
-			RootedHandle<TestNode> hr1{new TestNode(mgr, a[0])};
+			Rooted<TestNode> hr1{new TestNode(mgr, a[0])};
 			{
-				RootedHandle<TestNode> hr2{new TestNode(mgr, a[4])};
+				Rooted<TestNode> hr2{new TestNode(mgr, a[4])};
 
 				// Create a cyclic dependency chain with two rooted nodes
 				hr1->addRef(n1);
@@ -469,14 +467,14 @@ TEST(NodeManager, disconnectDoubleRootedSubgraph)
 	}
 }
 
-RootedHandle<TestNode> createFullyConnectedGraph(NodeManager &mgr, int nElem,
+Rooted<TestNode> createFullyConnectedGraph(NodeManager &mgr, int nElem,
                                              bool alive[])
 {
-	std::vector<RootedHandle<TestNode>> nodes;
+	std::vector<Rooted<TestNode>> nodes;
 
 	// Create the nodes
 	for (int i = 0; i < nElem; i++) {
-		nodes.push_back(RootedHandle<TestNode>{new TestNode{mgr, alive[i]}});
+		nodes.push_back(Rooted<TestNode>{new TestNode{mgr, alive[i]}});
 	}
 
 	// Add all connections
@@ -496,11 +494,12 @@ TEST(NodeManager, fullyConnectedGraph)
 
 	NodeManager mgr(1);
 	{
-		RootedHandle<TestNode> n = createFullyConnectedGraph(mgr, nElem, &a[0]);
+		Rooted<TestNode> n = createFullyConnectedGraph(mgr, nElem, &a[0]);
 		for (bool v : a) {
 			ASSERT_TRUE(v);
 		}
 	}
+
 	for (bool v : a) {
 		ASSERT_FALSE(v);
 	}
@@ -509,14 +508,13 @@ TEST(NodeManager, fullyConnectedGraph)
 class HidingTestNode : public TestNode {
 
 private:
-	RootedHandle<Node> hidden;
+	Rooted<Node> hidden;
 
 public:
 
 	HidingTestNode(NodeManager &mgr, bool &alive) : TestNode(mgr, alive) {};
 
-	template<class T>
-	void setHiddenRef(T t) {
+	void setHiddenRef(Handle<Node> t) {
 		hidden = t;
 	}
 
@@ -530,7 +528,7 @@ TEST(NodeManager, hiddenRootedGraph)
 	NodeManager mgr(1);
 
 	{
-		RootedHandle<HidingTestNode> n{new HidingTestNode{mgr, b}};
+		Rooted<HidingTestNode> n{new HidingTestNode{mgr, b}};
 		n->setHiddenRef(createFullyConnectedGraph(mgr, nElem, &a[0]));
 
 		ASSERT_TRUE(b);

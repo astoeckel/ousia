@@ -217,15 +217,14 @@ void NodeManager::deleteRef(Node *tar, Node *src, bool all)
 		if (dTar->refInCount() == 0) {
 			deleteNode(tar, dTar);
 		} else if (dTar->rootRefCount == 0) {
-			// Call the tracing garbage collector if the number of marked nodes
-			// is larger than the threshold value and this function was not
-			// called from inside the deleteNode function
+			// Insert the node into the list of nodes to be inspected by garbage
+			// collection
 			marked.insert(tar);
 		}
 	}
 
-	// Call the garbage collector if the marked size is larger than the actual
-	// value
+	// Call the tracing garbage collector if the marked size is larger than the
+	// actual value
 	if (marked.size() >= threshold) {
 		sweep();
 	}

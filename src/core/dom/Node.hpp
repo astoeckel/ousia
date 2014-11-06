@@ -30,6 +30,15 @@ namespace dom {
 
 class Node;
 
+template <class T>
+class Handle;
+
+template <class T>
+class Rooted;
+
+template <class T>
+class Owned;
+
 /**
  * Enum used for specifying the Reference direction.
  */
@@ -251,20 +260,11 @@ public:
 	void sweep();
 };
 
-template <class T>
-class BaseHandle;
-
-template <class T>
-class RootedHandle;
-
-template <class T>
-class Handle;
-
 /**
  * The Node class builds the main class in the DOM graph. The Node class
  * instances are managed by a NodeManager which performs garbage collection of
  * the Node instances. Do not pass raw Node pointers around, always wrap them
- * inside a RootedHandle or Handle class.
+ * inside a Rooted or Owned class.
  */
 class Node {
 protected:
@@ -278,29 +278,29 @@ public:
 	NodeManager &getManager() { return mgr; }
 
 	template <class T>
-	Handle<T> acquire(const BaseHandle<T> &h)
+	Owned<T> acquire(const Handle<T> &h)
 	{
-		return Handle<T>{h, this};
+		return Owned<T>{h, this};
 	}
 
 	template <class T>
-	Handle<T> acquire(BaseHandle<T> &&h)
+	Owned<T> acquire(Handle<T> &&h)
 	{
-		return Handle<T>{h, this};
+		return Owned<T>{h, this};
 	}
 
 	template <class T>
-	Handle<T> acquire(T *t)
+	Owned<T> acquire(T *t)
 	{
-		return Handle<T>{t, this};
+		return Owned<T>{t, this};
 	}
 };
 
 template <class T>
-class BaseHandle {
+class Handle {
 protected:
-	friend class RootedHandle<T>;
-	friend class Handle<T>;
+	friend class Rooted<T>;
+	friend class Owned<T>;
 
 	static_assert(std::is_base_of<Node, T>::value, "T must be a Node");
 
@@ -311,11 +311,29 @@ protected:
 
 public:
 	/**
-	 * Constructor of the base handle class.
+	 * Constructor of the base Owned class.
 	 *
-	 * @param ptr is the pointer to the node the handle should represent.
+	 * @param ptr is the pointer to the node the Owned should represent.
 	 */
-	BaseHandle(T *ptr) : ptr(ptr) {}
+	Handle(T *ptr) : ptr(ptr) {}
+
+	/**
+	 * Copies the given Handle to this Handle instance.
+	 *
+	 * @param h is the Handle that should be asigned to this instance.
+	 */
+	Handle(const Handle<T> &h) : ptr(h.get()) {}
+
+	/**
+	 * Copies the given Handle for a derived class to this Handle instance.
+	 *
+	 * @param h is the Handle that should be asigned to this instance.
+	 */
+	template <class T2>
+	Handle(const Handle<T2> &h)
+	    : ptr(h.get())
+	{
+	}
 
 	/**
 	 * Returns the underlying pointer.
@@ -333,101 +351,111 @@ public:
 	T &operator*() { return *ptr; }
 
 	/**
-	 * Comparison operator between base handle and base handle.
+	 * Comparison operator between base Owned and base Owned.
 	 */
-	bool operator==(const BaseHandle &h) const { return ptr == h.ptr; }
+	bool operator==(const Handle &h) const { return ptr == h.ptr; }
 
 	/**
-	 * Comparison operator between base handle and pointer.
+	 * Comparison operator between base Owned and pointer.
 	 */
-	friend bool operator==(const BaseHandle &h, const Node *n)
+	friend bool operator==(const Handle &h, const Node *n)
 	{
 		return h.ptr == n;
 	}
 
 	/**
-	 * Comparison operator between base handle and pointer.
+	 * Comparison operator between base Owned and pointer.
 	 */
-	friend bool operator==(const Node *n, const BaseHandle &h)
+	friend bool operator==(const Node *n, const Handle &h)
 	{
 		return h.ptr == n;
 	}
+
+	/**
+	 * Returns true if the handle is the null pointer.
+	 */
+	bool isNull() const { return ptr == nullptr; }
+
+	/**
+	 * Returns true if the handle is the null pointer.
+	 */
+	bool operator!() const { return isNull(); }
 };
 
 /**
- * A RootedHandle represents a directed, garbage collected pointer at a Node
+ * Null represents a null handle.
+ */
+static const Handle<Node> Null{nullptr};
+
+/**
+ * A Rooted represents a directed, garbage collected pointer at a Node
  * instance. The lifetime of the represented node is guaranteed to be at least
- * as long as the lifetime of the RootedHandle instance.
+ * as long as the lifetime of the Rooted instance.
  */
 template <class T>
-class RootedHandle : public BaseHandle<T> {
+class Rooted : public Handle<T> {
 private:
 	void addRef()
 	{
-		if (BaseHandle<T>::ptr) {
-			BaseHandle<T>::ptr->getManager().addRef(BaseHandle<T>::ptr,
-			                                        nullptr);
+		if (Handle<T>::ptr) {
+			Handle<T>::ptr->getManager().addRef(Handle<T>::ptr, nullptr);
 		}
 	}
 
 	void deleteRef()
 	{
-		if (BaseHandle<T>::ptr) {
-			BaseHandle<T>::ptr->getManager().deleteRef(BaseHandle<T>::ptr,
-			                                           nullptr);
+		if (Handle<T>::ptr) {
+			Handle<T>::ptr->getManager().deleteRef(Handle<T>::ptr, nullptr);
 		}
 	}
 
 public:
 	/**
-	 * Creates an empty handle.
+	 * Creates an empty Owned.
 	 */
-	RootedHandle() : BaseHandle<T>(nullptr){};
+	Rooted() : Handle<T>(nullptr){};
 
 	/**
-	 * Copies the given handle to this handle instance. Both handles are
-	 * indistinguishable after the operation.
+	 * Copies the given Rooted to this Rooted instance. Both handles
+	 * are indistinguishable after the operation.
 	 *
-	 * @param h is the handle that should be asigned to this instance.
+	 * @param h is the Owned that should be asigned to this instance.
 	 */
-	RootedHandle(const RootedHandle<T> &h) : BaseHandle<T>(h.ptr) { addRef(); }
+	Rooted(const Rooted<T> &h) : Handle<T>(h.ptr) { addRef(); }
 
 	/**
-	 * Move constructor. Moves the given rvalue handle to this instance.
+	 * Move constructor. Moves the given rvalue Rooted to this instance.
 	 *
-	 * @param h is the handle to be moved to this instance.
+	 * @param h is the Rooted to be moved to this instance.
 	 */
-	RootedHandle(RootedHandle<T> &&h) : BaseHandle<T>(h.ptr)
-	{
-		h.ptr = nullptr;
-	}
+	Rooted(Rooted<T> &&h) : Handle<T>(h.ptr) { h.ptr = nullptr; }
 
 	/**
-	 * Constructor of the handle class.
+	 * Constructor of the Owned class.
 	 *
-	 * @param ptr is the node the handle should represent.
+	 * @param ptr is the node the Owned should represent.
 	 */
-	RootedHandle(T *ptr) : BaseHandle<T>(ptr) { addRef(); }
+	Rooted(T *ptr) : Handle<T>(ptr) { addRef(); }
 
 	/**
-	 * Constructor of the handle class.
+	 * Constructor of the Owned class.
 	 *
-	 * @param h is another handle whose Node should be used.
+	 * @param h is another Owned whose Node should be used.
 	 */
 	template <class T2>
-	RootedHandle(const BaseHandle<T2> &h)
-	    : BaseHandle<T>(h.get())
+	Rooted(const Handle<T2> &h)
+	    : Handle<T>(h.get())
 	{
 		addRef();
 	}
 
 	/**
-	 * Assignment operator. Assigns the given handle to this handle instance.
+	 * Assignment operator. Assigns the given Owned to this Owned instance.
 	 * Both handles are indistinguishable after the operation.
 	 *
-	 * @param h is the handle that should be asigned to this instance.
+	 * @param h is the Owned that should be asigned to this instance.
 	 */
-	RootedHandle<T> &operator=(const RootedHandle<T> &h)
+	Rooted<T> &operator=(const Rooted<T> &h)
 	{
 		deleteRef();
 		this->ptr = h.ptr;
@@ -436,12 +464,12 @@ public:
 	}
 
 	/**
-	 * Move assignment operator. Moves the given rvalue handle into this
+	 * Move assignment operator. Moves the given rvalue Owned into this
 	 * instance.
 	 *
-	 * @param h is the handle to be moved to this instance.
+	 * @param h is the Owned to be moved to this instance.
 	 */
-	RootedHandle<T> &operator=(RootedHandle<T> &&h)
+	Rooted<T> &operator=(Rooted<T> &&h)
 	{
 		deleteRef();
 		this->ptr = h.ptr;
@@ -450,26 +478,27 @@ public:
 	}
 
 	/**
-	 * Assignment operator. Assigns the given handle to this handle instance.
+	 * Assignment operator. Assigns the given Owned to this Owned instance.
 	 * Both handles are indistinguishable after the operation.
 	 *
-	 * @param h is the handle that should be asigned to this instance.
+	 * @param h is the Owned that should be asigned to this instance.
 	 */
-	RootedHandle<T> &operator=(const BaseHandle<T> &h)
+	template <class T2>
+	Rooted<T> &operator=(const Handle<T2> &h)
 	{
 		deleteRef();
-		this->ptr = h.ptr;
+		this->ptr = h.get();
 		addRef();
 		return *this;
 	}
 
 	/**
-	 * Move assignment operator. Moves the given rvalue handle into this
+	 * Move assignment operator. Moves the given rvalue Owned into this
 	 * instance.
 	 *
-	 * @param h is the handle to be moved to this instance.
+	 * @param h is the Owned to be moved to this instance.
 	 */
-	RootedHandle<T> &operator=(BaseHandle<T> &&h)
+	Rooted<T> &operator=(Handle<T> &&h)
 	{
 		deleteRef();
 		this->ptr = h.ptr;
@@ -478,85 +507,86 @@ public:
 	}
 
 	/**
-	 * Destructor of the RootedHandle class, deletes all refrences the class is
+	 * Destructor of the Rooted class, deletes all refrences the class is
 	 * still holding.
 	 */
-	~RootedHandle() { deleteRef(); }
+	~Rooted() { deleteRef(); }
 };
 
 /**
- * The handle class represents a directed, garbage collected pointer at a Node
+ * The Owned class represents a directed, garbage collected pointer at a Node
  * instance. The lifetime of the represented node is guaranteed to be at last
  * as long as the lifetime of the Node instance which owns this reference.
  */
 template <class T>
-class Handle : public BaseHandle<T> {
+class Owned : public Handle<T> {
 private:
 	Node *owner;
 
 	void addRef()
 	{
-		if (BaseHandle<T>::ptr && owner) {
-			owner->getManager().addRef(BaseHandle<T>::ptr, owner);
+		if (Handle<T>::ptr && owner) {
+			owner->getManager().addRef(Handle<T>::ptr, owner);
 		}
 	}
 
 	void deleteRef()
 	{
-		if (BaseHandle<T>::ptr && owner) {
-			owner->getManager().deleteRef(BaseHandle<T>::ptr, owner);
+		if (Handle<T>::ptr && owner) {
+			owner->getManager().deleteRef(Handle<T>::ptr, owner);
 		}
 	}
 
 public:
 	/**
-	 * Creates an empty handle.
+	 * Creates an empty Owned.
 	 */
-	Handle() : BaseHandle<T>(nullptr), owner(nullptr){};
+	Owned() : Handle<T>(nullptr), owner(nullptr){};
 
 	/**
-	 * Copies the given handle to this handle instance. Both handles are
-	 * indistinguishable after the operation. Note that especially the handle
+	 * Copies the given Owned to this Owned instance. Both handles are
+	 * indistinguishable after the operation. Note that especially the Owned
 	 * owner is copied.
 	 *
-	 * @param h is the handle that should be asigned to this instance.
+	 * @param h is the Owned that should be asigned to this instance.
 	 */
-	Handle(const Handle<T> &h) : BaseHandle<T>(h.get()), owner(h.getOwner())
+	Owned(const Owned<T> &h) : Handle<T>(h.get()), owner(h.getOwner())
 	{
 		addRef();
 	}
 
 	/**
-	 * Copies the given handle of another derived type to this handle instance.
+	 * Copies the given Owned of another derived type to this Owned instance.
 	 * Both handles are indistinguishable after the operation (except for the
-	 * type). Note that especially the handle owner is copied.
+	 * type). Note that especially the Owned owner is copied.
 	 *
-	 * @param h is the handle that should be asigned to this instance.
+	 * @param h is the Owned that should be asigned to this instance.
 	 */
-	template<class T2>
-	Handle(const Handle<T2> &h) : BaseHandle<T>(h.get()), owner(h.getOwner())
+	template <class T2>
+	Owned(const Owned<T2> &h)
+	    : Handle<T>(h.get()), owner(h.getOwner())
 	{
 		addRef();
 	}
 
 	/**
-	 * Move constructor. Moves the given rvalue handle to this instance.
+	 * Move constructor. Moves the given rvalue Owned to this instance.
 	 *
-	 * @param h is the handle to be moved to this instance.
+	 * @param h is the Owned to be moved to this instance.
 	 */
-	Handle(Handle<T> &&h) : BaseHandle<T>(h.get()), owner(h.getOwner())
+	Owned(Owned<T> &&h) : Handle<T>(h.get()), owner(h.getOwner())
 	{
 		h.ptr = nullptr;
 	}
 
 	/**
-	 * Assignment operator. Assigns the given handle to this handle instance.
+	 * Assignment operator. Assigns the given Owned to this Owned instance.
 	 * Both handles are indistinguishable after the operation. Note that
-	 * especially the handle owner is copied.
+	 * especially the Owned owner is copied.
 	 *
-	 * @param h is the handle that should be asigned to this instance.
+	 * @param h is the Owned that should be asigned to this instance.
 	 */
-	Handle<T> &operator=(const Handle<T> &h)
+	Owned<T> &operator=(const Owned<T> &h)
 	{
 		deleteRef();
 		this->ptr = h.ptr;
@@ -566,12 +596,12 @@ public:
 	}
 
 	/**
-	 * Move assignment operator. Moves the given rvalue handle into this
+	 * Move assignment operator. Moves the given rvalue Owned into this
 	 * instance.
 	 *
-	 * @param h is the handle to be moved to this instance.
+	 * @param h is the Owned to be moved to this instance.
 	 */
-	Handle<T> &operator=(Handle<T> &&h)
+	Owned<T> &operator=(Owned<T> &&h)
 	{
 		deleteRef();
 		this->ptr = h.ptr;
@@ -581,46 +611,41 @@ public:
 	}
 
 	/**
-	 * Constructor of the handle class.
+	 * Constructor of the Owned class.
 	 *
-	 * @param ptr is the node the handle should represent.
-	 * @param owner is the node which owns this handle instance. The ptr node
+	 * @param ptr is the node the Owned should represent.
+	 * @param owner is the node which owns this Owned instance. The ptr node
 	 * is guaranteed to live at least as long as the owner.
 	 */
-	Handle(T *ptr, Node *owner) : BaseHandle<T>(ptr), owner(owner) { addRef(); }
+	Owned(T *ptr, Node *owner) : Handle<T>(ptr), owner(owner) { addRef(); }
 
 	/**
-	 * Constructor of the handle class.
+	 * Constructor of the Owned class.
 	 *
-	 * @param h is another handle whose Node should be used.
-	 * @param owner is the node which owns this handle instance. The ptr node
+	 * @param h is another Owned whose Node should be used.
+	 * @param owner is the node which owns this Owned instance. The ptr node
 	 * is guaranteed to live at least as long as the owner.
 	 */
 	template <class T2>
-	Handle(const BaseHandle<T2> &h, Node *owner)
-	    : BaseHandle<T>(h.get()), owner(owner)
+	Owned(const Handle<T2> &h, Node *owner)
+	    : Handle<T>(h.get()), owner(owner)
 	{
 		addRef();
 	}
 
 	/**
-	 * Destructor of the Handle class, deletes all refrences the class is still
+	 * Destructor of the Owned class, deletes all refrences the class is still
 	 * holding.
 	 */
-	~Handle() { deleteRef(); }
+	~Owned() { deleteRef(); }
 
 	/**
-	 * Returns the reference to the owner of the handle.
+	 * Returns the reference to the owner of the Owned.
 	 *
-	 * @return the handle owner.
+	 * @return the Owned owner.
 	 */
-	Node* getOwner() const {
-		return owner;
-	}
+	Node *getOwner() const { return owner; }
 };
-
-using RootedNode = RootedHandle<Node>;
-using NodeHandle = Handle<Node>;
 }
 }
 
