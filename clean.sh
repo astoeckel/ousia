@@ -1,6 +1,6 @@
 #!/bin/sh
 
-find build/ -depth -mindepth 1 -delete -print
+find build/ -depth -mindepth 1 \( ! -name ".git_ignore" \) -print -delete
 
 rm -Rf CMakeFiles
 
