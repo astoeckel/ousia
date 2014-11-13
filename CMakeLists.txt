@@ -95,6 +95,7 @@ ADD_DEFINITIONS(
 )
 
 # ousia_script library (containing the bindings needed for script engines)
+# TODO: This is not only the script library.
 ADD_LIBRARY(ousia_core
 	src/core/dom/Managed
 	src/core/dom/Node
@@ -103,6 +104,7 @@ ADD_LIBRARY(ousia_core
 	src/core/script/ScriptEngine
 	src/core/script/Variant
 	src/core/utils/BufferedCharReader
+	src/core/utils/CSSParser
 	src/core/utils/Tokenizer
 	src/core/utils/Utils
 )
@@ -138,6 +140,7 @@ IF(TEST)
 		test/core/script/ObjectTest
 		test/core/script/VariantTest
 		test/core/utils/BufferedCharReaderTest
+		test/core/utils/CSSParserTest
 		test/core/utils/RangeSetTest
 		test/core/utils/TokenizerTest
 		test/core/utils/UtilsTest
