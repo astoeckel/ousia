@@ -372,9 +372,19 @@ public:
 	T *operator->() { return ptr; }
 
 	/**
+	 * Provides access to the underlying managed object for immutable handles.
+	 */
+	const T *operator->() const { return ptr; }
+
+	/**
 	 * Provides access to the underlying managed object.
 	 */
 	T &operator*() { return *ptr; }
+
+	/**
+	 * Provides access to the underlying managed object for immutable handles.
+	 */
+	const T &operator*() const { return *ptr; }
 
 	/**
 	 * Comparison operator between base Owned and base Owned.
@@ -676,6 +686,7 @@ public:
 	 */
 	Managed *getOwner() const { return owner; }
 };
+
 }
 }
 
