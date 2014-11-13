@@ -22,68 +22,68 @@
 
 #include <gtest/gtest.h>
 
-#include <core/dom/Node.hpp>
+#include <core/dom/Managed.hpp>
 
 namespace ousia {
 namespace dom {
 
-/* Class NodeDescriptor */
+/* Class ObjectDescriptor */
 
-TEST(NodeDescriptor, nodeDegree)
+TEST(ObjectDescriptor, Degree)
 {
-	// Do not use actual Node in this test -- we don't want to test their
+	// Do not use actual Managed in this test -- we don't want to test their
 	// behaviour
-	NodeDescriptor nd;
-	Node *n1 = reinterpret_cast<Node *>(intptr_t{0x10});
-	Node *n2 = reinterpret_cast<Node *>(intptr_t{0x20});
+	ObjectDescriptor nd;
+	Managed *n1 = reinterpret_cast<Managed *>(intptr_t{0x10});
+	Managed *n2 = reinterpret_cast<Managed *>(intptr_t{0x20});
 
 	// Input degree
 	ASSERT_EQ(0, nd.refIn.size());
 	ASSERT_EQ(0, nd.refInCount(n1));
 
-	nd.incrNodeDegree(RefDir::in, n1);
+	nd.incrDegree(RefDir::in, n1);
 	ASSERT_EQ(1, nd.refInCount());
 	ASSERT_EQ(1, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
 	ASSERT_EQ(1, nd.refIn.size());
 
-	nd.incrNodeDegree(RefDir::in, n1);
+	nd.incrDegree(RefDir::in, n1);
 	ASSERT_EQ(2, nd.refInCount());
 	ASSERT_EQ(2, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
 	ASSERT_EQ(1, nd.refIn.size());
 
-	nd.incrNodeDegree(RefDir::in, n2);
+	nd.incrDegree(RefDir::in, n2);
 	ASSERT_EQ(3, nd.refInCount());
 	ASSERT_EQ(2, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(2, nd.refIn.size());
 
-	nd.incrNodeDegree(RefDir::in, nullptr);
+	nd.incrDegree(RefDir::in, nullptr);
 	ASSERT_EQ(4, nd.refInCount());
 	ASSERT_EQ(2, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(2, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, n1));
+	ASSERT_TRUE(nd.decrDegree(RefDir::in, n1));
 	ASSERT_EQ(3, nd.refInCount());
 	ASSERT_EQ(1, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(2, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, n1));
+	ASSERT_TRUE(nd.decrDegree(RefDir::in, n1));
 	ASSERT_EQ(2, nd.refInCount());
 	ASSERT_EQ(0, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(1, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, n2));
+	ASSERT_TRUE(nd.decrDegree(RefDir::in, n2));
 	ASSERT_EQ(1, nd.refInCount());
 	ASSERT_EQ(0, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
 	ASSERT_EQ(0, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, nullptr));
+	ASSERT_TRUE(nd.decrDegree(RefDir::in, nullptr));
 	ASSERT_EQ(0, nd.refInCount());
 	ASSERT_EQ(0, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
@@ -93,64 +93,64 @@ TEST(NodeDescriptor, nodeDegree)
 	ASSERT_EQ(0, nd.refOut.size());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 
-	nd.incrNodeDegree(RefDir::out, n1);
+	nd.incrDegree(RefDir::out, n1);
 	ASSERT_EQ(1, nd.refOutCount());
 	ASSERT_EQ(1, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
 	ASSERT_EQ(1, nd.refOut.size());
 
-	nd.incrNodeDegree(RefDir::out, n1);
+	nd.incrDegree(RefDir::out, n1);
 	ASSERT_EQ(2, nd.refOutCount());
 	ASSERT_EQ(2, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
 	ASSERT_EQ(1, nd.refOut.size());
 
-	nd.incrNodeDegree(RefDir::out, n2);
+	nd.incrDegree(RefDir::out, n2);
 	ASSERT_EQ(3, nd.refOutCount());
 	ASSERT_EQ(2, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(2, nd.refOut.size());
 
-	nd.incrNodeDegree(RefDir::out, nullptr);
+	nd.incrDegree(RefDir::out, nullptr);
 	ASSERT_EQ(3, nd.refOutCount());
 	ASSERT_EQ(2, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(2, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, n1));
+	ASSERT_TRUE(nd.decrDegree(RefDir::out, n1));
 	ASSERT_EQ(2, nd.refOutCount());
 	ASSERT_EQ(1, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(2, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, n1));
+	ASSERT_TRUE(nd.decrDegree(RefDir::out, n1));
 	ASSERT_EQ(1, nd.refOutCount());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(1, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, n2));
+	ASSERT_TRUE(nd.decrDegree(RefDir::out, n2));
 	ASSERT_EQ(0, nd.refOutCount());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
 	ASSERT_EQ(0, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, nullptr));
+	ASSERT_TRUE(nd.decrDegree(RefDir::out, nullptr));
 	ASSERT_EQ(0, nd.refOutCount());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
 	ASSERT_EQ(0, nd.refOut.size());
 }
 
-TEST(NodeDescriptor, rootRefCount)
+TEST(ObjectDescriptor, rootRefCount)
 {
-	NodeDescriptor nd;
+	ObjectDescriptor nd;
 	ASSERT_EQ(0, nd.rootRefCount);
 
-	nd.incrNodeDegree(RefDir::in, nullptr);
+	nd.incrDegree(RefDir::in, nullptr);
 	ASSERT_EQ(1, nd.rootRefCount);
 
-	nd.incrNodeDegree(RefDir::out, nullptr);
+	nd.incrDegree(RefDir::out, nullptr);
 	ASSERT_EQ(2, nd.rootRefCount);
 
 	ASSERT_EQ(2, nd.refInCount(nullptr));
@@ -158,13 +158,13 @@ TEST(NodeDescriptor, rootRefCount)
 	ASSERT_EQ(0, nd.refOutCount(nullptr));
 	ASSERT_EQ(0, nd.refOutCount());
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::out, nullptr));
+	ASSERT_TRUE(nd.decrDegree(RefDir::out, nullptr));
 	ASSERT_EQ(1, nd.rootRefCount);
 
-	ASSERT_TRUE(nd.decrNodeDegree(RefDir::in, nullptr));
+	ASSERT_TRUE(nd.decrDegree(RefDir::in, nullptr));
 	ASSERT_EQ(0, nd.rootRefCount);
 
-	ASSERT_FALSE(nd.decrNodeDegree(RefDir::in, nullptr));
+	ASSERT_FALSE(nd.decrDegree(RefDir::in, nullptr));
 	ASSERT_EQ(0, nd.rootRefCount);
 }
 
@@ -172,14 +172,14 @@ TEST(NodeDescriptor, rootRefCount)
 
 TEST(Owned, equalsAndAssign)
 {
-	NodeManager mgr(1);
+	Manager mgr(1);
 
-	Node *n1 = new Node(mgr), *n2 = new Node(mgr);
+	Managed *n1 = new Managed(mgr), *n2 = new Managed(mgr);
 
-	Rooted<Node> rh1{n1};
-	Rooted<Node> rh2{n2};
+	Rooted<Managed> rh1{n1};
+	Rooted<Managed> rh2{n2};
 
-	Owned<Node> h2{n2, n1};
+	Owned<Managed> h2{n2, n1};
 
 	// Equals operator
 	ASSERT_TRUE(rh1 == n1);
@@ -189,7 +189,7 @@ TEST(Owned, equalsAndAssign)
 	ASSERT_TRUE(h2 == rh2);
 
 	// Assignment operator
-	Rooted<Node> rh2b;
+	Rooted<Managed> rh2b;
 
 	ASSERT_FALSE(rh2b == rh2);
 	rh2b = rh2;
@@ -199,27 +199,27 @@ TEST(Owned, equalsAndAssign)
 	rh2b = h2;
 	ASSERT_TRUE(rh2b == h2);
 
-	Owned<Node> h2b;
+	Owned<Managed> h2b;
 	ASSERT_FALSE(rh2 == h2b);
 	ASSERT_FALSE(h2 == h2b);
 	h2b = h2;
 	ASSERT_TRUE(rh2 == h2b);
 	ASSERT_TRUE(h2 == h2b);
 
-	Owned<Node> h2c{h2b, n1};
+	Owned<Managed> h2c{h2b, n1};
 	ASSERT_TRUE(h2b == h2c);
 }
 
-/* Class NodeManager */
+/* Class Manager */
 
-class TestNode : public Node {
+class TestNode : public Managed {
 private:
 	bool &alive;
 
-	std::vector<Owned<Node>> refs;
+	std::vector<Owned<Managed>> refs;
 
 public:
-	TestNode(NodeManager &mgr, bool &alive) : Node(mgr), alive(alive)
+	TestNode(Manager &mgr, bool &alive) : Managed(mgr), alive(alive)
 	{
 		//std::cout << "create TestNode @" << this << std::endl;
 		alive = true;
@@ -231,9 +231,9 @@ public:
 		alive = false;
 	}
 
-	void addRef(Handle<Node> h) { refs.push_back(acquire(h)); }
+	void addRef(Handle<Managed> h) { refs.push_back(acquire(h)); }
 
-	void deleteRef(Handle<Node> h)
+	void deleteRef(Handle<Managed> h)
 	{
 		for (auto it = refs.begin(); it != refs.end();) {
 			if (*it == h) {
@@ -245,11 +245,11 @@ public:
 	}
 };
 
-TEST(NodeManager, linearDependencies)
+TEST(Manager, linearDependencies)
 {
 	std::array<bool, 4> a;
 
-	NodeManager mgr(1);
+	Manager mgr(1);
 	{
 		TestNode *n1, *n2, *n3;
 		n1 = new TestNode(mgr, a[1]);
@@ -277,11 +277,11 @@ TEST(NodeManager, linearDependencies)
 	}
 }
 
-TEST(NodeManager, cyclicDependencies)
+TEST(Manager, cyclicDependencies)
 {
 	std::array<bool, 4> a;
 
-	NodeManager mgr(1);
+	Manager mgr(1);
 	{
 		TestNode *n1, *n2, *n3;
 		n1 = new TestNode(mgr, a[1]);
@@ -310,11 +310,11 @@ TEST(NodeManager, cyclicDependencies)
 	}
 }
 
-TEST(NodeManager, selfReferentialCyclicDependencies)
+TEST(Manager, selfReferentialCyclicDependencies)
 {
 	std::array<bool, 2> a;
 
-	NodeManager mgr(1);
+	Manager mgr(1);
 	{
 		TestNode *n1;
 		n1 = new TestNode(mgr, a[1]);
@@ -331,11 +331,11 @@ TEST(NodeManager, selfReferentialCyclicDependencies)
 	}
 }
 
-TEST(NodeManager, doubleRooted)
+TEST(Manager, doubleRooted)
 {
 	std::array<bool, 4> a;
 
-	NodeManager mgr(1);
+	Manager mgr(1);
 	{
 		TestNode *n1, *n2;
 		n1 = new TestNode(mgr, a[1]);
@@ -372,11 +372,11 @@ TEST(NodeManager, doubleRooted)
 	}
 }
 
-TEST(NodeManager, disconnectSubgraph)
+TEST(Manager, disconnectSubgraph)
 {
 	std::array<bool, 4> a;
 
-	NodeManager mgr(1);
+	Manager mgr(1);
 	{
 		TestNode *n1, *n2, *n3;
 		n1 = new TestNode(mgr, a[1]);
@@ -411,11 +411,11 @@ TEST(NodeManager, disconnectSubgraph)
 	}
 }
 
-TEST(NodeManager, disconnectDoubleRootedSubgraph)
+TEST(Manager, disconnectDoubleRootedSubgraph)
 {
 	std::array<bool, 5> a;
 
-	NodeManager mgr(1);
+	Manager mgr(1);
 	{
 		TestNode *n1, *n2, *n3;
 		n1 = new TestNode(mgr, a[1]);
@@ -450,12 +450,12 @@ TEST(NodeManager, disconnectDoubleRootedSubgraph)
 				// Remove the reference from n1 to n2
 				n1->deleteRef(n2);
 
-				// Node 2 must be dead, all others alive
+				// Managed 2 must be dead, all others alive
 				ASSERT_FALSE(a[2]);
 				ASSERT_TRUE(a[0] && a[1] && a[3] && a[4]);
 			}
 
-			// Node 2, 3, hr2 must be dead, all others alive
+			// Managed 2, 3, hr2 must be dead, all others alive
 			ASSERT_FALSE(a[2] || a[3] || a[4]);
 			ASSERT_TRUE(a[0] && a[1]);
 		}
@@ -467,7 +467,7 @@ TEST(NodeManager, disconnectDoubleRootedSubgraph)
 	}
 }
 
-Rooted<TestNode> createFullyConnectedGraph(NodeManager &mgr, int nElem,
+Rooted<TestNode> createFullyConnectedGraph(Manager &mgr, int nElem,
                                              bool alive[])
 {
 	std::vector<Rooted<TestNode>> nodes;
@@ -487,12 +487,12 @@ Rooted<TestNode> createFullyConnectedGraph(NodeManager &mgr, int nElem,
 	return nodes[0];
 }
 
-TEST(NodeManager, fullyConnectedGraph)
+TEST(Manager, fullyConnectedGraph)
 {
 	constexpr int nElem = 64;
 	std::array<bool, nElem> a;
 
-	NodeManager mgr(1);
+	Manager mgr(1);
 	{
 		Rooted<TestNode> n = createFullyConnectedGraph(mgr, nElem, &a[0]);
 		for (bool v : a) {
@@ -508,24 +508,24 @@ TEST(NodeManager, fullyConnectedGraph)
 class HidingTestNode : public TestNode {
 
 private:
-	Rooted<Node> hidden;
+	Rooted<Managed> hidden;
 
 public:
 
-	HidingTestNode(NodeManager &mgr, bool &alive) : TestNode(mgr, alive) {};
+	HidingTestNode(Manager &mgr, bool &alive) : TestNode(mgr, alive) {};
 
-	void setHiddenRef(Handle<Node> t) {
+	void setHiddenRef(Handle<Managed> t) {
 		hidden = t;
 	}
 
 };
 
-TEST(NodeManager, hiddenRootedGraph)
+TEST(Manager, hiddenRootedGraph)
 {
 	constexpr int nElem = 16;
 	std::array<bool, nElem> a;
 	bool b;
-	NodeManager mgr(1);
+	Manager mgr(1);
 
 	{
 		Rooted<HidingTestNode> n{new HidingTestNode{mgr, b}};
