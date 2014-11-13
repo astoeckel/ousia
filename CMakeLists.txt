@@ -97,6 +97,7 @@ ADD_DEFINITIONS(
 # ousia_script library (containing the bindings needed for script engines)
 ADD_LIBRARY(ousia_core
 	src/core/dom/Managed
+	src/core/dom/Node
 	src/core/script/Function
 	src/core/script/Object
 	src/core/script/ScriptEngine
