@@ -28,6 +28,8 @@
 namespace ousia {
 namespace dom {
 
+// TODO: Implement clone, getReferenced and getReferencing
+
 class Managed;
 
 template <class T>
@@ -324,7 +326,7 @@ protected:
 	friend class Rooted<T>;
 	friend class Owned<T>;
 
-	static_assert(std::is_base_of<Managed, T>::value, "T must be a Managed");
+	static_assert(std::is_convertible<T*, Managed*>::value, "T must be a Managed");
 
 	/**
 	 * Reference to the represented managed object.
