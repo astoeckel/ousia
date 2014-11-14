@@ -136,6 +136,7 @@ IF(TEST)
 	# Add all unit test files
 	ADD_EXECUTABLE(ousia_test_core
 		test/core/dom/ManagedTest
+		test/core/dom/NodeTest
 		test/core/script/FunctionTest
 		test/core/script/ObjectTest
 		test/core/script/VariantTest

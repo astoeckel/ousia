@@ -123,7 +123,10 @@ public:
 	 *
 	 * @param mgr is a reference to the Manager instace the node belongs to.
 	 */
-	Node(Manager &mgr) : Managed(mgr) {}
+	Node(Manager &mgr, Handle<Node> parent = nullptr)
+	    : Managed(mgr), parent(acquire(parent))
+	{
+	}
 
 	/**
 	 * Constructs a new node with the given name and the given parent element.
@@ -132,7 +135,7 @@ public:
 	 * @param name is the name of the Node.
 	 * @param parent is a handle pointing at the parent node.
 	 */
-	Node(Manager &mgr, std::string name, Handle<Node> parent = Null)
+	Node(Manager &mgr, std::string name, Handle<Node> parent = nullptr)
 	    : Managed(mgr), name(name), parent(acquire(parent))
 	{
 	}

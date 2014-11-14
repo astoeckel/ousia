@@ -87,6 +87,7 @@ std::vector<Rooted<Node>> Node::resolve(const std::vector<std::string> &path,
 	resolve(res, path, filter, filterData, 0, visited, nullptr);
 	return res;
 }
+
 }
 }
 
