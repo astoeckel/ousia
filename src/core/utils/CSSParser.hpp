@@ -24,6 +24,9 @@
 #include <vector>
 #include <tuple>
 
+#include <core/Managed.hpp>
+#include <core/dom/Node.hpp>
+
 #include "BufferedCharReader.hpp"
 
 namespace ousia {
@@ -62,14 +65,15 @@ bool operator==(const Specificity &x, const Specificity &y)
 	return std::tie(x.b, x.c, x.d) == std::tie(y.b, y.c, y.d);
 }
 
-class RuleSet {
+class RuleSet : public Managed {
 private:
 	const std::map<std::string, std::string> values;
 	const Specificity specificity;
 
 public:
-	RuleSet(std::map<std::string, std::string> values, Specificity specificity)
-	    : values(values), specificity(specificity)
+	RuleSet(Manager &mgr, std::map<std::string, std::string> values,
+	        Specificity specificity)
+	    : Managed(mgr), values(std::move(values)), specificity(specificity)
 	{
 	}
 
@@ -90,7 +94,7 @@ private:
 public:
 	PseudoSelector(std::string name, std::vector<std::string> args,
 	               bool generative)
-	    : name(name), args(args), generative(generative)
+	    : name(std::move(name)), args(std::move(args)), generative(generative)
 	{
 	}
 
@@ -103,53 +107,52 @@ public:
 
 enum class SelectionOperator { DESCENDANT, DIRECT_DESCENDANT };
 
-// TODO: Subclass of Andreas' Node class
-class StyleEdge {
-private:
-	// TODO: This is wrong! Here we want to have a managed pointer as Andreas
-	// mentioned!
-	//	const StyleNode target;
-	const SelectionOperator selectionOperator;
-
+class StyleNode : public dom::Node {
 public:
-	StyleEdge(/*StyleNode target,*/ SelectionOperator selectionOperator)
-	    : /*target(target),*/ selectionOperator(selectionOperator)
-	{
-	}
+	class StyleEdge : public Managed {
+	private:
+		Owned<StyleNode> target;
+		const SelectionOperator selectionOperator;
 
-	//	const StyleNode &getTarget() const { return target; }
+	public:
+		StyleEdge(Manager &mgr, Handle<StyleNode> target,
+		          SelectionOperator selectionOperator)
+		    : Managed(mgr),
+		      target(acquire(target)),
+		      selectionOperator(selectionOperator)
+		{
+		}
 
-	const SelectionOperator &getSelectionOperator() const
-	{
-		return selectionOperator;
-	}
-};
+		Rooted<StyleNode> getTarget() const { return target; }
 
-// TODO: Subclass of Andreas' Node class
-class StyleNode {
+		const SelectionOperator &getSelectionOperator() const
+		{
+			return selectionOperator;
+		}
+	};
+
 private:
-	const std::string className;
 	const PseudoSelector pseudoSelector;
-	const std::vector<StyleEdge> edges;
-	const std::vector<RuleSet> ruleSets;
+	std::vector<Owned<StyleEdge>> edges;
+	const std::vector<Owned<RuleSet>> ruleSets;
 
 public:
-	StyleNode(std::string className, PseudoSelector pseudoSelector,
-	          std::vector<StyleEdge> edges, std::vector<RuleSet> ruleSets)
-	    : className(className),
-	      pseudoSelector(pseudoSelector),
-	      edges(edges),
-	      ruleSets(ruleSets)
+	StyleNode(Manager &mgr, std::string name,
+	          PseudoSelector pseudoSelector,
+	          const std::vector<Handle<StyleEdge>> &edges,
+	          const std::vector<Handle<RuleSet>> &ruleSets)
+	    : dom::Node(mgr, std::move(name)),
+	      pseudoSelector(std::move(pseudoSelector)),
+	      edges(acquire(edges)),
+	      ruleSets(acquire(ruleSets))
 	{
 	}
-
-	const std::string &getClassName() const { return className; }
 
 	const PseudoSelector &getPseudoSelector() const { return pseudoSelector; }
 
-	const std::vector<StyleEdge> &getEdges() const { return edges; }
+	const std::vector<Owned<StyleEdge>> &getEdges() const { return edges; }
 
-	const std::vector<RuleSet> &getRuleSets() const { return ruleSets; }
+	const std::vector<Owned<RuleSet>> &getRuleSets() const { return ruleSets; }
 };
 
 class CSSParser {

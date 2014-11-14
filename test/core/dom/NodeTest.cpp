@@ -18,6 +18,8 @@
 
 #include <gtest/gtest.h>
 
+#include <core/Managed.hpp>
+
 #include <core/dom/Node.hpp>
 
 namespace ousia {

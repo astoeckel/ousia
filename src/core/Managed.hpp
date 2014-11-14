@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_DOM_MANAGED_HPP_
-#define _OUSIA_DOM_MANAGED_HPP_
+#ifndef _OUSIA_MANAGED_HPP_
+#define _OUSIA_MANAGED_HPP_
 
 #include <iostream>
 #include <map>
@@ -26,7 +26,6 @@
 #include <unordered_set>
 
 namespace ousia {
-namespace dom {
 
 // TODO: Implement clone, getReferenced and getReferencing
 
@@ -186,7 +185,8 @@ protected:
 	int deletionRecursionDepth = 0;
 
 	/**
-	 * Returns the object ObjectDescriptor for the given object from the objects map.
+	 * Returns the object ObjectDescriptor for the given object from the objects
+	 * map.
 	 */
 	ObjectDescriptor *getDescriptor(Managed *o);
 
@@ -307,6 +307,26 @@ public:
 	{
 		return Owned<T>{t, this};
 	}
+
+	template <class T>
+	std::vector<Owned<T>> acquire(const std::vector<Handle<T>> &vec)
+	{
+		std::vector<Owned<T>> res;
+		for (auto &e : vec) {
+			res.push_back(acquire(e));
+		}
+		return res;
+	}
+	
+	template <class T>
+	std::vector<Owned<T>> acquire(const std::vector<T*> &vec)
+	{
+		std::vector<Owned<T>> res;
+		for (auto &e : vec) {
+			res.push_back(acquire(e));
+		}
+		return res;
+	}
 };
 
 /**
@@ -326,7 +346,8 @@ protected:
 	friend class Rooted<T>;
 	friend class Owned<T>;
 
-	static_assert(std::is_convertible<T*, Managed*>::value, "T must be a Managed");
+	static_assert(std::is_convertible<T *, Managed *>::value,
+	              "T must be a Managed");
 
 	/**
 	 * Reference to the represented managed object.
@@ -389,8 +410,11 @@ public:
 	/**
 	 * Comparison operator between base Owned and base Owned.
 	 */
-	template<class T2>
-	bool operator==(const Handle<T2> &h) const { return ptr == h.get(); }
+	template <class T2>
+	bool operator==(const Handle<T2> &h) const
+	{
+		return ptr == h.get();
+	}
 
 	/**
 	 * Comparison operator between base Owned and pointer.
@@ -682,9 +706,7 @@ public:
 	 */
 	Managed *getOwner() const { return owner; }
 };
-
-}
 }
 
-#endif /* _OUSIA_DOM_MANAGED_HPP_ */
+#endif /* _OUSIA_MANAGED_HPP_ */
 

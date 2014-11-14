@@ -97,7 +97,7 @@ ADD_DEFINITIONS(
 # ousia_script library (containing the bindings needed for script engines)
 # TODO: This is not only the script library.
 ADD_LIBRARY(ousia_core
-	src/core/dom/Managed
+	src/core/Managed
 	src/core/dom/Node
 	src/core/script/Function
 	src/core/script/Object
@@ -135,7 +135,7 @@ IF(TEST)
 
 	# Add all unit test files
 	ADD_EXECUTABLE(ousia_test_core
-		test/core/dom/ManagedTest
+		test/core/ManagedTest
 		test/core/dom/NodeTest
 		test/core/script/FunctionTest
 		test/core/script/ObjectTest

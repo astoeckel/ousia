@@ -24,7 +24,7 @@
 #include <functional>
 #include <unordered_set>
 
-#include "Managed.hpp"
+#include <core/Managed.hpp>
 
 namespace ousia {
 namespace dom {

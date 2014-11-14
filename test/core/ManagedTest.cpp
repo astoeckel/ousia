@@ -22,10 +22,9 @@
 
 #include <gtest/gtest.h>
 
-#include <core/dom/Managed.hpp>
+#include <core/Managed.hpp>
 
 namespace ousia {
-namespace dom {
 
 /* Class ObjectDescriptor */
 
@@ -543,6 +542,5 @@ TEST(Manager, hiddenRootedGraph)
 	}
 }
 
-}
 }
 

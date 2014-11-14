@@ -22,7 +22,6 @@
 #include "Managed.hpp"
 
 namespace ousia {
-namespace dom {
 
 /* Private Class ScopedIncrement */
 
@@ -363,5 +362,3 @@ void Manager::sweep()
 	}
 }
 }
-}
-
