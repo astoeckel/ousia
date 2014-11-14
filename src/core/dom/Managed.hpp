@@ -389,22 +389,23 @@ public:
 	/**
 	 * Comparison operator between base Owned and base Owned.
 	 */
-	bool operator==(const Handle &h) const { return ptr == h.ptr; }
+	template<class T2>
+	bool operator==(const Handle<T2> &h) const { return ptr == h.get(); }
 
 	/**
 	 * Comparison operator between base Owned and pointer.
 	 */
-	friend bool operator==(const Handle &h, const Managed *o)
+	friend bool operator==(const Handle<T> &h, const Managed *o)
 	{
-		return h.ptr == o;
+		return h.get() == o;
 	}
 
 	/**
 	 * Comparison operator between base Owned and pointer.
 	 */
-	friend bool operator==(const Managed *o, const Handle &h)
+	friend bool operator==(const Managed *o, const Handle<T> &h)
 	{
-		return h.ptr == o;
+		return o == h.get();
 	}
 
 	/**
@@ -417,11 +418,6 @@ public:
 	 */
 	bool operator!() const { return isNull(); }
 };
-
-/**
- * Null represents a null handle.
- */
-static const Handle<Managed> Null{nullptr};
 
 /**
  * A Rooted represents a directed, garbage collected pointer at a managed
