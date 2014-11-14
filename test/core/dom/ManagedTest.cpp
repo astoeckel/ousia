@@ -212,22 +212,22 @@ TEST(Owned, equalsAndAssign)
 
 /* Class Manager */
 
-class TestNode : public Managed {
+class TestManaged : public Managed {
 private:
 	bool &alive;
 
 	std::vector<Owned<Managed>> refs;
 
 public:
-	TestNode(Manager &mgr, bool &alive) : Managed(mgr), alive(alive)
+	TestManaged(Manager &mgr, bool &alive) : Managed(mgr), alive(alive)
 	{
-		//std::cout << "create TestNode @" << this << std::endl;
+		//std::cout << "create TestManaged @" << this << std::endl;
 		alive = true;
 	}
 
-	~TestNode() override
+	~TestManaged() override
 	{
-		//std::cout << "delete TestNode @" << this << std::endl;
+		//std::cout << "delete TestManaged @" << this << std::endl;
 		alive = false;
 	}
 
@@ -251,13 +251,13 @@ TEST(Manager, linearDependencies)
 
 	Manager mgr(1);
 	{
-		TestNode *n1, *n2, *n3;
-		n1 = new TestNode(mgr, a[1]);
-		n2 = new TestNode(mgr, a[2]);
-		n3 = new TestNode(mgr, a[3]);
+		TestManaged *n1, *n2, *n3;
+		n1 = new TestManaged(mgr, a[1]);
+		n2 = new TestManaged(mgr, a[2]);
+		n3 = new TestManaged(mgr, a[3]);
 
 		{
-			Rooted<TestNode> hr{new TestNode(mgr, a[0])};
+			Rooted<TestManaged> hr{new TestManaged(mgr, a[0])};
 
 			// All nodes must have set their "alive" flag to true
 			for (bool v : a) {
@@ -283,13 +283,13 @@ TEST(Manager, cyclicDependencies)
 
 	Manager mgr(1);
 	{
-		TestNode *n1, *n2, *n3;
-		n1 = new TestNode(mgr, a[1]);
-		n2 = new TestNode(mgr, a[2]);
-		n3 = new TestNode(mgr, a[3]);
+		TestManaged *n1, *n2, *n3;
+		n1 = new TestManaged(mgr, a[1]);
+		n2 = new TestManaged(mgr, a[2]);
+		n3 = new TestManaged(mgr, a[3]);
 
 		{
-			Rooted<TestNode> hr{new TestNode(mgr, a[0])};
+			Rooted<TestManaged> hr{new TestManaged(mgr, a[0])};
 
 			// All nodes must have set their "alive" flag to true
 			for (bool v : a) {
@@ -316,11 +316,11 @@ TEST(Manager, selfReferentialCyclicDependencies)
 
 	Manager mgr(1);
 	{
-		TestNode *n1;
-		n1 = new TestNode(mgr, a[1]);
+		TestManaged *n1;
+		n1 = new TestManaged(mgr, a[1]);
 
 		{
-			Rooted<TestNode> hr{new TestNode(mgr, a[0])};
+			Rooted<TestManaged> hr{new TestManaged(mgr, a[0])};
 			ASSERT_TRUE(a[0] && a[1]);
 			hr->addRef(n1);
 			n1->addRef(n1);
@@ -337,14 +337,14 @@ TEST(Manager, doubleRooted)
 
 	Manager mgr(1);
 	{
-		TestNode *n1, *n2;
-		n1 = new TestNode(mgr, a[1]);
-		n2 = new TestNode(mgr, a[2]);
+		TestManaged *n1, *n2;
+		n1 = new TestManaged(mgr, a[1]);
+		n2 = new TestManaged(mgr, a[2]);
 
 		{
-			Rooted<TestNode> hr1{new TestNode(mgr, a[0])};
+			Rooted<TestManaged> hr1{new TestManaged(mgr, a[0])};
 			{
-				Rooted<TestNode> hr2{new TestNode(mgr, a[3])};
+				Rooted<TestManaged> hr2{new TestManaged(mgr, a[3])};
 
 				// All nodes must have set their "alive" flag to true
 				for (bool v : a) {
@@ -378,13 +378,13 @@ TEST(Manager, disconnectSubgraph)
 
 	Manager mgr(1);
 	{
-		TestNode *n1, *n2, *n3;
-		n1 = new TestNode(mgr, a[1]);
-		n2 = new TestNode(mgr, a[2]);
-		n3 = new TestNode(mgr, a[3]);
+		TestManaged *n1, *n2, *n3;
+		n1 = new TestManaged(mgr, a[1]);
+		n2 = new TestManaged(mgr, a[2]);
+		n3 = new TestManaged(mgr, a[3]);
 
 		{
-			Rooted<TestNode> hr{new TestNode(mgr, a[0])};
+			Rooted<TestManaged> hr{new TestManaged(mgr, a[0])};
 
 			// Create a linear dependency chain
 			hr->addRef(n1);
@@ -417,15 +417,15 @@ TEST(Manager, disconnectDoubleRootedSubgraph)
 
 	Manager mgr(1);
 	{
-		TestNode *n1, *n2, *n3;
-		n1 = new TestNode(mgr, a[1]);
-		n2 = new TestNode(mgr, a[2]);
-		n3 = new TestNode(mgr, a[3]);
+		TestManaged *n1, *n2, *n3;
+		n1 = new TestManaged(mgr, a[1]);
+		n2 = new TestManaged(mgr, a[2]);
+		n3 = new TestManaged(mgr, a[3]);
 
 		{
-			Rooted<TestNode> hr1{new TestNode(mgr, a[0])};
+			Rooted<TestManaged> hr1{new TestManaged(mgr, a[0])};
 			{
-				Rooted<TestNode> hr2{new TestNode(mgr, a[4])};
+				Rooted<TestManaged> hr2{new TestManaged(mgr, a[4])};
 
 				// Create a cyclic dependency chain with two rooted nodes
 				hr1->addRef(n1);
@@ -467,14 +467,14 @@ TEST(Manager, disconnectDoubleRootedSubgraph)
 	}
 }
 
-Rooted<TestNode> createFullyConnectedGraph(Manager &mgr, int nElem,
+Rooted<TestManaged> createFullyConnectedGraph(Manager &mgr, int nElem,
                                              bool alive[])
 {
-	std::vector<Rooted<TestNode>> nodes;
+	std::vector<Rooted<TestManaged>> nodes;
 
 	// Create the nodes
 	for (int i = 0; i < nElem; i++) {
-		nodes.push_back(Rooted<TestNode>{new TestNode{mgr, alive[i]}});
+		nodes.push_back(Rooted<TestManaged>{new TestManaged{mgr, alive[i]}});
 	}
 
 	// Add all connections
@@ -494,7 +494,7 @@ TEST(Manager, fullyConnectedGraph)
 
 	Manager mgr(1);
 	{
-		Rooted<TestNode> n = createFullyConnectedGraph(mgr, nElem, &a[0]);
+		Rooted<TestManaged> n = createFullyConnectedGraph(mgr, nElem, &a[0]);
 		for (bool v : a) {
 			ASSERT_TRUE(v);
 		}
@@ -505,14 +505,14 @@ TEST(Manager, fullyConnectedGraph)
 	}
 }
 
-class HidingTestNode : public TestNode {
+class HidingTestManaged : public TestManaged {
 
 private:
 	Rooted<Managed> hidden;
 
 public:
 
-	HidingTestNode(Manager &mgr, bool &alive) : TestNode(mgr, alive) {};
+	HidingTestManaged(Manager &mgr, bool &alive) : TestManaged(mgr, alive) {};
 
 	void setHiddenRef(Handle<Managed> t) {
 		hidden = t;
@@ -528,7 +528,7 @@ TEST(Manager, hiddenRootedGraph)
 	Manager mgr(1);
 
 	{
-		Rooted<HidingTestNode> n{new HidingTestNode{mgr, b}};
+		Rooted<HidingTestManaged> n{new HidingTestManaged{mgr, b}};
 		n->setHiddenRef(createFullyConnectedGraph(mgr, nElem, &a[0]));
 
 		ASSERT_TRUE(b);
