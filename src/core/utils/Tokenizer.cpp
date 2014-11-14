@@ -96,6 +96,7 @@ bool Tokenizer::prepare()
 				tBuf << c;
 				n = &(n->children.at(c));
 				if (n->tokenId != TOKEN_NONE) {
+					match = n->tokenId;
 					// from here on we found a token. If we have something
 					// in our buffer already, we end the search now.
 					if (!bufEmpty) {
@@ -111,7 +112,7 @@ bool Tokenizer::prepare()
 					// if we are at the end we break off the search.
 					break;
 				}
-				if (n->children.find(c) == root.children.end()) {
+				if (n->children.find(c) == n->children.end()) {
 					// if we do not find a possible continuation anymore,
 					// break off the search.
 					break;
@@ -122,16 +123,21 @@ bool Tokenizer::prepare()
 				input.resetPeek();
 				if (bufEmpty) {
 					// if we did not have text before, construct that token.
-					peeked.push_back(Token{match, tBuf.str(), startColumn,
-					                       startLine, input.getColumn(),
-					                       input.getLine()});
-					return true;
+					if (doPrepare(
+					        Token{match, tBuf.str(), startColumn, startLine,
+					              input.getColumn(), input.getLine()},
+					        peeked)) {
+						return true;
+					}
+
 				} else {
 					// otherwise we return the text before the token.
-					peeked.push_back(Token{TOKEN_TEXT, buffer.str(),
-					                       startColumn, startLine,
-					                       input.getColumn(), input.getLine()});
-					return true;
+					if (doPrepare(Token{TOKEN_TEXT, buffer.str(), startColumn,
+					                    startLine, input.getColumn(),
+					                    input.getLine()},
+					              peeked)) {
+						return true;
+					}
 				}
 			}
 		}
@@ -140,11 +146,17 @@ bool Tokenizer::prepare()
 		input.consumePeek();
 	}
 	if (!bufEmpty) {
-		peeked.push_back(Token{TOKEN_TEXT, buffer.str(), startColumn, startLine,
-		                       input.getColumn(), input.getLine()});
-		return true;
+		return doPrepare(Token{TOKEN_TEXT, buffer.str(), startColumn, startLine,
+		                       input.getColumn(), input.getLine()},
+		                 peeked);
 	}
 	return false;
+}
+
+bool Tokenizer::doPrepare(const Token &t, std::deque<Token> &peeked)
+{
+	peeked.push_back(t);
+	return true;
 }
 
 bool Tokenizer::next(Token &t)

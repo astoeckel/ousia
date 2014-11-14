@@ -104,6 +104,7 @@ ADD_LIBRARY(ousia_core
 	src/core/script/ScriptEngine
 	src/core/script/Variant
 	src/core/utils/BufferedCharReader
+	src/core/utils/CodeTokenizer
 	src/core/utils/CSSParser
 	src/core/utils/Tokenizer
 	src/core/utils/Utils
@@ -141,6 +142,7 @@ IF(TEST)
 		test/core/script/ObjectTest
 		test/core/script/VariantTest
 		test/core/utils/BufferedCharReaderTest
+		test/core/utils/CodeTokenizerTest
 		test/core/utils/CSSParserTest
 		test/core/utils/RangeSetTest
 		test/core/utils/TokenizerTest

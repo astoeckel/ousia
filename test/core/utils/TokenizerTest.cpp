@@ -18,6 +18,8 @@
 
 #include <gtest/gtest.h>
 
+#include <core/utils/BufferedCharReader.hpp>
+
 #include <core/utils/Tokenizer.hpp>
 
 namespace ousia {
@@ -58,6 +60,38 @@ TEST(TokenTreeNode, testConstructor)
 	const TokenTreeNode &abd = ab.children.at('d');
 	ASSERT_EQ(4, abd.tokenId);
 	ASSERT_EQ(0, abd.children.size());
+}
+
+TEST(Tokenizer, testTokenization)
+{
+	TokenTreeNode root{{{"/", 1}, {"/*", 2}, {"*/", 3}}};
+
+	BufferedCharReader reader;
+	reader.feed("Test/Test /* Block Comment */");
+	//           12345678901234567890123456789
+	//           0        1         2
+
+	std::vector<Token> expected = {
+	    {TOKEN_TEXT, "Test", 1, 1, 5, 1},
+	    {1, "/", 5, 1, 6, 1},
+	    {TOKEN_TEXT, "Test ", 6, 1, 11, 1},
+	    {2, "/*", 11, 1, 13, 1},
+	    {TOKEN_TEXT, " Block Comment ", 13, 1, 28, 1},
+	    {3, "*/", 28, 1, 30, 1}};
+
+	Tokenizer tokenizer{reader, root};
+
+	Token t;
+	for (auto &te : expected) {
+		ASSERT_TRUE(tokenizer.next(t));
+		ASSERT_EQ(te.tokenId, t.tokenId);
+		ASSERT_EQ(te.content, t.content);
+		ASSERT_EQ(te.startColumn, t.startColumn);
+		ASSERT_EQ(te.startLine, t.startLine);
+		ASSERT_EQ(te.endColumn, t.endColumn);
+		ASSERT_EQ(te.endLine, t.endLine);
+	}
+	ASSERT_FALSE(tokenizer.next(t));
 }
 }
 }

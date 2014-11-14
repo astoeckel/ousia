@@ -45,6 +45,9 @@ public:
 	TokenTreeNode(const std::map<std::string, int> &inputs);
 };
 
+static const int TOKEN_NONE = -1;
+static const int TOKEN_TEXT = -2;
+
 struct Token {
 	int tokenId;
 	std::string content;
@@ -63,10 +66,9 @@ struct Token {
 	      endLine(endLine)
 	{
 	}
-};
 
-static const int TOKEN_NONE = -1;
-static const int TOKEN_TEXT = -2;
+	Token() : tokenId(TOKEN_NONE) {}
+};
 
 class Tokenizer {
 private:
@@ -76,6 +78,21 @@ private:
 	unsigned int peekCursor = 0;
 
 	bool prepare();
+
+protected:
+	/**
+	* This method is an interface to build multiple tokens from a single one in
+	* derived classes. This might be interesting if you want to implement
+	* further logic on text tokens or similar applications.
+	*
+	* @param t a Token the "basic" tokenizer found.
+	* @param peeked a reference to the deque containing all temporary Tokens.
+	* You are supposed to append your tokens there. In the trivial case you just
+	* put the given Token on top of the deque.
+	* @return false if no token was appended to the deque (meaning that you want
+	* to ignore the given token explicitly) and true in all other cases.
+	*/
+	virtual bool doPrepare(const Token &t, std::deque<Token> &peeked);
 
 public:
 	Tokenizer(BufferedCharReader &input, const TokenTreeNode &root);
