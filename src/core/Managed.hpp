@@ -281,15 +281,38 @@ public:
  */
 class Managed {
 protected:
+	/**
+	 * mgr is the reference to the managed object manager which owns this
+	 * managed object.
+	 */
 	Manager &mgr;
 
 public:
+	/**
+	 * Constructor of the Managed class. Associates the new instance with the
+	 * given Manager, which is now in charge for managing this instance. Never
+	 * manually free instances of this class (even by using stack instances).
+	 * Always use the Rooted and Owned smart pointer classes when refering to
+	 * types derived from Managed.
+	 *
+	 * @param mgr is the Manager which should take ownership of this instance.
+	 */
 	Managed(Manager &mgr) : mgr(mgr) { mgr.manage(this); };
 
+	/**
+	 * Virtual destuctor which may be overwritten by child classes.
+	 */
 	virtual ~Managed(){};
 
+	/**
+	 * Returns a reference ot the manager instance which owns this managed
+	 * object.
+	 */
 	Manager &getManager() { return mgr; }
 
+	/**
+	 * Acquires a reference to the object wraped in the given handle.
+	 */
 	template <class T>
 	Owned<T> acquire(const Handle<T> &h)
 	{
@@ -317,9 +340,9 @@ public:
 		}
 		return res;
 	}
-	
+
 	template <class T>
-	std::vector<Owned<T>> acquire(const std::vector<T*> &vec)
+	std::vector<Owned<T>> acquire(const std::vector<T *> &vec)
 	{
 		std::vector<Owned<T>> res;
 		for (auto &e : vec) {
@@ -345,9 +368,6 @@ class Handle {
 protected:
 	friend class Rooted<T>;
 	friend class Owned<T>;
-
-	static_assert(std::is_convertible<T *, Managed *>::value,
-	              "T must be a Managed");
 
 	/**
 	 * Reference to the represented managed object.
@@ -441,6 +461,15 @@ public:
 	 * Returns true if the handle is the null pointer.
 	 */
 	bool operator!() const { return isNull(); }
+
+	/**
+	 * Statically casts the handle to a handle of the given type.
+	 */
+	template <class T2>
+	Handle<T2> cast()
+	{
+		return Handle<T2>{static_cast<T2 *>(ptr)};
+	}
 };
 
 /**
