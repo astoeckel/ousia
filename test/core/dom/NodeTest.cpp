@@ -66,8 +66,6 @@ TEST(Node, isRoot)
 	ASSERT_FALSE(n3->isRoot());
 }
 
-
-
 TEST(Node, simpleResolve)
 {
 	Manager mgr;
@@ -87,6 +85,202 @@ TEST(Node, simpleResolve)
 	res = root->resolve(std::vector<std::string>{"child11"});
 	ASSERT_EQ(1, res.size());
 	ASSERT_TRUE(child11 == *(res.begin()));
+}
+
+class TestManagedEventOwner : public Managed {
+public:
+	using Managed::Managed;
+
+	int triggered = false;
+};
+
+static void handleEvent(const Event &ev, Handle<Managed> owner)
+{
+	owner.cast<TestManagedEventOwner>()->triggered++;
+}
+
+static void handleEventStop(const Event &ev, Handle<Managed> owner)
+{
+	owner.cast<TestManagedEventOwner>()->triggered++;
+	ev.stopPropagation();
+}
+
+TEST(Node, events)
+{
+	Manager mgr;
+	Rooted<Node> n{new Node(mgr)};
+
+	Rooted<TestManagedEventOwner> e1{new TestManagedEventOwner(mgr)};
+	Rooted<TestManagedEventOwner> e2{new TestManagedEventOwner(mgr)};
+	Rooted<TestManagedEventOwner> e3{new TestManagedEventOwner(mgr)};
+
+	ASSERT_EQ(0, n->registerEventHandler(EventType::UPDATE, handleEvent, e1));
+	ASSERT_EQ(1, n->registerEventHandler(EventType::NAME_CHANGE, handleEvent, e2));
+	ASSERT_EQ(2, n->registerEventHandler(EventType::NAME_CHANGE, handleEvent, e3));
+
+	ASSERT_FALSE(e1->triggered);
+	ASSERT_FALSE(e2->triggered);
+	ASSERT_FALSE(e3->triggered);
+
+	{
+		Event ev{EventType::ADD_CHILD};
+		ASSERT_FALSE(n->triggerEvent(ev));
+	}
+
+	{
+		Event ev{EventType::UPDATE};
+		ASSERT_TRUE(n->triggerEvent(ev));
+		ASSERT_EQ(1, e1->triggered);
+		ASSERT_EQ(0, e2->triggered);
+		ASSERT_EQ(0, e3->triggered);
+	}
+
+	{
+		Event ev{EventType::NAME_CHANGE};
+		ASSERT_TRUE(n->triggerEvent(ev));
+		ASSERT_EQ(1, e1->triggered);
+		ASSERT_EQ(1, e2->triggered);
+		ASSERT_EQ(1, e3->triggered);
+	}
+
+	ASSERT_TRUE(n->unregisterEventHandler(1));
+	ASSERT_FALSE(n->unregisterEventHandler(1));
+
+	{
+		Event ev{EventType::NAME_CHANGE};
+		ASSERT_TRUE(n->triggerEvent(ev));
+		ASSERT_EQ(1, e1->triggered);
+		ASSERT_EQ(1, e2->triggered);
+		ASSERT_EQ(2, e3->triggered);
+	}
+
+	ASSERT_TRUE(n->unregisterEventHandler(0));
+	ASSERT_FALSE(n->unregisterEventHandler(0));
+
+	{
+		Event ev{EventType::UPDATE};
+		ASSERT_FALSE(n->triggerEvent(ev));
+		ASSERT_EQ(1, e1->triggered);
+		ASSERT_EQ(1, e2->triggered);
+		ASSERT_EQ(2, e3->triggered);
+	}
+
+	ASSERT_TRUE(n->unregisterEventHandler(2));
+	ASSERT_FALSE(n->unregisterEventHandler(2));
+
+	{
+		Event ev{EventType::NAME_CHANGE};
+		ASSERT_FALSE(n->triggerEvent(ev));
+		ASSERT_EQ(1, e1->triggered);
+		ASSERT_EQ(1, e2->triggered);
+		ASSERT_EQ(2, e3->triggered);
+	}
+}
+
+TEST(Node, eventBubbling)
+{
+	Manager mgr;
+	Rooted<Node> n1{new Node(mgr)};
+	Rooted<Node> n2{new Node(mgr, n1)};
+
+	Rooted<TestManagedEventOwner> e1{new TestManagedEventOwner(mgr)};
+	Rooted<TestManagedEventOwner> e2{new TestManagedEventOwner(mgr)};
+	Rooted<TestManagedEventOwner> e3{new TestManagedEventOwner(mgr)};
+
+	ASSERT_EQ(0, n1->registerEventHandler(EventType::UPDATE, handleEvent, e1, true));
+	ASSERT_EQ(1, n1->registerEventHandler(EventType::NAME_CHANGE, handleEvent, e2, true));
+	ASSERT_EQ(2, n1->registerEventHandler(EventType::NAME_CHANGE, handleEvent, e3, false));
+
+	ASSERT_FALSE(e1->triggered);
+	ASSERT_FALSE(e2->triggered);
+	ASSERT_FALSE(e3->triggered);
+
+	{
+		Event ev{EventType::ADD_CHILD};
+		ASSERT_FALSE(n2->triggerEvent(ev));
+	}
+
+	{
+		Event ev{EventType::UPDATE};
+		ASSERT_TRUE(n2->triggerEvent(ev));
+		ASSERT_EQ(1, e1->triggered);
+		ASSERT_EQ(0, e2->triggered);
+		ASSERT_EQ(0, e3->triggered);
+	}
+
+	{
+		Event ev{EventType::UPDATE, false};
+		ASSERT_FALSE(n2->triggerEvent(ev));
+		ASSERT_EQ(1, e1->triggered);
+		ASSERT_EQ(0, e2->triggered);
+		ASSERT_EQ(0, e3->triggered);
+	}
+
+	{
+		Event ev{EventType::NAME_CHANGE};
+		ASSERT_TRUE(n2->triggerEvent(ev));
+		ASSERT_EQ(1, e1->triggered);
+		ASSERT_EQ(1, e2->triggered);
+		ASSERT_EQ(0, e3->triggered);
+	}
+
+	ASSERT_TRUE(n1->unregisterEventHandler(1));
+	ASSERT_FALSE(n1->unregisterEventHandler(1));
+
+	{
+		Event ev{EventType::NAME_CHANGE};
+		ASSERT_FALSE(n2->triggerEvent(ev));
+		ASSERT_EQ(1, e1->triggered);
+		ASSERT_EQ(1, e2->triggered);
+		ASSERT_EQ(0, e3->triggered);
+	}
+
+	ASSERT_TRUE(n1->unregisterEventHandler(0));
+	ASSERT_FALSE(n1->unregisterEventHandler(0));
+
+	{
+		Event ev{EventType::UPDATE};
+		ASSERT_FALSE(n2->triggerEvent(ev));
+		ASSERT_EQ(1, e1->triggered);
+		ASSERT_EQ(1, e2->triggered);
+		ASSERT_EQ(0, e3->triggered);
+	}
+
+	ASSERT_TRUE(n1->unregisterEventHandler(2));
+	ASSERT_FALSE(n1->unregisterEventHandler(2));
+
+	{
+		Event ev{EventType::NAME_CHANGE};
+		ASSERT_FALSE(n2->triggerEvent(ev));
+		ASSERT_EQ(1, e1->triggered);
+		ASSERT_EQ(1, e2->triggered);
+		ASSERT_EQ(0, e3->triggered);
+	}
+}
+
+TEST(Node, eventStopPropagation)
+{
+	Manager mgr;
+	Rooted<Node> n1{new Node(mgr)};
+	Rooted<Node> n2{new Node(mgr, n1)};
+
+	Rooted<TestManagedEventOwner> e1{new TestManagedEventOwner(mgr)};
+	Rooted<TestManagedEventOwner> e2{new TestManagedEventOwner(mgr)};
+
+	ASSERT_EQ(0, n1->registerEventHandler(EventType::UPDATE, handleEvent, e1, true));
+	ASSERT_EQ(0, n2->registerEventHandler(EventType::UPDATE, handleEventStop, e2, true));
+
+	ASSERT_FALSE(e1->triggered);
+	ASSERT_FALSE(e2->triggered);
+
+	{
+		Event ev{EventType::UPDATE};
+		n2->triggerEvent(ev);
+
+		ASSERT_EQ(0, e1->triggered);
+		ASSERT_EQ(1, e2->triggered);
+	}
+
 }
 
 }
