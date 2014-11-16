@@ -24,6 +24,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace ousia {
 
@@ -735,6 +736,198 @@ public:
 	 */
 	Managed *getOwner() const { return owner; }
 };
+
+/**
+ * Template class which can be used to collect "Owned" refrences to a certain
+ * type of managed object. This class should be used in favour of other 
+ * collections of handles, it takes care of acquiring an owned handle from the
+ * owner of this collection whenever a new element is added.
+ *
+ * @param T is the type of the Managed object that should be managed.
+ * @param Collection should be a stl container of Owned<T>
+ */
+template <class T, class Collection>
+class ManagedCollection {
+public:
+	using collection_type = Collection;
+	using value_type = typename collection_type::value_type;
+	using reference = typename collection_type::reference;
+	using const_reference = typename collection_type::const_reference;
+	using iterator = typename collection_type::iterator;
+	using const_iterator = typename collection_type::const_iterator;
+	using size_type = typename collection_type::size_type;
+
+private:
+	Handle<Managed> owner;
+	collection_type c;
+
+protected:
+	/**
+	 * Function which can be overridden by child classes to execute special code
+	 * whenever a new element is added to the collection.
+	 */
+	virtual void addManaged(Handle<T> h) {}
+
+	/**
+	 * Function which can be overriden by child classes to execute special code
+	 * whenever an element is removed from the collection.
+	 */
+	virtual void deleteManaged(Handle<T> h) {}
+
+public:
+	/**
+	 * Default constructor.
+	 *
+	 * @param owner is the managed object which owns the collection and all
+	 * handles to other managed objects stored within.
+	 */
+	ManagedCollection(Handle<Managed> owner) : owner(owner){};
+
+	/**
+	 * Initialize with an iterator from another collection.
+	 *
+	 * @param owner is the managed object which owns the collection and all
+	 * handles to other managed objects stored within.
+	 * @param first is an iterator pointing at the first element to be copied
+	 * from some other collection.
+	 * @param last is an iterator pointing at the last element to be copied
+	 * from some other collection.
+	 */
+	template <class InputIterator>
+	ManagedCollection(Handle<Managed> owner, InputIterator first,
+	                  InputIterator last)
+	    : owner(owner)
+	{
+		insert(c.begin, first, last);
+	}
+
+	/**
+	 * Initialize with another collection.
+	 *
+	 * @param owner is the managed object which owns the collection and all
+	 * handles to other managed objects stored within.
+	 * @param in is a reference at some other collection with content that
+	 * should be copied.
+	 */
+	template <class InputCollection>
+	ManagedCollection(Handle<Managed> owner, const InputCollection &in)
+	    : owner(owner)
+	{
+		for (const auto &e : in) {
+			push_back(e);
+		}
+	}
+
+	/**
+	 * Virtual destructor.
+	 */
+	virtual ~ManagedCollection(){};
+
+	/* State functions */
+	size_type size() const noexcept { return c.size(); }
+	bool empty() const noexcept { return c.empty(); }
+
+	/* Front and back */
+	reference front() { return c.front(); }
+	const_reference front() const { return c.front(); }
+	reference back() { return c.back(); }
+	const_reference back() const { return c.back(); }
+
+	/* Iterators */
+	iterator begin() { return c.begin(); }
+	iterator end() { return c.end(); }
+
+	iterator rbegin() { return c.rbegin(); }
+	iterator rend() { return c.rend(); }
+
+	const_iterator begin() const { return c.cbegin(); }
+	const_iterator end() const { return c.cend(); }
+
+	const_iterator cbegin() const { return c.cbegin(); }
+	const_iterator cend() const { return c.cend(); }
+
+	const_iterator rbegin() const { return c.crbegin(); }
+	const_iterator rend() const { return c.crend(); }
+
+	const_iterator crbegin() const { return c.crbegin(); }
+	const_iterator crend() const { return c.crend(); }
+
+	/* Insert and delete operations */
+
+	iterator insert(const_iterator position, Handle<T> h)
+	{
+		Rooted<T> rooted{h};
+		addManaged(rooted);
+		return c.insert(position, owner->acquire(h));
+	}
+
+	template <class InputIterator>
+	iterator insert(const_iterator position, InputIterator first,
+	                InputIterator last)
+	{
+		for (InputIterator it = first; it != last; it++) {
+			position = insert(position, *it);
+			position++;
+		}
+	}
+
+	iterator erase(iterator position)
+	{
+		deleteManaged(*position);
+		return c.erase(position);
+	}
+
+	iterator erase(iterator first, iterator last)
+	{
+		for (const_iterator it = first; it != last; it++) {
+			deleteManaged(*it);
+		}
+		return c.erase(first, last);
+	}
+
+	iterator find(const Handle<T> h) {
+		for (iterator it = begin(); it != end(); it++) {
+			if (*it == h) {
+				return it;
+			}
+		}
+		return end();
+	}
+
+	const_iterator find(const Handle<T> h) const {
+		for (const_iterator it = cbegin(); it != cend(); it++) {
+			if (*it == h) {
+				return it;
+			}
+		}
+		return cend();
+	}
+
+	void push_back(Handle<T> h)
+	{
+		Rooted<T> rooted{h};
+		addManaged(rooted);
+		c.push_back(owner->acquire(rooted));
+	}
+
+	void pop_back()
+	{
+		if (!empty()) {
+			deleteElement(c.back());
+		}
+		c.pop_back();
+	}
+};
+
+/**
+ * Special type of ManagedCollection based on a STL vector.
+ */
+template<class T>
+class ManagedVector : public ManagedCollection<T, std::vector<Owned<T>>> {
+public:
+	using ManagedCollection<T, std::vector<Owned<T>>>::ManagedCollection;
+};
+
 }
 
 #endif /* _OUSIA_MANAGED_HPP_ */
