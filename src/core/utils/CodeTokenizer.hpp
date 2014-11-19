@@ -36,7 +36,7 @@ namespace utils {
  * 2.) A start token for line comments, which would e.g. be // in Java.
  * 3.) A start token for a block comment
  * 4.) An end token for a block comment.
- * 5.) The linebreak token (this does not have to be specified by the user)
+ * 5.) A linebreak token
  * 6.) The escape token, which would e.g. be \ in java.
  */
 enum class CodeTokenMode {
@@ -50,8 +50,11 @@ enum class CodeTokenMode {
 };
 
 /**
- * A CodeTokenDescriptor draws the connection between an id returned by the
- * underlying Tokenizer and the mode this token represents.
+ * A CodeTokenDescriptor defines the id the user likes to have returned for
+ * a Token of the mode specified, e.g. if you want to get the id 4 for a
+ * String Token the corresponding CodeTokenDescriptor would be inizialized
+ * with
+ * CodeTokenDescriptor myDesc {CodeTokenMode::STRING_START_END, 4};
  */
 struct CodeTokenDescriptor {
 	CodeTokenMode mode;
@@ -118,7 +121,7 @@ public:
 	 */
 	CodeTokenizer(BufferedCharReader &input, const TokenTreeNode &root,
 	              std::map<int, CodeTokenDescriptor> descriptors)
-	    : Tokenizer(input, root), descriptors(descriptors)
+	    : Tokenizer(input, root), descriptors(descriptors), state(CodeTokenizerState::NORMAL)
 	{
 	}
 };
