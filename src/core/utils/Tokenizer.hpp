@@ -28,11 +28,11 @@
 namespace ousia {
 namespace utils {
 
-	/**
-	 * This exception is currently only thrown if errors are made during the
-	 * initialization of the Tokenizer. Have a closer look at the documentation
-	 * of the TokenTreeNode constructor for more information.
-	 */
+/**
+ * This exception is currently only thrown if errors are made during the
+ * initialization of the Tokenizer. Have a closer look at the documentation
+ * of the TokenTreeNode constructor for more information.
+ */
 class TokenizerException : public std::exception {
 public:
 	const std::string msg;
@@ -41,7 +41,6 @@ public:
 
 	virtual const char *what() const noexcept override { return msg.c_str(); }
 };
-
 
 /**
  * The Tokenizer internally uses a TokenTree to be efficiently able to identify
@@ -59,7 +58,7 @@ public:
  * b c
  * | |
  * $ $
- * 
+ *
  * Every node in the TokenTree is a valid end state that has a $ attached to it.
  * During the search algorithm the Tokenizer goes through the tree and stores
  * the last valid position. If a character follows that does not lead to a new
@@ -116,8 +115,8 @@ static const int TOKEN_TEXT = -2;
 /**
  * A token for us is identified by an integer tokenID (either one of the
  * constants TOKEN_NONE or TOKEN_TEXT or one of the user-defined constants).
- * Additionally we return the matched text (which should only be really interesting
- * in case of TOKEN_TEXT tokens) and the position in the input text.
+ * Additionally we return the matched text (which should only be really
+ * interesting in case of TOKEN_TEXT tokens) and the position in the input text.
  */
 struct Token {
 	int tokenId;
@@ -146,7 +145,7 @@ struct Token {
  * definition here we distinguish between two kinds of tokens:
  * 1.) User-specified tokens that match a fixed text.
  * 2.) Any other text between those tokens.
- * The user might want to specify the tokens '#{' and '#}' for example, because 
+ * The user might want to specify the tokens '#{' and '#}' for example, because
  * they have some meaning in her code. The user sets the IDs to 1 and 2.
  * Given the input text
  * "some text #{ special command #} some text"
@@ -199,7 +198,7 @@ public:
 	/**
 	 * The next method consumes one Token from the input stream and gives
 	 * it to the user (stored in the input argument).
-	 * 
+	 *
 	 * @param t a Token reference that is set to the next found token.
 	 * @return true if a next token was found and false if the input is at its
 	 * end.
@@ -208,7 +207,7 @@ public:
 	/**
 	 * The peek method does not consume the next Token but buffers it and
 	 * shows it to the user (stored in the input argument).
-	 * 
+	 *
 	 * @param t a Token reference that is set to the next found token.
 	 * @return true if a next token was found and false if the input is at its
 	 * end.
