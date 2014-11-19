@@ -53,8 +53,7 @@ enum class CodeTokenMode {
  * A CodeTokenDescriptor defines the id the user likes to have returned for
  * a Token of the mode specified, e.g. if you want to get the id 4 for a
  * String Token the corresponding CodeTokenDescriptor would be inizialized
- * with
- * CodeTokenDescriptor myDesc {CodeTokenMode::STRING_START_END, 4};
+ * with CodeTokenDescriptor myDesc {CodeTokenMode::STRING_START_END, 4};
  */
 struct CodeTokenDescriptor {
 	CodeTokenMode mode;
