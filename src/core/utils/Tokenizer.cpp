@@ -82,8 +82,8 @@ bool Tokenizer::prepare()
 {
 	std::stringstream buffer;
 	char c;
-	const int startColumn = input.getColumn();
-	const int startLine = input.getLine();
+	int startColumn = input.getColumn();
+	int startLine = input.getLine();
 	bool bufEmpty = true;
 	while (input.peek(&c)) {
 		if (root.children.find(c) != root.children.end()) {
@@ -118,9 +118,10 @@ bool Tokenizer::prepare()
 					break;
 				}
 			}
+			//reset the peek pointer to the last valid position.
+			input.resetPeek();
 			// check if we did indeed find a special token.
 			if (match != TOKEN_NONE) {
-				input.resetPeek();
 				if (bufEmpty) {
 					// if we did not have text before, construct that token.
 					if (doPrepare(
@@ -128,8 +129,11 @@ bool Tokenizer::prepare()
 					              input.getColumn(), input.getLine()},
 					        peeked)) {
 						return true;
+					} else {
+						startColumn = input.getColumn();
+						startLine = input.getLine();
+						continue;
 					}
-
 				} else {
 					// otherwise we return the text before the token.
 					if (doPrepare(Token{TOKEN_TEXT, buffer.str(), startColumn,
@@ -137,8 +141,20 @@ bool Tokenizer::prepare()
 					                    input.getLine()},
 					              peeked)) {
 						return true;
-					}
+					} else{
+						//we need to clear the buffer here. After all the token
+						//corresponding to this buffer segment is already
+						//constructed.
+						buffer.str(std::string());
+						bufEmpty = true;
+						startColumn = input.getColumn();
+						startLine = input.getLine();
+						continue;
+					} 
 				}
+			} else{
+				//if we found nothing, read at least one character.
+				input.peek(&c);
 			}
 		}
 		buffer << c;
