@@ -17,6 +17,7 @@
 */
 
 #include "BufferedCharReader.hpp"
+#include "CodeTokenizer.hpp"
 #include "Tokenizer.hpp"
 
 #include "CSSParser.hpp"
@@ -24,6 +25,7 @@
 namespace ousia {
 namespace utils {
 
+// CSS code tokens
 static const int CURLY_OPEN = 1;
 static const int CURLY_CLOSE = 2;
 static const int COLON = 3;
@@ -31,8 +33,19 @@ static const int SEMICOLON = 4;
 static const int HASH = 5;
 static const int BRACKET_OPEN = 6;
 static const int BRACKET_CLOSE = 7;
-static const int COMMENT_OPEN = 8;
-static const int COMMENT_CLOSE = 9;
+static const int PAREN_OPEN = 8;
+static const int PAREN_CLOSE = 9;
+// comments
+static const int COMMENT = 100;
+static const int COMMENT_OPEN = 101;
+static const int COMMENT_CLOSE = 102;
+// strings
+static const int STRING = 200;
+static const int SINGLE_QUOTE = 201;
+static const int DOUBLE_QUOTE = 202;
+static const int ESCAPE = 203;
+// general syntax
+static const int LINEBREAK = 300;
 
 static const TokenTreeNode CSS_ROOT{{{"{", CURLY_OPEN},
                                      {"}", CURLY_CLOSE},
@@ -41,16 +54,28 @@ static const TokenTreeNode CSS_ROOT{{{"{", CURLY_OPEN},
                                      {"#", HASH},
                                      {"[", BRACKET_OPEN},
                                      {"]", BRACKET_CLOSE},
+                                     {"(", PAREN_OPEN},
+                                     {")", PAREN_CLOSE},
                                      {"/*", COMMENT_OPEN},
-                                     {"*/", COMMENT_CLOSE}}};
+                                     {"*/", COMMENT_CLOSE},
+                                     {"\\", ESCAPE},
+                                     {"\''", SINGLE_QUOTE},
+                                     {"\"", DOUBLE_QUOTE},
+                                     {"\n", LINEBREAK}}};
 
-StyleNode CSSParser::parse(BufferedCharReader &input) {
-	Tokenizer tokenizer {input, CSS_ROOT};
-	//TODO: implement
-	
+static const std::map<int, CodeTokenDescriptor> CSS_DESCRIPTORS = {
+    {COMMENT_OPEN, {CodeTokenMode::BLOCK_COMMENT_START, COMMENT}},
+    {COMMENT_CLOSE, {CodeTokenMode::BLOCK_COMMENT_END, COMMENT}},
+    {SINGLE_QUOTE, {CodeTokenMode::STRING_START_END, STRING}},
+    {DOUBLE_QUOTE, {CodeTokenMode::STRING_START_END, STRING}},
+    {ESCAPE, {CodeTokenMode::ESCAPE, ESCAPE}},
+    {LINEBREAK, {CodeTokenMode::LINEBREAK, LINEBREAK}}};
+
+StyleNode CSSParser::parse(BufferedCharReader &input)
+{
+	CodeTokenizer tokenizer{input, CSS_ROOT, CSS_DESCRIPTORS};
+	tokenizer.ignoreComments = true;
+	// TODO: implement
 }
-
-
-
 }
 }

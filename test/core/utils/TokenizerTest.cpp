@@ -93,5 +93,33 @@ TEST(Tokenizer, testTokenization)
 	}
 	ASSERT_FALSE(tokenizer.next(t));
 }
+
+TEST(Tokenizer, testIncompleteTokens)
+{
+	TokenTreeNode root{{{"ab", 1}, {"c", 2}}};
+
+	BufferedCharReader reader;
+	reader.feed("ac");
+	//           1234567890
+	//           0        1
+
+	std::vector<Token> expected = {
+	    {TOKEN_TEXT, "a", 1, 1, 2, 1},
+	    {2, "c", 2, 1, 3, 1}};
+
+	Tokenizer tokenizer{reader, root};
+
+	Token t;
+	for (auto &te : expected) {
+		ASSERT_TRUE(tokenizer.next(t));
+		ASSERT_EQ(te.tokenId, t.tokenId);
+		ASSERT_EQ(te.content, t.content);
+		ASSERT_EQ(te.startColumn, t.startColumn);
+		ASSERT_EQ(te.startLine, t.startLine);
+		ASSERT_EQ(te.endColumn, t.endColumn);
+		ASSERT_EQ(te.endLine, t.endLine);
+	}
+	ASSERT_FALSE(tokenizer.next(t));
+}
 }
 }

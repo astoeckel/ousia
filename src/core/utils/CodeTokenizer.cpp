@@ -23,30 +23,30 @@
 namespace ousia {
 namespace utils {
 
-Token CodeTokenizer::constructToken(const Token& t)
+Token CodeTokenizer::constructToken(const Token &t)
 {
 	std::string content = buf.str();
 	buf.str(std::string());
-	return Token{returnTokenId,          content,
-	             startToken.startColumn, startToken.startLine,
-	             t.endColumn,     t.endLine};
+	return Token{returnTokenId,        content,     startToken.startColumn,
+	             startToken.startLine, t.endColumn, t.endLine};
 }
 
 void CodeTokenizer::buffer(const Token &t) { buf << t.content; }
 
 bool CodeTokenizer::doPrepare(const Token &t, std::deque<Token> &peeked)
 {
-	if (t.startLine != t.endLine) {
-		throw TokenizerException(
-		    "We did not expect a multiline token. Most likely you did not add "
-		    "a linebreak token to your tokenizer!");
-	}
-
 	auto it = descriptors.find(t.tokenId);
 	CodeTokenMode mode = CodeTokenMode::NONE;
 	if (it != descriptors.end()) {
 		mode = it->second.mode;
 	}
+
+	if (t.startLine != t.endLine && mode != CodeTokenMode::LINEBREAK) {
+		throw TokenizerException(
+		    "We did not expect a multiline token (except linebreaks). Most "
+		    "likely you did not add a linebreak token to your tokenizer!");
+	}
+
 	switch (state) {
 		case CodeTokenizerState::NORMAL:
 			switch (mode) {
@@ -59,25 +59,47 @@ bool CodeTokenizer::doPrepare(const Token &t, std::deque<Token> &peeked)
 				case CodeTokenMode::LINE_COMMENT:
 					state = CodeTokenizerState::IN_LINE_COMMENT;
 					break;
+				case CodeTokenMode::LINEBREAK:
+					peeked.push_back({it->second.id, t.content, t.startColumn,
+					                  t.startLine, t.endColumn, t.endLine});
+					return true;
 				default:
 					if (t.tokenId == TOKEN_TEXT) {
 						int begin = -1;
 						for (size_t c = 0; c < t.content.length(); c++) {
 							bool isWhitespace =
 							    t.content[c] == ' ' || t.content[c] == '\t';
-							if (begin >= 0 && isWhitespace) {
-								peeked.push_back(Token{
-								    TOKEN_TEXT,
-								    t.content.substr(begin, (int)c - begin),
-								    t.startColumn + begin, t.startLine,
-								    t.startColumn + (int)c, t.endLine});
-							}
-							if (!isWhitespace && begin < 0) {
-								begin = c;
+							if (begin < 0) {
+								// if we have not yet set our beginning,
+								// we wait for the first
+								// non-whitespace-character to set it.
+								if (!isWhitespace) {
+									begin = c;
+								}
+							} else {
+								// if we have set our beginning, we wait for the
+								// first whitespace character, which marks the
+								// end of the current word.
+								if (isWhitespace) {
+									peeked.push_back(Token{
+									    TOKEN_TEXT,
+									    t.content.substr(begin, (int)c - begin),
+									    t.startColumn + begin, t.startLine,
+									    t.startColumn + (int)c, t.endLine});
+									begin = -1;
+								}
 							}
 						}
+						if(begin >= 0){
+							peeked.push_back(Token{
+									TOKEN_TEXT,
+									t.content.substr(begin),
+									t.startColumn + begin, t.startLine,
+									t.endColumn, t.endLine});
+						}
+					} else {
+						peeked.push_back(t);
 					}
-					peeked.push_back(t);
 					return true;
 			}
 			startToken = t;

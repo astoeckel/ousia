@@ -156,6 +156,9 @@ public:
 };
 
 class CSSParser {
+
+private:
+
 public:
 	StyleNode parse(BufferedCharReader &input);
 };
