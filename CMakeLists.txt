@@ -107,6 +107,7 @@ ADD_LIBRARY(ousia_core
 	src/core/CodeTokenizer
 	src/core/CSSParser
 	src/core/Tokenizer
+	src/core/Typesystem
 	src/core/Utils
 )
 
