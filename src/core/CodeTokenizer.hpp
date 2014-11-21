@@ -105,8 +105,27 @@ public:
 	/**
 	 *
 	 * @param input a BufferedCharReader containing the input for this
-	 *tokenizer,
-	 * as with a regular tokenizer.
+	 * tokenizer, as with a regular tokenizer.
+	 * @param root a TokenTreeNode representing the root of the TokenTree.
+	 * Please note that you have to specify all tokenIDs here that you use
+	 * in the descriptors map.
+	 * @param descriptors a map mapping tokenIDs to CodeTokenDescriptors.
+	 * In this way you can specify the meaning of certain Tokens. Say you
+	 * specified the Token "//" with the id 1 in the TokenTree. Then you could
+	 * add the entry "1" with the Mode "LINE_COMMENT" to the descriptors map
+	 * and this CodeTokenizer would recognize the token "//" as starting a
+	 * line comment.
+	 */
+	CodeTokenizer(BufferedCharReader &input, const TokenTreeNode &root,
+	              std::map<int, CodeTokenDescriptor> descriptors)
+	    : Tokenizer(input, root), descriptors(descriptors), state(CodeTokenizerState::NORMAL)
+	{
+	}
+
+	/**
+	 *
+	 * @param input a BufferedCharReader containing the input for this
+	 * tokenizer, as with a regular tokenizer.
 	 * @param root a TokenTreeNode representing the root of the TokenTree.
 	 * Please note that you have to specify all tokenIDs here that you use
 	 * in the descriptors map.
