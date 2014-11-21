@@ -23,7 +23,6 @@
 #include "CSSParser.hpp"
 
 namespace ousia {
-namespace utils {
 
 // CSS code tokens
 static const int CURLY_OPEN = 1;
@@ -76,6 +75,5 @@ StyleNode CSSParser::parse(BufferedCharReader &input)
 	CodeTokenizer tokenizer{input, CSS_ROOT, CSS_DESCRIPTORS};
 	tokenizer.ignoreComments = true;
 	// TODO: implement
-}
 }
 }

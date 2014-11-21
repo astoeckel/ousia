@@ -16,18 +16,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_DOM_TYPESYSTEM_HPP_
-#define _OUSIA_DOM_TYPESYSTEM_HPP_
+#ifndef _OUSIA_TYPESYSTEM_HPP_
+#define _OUSIA_TYPESYSTEM_HPP_
 
 #include <string>
 #include <vector>
 
-#include <core/Managed.hpp>
-
+#include "Managed.hpp"
 #include "Node.hpp"
 
 namespace ousia {
-namespace dom {
 
 class Type;
 
@@ -81,7 +79,6 @@ public:
 	}
 };
 }
-}
 
-#endif /* _OUSIA_DOM_TYPESYSTEM_HPP_ */
+#endif /* _OUSIA_TYPESYSTEM_HPP_ */
 

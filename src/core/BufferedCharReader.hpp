@@ -16,15 +16,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_UTILS_BUFFERED_CHAR_READER_H_
-#define _OUSIA_UTILS_BUFFERED_CHAR_READER_H_
+#ifndef _OUSIA_BUFFERED_CHAR_READER_H_
+#define _OUSIA_BUFFERED_CHAR_READER_H_
 
 #include <deque>
 #include <string>
 #include <cstdint>
 
 namespace ousia {
-namespace utils {
 
 /**
  * The BufferedCharReader class is used for storing incomming data that
@@ -234,7 +233,6 @@ public:
 };
 
 }
-}
 
-#endif /* _OUSIA_UTILS_BUFFERED_CHAR_READER_H_ */
+#endif /* _OUSIA_BUFFERED_CHAR_READER_H_ */
 

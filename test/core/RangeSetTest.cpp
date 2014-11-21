@@ -18,10 +18,9 @@
 
 #include <gtest/gtest.h>
 
-#include <core/utils/RangeSet.hpp>
+#include <core/RangeSet.hpp>
 
 namespace ousia {
-namespace model {
 
 TEST(Range, IsValid)
 {
@@ -217,6 +216,5 @@ TEST(RangeSet, Contains)
 	ASSERT_TRUE(s.contains(Range<int>(70, 74)));
 }
 
-}
 }
 

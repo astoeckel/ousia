@@ -16,21 +16,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_UTILS_CSS_PARSER_HPP_
-#define _OUSIA_UTILS_CSS_PARSER_HPP_
+#ifndef _OUSIA_CSS_PARSER_HPP_
+#define _OUSIA_CSS_PARSER_HPP_
 
 #include <istream>
 #include <map>
 #include <vector>
 #include <tuple>
 
-#include <core/Managed.hpp>
-#include <core/dom/Node.hpp>
-
 #include "BufferedCharReader.hpp"
+#include "Managed.hpp"
+#include "Node.hpp"
 
 namespace ousia {
-namespace utils {
 
 /*
  * The Specificity or Precedence of a CSS RuleSet, which decides which
@@ -107,7 +105,7 @@ public:
 
 enum class SelectionOperator { DESCENDANT, DIRECT_DESCENDANT };
 
-class StyleNode : public dom::Node {
+class StyleNode : public Node {
 public:
 	class StyleEdge : public Managed {
 	private:
@@ -141,7 +139,7 @@ public:
 	          PseudoSelector pseudoSelector,
 	          const std::vector<Handle<StyleEdge>> &edges,
 	          const std::vector<Handle<RuleSet>> &ruleSets)
-	    : dom::Node(mgr, std::move(name)),
+	    : Node(mgr, std::move(name)),
 	      pseudoSelector(std::move(pseudoSelector)),
 	      edges(acquire(edges)),
 	      ruleSets(acquire(ruleSets))
@@ -163,5 +161,5 @@ public:
 	StyleNode parse(BufferedCharReader &input);
 };
 }
-}
+
 #endif

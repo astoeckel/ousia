@@ -21,10 +21,9 @@
 
 #include "gtest/gtest.h"
 
-#include <core/utils/BufferedCharReader.hpp>
+#include <core/BufferedCharReader.hpp>
 
 namespace ousia{
-namespace utils{
 
 TEST(BufferedCharReaderTest, SimpleReadTest)
 {
@@ -200,4 +199,4 @@ TEST(BufferedCharReaderTest, RowColumnCounterUTF8Test)
 }
 
 }
-}
+

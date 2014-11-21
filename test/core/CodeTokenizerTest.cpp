@@ -18,10 +18,9 @@
 
 #include <gtest/gtest.h>
 
-#include <core/utils/CodeTokenizer.hpp>
+#include <core/CodeTokenizer.hpp>
 
 namespace ousia {
-namespace utils {
 
 static const int BLOCK_COMMENT = 30;
 static const int LINE_COMMENT = 31;
@@ -40,8 +39,8 @@ TEST(CodeTokenizer, testTokenizer)
 	reader.feed("var my_string = 'My \\'String\\'';\n");  // 4
 	reader.feed("// and a line comment\n");               // 5
 	reader.feed("var my_obj = { a = 4;}");                // 6
-	//           123456789012345678901234567890123456789012345678901234567890123456789
-	//           0        1         2         3         4         5         6
+	//           123456789012345678901234567890123456789
+	//           0        1         2         3
 	TokenTreeNode root{{{"/*", 1},
 	                    {"*/", 2},
 	                    {"//", 3},
@@ -99,4 +98,4 @@ TEST(CodeTokenizer, testTokenizer)
 	ASSERT_FALSE(tokenizer.next(t));
 }
 }
-}
+

@@ -16,14 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_MODEL_RANGE_SET_HPP_
-#define _OUSIA_MODEL_RANGE_SET_HPP_
+#ifndef _OUSIA_RANGE_SET_HPP_
+#define _OUSIA_RANGE_SET_HPP_
 
 #include <limits>
 #include <set>
 
 namespace ousia {
-namespace model {
 /**
  * The Range structure represents an interval of numerical values of type T.
  */
@@ -320,7 +319,7 @@ public:
 };
 
 }
-}
 
-#endif /* _OUSIA_MODEL_RANGE_SET_HPP_ */
+
+#endif /* _OUSIA_RANGE_SET_HPP_ */
 

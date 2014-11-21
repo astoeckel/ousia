@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_DOM_NODE_HPP_
-#define _OUSIA_DOM_NODE_HPP_
+#ifndef _OUSIA_NODE_HPP_
+#define _OUSIA_NODE_HPP_
 
 #include <functional>
 #include <map>
@@ -28,7 +28,6 @@
 #include <core/Managed.hpp>
 
 namespace ousia {
-namespace dom {
 
 /* Forward declarations */
 class Node;
@@ -512,7 +511,6 @@ public:
 	bool triggerEvent(Event &event, bool fromChild = false);
 };
 }
-}
 
-#endif /* _OUSIA_DOM_NODE_HPP_ */
+#endif /* _OUSIA_NODE_HPP_ */
 

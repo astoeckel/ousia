@@ -18,10 +18,9 @@
 
 #include <gtest/gtest.h>
 
-#include <core/utils/CSSParser.hpp>
+#include <core/CSSParser.hpp>
 
 namespace ousia {
-namespace utils {
 TEST(Specificity, testOperators)
 {
 	Specificity s1{0,0,1};
@@ -113,4 +112,4 @@ TEST(Specificity, testOperators)
 	ASSERT_FALSE(s5 > s5);
 }
 }
-}
+

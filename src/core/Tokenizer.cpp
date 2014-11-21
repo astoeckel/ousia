@@ -21,7 +21,6 @@
 #include "Tokenizer.hpp"
 
 namespace ousia {
-namespace utils {
 
 static std::map<char, TokenTreeNode> buildChildren(
     const std::map<std::string, int> &inputs)
@@ -207,6 +206,5 @@ void Tokenizer::consumePeek()
 		peeked.pop_front();
 		peekCursor--;
 	}
-}
 }
 }

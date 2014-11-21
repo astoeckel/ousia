@@ -20,7 +20,7 @@
 
 #include <core/Managed.hpp>
 
-#include <core/dom/Node.hpp>
+#include <core/Node.hpp>
 
 namespace ousia {
 namespace dom {

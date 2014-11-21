@@ -19,7 +19,6 @@
 #include "Node.hpp"
 
 namespace ousia {
-namespace dom {
 
 /* Class Node */
 
@@ -141,5 +140,3 @@ bool Node::triggerEvent(Event &event, bool fromChild) {
 }
 
 }
-}
-

@@ -19,7 +19,6 @@
 #include "BufferedCharReader.hpp"
 
 namespace ousia {
-namespace utils {
 
 // Constants used within the linebreak statemachine.
 static const uint8_t LB_STATE_NONE = 0x00;
@@ -212,5 +211,3 @@ bool BufferedCharReader::atEnd()
 }
 
 }
-}
-

@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_UTILS_TOKENIZER_HPP_
-#define _OUSIA_UTILS_TOKENIZER_HPP_
+#ifndef _OUSIA_TOKENIZER_HPP_
+#define _OUSIA_TOKENIZER_HPP_
 
 #include <istream>
 #include <map>
@@ -26,7 +26,6 @@
 #include "BufferedCharReader.hpp"
 
 namespace ousia {
-namespace utils {
 
 /**
  * This exception is currently only thrown if errors are made during the
@@ -225,7 +224,6 @@ public:
 	 */
 	void consumePeek();
 };
-}
 }
 
 #endif

@@ -23,7 +23,7 @@
 #include <string>
 #include <exception>
 
-#include <core/utils/Utils.hpp>
+#include <core/Utils.hpp>
 
 #include "Variant.hpp"
 

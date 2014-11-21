@@ -18,12 +18,11 @@
 
 #include <gtest/gtest.h>
 
-#include <core/utils/BufferedCharReader.hpp>
+#include <core/BufferedCharReader.hpp>
 
-#include <core/utils/Tokenizer.hpp>
+#include <core/Tokenizer.hpp>
 
 namespace ousia {
-namespace utils {
 TEST(TokenTreeNode, testConstructor)
 {
 	TokenTreeNode root{{{"a", 1}, {"aab", 2}, {"aac", 3}, {"abd", 4}}};
@@ -122,4 +121,4 @@ TEST(Tokenizer, testIncompleteTokens)
 	ASSERT_FALSE(tokenizer.next(t));
 }
 }
-}
+

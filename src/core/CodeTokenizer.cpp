@@ -21,7 +21,6 @@
 #include "CodeTokenizer.hpp"
 
 namespace ousia {
-namespace utils {
 
 Token CodeTokenizer::constructToken(const Token &t)
 {
@@ -161,6 +160,5 @@ bool CodeTokenizer::doPrepare(const Token &t, std::deque<Token> &peeked)
 			}
 	}
 	assert(false);
-}
 }
 }

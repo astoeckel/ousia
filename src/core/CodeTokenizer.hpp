@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_UTILS_CODE_TOKENIZER_HPP_
-#define _OUSIA_UTILS_CODE_TOKENIZER_HPP_
+#ifndef _OUSIA_CODE_TOKENIZER_HPP_
+#define _OUSIA_CODE_TOKENIZER_HPP_
 
 #include <map>
 #include <sstream>
@@ -26,7 +26,6 @@
 #include "Tokenizer.hpp"
 
 namespace ousia {
-namespace utils {
 
 /*
  * This enum contains all special Token the CodeTokenizer supports, namely:
@@ -124,7 +123,6 @@ public:
 	{
 	}
 };
-}
 }
 
 #endif
