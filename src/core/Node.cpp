@@ -47,14 +47,14 @@ std::vector<std::string> Node::path() const
 	return res;
 }
 
-void Node::doResolve(std::vector<Rooted<Node>> &res,
+void Node::doResolve(std::vector<Rooted<Managed>> &res,
                      const std::vector<std::string> &path, Filter filter,
                      void *filterData, unsigned idx, VisitorSet &visited)
 {
 	// Do nothing in the default implementation
 }
 
-int Node::resolve(std::vector<Rooted<Node>> &res,
+int Node::resolve(std::vector<Rooted<Managed>> &res,
                   const std::vector<std::string> &path, Filter filter,
                   void *filterData, unsigned idx, VisitorSet &visited,
                   const std::string *alias)
@@ -87,11 +87,11 @@ int Node::resolve(std::vector<Rooted<Node>> &res,
 	return res.size();
 }
 
-std::vector<Rooted<Node>> Node::resolve(const std::vector<std::string> &path,
+std::vector<Rooted<Managed>> Node::resolve(const std::vector<std::string> &path,
                                         Filter filter = nullptr,
                                         void *filterData = nullptr)
 {
-	std::vector<Rooted<Node>> res;
+	std::vector<Rooted<Managed>> res;
 	VisitorSet visited;
 	resolve(res, path, filter, filterData, 0, visited, nullptr);
 	return res;

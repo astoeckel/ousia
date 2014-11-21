@@ -30,7 +30,7 @@ private:
 	std::vector<Owned<Node>> children;
 
 protected:
-	void doResolve(std::vector<Rooted<Node>> &res,
+	void doResolve(std::vector<Rooted<Managed>> &res,
 	               const std::vector<std::string> &path, Filter filter,
 	               void *filterData, unsigned idx, VisitorSet &visited) override
 	{
@@ -73,7 +73,7 @@ TEST(Node, simpleResolve)
 	Rooted<TestNode> child1 = root->addChild(new TestNode(mgr, "child1"));
 	Rooted<TestNode> child11 = child1->addChild(new TestNode(mgr, "child11"));
 
-	std::vector<Rooted<Node>> res;
+	std::vector<Rooted<Managed>> res;
 	res = root->resolve(std::vector<std::string>{"root", "child1", "child11"});
 	ASSERT_EQ(1, res.size());
 	ASSERT_TRUE(child11 == *(res.begin()));

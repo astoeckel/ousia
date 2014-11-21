@@ -307,7 +307,7 @@ protected:
 	 * @param filterData is user-defined data that should be passed to the
 	 * filter.
 	 */
-	virtual void doResolve(std::vector<Rooted<Node>> &res,
+	virtual void doResolve(std::vector<Rooted<Managed>> &res,
 	                       const std::vector<std::string> &path, Filter filter,
 	                       void *filterData, unsigned idx, VisitorSet &visited);
 
@@ -370,7 +370,7 @@ public:
 	 *
 	 * @return a handle to the root node.
 	 */
-	Rooted<Node> getParent() const { return parent; }
+	Rooted<Managed> getParent() const { return parent; }
 
 	/**
 	 * Returns true, if the node does not have a parent. Root nodes may either
@@ -410,7 +410,7 @@ public:
 	 * provided.
 	 * @return the number of elements in the result list.
 	 */
-	int resolve(std::vector<Rooted<Node>> &res,
+	int resolve(std::vector<Rooted<Managed>> &res,
 	            const std::vector<std::string> &path, Filter filter,
 	            void *filterData, unsigned idx, VisitorSet &visited,
 	            const std::string *alias);
@@ -429,7 +429,7 @@ public:
 	 * filter.
 	 * @return a vector containing all found node references.
 	 */
-	std::vector<Rooted<Node>> resolve(const std::vector<std::string> &path,
+	std::vector<Rooted<Managed>> resolve(const std::vector<std::string> &path,
 	                                  Filter filter, void *filterData);
 
 	/**
@@ -440,7 +440,7 @@ public:
 	 * certain named node.
 	 * @return a vector containing all found node references.
 	 */
-	std::vector<Rooted<Node>> resolve(const std::vector<std::string> &path)
+	std::vector<Rooted<Managed>> resolve(const std::vector<std::string> &path)
 	{
 		return resolve(path, nullptr, nullptr);
 	}
@@ -458,7 +458,7 @@ public:
 	 * filter.
 	 * @return a vector containing all found node references.
 	 */
-	std::vector<Rooted<Node>> resolve(const char *, Filter filter,
+	std::vector<Rooted<Managed>> resolve(const char *, Filter filter,
 	                                  void *filterData)
 	{
 		return resolve(std::vector<std::string>{name}, filter, filterData);
@@ -471,7 +471,7 @@ public:
 	 * @param name is the name which should be resolved.
 	 * @return a vector containing all found node references.
 	 */
-	std::vector<Rooted<Node>> resolve(const std::string &name)
+	std::vector<Rooted<Managed>> resolve(const std::string &name)
 	{
 		return resolve(std::vector<std::string>{name}, nullptr, nullptr);
 	}
