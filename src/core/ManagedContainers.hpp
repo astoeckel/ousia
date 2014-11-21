@@ -59,13 +59,13 @@ protected:
 	 * Function which can be overridden by child classes to execute special code
 	 * whenever a new element is added to the collection.
 	 */
-	virtual void addManaged(value_type h) {}
+	virtual void addElement(value_type h) {}
 
 	/**
 	 * Function which can be overriden by child classes to execute special code
 	 * whenever an element is removed from the collection.
 	 */
-	virtual void deleteManaged(value_type h) {}
+	virtual void deleteElement(value_type h) {}
 
 public:
 	/**
@@ -103,7 +103,7 @@ public:
 	void clear() noexcept
 	{
 		for (const_iterator it = cbegin(); it != cend(); it++) {
-			deleteManaged(*it);
+			deleteElement(*it);
 		}
 		c.clear();
 	}
@@ -179,7 +179,7 @@ public:
 	iterator insert(const_iterator position, Handle<T> h)
 	{
 		value_type v = Base::owner->acquire(h);
-		addManaged(v);
+		addElement(v);
 		return Base::c.insert(position, v);
 	}
 
@@ -223,28 +223,28 @@ public:
 	void push_back(Handle<T> h)
 	{
 		value_type v = Base::owner->acquire(h);
-		this->addManaged(v);
+		this->addElement(v);
 		Base::c.push_back(v);
 	}
 
 	void pop_back()
 	{
 		if (!Base::empty()) {
-			this->deleteManaged(back());
+			this->deleteElement(back());
 		}
 		Base::c.pop_back();
 	}
 
 	iterator erase(iterator position)
 	{
-		this->deleteManaged(*position);
+		this->deleteElement(*position);
 		return Base::c.erase(position);
 	}
 
 	iterator erase(iterator first, iterator last)
 	{
 		for (const_iterator it = first; it != last; it++) {
-			this->deleteManaged(*it);
+			this->deleteElement(*it);
 		}
 		return Base::c.erase(first, last);
 	}
@@ -262,7 +262,7 @@ public:
 	using Base::ManagedContainer;
 	using collection_type = typename Base::collection_type;
 	using value_type = typename Base::value_type;
-	using key_type = typename Base::key_type;
+	using key_type = typename Collection::key_type;
 	using reference = typename Base::reference;
 	using const_reference = typename Base::const_reference;
 	using iterator = typename Base::iterator;
@@ -272,8 +272,7 @@ public:
 private:
 	value_type acquirePair(std::pair<K, Handle<T>> val)
 	{
-		return std::pair<const K, T>{val->first,
-		                             Base::owner->acquire(val->second)};
+		return value_type{val.first, Base::owner->acquire(val.second)};
 	}
 
 public:
@@ -315,14 +314,14 @@ public:
 	std::pair<iterator, bool> insert(std::pair<K, Handle<T>> val)
 	{
 		value_type v = acquirePair(val);
-		addManaged(v);
+		this->addElement(v);
 		return Base::c.insert(v);
 	}
 
 	iterator insert(const_iterator position, std::pair<K, Handle<T>> val)
 	{
 		value_type v = acquirePair(val);
-		addManaged(v);
+		this->addElement(v);
 		return Base::c.insert(position, v);
 	}
 
@@ -336,7 +335,7 @@ public:
 
 	iterator erase(const_iterator position)
 	{
-		Base::deleteManaged(*position);
+		this->deleteElement(*position);
 		return Base::c.erase(position);
 	}
 
@@ -353,7 +352,7 @@ public:
 	iterator erase(const_iterator first, const_iterator last)
 	{
 		for (const_iterator it = first; it != last; it++) {
-			Base::deleteManaged(*it);
+			this->deleteElement(*it);
 		}
 		return Base::c.erase(first, last);
 	}

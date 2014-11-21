@@ -25,7 +25,8 @@
 #include <vector>
 #include <unordered_set>
 
-#include <core/Managed.hpp>
+#include "Managed.hpp"
+#include "ManagedContainers.hpp"
 
 namespace ousia {
 
@@ -226,12 +227,12 @@ public:
 	 * filter tests whether the given node meets the requirements for inclusion
 	 * in the result list.
 	 *
-	 * @param node is the node which should be tested.
+	 * @param managed is the managed which should be tested.
 	 * @param data is user-defined data passed to the filter.
 	 * @return true if the node should be included in the result set, false
 	 * otherwise.
 	 */
-	using Filter = bool (*)(Handle<Node> node, void *data);
+	using Filter = bool (*)(Handle<Managed> managed, void *data);
 
 	/**
 	 * Hash functional used to convert pairs of nodes and int to hashes which
@@ -510,6 +511,35 @@ public:
 	 */
 	bool triggerEvent(Event &event, bool fromChild = false);
 };
+
+template <class T, class Collection>
+class NodeGenericList : public ManagedGenericList<T, Collection> {
+protected:
+	// TODO: Override addElement, deleteElement once this is necessary
+public:
+	using ManagedGenericList<T, Collection>::ManagedGenericList;
+};
+
+template <class K, class T, class Collection>
+class NodeGenericMap : public ManagedGenericMap<K, T, Collection> {
+protected:
+	// TODO: Override addElement, deleteElement once this is necessary
+public:
+	using ManagedGenericMap<K, T, std::vector<Owned<T>>>::ManagedGenericMap;
+};
+
+template <class T>
+class NodeVector : public NodeGenericList<T, std::vector<Owned<T>>> {
+public:
+	using NodeGenericList<T, std::vector<Owned<T>>>::NodeGenericList;
+};
+
+template <class K, class T>
+class NodeMap : public NodeGenericMap<K, T, std::map<K, Owned<T>>> {
+public:
+	using NodeGenericMap<K, T, std::map<K, Owned<T>>>::NodeGenericMap;
+};
+
 }
 
 #endif /* _OUSIA_NODE_HPP_ */
