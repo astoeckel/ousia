@@ -24,6 +24,8 @@
 
 #include <core/Managed.hpp>
 
+#include "TestManaged.hpp"
+
 namespace ousia {
 
 /* Class ObjectDescriptor */
@@ -210,39 +212,6 @@ TEST(Owned, equalsAndAssign)
 }
 
 /* Class Manager */
-
-class TestManaged : public Managed {
-private:
-	bool &alive;
-
-	std::vector<Owned<Managed>> refs;
-
-public:
-	TestManaged(Manager &mgr, bool &alive) : Managed(mgr), alive(alive)
-	{
-		//std::cout << "create TestManaged @" << this << std::endl;
-		alive = true;
-	}
-
-	~TestManaged() override
-	{
-		//std::cout << "delete TestManaged @" << this << std::endl;
-		alive = false;
-	}
-
-	void addRef(Handle<Managed> h) { refs.push_back(acquire(h)); }
-
-	void deleteRef(Handle<Managed> h)
-	{
-		for (auto it = refs.begin(); it != refs.end();) {
-			if (*it == h) {
-				it = refs.erase(it);
-			} else {
-				it++;
-			}
-		}
-	}
-};
 
 TEST(Manager, linearDependencies)
 {
@@ -537,55 +506,6 @@ TEST(Manager, hiddenRootedGraph)
 	}
 
 	ASSERT_FALSE(b);
-	for (bool v : a) {
-		ASSERT_FALSE(v);
-	}
-}
-
-TEST(ManagedVector, managedVector)
-{
-	// TODO: This test is highly incomplete
-
-	constexpr int nElem = 16;
-	std::array<bool, nElem> a;
-
-	Manager mgr(1);
-	{
-		Rooted<Managed> root{new Managed{mgr}};
-
-		std::vector<TestManaged*> elems;
-		for (int i = 0; i < nElem; i++) {
-			elems.push_back(new TestManaged{mgr, a[i]});
-		}
-
-		for (bool v : a) {
-			ASSERT_TRUE(v);
-		}
-
-		ManagedVector<TestManaged> v(root, elems);
-
-		// Remove the last element from the list. It should be garbage collected.
-		v.pop_back();
-		ASSERT_FALSE(a[nElem - 1]);
-
-		// Insert a new element into the list.
-		v.push_back(new TestManaged{mgr, a[nElem - 1]});
-		ASSERT_TRUE(a[nElem - 1]);
-
-		// Erase element 10
-		{
-			auto it = v.find(elems[10]);
-			ASSERT_TRUE(it != v.end());
-			v.erase(it);
-			ASSERT_FALSE(a[10]);
-		}
-
-		// Erase element 3 - 5
-		v.erase(v.find(elems[3]), v.find(elems[5]));
-		ASSERT_FALSE(a[3] || a[4]);
-		ASSERT_TRUE(a[5]);
-	}
-
 	for (bool v : a) {
 		ASSERT_FALSE(v);
 	}

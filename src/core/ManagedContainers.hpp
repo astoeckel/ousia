@@ -119,9 +119,19 @@ public:
  * @param Collection should be a STL list container of Owned<T>
  */
 template <class T, class Collection>
-class ManagedGenericList : public ManagedContainer() {
+class ManagedGenericList : public ManagedContainer<T, Collection> {
+private:
+	using Base = ManagedContainer<T, Collection>;
+
 public:
-	using ManagedContainer<T, Collection>::ManagedContainer;
+	using Base::ManagedContainer;
+	using collection_type = typename Base::collection_type;
+	using value_type = typename Base::value_type;
+	using reference = typename Base::reference;
+	using const_reference = typename Base::const_reference;
+	using iterator = typename Base::iterator;
+	using const_iterator = typename Base::const_iterator;
+	using size_type = typename Base::size_type;
 
 	/**
 	 * Initialize with an iterator from another collection.
@@ -134,10 +144,11 @@ public:
 	 * from some other collection.
 	 */
 	template <class InputIterator>
-	ManagedGenericList(Handle<Managed> owner, InputIterator first, InputIterator last)
+	ManagedGenericList(Handle<Managed> owner, InputIterator first,
+	                   InputIterator last)
 	    : ManagedContainer<T, Collection>(owner)
 	{
-		insert(c.begin(), first, last);
+		insert(Base::c.begin(), first, last);
 	}
 
 	/**
@@ -158,29 +169,29 @@ public:
 	}
 
 	/* Front and back */
-	reference front() { return c.front(); }
-	const_reference front() const { return c.front(); }
-	reference back() { return c.back(); }
-	const_reference back() const { return c.back(); }
+	reference front() { return Base::c.front(); }
+	const_reference front() const { return Base::c.front(); }
+	reference back() { return Base::c.back(); }
+	const_reference back() const { return Base::c.back(); }
 
 	/* Insert and delete operations */
 
 	iterator insert(const_iterator position, Handle<T> h)
 	{
-		value_type v = owner->acquire(h);
+		value_type v = Base::owner->acquire(h);
 		addManaged(v);
-		return c.insert(position, owner->acquire(h));
+		return Base::c.insert(position, v);
 	}
 
 	template <class InputIterator>
 	iterator insert(const_iterator position, InputIterator first,
 	                InputIterator last)
 	{
-		bool first = true;
+		bool atStart = true;
 		const_iterator pos = position;
 		for (InputIterator it = first; it != last; it++) {
-			if (first) {
-				first = false;
+			if (atStart) {
+				atStart = false;
 			} else {
 				pos++;
 			}
@@ -191,51 +202,51 @@ public:
 
 	iterator find(const Handle<T> h)
 	{
-		for (iterator it = begin(); it != end(); it++) {
+		for (iterator it = Base::begin(); it != Base::end(); it++) {
 			if (*it == h) {
 				return it;
 			}
 		}
-		return end();
+		return Base::end();
 	}
 
 	const_iterator find(const Handle<T> h) const
 	{
-		for (const_iterator it = cbegin(); it != cend(); it++) {
+		for (const_iterator it = Base::cbegin(); it != Base::cend(); it++) {
 			if (*it == h) {
 				return it;
 			}
 		}
-		return cend();
+		return Base::cend();
 	}
 
 	void push_back(Handle<T> h)
 	{
-		Rooted<T> rooted{h};
-		addManaged(rooted);
-		c.push_back(owner->acquire(rooted));
+		value_type v = Base::owner->acquire(h);
+		this->addManaged(v);
+		Base::c.push_back(v);
 	}
 
 	void pop_back()
 	{
-		if (!empty()) {
-			deleteElement(c.back());
+		if (!Base::empty()) {
+			this->deleteManaged(back());
 		}
-		c.pop_back();
+		Base::c.pop_back();
 	}
 
 	iterator erase(iterator position)
 	{
-		deleteManaged(*position);
-		return c.erase(position);
+		this->deleteManaged(*position);
+		return Base::c.erase(position);
 	}
 
 	iterator erase(iterator first, iterator last)
 	{
 		for (const_iterator it = first; it != last; it++) {
-			deleteManaged(*it);
+			this->deleteManaged(*it);
 		}
-		return c.erase(first, last);
+		return Base::c.erase(first, last);
 	}
 };
 
@@ -243,15 +254,29 @@ public:
  * Special type of ManagedContainer based on an STL map.
  */
 template <class K, class T, class Collection>
-class ManagedGenericMap : public ManagedCollection<T, Collection> {
+class ManagedGenericMap : public ManagedContainer<T, Collection> {
+private:
+	using Base = ManagedContainer<T, Collection>;
+
+public:
+	using Base::ManagedContainer;
+	using collection_type = typename Base::collection_type;
+	using value_type = typename Base::value_type;
+	using key_type = typename Base::key_type;
+	using reference = typename Base::reference;
+	using const_reference = typename Base::const_reference;
+	using iterator = typename Base::iterator;
+	using const_iterator = typename Base::const_iterator;
+	using size_type = typename Base::size_type;
+
 private:
 	value_type acquirePair(std::pair<K, Handle<T>> val)
 	{
-		return std::pair<const K, T>{val->first, owner->acquire(val->second)};
+		return std::pair<const K, T>{val->first,
+		                             Base::owner->acquire(val->second)};
 	}
 
 public:
-
 	/**
 	 * Initialize with an iterator from another collection.
 	 *
@@ -263,7 +288,8 @@ public:
 	 * from some other collection.
 	 */
 	template <class InputIterator>
-	ManagedGenericMap(Handle<Managed> owner, InputIterator first, InputIterator last)
+	ManagedGenericMap(Handle<Managed> owner, InputIterator first,
+	                  InputIterator last)
 	    : ManagedContainer<T, Collection>(owner)
 	{
 		insert(first, last);
@@ -290,14 +316,14 @@ public:
 	{
 		value_type v = acquirePair(val);
 		addManaged(v);
-		return c.insert(v);
+		return Base::c.insert(v);
 	}
 
 	iterator insert(const_iterator position, std::pair<K, Handle<T>> val)
 	{
 		value_type v = acquirePair(val);
 		addManaged(v);
-		return c.insert(position, v);
+		return Base::c.insert(position, v);
 	}
 
 	template <class InputIterator>
@@ -310,14 +336,14 @@ public:
 
 	iterator erase(const_iterator position)
 	{
-		deleteManaged(*position);
-		return c.erase(position);
+		Base::deleteManaged(*position);
+		return Base::c.erase(position);
 	}
 
 	size_t erase(const key_type &k)
 	{
 		iterator pos = find(k);
-		if (pos != end()) {
+		if (pos != Base::end()) {
 			erase(pos);
 			return 1;
 		}
@@ -327,13 +353,13 @@ public:
 	iterator erase(const_iterator first, const_iterator last)
 	{
 		for (const_iterator it = first; it != last; it++) {
-			deleteManaged(*it);
+			Base::deleteManaged(*it);
 		}
-		return c.erase(first, last);
+		return Base::c.erase(first, last);
 	}
 
-	iterator find(const key_type &k) { return c.find(k); }
-	const_iterator find(const key_type &k) const { return c.find(k); }
+	iterator find(const key_type &k) { return Base::c.find(k); }
+	const_iterator find(const key_type &k) const { return Base::c.find(k); }
 };
 
 /**
@@ -342,7 +368,7 @@ public:
 template <class T>
 class ManagedVector : public ManagedGenericList<T, std::vector<Owned<T>>> {
 public:
-	using ManagedContainer<T, std::vector<Owned<T>>>::ManagedContainer;
+	using ManagedGenericList<T, std::vector<Owned<T>>>::ManagedGenericList;
 };
 
 /**
@@ -351,9 +377,8 @@ public:
 template <class K, class T>
 class ManagedMap : public ManagedGenericMap<K, T, std::map<K, Owned<T>>> {
 public:
-	using ManagedGenericMap<K, T, std::map<K, Owned<T>>>::ManagedMap;
+	using ManagedGenericMap<K, T, std::map<K, Owned<T>>>::ManagedGenericMap;
 };
-
 }
 
 #endif /* _OUSIA_MANAGED_CONTAINERS_H_ */
