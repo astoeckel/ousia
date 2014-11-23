@@ -97,18 +97,20 @@ ADD_DEFINITIONS(
 # ousia_script library (containing the bindings needed for script engines)
 # TODO: This is not only the script library.
 ADD_LIBRARY(ousia_core
+	src/core/BufferedCharReader
+	src/core/CodeTokenizer
+	src/core/CSSParser
+	src/core/Exceptions
+	src/core/Logger
 	src/core/Managed
 	src/core/Node
+	src/core/Tokenizer
+	src/core/Typesystem
+	src/core/Utils
 	src/core/script/Function
 	src/core/script/Object
 	src/core/script/ScriptEngine
 	src/core/script/Variant
-	src/core/BufferedCharReader
-	src/core/CodeTokenizer
-	src/core/CSSParser
-	src/core/Tokenizer
-	src/core/Typesystem
-	src/core/Utils
 )
 
 # ousia_plugin_mozjs library
@@ -137,18 +139,19 @@ IF(TEST)
 
 	# Add all unit test files
 	ADD_EXECUTABLE(ousia_test_core
-		test/core/ManagedTest
-		test/core/ManagedContainersTest
-		test/core/NodeTest
-		test/core/script/FunctionTest
-		test/core/script/ObjectTest
-		test/core/script/VariantTest
 		test/core/BufferedCharReaderTest
 		test/core/CodeTokenizerTest
 		test/core/CSSParserTest
+		test/core/LoggerTest
+		test/core/ManagedTest
+		test/core/ManagedContainersTest
+		test/core/NodeTest
 		test/core/RangeSetTest
 		test/core/TokenizerTest
 		test/core/UtilsTest
+		test/core/script/FunctionTest
+		test/core/script/ObjectTest
+		test/core/script/VariantTest
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test_core
