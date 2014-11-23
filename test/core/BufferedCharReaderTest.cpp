@@ -27,13 +27,11 @@ namespace ousia{
 
 TEST(BufferedCharReaderTest, SimpleReadTest)
 {
-	const std::string testStr("this is a test");
+	std::string testStr{"this is a test"};
 	char c;
 
 	// Feed a test string into the reader
-	BufferedCharReader reader;
-	reader.feed(testStr);
-	reader.close();
+	BufferedCharReader reader{testStr};
 
 	// Try to read the test string
 	std::string res;
@@ -56,13 +54,11 @@ TEST(BufferedCharReaderTest, SimpleReadTest)
 
 TEST(BufferedCharReaderTest, SimplePeekTest)
 {
-	const std::string testStr("this is a test");
+	std::string testStr{"this is a test"};
 	char c;
 
 	// Feed a test string into the reader
-	BufferedCharReader reader;
-	reader.feed(testStr);
-	reader.close();
+	BufferedCharReader reader{testStr};
 
 	// Try to read the test string
 	std::string res;
@@ -95,7 +91,7 @@ TEST(BufferedCharReaderTest, SimplePeekTest)
 
 TEST(BufferedCharReaderTest, SplittedPeakTest)
 {
-	const std::string testStr("this is a test");
+	std::string testStr{"this is a test"};
 	char c;
 
 	// Feed a test string into the reader
@@ -130,19 +126,15 @@ TEST(BufferedCharReaderTest, SplittedPeakTest)
 
 TEST(BufferedCharReaderTest, RowColumnCounterTest)
 {
-	const std::string testStr("1\n\r2\n3\r\n\n4");
-	char c;
-
 	// Feed a test string into the reader
-	BufferedCharReader reader;
-	reader.feed(testStr);
-	reader.close();
+	BufferedCharReader reader{"1\n\r2\n3\r\n\n4"};
 
 	// We should currently be in line 1, column 1
 	ASSERT_EQ(1, reader.getLine());
 	ASSERT_EQ(1, reader.getColumn());
 
 	// Read two characters
+	char c;
 	for (int i = 0; i < 2; i++) reader.read(&c);
 	ASSERT_EQ(2, reader.getLine());
 	ASSERT_EQ(1, reader.getColumn());
@@ -160,12 +152,8 @@ TEST(BufferedCharReaderTest, RowColumnCounterTest)
 
 TEST(BufferedCharReaderTest, LinebreakSubstitutionTest)
 {
-	const std::string testStr("this\n\ris\n\rjust\na test\r\n\rtest\n\r");
-	const std::string expStr("this\nis\njust\na test\n\ntest\n");
-
 	// Feed a test string into the reader
-	BufferedCharReader reader;
-	reader.feed(testStr);
+	BufferedCharReader reader{"this\n\ris\n\rjust\na test\r\n\rtest\n\r"};
 
 	// Read all characters from the test string
 	std::string res;
@@ -175,21 +163,16 @@ TEST(BufferedCharReaderTest, LinebreakSubstitutionTest)
 	}
 
 	// Test for equality
-	ASSERT_STREQ(expStr.c_str(), res.c_str());
+	ASSERT_STREQ("this\nis\njust\na test\n\ntest\n", res.c_str());
 }
 
 TEST(BufferedCharReaderTest, RowColumnCounterUTF8Test)
 {
-	// Create a test string with some umlauts
-	const std::string testStr("\x61\xc3\x96\xc3\x84\xc3\x9c\xc3\x9f");
-	char c;
-
-	// Feed a test string into the reader
-	BufferedCharReader reader;
-	reader.feed(testStr);
-	reader.close();
+	// Feed a test string with some umlauts into the reader
+	BufferedCharReader reader{"\x61\xc3\x96\xc3\x84\xc3\x9c\xc3\x9f"};
 
 	// Read all bytes
+	char c;
 	while (reader.read(&c));
 
 	// The sequence above equals 5 UTF-8 characters (so after reading all the
