@@ -6,3 +6,5 @@ OUTPUT_DIRECTORY       = @PROJECT_BINARY_DIR@/doc
 FILE_PATTERNS          = *.hpp \
                          *.cpp
 RECURSIVE              = YES
+JAVADOC_AUTOBRIEF      = YES
+
