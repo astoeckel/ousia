@@ -5,6 +5,7 @@ The following packages have to be installed (for Fedora)
 
 - cmake
 - mozjs24-devel (for the mandatory mozjs plugin)
+- expat-devel (for the mandatory XML format)
 
 Test dependencies
 =================
