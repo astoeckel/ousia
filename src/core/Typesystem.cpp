@@ -24,67 +24,33 @@
 
 namespace ousia {
 
-/* Class StringInstance */
+/* Class EnumType */
 
-
-/**
- * Contains a map from escape characters and their corresponding code point.
- */
-static const std::unordered_map<char, char> ESCAPE_CHARACTERS_TO_CODEPOINT{
-	{'n', '\n'},
-	{'r', '\r'},
-	{'t', '\t'},
-	{'b', '\b'},
-	{'f', '\f'},
-	{'v', '\v'}
-};
-
-static const std::unordered_map<char, char> CODEPOINT_TO_ESCAPE_CHARACTER{
-	{'\n', 'n'},
-	{'\r', 'r'},
-	{'\t', 't'},
-	{'\b', 'b'},
-	{'\f', 'f'},
-	{'\v', 'v'}
-};
-
-static const char MIN_CONTROL_CHARACTER = 0x37;
-
-std::string StringInstance::toString()
+EnumType::EnumType(Manager &mgr, const std::set<std::string> &names) :
+	Type(mgr, false, true)
 {
-	std::stringstream ss;
-	ss << '"';
-	for (char c: value) {
-		if (c == '"') {
-			ss << '\\';
-		} else if (c == '\\') {
-			ss << "\\\\";
-		} else if (c <= MIN_CONTROL_CHARACTER) {
-			const auto it = CODEPOINT_TO_ESCAPE_CHARACTER.find(c);
-			if (it != CODEPOINT_TO_ESCAPE_CHARACTER.cend()) {
-				ss << '\\' << it->second;
-			} else {
-				ss << c;
-			}
-		}
-		ss << c;
+	int value = 0;
+	for (const auto &name: names) {
+		values.insert(std::make_pair(name, value++))
 	}
-	ss << '"';
-	return ss.str();
 }
 
-/* Class StringType */
-
-Rooted<TypeInstance> StringType::create()
+int EnumType::valueOf(const std::string &name)
 {
-	return new StringInstance(getManager(), this, "");
+	auto it = values.find(name);
+	if (it != values.end()) {
+		return it->second;
+	}
+	return -1;
 }
 
-Rooted<TypeInstance> StringType::parse(const std::string &str)
-{
-	/*std::stringstream ss;
-	int state = 0;*/
-	return nullptr;
+std::string EnumType::toString(int value) {
+	for (const auto &p : values) {
+		if (p->second == value) {
+			return p->first;
+		}
+	}
+	return std::string{};
 }
 
 /* Class Typesystem */
