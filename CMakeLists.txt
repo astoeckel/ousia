@@ -32,9 +32,10 @@ OPTION(BUILD_DOCUMENTATION "Create and install the HTML based API documentation 
 # Enable C++11 and all warnings
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic-errors -std=c++11")
 
-# Use PkgConfig to find mozjs-24
+# Include expat and mozjs-24 via PkgConfig
 FIND_PACKAGE(PkgConfig REQUIRED)
 PKG_CHECK_MODULES(MOZJS REQUIRED mozjs-24)
+PKG_CHECK_MODULES(EXPAT REQUIRED expat)
 
 ################################################################################
 # Inclusion of doxygen                                                         #
@@ -71,7 +72,7 @@ IF(TEST)
 
 	# Enable testing and declare some variables used for compiling the test cases
 	ENABLE_TESTING()
-	SET(GTEST_INCLUDE_DIR ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+	SET(GTEST_INCLUDE_DIRS ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 	SET(GTEST_LIBRARIES gtest gtest_main)
 ENDIF()
 
@@ -83,6 +84,7 @@ ENDIF()
 INCLUDE_DIRECTORIES(
 	src/
 	${MOZJS_INCLUDE_DIRS}
+	${EXPAT_INCLUDE_DIRS}
 )
 
 # Link directories
@@ -104,13 +106,19 @@ ADD_LIBRARY(ousia_core
 	src/core/Logger
 	src/core/Managed
 	src/core/Node
+	src/core/Parser
 	src/core/Tokenizer
-	src/core/Typesystem
+#	src/core/Typesystem
 	src/core/Utils
+	src/core/parser/XmlParser
 	src/core/script/Function
 	src/core/script/Object
 	src/core/script/ScriptEngine
 	src/core/script/Variant
+)
+
+TARGET_LINK_LIBRARIES(ousia_core
+	${EXPAT_LIBRARIES}
 )
 
 # ousia_plugin_mozjs library
@@ -133,7 +141,8 @@ IF(TEST)
 
 	# Include the gtest include files and the src directory
 	INCLUDE_DIRECTORIES(
-		${GTEST_INCLUDE_DIR}
+		${GTEST_INCLUDE_DIRS}
+		${EXPAT_INCLUDE_DIRS}
 		src/
 	)
 
@@ -149,6 +158,7 @@ IF(TEST)
 		test/core/RangeSetTest
 		test/core/TokenizerTest
 		test/core/UtilsTest
+		test/core/parser/XmlParserTest
 		test/core/script/FunctionTest
 		test/core/script/ObjectTest
 		test/core/script/VariantTest
@@ -166,7 +176,7 @@ IF(TEST)
 	# Include the gtest include files and the src directory
 	INCLUDE_DIRECTORIES(
 		${MOZJS_INCLUDE_DIRS}
-		${GTEST_INCLUDE_DIR}
+		${GTEST_INCLUDE_DIRS}
 		src/
 	)
 
