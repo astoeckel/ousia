@@ -20,18 +20,55 @@
 
 #include <gtest/gtest.h>
 
-#include <core/parser/XmlParser.hpp>
+#include <plugins/xml/XmlParser.hpp>
 
 namespace ousia {
+namespace parser {
+namespace xml {
 
-TEST(XmlParser, logging)
+struct TestParserContext : public ParserContext {
+
+private:
+	Logger log;
+	Registry r;
+	Scope s;
+
+public:
+	TestParserContext() : ParserContext(s, r, log), r(log), s(nullptr) {};
+
+};
+
+TEST(XmlParser, mismatchedTagException)
 {
-	TerminalLogger log(std::cerr, true);
+	TestParserContext ctx;
 	XmlParser p;
 
-	log.pushFilename("test.xml");
-	p.parse("<test></btest>", nullptr, log);
+	bool hadException = false;
+	try {
+		p.parse("<test foo=\"bar\">data<![CDATA[bla]]>\n</btest>", ctx);
+	}
+	catch (ParserException ex) {
+		ASSERT_EQ(2, ex.line);
+		ASSERT_FALSE(ex.fatal);
+		hadException = true;
+	}
+	ASSERT_TRUE(hadException);
 }
 
+const char* TEST_DATA = "<?xml version=\"1.0\" standalone=\"yes\"?>\n"
+	"<document a:bc=\"b\">\n"
+	"	<bla:test xmlAttr=\"blub\" />\n"
+	"</document>\n";
+
+TEST(XmlParser, namespaces)
+{
+	TestParserContext ctx;
+	XmlParser p;
+
+	p.parse(TEST_DATA, ctx);
+}
+
+}
+}
 }
 

@@ -21,7 +21,7 @@
 PROJECT(ousia)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.9)
 
-# Option for enabling testing. Turn on with 'cmake -Dtest=ON'.
+# Option for enabling testing. Turn on with 'cmake -DTEST=ON'.
 # TODO: Automatically activate tests if gtest is available
 OPTION(TEST "Build all tests." OFF) # Makes boolean 'test' available.
 
@@ -106,28 +106,34 @@ ADD_LIBRARY(ousia_core
 	src/core/Logger
 	src/core/Managed
 	src/core/Node
-	src/core/Parser
 	src/core/Tokenizer
 #	src/core/Typesystem
 	src/core/Utils
-	src/core/parser/XmlParser
+	src/core/parser/Parser
 	src/core/script/Function
 	src/core/script/Object
 	src/core/script/ScriptEngine
 	src/core/script/Variant
 )
 
-TARGET_LINK_LIBRARIES(ousia_core
+# ousia_xml library
+
+ADD_LIBRARY(ousia_xml
+	src/plugins/xml/XmlParser
+)
+
+TARGET_LINK_LIBRARIES(ousia_xml
+	ousia_core
 	${EXPAT_LIBRARIES}
 )
 
-# ousia_plugin_mozjs library
+# ousia_mozjs library
 
-ADD_LIBRARY(ousia_plugin_mozjs
+ADD_LIBRARY(ousia_mozjs
 	src/plugins/mozjs/MozJsScriptEngine
 )
 
-TARGET_LINK_LIBRARIES(ousia_plugin_mozjs
+TARGET_LINK_LIBRARIES(ousia_mozjs
 	ousia_core
 	${MOZJS_LIBRARIES}
 )
@@ -135,18 +141,10 @@ TARGET_LINK_LIBRARIES(ousia_plugin_mozjs
 # If testing is enabled, build the unit tests
 IF(TEST)
 
-	#
-	# Core Test
-	#
-
-	# Include the gtest include files and the src directory
 	INCLUDE_DIRECTORIES(
 		${GTEST_INCLUDE_DIRS}
-		${EXPAT_INCLUDE_DIRS}
-		src/
 	)
 
-	# Add all unit test files
 	ADD_EXECUTABLE(ousia_test_core
 		test/core/BufferedCharReaderTest
 		test/core/CodeTokenizerTest
@@ -158,7 +156,6 @@ IF(TEST)
 		test/core/RangeSetTest
 		test/core/TokenizerTest
 		test/core/UtilsTest
-		test/core/parser/XmlParserTest
 		test/core/script/FunctionTest
 		test/core/script/ObjectTest
 		test/core/script/VariantTest
@@ -169,30 +166,29 @@ IF(TEST)
 		ousia_core
 	)
 
-	#
-	# Plugin Tests
-	#
-
-	# Include the gtest include files and the src directory
-	INCLUDE_DIRECTORIES(
-		${MOZJS_INCLUDE_DIRS}
-		${GTEST_INCLUDE_DIRS}
-		src/
+	ADD_EXECUTABLE(ousia_test_xml
+		test/plugins/xml/XmlParserTest
 	)
 
-	# Add all unit test files
-	ADD_EXECUTABLE(ousia_test_plugin_mozjs
+	TARGET_LINK_LIBRARIES(ousia_test_xml
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_xml
+	)
+
+	ADD_EXECUTABLE(ousia_test_mozjs
 		test/plugins/mozjs/MozJsScriptEngineTest
 	)
 
-	TARGET_LINK_LIBRARIES(ousia_test_plugin_mozjs
+	TARGET_LINK_LIBRARIES(ousia_test_mozjs
 		${GTEST_LIBRARIES}
 		ousia_core
-		ousia_plugin_mozjs
+		ousia_mozjs
 	)
 
 	# Register the unit tests
 	ADD_TEST(ousia_test_core ousia_test_core)
-	ADD_TEST(ousia_test_plugin_mozjs ousia_test_plugin_mozjs)
+	ADD_TEST(ousia_test_xml ousia_test_xml)
+	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
 ENDIF()
 

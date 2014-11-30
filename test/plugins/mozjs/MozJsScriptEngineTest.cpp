@@ -25,6 +25,7 @@
 
 namespace ousia {
 namespace script {
+namespace mozjs {
 
 /* Global engine object */
 MozJsScriptEngine engine;
@@ -35,6 +36,7 @@ auto scope = std::unique_ptr<MozJsScriptEngineScope>{engine.createScope()};
 
 #include "../genericjs/GenericJsScriptEngineTest.hpp"
 
+}
 }
 }
 
