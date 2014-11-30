@@ -16,17 +16,37 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sstream>
-
-#include "Parser.hpp"
+#include "XmlStates.hpp"
 
 namespace ousia {
 namespace parser {
+namespace xml {
 
-Rooted<Node> Parser::parse(const std::string &str, ParserContext &ctx)
+std::set<std::string> StateStack::expectedCommands(State state)
 {
-	std::istringstream is{str};
-	return parse(is, ctx);
+	std::set<std::string> res;
+	for (const auto &v: handlers) {
+		if (v.second.parentStates.count(state)) {
+			res.insert(v.first);
+		}
+	}
+	return res;
+}
+
+void StateStack::start(std::string tagName, char **attrs) {
+	// Fetch the current handler and the current state
+	const Handler *h = stack.empty() ? nullptr : stack.top();
+	const State currentState = h ? State::NONE : h->state;
+
+	// Fetch all handlers for the given tagName
+	auto range = handlers.equal_range(tagName);
+	if (range->first == handlers.end()) {
+		// There are no handlers registered for this tag name -- check whether
+		// the current handler supports arbitrary children
+		if (h && h->arbitraryChildren)
+	}
+}
+
 }
 }
 }

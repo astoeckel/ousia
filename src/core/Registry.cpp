@@ -16,18 +16,32 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sstream>
+#include <core/Logger.hpp>
 
-#include "Parser.hpp"
+#include <core/parser/Parser.hpp>
 
 namespace ousia {
-namespace parser {
 
-Rooted<Node> Parser::parse(const std::string &str, ParserContext &ctx)
+using namespace parser;
+
+/* Class Registry */
+
+void Registry::registerParser(parser::Parser *parser)
 {
-	std::istringstream is{str};
-	return parse(is, ctx);
+	parsers.push_back(parser);
+	for (const auto &mime : parser.mimetypes()) {
+		parserMimetypes.insert(std::make_pair(mime, parser));
+	}
 }
+
+Parser* Registry::getParserForMimetype(const std::string &mimetype)
+{
+	const auto it = parserMimetypes.find(mimetype);
+	if (it != parserMimetypes.end()) {
+		return it->second;
+	}
+	return nullptr;
 }
+
 }
 

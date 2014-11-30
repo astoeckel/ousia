@@ -19,7 +19,7 @@
 /**
  * @file Parser.hpp
  *
- * Contains the abstract "Parser" class. Parsers are objects capable of reading
+ * Contains the abstract Parser class. Parsers are objects capable of reading
  * a certain file format and transforming it into a node.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
@@ -32,11 +32,15 @@
 #include <set>
 #include <string>
 
-#include "Exceptions.hpp"
-#include "Node.hpp"
-#include "Logger.hpp"
+#include <core/Exceptions.hpp>
+#include <core/Node.hpp>
+#include <core/Logger.hpp>
+#include <core/Registry.hpp>
+
+#include "Scope.hpp"
 
 namespace ousia {
+namespace parser {
 
 // TODO: Implement a proper Mimetype class
 
@@ -49,15 +53,48 @@ public:
 };
 
 /**
+ * Struct containing the objects that are passed to a parser instance.
+ */
+struct ParserContext {
+	/**
+	 * Reference to the Scope instance that should be used within the parser.
+	 */
+	Scope &scope;
+
+	/**
+	 * Reference to the Registry instance that should be used within the parser.
+	 */
+	Registry &registry;
+
+	/**
+	 * Reference to the Logger the parser should log any messages to.
+	 */
+	Logger &logger;
+
+	/**
+	 * Constructor of the ParserContext class.
+	 *
+	 * @param scope is a reference to the Scope instance that should be used to
+	 * lookup names.
+	 * @param registry is a reference at the Registry class, which allows to
+	 * obtain references at parsers for other formats or script engine
+	 * implementations.
+	 * @param logger is a reference to the Logger instance that should be used
+	 * to log error messages and warnings that occur while parsing the document.
+	 */
+	ParserContext(Scope &scope, Registry &registry, Logger &logger)
+	    : scope(scope), registry(registry), logger(logger){};
+};
+
+/**
  * Abstract parser class. This class builds the basic interface that should be
  * used by any parser which reads data from an input stream and transforms it
  * into an Ousía node graph.
  */
 class Parser {
 public:
-
-	Parser() {};
-	Parser(const Parser&) = delete;
+	Parser(){};
+	Parser(const Parser &) = delete;
 
 	/**
 	 * Returns a set containing all mime types supported by the parser. The mime
@@ -78,18 +115,14 @@ public:
 	 * derived classes.
 	 *
 	 * @param is is a reference to the input stream that should be parsed.
-	 * @param context defines the context in which the input stream should be
-	 * parsed. The context represents the scope from which element names should
-	 * be looked up.
-	 * @param logger is a reference to the Logger instance that should be used
-	 * to log error messages and warnings that occur while parsing the document.
+	 * @param ctx is a reference to the context that should be used while
+	 * parsing the document.
 	 * @return a reference to the node representing the subgraph that has been
 	 * created. The resulting node may point at not yet resolved entities, the
 	 * calling code will try to resolve these. If no valid node can be produced,
 	 * a corresponding LoggableException must be thrown by the parser.
 	 */
-	virtual Rooted<Node> parse(std::istream &is, Handle<Node> context,
-	                           Logger &logger) = 0;
+	virtual Rooted<Node> parse(std::istream &is, ParserContext &ctx) = 0;
 
 	/**
 	 * Parses the given string and returns a corresponding node for
@@ -97,19 +130,16 @@ public:
 	 * derived classes.
 	 *
 	 * @param str is the string that should be parsed.
-	 * @param context defines the context in which the input stream should be
-	 * parsed. The context represents the scope from which element names should
-	 * be looked up.
-	 * @param logger is a reference to the Logger instance that should be used
-	 * to log error messages and warnings that occur while parsing the document.
+	 * @param ctx is a reference to the context that should be used while
+	 * parsing the document.
 	 * @return a reference to the node representing the subgraph that has been
 	 * created. The resulting node may point at not yet resolved entities, the
 	 * calling code will try to resolve these. If no valid node can be produced,
 	 * a corresponding ParserException must be thrown by the parser.
 	 */
-	Rooted<Node> parse(const std::string &str, Handle<Node> context,
-	                   Logger &logger);
+	Rooted<Node> parse(const std::string &str, ParserContext &ctx);
 };
+}
 }
 
 #endif /* _OUSIA_PARSER_HPP_ */

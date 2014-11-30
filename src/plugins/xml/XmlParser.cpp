@@ -16,25 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
+
 #include <expat.h>
 
 #include "XmlParser.hpp"
 
 namespace ousia {
-
-/**
- * The XmlParserData struct holds all information relevant to the expat callback
- * functions.
- */
-struct XmlParserData {
-	Rooted<Node> context;
-	Logger &logger;
-
-	XmlParserData(Handle<Node> context, Logger &logger)
-	    : context(context), logger(logger)
-	{
-	}
-};
+namespace parser {
+namespace xml {
 
 /**
  * Wrapper class around the XML_Parser pointer which safely frees it whenever
@@ -55,13 +45,11 @@ public:
 	 *
 	 * @param encoding is the protocol-defined encoding passed to expat (or
 	 * nullptr if expat should determine the encoding by itself).
-	 * @param namespaceSeparator is the separator used to separate the namespace
-	 * components in the node name given by expat.
 	 */
-	ScopedExpatXmlParser(const XML_Char *encoding, XML_Char namespaceSeparator)
+	ScopedExpatXmlParser(const XML_Char *encoding)
 	    : parser(nullptr)
 	{
-		parser = XML_ParserCreateNS("UTF-8", ':');
+		parser = XML_ParserCreate(encoding);
 		if (!parser) {
 			throw ParserException{
 			    "Internal error: Could not create expat XML parser!"};
@@ -85,20 +73,43 @@ public:
 	XML_Parser operator&() { return parser; }
 };
 
+static void xmlStartElementHandler(void *userData, const XML_Char *name,
+                                   const XML_Char **attrs)
+{
+	std::cout << "start tag: " << name << std::endl;
+	const XML_Char **attr = attrs;
+	while (*attr) {
+		std::cout << "\t" << *attr;
+		attr++;
+		std::cout << " -> " << *attr << std::endl;
+		attr++;
+	}
+}
+
+static void xmlEndElementHandler(void *userData, const XML_Char *name) {
+	std::cout << "end tag: " << name << std::endl;
+}
+
+
+static void xmlCharacterDataHandler(void *userData, const XML_Char *s, int len) {
+	std::cout << "\tdata: " << std::string(s, len) << std::endl;
+}
+
 std::set<std::string> XmlParser::mimetypes()
 {
 	return std::set<std::string>{{"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"}};
 }
 
-Rooted<Node> XmlParser::parse(std::istream &is, Handle<Node> context,
-                              Logger &logger)
+Rooted<Node> XmlParser::parse(std::istream &is, ParserContext &ctx)
 {
 	// Create the parser object
-	ScopedExpatXmlParser p{"UTF-8", ':'};
+	ScopedExpatXmlParser p{"UTF-8"};
+	XML_SetUserData(&p, &ctx);
 
-	// Set the callback functions, provide a pointer to a XmlParserData instance
-	// as user data.
-	XmlParserData ctx{context, logger};
+	// Set the callback functions
+	XML_SetStartElementHandler(&p, xmlStartElementHandler);
+	XML_SetEndElementHandler(&p, xmlEndElementHandler);
+	XML_SetCharacterDataHandler(&p, xmlCharacterDataHandler);
 
 	// Feed data into expat while there is data to process
 	const std::streamsize BUFFER_SIZE = 4096;  // TODO: Move to own header?
@@ -118,8 +129,8 @@ Rooted<Node> XmlParser::parse(std::istream &is, Handle<Node> context,
 			const int column = XML_GetCurrentColumnNumber(&p);
 			const XML_Error code = XML_GetErrorCode(&p);
 			const std::string msg = std::string{XML_ErrorString(code)};
-			logger.error("XML: " + msg, line, column);
-			break;
+			throw ParserException{"XML Syntax Error: " + msg, line, column,
+			                      false};
 		}
 
 		// Abort once there are no more bytes in the stream
@@ -129,6 +140,8 @@ Rooted<Node> XmlParser::parse(std::istream &is, Handle<Node> context,
 	}
 
 	return nullptr;
+}
+}
 }
 }
 

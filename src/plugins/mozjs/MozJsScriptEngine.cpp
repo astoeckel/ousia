@@ -27,6 +27,7 @@
 
 namespace ousia {
 namespace script {
+namespace mozjs {
 
 /*
  * Some important links to the SpiderMonkey (mozjs) documentation:
@@ -501,6 +502,7 @@ MozJsScriptEngine::~MozJsScriptEngine()
 
 MozJsScriptEngineScope *MozJsScriptEngine::createScope() {
 	return new MozJsScriptEngineScope(rt);
+}
 }
 }
 }

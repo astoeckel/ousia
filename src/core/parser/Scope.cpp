@@ -16,18 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sstream>
-
-#include "Parser.hpp"
+#include "Scope.hpp"
 
 namespace ousia {
 namespace parser {
 
-Rooted<Node> Parser::parse(const std::string &str, ParserContext &ctx)
-{
-	std::istringstream is{str};
-	return parse(is, ctx);
-}
-}
-}
 
+}
+}

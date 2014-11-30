@@ -16,18 +16,36 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sstream>
+#ifndef _OUSIA_REGISTRY_HPP_
+#define _OUSIA_REGISTRY_HPP_
 
-#include "Parser.hpp"
+#include <map>
+#include <vector>
 
 namespace ousia {
-namespace parser {
 
-Rooted<Node> Parser::parse(const std::string &str, ParserContext &ctx)
-{
-	std::istringstream is{str};
-	return parse(is, ctx);
+// TODO: Add support for ScriptEngine type
+
+class Logger;
+
+namespace parser {
+class Parser;
 }
+
+class Registry {
+private:
+	Logger &logger;
+	std::vector<parser::Parser*> parsers;
+	std::map<std::string, parser::Parser*> parserMimetypes;
+
+public:
+	Registry(Logger &logger) : logger(logger) {}
+
+	void registerParser(parser::Parser *parser);
+
+	parser::Parser *getParserForMimetype(std::string mimetype);
+};
 }
-}
+
+#endif /* _OUSIA_REGISTRY_HPP_ */
 
