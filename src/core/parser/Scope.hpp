@@ -19,6 +19,8 @@
 #ifndef _OUSIA_PARSER_SCOPE_H_
 #define _OUSIA_PARSER_SCOPE_H_
 
+#include <deque>
+
 #include <core/Node.hpp>
 
 /**

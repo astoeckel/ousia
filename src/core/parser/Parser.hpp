@@ -86,6 +86,19 @@ struct ParserContext {
 	    : scope(scope), registry(registry), logger(logger){};
 };
 
+struct StandaloneParserContext : public ParserContext {
+private:
+	Logger logger;
+	Scope scope;
+	Registry registry;
+
+public:
+	StandaloneParserContext()
+	    : ParserContext(scope, registry, logger),
+	      scope(nullptr),
+	      registry(logger){};
+};
+
 /**
  * Abstract parser class. This class builds the basic interface that should be
  * used by any parser which reads data from an input stream and transforms it

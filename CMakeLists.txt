@@ -110,6 +110,8 @@ ADD_LIBRARY(ousia_core
 #	src/core/Typesystem
 	src/core/Utils
 	src/core/parser/Parser
+	src/core/parser/ParserStack
+	src/core/parser/Scope
 	src/core/script/Function
 	src/core/script/Object
 	src/core/script/ScriptEngine
@@ -156,6 +158,7 @@ IF(TEST)
 		test/core/RangeSetTest
 		test/core/TokenizerTest
 		test/core/UtilsTest
+		test/core/parser/ParserStackTest
 		test/core/script/FunctionTest
 		test/core/script/ObjectTest
 		test/core/script/VariantTest

@@ -16,53 +16,39 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_XML_STATES_HPP_
-#define _OUSIA_XML_STATES_HPP_
+/**
+ * @file ParserStack.hpp
+ *
+ * Helper classes for document or description parsers. Contains the ParserStack
+ * class, which is an pushdown automaton responsible for accepting commands in
+ * the correct order and calling specified handlers.
+ *
+ * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
+ */
+
+#ifndef _OUSIA_PARSER_STACK_HPP_
+#define _OUSIA_PARSER_STACK_HPP_
 
 #include <cstdint>
 
 #include <map>
+#include <memory>
 #include <set>
 #include <stack>
 #include <vector>
 
+#include "Parser.hpp"
+
 namespace ousia {
 namespace parser {
 
-class Scope;
-class Registry;
-class Logger;
-
-namespace xml {
-
 /**
- * The State class represents all states the XML parser can be in. These states
- * mostly represent single tags.
+ * The State type alias is used to
  */
-enum class State : uint8_t {
-	/* Meta states */
-	ALL = -1,
+using State = int8_t;
 
-	/* Start state */
-	NONE,
-
-	/* Special commands */
-	INCLUDE,
-	INLINE,
-
-	/* Document states */
-	DOCUMENT,
-	HEAD,
-	BODY,
-
-	/* Domain description states */
-	DOMAIN,
-
-	/* Type system states */
-	TYPESYSTEM,
-	TYPE,
-	TYPE_ELEM
-};
+static const State STATE_ALL = -2;
+static const State STATE_NONE = -1;
 
 /**
  * The handler class provides a context for handling an XML tag. It has to be
@@ -125,7 +111,7 @@ public:
 	/**
 	 * Virtual destructor.
 	 */
-	virtual ~Handler();
+	virtual ~Handler(){};
 
 	/**
 	 * Returns the node instance that was created by the handler.
@@ -158,14 +144,14 @@ public:
 	 * @param data is a pointer at the character data that is available for the
 	 * Handler instance.
 	 */
-	virtual void data(char *data, int len){};
+	virtual void data(const char *data, int len){};
 
 	/**
 	 * Called whenever a direct child element was created and has ended.
 	 *
 	 * @param handler is a reference at the child Handler instance.
 	 */
-	virtual void child(Handler *handler){};
+	virtual void child(std::shared_ptr<Handler> handler){};
 };
 
 /**
@@ -176,93 +162,88 @@ using HandlerConstructor = Handler *(*)(const ParserContext &ctx,
                                         std::string name, State state,
                                         State parentState, bool isChild);
 
+struct HandlerDescriptor;
+
 /**
- * The StateStack class is a pushdown automaton responsible for turning a
- * command stream into a tree of Node instances.
+ * Used internlly by StateStack to store Handler instances and parameters
+ * from HandlerDescriptor that are not stored in the Handler instance
+ * itself. Instances of the HandlerInstance class can be created using the
+ * HandlerDescriptor "create" method.
  */
-class StateStack {
-public:
+struct HandlerInstance {
 	/**
-	 * Used internlly by StateStack to store Handler instances and parameters
-	 * from HandlerDescriptor that are not stored in the Handler instance
-	 * itself. Instances of the HandlerInstance class can be created using the
-	 * HandlerDescriptor "create" method.
+	 * Pointer at the actual handler instance.
 	 */
-	struct HandlerInstance {
-		/**
-		 * Pointer at the actual handler instance.
-		 */
-		std::unique_ptr<Handler> handler;
+	std::shared_ptr<Handler> handler;
 
-		/**
-		 * Value of the arbitraryChildren flag stored in the HandlerDescriptor
-		 * class.
-		 */
-		const bool arbitraryChildren;
+	const HandlerDescriptor *descr;
 
-		HandlerInstance(std::unique_ptr<Handler> handler,
-		                bool arbitraryChildren)
-		    : handler(handler), arbitraryChildren(arbitraryChildren)
-		{
-		}
+	HandlerInstance(Handler *handler, const HandlerDescriptor *descr)
+	    : handler(handler), descr(descr)
+	{
+	}
+};
+
+/**
+ * Used internally by StateStack to store the pushdown automaton
+ * description.
+ */
+struct HandlerDescriptor {
+	/**
+	 * The valid parent states.
+	 */
+	const std::set<State> parentStates;
+
+	/**
+	 * Pointer at a function which creates a new concrete Handler instance.
+	 */
+	const HandlerConstructor ctor;
+
+	/**
+	 * The target state for the registered handler.
+	 */
+	const State targetState;
+
+	/**
+	 * Set to true if this handler instance allows arbitrary children as
+	 * tags.
+	 */
+	const bool arbitraryChildren;
+
+	HandlerDescriptor(std::set<State> parentStates, HandlerConstructor ctor,
+	                  State targetState, bool arbitraryChildren = false)
+	    : parentStates(std::move(parentStates)),
+	      ctor(ctor),
+	      targetState(targetState),
+	      arbitraryChildren(arbitraryChildren)
+	{
 	}
 
 	/**
-	 * Used internally by StateStack to store the pushdown automaton
-	 * description.
+	 * Creates an instance of the concrete Handler class represented by the
+	 * HandlerDescriptor and calls its start function.
 	 */
-	struct HandlerDescriptor {
-		/**
-		 * The valid parent states.
-		 */
-		const std::set<State> parentStates;
+	HandlerInstance create(const ParserContext &ctx, std::string name,
+	                       State parentState, bool isChild, char **attrs) const;
+};
 
-		/**
-		 * Pointer at a function which creates a new concrete Handler instance.
-		 */
-		const HandlerConstructor ctor;
-
-		/**
-		 * The target state for the registered handler.
-		 */
-		const State targetState;
-
-		/**
-		 * Set to true if this handler instance allows arbitrary children as
-		 * tags.
-		 */
-		const bool arbitraryChildren;
-
-		HandlerDescriptor(std::set<State> parentStates, HandlerConstructor ctor,
-		                  State targetState, bool arbitraryChildren = false)
-		    : parentStates(std::move(parentStates)),
-		      ctor(constructor),
-		      targetState(targetState),
-		      arbitraryChildren(arbitraryChildren)
-		{
-		}
-
-		HandlerInstance create(const ParserContext &ctx, std::string name,
-		                       State parentState, bool isChild)
-		{
-			return HandlerInstance{
-			    ctor(ctx, name, targetState, parentState, isChild),
-			    arbitraryChildren};
-		}
-	};
-
+/**
+ * The ParserStack class is a pushdown automaton responsible for turning a
+ * command stream into a tree of Node instances.
+ */
+class ParserStack {
 private:
+	/**
+	 * Reference at the parser context.
+	 */
+	const ParserContext &ctx;
+
 	/**
 	 * Map containing all registered command names and the corresponding
 	 * handler
 	 * descriptor.
 	 */
-	const std::multimap<std::string, HandlerDescriptor> handlers;
-
-	/**
-	 * Reference at the parser context.
-	 */
-	const ParserContext &ctx;
+	const std::multimap<std::string, HandlerDescriptor> &handlers;
 
 	/**
 	 * Internal stack used for managing the currently active Handler instances.
@@ -281,21 +262,54 @@ private:
 
 public:
 	/**
-	 * Creates a new instance of the StateStack class.
+	 * Creates a new instance of the ParserStack class.
 	 *
 	 * @param handlers is a map containing the command names and the
 	 * corresponding HandlerDescriptor instances.
 	 */
-	StateStack(const ParserContext &ctx,
-	           std::multimap<std::string, HandlerDescriptor> handlers)
-	    : handlers(std::move(handlers)),
-	      ctx(ctx),
-	      currentState(State::NONE),
-	      arbitraryChildren(false);
+	ParserStack(const ParserContext &ctx,
+	            const std::multimap<std::string, HandlerDescriptor> &handlers)
+	    : ctx(ctx), handlers(handlers){};
+
+	/**
+	 * Returns the state the ParserStack instance currently is in.
+	 *
+	 * @return the state of the currently active Handler instance or STATE_NONE
+	 * if no handler is on the stack.
+	 */
+	State currentState() {
+		return stack.empty() ? STATE_NONE : stack.top().handler->state;
+	}
+
+	/**
+	 * Returns the command name that is currently being handled.
+	 *
+	 * @return the name of the command currently being handled by the active
+	 * Handler instance or an empty string if no handler is currently active.
+	 */
+	std::string currentName() {
+		return stack.empty() ? std::string{} : stack.top().handler->name;
+	}
+
+	/**
+	 * Returns whether the current command handler allows arbitrary children.
+	 *
+	 * @return true if the handler allows arbitrary children, false otherwise.
+	 */
+	bool currentArbitraryChildren() {
+		return stack.empty() ? false : stack.top().descr->arbitraryChildren;
+	}
+
+	// TODO: Change signature
+	void start(std::string name, char **attrs);
+
+	void end();
+
+	// TODO: Change signature
+	void data(const char *data, int len);
 };
 }
 }
-}
 
-#endif /* _OUSIA_XML_STATES_HPP_ */
+#endif /* _OUSIA_PARSER_STACK_HPP_ */
 
