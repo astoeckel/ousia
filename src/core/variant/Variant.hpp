@@ -168,13 +168,13 @@ private:
 				doubleVal = v.doubleVal;
 				break;
 			case Type::STRING:
-				ptrVal = new stringType{v.asString()};
+				ptrVal = new stringType(v.asString());
 				break;
 			case Type::ARRAY:
-				ptrVal = new arrayType{v.asArray()};
+				ptrVal = new arrayType(v.asArray());
 				break;
 			case Type::MAP:
-				ptrVal = new mapType{v.asMap()};
+				ptrVal = new mapType(v.asMap());
 				break;
 		}
 	}
@@ -585,7 +585,7 @@ public:
 		} else {
 			destroy();
 			type = Type::STRING;
-			ptrVal = new stringType{s};
+			ptrVal = new stringType(s);
 		}
 	}
 

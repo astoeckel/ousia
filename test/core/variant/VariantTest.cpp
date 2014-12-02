@@ -111,6 +111,8 @@ TEST(Variant, mapValue)
 
 	ASSERT_EQ("entry1", map.find("key1")->second.asString());
 	ASSERT_EQ("entry2", map.find("key2")->second.asString());
+
+	const Variant v2{{{"key1", Variant::arrayType{1, 2, 3}}, {"key2", "entry2"}}};
 }
 
 
