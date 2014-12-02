@@ -96,8 +96,6 @@ ADD_DEFINITIONS(
 	${MOZJS_CFLAGS_OTHER}
 )
 
-# ousia_script library (containing the bindings needed for script engines)
-# TODO: This is not only the script library.
 ADD_LIBRARY(ousia_core
 	src/core/BufferedCharReader
 	src/core/CodeTokenizer
@@ -119,8 +117,6 @@ ADD_LIBRARY(ousia_core
 	src/core/variant/Variant
 )
 
-# ousia_xml library
-
 ADD_LIBRARY(ousia_xml
 	src/plugins/xml/XmlParser
 )
@@ -130,16 +126,14 @@ TARGET_LINK_LIBRARIES(ousia_xml
 	${EXPAT_LIBRARIES}
 )
 
-# ousia_mozjs library
-
-ADD_LIBRARY(ousia_mozjs
-	src/plugins/mozjs/MozJsScriptEngine
-)
-
-TARGET_LINK_LIBRARIES(ousia_mozjs
-	ousia_core
-	${MOZJS_LIBRARIES}
-)
+#ADD_LIBRARY(ousia_mozjs
+#	src/plugins/mozjs/MozJsScriptEngine
+#)
+#
+#TARGET_LINK_LIBRARIES(ousia_mozjs
+#	ousia_core
+#	${MOZJS_LIBRARIES}
+#)
 
 # If testing is enabled, build the unit tests
 IF(TEST)
