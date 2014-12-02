@@ -23,13 +23,13 @@
 namespace ousia {
 TEST(Specificity, testOperators)
 {
-	Specificity s1{0,0,1};
-	Specificity s2{0,1,1};
-	Specificity s3{1,1,1};
-	Specificity s4{0,0,2};
-	Specificity s5{1,0,2};
-	
-	//This should be s1 < s4 < s2 < s5 < s3
+	Specificity s1{0, 0, 1};
+	Specificity s2{0, 1, 1};
+	Specificity s3{1, 1, 1};
+	Specificity s4{0, 0, 2};
+	Specificity s5{1, 0, 2};
+
+	// This should be s1 < s4 < s2 < s5 < s3
 
 	ASSERT_TRUE(s1 == s1);
 	ASSERT_FALSE(s1 < s1);
@@ -110,5 +110,18 @@ TEST(Specificity, testOperators)
 	ASSERT_TRUE(s5 == s5);
 	ASSERT_FALSE(s5 < s5);
 	ASSERT_FALSE(s5 > s5);
+}
+
+TEST(SelectorNode, testGetChildren)
+{
+	Manager mgr(1);
+	Rooted<SelectorNode> root{new SelectorNode{mgr, "root", {"true", false}}};
+	Rooted<SelectorNode> child{new SelectorNode{mgr, "A", {"true", false}}};
+	root->getEdges().push_back(
+	    new SelectorNode::SelectorEdge{mgr, child, SelectionOperator::DESCENDANT});
+	std::vector<Rooted<SelectorNode>> actual =
+	    root->getChildren(SelectionOperator::DESCENDANT, "A", {"true", false});
+	ASSERT_EQ(1,actual.size());
+	ASSERT_EQ(child, actual[0]);
 }
 }

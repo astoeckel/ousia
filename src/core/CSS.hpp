@@ -19,12 +19,9 @@
 #ifndef _OUSIA_CSS_HPP_
 #define _OUSIA_CSS_HPP_
 
-#include <istream>
 #include <map>
 #include <vector>
-#include <tuple>
 
-#include "BufferedCharReader.hpp"
 #include "Managed.hpp"
 #include "Node.hpp"
 
@@ -48,17 +45,18 @@ struct Specificity {
 	Specificity(int b, int c, int d) : b(b), c(c), d(d) {}
 };
 
-bool operator<(const Specificity &x, const Specificity &y)
+//TODO: Is this correct? I used this to prevent "multiple definition" errors
+inline bool operator<(const Specificity &x, const Specificity &y)
 {
 	return std::tie(x.b, x.c, x.d) < std::tie(y.b, y.c, y.d);
 }
 
-bool operator>(const Specificity &x, const Specificity &y)
+inline bool operator>(const Specificity &x, const Specificity &y)
 {
 	return std::tie(x.b, x.c, x.d) > std::tie(y.b, y.c, y.d);
 }
 
-bool operator==(const Specificity &x, const Specificity &y)
+inline bool operator==(const Specificity &x, const Specificity &y)
 {
 	return std::tie(x.b, x.c, x.d) == std::tie(y.b, y.c, y.d);
 }
@@ -135,12 +133,29 @@ public:
 	{
 	}
 
+	PseudoSelector(std::string name, bool generative)
+	    : name(std::move(name)), args(), generative(generative)
+	{
+	}
+
 	const std::string &getName() const { return name; }
 
 	const std::vector<std::string> &getArgs() const { return args; }
 
 	const bool &isGenerative() const { return generative; }
 };
+
+inline bool operator==(const PseudoSelector &x, const PseudoSelector &y)
+{
+	return std::tie(x.getName(), x.getArgs(), x.isGenerative()) ==
+	       std::tie(y.getName(), y.getArgs(), y.isGenerative());
+}
+
+inline bool operator!=(const PseudoSelector &x, const PseudoSelector &y)
+{
+	return std::tie(x.getName(), x.getArgs(), x.isGenerative()) !=
+	       std::tie(y.getName(), y.getArgs(), y.isGenerative());
+}
 
 /**
  * A SelectionOperator for now is just an enumeration class deciding
@@ -227,7 +242,7 @@ public:
 		}
 	};
 
-//Content of the SelectorNode class.
+	// Content of the SelectorNode class.
 private:
 	const PseudoSelector pseudoSelector;
 	ManagedVector<SelectorEdge> edges;
@@ -235,24 +250,30 @@ private:
 	//	Owned<RuleSet> ruleSets;
 
 public:
-	SelectorNode(Manager &mgr, std::string name, PseudoSelector pseudoSelector,
-	             const std::vector<Handle<SelectorEdge>> &edges//,
-	             // const std::vector<Handle<RuleSet>> &ruleSets
-	             )
+	SelectorNode(Manager &mgr, std::string name, PseudoSelector pseudoSelector)
 	    : Node(mgr, std::move(name)),
 	      pseudoSelector(std::move(pseudoSelector)),
-	      edges(this,edges)//,
+	      edges(this)  //,
 	// ruleSets(acquire(ruleSets))
 	{
 	}
 
 	const PseudoSelector &getPseudoSelector() const { return pseudoSelector; }
 
-	const ManagedVector<SelectorEdge> &getEdges() const { return edges; }
+	ManagedVector<SelectorEdge> &getEdges() { return edges; }
 
 	//	const std::vector<Owned<RuleSet>> &getRuleSets() const { return
 	// ruleSets; }
-};
 
+	/**
+	 * This returns all children of this SelectorNode that are connected by
+	 * the given operator, have the given className and the given
+	 * PseudoSelector.
+	 */
+	std::vector<Rooted<SelectorNode>> getChildren(const SelectionOperator &op,
+	                                              const std::string &className,
+	                                              const PseudoSelector &select);
+
+};
 }
 #endif
