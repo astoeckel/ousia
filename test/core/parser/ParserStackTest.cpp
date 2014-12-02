@@ -1,6 +1,6 @@
 /*
-    SCAENEA IDL Compiler (scidlc)
-    Copyright (C) 2014  Andreas Stöckel
+    Ousía
+    Copyright (C) 2014, 2015  Benjamin Paaßen, Andreas Stöckel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -72,13 +72,12 @@ static Handler* createTestHandler(const ParserContext &ctx,
 	return new TestHandler(ctx, name, state, parentState, isChild);
 }
 
-// Two nested elements used for testing
 static const std::multimap<std::string, HandlerDescriptor> TEST_HANDLERS{
 	{"document", {{STATE_NONE}, createTestHandler, STATE_DOCUMENT}},
 	{"body", {{STATE_DOCUMENT}, createTestHandler, STATE_BODY, true}},
 	{"empty", {{STATE_DOCUMENT}, createTestHandler, STATE_EMPTY}},
+	{"special", {{STATE_ALL}, createTestHandler, STATE_EMPTY}},
 };
-
 
 TEST(ParserStack, simpleTest)
 {
@@ -153,6 +152,8 @@ TEST(ParserStack, errorHandling)
 	ASSERT_THROW(s.start("document", nullptr), OusiaException);
 	s.start("empty", nullptr);
 	ASSERT_THROW(s.start("body", nullptr), OusiaException);
+	s.start("special", nullptr);
+	s.end();
 	s.end();
 	s.end();
 	ASSERT_EQ(STATE_NONE, s.currentState());

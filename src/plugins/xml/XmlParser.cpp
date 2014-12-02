@@ -20,11 +20,54 @@
 
 #include <expat.h>
 
+#include <core/parser/ParserStack.hpp>
+
 #include "XmlParser.hpp"
 
 namespace ousia {
 namespace parser {
 namespace xml {
+
+/* Document structure */
+static const State STATE_DOCUMENT = 0;
+static const State STATE_HEAD = 1;
+static const State STATE_BODY = 2;
+
+/* Special commands */
+static const State STATE_USE = 100;
+static const State STATE_INCLUDE = 101;
+static const State STATE_INLINE = 102;
+
+/* Type system definitions */
+static const State STATE_TYPES = 200;
+static const State STATE_CONSTANT = 201;
+static const State STATE_ENUM = 202;
+static const State STATE_STRUCT = 203;
+
+static Handler* createTestHandler(const ParserContext &ctx,
+                                        std::string name, State state,
+                                        State parentState, bool isChild)
+{
+	return nullptr;
+}
+
+static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
+	/* Documents */
+	{"document", {{STATE_NONE}, createTestHandler, STATE_DOCUMENT}},
+	{"head", {{STATE_DOCUMENT}, createTestHandler, STATE_HEAD}},
+	{"body", {{STATE_DOCUMENT}, createTestHandler, STATE_BODY, true}},
+
+	/* Special commands */
+	{"use", {{STATE_HEAD}, createTestHandler, STATE_USE}},
+	{"include", {{STATE_ALL}, createTestHandler, STATE_INCLUDE}},
+	{"inline", {{STATE_ALL}, createTestHandler, STATE_INLINE}},
+
+	/* Typesystem definitions */
+	{"types", {{STATE_NONE, STATE_HEAD}, createTestHandler, STATE_TYPES}},
+	{"enum", {{STATE_TYPES}, createTestHandler, STATE_ENUM}},
+	{"struct", {{STATE_TYPES}, createTestHandler, STATE_STRUCT}},
+	{"constant", {{STATE_TYPES}, createTestHandler, STATE_CONSTANT}}
+};
 
 /**
  * Wrapper class around the XML_Parser pointer which safely frees it whenever

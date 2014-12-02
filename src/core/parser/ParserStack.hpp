@@ -45,7 +45,7 @@ namespace parser {
 /**
  * The State type alias is used to
  */
-using State = int8_t;
+using State = int16_t;
 
 static const State STATE_ALL = -2;
 static const State STATE_NONE = -1;
@@ -140,6 +140,7 @@ public:
 	 * Handler instance.
 	 *
 	 * TODO: Replace with std::string?
+	 * TODO: Per default: Allow no data except for whitespace characters!
 	 *
 	 * @param data is a pointer at the character data that is available for the
 	 * Handler instance.

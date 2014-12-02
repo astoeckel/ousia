@@ -100,7 +100,8 @@ void ParserStack::start(std::string name, char **attrs)
 	const HandlerDescriptor *descr = nullptr;
 	auto range = handlers.equal_range(name);
 	for (auto it = range.first; it != range.second; it++) {
-		if (it->second.parentStates.count(curState)) {
+		const std::set<State> &parentStates = it->second.parentStates;
+		if (parentStates.count(curState) || parentStates.count(STATE_ALL)) {
 			descr = &(it->second);
 			break;
 		}
