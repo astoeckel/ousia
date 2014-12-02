@@ -149,7 +149,7 @@ void TerminalLogger::process(const Message &msg)
 			os << t.color(Terminal::RED, true) << "error: ";
 			break;
 		case Severity::FATAL_ERROR:
-			os << t.color(Terminal::RED, true) << "error: ";
+			os << t.color(Terminal::RED, true) << "fatal: ";
 			break;
 	}
 	os << t.reset();

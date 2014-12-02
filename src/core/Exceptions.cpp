@@ -29,16 +29,17 @@ std::string LoggableException::formatMessage(const std::string &msg,
                                              int column, bool fatal)
 {
 	std::stringstream ss;
+	ss << "error ";
 	if (!file.empty()) {
 		ss << "while processing \"" << file << "\" ";
 	}
 	if (line >= 0) {
-		ss << "at line: " << line << " ";
+		ss << "at line " << line << ", ";
 		if (column >= 0) {
-			ss << "col: " << column << " ";
+			ss << "column " << column << " ";
 		}
 	}
-	ss << "message: " << msg;
+	ss << "with message: " << msg;
 	return ss.str();
 }
 }

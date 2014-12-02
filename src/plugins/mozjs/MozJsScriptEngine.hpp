@@ -46,6 +46,7 @@ typedef Rooted<Value> RootedValue;
 
 namespace ousia {
 namespace script {
+namespace mozjs {
 
 class MozJsScriptEngineScope;
 
@@ -119,6 +120,7 @@ public:
 
 	MozJsScriptEngineScope *createScope() override;
 };
+}
 }
 }
 

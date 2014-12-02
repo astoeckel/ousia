@@ -16,22 +16,36 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
+#ifndef _OUSIA_REGISTRY_HPP_
+#define _OUSIA_REGISTRY_HPP_
 
-#include <gtest/gtest.h>
-
-#include <core/parser/XmlParser.hpp>
+#include <map>
+#include <vector>
 
 namespace ousia {
 
-TEST(XmlParser, logging)
-{
-	TerminalLogger log(std::cerr, true);
-	XmlParser p;
+// TODO: Add support for ScriptEngine type
 
-	log.pushFilename("test.xml");
-	p.parse("<test></btest>", nullptr, log);
+class Logger;
+
+namespace parser {
+class Parser;
 }
 
+class Registry {
+private:
+	Logger &logger;
+	std::vector<parser::Parser*> parsers;
+	std::map<std::string, parser::Parser*> parserMimetypes;
+
+public:
+	Registry(Logger &logger) : logger(logger) {}
+
+	void registerParser(parser::Parser *parser);
+
+	parser::Parser *getParserForMimetype(std::string mimetype);
+};
 }
+
+#endif /* _OUSIA_REGISTRY_HPP_ */
 

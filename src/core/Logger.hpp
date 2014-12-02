@@ -256,6 +256,22 @@ public:
 	 * the file name stack.
 	 *
 	 * @param msg is the actual log message.
+	 * @param file is the name of the file the message refers to. May be empty.
+	 * @param line is the line in the above file at which the error occured.
+	 * Ignored if negative.
+	 * @param column is the column in the above file at which the error occured.
+	 * Ignored if negative.
+	 */
+	void debug(const std::string &msg, const std::string &file, int line = -1, int column = -1)
+	{
+		log(Severity::DEBUG, msg, file, line, column);
+	}
+
+	/**
+	 * Logs a debug message. The file name is set to the topmost file name on
+	 * the file name stack.
+	 *
+	 * @param msg is the actual log message.
 	 * @param line is the line in the above file at which the error occured.
 	 * Ignored if negative.
 	 * @param column is the column in the above file at which the error occured.
@@ -263,7 +279,23 @@ public:
 	 */
 	void debug(const std::string &msg, int line = -1, int column = -1)
 	{
-		log(Severity::DEBUG, msg, line, column);
+		debug(msg, currentFilename(), line, column);
+	}
+
+	/**
+	 * Logs a note. The file name is set to the topmost file name on
+	 * the file name stack.
+	 *
+	 * @param msg is the actual log message.
+	 * @param file is the name of the file the message refers to. May be empty.
+	 * @param line is the line in the above file at which the error occured.
+	 * Ignored if negative.
+	 * @param column is the column in the above file at which the error occured.
+	 * Ignored if negative.
+	 */
+	void note(const std::string &msg, const std::string &file, int line = -1, int column = -1)
+	{
+		log(Severity::NOTE, msg, file, line, column);
 	}
 
 	/**
@@ -278,7 +310,23 @@ public:
 	 */
 	void note(const std::string &msg, int line = -1, int column = -1)
 	{
-		log(Severity::NOTE, msg, line, column);
+		note(msg, currentFilename(), line, column);
+	}
+
+	/**
+	 * Logs a warning. The file name is set to the topmost file name on
+	 * the file name stack.
+	 *
+	 * @param msg is the actual log message.
+	 * @param file is the name of the file the message refers to. May be empty.
+	 * @param line is the line in the above file at which the error occured.
+	 * Ignored if negative.
+	 * @param column is the column in the above file at which the error occured.
+	 * Ignored if negative.
+	 */
+	void warning(const std::string &msg, const std::string &file, int line = -1, int column = -1)
+	{
+		log(Severity::WARNING, msg, file, line, column);
 	}
 
 	/**
@@ -293,7 +341,23 @@ public:
 	 */
 	void warning(const std::string &msg, int line = -1, int column = -1)
 	{
-		log(Severity::WARNING, msg, line, column);
+		warning(msg, currentFilename(), line, column);
+	}
+
+	/**
+	 * Logs an error message. The file name is set to the topmost file name on
+	 * the file name stack.
+	 *
+	 * @param msg is the actual log message.
+	 * @param file is the name of the file the message refers to. May be empty.
+	 * @param line is the line in the above file at which the error occured.
+	 * Ignored if negative.
+	 * @param column is the column in the above file at which the error occured.
+	 * Ignored if negative.
+	 */
+	void error(const std::string &msg, const std::string &file, int line = -1, int column = -1)
+	{
+		log(Severity::ERROR, msg, file, line, column);
 	}
 
 	/**
@@ -308,7 +372,23 @@ public:
 	 */
 	void error(const std::string &msg, int line = -1, int column = -1)
 	{
-		log(Severity::ERROR, msg, line, column);
+		error(msg, currentFilename(), line, column);
+	}
+
+	/**
+	 * Logs a fatal error. The file name is set to the topmost file name on
+	 * the file name stack.
+	 *
+	 * @param msg is the actual log message.
+	 * @param file is the name of the file the message refers to. May be empty.
+	 * @param line is the line in the above file at which the error occured.
+	 * Ignored if negative.
+	 * @param column is the column in the above file at which the error occured.
+	 * Ignored if negative.
+	 */
+	void fatalError(const std::string &msg, const std::string &file, int line = -1, int column = -1)
+	{
+		log(Severity::FATAL_ERROR, msg, file, line, column);
 	}
 
 	/**
@@ -323,7 +403,7 @@ public:
 	 */
 	void fatalError(const std::string &msg, int line = -1, int column = -1)
 	{
-		log(Severity::FATAL_ERROR, msg, line, column);
+		fatalError(msg, currentFilename(), line, column);
 	}
 
 	/**

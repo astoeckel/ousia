@@ -16,9 +16,30 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
+#include <limits>
+
 #include "Utils.hpp"
 
 namespace ousia {
+
+std::string Utils::trim(const std::string &s)
+{
+	size_t firstNonWhitespace = std::numeric_limits<size_t>::max();
+	size_t lastNonWhitespace = 0;
+	for (size_t i = 0; i < s.size(); i++) {
+		if (!isWhitespace(s[i])) {
+			firstNonWhitespace = std::min(i, firstNonWhitespace);
+			lastNonWhitespace = std::max(i, lastNonWhitespace);
+		}
+	}
+
+	if (firstNonWhitespace < lastNonWhitespace) {
+		return s.substr(firstNonWhitespace,
+		                lastNonWhitespace - firstNonWhitespace + 1);
+	}
+	return std::string{};
+}
 
 bool Utils::isIdentifier(const std::string &name)
 {
@@ -34,6 +55,5 @@ bool Utils::isIdentifier(const std::string &name)
 	}
 	return true;
 }
-
 }
 

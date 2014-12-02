@@ -16,28 +16,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gtest/gtest.h>
+#include <sstream>
 
-#include <core/Utils.hpp>
+#include "Parser.hpp"
 
 namespace ousia {
+namespace parser {
 
-TEST(Utils, isIdentifier)
+Rooted<Node> Parser::parse(const std::string &str, ParserContext &ctx)
 {
-	ASSERT_TRUE(Utils::isIdentifier("test"));
-	ASSERT_TRUE(Utils::isIdentifier("t0-_est"));
-	ASSERT_TRUE(Utils::isIdentifier("_t0-_EST"));
-	ASSERT_FALSE(Utils::isIdentifier("-t0-_EST"));
-	ASSERT_FALSE(Utils::isIdentifier("0t-_EST"));
+	std::istringstream is{str};
+	return parse(is, ctx);
 }
-
-TEST(Utils, trim)
-{
-	ASSERT_EQ("hello world", Utils::trim("\t hello world   \n\r\t"));
-	ASSERT_EQ("hello world", Utils::trim("hello world   \n\r\t"));
-	ASSERT_EQ("hello world", Utils::trim("   hello world"));
-	ASSERT_EQ("hello world", Utils::trim("hello world"));
 }
-
 }
 

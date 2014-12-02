@@ -28,9 +28,11 @@
 #ifndef _OUSIA_XML_PARSER_HPP_
 #define _OUSIA_XML_PARSER_HPP_
 
-#include <core/Parser.hpp>
+#include <core/parser/Parser.hpp>
 
 namespace ousia {
+namespace parser {
+namespace xml {
 
 /**
  * The XmlParser class implements parsing the various types of Ousía XML
@@ -48,15 +50,19 @@ public:
 
 	/**
 	 * Parses the given input stream as XML file and returns the parsed
-	 * top-level node. Throws
+	 * top-level node.
 	 *
 	 * @param is is the input stream that will be parsed.
+	 * @param ctx is a reference to the ParserContext instance that should be
+	 * used.
 	 */
-	Rooted<Node> parse(std::istream &is, Handle<Node> context,
-	                   Logger &logger) override;
+	Rooted<Node> parse(std::istream &is, ParserContext &ctx) override;
 
 	using Parser::parse;
 };
+
+}
+}
 }
 
 #endif /* _OUSIA_XML_PARSER_HPP_ */

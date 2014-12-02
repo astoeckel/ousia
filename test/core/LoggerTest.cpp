@@ -26,17 +26,23 @@ namespace ousia {
 
 TEST(TerminalLogger, log)
 {
+	// Test for manual visual expection only -- no assertions
 	TerminalLogger logger{std::cerr, true};
-	logger.pushFilename("/homes/mmuster/ousia/test.odp");
+	logger.pushFilename("test.odp");
 
 	logger.debug("This is a test debug message", 10, 20);
+	logger.debug("This is a test debug message with no column", 10);
+	logger.debug("This is a test debug message with no line");
+	logger.debug("This is a test debug message with no file", "");
+	logger.debug("This is a test debug message with no file but a line", "", 10);
+	logger.debug("This is a test debug message with no file but a line and a column", "", 10, 20);
 	logger.note("This is a test note", 10, 20);
 	logger.warning("This is a test warning", 10, 20);
 	logger.error("This is a test error", 10, 20);
 	logger.fatalError("This is a test fatal error!", 10, 20);
 
 	try {
-		throw LoggableException{"A fatal exception", true};
+		throw LoggableException{"A fatal exception"};
 	} catch (const LoggableException &ex) {
 		logger.log(ex);
 	}
