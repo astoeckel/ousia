@@ -128,7 +128,7 @@ private:
 		 * valid if type is one of Type::STRING, Type::ARRAY,
 		 * Type::MAP.
 		 */
-		void *ptrVal = nullptr;
+		void *ptrVal;
 	};
 
 	/**
@@ -153,6 +153,7 @@ private:
 	 */
 	void copy(const Variant &v)
 	{
+		destroy();
 		type = v.type;
 		switch (type) {
 			case Type::NULLPTR:
@@ -186,6 +187,7 @@ private:
 	 */
 	void move(Variant &&v)
 	{
+		destroy();
 		type = v.type;
 		switch (type) {
 			case Type::NULLPTR:
@@ -237,7 +239,7 @@ public:
 	 *
 	 * @param v is the Variant instance that should be cloned.
 	 */
-	Variant(const Variant &v) { copy(v); }
+	Variant(const Variant &v) : ptrVal(nullptr) { copy(v); }
 
 	/**
 	 * Move constructor of the Variant class.
@@ -245,12 +247,12 @@ public:
 	 * @param v is the reference to the Variant instance that should be moved,
 	 * this instance is invalidated afterwards.
 	 */
-	Variant(Variant &&v) { move(std::move(v)); }
+	Variant(Variant &&v) : ptrVal(nullptr) { move(std::move(v)); }
 
 	/**
 	 * Default constructor. Type is set to Type:null.
 	 */
-	Variant() { setNull(); }
+	Variant() : ptrVal(nullptr) { setNull(); }
 
 	/**
 	 * Default destructor, frees any memory that was allocated on the heap.
@@ -262,21 +264,21 @@ public:
 	 *
 	 * @param b boolean value.
 	 */
-	Variant(boolType b) { setBool(b); }
+	Variant(boolType b) : ptrVal(nullptr) { setBool(b); }
 
 	/**
 	 * Constructor for integer values.
 	 *
 	 * @param i integer value.
 	 */
-	Variant(intType i) { setInt(i); }
+	Variant(intType i) : ptrVal(nullptr) { setInt(i); }
 
 	/**
 	 * Constructor for double values.
 	 *
 	 * @param d double value.
 	 */
-	Variant(doubleType d) { setDouble(d); }
+	Variant(doubleType d) : ptrVal(nullptr) { setDouble(d); }
 
 	/**
 	 * Constructor for string values. The given string is copied and managed by
@@ -284,7 +286,7 @@ public:
 	 *
 	 * @param s is a reference to a C-Style string used as string value.
 	 */
-	Variant(const char *s) { setString(s); }
+	Variant(const char *s) : ptrVal(nullptr) { setString(s); }
 
 	/**
 	 * Constructor for array values. The given array is copied and managed by
@@ -292,7 +294,10 @@ public:
 	 *
 	 * @param a is a reference to the array
 	 */
-	Variant(std::vector<Variant> a) { setArray(std::move(a)); }
+	Variant(arrayType a) : ptrVal(nullptr)
+	{
+		setArray(std::move(a));
+	}
 
 	/**
 	 * Constructor for map values. The given map is copied and managed by the
@@ -300,7 +305,10 @@ public:
 	 *
 	 * @param m is a reference to the map.
 	 */
-	Variant(std::map<std::string, Variant> m) { setMap(std::move(m)); }
+	Variant(mapType m) : ptrVal(nullptr)
+	{
+		setMap(std::move(m));
+	}
 
 	/**
 	 * Copy assignment operator.
@@ -356,11 +364,23 @@ public:
 	/**
 	 * Assign a double value.
 	 *
-	 * @param i is the integer value to which the variant should be set.
+	 * @param d is the double value to which the variant should be set.
 	 */
 	Variant &operator=(doubleType d)
 	{
-		setInt(d);
+		setDouble(d);
+		return *this;
+	}
+
+	/**
+	 * Assign a zero terminated const char array.
+	 *
+	 * @param s is the zero terminated const char array to which the variant
+	 * should be set.
+	 */
+	Variant &operator=(const char *s)
+	{
+		setString(s);
 		return *this;
 	}
 
@@ -581,7 +601,7 @@ public:
 		} else {
 			destroy();
 			type = Type::ARRAY;
-			ptrVal = new arrayType{std::move(a)};
+			ptrVal = new arrayType(std::move(a));
 		}
 	}
 
@@ -597,7 +617,7 @@ public:
 		} else {
 			destroy();
 			type = Type::MAP;
-			ptrVal = new mapType{std::move(m)};
+			ptrVal = new mapType(std::move(m));
 		}
 	}
 

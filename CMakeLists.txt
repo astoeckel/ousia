@@ -163,6 +163,7 @@ IF(TEST)
 #		test/core/script/FunctionTest
 #		test/core/script/ObjectTest
 #		test/core/script/VariantTest
+		test/core/variant/VariantTest
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test_core
