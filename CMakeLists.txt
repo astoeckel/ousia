@@ -112,10 +112,11 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/Parser
 	src/core/parser/ParserStack
 	src/core/parser/Scope
-	src/core/script/Function
-	src/core/script/Object
-	src/core/script/ScriptEngine
-	src/core/script/Variant
+#	src/core/script/Function
+#	src/core/script/Object
+#	src/core/script/ScriptEngine
+#	src/core/script/Variant
+	src/core/variant/Variant
 )
 
 # ousia_xml library
@@ -159,9 +160,9 @@ IF(TEST)
 		test/core/TokenizerTest
 		test/core/UtilsTest
 		test/core/parser/ParserStackTest
-		test/core/script/FunctionTest
-		test/core/script/ObjectTest
-		test/core/script/VariantTest
+#		test/core/script/FunctionTest
+#		test/core/script/ObjectTest
+#		test/core/script/VariantTest
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test_core
@@ -179,19 +180,19 @@ IF(TEST)
 		ousia_xml
 	)
 
-	ADD_EXECUTABLE(ousia_test_mozjs
-		test/plugins/mozjs/MozJsScriptEngineTest
-	)
+#	ADD_EXECUTABLE(ousia_test_mozjs
+#		test/plugins/mozjs/MozJsScriptEngineTest
+#	)
 
-	TARGET_LINK_LIBRARIES(ousia_test_mozjs
-		${GTEST_LIBRARIES}
-		ousia_core
-		ousia_mozjs
-	)
+#	TARGET_LINK_LIBRARIES(ousia_test_mozjs
+#		${GTEST_LIBRARIES}
+#		ousia_core
+#		ousia_mozjs
+#	)
 
 	# Register the unit tests
 	ADD_TEST(ousia_test_core ousia_test_core)
 	ADD_TEST(ousia_test_xml ousia_test_xml)
-	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
+#	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
 ENDIF()
 
