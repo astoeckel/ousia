@@ -1,0 +1,258 @@
+/*
+    Ousía
+    Copyright (C) 2014  Benjamin Paaßen, Andreas Stöckel
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef _OUSIA_CSS_HPP_
+#define _OUSIA_CSS_HPP_
+
+#include <istream>
+#include <map>
+#include <vector>
+#include <tuple>
+
+#include "BufferedCharReader.hpp"
+#include "Managed.hpp"
+#include "Node.hpp"
+
+namespace ousia {
+
+/*
+ * The Specificity or Precedence of a CSS RuleSet, which decides which
+ * rules are applied when different RuleSets contain conflicting information.
+ *
+ * The Specificity is calculated using the official W3C recommendation
+ * http://www.w3.org/TR/CSS2/cascade.html#specificity
+ *
+ * Note that we do not need to use the integer 'a', since we do not allow
+ * local style definitions for single nodes.
+ */
+struct Specificity {
+	int b;
+	int c;
+	int d;
+
+	Specificity(int b, int c, int d) : b(b), c(c), d(d) {}
+};
+
+bool operator<(const Specificity &x, const Specificity &y)
+{
+	return std::tie(x.b, x.c, x.d) < std::tie(y.b, y.c, y.d);
+}
+
+bool operator>(const Specificity &x, const Specificity &y)
+{
+	return std::tie(x.b, x.c, x.d) > std::tie(y.b, y.c, y.d);
+}
+
+bool operator==(const Specificity &x, const Specificity &y)
+{
+	return std::tie(x.b, x.c, x.d) == std::tie(y.b, y.c, y.d);
+}
+
+/**
+ * The RuleSet class serves as a container class for key-value
+ * pairs. The values are TypeInstances. The proper type is
+ * implicitly defined by the keyword.
+ *
+ * TODO: This code is currently commented out until the TypeSystem works.
+ */
+/*class RuleSet : public Managed {
+private:
+    const std::map<std::string, std::string> values;
+    const Specificity specificity;
+
+public:
+    RuleSet(Manager &mgr, std::map<std::string, std::string> values,
+            Specificity specificity)
+        : Managed(mgr), values(std::move(values)), specificity(specificity)
+    {
+    }
+
+    const std::map<std::string, std::string> &getValues() const
+    {
+        return values;
+    }
+
+    const Specificity &getSpecificity() const { return specificity; }
+};*/
+
+/**
+ * PseudoSelectors are functions that change the behaviour of Selectors.
+ * They come in two different flavours:
+ * 1.) restricting PseudoSelectors are denoted as :my_selector(arg1,arg2,...)
+ *     and are functions returning a boolean value given a node in the
+ *     document tree and the additional arguments arg1, arg2, etc.
+ *     If the function returns true the selector matches to the given document
+ *     node. Otherwise it does not. Note that the #id notation is only
+ *     syntactic sugar for the PseudoSelectors :has_id(id). Likewise
+ *     the notation [attr] is a shorthand for :has_attribute(attr) and
+ *     [attr="value"] is a horthand for :has_value(attr,value).
+ * 2.) generative PseudoSelectors are denoted as ::my_selector(arg1,arg2,...)
+ *     and are functions returning a document node (probably a newly created
+ *     one) referring to the element that shall be styled. An example is the
+ *     CSS3 PseudoSelector ::first_letter which creates a new document node
+ *     only containing the first letter of the text contained in the input
+ *     document node, inserts it into the document tree and returns it to be
+ *     styled. This mechanism also implies that generative PseudoSelectors
+ *     only make sense at the end of a Selector Path (A B::my_selector C
+ *     would not be a well-formed Selector).
+ *     TODO: How do we control for this special case?
+ *
+ * Note that both restrictive and generative PseudoSelectors may be pre-defined
+ * and implemented in C++ code as well as user-defined and implemented as
+ * JavaScripts. The internal mechanism will resolve the given PseudoSelector
+ *name
+ * to the according implementation.
+ *
+ * Also note that the arguments of PseudoSelectors are always given as strings.
+ * PseudoSelector implementations have to ensure proper parsing of their inputs
+ * themselves.
+ */
+class PseudoSelector {
+private:
+	const std::string name;
+	const std::vector<std::string> args;
+	const bool generative;
+
+public:
+	PseudoSelector(std::string name, std::vector<std::string> args,
+	               bool generative)
+	    : name(std::move(name)), args(std::move(args)), generative(generative)
+	{
+	}
+
+	const std::string &getName() const { return name; }
+
+	const std::vector<std::string> &getArgs() const { return args; }
+
+	const bool &isGenerative() const { return generative; }
+};
+
+/**
+ * A SelectionOperator for now is just an enumeration class deciding
+ * whether a SelectorEdge builds a Descendant relationship or a
+ * (direct) child relationship.
+ */
+enum class SelectionOperator { DESCENDANT, DIRECT_DESCENDANT };
+
+/**
+ * This represents a node in the SelectorTree. The SelectorTree makes it
+ * possible to efficiently resolve which elements of the documents are selected
+ * by a certain selector expression.
+ *
+ * Assume we have the following CSS specification.
+ *
+ * A B:p(a,b) { ruleset1 }
+ *
+ * A { ruleset2 }
+ *
+ * B::gp(c) { ruleset 3 }
+ *
+ * where p is a restricting pseudo-selector taking some arguments a and b and
+ * gp is a generating pseudo-selector taking some argument c. Both kinds of
+ * pseudo selectors result in a function (either C++ hard coded or JavaScript)
+ * that either returns a boolean, whether the current node in the document tree
+ * fulfils the restricting conditions (take :first_child, for example, which
+ * only returns true if the element is in fact the first child of its parent)
+ * or, in case of generative pseudo-selectors, returns a new element for the
+ * document tree (take ::first-letter for example, which takes the first letter
+ * of the text contained in a matching element of the document tree and
+ * generates a new node in the document tree containing just this letter such
+ * that it is possible to style it differently.
+ *
+ * The resulting style tree for our example would be
+ *
+ * A - ruleset 2
+ * |_ B:p(a,b) - ruleset 1
+ * B::gp(c) - ruleset 3
+ *
+ * Given the document
+ * &lt;A&gt;
+ *     &lt;B/&gt;
+ *     &lt;B/&gt;
+ * &lt;/A&gt;
+ *
+ * and assuming that the restricting pseudo-selector condition p only applied to
+ * the first B we get the following applications of RuleSets:
+ *
+ * A - ruleset 2
+ * first B - ruleset 1 and ruleset 3
+ * second B - ruleset 3
+ *
+ * Furthermore, ruleset 1 has a higher precedence/specificity than ruleset 3.
+ * Therefore style rules contained in ruleset 3 will be overridden by
+ * contradicting style rules in ruleset 1.
+ */
+class SelectorNode : public Node {
+public:
+	/*
+	 * A SelectorEdge is a parent-to-child connection in the SelectorTree.
+	 * We store edges in the parent. Accordingly SelectorEdges are
+	 * defined by their target and the SelectionOperator specifying the
+	 * kind of connection.
+	 */
+	class SelectorEdge : public Managed {
+	private:
+		Owned<SelectorNode> target;
+		const SelectionOperator selectionOperator;
+
+	public:
+		SelectorEdge(Manager &mgr, Handle<SelectorNode> target,
+		             SelectionOperator selectionOperator)
+		    : Managed(mgr),
+		      target(acquire(target)),
+		      selectionOperator(selectionOperator)
+		{
+		}
+
+		Rooted<SelectorNode> getTarget() const { return target; }
+
+		const SelectionOperator &getSelectionOperator() const
+		{
+			return selectionOperator;
+		}
+	};
+
+//Content of the SelectorNode class.
+private:
+	const PseudoSelector pseudoSelector;
+	ManagedVector<SelectorEdge> edges;
+	// TODO: This is temporarily commented out until the TypeSystem works.
+	//	Owned<RuleSet> ruleSets;
+
+public:
+	SelectorNode(Manager &mgr, std::string name, PseudoSelector pseudoSelector,
+	             const std::vector<Handle<SelectorEdge>> &edges//,
+	             // const std::vector<Handle<RuleSet>> &ruleSets
+	             )
+	    : Node(mgr, std::move(name)),
+	      pseudoSelector(std::move(pseudoSelector)),
+	      edges(this,edges)//,
+	// ruleSets(acquire(ruleSets))
+	{
+	}
+
+	const PseudoSelector &getPseudoSelector() const { return pseudoSelector; }
+
+	const ManagedVector<SelectorEdge> &getEdges() const { return edges; }
+
+	//	const std::vector<Owned<RuleSet>> &getRuleSets() const { return
+	// ruleSets; }
+};
+
+}
+#endif

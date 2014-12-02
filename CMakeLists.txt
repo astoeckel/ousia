@@ -101,7 +101,7 @@ ADD_DEFINITIONS(
 ADD_LIBRARY(ousia_core
 	src/core/BufferedCharReader
 	src/core/CodeTokenizer
-	src/core/CSSParser
+	src/core/CSS
 	src/core/Exceptions
 	src/core/Logger
 	src/core/Managed
@@ -150,7 +150,7 @@ IF(TEST)
 	ADD_EXECUTABLE(ousia_test_core
 		test/core/BufferedCharReaderTest
 		test/core/CodeTokenizerTest
-		test/core/CSSParserTest
+		test/core/CSSTest
 		test/core/LoggerTest
 		test/core/ManagedTest
 		test/core/ManagedContainersTest
