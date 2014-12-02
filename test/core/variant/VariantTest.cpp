@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
+
 #include <gtest/gtest.h>
 
 #include <core/variant/Variant.hpp>
@@ -31,6 +33,9 @@ TEST(Variant, nullValue)
 	ASSERT_FALSE(v.isNull());
 
 	v = nullptr;
+	ASSERT_TRUE(v.isNull());
+
+	Variant v2{nullptr};
 	ASSERT_TRUE(v.isNull());
 }
 
@@ -112,7 +117,8 @@ TEST(Variant, mapValue)
 	ASSERT_EQ("entry1", map.find("key1")->second.asString());
 	ASSERT_EQ("entry2", map.find("key2")->second.asString());
 
-	const Variant v2{{{"key1", Variant::arrayType{1, 2, 3}}, {"key2", "entry2"}}};
+	const Variant v2{{{"key1", Variant::arrayType{1, 2}}, {"key2", "entry2"}}};
+	ASSERT_EQ(2, v2.asMap().find("key1")->second.asArray()[1].asInt());
 }
 
 

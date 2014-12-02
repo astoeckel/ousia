@@ -20,8 +20,8 @@
  * @file Variant.hpp
  *
  * The Variant class is used to efficiently represent a variables of varying
- * type. Variant instances are used to represent user data and to exchange
- * information between the host application and the script clients.
+ * type. Variant instances are used to represent data given by the end user and
+ * to exchange information between the host application and the script clients.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
@@ -33,6 +33,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <ostream>
 
 // TODO: Use
 // http://nikic.github.io/2012/02/02/Pointer-magic-for-efficient-dynamic-value-representations.html
@@ -260,6 +261,11 @@ public:
 	~Variant() { destroy(); }
 
 	/**
+	 * Constructor for null values. Initializes the variant as null value.
+	 */
+	Variant(std::nullptr_t) : ptrVal(nullptr) { setNull(); }
+
+	/**
 	 * Constructor for boolean values.
 	 *
 	 * @param b boolean value.
@@ -294,10 +300,7 @@ public:
 	 *
 	 * @param a is a reference to the array
 	 */
-	Variant(arrayType a) : ptrVal(nullptr)
-	{
-		setArray(std::move(a));
-	}
+	Variant(arrayType a) : ptrVal(nullptr) { setArray(std::move(a)); }
 
 	/**
 	 * Constructor for map values. The given map is copied and managed by the
@@ -305,10 +308,7 @@ public:
 	 *
 	 * @param m is a reference to the map.
 	 */
-	Variant(mapType m) : ptrVal(nullptr)
-	{
-		setMap(std::move(m));
-	}
+	Variant(mapType m) : ptrVal(nullptr) { setMap(std::move(m)); }
 
 	/**
 	 * Copy assignment operator.
@@ -528,6 +528,36 @@ public:
 	mapType &asMap() { return asObj<mapType>(Type::MAP); }
 
 	/**
+	 * Returns the value of the Variant as boolean, performs type conversion.
+	 *
+	 * @return the Variant value converted to a boolean value.
+	 */
+	boolType toBool() const;
+
+	/**
+	 * Returns the value of the Variant as integer, performs type conversion.
+	 *
+	 * @return the Variant value converted to an integer value.
+	 */
+	intType toInt() const;
+
+	/**
+	 * Returns the value of the Variant as double, performs type conversion.
+	 *
+	 * @return the Variant value converted to a double value.
+	 */
+	doubleType toDouble() const;
+
+	/**
+	 * Returns the value of the Variant as string, performs type conversion.
+	 *
+	 * @return the value of the variant as string.
+	 * @param escape if set to true, adds double quotes to strings and escapes
+	 * them properly (resulting in a more or less JSONesque output).
+	 */
+	stringType toString(bool escape = false) const;
+
+	/**
 	 * Sets the variant to null.
 	 */
 	void setNull()
@@ -637,7 +667,26 @@ public:
 	 * Returns the name of the type of this variant instance.
 	 */
 	const char *getTypeName() { return Variant::getTypeName(getType()); }
+
+	/**
+	 * Prints the Variant to the output stream.
+	 */
+	friend std::ostream &operator<<(std::ostream &os, const Variant &v)
+	{
+		return os << v.toString(true);
+	}
+
+	/**
+	 * Prints a key value pair to the output stream.
+	 */
+	friend std::ostream &operator<<(std::ostream &os,
+		                     const mapType::value_type &v)
+	{
+		// TODO: Use proper serialization function
+		return os << "\"" << v.first << "\": " << v.second.toString(true);
+	}
 };
+
 }
 
 #endif /* _OUSIA_VARIANT_HPP_ */
