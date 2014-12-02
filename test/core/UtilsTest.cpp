@@ -31,5 +31,13 @@ TEST(Utils, isIdentifier)
 	ASSERT_FALSE(Utils::isIdentifier("0t-_EST"));
 }
 
+TEST(Utils, trim)
+{
+	ASSERT_EQ("hello world", Utils::trim("\t hello world   \n\r\t"));
+	ASSERT_EQ("hello world", Utils::trim("hello world   \n\r\t"));
+	ASSERT_EQ("hello world", Utils::trim("   hello world"));
+	ASSERT_EQ("hello world", Utils::trim("hello world"));
+}
+
 }
 
