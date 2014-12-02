@@ -39,28 +39,24 @@ class TestHandler : public Handler {
 public:
 	using Handler::Handler;
 
-	void start(char **attrs) override
+	void start(const Variant &args) override
 	{
 		startCount++;
-//		std::cout << this->name << ": start (isChild: " << (this->isChild) << ")" << std::endl;
 	}
 
 	void end() override
 	{
 		endCount++;
-//		std::cout << this->name << ": end " << std::endl;
 	}
 
-	void data(const char *data, int len) override 
+	void data(const std::string &data, int field) override 
 	{
 		dataCount++;
-//		std::cout << this->name << ": data \"" << std::string{data, static_cast<unsigned int>(len)} << "\"" << std::endl;
 	}
 
 	void child(std::shared_ptr<Handler> handler) override
 	{
 		childCount++;
-//		std::cout << this->name << ": has child \"" << handler->name << "\"" << std::endl;
 	}
 
 };
@@ -93,7 +89,7 @@ TEST(ParserStack, simpleTest)
 	ASSERT_EQ(STATE_NONE, s.currentState());
 
 	s.start("document", nullptr);
-	s.data("test1", 5);
+	s.data("test1");
 
 	ASSERT_EQ("document", s.currentName());
 	ASSERT_EQ(STATE_DOCUMENT, s.currentState());
@@ -101,7 +97,7 @@ TEST(ParserStack, simpleTest)
 	ASSERT_EQ(1, dataCount);
 
 	s.start("body", nullptr);
-	s.data("test2", 5);
+	s.data("test2");
 	ASSERT_EQ("body", s.currentName());
 	ASSERT_EQ(STATE_BODY, s.currentState());
 	ASSERT_EQ(2, startCount);
@@ -123,7 +119,7 @@ TEST(ParserStack, simpleTest)
 	ASSERT_EQ(STATE_DOCUMENT, s.currentState());
 
 	s.start("body", nullptr);
-	s.data("test3", 5);
+	s.data("test3");
 	ASSERT_EQ("body", s.currentName());
 	ASSERT_EQ(STATE_BODY, s.currentState());
 	s.end();

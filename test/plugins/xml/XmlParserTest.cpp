@@ -26,26 +26,14 @@ namespace ousia {
 namespace parser {
 namespace xml {
 
-struct TestParserContext : public ParserContext {
-
-private:
-	Logger log;
-	Registry r;
-	Scope s;
-
-public:
-	TestParserContext() : ParserContext(s, r, log), r(log), s(nullptr) {};
-
-};
-
 TEST(XmlParser, mismatchedTagException)
 {
-	TestParserContext ctx;
+	StandaloneParserContext ctx;
 	XmlParser p;
 
 	bool hadException = false;
 	try {
-		p.parse("<test foo=\"bar\">data<![CDATA[bla]]>\n</btest>", ctx);
+		p.parse("<document>\n</document2>", ctx);
 	}
 	catch (ParserException ex) {
 		ASSERT_EQ(2, ex.line);
@@ -55,19 +43,27 @@ TEST(XmlParser, mismatchedTagException)
 	ASSERT_TRUE(hadException);
 }
 
-const char* TEST_DATA = "<?xml version=\"1.0\" standalone=\"yes\"?>\n"
-	"<document a:bc=\"b\">\n"
-	"	<bla:test xmlAttr=\"blub\" />\n"
-	"</document>\n";
+const char *TEST_DATA =
+    "<?xml version=\"1.0\" standalone=\"yes\"?>\n"
+    "<document a:bc=\"b\">\n"
+    "	<head>\n"
+    "		<typesystem name=\"color\">\n"
+    "			<struct name=\"color\">\n"
+    "			</struct>\n"
+    "		</typesystem>\n"
+    "	</head>\n"
+    "	<body xmlAttr=\"blub\">\n"
+    "		<book>Dies ist ein Test&gt;</book>\n"
+    "	</body>\n"
+    "</document>\n";
 
 TEST(XmlParser, namespaces)
 {
-	TestParserContext ctx;
+	StandaloneParserContext ctx;
 	XmlParser p;
 
 	p.parse(TEST_DATA, ctx);
 }
-
 }
 }
 }

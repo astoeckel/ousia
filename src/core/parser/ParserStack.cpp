@@ -20,42 +20,36 @@
 
 #include "ParserStack.hpp"
 
+#include <core/Utils.hpp>
 #include <core/Exceptions.hpp>
 
 namespace ousia {
 namespace parser {
 
+/* Class Handler */
+
+void Handler::data(const std::string &data, int field)
+{
+	for (auto &c : data) {
+		if (!Utils::isWhitespace(c)) {
+			throw LoggableException{"No data allowed here."};
+		}
+	}
+}
+
 /* Class HandlerDescriptor */
 
 HandlerInstance HandlerDescriptor::create(const ParserContext &ctx,
                                           std::string name, State parentState,
-                                          bool isChild, char **attrs) const
+                                          bool isChild,
+                                          const Variant &args) const
 {
 	Handler *h = ctor(ctx, name, targetState, parentState, isChild);
-	h->start(attrs);
+	h->start(args);
 	return HandlerInstance(h, this);
 }
 
 /* Class ParserStack */
-
-/**
- * Function used internally to turn the elements of a collection into a string
- * separated by the given delimiter.
- */
-template <class T>
-static std::string join(T es, const std::string &delim)
-{
-	std::stringstream res;
-	bool first = true;
-	for (auto &e : es) {
-		if (!first) {
-			res << delim;
-		}
-		res << e;
-		first = false;
-	}
-	return res.str();
-}
 
 /**
  * Returns an Exception that should be thrown when a currently invalid command
@@ -73,7 +67,7 @@ static LoggableException invalidCommand(const std::string &name,
 		    std::string{"Expected "} +
 		    (expected.size() == 1 ? std::string{"\""}
 		                          : std::string{"one of \""}) +
-		    join(expected, "\", \"") + std::string{"\", but got \""} + name +
+		    Utils::join(expected, "\", \"") + std::string{"\", but got \""} + name +
 		    std::string{"\""}};
 	}
 }
@@ -89,7 +83,7 @@ std::set<std::string> ParserStack::expectedCommands(State state)
 	return res;
 }
 
-void ParserStack::start(std::string name, char **attrs)
+void ParserStack::start(std::string name, const Variant &args)
 {
 	// Fetch the current handler and the current state
 	const HandlerInstance *h = stack.empty() ? nullptr : &stack.top();
@@ -117,7 +111,7 @@ void ParserStack::start(std::string name, char **attrs)
 	}
 
 	// Instantiate the handler and call its start function
-	stack.emplace(descr->create(ctx, name, curState, isChild, attrs));
+	stack.emplace(descr->create(ctx, name, curState, isChild, args));
 }
 
 void ParserStack::end()
@@ -141,7 +135,7 @@ void ParserStack::end()
 	}
 }
 
-void ParserStack::data(const char *data, int len)
+void ParserStack::data(const std::string &data, int field)
 {
 	// Check whether there is any command the data can be sent to
 	if (stack.empty()) {
@@ -149,7 +143,7 @@ void ParserStack::data(const char *data, int len)
 	}
 
 	// Pass the data to the current Handler instance
-	stack.top().handler->data(data, len);
+	stack.top().handler->data(data, field);
 }
 }
 }

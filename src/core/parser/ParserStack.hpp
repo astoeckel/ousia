@@ -37,6 +37,8 @@
 #include <stack>
 #include <vector>
 
+#include <core/variant/Variant.hpp>
+
 #include "Parser.hpp"
 
 namespace ousia {
@@ -125,10 +127,9 @@ public:
 	 * Called when the command that was specified in the constructor is
 	 * instanciated.
 	 *
-	 * @param attrs contains the attributes that were specified for the command.
-	 * TODO: Replace with StructInstance!
+	 * @param args is a map from strings to variants (argument name and value).
 	 */
-	virtual void start(char **attrs) = 0;
+	virtual void start(const Variant &args) = 0;
 
 	/**
 	 * Called whenever the command for which this handler
@@ -137,15 +138,15 @@ public:
 
 	/**
 	 * Called whenever raw data (int the form of a string) is available for the
-	 * Handler instance.
-	 *
-	 * TODO: Replace with std::string?
-	 * TODO: Per default: Allow no data except for whitespace characters!
+	 * Handler instance. In the default handler an exception is raised if the
+	 * received data contains non-whitespace characters.
 	 *
 	 * @param data is a pointer at the character data that is available for the
 	 * Handler instance.
+	 * @param field is the field number (the interpretation of this value
+	 * depends on the format that is being parsed).
 	 */
-	virtual void data(const char *data, int len){};
+	virtual void data(const std::string &data, int field);
 
 	/**
 	 * Called whenever a direct child element was created and has ended.
@@ -225,7 +226,8 @@ struct HandlerDescriptor {
 	 * HandlerDescriptor and calls its start function.
 	 */
 	HandlerInstance create(const ParserContext &ctx, std::string name,
-	                       State parentState, bool isChild, char **attrs) const;
+	                       State parentState, bool isChild,
+	                       const Variant &args) const;
 };
 
 /**
@@ -238,6 +240,11 @@ private:
 	 * Reference at the parser context.
 	 */
 	const ParserContext &ctx;
+
+	/**
+	 * User specified data that will be passed to all handlers.
+	 */
+	void *userData;
 
 	/**
 	 * Map containing all registered command names and the corresponding
@@ -278,7 +285,8 @@ public:
 	 * @return the state of the currently active Handler instance or STATE_NONE
 	 * if no handler is on the stack.
 	 */
-	State currentState() {
+	State currentState()
+	{
 		return stack.empty() ? STATE_NONE : stack.top().handler->state;
 	}
 
@@ -288,7 +296,8 @@ public:
 	 * @return the name of the command currently being handled by the active
 	 * Handler instance or an empty string if no handler is currently active.
 	 */
-	std::string currentName() {
+	std::string currentName()
+	{
 		return stack.empty() ? std::string{} : stack.top().handler->name;
 	}
 
@@ -297,17 +306,33 @@ public:
 	 *
 	 * @return true if the handler allows arbitrary children, false otherwise.
 	 */
-	bool currentArbitraryChildren() {
+	bool currentArbitraryChildren()
+	{
 		return stack.empty() ? false : stack.top().descr->arbitraryChildren;
 	}
 
-	// TODO: Change signature
-	void start(std::string name, char **attrs);
+	/**
+	 * Function that should be called whenever a new command starts.
+	 *
+	 * @param name is the name of the command.
+	 * @param args is a map from strings to variants (argument name and value).
+	 */
+	void start(std::string name, const Variant &args);
 
+	/**
+	 * Function called whenever a command ends.
+	 */
 	void end();
 
-	// TODO: Change signature
-	void data(const char *data, int len);
+	/**
+	 * Function that should be called whenever data is available for the
+	 * command.
+	 *
+	 * @param data is the data that should be passed to the handler.
+	 * @param field is the field number (the interpretation of this value
+	 * depends on the format that is being parsed).
+	 */
+	void data(const std::string &data, int field = 0);
 };
 }
 }
