@@ -20,24 +20,19 @@
 
 namespace ousia {
 
-/**
- * This returns all children of this SelectorNode that are connected by
- * the given operator, have the given className and the given
- * PseudoSelector.
- */
 std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
     const SelectionOperator &op, const std::string &className,
     const PseudoSelector &select)
 {
 	std::vector<Rooted<SelectorNode>> out;
-	for(auto& e : edges){
-		if(e->getSelectionOperator() != op){
+	for (auto &e : edges) {
+		if (e->getSelectionOperator() != op) {
 			continue;
 		}
-		if(e->getTarget()->getName() != className){
+		if (e->getTarget()->getName() != className) {
 			continue;
 		}
-		if(e->getTarget()->getPseudoSelector() != select){
+		if (e->getTarget()->getPseudoSelector() != select) {
 			continue;
 		}
 		out.push_back(e->getTarget());
@@ -45,5 +40,36 @@ std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
 	return out;
 }
 
-
+std::vector<Rooted<SelectorNode>> SelectorNode::append(
+    Rooted<SelectorEdge> edge)
+{
+	std::vector<Rooted<SelectorNode>> out;
+	// look if we already have a child in an equivalent edge.
+	std::vector<Rooted<SelectorNode>> children =
+	    getChildren(edge->getSelectionOperator(), edge->getTarget()->getName(),
+	                edge->getTarget()->getPseudoSelector());
+	// note that this can only be one child or no child.
+	if (children.size() == 0) {
+		// if there is no child the appending process is trivial: We can just
+		// add the whole subtree represented by the other node as child here.
+		edges.push_back(edge);
+	} else {
+		// otherwise we start the appending process recursively on the child
+		// level.
+		// TODO: RuleSet merging
+		if (edge->getTarget()->getEdges().size() == 0) {
+			// if there are no more subsequent edges this is a leafe we could
+			// not merge, because it is already present in the Tree.
+			out.push_back(edge->getTarget());
+		} else {
+			// otherwise we go into recursion.
+			for (auto &e : edge->getTarget()->getEdges()) {
+				std::vector<Rooted<SelectorNode>> childLeafs =
+				    children[0]->append(e);
+				out.insert(out.end(), childLeafs.begin(), childLeafs.end());
+			}
+		}
+	}
+	return out;
+}
 }

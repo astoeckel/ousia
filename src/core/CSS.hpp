@@ -45,7 +45,8 @@ struct Specificity {
 	Specificity(int b, int c, int d) : b(b), c(c), d(d) {}
 };
 
-//TODO: Is this correct? I used this to prevent "multiple definition" errors
+// TODO: Is this inline usage correct? I used this to prevent "multiple
+// definition" errors
 inline bool operator<(const Specificity &x, const Specificity &y)
 {
 	return std::tie(x.b, x.c, x.d) < std::tie(y.b, y.c, y.d);
@@ -254,6 +255,7 @@ public:
 	    : Node(mgr, std::move(name)),
 	      pseudoSelector(std::move(pseudoSelector)),
 	      edges(this)  //,
+	// TODO: This is temporarily commented out until the TypeSystem works.
 	// ruleSets(acquire(ruleSets))
 	{
 	}
@@ -262,6 +264,7 @@ public:
 
 	ManagedVector<SelectorEdge> &getEdges() { return edges; }
 
+	// TODO: This is temporarily commented out until the TypeSystem works.
 	//	const std::vector<Owned<RuleSet>> &getRuleSets() const { return
 	// ruleSets; }
 
@@ -274,6 +277,45 @@ public:
 	                                              const std::string &className,
 	                                              const PseudoSelector &select);
 
+	/**
+	 * This appends the given edge and the subsequent SelectorTree to
+	 * this SelectorNode. Note that only those nodes get appended to the
+	 * SelectorTree that are not already contained in this SelectorTree.
+	 *
+	 * Consider the example of the following SelectorTree T:
+	 *
+	 * root
+	 * | \
+	 * A  B
+	 * |
+	 * C
+	 *
+	 * and the following SelectorEdge e with its subsequent Tree T_e
+	 *
+	 * |
+	 * A
+	 * |\
+	 * C D
+	 *
+	 * If we call root.append(e) the resulting SelectorTree looks like
+	 * this:
+	 *
+	 * root
+	 * | \
+	 * A  B
+	 * |\
+	 * C D
+	 *
+	 * The method returns all leafs of T that are equivalent to leafs of T_e
+	 * and thus could not be appended to T, because they were already contained
+	 * there. In our example this would be a vector containing just C.
+	 *
+	 * @param edge a Rooted reference to an edge that shall be appended to this
+	 *             SelectorNode.
+	 * @return A list of leafs of this SelectorTree that could not be appended,
+	 *         because they were already contained.
+	 */
+	std::vector<Rooted<SelectorNode>> append(Rooted<SelectorEdge> edge);
 };
 }
 #endif
