@@ -250,10 +250,26 @@ private:
 	// TODO: This is temporarily commented out until the TypeSystem works.
 	//	Owned<RuleSet> ruleSets;
 
+	/**
+	 * This is an internal method all getChildren variants refer to.
+	 */
+	std::vector<Rooted<SelectorNode>> getChildren(const SelectionOperator *op,
+	                                              const std::string *className,
+	                                              const PseudoSelector *select);
+
 public:
 	SelectorNode(Manager &mgr, std::string name, PseudoSelector pseudoSelector)
 	    : Node(mgr, std::move(name)),
 	      pseudoSelector(std::move(pseudoSelector)),
+	      edges(this)  //,
+	// TODO: This is temporarily commented out until the TypeSystem works.
+	// ruleSets(acquire(ruleSets))
+	{
+	}
+
+	SelectorNode(Manager &mgr, std::string name)
+	    : Node(mgr, std::move(name)),
+	      pseudoSelector("true", false),
 	      edges(this)  //,
 	// TODO: This is temporarily commented out until the TypeSystem works.
 	// ruleSets(acquire(ruleSets))
@@ -269,13 +285,59 @@ public:
 	// ruleSets; }
 
 	/**
-	 * This returns all children of this SelectorNode that are connected by
-	 * the given operator, have the given className and the given
-	 * PseudoSelector.
+	 * This returns the child of this SelectorNode that is connected by
+	 * the given operator, has the given className and the given
+	 * PseudoSelector. For convention reasons with the other methods, this
+	 * also returns a vector, which might either be empty or has exactly one
+	 * element.
 	 */
 	std::vector<Rooted<SelectorNode>> getChildren(const SelectionOperator &op,
 	                                              const std::string &className,
 	                                              const PseudoSelector &select);
+
+	/**
+	 * This returns all children of this SelectorNode that have the given
+	 * className and the given PseudoSelector.
+	 */
+	std::vector<Rooted<SelectorNode>> getChildren(const std::string &className,
+	                                              const PseudoSelector &select);
+
+	/**
+	 * This returns all children of this SelectorNode that are connected by the
+	 * given SelectionOperator and have the given PseudoSelector.
+	 */
+	std::vector<Rooted<SelectorNode>> getChildren(const SelectionOperator &op,
+	                                              const PseudoSelector &select);
+
+	/**
+	 * This returns all children of this SelectorNode that are connected by the
+	 * given SelectionOperator and have the given className.
+	 */
+	std::vector<Rooted<SelectorNode>> getChildren(const SelectionOperator &op,
+	                                              const std::string &className);
+
+	/**
+	 * This returns all children of this SelectorNode that are connected by the
+	 * given SelectionOperator.
+	 */
+	std::vector<Rooted<SelectorNode>> getChildren(const SelectionOperator &op);
+
+	/**
+	 * This returns all children of this SelectorNode that have the given
+	 * className.
+	 */
+	std::vector<Rooted<SelectorNode>> getChildren(const std::string &className);
+
+	/**
+	 * This returns all children of this SelectorNode that have the given
+	 * PseudoSelector.
+	 */
+	std::vector<Rooted<SelectorNode>> getChildren(const PseudoSelector &select);
+
+	/**
+	 * This returns all children of this SelectorNode.
+	 */
+	std::vector<Rooted<SelectorNode>> getChildren();
 
 	/**
 	 * This appends the given edge and the subsequent SelectorTree to

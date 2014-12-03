@@ -115,13 +115,55 @@ TEST(Specificity, testOperators)
 TEST(SelectorNode, testGetChildren)
 {
 	Manager mgr(1);
-	Rooted<SelectorNode> root{new SelectorNode{mgr, "root", {"true", false}}};
-	Rooted<SelectorNode> child{new SelectorNode{mgr, "A", {"true", false}}};
-	root->getEdges().push_back(
-	    new SelectorNode::SelectorEdge{mgr, child, SelectionOperator::DESCENDANT});
+	// build some children.
+	Rooted<SelectorNode> root{new SelectorNode{mgr, "root"}};
+	Rooted<SelectorNode> A{new SelectorNode{mgr, "A"}};
+	Rooted<SelectorNode> AMy_Select{
+	    new SelectorNode{mgr, "A", {"my_select", {"a", "b"}, false}}};
+	Rooted<SelectorNode> B{new SelectorNode{mgr, "B"}};
+
+	std::vector<Rooted<SelectorNode>> children = {A, AMy_Select, B};
+
+	for (auto &c : children) {
+		root->getEdges().push_back(new SelectorNode::SelectorEdge{
+		    mgr, c, SelectionOperator::DESCENDANT});
+	}
+	root->getEdges().push_back(new SelectorNode::SelectorEdge{
+	    mgr, B, SelectionOperator::DIRECT_DESCENDANT});
+
+	// make some checks.
+	std::vector<Rooted<SelectorNode>> expected = {A};
 	std::vector<Rooted<SelectorNode>> actual =
 	    root->getChildren(SelectionOperator::DESCENDANT, "A", {"true", false});
-	ASSERT_EQ(1,actual.size());
-	ASSERT_EQ(child, actual[0]);
+	ASSERT_EQ(expected, actual);
+
+	expected = {A, AMy_Select};
+	actual = root->getChildren(SelectionOperator::DESCENDANT, "A");
+	ASSERT_EQ(expected, actual);
+	actual = root->getChildren("A");
+	ASSERT_EQ(expected, actual);
+
+	expected = {A, AMy_Select, B};
+	actual = root->getChildren(SelectionOperator::DESCENDANT);
+	ASSERT_EQ(expected, actual);
+
+	expected = {B};
+	actual = root->getChildren(SelectionOperator::DIRECT_DESCENDANT);
+	ASSERT_EQ(expected, actual);
+
+	expected = {B, B};
+	actual = root->getChildren("B");
+	ASSERT_EQ(expected, actual);
+
+	{
+		expected = {A, B, B};
+		PseudoSelector select = {"true", false};
+		actual = root->getChildren(select);
+		ASSERT_EQ(expected, actual);
+	}
+
+	expected = {A, AMy_Select, B, B};
+	actual = root->getChildren();
+	ASSERT_EQ(expected, actual);
 }
 }

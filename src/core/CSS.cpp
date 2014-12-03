@@ -20,25 +20,81 @@
 
 namespace ousia {
 
+/*
+ * different versions of "getChildren".
+ */
+
 std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
-    const SelectionOperator &op, const std::string &className,
-    const PseudoSelector &select)
+    const SelectionOperator *op, const std::string *className,
+    const PseudoSelector *select)
 {
 	std::vector<Rooted<SelectorNode>> out;
 	for (auto &e : edges) {
-		if (e->getSelectionOperator() != op) {
+		if (op && e->getSelectionOperator() != *op) {
 			continue;
 		}
-		if (e->getTarget()->getName() != className) {
+		if (className && e->getTarget()->getName() != *className) {
 			continue;
 		}
-		if (e->getTarget()->getPseudoSelector() != select) {
+		if (select && e->getTarget()->getPseudoSelector() != *select) {
 			continue;
 		}
 		out.push_back(e->getTarget());
 	}
 	return out;
 }
+
+std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
+    const SelectionOperator &op, const std::string &className,
+    const PseudoSelector &select)
+{
+	return getChildren(&op, &className, &select);
+}
+
+std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
+    const std::string &className, const PseudoSelector &select)
+{
+	return getChildren(NULL, &className, &select);
+}
+
+std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
+    const SelectionOperator &op, const PseudoSelector &select)
+{
+	return getChildren(&op, NULL, &select);
+}
+
+std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
+    const SelectionOperator &op, const std::string &className)
+{
+	return getChildren(&op, &className, NULL);
+}
+
+std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
+    const SelectionOperator &op)
+{
+	return getChildren(&op, NULL, NULL);
+}
+
+std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
+    const std::string &className)
+{
+	return getChildren(NULL, &className, NULL);
+}
+
+std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
+    const PseudoSelector &select)
+{
+	return getChildren(NULL, NULL, &select);
+}
+
+std::vector<Rooted<SelectorNode>> SelectorNode::getChildren()
+{
+	return getChildren(NULL, NULL, NULL);
+}
+
+/*
+ * append
+ */
 
 std::vector<Rooted<SelectorNode>> SelectorNode::append(
     Rooted<SelectorEdge> edge)
