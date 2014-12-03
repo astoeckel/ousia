@@ -116,16 +116,22 @@ std::vector<Rooted<SelectorNode>> SelectorNode::append(
 		if (edge->getTarget()->getEdges().size() == 0) {
 			// if there are no more subsequent edges this is a leafe we could
 			// not merge, because it is already present in the Tree.
-			out.push_back(edge->getTarget());
+			out.push_back(children[0]);
 		} else {
 			// otherwise we go into recursion.
 			for (auto &e : edge->getTarget()->getEdges()) {
+				Rooted<SelectorEdge> e2 {e};
 				std::vector<Rooted<SelectorNode>> childLeafs =
-				    children[0]->append(e);
+				    children[0]->append(e2);
 				out.insert(out.end(), childLeafs.begin(), childLeafs.end());
 			}
 		}
 	}
 	return out;
+}
+
+std::vector<Rooted<SelectorNode>> SelectorNode::append(Rooted<SelectorNode> node){
+	const Rooted<SelectorEdge> e {new SelectorEdge{node->getManager(), node}};
+	return std::move(append(e));
 }
 }

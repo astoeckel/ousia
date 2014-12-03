@@ -125,8 +125,7 @@ TEST(SelectorNode, testGetChildren)
 	std::vector<Rooted<SelectorNode>> children = {A, AMy_Select, B};
 
 	for (auto &c : children) {
-		root->getEdges().push_back(new SelectorNode::SelectorEdge{
-		    mgr, c, SelectionOperator::DESCENDANT});
+		root->getEdges().push_back(new SelectorNode::SelectorEdge{mgr, c});
 	}
 	root->getEdges().push_back(new SelectorNode::SelectorEdge{
 	    mgr, B, SelectionOperator::DIRECT_DESCENDANT});
@@ -165,5 +164,106 @@ TEST(SelectorNode, testGetChildren)
 	expected = {A, AMy_Select, B, B};
 	actual = root->getChildren();
 	ASSERT_EQ(expected, actual);
+}
+
+TEST(SelectorNode, testAppend)
+{
+	Manager mgr(1);
+	// build the root.
+	Rooted<SelectorNode> root{new SelectorNode{mgr, "root"}};
+	// append a child.
+	Rooted<SelectorNode> A{new SelectorNode{mgr, "A"}};
+	// this should work without any unmerged leafs.
+	ASSERT_EQ(0, (root->append(A)).size());
+	/*
+	 * check the result. We expect the SelectorTree
+	 *
+	 * root
+	 *  |
+	 *  A
+	 */
+	ASSERT_EQ(1, (root->getEdges()).size());
+	std::vector<Rooted<SelectorNode>> children = root->getChildren("A");
+	ASSERT_EQ(1, children.size());
+	ASSERT_EQ(A, children[0]);
+
+	// append another child.
+	Rooted<SelectorNode> B{new SelectorNode{mgr, "B"}};
+	ASSERT_EQ(0, (root->append(B)).size());
+	/*
+	 * check the result. We expect the SelectorTree
+	 *
+	 * root
+	 *  | \
+	 *  A  B
+	 */
+	ASSERT_EQ(2, (root->getEdges()).size());
+	children = root->getChildren("B");
+	ASSERT_EQ(1, children.size());
+	ASSERT_EQ(B, children[0]);
+
+	// append a grandchild using a path.
+	Rooted<SelectorNode> C{new SelectorNode{mgr, "C"}};
+	{
+		Rooted<SelectorNode> pathA{new SelectorNode{mgr, "A"}};
+		pathA->append(C);
+
+		ASSERT_EQ(0, (root->append(pathA)).size());
+	}
+	/*
+	 * check the result. We expect the SelectorTree
+	 *
+	 * root
+	 *  | \
+	 *  A  B
+	 *  |
+	 *  C
+	 */
+	ASSERT_EQ(2, (root->getEdges()).size());
+	children = root->getChildren("A");
+	ASSERT_EQ(1, children.size());
+	ASSERT_EQ(1, (children[0]->getEdges()).size());
+	children = children[0]->getChildren("C");
+	ASSERT_EQ(1, children.size());
+	ASSERT_EQ(C, children[0]);
+
+	// append a subtree that is partially contained.
+	Rooted<SelectorNode> D{new SelectorNode{mgr, "D"}};
+	{
+		Rooted<SelectorNode> pathA{new SelectorNode{mgr, "A"}};
+		Rooted<SelectorNode> pathC{new SelectorNode{mgr, "C"}};
+		pathA->append(pathC);
+		pathA->append(D);
+
+		// The C leaf can not be appended because it is already part of the
+		// tree. So we expect that as a return value.
+		std::vector<Rooted<SelectorNode>> unmergedLeafs = root->append(pathA);
+		ASSERT_EQ(1,unmergedLeafs.size());
+		ASSERT_EQ(C.get(),unmergedLeafs[0].get());
+	}
+	/*
+	 * check the result. We expect the SelectorTree
+	 *
+	 * root
+	 *  | \
+	 *  A  B
+	 *  |\
+	 *  C D
+	 */
+	ASSERT_EQ(2, (root->getEdges()).size());
+	children = root->getChildren("A");
+	ASSERT_EQ(1, children.size());
+	ASSERT_EQ(2, (children[0]->getEdges()).size());
+	children = children[0]->getChildren("D");
+	ASSERT_EQ(1, children.size());
+	ASSERT_EQ(D, children[0]);
+	 
+	// append a child with a non-trivial PseudoSelector.
+	Rooted<SelectorNode> ASelect {new SelectorNode{mgr, "A", {"my_select", {"a","b"},false}}};
+	ASSERT_EQ(0, (root->append(ASelect)).size());
+	ASSERT_EQ(3, (root->getEdges()).size());
+	children = root->getChildren("A");
+	ASSERT_EQ(2, children.size());
+	ASSERT_EQ(ASelect, children[1]);
 }
 }

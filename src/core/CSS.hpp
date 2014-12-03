@@ -227,8 +227,9 @@ public:
 		const SelectionOperator selectionOperator;
 
 	public:
-		SelectorEdge(Manager &mgr, Handle<SelectorNode> target,
-		             SelectionOperator selectionOperator)
+		SelectorEdge(
+		    Manager &mgr, Handle<SelectorNode> target,
+		    SelectionOperator selectionOperator = SelectionOperator::DESCENDANT)
 		    : Managed(mgr),
 		      target(acquire(target)),
 		      selectionOperator(selectionOperator)
@@ -378,6 +379,12 @@ public:
 	 *         because they were already contained.
 	 */
 	std::vector<Rooted<SelectorNode>> append(Rooted<SelectorEdge> edge);
+
+	/**
+	 * This is just a convenience function which creates a new edge
+	 * automatically using the DESCENDANT SelectionOperator.
+	 */
+	std::vector<Rooted<SelectorNode>> append(Rooted<SelectorNode> node);
 };
 }
 #endif
