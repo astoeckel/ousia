@@ -42,6 +42,7 @@
 #include <core/Exceptions.hpp>
 
 namespace ousia {
+namespace variant {
 
 /**
  * Instances of the Variant class represent any kind of data that is exchanged
@@ -680,13 +681,16 @@ public:
 	 * Prints a key value pair to the output stream.
 	 */
 	friend std::ostream &operator<<(std::ostream &os,
-		                     const mapType::value_type &v)
+	                                const mapType::value_type &v)
 	{
 		// TODO: Use proper serialization function
 		return os << "\"" << v.first << "\": " << v.second.toString(true);
 	}
 };
+}
 
+// Alias for the (very often used and unambigous) variant class
+using Variant = variant::Variant;
 }
 
 #endif /* _OUSIA_VARIANT_HPP_ */
