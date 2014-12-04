@@ -100,6 +100,7 @@ ADD_LIBRARY(ousia_core
 	src/core/BufferedCharReader
 	src/core/CodeTokenizer
 	src/core/CSS
+	src/core/CSSParser
 	src/core/Exceptions
 	src/core/Logger
 	src/core/Managed

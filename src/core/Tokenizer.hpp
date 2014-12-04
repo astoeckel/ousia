@@ -223,6 +223,8 @@ public:
 	 * Clears the peek buffer, such that all peeked Tokens are consumed.
 	 */
 	void consumePeek();
+
+	const BufferedCharReader &getInput() const { return input; }
 };
 }
 

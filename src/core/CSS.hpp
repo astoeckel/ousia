@@ -21,6 +21,7 @@
 
 #include <map>
 #include <vector>
+#include <tuple>
 
 #include "Managed.hpp"
 #include "Node.hpp"
