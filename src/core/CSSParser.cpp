@@ -16,9 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "BufferedCharReader.hpp"
-#include "CodeTokenizer.hpp"
-
 #include "CSSParser.hpp"
 
 namespace ousia {

@@ -195,6 +195,7 @@ bool Tokenizer::peek(Token &t)
 		}
 	}
 	t = peeked[peekCursor];
+	peekCursor++;
 	return true;
 }
 

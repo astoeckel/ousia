@@ -21,95 +21,92 @@
 #include <core/CSSParser.hpp>
 
 namespace ousia {
-TEST(Specificity, testOperators)
+TEST(CSSParser, testParseSelectors)
 {
-	Specificity s1{0,0,1};
-	Specificity s2{0,1,1};
-	Specificity s3{1,1,1};
-	Specificity s4{0,0,2};
-	Specificity s5{1,0,2};
-	
-	//This should be s1 < s4 < s2 < s5 < s3
+	// create a selector Tree as input.
+	BufferedCharReader reader;
+	reader.feed("A>B,A B:r, C#a A[bla=\"blub\"], A::g(4,2,3)");
+	/* This should describe the tree:
+	 * root_____
+	 * | \      \
+	 * A  C#a  A::g(4,2,3)
+	 * |\    \
+	 * B B::r A[bla="blub"]
+	 */
 
-	ASSERT_TRUE(s1 == s1);
-	ASSERT_FALSE(s1 < s1);
-	ASSERT_FALSE(s1 > s1);
-	ASSERT_FALSE(s1 == s2);
-	ASSERT_TRUE(s1 < s2);
-	ASSERT_FALSE(s1 > s2);
-	ASSERT_FALSE(s1 == s3);
-	ASSERT_TRUE(s1 < s3);
-	ASSERT_FALSE(s1 > s3);
-	ASSERT_FALSE(s1 == s4);
-	ASSERT_TRUE(s1 < s4);
-	ASSERT_FALSE(s1 > s4);
-	ASSERT_FALSE(s1 == s5);
-	ASSERT_TRUE(s1 < s5);
-	ASSERT_FALSE(s1 > s5);
+	// parse the input.
+	CSSParser instance;
+	Rooted<SelectorNode> root = instance.parse(reader);
 
-	ASSERT_FALSE(s2 == s1);
-	ASSERT_FALSE(s2 < s1);
-	ASSERT_TRUE(s2 > s1);
-	ASSERT_TRUE(s2 == s2);
-	ASSERT_FALSE(s2 < s2);
-	ASSERT_FALSE(s2 > s2);
-	ASSERT_FALSE(s2 == s3);
-	ASSERT_TRUE(s2 < s3);
-	ASSERT_FALSE(s2 > s3);
-	ASSERT_FALSE(s2 == s4);
-	ASSERT_FALSE(s2 < s4);
-	ASSERT_TRUE(s2 > s4);
-	ASSERT_FALSE(s2 == s5);
-	ASSERT_TRUE(s2 < s5);
-	ASSERT_FALSE(s2 > s5);
-
-	ASSERT_FALSE(s3 == s1);
-	ASSERT_FALSE(s3 < s1);
-	ASSERT_TRUE(s3 > s1);
-	ASSERT_FALSE(s3 == s2);
-	ASSERT_FALSE(s3 < s2);
-	ASSERT_TRUE(s3 > s2);
-	ASSERT_TRUE(s3 == s3);
-	ASSERT_FALSE(s3 < s3);
-	ASSERT_FALSE(s3 > s3);
-	ASSERT_FALSE(s3 == s4);
-	ASSERT_FALSE(s3 < s4);
-	ASSERT_TRUE(s3 > s4);
-	ASSERT_FALSE(s3 == s5);
-	ASSERT_FALSE(s3 < s5);
-	ASSERT_TRUE(s3 > s5);
-
-	ASSERT_FALSE(s4 == s1);
-	ASSERT_FALSE(s4 < s1);
-	ASSERT_TRUE(s4 > s1);
-	ASSERT_FALSE(s4 == s2);
-	ASSERT_TRUE(s4 < s2);
-	ASSERT_FALSE(s4 > s2);
-	ASSERT_FALSE(s4 == s3);
-	ASSERT_TRUE(s4 < s3);
-	ASSERT_FALSE(s4 > s3);
-	ASSERT_TRUE(s4 == s4);
-	ASSERT_FALSE(s4 < s4);
-	ASSERT_FALSE(s4 > s4);
-	ASSERT_FALSE(s4 == s5);
-	ASSERT_TRUE(s4 < s5);
-	ASSERT_FALSE(s4 > s5);
-
-	ASSERT_FALSE(s5 == s1);
-	ASSERT_FALSE(s5 < s1);
-	ASSERT_TRUE(s5 > s1);
-	ASSERT_FALSE(s5 == s2);
-	ASSERT_FALSE(s5 < s2);
-	ASSERT_TRUE(s5 > s2);
-	ASSERT_FALSE(s5 == s3);
-	ASSERT_TRUE(s5 < s3);
-	ASSERT_FALSE(s5 > s3);
-	ASSERT_FALSE(s5 == s4);
-	ASSERT_FALSE(s5 < s4);
-	ASSERT_TRUE(s5 > s4);
-	ASSERT_TRUE(s5 == s5);
-	ASSERT_FALSE(s5 < s5);
-	ASSERT_FALSE(s5 > s5);
+	// we expect three children of the root node overall.
+	ASSERT_EQ(3, root->getEdges().size());
+	// get all "A" children, which should be two.
+	std::vector<Rooted<SelectorNode>> children = root->getChildren("A");
+	ASSERT_EQ(2, children.size());
+	// assert A
+	Rooted<SelectorNode> A = children[0];
+	ASSERT_EQ("A", A->getName());
+	{
+		PseudoSelector select{"true", false};
+		ASSERT_EQ(select, A->getPseudoSelector());
+	}
+	ASSERT_EQ(2, A->getEdges().size());
+	{
+		// assert A > B
+		std::vector<Rooted<SelectorNode>> Achildren =
+		    A->getChildren(SelectionOperator::DIRECT_DESCENDANT, "B");
+		ASSERT_EQ(1, Achildren.size());
+		Rooted<SelectorNode> B = Achildren[0];
+		ASSERT_EQ("B", B->getName());
+		{
+			PseudoSelector select{"true", false};
+			ASSERT_EQ(select, B->getPseudoSelector());
+		}
+		ASSERT_EQ(0, B->getEdges().size());
+		// assert A B:r
+		Achildren = A->getChildren(SelectionOperator::DESCENDANT, "B");
+		ASSERT_EQ(1, Achildren.size());
+		Rooted<SelectorNode> Br = Achildren[0];
+		ASSERT_EQ("B", Br->getName());
+		{
+			PseudoSelector select{"r", false};
+			ASSERT_EQ(select, Br->getPseudoSelector());
+		}
+		ASSERT_EQ(0, Br->getEdges().size());
+	}
+	// assert C#a
+	children = root->getChildren("C");
+	ASSERT_EQ(1, children.size());
+	Rooted<SelectorNode> C = children[0];
+	ASSERT_EQ("C", C->getName());
+	{
+		PseudoSelector select{"has_id", {"a"}, false};
+		ASSERT_EQ(select, C->getPseudoSelector());
+	}
+	ASSERT_EQ(1, C->getEdges().size());
+	{
+		// assert C#a A[bla=\"blub\"]
+		std::vector<Rooted<SelectorNode>> Cchildren =
+		    C->getChildren(SelectionOperator::DESCENDANT, "A");
+		ASSERT_EQ(1, Cchildren.size());
+		Rooted<SelectorNode> A = Cchildren[0];
+		ASSERT_EQ("A", A->getName());
+		{
+			PseudoSelector select{"has_value", {"bla", "blub"}, false};
+			ASSERT_EQ(select, A->getPseudoSelector());
+		}
+		ASSERT_EQ(0, A->getEdges().size());
+	}
+	// assert A::g(4,2,3)
+	children = root->getChildren("A");
+	ASSERT_EQ(2, children.size());
+	Rooted<SelectorNode> Ag = children[1];
+	ASSERT_EQ("A", Ag->getName());
+	{
+		PseudoSelector select{"g", {"4", "2", "3"}, true};
+		ASSERT_EQ(select, Ag->getPseudoSelector());
+	}
+	ASSERT_EQ(0, Ag->getEdges().size());
 }
 }
 

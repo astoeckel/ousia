@@ -147,6 +147,7 @@ IF(TEST)
 		test/core/BufferedCharReaderTest
 		test/core/CodeTokenizerTest
 		test/core/CSSTest
+		test/core/CSSParserTest
 		test/core/LoggerTest
 		test/core/ManagedTest
 		test/core/ManagedContainersTest

@@ -23,6 +23,7 @@
 #include <tuple>
 
 #include "BufferedCharReader.hpp"
+#include "CodeTokenizer.hpp"
 #include "CSS.hpp"
 #include "Exceptions.hpp"
 
