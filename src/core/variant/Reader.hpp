@@ -32,6 +32,7 @@
 #include <utility>
 
 #include <core/BufferedCharReader.hpp>
+#include <core/Logger.hpp>
 
 #include "Variant.hpp"
 
@@ -40,44 +41,6 @@ namespace variant {
 
 class Reader {
 public:
-	// TODO: Pass logger instance instead of using error codes?
-
-	/**
-	 * The Err enum describes possible error codes that may be encountered when
-	 * parsing the microtypes.
-	 */
-	enum class Err : int {
-		/**
-	     * Reached the end of the stream, but expected more data.
-	     */
-		ERR_UNEXPECTED_END = -1,
-
-		/**
-	     * The stream is malformed.
-	     */
-		ERR_MALFORMED = -2,
-
-		/**
-		 * Unexpected character.
-		 */
-		ERR_UNEXPECTED_CHARACTER = -3,
-
-		/**
-		 * Unterminated literal.
-		 */
-		ERR_UNTERMINATED = -4,
-
-		/**
-		 * Invalid escape character.
-		 */
-		ERR_INVALID_ESCAPE = -5,
-
-		/**
-	     * A value of the requested type was extracted successfully.
-	     */
-		OK = 0
-	};
-
 	/**
 	 * Parses a string which may either be enclosed by " or ', unescapes
 	 * entities in the string as specified for JavaScript.
@@ -91,9 +54,10 @@ public:
 	 * outside). If nullptr is given, no delimiter is used and a complete string
 	 * is read.
 	 */
-	static std::pair<Err, std::string> parseString(
+	static std::pair<bool, std::string> parseString(
 	    BufferedCharReader &reader,
-	    const unordered_set<char> *delims = nullptr);
+	    const unordered_set<char> *delims = nullptr,
+	    Logger *logger = nullptr);
 
 	/**
 	 * Extracts an unescaped string from the given buffered char reader
@@ -106,8 +70,9 @@ public:
 	 * @param delims is a set of characters which will terminate the string.
 	 * These characters are not included in the result. May not be nullptr.
 	 */
-	static std::pair<Err, std::string> parseUnescapedString(
-	    BufferedCharReader &reader, const unordered_set<char> *delims);
+	static std::pair<bool, std::string> parseUnescapedString(
+	    BufferedCharReader &reader, const unordered_set<char> *delims,
+	    Logger *logger = nullptr);
 
 	/**
 	 * Tries to parse the most specific item from the given stream until one of
@@ -120,8 +85,9 @@ public:
 	 * @param delims is a set of characters which will terminate the string.
 	 * These characters are not included in the result. May not be nullptr.
 	 */
-	static std::pair<Err, Variant> parseGeneric(
-	    BufferedCharReader &reader, const unordered_set<char> *delims);
+	static std::pair<bool, Variant> parseGeneric(
+	    BufferedCharReader &reader, const unordered_set<char> *delims,
+	    Logger *logger = nullptr);
 };
 }
 }

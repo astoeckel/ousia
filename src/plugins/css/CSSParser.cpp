@@ -135,11 +135,8 @@ void CSSParser::parseSelectors(Rooted<SelectorNode> root,
 			// as the parseSelector is supposed to parse only a SelectorPath
 			// there should not be more than one leaf.
 			throw ParserException{
-			    "Internal Error: More than one leaf in SelectorPath!", "",
-			    // TODO: Line handling?
-			    //			    tokenizer.getInput().getLine(),
-			    //			    tokenizer.getInput().getColumn()
-			};
+			    "Internal Error: More than one leaf in SelectorPath!",
+			    tokenizer.getInput()};
 	}
 	// if we find a comma, we can proceed parsing selectors.
 	Token t;
@@ -301,19 +298,11 @@ bool CSSParser::expect(int expectedType, CodeTokenizer &tokenizer, Token &t,
 	if (end || t.tokenId != expectedType) {
 		if (force) {
 			if (end) {
-				throw ParserException{
-				    "Unexpected end of file!", "",
-				    // TODO: Line handling?
-				    //			    tokenizer.getInput().getLine(),
-				    //			    tokenizer.getInput().getColumn()
-				};
+				throw ParserException{"Unexpected end of file!",
+				                      tokenizer.getInput()};
 			} else {
-				throw ParserException{
-				    "Unexpected token!", "",
-				    // TODO: Line handling?
-				    //			    tokenizer.getInput().getLine(),
-				    //			    tokenizer.getInput().getColumn()
-				};
+				throw ParserException{"Unexpected token!",
+				                      tokenizer.getInput()};
 			}
 		} else {
 			tokenizer.resetPeek();

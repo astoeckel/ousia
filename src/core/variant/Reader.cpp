@@ -26,12 +26,17 @@
 namespace ousia {
 namespace variant {
 
+static const char *ERR_UNEXPECTED_CHARACTER = "Unexpected character";
+static const char *ERR_UNEXPECTED_END = "Unexpected end";
+static const char *ERR_UNTERMINATED = "Unterminated literal";
+
 static const int STATE_INIT = 0;
 static const int STATE_IN_STRING = 1;
 static const int STATE_ESCAPE = 2;
 
 static std::pair<Err, std::string> parseString(
-    BufferedCharReader &reader, const unordered_set<char> *delims = nullptr)
+    BufferedCharReader &reader, const unordered_set<char> *delims = nullptr,
+    Logger *logger = nullptr)
 {
 	// Initialize the internal state
 	Err errCode = Err::OK;
@@ -51,9 +56,13 @@ static std::pair<Err, std::string> parseString(
 					quote = c;
 					state = STATE_IN_STRING;
 				} else if (delims && delims.count(c)) {
+					Logger.log(ERR_UNTERMINATED, reader);
 					return std::make_pair(Err::UNEXPECTED_END, res.str());
+				} else if (Utils::isWhitespace(c)) {
+					reader.consumePeek();
+					continue;
 				}
-				reader.consumePeek();
+				return std::make_pair(Err::UNEXPECTED_CHARACTER, res.str());
 				break;
 			case STATE_IN_STRING:
 				if (c == q) {
@@ -171,7 +180,6 @@ static std::pair<Err, Variant> parseGeneric(BufferedCharReader &reader,
 	}
 	return std::make_pair(Err::UNEXPECTED_END, res.str());
 }
-
 }
 }
 

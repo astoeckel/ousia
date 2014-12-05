@@ -251,7 +251,7 @@ public:
 	 * @tparam PosType is the actual type of pos and must implement a getLine
 	 * and getColumn function.
 	 */
-	template<class PosType>
+	template <class PosType>
 	void logAt(Severity severity, const std::string &msg, const PosType &pos)
 	{
 		log(severity, msg, pos.getLine(), pos.getColumn());
@@ -264,7 +264,7 @@ public:
 	 */
 	void log(const LoggableException &ex)
 	{
-		log(ex.fatal ? Severity::FATAL_ERROR : Severity::ERROR, ex.msg,
+		log(Severity::ERROR, ex.msg,
 		    ex.file.empty() ? currentFilename() : ex.file, ex.line, ex.column);
 	}
 
@@ -279,7 +279,8 @@ public:
 	 * @param column is the column in the above file at which the error occured.
 	 * Ignored if negative.
 	 */
-	void debug(const std::string &msg, const std::string &file, int line = -1, int column = -1)
+	void debug(const std::string &msg, const std::string &file, int line = -1,
+	           int column = -1)
 	{
 		log(Severity::DEBUG, msg, file, line, column);
 	}
@@ -308,7 +309,7 @@ public:
 	 * @param pos is a const reference to a variable which provides position
 	 * information.
 	 */
-	template<class PosType>
+	template <class PosType>
 	void debugAt(const std::string &msg, const PosType &pos)
 	{
 		debug(msg, pos.getLine(), pos.getColumn());
@@ -325,7 +326,8 @@ public:
 	 * @param column is the column in the above file at which the error occured.
 	 * Ignored if negative.
 	 */
-	void note(const std::string &msg, const std::string &file, int line = -1, int column = -1)
+	void note(const std::string &msg, const std::string &file, int line = -1,
+	          int column = -1)
 	{
 		log(Severity::NOTE, msg, file, line, column);
 	}
@@ -353,7 +355,7 @@ public:
 	 * @param pos is a const reference to a variable which provides position
 	 * information.
 	 */
-	template<class PosType>
+	template <class PosType>
 	void noteAt(const std::string &msg, const PosType &pos)
 	{
 		note(msg, pos.getLine(), pos.getColumn());
@@ -370,7 +372,8 @@ public:
 	 * @param column is the column in the above file at which the error occured.
 	 * Ignored if negative.
 	 */
-	void warning(const std::string &msg, const std::string &file, int line = -1, int column = -1)
+	void warning(const std::string &msg, const std::string &file, int line = -1,
+	             int column = -1)
 	{
 		log(Severity::WARNING, msg, file, line, column);
 	}
@@ -383,7 +386,7 @@ public:
 	 * @param pos is a const reference to a variable which provides position
 	 * information.
 	 */
-	template<class PosType>
+	template <class PosType>
 	void warningAt(const std::string &msg, const PosType &pos)
 	{
 		warning(msg, pos.getLine(), pos.getColumn());
@@ -415,7 +418,8 @@ public:
 	 * @param column is the column in the above file at which the error occured.
 	 * Ignored if negative.
 	 */
-	void error(const std::string &msg, const std::string &file, int line = -1, int column = -1)
+	void error(const std::string &msg, const std::string &file, int line = -1,
+	           int column = -1)
 	{
 		log(Severity::ERROR, msg, file, line, column);
 	}
@@ -443,7 +447,7 @@ public:
 	 * @param pos is a const reference to a variable which provides position
 	 * information.
 	 */
-	template<class PosType>
+	template <class PosType>
 	void errorAt(const std::string &msg, const PosType &pos)
 	{
 		error(msg, pos.getLine(), pos.getColumn());
@@ -460,7 +464,8 @@ public:
 	 * @param column is the column in the above file at which the error occured.
 	 * Ignored if negative.
 	 */
-	void fatalError(const std::string &msg, const std::string &file, int line = -1, int column = -1)
+	void fatalError(const std::string &msg, const std::string &file,
+	                int line = -1, int column = -1)
 	{
 		log(Severity::FATAL_ERROR, msg, file, line, column);
 	}
@@ -488,7 +493,7 @@ public:
 	 * @param pos is a const reference to a variable which provides position
 	 * information.
 	 */
-	template<class PosType>
+	template <class PosType>
 	void fatalErrorAt(const std::string &msg, const PosType &pos)
 	{
 		fatalError(msg, pos.getLine(), pos.getColumn());

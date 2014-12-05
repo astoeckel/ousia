@@ -37,7 +37,6 @@ TEST(XmlParser, mismatchedTagException)
 	}
 	catch (ParserException ex) {
 		ASSERT_EQ(2, ex.line);
-		ASSERT_FALSE(ex.fatal);
 		hadException = true;
 	}
 	ASSERT_TRUE(hadException);
