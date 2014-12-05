@@ -172,7 +172,6 @@ public:
 	 */
 	BufferedCharReader(int line = 1, int column = 1);
 
-
 	/**
 	 * Constructor of the buffered char reader class with a string as input.
 	 *
@@ -180,7 +179,14 @@ public:
 	 * @param line is the start line.
 	 * @param column is the start column.
 	 */
-	BufferedCharReader(const std::string &str, int line = 1, int column = 1);
+	BufferedCharReader(const std::string &str, int line, int column);
+
+	/**
+	 * Constructor of the buffered char reader class with a string as input.
+	 *
+	 * @param str is a string containing the input data.
+	 */
+	BufferedCharReader(const std::string &str);
 
 	/**
 	 * Constructor of the buffered char reader class with a string as input.
@@ -220,6 +226,14 @@ public:
 	 * the last peeked character.
 	 */
 	void consumePeek();
+
+	/**
+	 * Moves the read cursor to the next non-whitespace character. Returns
+	 * false, if the end of the stream was reached.
+	 *
+	 * @return false if the end of the stream was reached, false othrwise.
+	 */
+	bool consumeWhitespace();
 
 	/**
 	 * Resets the peek pointer to the "read" pointer.

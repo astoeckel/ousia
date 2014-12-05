@@ -29,20 +29,32 @@ namespace variant {
 static const char *ERR_UNEXPECTED_CHARACTER = "Unexpected character";
 static const char *ERR_UNEXPECTED_END = "Unexpected end";
 static const char *ERR_UNTERMINATED = "Unterminated literal";
+static const char *ERR_INVALID_ESCAPE = "Invalid escape sequence";
 
 static const int STATE_INIT = 0;
 static const int STATE_IN_STRING = 1;
 static const int STATE_ESCAPE = 2;
+static const int STATE_WHITESPACE = 3;
 
-static std::pair<Err, std::string> parseString(
-    BufferedCharReader &reader, const unordered_set<char> *delims = nullptr,
-    Logger *logger = nullptr)
+template <class T>
+static std::pair<bool, T> error(BufferedCharReader &reader, Logger &logger,
+                                const char *err, T res)
+{
+	logger.errorAt(err, reader);
+	return std::make_pair(false, std::move(res));
+}
+
+std::pair<bool, std::string> Reader::parseString(
+    BufferedCharReader &reader, Logger &logger,
+    const std::unordered_set<char> *delims)
 {
 	// Initialize the internal state
-	Err errCode = Err::OK;
 	int state = STATE_INIT;
 	char quote = 0;
 	std::stringstream res;
+
+	// Consume all whitespace
+	reader.consumeWhitespace();
 
 	// Statemachine whic iterates over each character in the stream
 	// TODO: Combination of peeking and consumePeek is stupid as consumePeek is
@@ -55,29 +67,28 @@ static std::pair<Err, std::string> parseString(
 				if (c == '"' || c == '\'') {
 					quote = c;
 					state = STATE_IN_STRING;
-				} else if (delims && delims.count(c)) {
-					Logger.log(ERR_UNTERMINATED, reader);
-					return std::make_pair(Err::UNEXPECTED_END, res.str());
-				} else if (Utils::isWhitespace(c)) {
-					reader.consumePeek();
-					continue;
+					break;
+				} else if (delims && delims->count(c)) {
+					return error(reader, logger, ERR_UNEXPECTED_END, res.str());
 				}
-				return std::make_pair(Err::UNEXPECTED_CHARACTER, res.str());
-				break;
+				return error(reader, logger, ERR_UNEXPECTED_CHARACTER,
+				             res.str());
 			case STATE_IN_STRING:
-				if (c == q) {
-					state = STATE_END;
+				if (c == quote) {
 					reader.consumePeek();
-					return std::make_pair(Err::OK, res.str());
+					return std::make_pair(true, res.str());
 				} else if (c == '\\') {
 					state = STATE_ESCAPE;
+					reader.consumePeek();
+					break;
 				} else if (c == '\n') {
-					return std::make_pair(Err::UNTERMINATED, res.str());
+					return error(reader, logger, ERR_UNTERMINATED, res.str());
 				}
 				res << c;
 				reader.consumePeek();
 				break;
 			case STATE_ESCAPE:
+				// Handle all possible special escape characters
 				switch (c) {
 					case 'b':
 						res << '\b';
@@ -118,67 +129,90 @@ static std::pair<Err, std::string> parseString(
 						if (Utils::isNumeric(c)) {
 							// TODO: Parse octal 000 sequence
 						} else {
-							errCode = Err::ERR_INVALID_ESCAPE;
+							logger.errorAt(ERR_INVALID_ESCAPE, reader);
 						}
 						break;
 				}
+
+				// Switch back to the "normal" state
 				state = STATE_IN_STRING;
 				reader.consumePeek();
 				break;
 		}
 	}
-	return std::make_pair(Err::UNEXPECTED_END, res.str());
+	return error(reader, logger, ERR_UNEXPECTED_END, res.str());
 }
 
-static std::pair<Err, std::string> parseUnescapedString(
-    BufferedCharReader &reader, const unordered_set<char> *delims)
+std::pair<bool, std::string> Reader::parseUnescapedString(
+    BufferedCharReader &reader, Logger &logger,
+    const std::unordered_set<char> &delims)
 {
-	assert(delims);
-
 	std::stringstream res;
+	std::stringstream buf;
 	char c;
+
+	// Consume all whitespace
+	reader.consumeWhitespace();
+
+	// Copy all characters, skip whitespace at the end
+	int state = STATE_IN_STRING;
 	while (reader.peek(&c)) {
-		if (delims->count(c)) {
-			return std::make_pair(Err::OK, res.str());
+		if (delims.count(c)) {
+			return std::make_pair(true, res.str());
+		} else if (Utils::isWhitespace(c)) {
+			// Do not add whitespace to the output buffer
+			state = STATE_WHITESPACE;
+			buf << c;
+		} else {
+			// If we just hat a sequence of whitespace, append it to the output
+			// buffer and continue
+			if (state == STATE_WHITESPACE) {
+				res << buf.str();
+				buf.str(std::string{});
+				buf.clear();
+				state = STATE_IN_STRING;
+			}
+			res << c;
 		}
-		res << c;
 		reader.consumePeek();
 	}
-	return std::make_pair(Err::UNEXPECTED_END, res.str());
+	return std::make_pair(true, res.str());
 }
 
-static std::pair<Err, Variant> parseGeneric(BufferedCharReader &reader,
-                                            const unordered_set<char> *delims)
+std::pair<bool, Variant> Reader::parseGeneric(
+    BufferedCharReader &reader, Logger &logger,
+    const std::unordered_set<char> &delims)
 {
-	assert(delims);
-
 	char c;
+
+	// Skip all whitespace characters
+	reader.consumeWhitespace();
+
 	while (reader.peek(&c)) {
-		// Stop if a delimiter is reached, skipp all whitespace characters
-		if (delims->count(c)) {
-			return std::make_pair(Err::OK, res.str());
-		} else if (Utils::isWhitespace(c)) {
-			reader.consumePeek();
-			continue;
+		// Stop if a delimiter is reached
+		if (delims.count(c)) {
+			return error(reader, logger, ERR_UNEXPECTED_END, nullptr);
 		}
 
 		// Parse a string if a quote is reached
 		if (c == '"' || c == '\'') {
-			return parseString(reader, nullptr);
+			auto res = parseString(reader, logger);
+			return std::make_pair(res.first, res.second.c_str());
 		}
 
 		if (c == '[') {
 			// TODO: Parse struct descriptor
 		}
 
-		if (isNumeric(c)) {
+		if (Utils::isNumeric(c)) {
 			// TODO: Parse integer/double
 		}
 
 		// Parse an unescaped string in any other case
-		return parseUnescapedString(reader, delims);
+		auto res = parseUnescapedString(reader, logger, delims);
+		return std::make_pair(res.first, res.second.c_str());
 	}
-	return std::make_pair(Err::UNEXPECTED_END, res.str());
+	return error(reader, logger, ERR_UNEXPECTED_END, nullptr);
 }
 }
 }

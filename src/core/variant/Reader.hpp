@@ -40,6 +40,26 @@ namespace ousia {
 namespace variant {
 
 class Reader {
+private:
+	/**
+	 * Parses a string which may either be enclosed by " or ', unescapes
+	 * entities in the string as specified for JavaScript.
+	 *
+	 * @param reader is a reference to the BufferedCharReader instance which is
+	 * the source for the character data. The reader will be positioned after
+	 * the terminating quote character or at the terminating delimiting
+	 * character.
+	 * @param logger is the logger instance that should be used to log error
+	 * messages and warnings.
+	 * @param delims is an optional set of delimiters after which parsing has to
+	 * be stopped (the delimiters may occur inside the actual string, but not
+	 * outside). If nullptr is given, no delimiter is used and a complete string
+	 * is read.
+	 */
+	static std::pair<bool, std::string> parseString(
+	    BufferedCharReader &reader, Logger &logger,
+	    const std::unordered_set<char> *delims);
+
 public:
 	/**
 	 * Parses a string which may either be enclosed by " or ', unescapes
@@ -49,15 +69,35 @@ public:
 	 * the source for the character data. The reader will be positioned after
 	 * the terminating quote character or at the terminating delimiting
 	 * character.
-	 * @param delims is an optional set of delimiters after which parsing has to
+	 * @param logger is the logger instance that should be used to log error
+	 * messages and warnings.
+	 * @param delims is a set of delimiters after which parsing has to
 	 * be stopped (the delimiters may occur inside the actual string, but not
-	 * outside). If nullptr is given, no delimiter is used and a complete string
-	 * is read.
+	 * outside).
 	 */
 	static std::pair<bool, std::string> parseString(
-	    BufferedCharReader &reader,
-	    const unordered_set<char> *delims = nullptr,
-	    Logger *logger = nullptr);
+	    BufferedCharReader &reader, Logger &logger,
+	    const std::unordered_set<char> &delims)
+	{
+		return parseString(reader, logger, &delims);
+	}
+
+	/**
+	 * Parses a string which may either be enclosed by " or ', unescapes
+	 * entities in the string as specified for JavaScript.
+	 *
+	 * @param reader is a reference to the BufferedCharReader instance which is
+	 * the source for the character data. The reader will be positioned after
+	 * the terminating quote character or at the terminating delimiting
+	 * character.
+	 * @param logger is the logger instance that should be used to log error
+	 * messages and warnings.
+	 */
+	static std::pair<bool, std::string> parseString(BufferedCharReader &reader,
+	                                                Logger &logger)
+	{
+		return parseString(reader, logger, nullptr);
+	}
 
 	/**
 	 * Extracts an unescaped string from the given buffered char reader
@@ -71,8 +111,8 @@ public:
 	 * These characters are not included in the result. May not be nullptr.
 	 */
 	static std::pair<bool, std::string> parseUnescapedString(
-	    BufferedCharReader &reader, const unordered_set<char> *delims,
-	    Logger *logger = nullptr);
+	    BufferedCharReader &reader, Logger &logger,
+	    const std::unordered_set<char> &delims);
 
 	/**
 	 * Tries to parse the most specific item from the given stream until one of
@@ -86,8 +126,8 @@ public:
 	 * These characters are not included in the result. May not be nullptr.
 	 */
 	static std::pair<bool, Variant> parseGeneric(
-	    BufferedCharReader &reader, const unordered_set<char> *delims,
-	    Logger *logger = nullptr);
+	    BufferedCharReader &reader, Logger &logger,
+	    const std::unordered_set<char> &delims);
 };
 }
 }
