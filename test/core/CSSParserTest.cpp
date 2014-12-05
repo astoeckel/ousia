@@ -18,14 +18,18 @@
 
 #include <gtest/gtest.h>
 
+#include <sstream>
+
 #include <core/CSSParser.hpp>
 
 namespace ousia {
+namespace parser {
+namespace css  {
 TEST(CSSParser, testParseSelectors)
 {
-	// create a selector Tree as input.
-	BufferedCharReader reader;
-	reader.feed("A>B,A B:r, C#a A[bla=\"blub\"], A::g(4,2,3)");
+	// create a string describing a SelectorTree as input.
+	std::stringstream input;
+	input << "A>B,A B:r, C#a A[bla=\"blub\"], A::g(4,2,3)";
 	/* This should describe the tree:
 	 * root_____
 	 * | \      \
@@ -34,9 +38,12 @@ TEST(CSSParser, testParseSelectors)
 	 * B B::r A[bla="blub"]
 	 */
 
+	// initialize an empty parser context.
+	StandaloneParserContext ctx;
+
 	// parse the input.
 	CSSParser instance;
-	Rooted<SelectorNode> root = instance.parse(reader);
+	Rooted<SelectorNode> root = instance.parse(input, ctx).cast<SelectorNode>();
 
 	// we expect three children of the root node overall.
 	ASSERT_EQ(3, root->getEdges().size());
@@ -109,4 +116,5 @@ TEST(CSSParser, testParseSelectors)
 	ASSERT_EQ(0, Ag->getEdges().size());
 }
 }
-
+}
+}

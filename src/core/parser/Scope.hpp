@@ -55,7 +55,7 @@ public:
 	 * Creates a new ScopedScope instance.
 	 *
 	 * @param scope is the backing Scope instance.
-	 * @param node is the Node instance that should be poped onto the stack of
+	 * @param node is the Node instance that should be pushed onto the stack of
 	 * the Scope instance.
 	 */
 	ScopedScope(Scope *scope, Handle<Node> node);
@@ -106,11 +106,6 @@ public:
 	 * up.
 	 */
 	Scope(Handle<Node> rootNode) { nodes.push_back(rootNode); }
-
-	/**
-	 * Returns a reference at the Manager instance all nodes belong to.
-	 */
-	Manager &getManager() { return getRoot()->getManager(); }
 
 	/**
 	 * Pushes a new node onto the scope.
