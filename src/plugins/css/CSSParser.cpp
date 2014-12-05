@@ -18,6 +18,8 @@
 
 #include "CSSParser.hpp"
 
+#include <core/variant/Reader.hpp>
+
 namespace ousia {
 namespace parser {
 namespace css {
@@ -330,8 +332,8 @@ bool CSSParser::parseRule(CodeTokenizer &tokenizer, ParserContext &ctx,
 	expect(COLON, tokenizer, t, true, ctx);
 	// then the value
 	// TODO: Resolve key for appropriate parsing function here.
-	expect(STRING, tokenizer, t, true, ctx);
-	value = variant::Variant(t.content.c_str());
+	value = variant::Reader::parseGeneric(tokenizer.getInput(), ctx.logger,
+	                                      {';'}).second;
 	// and a ;
 	expect(SEMICOLON, tokenizer, t, true, ctx);
 	return true;

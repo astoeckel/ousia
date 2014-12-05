@@ -85,10 +85,11 @@ public:
 		return rules;
 	}
 
-	void merge(Rooted<RuleSet> other)
-	{
-		rules.insert(other->rules.begin(), other->rules.end());
-	}
+	/**
+	 * This implements an overriding "insert all" of all rules in the other
+	 * RuleSet to the rules in this RuleSet.
+	 */
+	void merge(Rooted<RuleSet> other);
 };
 
 /**

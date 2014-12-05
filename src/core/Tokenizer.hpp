@@ -225,6 +225,8 @@ public:
 	void consumePeek();
 
 	const BufferedCharReader &getInput() const { return input; }
+	
+	BufferedCharReader &getInput() { return input; }
 };
 }
 

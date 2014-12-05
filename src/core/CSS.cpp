@@ -20,6 +20,12 @@
 
 namespace ousia {
 
+void RuleSet::merge(Rooted<RuleSet> other){
+	for(auto& o : other->rules){
+		rules[o.first] = o.second;
+	}
+}
+
 /*
  * different versions of "getChildren".
  */
