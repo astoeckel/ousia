@@ -241,6 +241,23 @@ public:
 	}
 
 	/**
+	 * Logs the given message. The file name is set to the topmost file name on
+	 * the file name stack.
+	 *
+	 * @param severity is the severity of the log message.
+	 * @param msg is the actual log message.
+	 * @param pos is a const reference to a variable which provides position
+	 * information.
+	 * @tparam PosType is the actual type of pos and must implement a getLine
+	 * and getColumn function.
+	 */
+	template<class PosType>
+	void logAt(Severity severity, const std::string &msg, const PosType &pos)
+	{
+		log(severity, msg, pos.getLine(), pos.getColumn());
+	}
+
+	/**
 	 * Logs the given loggable exception.
 	 *
 	 * @param ex is the exception that should be logged.
@@ -283,6 +300,21 @@ public:
 	}
 
 	/**
+	 * Logs a debug message. The file name is set to the topmost file name on
+	 * the file name stack.
+	 *
+	 * @param severity is the severity of the log message.
+	 * @param msg is the actual log message.
+	 * @param pos is a const reference to a variable which provides position
+	 * information.
+	 */
+	template<class PosType>
+	void debugAt(const std::string &msg, const PosType &pos)
+	{
+		debug(msg, pos.getLine(), pos.getColumn());
+	}
+
+	/**
 	 * Logs a note. The file name is set to the topmost file name on
 	 * the file name stack.
 	 *
@@ -314,6 +346,20 @@ public:
 	}
 
 	/**
+	 * Logs a note. The file name is set to the topmost file name on
+	 * the file name stack.
+	 *
+	 * @param msg is the actual log message.
+	 * @param pos is a const reference to a variable which provides position
+	 * information.
+	 */
+	template<class PosType>
+	void noteAt(const std::string &msg, const PosType &pos)
+	{
+		note(msg, pos.getLine(), pos.getColumn());
+	}
+
+	/**
 	 * Logs a warning. The file name is set to the topmost file name on
 	 * the file name stack.
 	 *
@@ -327,6 +373,20 @@ public:
 	void warning(const std::string &msg, const std::string &file, int line = -1, int column = -1)
 	{
 		log(Severity::WARNING, msg, file, line, column);
+	}
+
+	/**
+	 * Logs a warning. The file name is set to the topmost file name on
+	 * the file name stack.
+	 *
+	 * @param msg is the actual log message.
+	 * @param pos is a const reference to a variable which provides position
+	 * information.
+	 */
+	template<class PosType>
+	void warningAt(const std::string &msg, const PosType &pos)
+	{
+		warning(msg, pos.getLine(), pos.getColumn());
 	}
 
 	/**
@@ -376,6 +436,20 @@ public:
 	}
 
 	/**
+	 * Logs an error message. The file name is set to the topmost file name on
+	 * the file name stack.
+	 *
+	 * @param msg is the actual log message.
+	 * @param pos is a const reference to a variable which provides position
+	 * information.
+	 */
+	template<class PosType>
+	void errorAt(const std::string &msg, const PosType &pos)
+	{
+		error(msg, pos.getLine(), pos.getColumn());
+	}
+
+	/**
 	 * Logs a fatal error. The file name is set to the topmost file name on
 	 * the file name stack.
 	 *
@@ -404,6 +478,20 @@ public:
 	void fatalError(const std::string &msg, int line = -1, int column = -1)
 	{
 		fatalError(msg, currentFilename(), line, column);
+	}
+
+	/**
+	 * Logs a fatal error. The file name is set to the topmost file name on
+	 * the file name stack.
+	 *
+	 * @param msg is the actual log message.
+	 * @param pos is a const reference to a variable which provides position
+	 * information.
+	 */
+	template<class PosType>
+	void fatalErrorAt(const std::string &msg, const PosType &pos)
+	{
+		fatalError(msg, pos.getLine(), pos.getColumn());
 	}
 
 	/**
