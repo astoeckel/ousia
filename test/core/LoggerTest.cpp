@@ -26,7 +26,7 @@ namespace ousia {
 
 struct Pos {
 	int line, column;
-	Pos(int line, int column) : line(line), column(column) {};
+	Pos(int line, int column) : line(line), column(column){};
 	int getLine() const { return line; }
 	int getColumn() const { return column; }
 };
@@ -52,13 +52,23 @@ TEST(TerminalLogger, log)
 	logger.fatalError("This is a test fatal error!", 10, 20);
 
 	try {
-		throw LoggableException{"A fatal exception"};
+		throw LoggableException{"A fatal exception", true};
 	}
 	catch (const LoggableException &ex) {
 		logger.log(ex);
 	}
 
-	logger.logAt(Severity::ERROR, "This is a positioned error", Pos(10, 20));
+	try {
+		throw LoggableException{"A fatal exception at position", true, Pos(10, 20)};
+	}
+	catch (const LoggableException &ex) {
+		logger.log(ex);
+	}
+
+	logger.logAt(Severity::ERROR, "This is a positioned log message",
+	             Pos(10, 20));
+	logger.debugAt("This is a positioned debug message", Pos(10, 20));
+	logger.noteAt("This is a positioned log error", Pos(10, 20));
 }
 }
 

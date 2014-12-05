@@ -22,12 +22,14 @@
 #include <vector>
 #include <tuple>
 
-#include "BufferedCharReader.hpp"
-#include "CodeTokenizer.hpp"
-#include "CSS.hpp"
-#include "Exceptions.hpp"
+#include <core/BufferedCharReader.hpp>
+#include <core/CodeTokenizer.hpp>
+#include <core/CSS.hpp>
+#include <core/parser/Parser.hpp>
 
 namespace ousia {
+namespace parser {
+namespace css {
 
 /**
  * This is a context free, recursive parser for a subset of the CSS3 language
@@ -57,32 +59,35 @@ namespace ousia {
  *
  * @author Benjamin Paassen - bpaassen@techfak.uni-bielefeld.de
  */
-class CSSParser {
+class CSSParser : public Parser {
 private:
 	/**
 	 * Implements the DOC Nonterminal
 	 */
-	void parseDocument(Rooted<SelectorNode> root, CodeTokenizer &tokenizer);
+	void parseDocument(Rooted<SelectorNode> root, CodeTokenizer &tokenizer,
+	                   ParserContext &ctx);
 	/**
 	 * Implements the SELECTORS Nonterminal and adds all leaf nodes of the
 	 * resulting SelectorTree to the input leafList so that a parsed RuleSet can
 	 * be inserted there.
 	 */
 	void parseSelectors(Rooted<SelectorNode> root, CodeTokenizer &tokenizer,
-	                    std::vector<Rooted<SelectorNode>> &leafList);
+	                    std::vector<Rooted<SelectorNode>> &leafList,
+	                    ParserContext &ctx);
 	/**
 	 * Implements the SELECT Nonterminal, which in effect parses a SelectorPath
 	 * of the SelectorTree and returns the beginning node of the path as first
 	 * element as well as the leaf of the path as second tuple element.
 	 */
 	std::tuple<Rooted<SelectorNode>, Rooted<SelectorNode>> parseSelector(
-	    CodeTokenizer &tokenizer);
+	    CodeTokenizer &tokenizer, ParserContext &ctx);
 
 	/**
 	 * Implements the SELECT' Nonterminal, which parses a single Selector with
 	 * its PseudoSelector and returns it.
 	 */
-	Rooted<SelectorNode> parsePrimitiveSelector(CodeTokenizer &tokenizer);
+	Rooted<SelectorNode> parsePrimitiveSelector(CodeTokenizer &tokenizer,
+	                                            ParserContext &ctx);
 
 	// TODO: Add RuleSet parsing methods.
 
@@ -101,7 +106,7 @@ private:
 	 * @return             true iff a token of the expected type was found.
 	 */
 	bool expect(int expectedType, CodeTokenizer &tokenizer, Token &t,
-	            bool force);
+	            bool force, ParserContext &ctx);
 
 public:
 	/**
@@ -110,9 +115,26 @@ public:
 	 * SelectorTree.
 	 * TODO: The RuleSet at the respective node at the tree lists all CSS Style
 	 * rules that apply.
+	 *
+	 * @param is  is a reference to the input stream that should be parsed.
+	 * @param ctx is a reference to the context that should be used while
+	 *            parsing the document.
+	 * @return    returns the root node of the resulting SelectorTree. For more
+	 *            information on the return conventions consult the Parser.hpp.
 	 */
-	Rooted<SelectorNode> parse(BufferedCharReader &input);
+	Rooted<Node> parse(std::istream &is, ParserContext &ctx) override;
+
+	/**
+	 * As befits a class called CSSParser, this Parser parses CSS.
+	 */
+	std::set<std::string> mimetypes()
+	{
+		std::set<std::string> out{"text/css"};
+		return out;
+	}
 };
+}
+}
 }
 
 #endif

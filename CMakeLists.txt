@@ -100,7 +100,6 @@ ADD_LIBRARY(ousia_core
 	src/core/BufferedCharReader
 	src/core/CodeTokenizer
 	src/core/CSS
-	src/core/CSSParser
 	src/core/Exceptions
 	src/core/Logger
 	src/core/Managed
@@ -117,6 +116,14 @@ ADD_LIBRARY(ousia_core
 #	src/core/script/Variant
 #	src/core/variant/Reader
 	src/core/variant/Variant
+)
+
+ADD_LIBRARY(ousia_css
+	src/plugins/css/CSSParser
+)
+
+TARGET_LINK_LIBRARIES(ousia_css
+	ousia_core
 )
 
 ADD_LIBRARY(ousia_xml
@@ -147,8 +154,7 @@ IF(TEST)
 	ADD_EXECUTABLE(ousia_test_core
 		test/core/BufferedCharReaderTest
 		test/core/CodeTokenizerTest
-#		test/core/CSSTest
-#		test/core/CSSParserTest
+		test/core/CSSTest
 		test/core/LoggerTest
 		test/core/ManagedTest
 		test/core/ManagedContainersTest
@@ -167,6 +173,16 @@ IF(TEST)
 	TARGET_LINK_LIBRARIES(ousia_test_core
 		${GTEST_LIBRARIES}
 		ousia_core
+	)
+
+	ADD_EXECUTABLE(ousia_test_css
+		test/plugins/css/CSSParserTest
+	)
+
+	TARGET_LINK_LIBRARIES(ousia_test_css
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_css
 	)
 
 	ADD_EXECUTABLE(ousia_test_xml

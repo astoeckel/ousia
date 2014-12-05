@@ -252,21 +252,21 @@ public:
 	 *
 	 * @return true if there is no more data.
 	 */
-	bool atEnd();
+	bool atEnd() const;
 
 	/**
 	 * Returns the current line (starting with one).
 	 *
 	 * @return the current line number.
 	 */
-	inline int getLine() { return readCursor.line; }
+	int getLine() const { return readCursor.line; }
 
 	/**
 	 * Returns the current column (starting with one).
 	 *
 	 * @return the current column number.
 	 */
-	inline int getColumn() { return readCursor.column; }
+	int getColumn() const { return readCursor.column; }
 };
 }
 

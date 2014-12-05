@@ -224,7 +224,7 @@ void BufferedCharReader::resetPeek()
 	peekCursor.assign(readCursor);
 }
 
-bool BufferedCharReader::atEnd()
+bool BufferedCharReader::atEnd() const
 {
 	if (depleted || !inputStream) {
 		if (buffer.size() <= 0) {

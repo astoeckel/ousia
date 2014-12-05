@@ -70,6 +70,10 @@ struct ParserContext {
 	 * Reference to the Logger the parser should log any messages to.
 	 */
 	Logger &logger;
+	/**
+	 * Reference to the Manager the parser should append nodes to.
+	 */
+	Manager &manager;
 
 	/**
 	 * Constructor of the ParserContext class.
@@ -81,9 +85,12 @@ struct ParserContext {
 	 * implementations.
 	 * @param logger is a reference to the Logger instance that should be used
 	 * to log error messages and warnings that occur while parsing the document.
+	 * @param manager is a Reference to the Manager the parser should append
+	 *nodes to.
 	 */
-	ParserContext(Scope &scope, Registry &registry, Logger &logger)
-	    : scope(scope), registry(registry), logger(logger){};
+	ParserContext(Scope &scope, Registry &registry, Logger &logger,
+	              Manager &manager)
+	    : scope(scope), registry(registry), logger(logger), manager(manager){};
 };
 
 struct StandaloneParserContext : public ParserContext {
@@ -91,10 +98,11 @@ private:
 	Logger logger;
 	Scope scope;
 	Registry registry;
+	Manager manager;
 
 public:
 	StandaloneParserContext()
-	    : ParserContext(scope, registry, logger),
+	    : ParserContext(scope, registry, logger, manager),
 	      scope(nullptr),
 	      registry(logger){};
 };
