@@ -20,7 +20,7 @@
 #define _OUSIA_CSS_PARSER_HPP_
 
 #include <vector>
-#include <tuple>
+#include <utility>
 
 #include <core/BufferedCharReader.hpp>
 #include <core/CodeTokenizer.hpp>
@@ -79,7 +79,7 @@ private:
 	 * of the SelectorTree and returns the beginning node of the path as first
 	 * element as well as the leaf of the path as second tuple element.
 	 */
-	std::tuple<Rooted<SelectorNode>, Rooted<SelectorNode>> parseSelector(
+	std::pair<Rooted<SelectorNode>, Rooted<SelectorNode>> parseSelector(
 	    CodeTokenizer &tokenizer, ParserContext &ctx);
 
 	/**
