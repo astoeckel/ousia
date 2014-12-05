@@ -115,6 +115,7 @@ ADD_LIBRARY(ousia_core
 #	src/core/script/Object
 #	src/core/script/ScriptEngine
 #	src/core/script/Variant
+#	src/core/variant/Reader
 	src/core/variant/Variant
 )
 
@@ -146,8 +147,8 @@ IF(TEST)
 	ADD_EXECUTABLE(ousia_test_core
 		test/core/BufferedCharReaderTest
 		test/core/CodeTokenizerTest
-		test/core/CSSTest
-		test/core/CSSParserTest
+#		test/core/CSSTest
+#		test/core/CSSParserTest
 		test/core/LoggerTest
 		test/core/ManagedTest
 		test/core/ManagedContainersTest
@@ -159,6 +160,7 @@ IF(TEST)
 #		test/core/script/FunctionTest
 #		test/core/script/ObjectTest
 #		test/core/script/VariantTest
+#		test/core/variant/ReaderTest
 		test/core/variant/VariantTest
 	)
 
