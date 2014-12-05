@@ -24,7 +24,7 @@
 
 namespace ousia {
 namespace parser {
-namespace css  {
+namespace css {
 TEST(CSSParser, testParseSelectors)
 {
 	// create a string describing a SelectorTree as input.
@@ -58,6 +58,7 @@ TEST(CSSParser, testParseSelectors)
 		ASSERT_EQ(select, A->getPseudoSelector());
 	}
 	ASSERT_EQ(2, A->getEdges().size());
+	ASSERT_FALSE(A->isAccepting());
 	{
 		// assert A > B
 		std::vector<Rooted<SelectorNode>> Achildren =
@@ -70,6 +71,7 @@ TEST(CSSParser, testParseSelectors)
 			ASSERT_EQ(select, B->getPseudoSelector());
 		}
 		ASSERT_EQ(0, B->getEdges().size());
+		ASSERT_TRUE(B->isAccepting());
 		// assert A B:r
 		Achildren = A->getChildren(SelectionOperator::DESCENDANT, "B");
 		ASSERT_EQ(1, Achildren.size());
@@ -80,6 +82,7 @@ TEST(CSSParser, testParseSelectors)
 			ASSERT_EQ(select, Br->getPseudoSelector());
 		}
 		ASSERT_EQ(0, Br->getEdges().size());
+		ASSERT_TRUE(Br->isAccepting());
 	}
 	// assert C#a
 	children = root->getChildren("C");
@@ -91,6 +94,7 @@ TEST(CSSParser, testParseSelectors)
 		ASSERT_EQ(select, C->getPseudoSelector());
 	}
 	ASSERT_EQ(1, C->getEdges().size());
+	ASSERT_FALSE(C->isAccepting());
 	{
 		// assert C#a A[bla=\"blub\"]
 		std::vector<Rooted<SelectorNode>> Cchildren =
@@ -103,6 +107,7 @@ TEST(CSSParser, testParseSelectors)
 			ASSERT_EQ(select, A->getPseudoSelector());
 		}
 		ASSERT_EQ(0, A->getEdges().size());
+		ASSERT_TRUE(A->isAccepting());
 	}
 	// assert A::g(4,2,3)
 	children = root->getChildren("A");
@@ -114,6 +119,7 @@ TEST(CSSParser, testParseSelectors)
 		ASSERT_EQ(select, Ag->getPseudoSelector());
 	}
 	ASSERT_EQ(0, Ag->getEdges().size());
+	ASSERT_TRUE(Ag->isAccepting());
 }
 }
 }

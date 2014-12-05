@@ -251,6 +251,7 @@ private:
 	ManagedVector<SelectorEdge> edges;
 	// TODO: This is temporarily commented out until the TypeSystem works.
 	//	Owned<RuleSet> ruleSets;
+	bool accepting;
 
 	/**
 	 * This is an internal method all getChildren variants refer to.
@@ -386,6 +387,10 @@ public:
 	 * automatically using the DESCENDANT SelectionOperator.
 	 */
 	std::vector<Rooted<SelectorNode>> append(Rooted<SelectorNode> node);
+
+	bool isAccepting() { return accepting; }
+
+	void setAccepting(bool accepting) { this->accepting = accepting; }
 };
 }
 #endif

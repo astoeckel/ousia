@@ -99,6 +99,15 @@ void CSSParser::parseDocument(Rooted<SelectorNode> root,
 	std::vector<Rooted<SelectorNode>> leafList;
 	parseSelectors(root, tokenizer, leafList, ctx);
 	// TODO: Parse Ruleset
+	for (auto &leaf : leafList) {
+		/* every leaf is an accepting node, if one considers the SelectorTree
+		* to be a finite state machine. This is relevant, if users do not use
+		* the CSS Parser to parse actual Ruleset content but to construct a
+		* SelectorTree just to identify a part of the DocumentTree.
+		*/
+		leaf->setAccepting(true);
+		//TODO: append RuleSets
+	}
 	parseDocument(root, tokenizer, ctx);
 }
 
