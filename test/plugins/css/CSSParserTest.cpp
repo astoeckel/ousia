@@ -20,7 +20,7 @@
 
 #include <sstream>
 
-#include <core/CSSParser.hpp>
+#include <plugins/css/CSSParser.hpp>
 
 namespace ousia {
 namespace parser {

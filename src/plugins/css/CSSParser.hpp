@@ -22,12 +22,10 @@
 #include <vector>
 #include <tuple>
 
+#include <core/BufferedCharReader.hpp>
+#include <core/CodeTokenizer.hpp>
+#include <core/CSS.hpp>
 #include <core/parser/Parser.hpp>
-
-#include "BufferedCharReader.hpp"
-#include "CodeTokenizer.hpp"
-#include "CSS.hpp"
-#include "Exceptions.hpp"
 
 namespace ousia {
 namespace parser {
