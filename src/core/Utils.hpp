@@ -40,6 +40,15 @@ public:
 	static bool isNumeric(const char c) { return (c >= '0') && (c <= '9'); }
 
 	/**
+	 * Returns true if the given character is in [0-9A-Fa-f]
+	 */
+	static bool isHexadecimal(const char c)
+	{
+		return ((c >= '0') && (c <= '9')) || ((c >= 'A') && (c <= 'F')) ||
+		       ((c >= 'a') && (c <= 'f'));
+	}
+
+	/**
 	 * Returns true if the given character is in [A-Za-z0-9]
 	 */
 	static bool isAlphanumeric(const char c)

@@ -98,6 +98,39 @@ TEST(Reader, parseUnescapedString)
 	}
 }
 
+TEST(Reader, parseInteger)
+{
+	TerminalLogger logger(std::cerr, true);
+
+	{
+		BufferedCharReader reader("42");
+		auto res = Reader::parseInteger(reader, logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(42, res.second);
+	}
+
+	{
+		BufferedCharReader reader("-42");
+		auto res = Reader::parseInteger(reader, logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(-42, res.second);
+	}
+
+	{
+		BufferedCharReader reader("0x42");
+		auto res = Reader::parseInteger(reader, logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(0x42, res.second);
+	}
+
+/*	{
+		BufferedCharReader reader("0Xaffe");
+		auto res = Reader::parseInteger(reader, logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(0xAFFE, res.second);
+	}*/
+}
+
 TEST(Reader, parseGeneric)
 {
 	TerminalLogger logger(std::cerr, true);

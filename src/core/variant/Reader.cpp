@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
+
 #include <cassert>
 #include <sstream>
 
@@ -30,11 +32,40 @@ static const char *ERR_UNEXPECTED_CHARACTER = "Unexpected character";
 static const char *ERR_UNEXPECTED_END = "Unexpected end";
 static const char *ERR_UNTERMINATED = "Unterminated literal";
 static const char *ERR_INVALID_ESCAPE = "Invalid escape sequence";
+static const char *ERR_INVALID_INTEGER = "Sequence is not a valid integer";
+static const char *ERR_INVALID_DOUBLE = "Sequence is not a valid number";
 
 static const int STATE_INIT = 0;
 static const int STATE_IN_STRING = 1;
 static const int STATE_ESCAPE = 2;
 static const int STATE_WHITESPACE = 3;
+
+/**
+ * Used internally to extract the regexp [0-9xXe.-]* from the given buffered
+ * char reader.
+ *
+ * @param reader is the buffered char reader from which the sequence should be
+ * extracted.
+ */
+static std::pair<bool, std::string> extractNumberSequence(
+    BufferedCharReader &reader)
+{
+	bool isInteger = true;
+	char c;
+	std::stringstream res;
+	while (reader.peek(&c)) {
+		isInteger = isInteger && !(c == '.' || c == 'e' || c == 'E');
+		if (Utils::isHexadecimal(c) || c == '.' || c == '-' || c == 'e' ||
+		    c == 'E' || c == 'x' || c == 'X') {
+			reader.consumePeek();
+			res << c;
+		} else {
+			reader.resetPeek();
+			break;
+		}
+	}
+	return std::make_pair(isInteger, res.str());
+}
 
 template <class T>
 static std::pair<bool, T> error(BufferedCharReader &reader, Logger &logger,
@@ -180,6 +211,79 @@ std::pair<bool, std::string> Reader::parseUnescapedString(
 	return std::make_pair(true, res.str());
 }
 
+static std::pair<bool, int64_t> parseExtractedInteger(
+    BufferedCharReader &reader, Logger &logger, const std::string &val)
+{
+	try {
+		size_t idx = 0;
+		bool valid = false;
+		int64_t res = 0;
+
+		std::string prefix = val.substr(0, 2);
+		if (prefix == "0x" || prefix == "0X") {
+			// If the value starts with 0x or 0X parse a hexadecimal value
+			std::string hex = val.substr(2);
+			res = std::stoll(hex, &idx, 16);
+			valid = idx == hex.length();
+		} else {
+			res = std::stoll(val, &idx, 10);
+			valid = idx == val.length();
+		}
+
+		if (!valid) {
+			return error(reader, logger, ERR_INVALID_INTEGER, 0L);
+		}
+
+		return std::make_pair(valid, res);
+	}
+	catch (std::invalid_argument ex) {
+		return error(reader, logger, ERR_INVALID_INTEGER, 0L);
+	}
+}
+
+static std::pair<bool, double> parseExtractedDouble(BufferedCharReader &reader,
+                                                    Logger &logger,
+                                                    const std::string &val)
+{
+	try {
+		size_t idx = 0;
+		double res = std::stod(val, &idx);
+		if (idx != val.length()) {
+			return error(reader, logger, ERR_INVALID_DOUBLE, 0.0);
+		}
+		return std::make_pair(true, res);
+	}
+	catch (std::invalid_argument ex) {
+		return error(reader, logger, ERR_INVALID_DOUBLE, 0.0);
+	}
+}
+
+std::pair<bool, int64_t> Reader::parseInteger(BufferedCharReader &reader,
+                                              Logger &logger)
+{
+	// Skip all whitespace characters
+	reader.consumeWhitespace();
+
+	// Extract a number sequence, make sure it is an integer
+	auto num = extractNumberSequence(reader);
+	if (!num.first || num.second.empty()) {
+		return error(reader, logger, ERR_INVALID_INTEGER, 0L);
+	}
+
+	return parseExtractedInteger(reader, logger, num.second);
+}
+
+std::pair<bool, double> Reader::parseDouble(BufferedCharReader &reader,
+                                            Logger &logger)
+{
+	// Skip all whitespace characters
+	reader.consumeWhitespace();
+
+	// Extract a number sequence, parse it as double
+	auto num = extractNumberSequence(reader);
+	return parseExtractedDouble(reader, logger, num.second);
+}
+
 std::pair<bool, Variant> Reader::parseGeneric(
     BufferedCharReader &reader, Logger &logger,
     const std::unordered_set<char> &delims)
@@ -188,7 +292,6 @@ std::pair<bool, Variant> Reader::parseGeneric(
 
 	// Skip all whitespace characters
 	reader.consumeWhitespace();
-
 	while (reader.peek(&c)) {
 		// Stop if a delimiter is reached
 		if (delims.count(c)) {
@@ -206,7 +309,16 @@ std::pair<bool, Variant> Reader::parseGeneric(
 		}
 
 		if (Utils::isNumeric(c)) {
-			// TODO: Parse integer/double
+			reader.resetPeek();
+			auto num = extractNumberSequence(reader);
+			if (num.first) {
+				auto res = parseExtractedInteger(reader, logger, num.second);
+				return std::make_pair(
+				    res.first,
+				    Variant{static_cast<Variant::intType>(res.second)});
+			} else {
+				return parseExtractedDouble(reader, logger, num.second);
+			}
 		}
 
 		// Parse an unescaped string in any other case

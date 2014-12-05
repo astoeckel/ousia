@@ -28,6 +28,7 @@
 #ifndef _OUSIA_VARIANT_READER_HPP_
 #define _OUSIA_VARIANT_READER_HPP_
 
+#include <cstdint>
 #include <unordered_set>
 #include <utility>
 
@@ -113,6 +114,31 @@ public:
 	static std::pair<bool, std::string> parseUnescapedString(
 	    BufferedCharReader &reader, Logger &logger,
 	    const std::unordered_set<char> &delims);
+
+
+	/**
+	 * Parses an integer from the given buffered char reader instance until one
+	 * of the given delimiter characters is reached.
+	 *
+	 * @param reader is a reference to the BufferedCharReader instance from
+	 * which the character data should been reader. The reader will be
+	 * positioned at the terminating delimiting character or directly after the
+	 * integer.
+	 */
+	static std::pair<bool, int64_t> parseInteger(
+	    BufferedCharReader &reader, Logger &logger);
+
+	/**
+	 * Parses an double from the given buffered char reader instance until one
+	 * of the given delimiter characters is reached.
+	 *
+	 * @param reader is a reference to the BufferedCharReader instance from
+	 * which the character data should been reader. The reader will be
+	 * positioned at the terminating delimiting character or directly after the
+	 * integer.
+	 */
+	static std::pair<bool, double> parseDouble(
+	    BufferedCharReader &reader, Logger &logger);
 
 	/**
 	 * Tries to parse the most specific item from the given stream until one of
