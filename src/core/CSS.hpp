@@ -23,6 +23,8 @@
 #include <vector>
 #include <tuple>
 
+#include <core/variant/Variant.hpp>
+
 #include "Managed.hpp"
 #include "Node.hpp"
 
@@ -44,51 +46,43 @@ struct Specificity {
 	int d;
 
 	Specificity(int b, int c, int d) : b(b), c(c), d(d) {}
+
+	friend bool operator<(const Specificity &x, const Specificity &y)
+	{
+		return std::tie(x.b, x.c, x.d) < std::tie(y.b, y.c, y.d);
+	}
+
+	friend bool operator>(const Specificity &x, const Specificity &y)
+	{
+		return std::tie(x.b, x.c, x.d) > std::tie(y.b, y.c, y.d);
+	}
+
+	friend bool operator==(const Specificity &x, const Specificity &y)
+	{
+		return std::tie(x.b, x.c, x.d) == std::tie(y.b, y.c, y.d);
+	}
 };
-
-// TODO: Is this inline usage correct? I used this to prevent "multiple
-// definition" errors
-inline bool operator<(const Specificity &x, const Specificity &y)
-{
-	return std::tie(x.b, x.c, x.d) < std::tie(y.b, y.c, y.d);
-}
-
-inline bool operator>(const Specificity &x, const Specificity &y)
-{
-	return std::tie(x.b, x.c, x.d) > std::tie(y.b, y.c, y.d);
-}
-
-inline bool operator==(const Specificity &x, const Specificity &y)
-{
-	return std::tie(x.b, x.c, x.d) == std::tie(y.b, y.c, y.d);
-}
 
 /**
  * The RuleSet class serves as a container class for key-value
  * pairs. The values are TypeInstances. The proper type is
  * implicitly defined by the keyword.
- *
- * TODO: This code is currently commented out until the TypeSystem works.
  */
-/*class RuleSet : public Managed {
+class RuleSet : public Managed {
 private:
-    const std::map<std::string, std::string> values;
-    const Specificity specificity;
+	const std::map<std::string, variant::Variant> values;
 
 public:
-    RuleSet(Manager &mgr, std::map<std::string, std::string> values,
-            Specificity specificity)
-        : Managed(mgr), values(std::move(values)), specificity(specificity)
-    {
-    }
+	/**
+	 * Initializes an empty RuleSet.
+	 */
+	RuleSet(Manager &mgr) : Managed(mgr), values() {}
 
-    const std::map<std::string, std::string> &getValues() const
-    {
-        return values;
-    }
-
-    const Specificity &getSpecificity() const { return specificity; }
-};*/
+	const std::map<std::string, variant::Variant> &getValues() const
+	{
+		return values;
+	}
+};
 
 /**
  * PseudoSelectors are functions that change the behaviour of Selectors.
@@ -249,8 +243,7 @@ public:
 private:
 	const PseudoSelector pseudoSelector;
 	ManagedVector<SelectorEdge> edges;
-	// TODO: This is temporarily commented out until the TypeSystem works.
-	//	Owned<RuleSet> ruleSets;
+	Owned<RuleSet> ruleSet;
 	bool accepting;
 
 	/**
@@ -261,21 +254,28 @@ private:
 	                                              const PseudoSelector *select);
 
 public:
+
+	/**
+	 * This initializes an empty SelectorNode with the given name and the
+	 * given PseudoSelector.
+	 */
 	SelectorNode(Manager &mgr, std::string name, PseudoSelector pseudoSelector)
 	    : Node(mgr, std::move(name)),
 	      pseudoSelector(std::move(pseudoSelector)),
-	      edges(this)  //,
-	// TODO: This is temporarily commented out until the TypeSystem works.
-	// ruleSets(acquire(ruleSets))
+	      edges(this),
+	      ruleSet(new RuleSet(mgr), this)
 	{
 	}
 
+	/**
+	 * This initializes an empty SelectorNode with the given name and the
+	 * trivial PseudoSelector "true".
+	 */
 	SelectorNode(Manager &mgr, std::string name)
 	    : Node(mgr, std::move(name)),
 	      pseudoSelector("true", false),
-	      edges(this)  //,
-	// TODO: This is temporarily commented out until the TypeSystem works.
-	// ruleSets(acquire(ruleSets))
+	      edges(this),
+	      ruleSet(new RuleSet(mgr), this)
 	{
 	}
 
@@ -283,9 +283,7 @@ public:
 
 	ManagedVector<SelectorEdge> &getEdges() { return edges; }
 
-	// TODO: This is temporarily commented out until the TypeSystem works.
-	//	const std::vector<Owned<RuleSet>> &getRuleSets() const { return
-	// ruleSets; }
+	Rooted<RuleSet> getRuleSet() const { return ruleSet; }
 
 	/**
 	 * This returns the child of this SelectorNode that is connected by
