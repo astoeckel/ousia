@@ -208,6 +208,7 @@ IF(TEST)
 	# Register the unit tests
 	ADD_TEST(ousia_test_core ousia_test_core)
 	ADD_TEST(ousia_test_xml ousia_test_xml)
+	ADD_TEST(ousia_test_css ousia_test_css)
 #	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
 ENDIF()
 

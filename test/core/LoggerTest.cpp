@@ -52,14 +52,14 @@ TEST(TerminalLogger, log)
 	logger.fatalError("This is a test fatal error!", 10, 20);
 
 	try {
-		throw LoggableException{"A fatal exception", true};
+		throw LoggableException{"An exception"};
 	}
 	catch (const LoggableException &ex) {
 		logger.log(ex);
 	}
 
 	try {
-		throw LoggableException{"A fatal exception at position", true, Pos(10, 20)};
+		throw LoggableException{"An exception at position", Pos(10, 20)};
 	}
 	catch (const LoggableException &ex) {
 		logger.log(ex);

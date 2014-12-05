@@ -125,18 +125,9 @@ void CSSParser::parseSelectors(Rooted<SelectorNode> root,
 		case 2:
 			// as the parseSelector is supposed to parse only a SelectorPath
 			// there should not be more than one leaf.
-<<<<<<< HEAD:application/src/core/CSSParser.cpp
-			throw LoggableException{
-			    "Internal Error: More than one leaf in SelectorPath!", true,
-			    tokenizer.getInput()};
-=======
 			throw ParserException{
-			    "Internal Error: More than one leaf in SelectorPath!", "",
-			    // TODO: Line handling?
-			    //			    tokenizer.getInput().getLine(),
-			    //			    tokenizer.getInput().getColumn()
-			};
->>>>>>> 8a4203636865b6edc380b731c68d3483ca110a27:application/src/plugins/css/CSSParser.cpp
+			    "Internal Error: More than one leaf in SelectorPath!",
+			    tokenizer.getInput()};
 	}
 	// if we find a comma, we can proceed parsing selectors.
 	Token t;
@@ -298,27 +289,11 @@ bool CSSParser::expect(int expectedType, CodeTokenizer &tokenizer, Token &t,
 	if (end || t.tokenId != expectedType) {
 		if (force) {
 			if (end) {
-<<<<<<< HEAD:application/src/core/CSSParser.cpp
-				throw LoggableException{"Unexpected end of file!", true,
-				                        tokenizer.getInput()};
+				throw ParserException{"Unexpected end of file!",
+				                      tokenizer.getInput()};
 			} else {
-				throw LoggableException{"Unexpected token!", true,
-				                        tokenizer.getInput()};
-=======
-				throw ParserException{
-				    "Unexpected end of file!", "",
-				    // TODO: Line handling?
-				    //			    tokenizer.getInput().getLine(),
-				    //			    tokenizer.getInput().getColumn()
-				};
-			} else {
-				throw ParserException{
-				    "Unexpected token!", "",
-				    // TODO: Line handling?
-				    //			    tokenizer.getInput().getLine(),
-				    //			    tokenizer.getInput().getColumn()
-				};
->>>>>>> 8a4203636865b6edc380b731c68d3483ca110a27:application/src/plugins/css/CSSParser.cpp
+				throw ParserException{"Unexpected token!",
+				                      tokenizer.getInput()};
 			}
 		} else {
 			tokenizer.resetPeek();

@@ -208,8 +208,7 @@ Rooted<Node> XmlParser::parse(std::istream &is, ParserContext &ctx)
 			const int column = XML_GetCurrentColumnNumber(&p);
 			const XML_Error code = XML_GetErrorCode(&p);
 			const std::string msg = std::string{XML_ErrorString(code)};
-			throw ParserException{"XML Syntax Error: " + msg, line, column,
-			                      false};
+			throw ParserException{"XML Syntax Error: " + msg, line, column};
 		}
 
 		// Abort once there are no more bytes in the stream

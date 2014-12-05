@@ -26,7 +26,7 @@ namespace ousia {
 
 std::string LoggableException::formatMessage(const std::string &msg,
                                              const std::string &file,
-                                             bool fatal, int line, int column)
+                                             int line, int column)
 {
 	std::stringstream ss;
 	ss << "error ";
