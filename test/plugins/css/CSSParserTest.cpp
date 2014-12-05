@@ -121,6 +121,37 @@ TEST(CSSParser, testParseSelectors)
 	ASSERT_EQ(0, Ag->getEdges().size());
 	ASSERT_TRUE(Ag->isAccepting());
 }
+
+TEST(CSSParser, testParseCSS)
+{
+	// create the CSS input
+	std::stringstream input;
+	input << "A, B A {\n";
+	input << "/*\n";
+	input << " * Some multiline\n";
+	input << " * comment\n";
+	input << " */\n";
+	input << "\t ident1 : \"val1\";\n";
+	input << "\t ident2 : \"val2\";\n";
+	input << "}\n";
+	input << "A:select(a,b) {\n";
+	input << "\t ident3 : \"val3\";\n";
+	input << "}\n";
+	input << "A {\n";
+	input << "\t ident1 : \"val4\";\n";
+	input << "}\n";
+	
+	
+	// initialize an empty parser context.
+	StandaloneParserContext ctx;
+
+	// parse the input.
+	CSSParser instance;
+	Rooted<SelectorNode> root = instance.parse(input, ctx).cast<SelectorNode>();
+	
+	
+}
+
 }
 }
 }

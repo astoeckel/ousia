@@ -59,10 +59,14 @@ bool CodeTokenizer::doPrepare(const Token &t, std::deque<Token> &peeked)
 					state = CodeTokenizerState::IN_LINE_COMMENT;
 					break;
 				case CodeTokenMode::LINEBREAK:
-					peeked.push_back({it->second.id, t.content, t.startColumn,
-					                  t.startLine, t.endColumn, t.endLine});
-					return true;
+					if (!ignoreLinebreaks) {
+						peeked.push_back({it->second.id, t.content,
+						                  t.startColumn, t.startLine,
+						                  t.endColumn, t.endLine});
+					}
+					return !ignoreLinebreaks;
 				default:
+					bool empty = true;
 					if (t.tokenId == TOKEN_TEXT) {
 						int begin = -1;
 						for (size_t c = 0; c < t.content.length(); c++) {
@@ -86,20 +90,22 @@ bool CodeTokenizer::doPrepare(const Token &t, std::deque<Token> &peeked)
 									    t.startColumn + begin, t.startLine,
 									    t.startColumn + (int)c, t.endLine});
 									begin = -1;
+									empty = false;
 								}
 							}
 						}
-						if(begin >= 0){
-							peeked.push_back(Token{
-									TOKEN_TEXT,
-									t.content.substr(begin),
-									t.startColumn + begin, t.startLine,
-									t.endColumn, t.endLine});
+						if (begin >= 0) {
+							peeked.push_back(
+							    Token{TOKEN_TEXT, t.content.substr(begin),
+							          t.startColumn + begin, t.startLine,
+							          t.endColumn, t.endLine});
+							empty = false;
 						}
 					} else {
+						empty = false;
 						peeked.push_back(t);
 					}
-					return true;
+					return !empty;
 			}
 			startToken = t;
 			returnTokenId = it->second.id;

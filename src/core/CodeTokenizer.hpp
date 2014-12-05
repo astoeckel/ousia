@@ -101,6 +101,10 @@ public:
 	 * true.
 	 */
 	bool ignoreComments = false;
+	/**
+	 * If you do not want linebreaks to be returned you can set this to true.
+	 */
+	 bool ignoreLinebreaks = false;
 
 	/**
 	 *

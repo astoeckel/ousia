@@ -147,7 +147,7 @@ bool BufferedCharReader::readCharacterAtCursor(ReadCursor &cursor, char *c)
 			// If data has been read, append it to the input buffer and try
 			// again
 			if (cnt > 0) {
-				buffer.emplace_back(buf.data());
+				buffer.emplace_back(std::string(buf.data(), cnt));
 				continue;
 			}
 

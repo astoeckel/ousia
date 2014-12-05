@@ -70,17 +70,24 @@ struct Specificity {
  */
 class RuleSet : public Managed {
 private:
-	const std::map<std::string, variant::Variant> values;
+	std::map<std::string, variant::Variant> rules;
 
 public:
 	/**
 	 * Initializes an empty RuleSet.
 	 */
-	RuleSet(Manager &mgr) : Managed(mgr), values() {}
+	RuleSet(Manager &mgr) : Managed(mgr), rules() {}
 
-	const std::map<std::string, variant::Variant> &getValues() const
+	std::map<std::string, variant::Variant> &getRules() { return rules; }
+
+	const std::map<std::string, variant::Variant> &getRules() const
 	{
-		return values;
+		return rules;
+	}
+
+	void merge(Rooted<RuleSet> other)
+	{
+		rules.insert(other->rules.begin(), other->rules.end());
 	}
 };
 
@@ -244,7 +251,7 @@ private:
 	const PseudoSelector pseudoSelector;
 	ManagedVector<SelectorEdge> edges;
 	Owned<RuleSet> ruleSet;
-	bool accepting;
+	bool accepting = false;
 
 	/**
 	 * This is an internal method all getChildren variants refer to.
@@ -254,7 +261,6 @@ private:
 	                                              const PseudoSelector *select);
 
 public:
-
 	/**
 	 * This initializes an empty SelectorNode with the given name and the
 	 * given PseudoSelector.

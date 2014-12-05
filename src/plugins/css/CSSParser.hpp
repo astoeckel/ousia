@@ -89,7 +89,30 @@ private:
 	Rooted<SelectorNode> parsePrimitiveSelector(CodeTokenizer &tokenizer,
 	                                            ParserContext &ctx);
 
-	// TODO: Add RuleSet parsing methods.
+	/**
+	 * Implements the RULESET Nonterminal, which parses an entire RuleSet. Note
+	 * that we do not require RuleSets to be parsed. It is permitted to just
+	 * insert Selector expressions.
+	 */
+	Rooted<RuleSet> parseRuleSet(CodeTokenizer &tokenizer, ParserContext &ctx);
+
+	/**
+	 * Implements the RULES Nonterminal, which parses CSSRules inside a RuleSet.
+	 */
+	void parseRules(CodeTokenizer &tokenizer, Rooted<RuleSet> ruleSet,
+	                ParserContext &ctx);
+
+	/**
+	 * Implements the RULE Nonterminal, which parses one single CSSRule. Key
+	 * and value are stored in the input references.
+	 *
+	 * @param key is a (possibly empty) string reference for the key found.
+	 * @param value is a (possibly empty) Variant reference for the value found.
+	 *
+	 * @return true if a rule was found.
+	 */
+	bool parseRule(CodeTokenizer &tokenizer, ParserContext &ctx,
+	               std::string &key, variant::Variant &value);
 
 	/**
 	 * A convenience function to wrap around the tokenizer peek() function that
@@ -112,9 +135,12 @@ public:
 	/**
 	 * This parses the given input as CSS content as specified by the grammar
 	 * seen above. The return value is a Rooted reference to the root of the
-	 * SelectorTree.
-	 * TODO: The RuleSet at the respective node at the tree lists all CSS Style
+	 * SelectorTree. SelectorTrees are documented in detail in the CSS.hpp
+	 * The RuleSet at the respective node at the tree lists all CSS Style
 	 * rules that apply.
+	 * Note that you are not required to insert CSS code containing actual
+	 * rules. You are permitted to just insert a CSS Selector expression
+	 * specifying some part of a DocumentTree you want to refer to.
 	 *
 	 * @param is  is a reference to the input stream that should be parsed.
 	 * @param ctx is a reference to the context that should be used while

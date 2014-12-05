@@ -64,12 +64,7 @@ static const TokenTreeNode CSS_ROOT{{{"{", CURLY_OPEN},
                                      {"*/", COMMENT_CLOSE},
                                      {"\"", DOUBLE_QUOTE},
                                      {"\\", ESCAPE},
-                                     // linux linebreak
-                                     {"\n", LINEBREAK},
-                                     // windows linebreak
-                                     {"\r\n", LINEBREAK},
-                                     // Mac OS linebreak
-                                     {"\r", LINEBREAK}}};
+                                     {"\n", LINEBREAK}}};
 
 static const std::map<int, CodeTokenDescriptor> CSS_DESCRIPTORS = {
     {COMMENT_OPEN, {CodeTokenMode::BLOCK_COMMENT_START, COMMENT}},
@@ -83,6 +78,7 @@ Rooted<Node> CSSParser::parse(std::istream &is, ParserContext &ctx)
 	BufferedCharReader input{is};
 	CodeTokenizer tokenizer{input, CSS_ROOT, CSS_DESCRIPTORS};
 	tokenizer.ignoreComments = true;
+	tokenizer.ignoreLinebreaks = true;
 	Rooted<SelectorNode> root = {new SelectorNode{ctx.manager, "root"}};
 	parseDocument(root, tokenizer, ctx);
 	return root;
@@ -97,16 +93,22 @@ void CSSParser::parseDocument(Rooted<SelectorNode> root,
 	}
 	tokenizer.resetPeek();
 	std::vector<Rooted<SelectorNode>> leafList;
+	// parse the SelectorTree for this ruleSet.
 	parseSelectors(root, tokenizer, leafList, ctx);
-	// TODO: Parse Ruleset
+	// parse the RuleSet itself.
+	Rooted<RuleSet> ruleSet = parseRuleSet(tokenizer, ctx);
 	for (auto &leaf : leafList) {
-		/* every leaf is an accepting node, if one considers the SelectorTree
+		/*
+		* every leaf is an accepting node, if one considers the SelectorTree
 		* to be a finite state machine. This is relevant, if users do not use
 		* the CSS Parser to parse actual Ruleset content but to construct a
 		* SelectorTree just to identify a part of the DocumentTree.
 		*/
 		leaf->setAccepting(true);
-		//TODO: append RuleSets
+		/*
+		 * similarly we append the found rules to all leafs.
+		 */
+		leaf->getRuleSet()->merge(ruleSet);
 	}
 	parseDocument(root, tokenizer, ctx);
 }
@@ -289,7 +291,51 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 	}
 }
 
-// TODO: Add RuleSet parsing methods.
+Rooted<RuleSet> CSSParser::parseRuleSet(CodeTokenizer &tokenizer,
+                                        ParserContext &ctx)
+{
+	Rooted<RuleSet> ruleSet{new RuleSet(ctx.manager)};
+	// if we have no ruleset content, we return an empty ruleset.
+	Token t;
+	if (!expect(CURLY_OPEN, tokenizer, t, false, ctx)) {
+		return ruleSet;
+	}
+	// otherwise we parse the rules.
+	parseRules(tokenizer, ruleSet, ctx);
+	// and we expect closing curly braces.
+	expect(CURLY_CLOSE, tokenizer, t, true, ctx);
+	return ruleSet;
+}
+
+void CSSParser::parseRules(CodeTokenizer &tokenizer, Rooted<RuleSet> ruleSet,
+                           ParserContext &ctx)
+{
+	std::string key;
+	variant::Variant value;
+	while (parseRule(tokenizer, ctx, key, value)) {
+		ruleSet->getRules().insert({key, value});
+	}
+}
+
+bool CSSParser::parseRule(CodeTokenizer &tokenizer, ParserContext &ctx,
+                          std::string &key, variant::Variant &value)
+{
+	Token t;
+	if (!expect(TOKEN_TEXT, tokenizer, t, false, ctx)) {
+		return false;
+	}
+	// if we find text that is the key first.
+	key = t.content;
+	// then we expect a :
+	expect(COLON, tokenizer, t, true, ctx);
+	// then the value
+	// TODO: Resolve key for appropriate parsing function here.
+	expect(STRING, tokenizer, t, true, ctx);
+	value = variant::Variant(t.content.c_str());
+	// and a ;
+	expect(SEMICOLON, tokenizer, t, true, ctx);
+	return true;
+}
 
 bool CSSParser::expect(int expectedType, CodeTokenizer &tokenizer, Token &t,
                        bool force, ParserContext &ctx)
