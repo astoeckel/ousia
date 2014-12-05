@@ -81,8 +81,8 @@ private:
 	 * reported to the runtime environment.
 	 */
 	static std::string formatMessage(const std::string &msg,
-	                                 const std::string &file, int line,
-	                                 int column, bool fatal);
+	                                 const std::string &file, bool fatal,
+	                                 int line, int column);
 
 public:
 	/**
@@ -96,6 +96,12 @@ public:
 	const std::string file;
 
 	/**
+	 * If set to true, the exception should not be handled as recoverable error
+	 * but as "fatal" error.
+	 */
+	const bool fatal;
+
+	/**
 	 * Line at which the exception occured. Negative values are ignored.
 	 */
 	const int line;
@@ -106,12 +112,6 @@ public:
 	const int column;
 
 	/**
-	 * If set to true, the exception should not be handled as recoverable error
-	 * but as "fatal" error.
-	 */
-	const bool fatal;
-
-	/**
 	 * Constructor of the LoggableException class.
 	 *
 	 * @param msg contains the error message.
@@ -120,14 +120,14 @@ public:
 	 * @param column is the column in the above file the message refers to.
 	 * @param fatal shoudl be set to true if the error is non-recoverable.
 	 */
-	LoggableException(std::string msg, std::string file, int line = -1,
-	                  int column = -1, bool fatal = true)
-	    : OusiaException(formatMessage(msg, file, line, column, fatal)),
+	LoggableException(std::string msg, std::string file, bool fatal,
+	                  int line = -1, int column = -1)
+	    : OusiaException(formatMessage(msg, file, fatal, line, column)),
 	      msg(std::move(msg)),
 	      file(std::move(file)),
+	      fatal(fatal),
 	      line(line),
-	      column(column),
-	      fatal(fatal)
+	      column(column)
 	{
 	}
 
@@ -135,17 +135,16 @@ public:
 	 * Constructor of the LoggableException class with empty file.
 	 *
 	 * @param msg contains the error message.
+	 * @param fatal should be set to true if the error is non-recoverable.
 	 * @param line is the line in the above file the message refers to.
 	 * @param column is the column in the above file the message refers to.
-	 * @param fatal shoudl be set to true if the error is non-recoverable.
 	 */
-	LoggableException(std::string msg, int line = -1, int column = -1,
-	                  bool fatal = true)
-	    : OusiaException(formatMessage(msg, "", line, column, fatal)),
+	LoggableException(std::string msg, bool fatal, int line = -1, int column = -1)
+	    : OusiaException(formatMessage(msg, "", fatal, line, column)),
 	      msg(std::move(msg)),
+	      fatal(fatal),
 	      line(line),
-	      column(column),
-	      fatal(fatal)
+	      column(column)
 	{
 	}
 
@@ -156,11 +155,31 @@ public:
 	 * @param fatal should be set to true if the error is non-recoverable.
 	 */
 	LoggableException(std::string msg, bool fatal)
-	    : OusiaException(formatMessage(msg, "", -1, -1, fatal)),
+	    : OusiaException(formatMessage(msg, "", fatal, -1, -1)),
 	      msg(std::move(msg)),
+	      fatal(fatal),
 	      line(-1),
-	      column(-1),
-	      fatal(fatal)
+	      column(-1)
+	{
+	}
+
+	/**
+	 * Constructor of the LoggableException class with empty file and an
+	 * position object.
+	 *
+	 * @param msg is the actual log message.
+	 * @param pos is a const reference to a variable which provides position
+	 * information.
+	 * @param fatal should be set to true if the error is non-recoverable.
+	 */
+	template <class PosType>
+	LoggableException(std::string msg, bool fatal, const PosType &pos)
+	    : OusiaException(
+	          formatMessage(msg, "", fatal, pos.getLine(), pos.getColumn())),
+	      msg(std::move(msg)),
+	      fatal(fatal),
+	      line(pos.getLine()),
+	      column(pos.getColumn())
 	{
 	}
 };
