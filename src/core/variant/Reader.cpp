@@ -158,6 +158,7 @@ std::pair<bool, std::string> Reader::parseUnescapedString(
 	int state = STATE_IN_STRING;
 	while (reader.peek(&c)) {
 		if (delims.count(c)) {
+			reader.resetPeek();
 			return std::make_pair(true, res.str());
 		} else if (Utils::isWhitespace(c)) {
 			// Do not add whitespace to the output buffer
