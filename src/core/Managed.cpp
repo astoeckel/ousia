@@ -101,7 +101,7 @@ void ObjectDescriptor::incrDegree(RefDir dir, Managed *o)
 	}
 
 	// Fetch a reference to either the input or the output reference map
-	auto &m = dir == RefDir::in ? refIn : refOut;
+	auto &m = dir == RefDir::IN ? refIn : refOut;
 
 	// Insert a new entry or increment the corresponding reference counter
 	auto it = m.find(o);
@@ -128,7 +128,7 @@ bool ObjectDescriptor::decrDegree(RefDir dir, Managed *o, bool all)
 	}
 
 	// Fetch a reference to either the input or the output reference map
-	auto &m = dir == RefDir::in ? refIn : refOut;
+	auto &m = dir == RefDir::IN ? refIn : refOut;
 
 	// Decrement corresponding reference counter, delete the entry if the
 	// reference counter reaches zero
@@ -187,11 +187,11 @@ void Manager::addRef(Managed *tar, Managed *src)
 
 	// Store the tar <- src reference
 	assert(dTar);
-	dTar->incrDegree(RefDir::in, src);
+	dTar->incrDegree(RefDir::IN, src);
 	if (src) {
 		// Store the src -> tar reference
 		assert(dSrc);
-		dSrc->incrDegree(RefDir::out, tar);
+		dSrc->incrDegree(RefDir::OUT, tar);
 	} else {
 		// We have just added a root reference, remove the element from the
 		// list of marked objects
@@ -207,11 +207,11 @@ void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 
 	// Decrement the output degree of the source Managed first
 	if (dSrc) {
-		dSrc->decrDegree(RefDir::out, tar, all);
+		dSrc->decrDegree(RefDir::OUT, tar, all);
 	}
 
 	// Decrement the input degree of the input Managed
-	if (dTar && dTar->decrDegree(RefDir::in, src, all)) {
+	if (dTar && dTar->decrDegree(RefDir::IN, src, all)) {
 		// If the Managed has a zero in degree, it can be safely deleted, otherwise
 		// if it has no root reference, add it to the "marked" set which is
 		// subject to tracing garbage collection

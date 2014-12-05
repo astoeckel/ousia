@@ -18,6 +18,8 @@
 
 #include "CSSParser.hpp"
 
+#include <core/variant/Reader.hpp>
+
 namespace ousia {
 namespace parser {
 namespace css {
@@ -121,13 +123,13 @@ void CSSParser::parseSelectors(Rooted<SelectorNode> root,
 	auto tuple = parseSelector(tokenizer, ctx);
 	// append the SelectorPath to the root node.
 	std::vector<Rooted<SelectorNode>> unmergedLeafs =
-	    root->append(std::get<0>(tuple));
+	    root->append(tuple.first);
 	// append the leaf to the leafList.
 	switch (unmergedLeafs.size()) {
 		case 0:
 			// if the leaf could be merged we take the leaf reference from the
 			// parseSelector method.
-			leafList.push_back(std::get<1>(tuple));
+			leafList.push_back(tuple.second);
 			break;
 		case 1:
 			// if the leaf could not be merged we take the existing leaf.
@@ -147,7 +149,7 @@ void CSSParser::parseSelectors(Rooted<SelectorNode> root,
 	}
 }
 
-std::tuple<Rooted<SelectorNode>, Rooted<SelectorNode>> CSSParser::parseSelector(
+std::pair<Rooted<SelectorNode>, Rooted<SelectorNode>> CSSParser::parseSelector(
     CodeTokenizer &tokenizer, ParserContext &ctx)
 {
 	Rooted<SelectorNode> s = parsePrimitiveSelector(tokenizer, ctx);
@@ -155,7 +157,7 @@ std::tuple<Rooted<SelectorNode>, Rooted<SelectorNode>> CSSParser::parseSelector(
 	if (!tokenizer.peek(t)) {
 		// if we are at the end the found selector is the immediate child as
 		// well as the leaf.
-		return std::make_tuple(s, s);
+		return std::make_pair(s, s);
 	}
 	switch (t.tokenId) {
 		case TOKEN_TEXT: {
@@ -166,9 +168,9 @@ std::tuple<Rooted<SelectorNode>, Rooted<SelectorNode>> CSSParser::parseSelector(
 			auto tuple = parseSelector(tokenizer, ctx);
 			// then we establish the DESCENDANT relationship
 			s->getEdges().push_back(new SelectorNode::SelectorEdge(
-			    ctx.manager, std::get<0>(tuple)));
+			    ctx.manager, tuple.first));
 			// and we return this node as well as the leaf.
-			return std::make_tuple(s, std::get<1>(tuple));
+			return std::make_pair(s, tuple.second);
 		}
 		case ARROW: {
 			tokenizer.consumePeek();
@@ -178,15 +180,15 @@ std::tuple<Rooted<SelectorNode>, Rooted<SelectorNode>> CSSParser::parseSelector(
 			auto tuple = parseSelector(tokenizer, ctx);
 			// then we establish the DESCENDANT relationship
 			s->getEdges().push_back(new SelectorNode::SelectorEdge(
-			    ctx.manager, std::get<0>(tuple),
+			    ctx.manager, tuple.first,
 			    SelectionOperator::DIRECT_DESCENDANT));
 			// and we return this node as well as the leaf.
-			return std::make_tuple(s, std::get<1>(tuple));
+			return std::make_pair(s, tuple.second);
 		}
 		default:
 			// everything else is not part of the SelectorPath anymore.
 			tokenizer.resetPeek();
-			return std::make_tuple(s, s);
+			return std::make_pair(s, s);
 	}
 }
 
@@ -330,8 +332,8 @@ bool CSSParser::parseRule(CodeTokenizer &tokenizer, ParserContext &ctx,
 	expect(COLON, tokenizer, t, true, ctx);
 	// then the value
 	// TODO: Resolve key for appropriate parsing function here.
-	expect(STRING, tokenizer, t, true, ctx);
-	value = variant::Variant(t.content.c_str());
+	value = variant::Reader::parseGeneric(tokenizer.getInput(), ctx.logger,
+	                                      {';'}).second;
 	// and a ;
 	expect(SEMICOLON, tokenizer, t, true, ctx);
 	return true;
