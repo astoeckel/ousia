@@ -42,49 +42,49 @@ TEST(ObjectDescriptor, Degree)
 	ASSERT_EQ(0, nd.refIn.size());
 	ASSERT_EQ(0, nd.refInCount(n1));
 
-	nd.incrDegree(RefDir::in, n1);
+	nd.incrDegree(RefDir::IN, n1);
 	ASSERT_EQ(1, nd.refInCount());
 	ASSERT_EQ(1, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
 	ASSERT_EQ(1, nd.refIn.size());
 
-	nd.incrDegree(RefDir::in, n1);
+	nd.incrDegree(RefDir::IN, n1);
 	ASSERT_EQ(2, nd.refInCount());
 	ASSERT_EQ(2, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
 	ASSERT_EQ(1, nd.refIn.size());
 
-	nd.incrDegree(RefDir::in, n2);
+	nd.incrDegree(RefDir::IN, n2);
 	ASSERT_EQ(3, nd.refInCount());
 	ASSERT_EQ(2, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(2, nd.refIn.size());
 
-	nd.incrDegree(RefDir::in, nullptr);
+	nd.incrDegree(RefDir::IN, nullptr);
 	ASSERT_EQ(4, nd.refInCount());
 	ASSERT_EQ(2, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(2, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::in, n1));
+	ASSERT_TRUE(nd.decrDegree(RefDir::IN, n1));
 	ASSERT_EQ(3, nd.refInCount());
 	ASSERT_EQ(1, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(2, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::in, n1));
+	ASSERT_TRUE(nd.decrDegree(RefDir::IN, n1));
 	ASSERT_EQ(2, nd.refInCount());
 	ASSERT_EQ(0, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
 	ASSERT_EQ(1, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::in, n2));
+	ASSERT_TRUE(nd.decrDegree(RefDir::IN, n2));
 	ASSERT_EQ(1, nd.refInCount());
 	ASSERT_EQ(0, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
 	ASSERT_EQ(0, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::in, nullptr));
+	ASSERT_TRUE(nd.decrDegree(RefDir::IN, nullptr));
 	ASSERT_EQ(0, nd.refInCount());
 	ASSERT_EQ(0, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
@@ -94,49 +94,49 @@ TEST(ObjectDescriptor, Degree)
 	ASSERT_EQ(0, nd.refOut.size());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 
-	nd.incrDegree(RefDir::out, n1);
+	nd.incrDegree(RefDir::OUT, n1);
 	ASSERT_EQ(1, nd.refOutCount());
 	ASSERT_EQ(1, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
 	ASSERT_EQ(1, nd.refOut.size());
 
-	nd.incrDegree(RefDir::out, n1);
+	nd.incrDegree(RefDir::OUT, n1);
 	ASSERT_EQ(2, nd.refOutCount());
 	ASSERT_EQ(2, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
 	ASSERT_EQ(1, nd.refOut.size());
 
-	nd.incrDegree(RefDir::out, n2);
+	nd.incrDegree(RefDir::OUT, n2);
 	ASSERT_EQ(3, nd.refOutCount());
 	ASSERT_EQ(2, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(2, nd.refOut.size());
 
-	nd.incrDegree(RefDir::out, nullptr);
+	nd.incrDegree(RefDir::OUT, nullptr);
 	ASSERT_EQ(3, nd.refOutCount());
 	ASSERT_EQ(2, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(2, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::out, n1));
+	ASSERT_TRUE(nd.decrDegree(RefDir::OUT, n1));
 	ASSERT_EQ(2, nd.refOutCount());
 	ASSERT_EQ(1, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(2, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::out, n1));
+	ASSERT_TRUE(nd.decrDegree(RefDir::OUT, n1));
 	ASSERT_EQ(1, nd.refOutCount());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
 	ASSERT_EQ(1, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::out, n2));
+	ASSERT_TRUE(nd.decrDegree(RefDir::OUT, n2));
 	ASSERT_EQ(0, nd.refOutCount());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
 	ASSERT_EQ(0, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::out, nullptr));
+	ASSERT_TRUE(nd.decrDegree(RefDir::OUT, nullptr));
 	ASSERT_EQ(0, nd.refOutCount());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
@@ -148,10 +148,10 @@ TEST(ObjectDescriptor, rootRefCount)
 	ObjectDescriptor nd;
 	ASSERT_EQ(0, nd.rootRefCount);
 
-	nd.incrDegree(RefDir::in, nullptr);
+	nd.incrDegree(RefDir::IN, nullptr);
 	ASSERT_EQ(1, nd.rootRefCount);
 
-	nd.incrDegree(RefDir::out, nullptr);
+	nd.incrDegree(RefDir::OUT, nullptr);
 	ASSERT_EQ(2, nd.rootRefCount);
 
 	ASSERT_EQ(2, nd.refInCount(nullptr));
@@ -159,13 +159,13 @@ TEST(ObjectDescriptor, rootRefCount)
 	ASSERT_EQ(0, nd.refOutCount(nullptr));
 	ASSERT_EQ(0, nd.refOutCount());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::out, nullptr));
+	ASSERT_TRUE(nd.decrDegree(RefDir::OUT, nullptr));
 	ASSERT_EQ(1, nd.rootRefCount);
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::in, nullptr));
+	ASSERT_TRUE(nd.decrDegree(RefDir::IN, nullptr));
 	ASSERT_EQ(0, nd.rootRefCount);
 
-	ASSERT_FALSE(nd.decrDegree(RefDir::in, nullptr));
+	ASSERT_FALSE(nd.decrDegree(RefDir::IN, nullptr));
 	ASSERT_EQ(0, nd.rootRefCount);
 }
 

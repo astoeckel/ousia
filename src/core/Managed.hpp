@@ -45,7 +45,7 @@ class Owned;
  * Enum used to specify the direction of a object reference (inbound or
  * outbound).
  */
-enum class RefDir { in, out };
+enum class RefDir { IN, OUT };
 
 /**
  * The ObjectDescriptor struct is used by the Manager for reference counting and
