@@ -114,7 +114,7 @@ ADD_LIBRARY(ousia_core
 #	src/core/script/Object
 #	src/core/script/ScriptEngine
 #	src/core/script/Variant
-#	src/core/variant/Reader
+	src/core/variant/Reader
 	src/core/variant/Variant
 )
 
@@ -166,7 +166,7 @@ IF(TEST)
 #		test/core/script/FunctionTest
 #		test/core/script/ObjectTest
 #		test/core/script/VariantTest
-#		test/core/variant/ReaderTest
+		test/core/variant/ReaderTest
 		test/core/variant/VariantTest
 	)
 

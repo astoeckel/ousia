@@ -18,6 +18,8 @@
 
 #include <array>
 
+#include "Utils.hpp"
+
 #include "BufferedCharReader.hpp"
 
 namespace ousia {
@@ -68,6 +70,15 @@ BufferedCharReader::BufferedCharReader(const std::string &str, int line,
     : inputStream(nullptr),
       readCursor(line, column, true),
       peekCursor(line, column, false),
+      depleted(true)
+{
+	buffer.push_back(str);
+}
+
+BufferedCharReader::BufferedCharReader(const std::string &str)
+    : inputStream(nullptr),
+      readCursor(1, 1, true),
+      peekCursor(1, 1, false),
       depleted(true)
 {
 	buffer.push_back(str);
@@ -216,6 +227,19 @@ void BufferedCharReader::consumePeek()
 
 	// Copy the peek cursor to the read cursor
 	readCursor.assign(peekCursor);
+}
+
+bool BufferedCharReader::consumeWhitespace()
+{
+	char c;
+	while (peek(&c)) {
+		if (!Utils::isWhitespace(c)) {
+			resetPeek();
+			return true;
+		}
+		consumePeek();
+	}
+	return false;
 }
 
 void BufferedCharReader::resetPeek()
