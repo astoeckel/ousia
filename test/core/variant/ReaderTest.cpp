@@ -213,6 +213,13 @@ TEST(Reader, parseDouble)
 	}
 
 	{
+		BufferedCharReader reader("-1.");
+		auto res = Reader::parseDouble(reader, logger, {});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(-1., res.second);
+	}
+
+	{
 		BufferedCharReader reader("-50.e-2");
 		auto res = Reader::parseDouble(reader, logger, {'.'});
 		ASSERT_TRUE(res.first);
