@@ -126,7 +126,8 @@ public:
 	 * integer.
 	 */
 	static std::pair<bool, int64_t> parseInteger(
-	    BufferedCharReader &reader, Logger &logger);
+	    BufferedCharReader &reader, Logger &logger,
+	    const std::unordered_set<char> &delims);
 
 	/**
 	 * Parses an double from the given buffered char reader instance until one
@@ -138,7 +139,8 @@ public:
 	 * integer.
 	 */
 	static std::pair<bool, double> parseDouble(
-	    BufferedCharReader &reader, Logger &logger);
+	    BufferedCharReader &reader, Logger &logger,
+	    const std::unordered_set<char> &delims);
 
 	/**
 	 * Tries to parse the most specific item from the given stream until one of

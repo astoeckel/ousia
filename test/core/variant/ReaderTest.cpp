@@ -24,10 +24,10 @@
 namespace ousia {
 namespace variant {
 
+Logger logger;
+
 TEST(Reader, readString)
 {
-	TerminalLogger logger(std::cerr, true);
-
 	// Simple, double quoted string
 	{
 		BufferedCharReader reader("\"hello world\"");
@@ -63,8 +63,6 @@ TEST(Reader, readString)
 
 TEST(Reader, parseUnescapedString)
 {
-	TerminalLogger logger(std::cerr, true);
-
 	// Simple case
 	{
 		BufferedCharReader reader("hello world;");
@@ -100,41 +98,143 @@ TEST(Reader, parseUnescapedString)
 
 TEST(Reader, parseInteger)
 {
-	TerminalLogger logger(std::cerr, true);
+	// Valid integers
+	{
+		BufferedCharReader reader("0  ");
+		auto res = Reader::parseInteger(reader, logger, {});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(0, res.second);
+	}
 
 	{
-		BufferedCharReader reader("42");
-		auto res = Reader::parseInteger(reader, logger);
+		BufferedCharReader reader("42 ");
+		auto res = Reader::parseInteger(reader, logger, {});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(42, res.second);
 	}
 
 	{
 		BufferedCharReader reader("-42");
-		auto res = Reader::parseInteger(reader, logger);
+		auto res = Reader::parseInteger(reader, logger, {});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-42, res.second);
 	}
 
 	{
-		BufferedCharReader reader("0x42");
-		auto res = Reader::parseInteger(reader, logger);
+		BufferedCharReader reader("  -0x4A2  ");
+		auto res = Reader::parseInteger(reader, logger, {});
 		ASSERT_TRUE(res.first);
-		ASSERT_EQ(0x42, res.second);
+		ASSERT_EQ(-0x4A2, res.second);
 	}
 
-/*	{
-		BufferedCharReader reader("0Xaffe");
-		auto res = Reader::parseInteger(reader, logger);
+	{
+		BufferedCharReader reader(" 0Xaffe");
+		auto res = Reader::parseInteger(reader, logger, {});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(0xAFFE, res.second);
-	}*/
+	}
+
+	{
+		BufferedCharReader reader("0x7FFFFFFFFFFFFFFF");
+		auto res = Reader::parseInteger(reader, logger, {});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(0x7FFFFFFFFFFFFFFFL, res.second);
+	}
+
+	{
+		BufferedCharReader reader("-0x7FFFFFFFFFFFFFFF");
+		auto res = Reader::parseInteger(reader, logger, {});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(-0x7FFFFFFFFFFFFFFFL, res.second);
+	}
+
+	// Invalid integers
+	{
+		BufferedCharReader reader("-");
+		auto res = Reader::parseInteger(reader, logger, {});
+		ASSERT_FALSE(res.first);
+	}
+
+	{
+		BufferedCharReader reader("0a");
+		auto res = Reader::parseInteger(reader, logger, {});
+		ASSERT_FALSE(res.first);
+	}
+
+	{
+		BufferedCharReader reader("-0xag");
+		auto res = Reader::parseInteger(reader, logger, {});
+		ASSERT_FALSE(res.first);
+	}
+
+	{
+		BufferedCharReader reader("0x8000000000000000");
+		auto res = Reader::parseInteger(reader, logger, {});
+		ASSERT_FALSE(res.first);
+	}
+}
+
+TEST(Reader, parseDouble)
+{
+	// Valid doubles
+	{
+		BufferedCharReader reader("1.25");
+		auto res = Reader::parseDouble(reader, logger, {});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(1.25, res.second);
+	}
+
+	{
+		BufferedCharReader reader(".25");
+		auto res = Reader::parseDouble(reader, logger, {});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(.25, res.second);
+	}
+
+	{
+		BufferedCharReader reader(".25e1");
+		auto res = Reader::parseDouble(reader, logger, {});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(2.5, res.second);
+	}
+
+	{
+		BufferedCharReader reader("-2.5e-1");
+		auto res = Reader::parseDouble(reader, logger, {});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(-0.25, res.second);
+	}
+
+	{
+		BufferedCharReader reader("-50e-2");
+		auto res = Reader::parseDouble(reader, logger, {});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(-0.5, res.second);
+	}
+
+	{
+		BufferedCharReader reader("-50.e-2");
+		auto res = Reader::parseDouble(reader, logger, {'.'});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(-50, res.second);
+	}
+
+	// Invalid doubles
+	{
+		BufferedCharReader reader(".e1");
+		auto res = Reader::parseDouble(reader, logger, {});
+		ASSERT_FALSE(res.first);
+	}
+
+	{
+		BufferedCharReader reader("0e100000");
+		auto res = Reader::parseDouble(reader, logger, {});
+		ASSERT_FALSE(res.first);
+	}
 }
 
 TEST(Reader, parseGeneric)
 {
-	TerminalLogger logger(std::cerr, true);
-
 	// Simple case, unescaped string
 	{
 		BufferedCharReader reader("hello world");

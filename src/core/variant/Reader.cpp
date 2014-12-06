@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-#include <cassert>
+#include <cmath>
 #include <sstream>
 
 #include <core/Utils.hpp>
@@ -28,44 +28,282 @@
 namespace ousia {
 namespace variant {
 
-static const char *ERR_UNEXPECTED_CHARACTER = "Unexpected character";
-static const char *ERR_UNEXPECTED_END = "Unexpected end";
+/* Error Messages */
+
+static const char *ERR_UNEXPECTED_CHAR = "Unexpected character";
+static const char *ERR_UNEXPECTED_END = "Unexpected literal end";
 static const char *ERR_UNTERMINATED = "Unterminated literal";
 static const char *ERR_INVALID_ESCAPE = "Invalid escape sequence";
-static const char *ERR_INVALID_INTEGER = "Sequence is not a valid integer";
-static const char *ERR_INVALID_DOUBLE = "Sequence is not a valid number";
+static const char *ERR_INVALID_INTEGER = "Invalid integer value";
+static const char *ERR_TOO_LARGE = "Value too large to represent";
+
+/* Class Number */
+
+/**
+ * Class used internally to represent a number (integer or double). The number
+ * is represented by its components (base value a, nominator n, denominator d,
+ * exponent e, sign s and exponent sign sE).
+ */
+class Number {
+private:
+	/**
+	 * Reprsents the part of the number: Base value a, nominator n, exponent e.
+	 */
+	enum class Part { A, N, E };
+
+	/**
+	 * State used in the parser state machine
+	 */
+	enum class State {
+		INIT,
+		HAS_MINUS,
+		LEADING_ZERO,
+		LEADING_POINT,
+		INT,
+		HEX,
+		POINT,
+		EXP_INIT,
+		EXP_HAS_MINUS,
+		EXP
+	};
+
+	/**
+	 * Returns the numeric value of the given ASCII character (returns 0 for
+	 * '0', 1 for '1', 10 for 'A' and so on).
+	 *
+	 * @param c is the character for which the numeric value should be returned.
+	 * @return the numeric value the character represents.
+	 */
+	static int charValue(char c)
+	{
+		if (c >= '0' && c <= '9') {
+			return c & 0x0F;
+		}
+		if ((c >= 'A' && c <= 'O') || (c >= 'a' && c <= 'o')) {
+			return (c & 0x0F) + 9;
+		}
+		return -1;
+	}
+
+	/**
+	 * Appends the value of the character c to the internal number
+	 * representation and reports any errors that might occur.
+	 */
+	bool appendChar(char c, int base, Part p, BufferedCharReader &reader,
+	                Logger &logger)
+	{
+		// Check whether the given character is valid
+		int v = charValue(c);
+		if (v < 0 || v >= base) {
+			logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+			return false;
+		}
+
+		// Append the number to the specified part
+		switch (p) {
+			case Part::A:
+				a = a * base + v;
+				break;
+			case Part::N:
+				n = n * base + v;
+				d = d * base;
+				break;
+			case Part::E:
+				e = e * base + v;
+				break;
+		}
+
+		// Check for any overflows
+		if (a < 0 || n < 0 || d < 0 || e < 0) {
+			logger.errorAt(ERR_TOO_LARGE, reader);
+			return false;
+		}
+		return true;
+	}
+
+public:
+	/**
+	 * Sign and exponent sign.
+	 */
+	int8_t s, sE;
+
+	/**
+	 * Exponent
+	 */
+	int16_t e;
+
+	/**
+	 * Base value, nominator, denominator
+	 */
+	int64_t a, n, d;
+
+	/**
+	 * Constructor of the number class.
+	 */
+	Number() : s(1), sE(1), e(0), a(0), n(0), d(1) {}
+
+	/**
+	 * Returns the represented double value.
+	 */
+	double doubleValue()
+	{
+		return s * (a + ((double)n / (double)d)) * pow(10.0, (double)(sE * e));
+	}
+
+	/**
+	 * Returns the represented integer value. Only a lossless operation, if the
+	 * number is an integer (as can be checked via the isInt method), otherwise
+	 * the exponent and the fractional value will be truncated.
+	 */
+	int64_t intValue() { return s * a; }
+
+	/**
+	 * Returns true, if the number is an integer (has no fractional or
+	 * exponential part).
+	 */
+	bool isInt() { return (n == 0) && (d == 1) && (e == 0); }
+
+	/**
+	 * Tries to parse the number from the given stream and loggs any errors to
+	 * the given logger instance. Numbers are terminated by one of the given
+	 * delimiters.
+	 */
+	bool parse(BufferedCharReader &reader, Logger &logger,
+	           const std::unordered_set<char> &delims)
+	{
+		State state = State::INIT;
+		char c;
+
+		// Consume the first whitespace characters
+		reader.consumeWhitespace();
+
+		// Iterate over the FSM to extract numbers
+		while (reader.peek(&c)) {
+			// Abort, once a delimiter or whitespace is reached
+			if (Utils::isWhitespace(c) || delims.count(c)) {
+				reader.resetPeek();
+				break;
+			}
+
+			// The character is not a whitespace character and not a delimiter
+			switch (state) {
+				case State::INIT:
+				case State::HAS_MINUS:
+					switch (c) {
+						case '-':
+							// Do not allow multiple minus signs
+							if (state == State::HAS_MINUS) {
+								logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+								return false;
+							}
+							state = State::HAS_MINUS;
+							s = -1;
+							break;
+						case '0':
+							// Remember a leading zero for the detection of "0x"
+							state = State::LEADING_ZERO;
+							break;
+						case '.':
+							// Remember a leading point as ".eXXX" is invalid
+							state = State::LEADING_POINT;
+							break;
+						default:
+							state = State::INT;
+							if (!appendChar(c, 10, Part::A, reader, logger)) {
+								return false;
+							}
+							break;
+					}
+					break;
+				case State::LEADING_ZERO:
+					if (c == 'x' || c == 'X') {
+						state = State::HEX;
+						break;
+					}
+				// fallthrough
+				case State::INT:
+					switch (c) {
+						case '.':
+							state = State::POINT;
+							break;
+						case 'e':
+						case 'E':
+							state = State::EXP_INIT;
+							break;
+						default:
+							state = State::INT;
+							if (!appendChar(c, 10, Part::A, reader, logger)) {
+								return false;
+							}
+							break;
+					}
+					break;
+				case State::HEX:
+					if (!appendChar(c, 16, Part::A, reader, logger)) {
+						return false;
+					}
+					break;
+				case State::LEADING_POINT:
+				case State::POINT:
+					switch (c) {
+						case 'e':
+						case 'E':
+							if (state == State::LEADING_POINT) {
+								logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+								return false;
+							}
+							state = State::EXP_INIT;
+							break;
+						default:
+							state = State::POINT;
+							if (!appendChar(c, 10, Part::N, reader, logger)) {
+								return false;
+							}
+							break;
+					}
+					break;
+				case State::EXP_HAS_MINUS:
+				case State::EXP_INIT:
+					if (c == '-') {
+						if (state == State::EXP_HAS_MINUS) {
+							logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+							return false;
+						}
+						state = State::EXP_HAS_MINUS;
+						sE = -1;
+					} else {
+						state = State::EXP;
+						if (!appendChar(c, 10, Part::E, reader, logger)) {
+							return false;
+						}
+					}
+					break;
+				case State::EXP:
+					if (!appendChar(c, 10, Part::E, reader, logger)) {
+						return false;
+					}
+					break;
+			}
+			reader.consumePeek();
+		}
+
+		// States in which ending is valid, in other states, log an error
+		if (state == State::LEADING_ZERO || state == State::HEX ||
+		    state == State::INT || state == State::POINT ||
+		    state == State::EXP) {
+			return true;
+		}
+		logger.errorAt(ERR_UNEXPECTED_END, reader);
+		return false;
+	}
+};
+
+/* Class Reader */
 
 static const int STATE_INIT = 0;
 static const int STATE_IN_STRING = 1;
 static const int STATE_ESCAPE = 2;
 static const int STATE_WHITESPACE = 3;
-
-/**
- * Used internally to extract the regexp [0-9xXe.-]* from the given buffered
- * char reader.
- *
- * @param reader is the buffered char reader from which the sequence should be
- * extracted.
- */
-static std::pair<bool, std::string> extractNumberSequence(
-    BufferedCharReader &reader)
-{
-	bool isInteger = true;
-	char c;
-	std::stringstream res;
-	while (reader.peek(&c)) {
-		isInteger = isInteger && !(c == '.' || c == 'e' || c == 'E');
-		if (Utils::isHexadecimal(c) || c == '.' || c == '-' || c == 'e' ||
-		    c == 'E' || c == 'x' || c == 'X') {
-			reader.consumePeek();
-			res << c;
-		} else {
-			reader.resetPeek();
-			break;
-		}
-	}
-	return std::make_pair(isInteger, res.str());
-}
 
 template <class T>
 static std::pair<bool, T> error(BufferedCharReader &reader, Logger &logger,
@@ -102,8 +340,7 @@ std::pair<bool, std::string> Reader::parseString(
 				} else if (delims && delims->count(c)) {
 					return error(reader, logger, ERR_UNEXPECTED_END, res.str());
 				}
-				return error(reader, logger, ERR_UNEXPECTED_CHARACTER,
-				             res.str());
+				return error(reader, logger, ERR_UNEXPECTED_CHAR, res.str());
 			case STATE_IN_STRING:
 				if (c == quote) {
 					reader.consumePeek();
@@ -211,77 +448,30 @@ std::pair<bool, std::string> Reader::parseUnescapedString(
 	return std::make_pair(true, res.str());
 }
 
-static std::pair<bool, int64_t> parseExtractedInteger(
-    BufferedCharReader &reader, Logger &logger, const std::string &val)
+std::pair<bool, int64_t> Reader::parseInteger(
+    BufferedCharReader &reader, Logger &logger,
+    const std::unordered_set<char> &delims)
 {
-	try {
-		size_t idx = 0;
-		bool valid = false;
-		int64_t res = 0;
-
-		std::string prefix = val.substr(0, 2);
-		if (prefix == "0x" || prefix == "0X") {
-			// If the value starts with 0x or 0X parse a hexadecimal value
-			std::string hex = val.substr(2);
-			res = std::stoll(hex, &idx, 16);
-			valid = idx == hex.length();
+	Number n;
+	if (n.parse(reader, logger, delims)) {
+		// Only succeed if the parsed number is an integer, otherwise this is an
+		// error
+		if (n.isInt()) {
+			return std::make_pair(true, n.intValue());
 		} else {
-			res = std::stoll(val, &idx, 10);
-			valid = idx == val.length();
+			return error(reader, logger, ERR_INVALID_INTEGER, n.intValue());
 		}
-
-		if (!valid) {
-			return error(reader, logger, ERR_INVALID_INTEGER, 0L);
-		}
-
-		return std::make_pair(valid, res);
 	}
-	catch (std::invalid_argument ex) {
-		return error(reader, logger, ERR_INVALID_INTEGER, 0L);
-	}
+	return std::make_pair(false, n.intValue());
 }
 
-static std::pair<bool, double> parseExtractedDouble(BufferedCharReader &reader,
-                                                    Logger &logger,
-                                                    const std::string &val)
+std::pair<bool, double> Reader::parseDouble(
+    BufferedCharReader &reader, Logger &logger,
+    const std::unordered_set<char> &delims)
 {
-	try {
-		size_t idx = 0;
-		double res = std::stod(val, &idx);
-		if (idx != val.length()) {
-			return error(reader, logger, ERR_INVALID_DOUBLE, 0.0);
-		}
-		return std::make_pair(true, res);
-	}
-	catch (std::invalid_argument ex) {
-		return error(reader, logger, ERR_INVALID_DOUBLE, 0.0);
-	}
-}
-
-std::pair<bool, int64_t> Reader::parseInteger(BufferedCharReader &reader,
-                                              Logger &logger)
-{
-	// Skip all whitespace characters
-	reader.consumeWhitespace();
-
-	// Extract a number sequence, make sure it is an integer
-	auto num = extractNumberSequence(reader);
-	if (!num.first || num.second.empty()) {
-		return error(reader, logger, ERR_INVALID_INTEGER, 0L);
-	}
-
-	return parseExtractedInteger(reader, logger, num.second);
-}
-
-std::pair<bool, double> Reader::parseDouble(BufferedCharReader &reader,
-                                            Logger &logger)
-{
-	// Skip all whitespace characters
-	reader.consumeWhitespace();
-
-	// Extract a number sequence, parse it as double
-	auto num = extractNumberSequence(reader);
-	return parseExtractedDouble(reader, logger, num.second);
+	Number n;
+	bool res = n.parse(reader, logger, delims);
+	return std::make_pair(res, n.doubleValue());
 }
 
 std::pair<bool, Variant> Reader::parseGeneric(
@@ -308,16 +498,20 @@ std::pair<bool, Variant> Reader::parseGeneric(
 			// TODO: Parse struct descriptor
 		}
 
-		if (Utils::isNumeric(c)) {
+		// Try to parse a number if a character in [0-9-] is reached
+		if (Utils::isNumeric(c) || c == '-') {
 			reader.resetPeek();
-			auto num = extractNumberSequence(reader);
-			if (num.first) {
-				auto res = parseExtractedInteger(reader, logger, num.second);
-				return std::make_pair(
-				    res.first,
-				    Variant{static_cast<Variant::intType>(res.second)});
+			Number n;
+			if (n.parse(reader, logger, delims)) {
+				if (n.isInt()) {
+					return std::make_pair(
+					    true,
+					    Variant{static_cast<Variant::intType>(n.intValue())});
+				} else {
+					return std::make_pair(true, n.doubleValue());
+				}
 			} else {
-				return parseExtractedDouble(reader, logger, num.second);
+				return std::make_pair(false, n.doubleValue());
 			}
 		}
 
