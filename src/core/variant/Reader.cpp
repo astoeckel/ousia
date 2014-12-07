@@ -28,6 +28,14 @@
 namespace ousia {
 namespace variant {
 
+// TODO: Better error messages (like "Expected 'x' but got 'y'")
+// TODO: Replace delims with single char delim where possible
+// TODO: Use custom return value instead of std::pair
+// TODO: Allow buffered char reader to "fork"
+// TODO: Rename BufferedCharReader to shorter CharReader
+// TODO: Implement context in CharReader (to allow error messages to extract the
+// current line)
+
 /* Error Messages */
 
 static const char *ERR_UNEXPECTED_CHAR = "Unexpected character";
@@ -287,7 +295,7 @@ public:
 			reader.consumePeek();
 		}
 
-		// States in which ending is valid, in other states, log an error
+		// States in which ending is valid. Log an error in other states
 		if (state == State::LEADING_ZERO || state == State::HEX ||
 		    state == State::INT || state == State::POINT ||
 		    state == State::EXP) {
@@ -302,8 +310,11 @@ public:
 
 static const int STATE_INIT = 0;
 static const int STATE_IN_STRING = 1;
-static const int STATE_ESCAPE = 2;
-static const int STATE_WHITESPACE = 3;
+static const int STATE_IN_ARRAY = 2;
+static const int STATE_EXPECT_COMMA = 3;
+static const int STATE_ESCAPE = 4;
+static const int STATE_WHITESPACE = 5;
+static const int STATE_RESYNC = 6;
 
 template <class T>
 static std::pair<bool, T> error(BufferedCharReader &reader, Logger &logger,
@@ -409,6 +420,74 @@ std::pair<bool, std::string> Reader::parseString(
 		}
 	}
 	return error(reader, logger, ERR_UNEXPECTED_END, res.str());
+}
+
+std::pair<bool, Variant::arrayType> Reader::parseArray(
+    BufferedCharReader &reader, Logger &logger, char delim)
+{
+	Variant::arrayType res;
+	bool hadError = false;
+	int state = delim ? STATE_IN_ARRAY : STATE_INIT;
+	delim = delim ? delim : ']';
+	char c;
+
+	// Consume all whitespace
+	reader.consumeWhitespace();
+
+	// Iterate over the characters, use the parseGeneric function to read the
+	// pairs
+	while (reader.peek(&c)) {
+		// Generically handle the end of the array
+		if (state != STATE_INIT && c == delim) {
+			reader.consumePeek();
+			return std::make_pair(!hadError, res);
+		}
+
+		switch (state) {
+			case STATE_INIT:
+				if (c != '[') {
+					return error(reader, logger, ERR_UNEXPECTED_CHAR, res);
+				}
+				state = STATE_IN_ARRAY;
+				reader.consumePeek();
+				break;
+			case STATE_IN_ARRAY: {
+				// Try to read an element using the parseGeneric function
+				reader.resetPeek();
+				auto elem = parseGeneric(reader, logger, {',', delim});
+				res.push_back(elem.second);
+
+				// If the reader had no error, expect an comma, otherwise skip
+				// to the next comma in the stream
+				if (elem.first) {
+					state = STATE_EXPECT_COMMA;
+				} else {
+					state = STATE_RESYNC;
+					hadError = true;
+				}
+				break;
+			}
+			case STATE_EXPECT_COMMA:
+				// Skip whitespace
+				if (c == ',') {
+					state = STATE_IN_ARRAY;
+				} else if (!Utils::isWhitespace(c)) {
+					hadError = true;
+					state = STATE_RESYNC;
+					logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+				}
+				reader.consumePeek();
+				break;
+			case STATE_RESYNC:
+				// Just wait for another comma to arrive
+				if (c == ',') {
+					state = STATE_IN_ARRAY;
+				}
+				reader.consumePeek();
+				break;
+		}
+	}
+	return error(reader, logger, ERR_UNEXPECTED_END, res);
 }
 
 std::pair<bool, std::string> Reader::parseUnescapedString(
@@ -517,6 +596,19 @@ std::pair<bool, Variant> Reader::parseGeneric(
 
 		// Parse an unescaped string in any other case
 		auto res = parseUnescapedString(reader, logger, delims);
+
+		// Handling for special primitive values
+		if (res.first) {
+			if (res.second == "true") {
+				return std::make_pair(true, Variant{true});
+			}
+			if (res.second == "false") {
+				return std::make_pair(true, Variant{false});
+			}
+			if (res.second == "null") {
+				return std::make_pair(true, Variant{nullptr});
+			}
+		}
 		return std::make_pair(res.first, res.second.c_str());
 	}
 	return error(reader, logger, ERR_UNEXPECTED_END, nullptr);

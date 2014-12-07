@@ -115,7 +115,6 @@ public:
 	    BufferedCharReader &reader, Logger &logger,
 	    const std::unordered_set<char> &delims);
 
-
 	/**
 	 * Parses an integer from the given buffered char reader instance until one
 	 * of the given delimiter characters is reached.
@@ -141,6 +140,12 @@ public:
 	static std::pair<bool, double> parseDouble(
 	    BufferedCharReader &reader, Logger &logger,
 	    const std::unordered_set<char> &delims);
+
+	/**
+	 * Parses an array of values.
+	 */
+	static std::pair<bool, Variant::arrayType> parseArray(
+	    BufferedCharReader &reader, Logger &logger, char delim = 0);
 
 	/**
 	 * Tries to parse the most specific item from the given stream until one of

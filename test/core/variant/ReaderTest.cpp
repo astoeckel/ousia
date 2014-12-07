@@ -24,7 +24,7 @@
 namespace ousia {
 namespace variant {
 
-Logger logger;
+static TerminalLogger logger{std::cerr, true};
 
 TEST(Reader, readString)
 {
@@ -237,6 +237,72 @@ TEST(Reader, parseDouble)
 		BufferedCharReader reader("0e100000");
 		auto res = Reader::parseDouble(reader, logger, {});
 		ASSERT_FALSE(res.first);
+	}
+}
+
+TEST(Reader, parseArray)
+{
+	// Simple case (only primitive data types)
+	{
+		BufferedCharReader reader("[\"Hello, World\", unescaped\n string ,\n"
+			"1234, 0.56, true, false, null]");
+		auto res = Reader::parseArray(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		// Make sure array has the correct size
+		ASSERT_EQ(7, res.second.size());
+
+		// Check the types
+		ASSERT_TRUE(res.second[0].isString());
+		ASSERT_TRUE(res.second[1].isString());
+		ASSERT_TRUE(res.second[2].isInt());
+		ASSERT_TRUE(res.second[3].isDouble());
+		ASSERT_TRUE(res.second[4].isBool());
+		ASSERT_TRUE(res.second[5].isBool());
+		ASSERT_TRUE(res.second[6].isNull());
+
+		// Check the values
+		ASSERT_EQ("Hello, World", res.second[0].asString());
+		ASSERT_EQ("unescaped\n string", res.second[1].asString());
+		ASSERT_EQ(1234, res.second[2].asInt());
+		ASSERT_EQ(0.56, res.second[3].asDouble());
+		ASSERT_TRUE(res.second[4].asBool());
+		ASSERT_FALSE(res.second[5].asBool());
+	}
+
+	// Ending with comma
+	{
+		BufferedCharReader reader("[  'test' ,]");
+		auto res = Reader::parseArray(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		// Make sure the array has the correct size
+		ASSERT_EQ(1, res.second.size());
+
+		// Check the types
+		ASSERT_TRUE(res.second[0].isString());
+
+		// Check the values
+		ASSERT_EQ("test", res.second[0].asString());
+	}
+
+	// Recovery from invalid values
+	// TODO: Actually parseGeneric should fall back to returning a simple string
+	// if parsing of a special (non-string) type failed
+	{
+		BufferedCharReader reader("[ 0invalidNumber, str, 1invalid]");
+		auto res = Reader::parseArray(reader, logger);
+		ASSERT_FALSE(res.first);
+
+		// Make sure the array has the correct size
+		ASSERT_EQ(3, res.second.size());
+
+		// Check the types (only for the valid entries, the other types are
+		// undefined)
+		ASSERT_TRUE(res.second[1].isString());
+
+		// Check the values
+		ASSERT_EQ("str", res.second[1].asString());
 	}
 }
 
