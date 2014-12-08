@@ -24,7 +24,8 @@
 namespace ousia {
 namespace variant {
 
-static TerminalLogger logger{std::cerr, true};
+//static TerminalLogger logger{std::cerr, true};
+static Logger logger;
 
 TEST(Reader, readString)
 {
