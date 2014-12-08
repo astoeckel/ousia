@@ -16,7 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
+
 #include <algorithm>
+#include <limits>
 
 #include "CharReader.hpp"
 
@@ -34,8 +37,8 @@ Buffer::Buffer(ReadCallback callback, void *userData)
       startOffset(0),
       firstDead(0)
 {
-	// Insert a first empty bucket and set the start buffer correctly
-	nextBucket();
+	// Load a first block of data from the stream
+	stream();
 	startBucket = buckets.begin();
 }
 
@@ -72,20 +75,39 @@ void Buffer::advance(BucketList::const_iterator &it) const
 	}
 }
 
-
 Buffer::Bucket &Buffer::nextBucket()
 {
+	constexpr size_t MAXVAL = std::numeric_limits<size_t>::max();
+
 	// Fetch the minimum bucket index
-	size_t minBucketIdx = 0;
+	size_t minBucketIdx = MAXVAL;
 	for (size_t i = 0; i < cursors.size(); i++) {
 		if (alive[i]) {
-			minBucketIdx = std::min(minBucketIdx, cursors[i].bucketIdx);
+			// Fetch references to the bucket and the cursor
+			const Cursor &cur = cursors[i];
+			const Bucket &bucket = *(cur.bucket);
+
+			// Increment the bucket index by one, if the cursor is at the end
+			// of the bucket (only valid if the LOOKBACK_SIZE is set to zero)
+			size_t bIdx = cur.bucketIdx;
+			if (LOOKBACK_SIZE == 0 && cur.bucketOffs == bucket.size()) {
+				bIdx++;
+			}
+
+			// Decrement the bucket index by one, if the previous bucket still
+			// needs to be reached and cannot be overridden
+			if (bIdx > 0 && cur.bucketOffs < LOOKBACK_SIZE) {
+				bIdx--;
+			}
+
+			// Set the bucket index to the minium
+			minBucketIdx = std::min(minBucketIdx, bIdx);
 		}
 	}
 
 	// If there is space between the current start bucket and the read
 	// cursor, the start bucket can be safely overridden.
-	if (minBucketIdx > 0) {
+	if (minBucketIdx > 0 && minBucketIdx != MAXVAL) {
 		// All cursor bucket indices will be decreased by one
 		for (size_t i = 0; i < cursors.size(); i++) {
 			cursors[i].bucketIdx--;

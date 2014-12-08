@@ -63,9 +63,17 @@ public:
 
 private:
 	/**
-	 * Number of bytes to request from the input stream.
+	 * Number of bytes to request from the input stream. Set to 64 KiB because
+	 * this seems to be a nice value for I/O operations according to multiple
+	 * sources.
 	 */
-	static constexpr size_t REQUEST_SIZE = 16 * 1024;
+	static constexpr size_t REQUEST_SIZE = 64 * 1024;
+
+	/**
+	 * Number of bytes the buffer guarantees to be capable of looking back
+	 * for extracting the current context.
+	 */
+	static constexpr size_t LOOKBACK_SIZE = 128;
 
 	/**
 	 * Type used internally to represent one chunk of memory.
