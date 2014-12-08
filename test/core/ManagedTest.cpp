@@ -30,7 +30,7 @@ namespace ousia {
 
 /* Class ObjectDescriptor */
 
-TEST(ObjectDescriptor, Degree)
+TEST(ObjectDescriptor, degree)
 {
 	// Do not use actual Managed in this test -- we don't want to test their
 	// behaviour
