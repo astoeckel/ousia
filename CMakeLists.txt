@@ -114,6 +114,7 @@ ADD_LIBRARY(ousia_core
 #	src/core/script/Object
 #	src/core/script/ScriptEngine
 #	src/core/script/Variant
+	src/core/utils/Buffer
 	src/core/variant/Reader
 	src/core/variant/Variant
 )
