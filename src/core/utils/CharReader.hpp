@@ -17,15 +17,15 @@
 */
 
 /**
- * @file Buffer.hpp
+ * @file CharReader.hpp
  *
- * Helper class which allows to read from an input source from multiple cursors.
+ * Used within all parsers to read single characters from an underlying stream.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_BUFFER_HPP_
-#define _OUSIA_BUFFER_HPP_
+#ifndef _OUSIA_CHAR_READER_HPP_
+#define _OUSIA_CHAR_READER_HPP_
 
 #include <list>
 #include <vector>
@@ -297,5 +297,5 @@ public:
 }
 }
 
-#endif /* _OUSIA_BUFFER_HPP_ */
+#endif /* _OUSIA_CHAR_READER_HPP_ */
 

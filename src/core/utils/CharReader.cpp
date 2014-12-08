@@ -18,7 +18,7 @@
 
 #include <algorithm>
 
-#include "Buffer.hpp"
+#include "CharReader.hpp"
 
 namespace ousia {
 namespace utils {
