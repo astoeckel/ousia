@@ -195,6 +195,16 @@ private:
 	 */
 	void stream();
 
+	/**
+	 * Moves the given cursor forward.
+	 */
+	size_t moveForward(CursorId cursor, size_t relativeOffs);
+
+	/**
+	 * Moves the given cursor backward.
+	 */
+	size_t moveBackward(CursorId cursor, size_t relativeOffs);
+
 public:
 	/**
 	 * Intializes the Buffer with a reference to a ReadCallback that is used
@@ -255,6 +265,19 @@ public:
 	void deleteCursor(CursorId cursor);
 
 	/**
+	 * Moves a cursor by offs bytes. Note that moving backwards is theoretically
+	 * limited by the LOOKBACK_SIZE of the Buffer, practically it will most likely
+	 * be limited by the REQUEST_SIZE, so you can got at most 64 KiB backwards.
+	 *
+	 * @param cursor is the cursor that should be moved.
+	 * @param relativeOffs is a positive or negative integer number specifying
+	 * the number of bytes the cursor should be moved forward (positive numbers)
+	 * or backwards (negative numbers).
+	 * @return the actual number of bytes the cursor was moved.
+	 */
+	ssize_t moveCursor(CursorId cursor, ssize_t relativeOffs);
+
+	/**
 	 * Returns the current byte offset of the given cursor relative to the
 	 * beginning of the stream.
 	 *
@@ -286,20 +309,6 @@ public:
 	 * been reached.
 	 */
 	bool read(CursorId cursor, char &c);
-
-//	/**
-//	 * Reads string from the ring buffer from the given cursor.
-//	 *
-//	 * @param cursor specifies the cursor from which the data should be read.
-//	 * The cursor will be advanced by the specified number of bytes (or to the
-//	 * end of the stream).
-//	 * @param res is the vector into which the data should be read. Any already
-//	 * present data will be overridden.
-//	 * @param len is number of bytes that should be read from the buffer.
-//	 * @return true if len bytes were read, false if less the len bytes have
-//	 * been read because the end of the stream has been reached.
-//	 */
-//	bool read(CursorId cursor, std::vector<char> &res, size_t len);
 };
 
 }

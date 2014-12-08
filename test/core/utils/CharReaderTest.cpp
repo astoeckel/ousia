@@ -168,6 +168,63 @@ TEST(Buffer, copyCursors)
 	ASSERT_TRUE(buf.atEnd(cur3));
 }
 
+TEST(Buffer, moveCursor)
+{
+	std::string testStr{"test1 test2 test3"};
+
+	// Create buffer with the test string
+	char c;
+	Buffer buf{testStr};
+	Buffer::CursorId cursor = buf.createCursor();
+
+	// Read the first six characters with cursor one
+	{
+		std::string res;
+		for (int i = 0; i < 6; i++) {
+			if (buf.read(cursor, c)) {
+				res.append(&c, 1);
+			}
+		}
+		ASSERT_EQ("test1 ", res);
+	}
+
+	// Move six bytes backward
+	ASSERT_EQ(-6, buf.moveCursor(cursor, -6));
+	{
+		std::string res;
+		for (int i = 0; i < 6; i++) {
+			if (buf.read(cursor, c)) {
+				res.append(&c, 1);
+			}
+		}
+		ASSERT_EQ("test1 ", res);
+	}
+
+	// Move more than six bytes backward
+	ASSERT_EQ(-6, buf.moveCursor(cursor, -1000));
+	{
+		std::string res;
+		for (int i = 0; i < 6; i++) {
+			if (buf.read(cursor, c)) {
+				res.append(&c, 1);
+			}
+		}
+		ASSERT_EQ("test1 ", res);
+	}
+
+	// Move six bytes forward
+	ASSERT_EQ(6, buf.moveCursor(cursor, 6));
+	{
+		std::string res;
+		for (int i = 0; i < 6; i++) {
+			if (buf.read(cursor, c)) {
+				res.append(&c, 1);
+			}
+		}
+		ASSERT_EQ("test3", res);
+	}
+}
+
 // Generates some pseudo-random data
 // (inspired by "Numerical Recipes, Third Edition", Chapter 7.17)
 static std::vector<char> generateData(size_t len)
@@ -294,6 +351,15 @@ TEST(Buffer, streamTwoCursorsInterleaved)
 				res2.push_back(c);
 			}
 		}
+
+		// Move cur2 120 bytes backward and read the content again
+		res2.resize(res2.size() - 120);
+		ASSERT_EQ(-120, buf.moveCursor(cur2, -120));
+		for (int i = 0; i < 120; i++) {
+			if (buf.read(cur2, c)) {
+				res2.push_back(c);
+			}
+		}
 	}
 
 	ASSERT_EQ(DATA_LENGTH, buf.offset(cur1));
@@ -302,6 +368,26 @@ TEST(Buffer, streamTwoCursorsInterleaved)
 	// The read data and the original data must be equal
 	ASSERT_EQ(DATA, res1);
 	ASSERT_EQ(DATA, res2);
+}
+
+TEST(Buffer, streamMoveForward)
+{
+	VectorReadState state(DATA);
+
+	std::vector<char> partialData;
+	partialData.resize(100);
+	std::copy(DATA.end() - partialData.size(), DATA.end(), partialData.begin());
+
+	Buffer buf{readFromVector, &state};
+	Buffer::CursorId cursor = buf.createCursor();
+	ASSERT_EQ(DATA_LENGTH - 100, buf.moveCursor(cursor, DATA_LENGTH - 100));
+
+	char c;
+	std::vector<char> res;
+	while (buf.read(cursor, c)) {
+		res.push_back(c);
+	}
+	ASSERT_EQ(partialData, res);
 }
 
 }

@@ -16,8 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
-
 #include <algorithm>
 #include <limits>
 
@@ -204,14 +202,99 @@ void Buffer::deleteCursor(Buffer::CursorId cursor)
 
 size_t Buffer::offset(Buffer::CursorId cursor) const
 {
-	const Cursor &c = cursors[cursor];
-	size_t offs = startOffset + c.bucketOffs;
+	const Cursor &cur = cursors[cursor];
+	size_t offs = startOffset + cur.bucketOffs;
 	BucketList::const_iterator it = startBucket;
-	while (it != c.bucket) {
+	while (it != cur.bucket) {
 		offs += it->size();
 		advance(it);
 	}
 	return offs;
+}
+
+size_t Buffer::moveForward(CursorId cursor, size_t relativeOffs)
+{
+	size_t offs = relativeOffs;
+	Cursor &cur = cursors[cursor];
+	while (offs > 0) {
+		// Fetch the current bucket of the cursor
+		Bucket &bucket = *(cur.bucket);
+
+		// If there is enough space in the bucket, simply increment the bucket
+		// offset by the given relative offset
+		const size_t space = bucket.size() - cur.bucketOffs;
+		if (space >= offs) {
+			cur.bucketOffs += offs;
+			break;
+		} else {
+			// Go to the end of the current bucket otherwise
+			offs -= space;
+			cur.bucketOffs = bucket.size();
+
+			// Go to the next bucket
+			if (cur.bucket != endBucket) {
+				// Go to the next bucket
+				advance(cur.bucket);
+				cur.bucketIdx++;
+				cur.bucketOffs = 0;
+			} else {
+				// Abort, if there is no more data to stream, otherwise just
+				// load new data
+				if (reachedEnd) {
+					return relativeOffs - offs;
+				}
+				stream();
+			}
+		}
+	}
+	return relativeOffs;
+}
+
+size_t Buffer::moveBackward(CursorId cursor, size_t relativeOffs)
+{
+	size_t offs = relativeOffs;
+	Cursor &cur = cursors[cursor];
+	while (offs > 0) {
+		// If there is enough space in the bucket, simply decrement the bucket
+		// offset by the given relative offset
+		if (cur.bucketOffs >= offs) {
+			cur.bucketOffs -= offs;
+			break;
+		} else {
+			// Go to the beginning of the current bucket otherwise
+			offs -= cur.bucketOffs;
+			cur.bucketOffs = 0;
+
+			// Abort if there is no more bucket to got back to
+			if (cur.bucketIdx == 0) {
+				return relativeOffs - offs;
+			}
+
+			// Go to the previous bucket (wrap around at the beginning of the
+			// list)
+			if (cur.bucket == buckets.begin()) {
+				cur.bucket = buckets.end();
+			}
+			cur.bucket--;
+
+			// Decrement the bucket index, and set the current offset to the
+			// end of the new bucket
+			cur.bucketIdx--;
+			cur.bucketOffs = cur.bucket->size();
+		}
+	}
+	return relativeOffs;
+}
+
+ssize_t Buffer::moveCursor(CursorId cursor, ssize_t relativeOffs)
+{
+	if (relativeOffs > 0) {
+		return moveForward(cursor, relativeOffs);
+	} else if (relativeOffs < 0) {
+		return -moveBackward(cursor, -relativeOffs);
+	} else {
+		return 0;
+	}
 }
 
 bool Buffer::atEnd(Buffer::CursorId cursor) const
