@@ -259,11 +259,6 @@ static size_t readFromVector(char *buf, size_t size, void *userData)
 		buf++;
 	}
 	size_t res = tar - state.offs;
-
-//	std::cout << "called readFromVector, read from " << state.offs << " to "
-//	          << tar << ", total " << res << " byte, requested " << size
-//	          << " byte" << std::endl;
-
 	state.offs = tar;
 	return res;
 }

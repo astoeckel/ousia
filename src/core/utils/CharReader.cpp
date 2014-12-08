@@ -19,10 +19,30 @@
 #include <algorithm>
 #include <limits>
 
+#include <core/Utils.hpp>
+
 #include "CharReader.hpp"
 
 namespace ousia {
 namespace utils {
+
+/* Helper functions */
+
+/**
+ * istreamReadCallback is used internally by the Buffer calss to stream data
+ * from an input stream.
+ *
+ * @param buf is points a the target memory region.
+ * @param size is the requested number of bytes.
+ * @param userData is a pointer at some user defined data.
+ * @return the actual number of bytes read. If the result is smaller than
+ * the requested size, this tells the Buffer that the end of the input
+ * stream is reached.
+ */
+static size_t istreamReadCallback(char *buf, size_t size, void *userData)
+{
+	return (static_cast<std::istream*>(userData))->read(buf, size).gcount();
+}
 
 /* Class Buffer */
 
@@ -39,6 +59,8 @@ Buffer::Buffer(ReadCallback callback, void *userData)
 	stream();
 	startBucket = buckets.begin();
 }
+
+Buffer::Buffer(std::istream &istream) : Buffer(istreamReadCallback, &istream) {}
 
 Buffer::Buffer(const std::string &str)
     : callback(nullptr),
@@ -330,6 +352,164 @@ bool Buffer::read(Buffer::CursorId cursor, char &c)
 		cur.bucketOffs = 0;
 		advance(cur.bucket);
 	}
+}
+
+/* CharReader::Cursor class */
+
+void CharReader::Cursor::assign(std::shared_ptr<Buffer> buffer,
+                                CharReader::Cursor &cursor)
+{
+	// Copy the cursor position
+	buffer->copyCursor(cursor.cursor, this->cursor);
+
+	// Copy the state
+	line = cursor.line;
+	column = cursor.column;
+	state = cursor.state;
+	lastLinebreak = cursor.lastLinebreak;
+}
+
+/* CharReader class */
+
+CharReader::CharReader(std::shared_ptr<Buffer> buffer)
+    : buffer(buffer),
+      readCursor(buffer->createCursor()),
+      peekCursor(buffer->createCursor())
+{
+}
+
+CharReader::CharReader(const std::string &str, size_t line, size_t column)
+    : buffer(new Buffer{str}),
+      readCursor(buffer->createCursor(), line, column),
+      peekCursor(buffer->createCursor(), line, column)
+{
+}
+
+CharReader::CharReader(std::istream &istream, size_t line, size_t column)
+    : buffer(new Buffer{istream}),
+      readCursor(buffer->createCursor(), line, column),
+      peekCursor(buffer->createCursor(), line, column)
+{
+}
+
+CharReader::~CharReader()
+{
+	buffer->deleteCursor(readCursor.cursor);
+	buffer->deleteCursor(peekCursor.cursor);
+}
+
+bool CharReader::substituteLinebreaks(Cursor &cursor, char &c)
+{
+	if (c == '\n' || c == '\r') {
+		switch (cursor.state) {
+			case LinebreakState::NONE:
+				// We got a first linebreak character -- output a '\n'
+				if (c == '\n') {
+					cursor.state = LinebreakState::HAS_LF;
+				} else {
+					cursor.state = LinebreakState::HAS_CR;
+				}
+				c = '\n';
+				return true;
+			case LinebreakState::HAS_LF:
+				// If a LF is followed by a LF, output a new linefeed
+				if (c == '\n') {
+					cursor.state = LinebreakState::HAS_LF;
+					return true;
+				}
+
+				// Otherwise, don't handle this character (part of "\n\r")
+				cursor.state = LinebreakState::NONE;
+				return false;
+			case LinebreakState::HAS_CR:
+				// If a CR is followed by a CR, output a new linefeed
+				if (c == '\r') {
+					cursor.state = LinebreakState::HAS_CR;
+					c = '\n';
+					return true;
+				}
+
+				// Otherwise, don't handle this character (part of "\r\n")
+				cursor.state = LinebreakState::NONE;
+				return false;
+		}
+	}
+
+	// No linebreak character, reset the linebreak state
+	cursor.state = LinebreakState::NONE;
+	return true;
+}
+
+bool CharReader::readAtCursor(Cursor &cursor, char &c)
+{
+	while (true) {
+		// Return false if we're at the end of the stream
+		if (!buffer->read(cursor.cursor, c)) {
+			return false;
+		}
+
+		// Substitute linebreak characters with a single '\n'
+		if (substituteLinebreaks(cursor, c)) {
+			if (c == '\n') {
+				// A linebreak was reached, go to the next line
+				cursor.line++;
+				cursor.column = 1;
+				cursor.lastLinebreak = buffer->offset(cursor.cursor);
+			} else {
+				// Ignore UTF-8 continuation bytes
+				if (!((c & 0x80) && !(c & 0x40))) {
+					cursor.column++;
+				}
+			}
+
+			return true;
+		}
+	}
+}
+
+bool CharReader::peek(char &c) { return readAtCursor(peekCursor, c); }
+
+bool CharReader::read(char &c) { return readAtCursor(readCursor, c); }
+
+void CharReader::resetPeek() { peekCursor.assign(buffer, readCursor); }
+
+void CharReader::consumePeek() { readCursor.assign(buffer, peekCursor); }
+
+bool CharReader::consumeWhitespace()
+{
+	char c;
+	while (peek(c)) {
+		if (!Utils::isWhitespace(c)) {
+			resetPeek();
+			return true;
+		}
+		consumePeek();
+	}
+	return false;
+}
+
+CharReaderFork CharReader::fork()
+{
+	return CharReaderFork(buffer, readCursor, peekCursor);
+}
+
+/* Class CharReaderFork */
+
+CharReaderFork::CharReaderFork(std::shared_ptr<Buffer> buffer,
+                               CharReader::Cursor &parentReadCursor,
+                               CharReader::Cursor &parentPeekCursor)
+    : CharReader(buffer),
+      parentReadCursor(parentReadCursor),
+      parentPeekCursor(parentPeekCursor)
+{
+	readCursor.assign(buffer, parentReadCursor);
+	peekCursor.assign(buffer, parentPeekCursor);
+}
+
+void CharReaderFork::commit()
+{
+	parentReadCursor.assign(buffer, readCursor);
+	parentPeekCursor.assign(buffer, peekCursor);
 }
 }
 }

@@ -27,7 +27,9 @@
 #ifndef _OUSIA_CHAR_READER_HPP_
 #define _OUSIA_CHAR_READER_HPP_
 
+#include <istream>
 #include <list>
+#include <memory>
 #include <vector>
 
 namespace ousia {
@@ -45,9 +47,8 @@ public:
 	 * Callback function which is called whenever new data is requested from the
 	 * input stream.
 	 *
-	 * @param buf is a pointer at the memory region to which the data should be
-	 * writtern.
-	 * @param size is the size of the
+	 * @param buf is points a the target memory region.
+	 * @param size is the requested number of bytes.
 	 * @param userData is a pointer at some user defined data given in the
 	 * constructor.
 	 * @return the actual number of bytes read. If the result is smaller than
@@ -219,6 +220,14 @@ public:
 	Buffer(ReadCallback callback, void *userData);
 
 	/**
+	 * Initializes the Buffer with a reference to an std::istream from which
+	 * data will be read.
+	 *
+	 * @param istream is the input stream from which the data should be read.
+	 */
+	Buffer(std::istream &istream);
+
+	/**
 	 * Initializes the Buffer with the contents of the given string, after
 	 * this operation the Buffer has a fixed size.
 	 *
@@ -266,14 +275,16 @@ public:
 
 	/**
 	 * Moves a cursor by offs bytes. Note that moving backwards is theoretically
-	 * limited by the LOOKBACK_SIZE of the Buffer, practically it will most likely
-	 * be limited by the REQUEST_SIZE, so you can got at most 64 KiB backwards.
+	 * limited by the LOOKBACK_SIZE of the Buffer, practically it will most
+	 * likely be limited by the REQUEST_SIZE, so you can got at most 64 KiB
+	 * backwards.
 	 *
 	 * @param cursor is the cursor that should be moved.
 	 * @param relativeOffs is a positive or negative integer number specifying
 	 * the number of bytes the cursor should be moved forward (positive numbers)
 	 * or backwards (negative numbers).
-	 * @return the actual number of bytes the cursor was moved.
+	 * @return the actual number of bytes the cursor was moved. This number is
+	 * smaller than the relativeOffs given in the constructor if the
 	 */
 	ssize_t moveCursor(CursorId cursor, ssize_t relativeOffs);
 
@@ -311,6 +322,266 @@ public:
 	bool read(CursorId cursor, char &c);
 };
 
+// Forward declaration
+class CharReaderFork;
+
+/**
+ * Used within parsers for convenient access to single characters in an input
+ * stream or buffer. It allows reading and peeking single characters from a
+ * buffer. Additionally it counts the current column/row (with correct handling
+ * for UTF-8) and contains an internal state machine that handles the detection
+ * of linebreaks and converts these to a single '\n'.
+ */
+class CharReader {
+protected:
+	/**
+	 * Enum to represent the current state of the internal state machine that
+	 * replaces the linebreaks from multiple platforms to a single '\n'.
+	 */
+	enum class LinebreakState { NONE, HAS_LF, HAS_CR };
+
+	/**
+	 * Internally used cursor structure for managing the read and the peek
+	 * cursor.
+	 */
+	struct Cursor {
+		/**
+		 * Corresponding cursor in the underlying buffer instance.
+		 */
+		const Buffer::CursorId cursor;
+
+		/**
+		 * Current line the cursor is in.
+		 */
+		size_t line;
+
+		/**
+		 * Current column the cursor is in.
+		 */
+		size_t column;
+
+		/**
+		 * State of the linebreak replacement statemachine.
+		 */
+		LinebreakState state;
+
+		/**
+		 * Contains the absolute offset in the input stream containing the
+		 * position of the last linebreak. This is used for extracting the
+		 * context (the line) in which an error occured.
+		 */
+		size_t lastLinebreak;
+
+		/**
+		 * Constructor of the Cursor class.
+		 *
+		 * @param cursor is the underlying cursor in the Buffer instance.
+		 */
+		Cursor(Buffer::CursorId cursor, size_t line = 1, size_t column = 1)
+		    : cursor(cursor),
+		      line(line),
+		      column(column),
+		      state(LinebreakState::NONE),
+		      lastLinebreak(0)
+		{
+		}
+
+		/**
+		 * Assigns one cursor to another.
+		 *
+		 * @param buffer is the underlying buffer instance the internal cursor
+		 * belongs to.
+		 * @param cursor is the cursor from which the state should be copied.
+		 */
+		void assign(std::shared_ptr<Buffer> buffer, Cursor &cursor);
+	};
+
+private:
+	/**
+	 * Substitutes "\r", "\n\r", "\r\n" with a single "\n".
+	 *
+	 * @param cursor is the cursor from which the character should be read.
+	 * @param c a reference to the character that should be written.
+	 * @return true if another character needs to be read.
+	 */
+	bool substituteLinebreaks(Cursor &cursor, char &c);
+
+	/**
+	 * Reads a single character from the given cursor.
+	 *
+	 * @param cursor is the cursor from which the character should be read.
+	 * @param c a reference to the character that should be written.
+	 * @return true if a character was read, false if the end of the stream has
+	 * been reached.
+	 */
+	bool readAtCursor(Cursor &cursor, char &c);
+
+protected:
+	/**
+	 * Reference pointing at the underlying buffer.
+	 */
+	std::shared_ptr<Buffer> buffer;
+
+	/**
+	 * Cursor used for reading.
+	 */
+	Cursor readCursor;
+
+	/**
+	 * Cursor used for peeking.
+	 */
+	Cursor peekCursor;
+
+	/**
+	 * Protected constructor of the CharReader base class. Creates new read
+	 * and peek cursors for the given buffer.
+	 *
+	 * @param buffer is a reference to the underlying Buffer class responsible
+	 * for allowing to read from a single input stream from multiple locations.
+	 */
+	CharReader(std::shared_ptr<Buffer> buffer);
+
+public:
+	/**
+	 * Creates a new CharReader instance from a string.
+	 *
+	 * @param str is a string containing the input data.
+	 * @param line is the start line.
+	 * @param column is the start column.
+	 */
+	CharReader(const std::string &str, size_t line = 1, size_t column = 1);
+
+	/**
+	 * Creates a new CharReader instance for an input stream.
+	 *
+	 * @param istream is the input stream from which incomming data should be
+	 * read.
+	 * @param line is the start line.
+	 * @param column is the start column.
+	 */
+	CharReader(std::istream &istream, size_t line = 1, size_t column = 1);
+
+	/**
+	 * Deletes the used cursors from the underlying buffer instance.
+	 */
+	~CharReader();
+
+	// No copy
+	CharReader(const Buffer &) = delete;
+
+	// No assign
+	CharReader &operator=(const Buffer &) = delete;
+
+	/**
+	 * Peeks a single character. If called multiple times, returns the
+	 * character after the previously peeked character.
+	 *
+	 * @param c is a reference to the character to which the result should be
+	 * written.
+	 * @return true if the character was successfully read, false if there are
+	 * no more characters to be read in the buffer.
+	 */
+	bool peek(char &c);
+
+	/**
+	 * Reads a character from the input data. If "peek" was called
+	 * beforehand resets the peek pointer.
+	 *
+	 * @param c is a reference to the character to which the result should be
+	 * written.
+	 * @return true if the character was successfully read, false if there are
+	 * no more characters to be read in the buffer.
+	 */
+	bool read(char &c);
+
+	/**
+	 * Resets the peek pointer to the "read" pointer.
+	 */
+	void resetPeek();
+
+	/**
+	 * Advances the read pointer to the peek pointer -- so if the "peek"
+	 * function was called, "read" will now return the character after
+	 * the last peeked character.
+	 */
+	void consumePeek();
+
+	/**
+	 * Moves the read cursor to the next non-whitespace character. Returns
+	 * false, if the end of the stream was reached.
+	 *
+	 * @return false if the end of the stream was reached, false othrwise.
+	 */
+	bool consumeWhitespace();
+
+	/**
+	 * Creates a new CharReader located at the same position as this CharReader
+	 * instance, yet the new CharReader can be used independently of this
+	 * CharReader. Use the "commit" function of the returned CharReader to
+	 * copy the state of the forked CharReaderFork to this CharReader.
+	 *
+	 * @return a CharReaderFork instance positioned at the same location as this
+	 * CharReader instance.
+	 */
+	CharReaderFork fork();
+
+	/**
+	 * Returns true if there are no more characters as the stream was
+	 * closed.
+	 *
+	 * @return true if there is no more data.
+	 */
+	bool atEnd() const { return buffer->atEnd(readCursor.cursor); }
+
+	/**
+	 * Returns the current line (starting with one).
+	 *
+	 * @return the current line number.
+	 */
+	int getLine() const { return readCursor.line; }
+
+	/**
+	 * Returns the current column (starting with one).
+	 *
+	 * @return the current column number.
+	 */
+	int getColumn() const { return readCursor.column; }
+};
+
+/**
+ * A CharReaderFork is returned whenever the "fork" function of the CharReader
+ * class is used. Its "commit" function can be used to move the underlying
+ * CharReader instance to the location of the CharReaderFork instance. Otherwise
+ * the read location of the underlying CharReader is left unchanged.
+ */
+class CharReaderFork : public CharReader {
+private:
+	friend CharReader;
+
+	/**
+	 * The reader cursor of the underlying CharReader instance.
+	 */
+	CharReader::Cursor &parentReadCursor;
+
+	/**
+	 * The peek cursor of the underlying CharReader instance.
+	 */
+	CharReader::Cursor &parentPeekCursor;
+
+	/**
+	 * Constructor of the CharReaderFork class.
+	 */
+	CharReaderFork(std::shared_ptr<Buffer> buffer,
+	               CharReader::Cursor &parentReadCursor,
+	               CharReader::Cursor &parentPeekCursor);
+
+public:
+	/**
+	 * Moves the read and peek cursor of the parent CharReader to the location
+	 * of the read and peek cursor in the fork.
+	 */
+	void commit();
+};
 }
 }
 
