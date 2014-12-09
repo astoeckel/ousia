@@ -120,7 +120,7 @@ TEST(CSSParser, testParseSelectors)
 	Rooted<SelectorNode> Ag = children[1];
 	ASSERT_EQ("A", Ag->getName());
 	{
-		PseudoSelector select{"g", {"4", "2", "3"}, true};
+		PseudoSelector select{"g", {Variant(4), Variant(2), Variant(3)}, true};
 		ASSERT_EQ(select, Ag->getPseudoSelector());
 	}
 	ASSERT_EQ(0, Ag->getEdges().size());

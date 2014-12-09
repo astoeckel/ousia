@@ -70,7 +70,7 @@ struct Specificity {
  */
 class RuleSet : public Managed {
 private:
-	std::map<std::string, variant::Variant> rules;
+	std::map<std::string, Variant> rules;
 
 public:
 	/**
@@ -78,9 +78,9 @@ public:
 	 */
 	RuleSet(Manager &mgr) : Managed(mgr), rules() {}
 
-	std::map<std::string, variant::Variant> &getRules() { return rules; }
+	std::map<std::string, Variant> &getRules() { return rules; }
 
-	const std::map<std::string, variant::Variant> &getRules() const
+	const std::map<std::string, Variant> &getRules() const
 	{
 		return rules;
 	}
@@ -127,11 +127,11 @@ public:
 class PseudoSelector {
 private:
 	const std::string name;
-	const std::vector<std::string> args;
+	const Variant::arrayType args;
 	const bool generative;
 
 public:
-	PseudoSelector(std::string name, std::vector<std::string> args,
+	PseudoSelector(std::string name, Variant::arrayType args,
 	               bool generative)
 	    : name(std::move(name)), args(std::move(args)), generative(generative)
 	{
@@ -144,7 +144,7 @@ public:
 
 	const std::string &getName() const { return name; }
 
-	const std::vector<std::string> &getArgs() const { return args; }
+	const Variant::arrayType &getArgs() const { return args; }
 
 	const bool &isGenerative() const { return generative; }
 };

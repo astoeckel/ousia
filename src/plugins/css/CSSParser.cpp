@@ -122,8 +122,7 @@ void CSSParser::parseSelectors(Rooted<SelectorNode> root,
 {
 	auto tuple = parseSelector(tokenizer, ctx);
 	// append the SelectorPath to the root node.
-	std::vector<Rooted<SelectorNode>> unmergedLeafs =
-	    root->append(tuple.first);
+	std::vector<Rooted<SelectorNode>> unmergedLeafs = root->append(tuple.first);
 	// append the leaf to the leafList.
 	switch (unmergedLeafs.size()) {
 		case 0:
@@ -167,8 +166,8 @@ std::pair<Rooted<SelectorNode>, Rooted<SelectorNode>> CSSParser::parseSelector(
 			// so we parse the rest of the subsequent SelectorPath
 			auto tuple = parseSelector(tokenizer, ctx);
 			// then we establish the DESCENDANT relationship
-			s->getEdges().push_back(new SelectorNode::SelectorEdge(
-			    ctx.manager, tuple.first));
+			s->getEdges().push_back(
+			    new SelectorNode::SelectorEdge(ctx.manager, tuple.first));
 			// and we return this node as well as the leaf.
 			return std::make_pair(s, tuple.second);
 		}
@@ -226,14 +225,16 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 				return n;
 			}
 			// parse the argument list.
-			std::vector<std::string> args;
+			Variant::arrayType args;
 			// we require at least one argument, if parantheses are used
-			expect(TOKEN_TEXT, tokenizer, t, true, ctx);
-			args.push_back(t.content);
+			args.push_back(variant::Reader::parseGeneric(tokenizer.getInput(),
+			                                             ctx.logger,
+			                                             {',', ')'}).second);
 			while (expect(COMMA, tokenizer, t, false, ctx)) {
 				// as long as we find commas we expect new arguments.
-				expect(TOKEN_TEXT, tokenizer, t, true, ctx);
-				args.push_back(t.content);
+				args.push_back(
+				    variant::Reader::parseGeneric(
+				        tokenizer.getInput(), ctx.logger, {',', ')'}).second);
 			}
 			expect(PAREN_CLOSE, tokenizer, t, true, ctx);
 			// and we return with the finished Selector.
@@ -247,7 +248,7 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 			// so we expect an ID now.
 			Token t;
 			expect(TOKEN_TEXT, tokenizer, t, true, ctx);
-			std::vector<std::string> args{t.content};
+			Variant::arrayType args{Variant(t.content.c_str())};
 			// and we return the finished Selector
 			Rooted<SelectorNode> n{
 			    new SelectorNode(ctx.manager, name, {"has_id", args, false})};
@@ -262,7 +263,7 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 			// in both cases the attribute name comes first.
 			Token t;
 			expect(TOKEN_TEXT, tokenizer, t, true, ctx);
-			std::vector<std::string> args{t.content};
+			Variant::arrayType args{Variant(t.content.c_str())};
 			if (!expect(EQUALS, tokenizer, t, false, ctx)) {
 				// if no equals sign follows we have a has_attribute
 				// PseudoSelector
@@ -276,7 +277,7 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 				// with an equals sign we have a has_value PseudoSelector and
 				// expect the value next.
 				expect(STRING, tokenizer, t, true, ctx);
-				args.push_back(t.content);
+				args.push_back(Variant(t.content.c_str()));
 				// then we expect a closing bracket.
 				expect(BRACKET_CLOSE, tokenizer, t, true, ctx);
 				// and then we can return the result.
@@ -313,14 +314,14 @@ void CSSParser::parseRules(CodeTokenizer &tokenizer, Rooted<RuleSet> ruleSet,
                            ParserContext &ctx)
 {
 	std::string key;
-	variant::Variant value;
+	Variant value;
 	while (parseRule(tokenizer, ctx, key, value)) {
 		ruleSet->getRules().insert({key, value});
 	}
 }
 
 bool CSSParser::parseRule(CodeTokenizer &tokenizer, ParserContext &ctx,
-                          std::string &key, variant::Variant &value)
+                          std::string &key, Variant &value)
 {
 	Token t;
 	if (!expect(TOKEN_TEXT, tokenizer, t, false, ctx)) {
