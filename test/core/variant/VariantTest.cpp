@@ -121,6 +121,21 @@ TEST(Variant, mapValue)
 	ASSERT_EQ(2, v2.asMap().find("key1")->second.asArray()[1].asInt());
 }
 
+TEST(Variant, relationalOperators){
+	Variant a{4};
+	Variant b{4};
+	
+	ASSERT_EQ(a,b);
+	
+	b.setInt(5);
+	ASSERT_TRUE(a < b);
+	
+	b.setDouble(4);
+	ASSERT_FALSE(a == b);
+	
+	a.setDouble(4);
+	ASSERT_EQ(a,b);
+}
 
 }
 
