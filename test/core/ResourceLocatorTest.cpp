@@ -35,14 +35,17 @@ class TestResourceLocator : public ResourceLocator {
 		return ResourceLocation(true, *this, type, path);
 	}
 
-	std::istream stream(const std::string &location, std::istream& input) const override {
+	std::istream stream(const std::string &location) const override {
 		//trivial test implementation.
-		input << "test";
+		std::stringstream ss;
+		ss << "test";
+		return std::move(ss);
 	}
 
 };
 
 TEST(ResourceLocator, locate)
 {
+	
 }
 }

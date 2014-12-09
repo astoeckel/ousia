@@ -74,9 +74,9 @@ public:
 		 * @param stream is an inputstream that gets the data of the Resource at
 		 *               this location.
 		 */
-		void stream(std::istream &input) const
+		std::istream stream() const
 		{
-			return locator.stream(location, input);
+			return std::move(locator.stream(location));
 		}
 	};
 
@@ -105,8 +105,7 @@ public:
 	 * @param stream is an inputstream that gets the data of the Resource at
 	 *               this location.
 	 */
-	virtual void stream(const std::string &location,
-	                     std::istream &input) const;
+	virtual std::istream stream(const std::string &location) const;
 };
 }
 
