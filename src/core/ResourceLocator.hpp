@@ -20,6 +20,7 @@
 #define _OUSIA_RESOURCE_LOCATOR_HPP_
 
 #include <istream>
+#include <memory>
 
 namespace ousia {
 
@@ -36,7 +37,7 @@ public:
 	/**
 	 * This enum contains all possible types of includable resources in Ousía.
 	 */
-	enum class ResourceType {
+	enum class Type {
 		// A Domain description
 		DOMAIN,
 		// An ECMA/JavaScript
@@ -50,18 +51,18 @@ public:
 	};
 
 	/**
-	 * A ResourceLocation contains the location of a Resource, e.g. a file path
+	 * A Location contains the location of a Resource, e.g. a file path
 	 * on a hard drive. Note that the 'found' flag might be set to false
 	 * indicating that a resource was not found.
 	 */
-	struct ResourceLocation {
+	struct Location {
 		const bool found;
 		const ResourceLocator &locator;
-		const ResourceType type;
+		const Type type;
 		const std::string location;
 
-		ResourceLocation(const bool found, const ResourceLocator &locator,
-		                 const ResourceType type, const std::string location)
+		Location(const bool found, const ResourceLocator &locator,
+		                 const Type type, const std::string location)
 		    : found(found), locator(locator), type(type), location(location)
 		{
 		}
@@ -71,10 +72,12 @@ public:
 		 * found this location and returns a stream containing the data of the
 		 * Resource at this location.
 		 *
-		 * @param stream is an inputstream that gets the data of the Resource at
-		 *               this location.
+		 * @return a stream containing the data of the Resource at this
+		 *         location. This has to be a unique_pointer because the current
+		 *         C++11 compiler does not yet support move semantics for
+		 *         streams.
 		 */
-		std::istream stream() const
+		std::unique_ptr<std::istream> stream() const
 		{
 			return std::move(locator.stream(location));
 		}
@@ -82,30 +85,34 @@ public:
 
 	/**
 	 * The locate function uses this ResourceLocator to search for a given
-	 * Resource name (path parameter). It returns a ResourceLocation with the
+	 * Resource name (path parameter). It returns a Location with the
 	 * 'found' flag set accordingly.
 	 *
 	 * @param path is the resource name.
 	 * @param relativeTo TODO: What is the meaning of this parameter?
 	 * @param type is the type of this resource.
 	 *
-	 * @return A ResourceLocation containing either the found location of the
+	 * @return A Location containing either the found location of the
 	 *         Resource and the found flag set to 'true' or an empty location
 	 *         and the found flag set to 'false'.
 	 */
-	virtual ResourceLocation locate(const std::string &path,
+	virtual Location locate(const std::string &path,
 	                                const std::string &relativeTo,
-	                                const ResourceType type) const;
+	                                const Type type) const = 0;
 
 	/**
 	 * This method returns a strem containing the data of the resource at the
 	 * given location.
 	 *
-	 * @param location is a found location, most likely from a ResourceLocation.
-	 * @param stream is an inputstream that gets the data of the Resource at
-	 *               this location.
+	 * @param location is a found location, most likely from a Location.
+	 *
+	 * @return a stream containing the data of the Resource at this
+	 *         location. This has to be a unique_pointer because the current
+	 *         C++11 compiler does not yet support move semantics for
+	 *         streams.
 	 */
-	virtual std::istream stream(const std::string &location) const;
+	virtual std::unique_ptr<std::istream> stream(
+	    const std::string &location) const = 0;
 };
 }
 

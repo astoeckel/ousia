@@ -24,28 +24,33 @@
 
 namespace ousia {
 
-//TODO: This does not work yet!
-
 class TestResourceLocator : public ResourceLocator {
-	ResourceLocation locate(const std::string &path,
-	                        const std::string &relativeTo,
-	                        const ResourceType type) const override
+public:
+	ResourceLocator::Location locate(
+	    const std::string &path, const std::string &relativeTo,
+	    const ResourceLocator::Type type) const override
 	{
 		// trivial test implementation.
-		return ResourceLocation(true, *this, type, path);
+		return ResourceLocator::Location(true, *this, type, path);
 	}
 
-	std::istream stream(const std::string &location) const override {
-		//trivial test implementation.
-		std::stringstream ss;
-		ss << "test";
+	std::unique_ptr<std::istream> stream(
+	    const std::string &location) const override
+	{
+		// trivial test implementation.
+		std::unique_ptr<std::stringstream> ss(new std::stringstream());
+		(*ss) << "test";
 		return std::move(ss);
 	}
-
 };
 
 TEST(ResourceLocator, locate)
 {
-	
+	TestResourceLocator instance;
+	ResourceLocator::Location location =
+	    instance.locate("path", "", ResourceLocator::Type::DOMAIN);
+	ASSERT_TRUE(location.found);
+	ASSERT_EQ(ResourceLocator::Type::DOMAIN, location.type);
+	ASSERT_EQ("path", location.location);
 }
 }
