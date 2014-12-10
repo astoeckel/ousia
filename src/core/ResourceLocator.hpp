@@ -59,10 +59,15 @@ public:
 		const bool found;
 		const ResourceLocator &locator;
 		const Type type;
+		/**
+		 * This is a fully qualified/canonical path to the resource found or
+		 * in an undefined state (possibly empty) if the 'found' flag is set
+		 * to 'false'.
+		 */
 		const std::string location;
 
 		Location(const bool found, const ResourceLocator &locator,
-		                 const Type type, const std::string location)
+		         const Type type, const std::string location)
 		    : found(found), locator(locator), type(type), location(location)
 		{
 		}
@@ -89,7 +94,9 @@ public:
 	 * 'found' flag set accordingly.
 	 *
 	 * @param path is the resource name.
-	 * @param relativeTo TODO: What is the meaning of this parameter?
+	 * @param relativeTo is an already resolved fully qualified name/canonical
+	 *                   path that is to be used as base directory for this
+	 *                   search.
 	 * @param type is the type of this resource.
 	 *
 	 * @return A Location containing either the found location of the
@@ -97,8 +104,8 @@ public:
 	 *         and the found flag set to 'false'.
 	 */
 	virtual Location locate(const std::string &path,
-	                                const std::string &relativeTo,
-	                                const Type type) const = 0;
+	                        const std::string &relativeTo,
+	                        const Type type) const = 0;
 
 	/**
 	 * This method returns a strem containing the data of the resource at the
