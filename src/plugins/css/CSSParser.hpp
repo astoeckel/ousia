@@ -112,7 +112,7 @@ private:
 	 * @return true if a rule was found.
 	 */
 	bool parseRule(CodeTokenizer &tokenizer, ParserContext &ctx,
-	               std::string &key, variant::Variant &value);
+	               std::string &key, Variant &value);
 
 	/**
 	 * A convenience function to wrap around the tokenizer peek() function that

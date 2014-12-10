@@ -104,6 +104,7 @@ ADD_LIBRARY(ousia_core
 	src/core/Logger
 	src/core/Managed
 	src/core/Node
+	src/core/ResourceLocator
 	src/core/Tokenizer
 #	src/core/Typesystem
 	src/core/Utils
@@ -161,6 +162,7 @@ IF(TEST)
 		test/core/ManagedContainersTest
 		test/core/NodeTest
 		test/core/RangeSetTest
+		test/core/ResourceLocatorTest
 		test/core/TokenizerTest
 		test/core/UtilsTest
 		test/core/parser/ParserStackTest

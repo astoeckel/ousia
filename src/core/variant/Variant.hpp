@@ -65,8 +65,7 @@ public:
 
 	/**
 	 * Exception thrown whenever a variant is accessed via a getter function
-	 * that
-	 * is not supported for the current variant type.
+	 * that is not supported for the current variant type.
 	 */
 	class TypeException : public OusiaException {
 	private:
@@ -685,6 +684,76 @@ public:
 	{
 		// TODO: Use proper serialization function
 		return os << "\"" << v.first << "\": " << v.second.toString(true);
+	}
+
+	/*
+	 * Comprison operators.
+	 */
+
+	friend bool operator<(const Variant &lhs, const Variant &rhs)
+	{
+		// If the types do not match, we can not do a meaningful comparison.
+		if (lhs.getType() != rhs.getType()) {
+			throw TypeException(lhs.getType(), rhs.getType());
+		}
+		switch (lhs.getType()) {
+			case Type::NULLPTR:
+				return false;
+			case Type::BOOL:
+				return lhs.boolVal < rhs.boolVal;
+			case Type::INT:
+				return lhs.intVal < rhs.intVal;
+			case Type::DOUBLE:
+				return lhs.doubleVal < rhs.doubleVal;
+			case Type::STRING:
+				return lhs.asString() < rhs.asString();
+			case Type::ARRAY:
+				return lhs.asArray() < rhs.asArray();
+			case Type::MAP:
+				return lhs.asMap() < rhs.asMap();
+		}
+		throw OusiaException("Internal Error! Unknown type!");
+	}
+	friend bool operator>(const Variant &lhs, const Variant &rhs)
+	{
+		return rhs < lhs;
+	}
+	friend bool operator<=(const Variant &lhs, const Variant &rhs)
+	{
+		return !(lhs > rhs);
+	}
+	friend bool operator>=(const Variant &lhs, const Variant &rhs)
+	{
+		return !(lhs < rhs);
+	}
+
+	friend bool operator==(const Variant &lhs, const Variant &rhs)
+	{
+		if (lhs.getType() != rhs.getType()) {
+			return false;
+		}
+		switch (lhs.getType()) {
+			case Type::NULLPTR:
+				return true;
+			case Type::BOOL:
+				return lhs.boolVal == rhs.boolVal;
+			case Type::INT:
+				return lhs.intVal == rhs.intVal;
+			case Type::DOUBLE:
+				return lhs.doubleVal == rhs.doubleVal;
+			case Type::STRING:
+				return lhs.asString() == rhs.asString();
+			case Type::ARRAY:
+				return lhs.asArray() == rhs.asArray();
+			case Type::MAP:
+				return lhs.asMap() == rhs.asMap();
+		}
+		throw OusiaException("Internal Error! Unknown type!");
+	}
+	
+	friend bool operator!=(const Variant &lhs, const Variant &rhs)
+	{
+		return !(lhs == rhs);
 	}
 };
 }
