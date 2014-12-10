@@ -206,6 +206,12 @@ private:
 	 */
 	size_t moveBackward(CursorId cursor, size_t relativeOffs);
 
+	/**
+	 * Reads a character from the current cursor position and optionally
+	 * advances.
+	 */
+	bool fetchCharacter(CursorId cursor, char &c, bool incr);
+
 public:
 	/**
 	 * Intializes the Buffer with a reference to a ReadCallback that is used
@@ -311,7 +317,8 @@ public:
 	bool atEnd(CursorId cursor) const;
 
 	/**
-	 * Reads a single character from the ring buffer from the given cursor.
+	 * Reads a single character from the ring buffer from the given cursor and
+	 * moves to the next character.
 	 *
 	 * @param cursor specifies the cursor from which the data should be read.
 	 * The cursor will be advanced by one byte.
@@ -320,6 +327,18 @@ public:
 	 * been reached.
 	 */
 	bool read(CursorId cursor, char &c);
+
+	/**
+	 * Returns a single character from the ring buffer from the current cursor
+	 * position and stays at that position.
+	 *
+	 * @param cursor specifies the cursor from which the data should be read.
+	 * The cursor will be advanced by one byte.
+	 * @param c is the character into which the data needs to be read.
+	 * @return true if a character could be fetched, false if the end of the
+	 * stream has been reached.
+	 */
+	bool fetch(CursorId cursor, char &c);
 };
 
 // Forward declaration
@@ -333,13 +352,53 @@ class CharReaderFork;
  * of linebreaks and converts these to a single '\n'.
  */
 class CharReader {
-protected:
+public:
 	/**
-	 * Enum to represent the current state of the internal state machine that
-	 * replaces the linebreaks from multiple platforms to a single '\n'.
+	 * The context struct is used to represent the current context the char
+	 * reader is in. This context can for example be used when building error
+	 * messages.
 	 */
-	enum class LinebreakState { NONE, HAS_LF, HAS_CR };
+	struct Context {
+		/**
+		 * Set to the content of the current line.
+		 */
+		std::string line;
 
+		/**
+		 * Relative position (in characters) within that line.
+		 */
+		size_t relPos;
+
+		/**
+		 * Set to true if the beginning of the line has been truncated (because
+		 * the reader position is too far away from the actual position of the
+		 * line).
+		 */
+		bool truncatedStart;
+
+		/**
+		 * Set to true if the end of the line has been truncated (because the
+		 * reader position is too far away from the actual end position of the
+		 * line.
+		 */
+		bool truncatedEnd;
+
+		Context()
+		    : line(), relPos(0), truncatedStart(false), truncatedEnd(false)
+		{
+		}
+
+		Context(std::string line, size_t relPos, bool truncatedStart,
+		        bool truncatedEnd)
+		    : line(std::move(line)),
+		      relPos(relPos),
+		      truncatedStart(truncatedStart),
+		      truncatedEnd(truncatedEnd)
+		{
+		}
+	};
+
+protected:
 	/**
 	 * Internally used cursor structure for managing the read and the peek
 	 * cursor.
@@ -353,24 +412,12 @@ protected:
 		/**
 		 * Current line the cursor is in.
 		 */
-		size_t line;
+		uint32_t line;
 
 		/**
 		 * Current column the cursor is in.
 		 */
-		size_t column;
-
-		/**
-		 * State of the linebreak replacement statemachine.
-		 */
-		LinebreakState state;
-
-		/**
-		 * Contains the absolute offset in the input stream containing the
-		 * position of the last linebreak. This is used for extracting the
-		 * context (the line) in which an error occured.
-		 */
-		size_t lastLinebreak;
+		uint32_t column;
 
 		/**
 		 * Constructor of the Cursor class.
@@ -378,11 +425,7 @@ protected:
 		 * @param cursor is the underlying cursor in the Buffer instance.
 		 */
 		Cursor(Buffer::CursorId cursor, size_t line, size_t column)
-		    : cursor(cursor),
-		      line(line),
-		      column(column),
-		      state(LinebreakState::NONE),
-		      lastLinebreak(0)
+		    : cursor(cursor), line(line), column(column)
 		{
 		}
 
@@ -434,7 +477,8 @@ protected:
 
 	/**
 	 * Set to true as long the underlying Buffer cursor is at the same position
-	 * for the read and the peek cursor.
+	 * for the read and the peek cursor. This is only used for optimization
+	 * purposes and makes consecutive reads a bit faster.
 	 */
 	bool coherent;
 
@@ -544,14 +588,27 @@ public:
 	 *
 	 * @return the current line number.
 	 */
-	size_t getLine() const { return readCursor.line; }
+	uint32_t getLine() const { return readCursor.line; }
 
 	/**
 	 * Returns the current column (starting with one).
 	 *
 	 * @return the current column number.
 	 */
-	size_t getColumn() const { return readCursor.column; }
+	uint32_t getColumn() const { return readCursor.column; }
+
+	/**
+	 * Returns the current byte offset of the read cursor.
+	 *
+	 * @return the byte position within the stream.
+	 */
+	size_t getOffset() const { return buffer->offset(readCursor.cursor); };
+
+	/**
+	 * Returns the line the read cursor currently is in, but at most the
+	 * given number of characters in the form of a Context structure.
+	 */
+	Context getContext(ssize_t maxSize);
 };
 
 /**

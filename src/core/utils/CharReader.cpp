@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <sstream>
 
 #include <core/Utils.hpp>
 
@@ -326,7 +327,7 @@ bool Buffer::atEnd(Buffer::CursorId cursor) const
 	       (c.bucket == endBucket && c.bucketOffs == endBucket->size());
 }
 
-bool Buffer::read(Buffer::CursorId cursor, char &c)
+bool Buffer::fetchCharacter(CursorId cursor, char &c, bool incr)
 {
 	Cursor &cur = cursors[cursor];
 	while (true) {
@@ -336,7 +337,9 @@ bool Buffer::read(Buffer::CursorId cursor, char &c)
 		// If there is still data in the current bucket, return this data
 		if (cur.bucketOffs < bucket.size()) {
 			c = bucket[cur.bucketOffs];
-			cur.bucketOffs++;
+			if (incr) {
+				cur.bucketOffs++;
+			}
 			return true;
 		} else if (cur.bucket == endBucket) {
 			// Return false if the end of the stream has been reached, otherwise
@@ -354,6 +357,16 @@ bool Buffer::read(Buffer::CursorId cursor, char &c)
 	}
 }
 
+bool Buffer::read(Buffer::CursorId cursor, char &c)
+{
+	return fetchCharacter(cursor, c, true);
+}
+
+bool Buffer::fetch(CursorId cursor, char &c)
+{
+	return fetchCharacter(cursor, c, false);
+}
+
 /* CharReader::Cursor class */
 
 void CharReader::Cursor::assign(std::shared_ptr<Buffer> buffer,
@@ -365,8 +378,6 @@ void CharReader::Cursor::assign(std::shared_ptr<Buffer> buffer,
 	// Copy the state
 	line = cursor.line;
 	column = cursor.column;
-	state = cursor.state;
-	lastLinebreak = cursor.lastLinebreak;
 }
 
 /* CharReader class */
@@ -396,73 +407,40 @@ CharReader::~CharReader()
 	buffer->deleteCursor(peekCursor.cursor);
 }
 
-bool CharReader::substituteLinebreaks(Cursor &cursor, char &c)
-{
-	if (c == '\n' || c == '\r') {
-		switch (cursor.state) {
-			case LinebreakState::NONE:
-				// We got a first linebreak character -- output a '\n'
-				if (c == '\n') {
-					cursor.state = LinebreakState::HAS_LF;
-				} else {
-					cursor.state = LinebreakState::HAS_CR;
-				}
-				c = '\n';
-				return true;
-			case LinebreakState::HAS_LF:
-				// If a LF is followed by a LF, output a new linefeed
-				if (c == '\n') {
-					cursor.state = LinebreakState::HAS_LF;
-					return true;
-				}
-
-				// Otherwise, don't handle this character (part of "\n\r")
-				cursor.state = LinebreakState::NONE;
-				return false;
-			case LinebreakState::HAS_CR:
-				// If a CR is followed by a CR, output a new linefeed
-				if (c == '\r') {
-					cursor.state = LinebreakState::HAS_CR;
-					c = '\n';
-					return true;
-				}
-
-				// Otherwise, don't handle this character (part of "\r\n")
-				cursor.state = LinebreakState::NONE;
-				return false;
-		}
-	}
-
-	// No linebreak character, reset the linebreak state
-	cursor.state = LinebreakState::NONE;
-	return true;
-}
-
 bool CharReader::readAtCursor(Cursor &cursor, char &c)
 {
-	while (true) {
-		// Return false if we're at the end of the stream
-		if (!buffer->read(cursor.cursor, c)) {
-			return false;
-		}
+	// Return false if we're at the end of the stream
+	if (!buffer->read(cursor.cursor, c)) {
+		return false;
+	}
 
-		// Substitute linebreak characters with a single '\n'
-		if (substituteLinebreaks(cursor, c)) {
-			if (c == '\n') {
-				// A linebreak was reached, go to the next line
-				cursor.line++;
-				cursor.column = 1;
-				cursor.lastLinebreak = buffer->offset(cursor.cursor);
-			} else {
-				// Ignore UTF-8 continuation bytes
-				if (!((c & 0x80) && !(c & 0x40))) {
-					cursor.column++;
-				}
+	// Substitute linebreak sequences with a single '\n'
+	if (c == '\n' || c == '\r') {
+		// Output a single \n
+		c = '\n';
+
+		// Check whether the next character is a continuation of the
+		// current character
+		char c2;
+		if (buffer->read(cursor.cursor, c2)) {
+			if ((c2 != '\n' && c2 != '\r') || c2 == c) {
+				buffer->moveCursor(cursor.cursor, -1);
 			}
-
-			return true;
 		}
 	}
+
+	// Count lines and columns
+	if (c == '\n') {
+		// A linebreak was reached, go to the next line
+		cursor.line++;
+		cursor.column = 1;
+	} else {
+		// Ignore UTF-8 continuation bytes
+		if (!((c & 0x80) && !(c & 0x40))) {
+			cursor.column++;
+		}
+	}
+	return true;
 }
 
 bool CharReader::peek(char &c)
@@ -527,6 +505,106 @@ bool CharReader::consumeWhitespace()
 CharReaderFork CharReader::fork()
 {
 	return CharReaderFork(buffer, readCursor, peekCursor, coherent);
+}
+
+CharReader::Context CharReader::getContext(ssize_t maxSize)
+{
+	// Clone the current read cursor
+	Buffer::CursorId cur = buffer->createCursor(readCursor.cursor);
+
+	// Fetch the start position of the search
+	ssize_t offs = buffer->offset(cur);
+	ssize_t start = offs;
+	ssize_t end = offs;
+	char c;
+
+	// Search the beginning of the line with the last non-whitespace character
+	bool hadNonWhitespace = false;
+	bool foundBegin = false;
+	for (ssize_t i = 0; i < maxSize; i++) {
+		// Fetch the character at the current position
+		if (buffer->fetch(cur, c)) {
+			// Abort, at linebreaks if we found a non-linebreak character
+			if (hadNonWhitespace && (c == '\n' || c == '\r')) {
+				buffer->moveCursor(cur, 1);
+				start++;
+				foundBegin = true;
+				break;
+			}
+		}
+		if (buffer->moveCursor(cur, -1) == 0) {
+			foundBegin = true;
+			break;
+		}
+
+		// Update the start position and the hadNonWhitespace flag
+		hadNonWhitespace = hadNonWhitespace || !Utils::isWhitespace(c);
+		start--;
+	}
+
+	// Search the end of the line
+	buffer->moveCursor(cur, offs - start);
+	bool foundEnd = false;
+	for (ssize_t i = 0; i < maxSize; i++) {
+		// Increment the end counter if a character was read, abort if the end
+		// of the stream has been reached
+		if (buffer->read(cur, c)) {
+			end++;
+		} else {
+			foundEnd = true;
+			break;
+		}
+
+		// Abort on linebreak characters
+		if (c == '\n' || c == '\r') {
+			foundEnd = true;
+			break;
+		}
+	}
+
+	// Calculate the truncated start and end position and limit the number of
+	// characters to the maximum number of characters
+	ssize_t tStart = start;
+	ssize_t tEnd = end;
+	if (tEnd - tStart > maxSize) {
+		tStart = std::max(offs - maxSize / 2, tStart);
+		tEnd = tStart + maxSize;
+	}
+
+	// Try to go to the calculated start position and fetch the actual start
+	// position
+	ssize_t aStart = end + buffer->moveCursor(cur, tStart - end);
+	if (aStart > tStart) {
+		tEnd = tEnd + (aStart - tStart);
+		tStart = aStart;
+	}
+
+	// Read one line
+	std::stringstream ss;
+	size_t relPos = 0;
+	for (ssize_t i = tStart; i < tEnd; i++) {
+		if (buffer->read(cur, c)) {
+			// Break once a linebreak is reached
+			if (c == '\n' || c == '\r') {
+				break;
+			}
+
+			// Add the current character to the output
+			ss << c;
+
+			// Increment the string-relative offset as long as the original
+			// offset is not reached in the for loop
+			if (i < offs) {
+				relPos++;
+			}
+		}
+	}
+
+	// Delete the newly created cursor
+	buffer->deleteCursor(cur);
+
+	return CharReader::Context{ss.str(), relPos, !foundBegin || tStart != start,
+	                           !foundEnd || tEnd != end};
 }
 
 /* Class CharReaderFork */

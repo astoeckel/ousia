@@ -27,6 +27,40 @@
 namespace ousia {
 namespace utils {
 
+/* Test data */
+
+// Generates some pseudo-random data
+// (inspired by "Numerical Recipes, Third Edition", Chapter 7.17)
+static std::vector<char> generateData(size_t len)
+{
+	const uint32_t B1 = 17;
+	const uint32_t B2 = 15;
+	const uint32_t B3 = 5;
+	uint32_t v = 0xF3A99148;
+	std::vector<char> res;
+	for (size_t i = 0; i < len; i++) {
+		while (true) {
+			// Advance the random seed
+			v = v ^ (v >> B1);
+			v = v ^ (v << B2);
+			v = v ^ (v >> B3);
+
+			// Replace \n and \r in order to avoid line break processing by the
+			// CharReader
+			char c = v & 0xFF;
+			if (c != '\n' && c != '\r') {
+				res.push_back(c);
+				break;
+			}
+		}
+	}
+	return res;
+}
+
+static constexpr size_t DATA_LENGTH = 256 * 1024 + 795;
+//static constexpr size_t DATA_LENGTH = 16 * 1024 * 1024 + 795;
+static const std::vector<char> DATA = generateData(DATA_LENGTH);
+
 /* Buffer Test */
 
 TEST(Buffer, simpleRead)
@@ -227,34 +261,6 @@ TEST(Buffer, moveCursor)
 	}
 }
 
-// Generates some pseudo-random data
-// (inspired by "Numerical Recipes, Third Edition", Chapter 7.17)
-static std::vector<char> generateData(size_t len)
-{
-	const uint32_t B1 = 17;
-	const uint32_t B2 = 15;
-	const uint32_t B3 = 5;
-	uint32_t v = 0xF3A99148;
-	std::vector<char> res;
-	for (size_t i = 0; i < len; i++) {
-		while (true) {
-			// Advance the random seed
-			v = v ^ (v >> B1);
-			v = v ^ (v << B2);
-			v = v ^ (v >> B3);
-
-			// Replace \n and \r in order to avoid line break processing by the
-			// CharReader
-			char c = v & 0xFF;
-			if (c != '\n' && c != '\r') {
-				res.push_back(c);
-				break;
-			}
-		}
-	}
-	return res;
-}
-
 struct VectorReadState {
 	size_t offs;
 	const std::vector<char> &data;
@@ -274,9 +280,6 @@ static size_t readFromVector(char *buf, size_t size, void *userData)
 	state.offs = tar;
 	return res;
 }
-
-static constexpr size_t DATA_LENGTH = 256 * 1024 + 795;
-static const std::vector<char> DATA = generateData(DATA_LENGTH);
 
 TEST(Buffer, simpleStream)
 {
@@ -576,6 +579,165 @@ TEST(CharReaderTest, streamTest)
 	ASSERT_EQ(DATA_LENGTH, res.size());
 	ASSERT_EQ(DATA, res);
 }
+
+TEST(CharReaderTest, context)
+{
+	std::string testStr{"first line\n\n\rsecond line\n\rlast line"};
+	//                   0123456789 0   123456789012   3456789012
+	//                   0         1             2              3
+
+	// Retrieval at beginning of stream
+	{
+		CharReader reader{testStr};
+		CharReader::Context ctx = reader.getContext(80);
+		ASSERT_EQ("first line", ctx.line);
+		ASSERT_EQ(0U, ctx.relPos);
+		ASSERT_FALSE(ctx.truncatedStart);
+		ASSERT_FALSE(ctx.truncatedEnd);
+	}
+
+	// Retrieval in middle of line
+	{
+		CharReader reader{testStr};
+		CharReader::Context ctx = reader.getContext(80);
+
+		char c;
+		for (int i = 0; i < 5; i++) reader.read(c);
+
+		ASSERT_EQ("first line", ctx.line);
+		ASSERT_EQ(0U, ctx.relPos);
+		ASSERT_FALSE(ctx.truncatedStart);
+		ASSERT_FALSE(ctx.truncatedEnd);
+	}
+
+	// Retrieval in whitespace sequence
+	{
+		CharReader reader{testStr};
+
+		char c;
+		for (int i = 0; i < 11; i++) reader.read(c);
+
+		CharReader::Context ctx = reader.getContext(80);
+		ASSERT_EQ("first line", ctx.line);
+		ASSERT_EQ(10U, ctx.relPos);
+		ASSERT_FALSE(ctx.truncatedStart);
+		ASSERT_FALSE(ctx.truncatedEnd);
+	}
+
+	// Truncation of text
+	{
+		CharReader reader{testStr};
+
+		char c;
+		for (int i = 0; i < 5; i++) reader.read(c);
+
+		CharReader::Context ctx = reader.getContext(3);
+		ASSERT_EQ("t l", ctx.line);
+		ASSERT_EQ(1U, ctx.relPos);
+		ASSERT_TRUE(ctx.truncatedStart);
+		ASSERT_TRUE(ctx.truncatedEnd);
+	}
+
+	// Second line
+	{
+		CharReader reader{testStr};
+
+		char c;
+		for (int i = 0; i < 12; i++) reader.read(c);
+
+		CharReader::Context ctx = reader.getContext(80);
+		ASSERT_EQ("second line", ctx.line);
+		ASSERT_EQ(0U, ctx.relPos);
+		ASSERT_FALSE(ctx.truncatedStart);
+		ASSERT_FALSE(ctx.truncatedEnd);
+	}
+
+	// End of second line
+	{
+		CharReader reader{testStr};
+
+		char c;
+		for (int i = 0; i < 23; i++) reader.read(c);
+
+		CharReader::Context ctx = reader.getContext(80);
+		ASSERT_EQ("second line", ctx.line);
+		ASSERT_EQ(11U, ctx.relPos);
+		ASSERT_FALSE(ctx.truncatedStart);
+		ASSERT_FALSE(ctx.truncatedEnd);
+	}
+
+	// Last line
+	{
+		CharReader reader{testStr};
+
+		char c;
+		for (int i = 0; i < 24; i++) reader.read(c);
+
+		CharReader::Context ctx = reader.getContext(80);
+		ASSERT_EQ("last line", ctx.line);
+		ASSERT_EQ(0U, ctx.relPos);
+		ASSERT_FALSE(ctx.truncatedStart);
+		ASSERT_FALSE(ctx.truncatedEnd);
+	}
+
+	// Middle of last line
+	{
+		CharReader reader{testStr};
+
+		char c;
+		for (int i = 0; i < 28; i++) reader.read(c);
+
+		CharReader::Context ctx = reader.getContext(80);
+		ASSERT_EQ("last line", ctx.line);
+		ASSERT_EQ(4U, ctx.relPos);
+		ASSERT_FALSE(ctx.truncatedStart);
+		ASSERT_FALSE(ctx.truncatedEnd);
+	}
+
+	// Middle of last line truncated
+	{
+		CharReader reader{testStr};
+
+		char c;
+		for (int i = 0; i < 28; i++) reader.read(c);
+
+		CharReader::Context ctx = reader.getContext(3);
+		ASSERT_EQ("t l", ctx.line);
+		ASSERT_EQ(1U, ctx.relPos);
+		ASSERT_TRUE(ctx.truncatedStart);
+		ASSERT_TRUE(ctx.truncatedEnd);
+	}
+
+	// End of stream
+	{
+		CharReader reader{testStr};
+
+		char c;
+		for (int i = 0; i < 100; i++) reader.read(c);
+
+		CharReader::Context ctx = reader.getContext(80);
+		ASSERT_EQ("last line", ctx.line);
+		ASSERT_EQ(9U, ctx.relPos);
+		ASSERT_FALSE(ctx.truncatedStart);
+		ASSERT_FALSE(ctx.truncatedEnd);
+	}
+
+	// End of stream truncated
+	{
+		CharReader reader{testStr};
+
+		char c;
+		for (int i = 0; i < 100; i++) reader.read(c);
+
+		CharReader::Context ctx = reader.getContext(4);
+		ASSERT_EQ("line", ctx.line);
+		ASSERT_EQ(4U, ctx.relPos);
+		ASSERT_TRUE(ctx.truncatedStart);
+		ASSERT_FALSE(ctx.truncatedEnd);
+	}
+
+}
+
 }
 }
 
