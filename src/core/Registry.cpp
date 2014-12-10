@@ -29,12 +29,14 @@ using namespace parser;
 void Registry::registerParser(parser::Parser *parser)
 {
 	parsers.push_back(parser);
-	for (const auto &mime : parser.mimetypes()) {
+	for (const auto &mime : parser->mimetypes()) {
+		//TODO: This does not allow for multiple parsers with the same mimetype.
+		// Is that how its supposed to be?
 		parserMimetypes.insert(std::make_pair(mime, parser));
 	}
 }
 
-Parser* Registry::getParserForMimetype(const std::string &mimetype)
+Parser *Registry::getParserForMimetype(const std::string &mimetype) const
 {
 	const auto it = parserMimetypes.find(mimetype);
 	if (it != parserMimetypes.end()) {
@@ -43,5 +45,24 @@ Parser* Registry::getParserForMimetype(const std::string &mimetype)
 	return nullptr;
 }
 
+void Registry::registerResourceLocator(ResourceLocator *locator)
+{
+	locators.push_back(locator);
+}
+
+ResourceLocator::Location Registry::locateResource(
+    const std::string &path, const std::string &relativeTo,
+    ResourceLocator::Type type) const
+{
+	ResourceLocator::Location *last;
+	for (auto &locator : locators) {
+		ResourceLocator::Location loc = locator->locate(path, relativeTo, type);
+		if (loc.found) {
+			return loc;
+		}
+		last = &loc;
+	}
+	return *last;
+}
 }
 

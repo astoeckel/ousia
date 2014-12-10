@@ -104,6 +104,7 @@ ADD_LIBRARY(ousia_core
 	src/core/Logger
 	src/core/Managed
 	src/core/Node
+	src/core/Registry
 	src/core/ResourceLocator
 	src/core/Tokenizer
 #	src/core/Typesystem
