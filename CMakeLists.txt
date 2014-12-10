@@ -163,6 +163,7 @@ IF(TEST)
 		test/core/ManagedContainersTest
 		test/core/NodeTest
 		test/core/RangeSetTest
+		test/core/RegistryTest
 		test/core/ResourceLocatorTest
 		test/core/TokenizerTest
 		test/core/UtilsTest
