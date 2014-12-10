@@ -41,7 +41,7 @@ namespace utils {
  */
 static size_t istreamReadCallback(char *buf, size_t size, void *userData)
 {
-	return (static_cast<std::istream*>(userData))->read(buf, size).gcount();
+	return (static_cast<std::istream *>(userData))->read(buf, size).gcount();
 }
 
 /* Class Buffer */
@@ -371,24 +371,22 @@ void CharReader::Cursor::assign(std::shared_ptr<Buffer> buffer,
 
 /* CharReader class */
 
-CharReader::CharReader(std::shared_ptr<Buffer> buffer)
+CharReader::CharReader(std::shared_ptr<Buffer> buffer, size_t line,
+                       size_t column)
     : buffer(buffer),
-      readCursor(buffer->createCursor()),
-      peekCursor(buffer->createCursor())
+      readCursor(buffer->createCursor(), line, column),
+      peekCursor(buffer->createCursor(), line, column),
+      coherent(true)
 {
 }
 
 CharReader::CharReader(const std::string &str, size_t line, size_t column)
-    : buffer(new Buffer{str}),
-      readCursor(buffer->createCursor(), line, column),
-      peekCursor(buffer->createCursor(), line, column)
+    : CharReader(std::shared_ptr<Buffer>{new Buffer{str}}, line, column)
 {
 }
 
 CharReader::CharReader(std::istream &istream, size_t line, size_t column)
-    : buffer(new Buffer{istream}),
-      readCursor(buffer->createCursor(), line, column),
-      peekCursor(buffer->createCursor(), line, column)
+    : CharReader(std::shared_ptr<Buffer>{new Buffer{istream}}, line, column)
 {
 }
 
@@ -467,13 +465,51 @@ bool CharReader::readAtCursor(Cursor &cursor, char &c)
 	}
 }
 
-bool CharReader::peek(char &c) { return readAtCursor(peekCursor, c); }
+bool CharReader::peek(char &c)
+{
+	// If the reader was coherent, update the peek cursor state
+	if (coherent) {
+		peekCursor.assign(buffer, readCursor);
+		coherent = false;
+	}
 
-bool CharReader::read(char &c) { return readAtCursor(readCursor, c); }
+	// Read a character from the peek cursor
+	return readAtCursor(peekCursor, c);
+}
 
-void CharReader::resetPeek() { peekCursor.assign(buffer, readCursor); }
+bool CharReader::read(char &c)
+{
+	// Read a character from the buffer at the current read cursor
+	bool res = readAtCursor(readCursor, c);
 
-void CharReader::consumePeek() { readCursor.assign(buffer, peekCursor); }
+	// Set the peek position to the current read position, if reading was not
+	// coherent
+	if (!coherent) {
+		peekCursor.assign(buffer, readCursor);
+		coherent = true;
+	} else {
+		buffer->copyCursor(readCursor.cursor, peekCursor.cursor);
+	}
+
+	// Return the result of the read function
+	return res;
+}
+
+void CharReader::resetPeek()
+{
+	if (!coherent) {
+		peekCursor.assign(buffer, readCursor);
+		coherent = true;
+	}
+}
+
+void CharReader::consumePeek()
+{
+	if (!coherent) {
+		readCursor.assign(buffer, peekCursor);
+		coherent = true;
+	}
+}
 
 bool CharReader::consumeWhitespace()
 {
@@ -490,20 +526,22 @@ bool CharReader::consumeWhitespace()
 
 CharReaderFork CharReader::fork()
 {
-	return CharReaderFork(buffer, readCursor, peekCursor);
+	return CharReaderFork(buffer, readCursor, peekCursor, coherent);
 }
 
 /* Class CharReaderFork */
 
 CharReaderFork::CharReaderFork(std::shared_ptr<Buffer> buffer,
                                CharReader::Cursor &parentReadCursor,
-                               CharReader::Cursor &parentPeekCursor)
-    : CharReader(buffer),
+                               CharReader::Cursor &parentPeekCursor,
+                               bool coherent)
+    : CharReader(buffer, 1, 1),
       parentReadCursor(parentReadCursor),
       parentPeekCursor(parentPeekCursor)
 {
 	readCursor.assign(buffer, parentReadCursor);
 	peekCursor.assign(buffer, parentPeekCursor);
+	this->coherent = coherent;
 }
 
 void CharReaderFork::commit()

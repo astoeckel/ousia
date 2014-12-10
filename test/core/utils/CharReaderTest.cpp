@@ -27,6 +27,8 @@
 namespace ousia {
 namespace utils {
 
+/* Buffer Test */
+
 TEST(Buffer, simpleRead)
 {
 	std::string testStr{"this is a test"};
@@ -42,7 +44,7 @@ TEST(Buffer, simpleRead)
 	ASSERT_FALSE(buf.atEnd(cursor));
 
 	// The cursor must be at zero
-	ASSERT_EQ(0, buf.offset(cursor));
+	ASSERT_EQ(0U, buf.offset(cursor));
 
 	// Try to read the test string
 	std::string res;
@@ -57,7 +59,7 @@ TEST(Buffer, simpleRead)
 	ASSERT_EQ(testStr.size(), buf.offset(cursor));
 
 	// The two strings must equal
-	ASSERT_STREQ(testStr.c_str(), res.c_str());
+	ASSERT_EQ(testStr, res);
 }
 
 TEST(Buffer, cursorManagement)
@@ -68,13 +70,13 @@ TEST(Buffer, cursorManagement)
 	Buffer::CursorId c2 = buf.createCursor();
 	Buffer::CursorId c3 = buf.createCursor();
 
-	ASSERT_EQ(0, c1);
-	ASSERT_EQ(1, c2);
-	ASSERT_EQ(2, c3);
+	ASSERT_EQ(0U, c1);
+	ASSERT_EQ(1U, c2);
+	ASSERT_EQ(2U, c3);
 
 	buf.deleteCursor(c2);
 	Buffer::CursorId c4 = buf.createCursor();
-	ASSERT_EQ(1, c4);
+	ASSERT_EQ(1U, c4);
 }
 
 TEST(Buffer, twoCursors)
@@ -235,10 +237,20 @@ static std::vector<char> generateData(size_t len)
 	uint32_t v = 0xF3A99148;
 	std::vector<char> res;
 	for (size_t i = 0; i < len; i++) {
-		v = v ^ (v >> B1);
-		v = v ^ (v << B2);
-		v = v ^ (v >> B3);
-		res.push_back(v & 0xFF);
+		while (true) {
+			// Advance the random seed
+			v = v ^ (v >> B1);
+			v = v ^ (v << B2);
+			v = v ^ (v >> B3);
+
+			// Replace \n and \r in order to avoid line break processing by the
+			// CharReader
+			char c = v & 0xFF;
+			if (c != '\n' && c != '\r') {
+				res.push_back(c);
+				break;
+			}
+		}
 	}
 	return res;
 }
@@ -306,7 +318,7 @@ TEST(Buffer, streamTwoCursors)
 	ASSERT_TRUE(buf.atEnd(cur1));
 	ASSERT_FALSE(buf.atEnd(cur2));
 	ASSERT_EQ(DATA_LENGTH, buf.offset(cur1));
-	ASSERT_EQ(0, buf.offset(cur2));
+	ASSERT_EQ(0U, buf.offset(cur2));
 
 	std::vector<char> res2;
 	while (buf.read(cur2, c)) {
@@ -323,7 +335,7 @@ TEST(Buffer, streamTwoCursors)
 	ASSERT_EQ(DATA, res2);
 }
 
-TEST(Buffer, streamTwoCursorsInterleaved)
+TEST(Buffer, streamTwoCursorsMovingInterleaved)
 {
 	VectorReadState state(DATA);
 
@@ -355,6 +367,13 @@ TEST(Buffer, streamTwoCursorsInterleaved)
 				res2.push_back(c);
 			}
 		}
+
+		// Move cur1 60 bytes forward and backward
+		buf.moveCursor(cur1, -buf.moveCursor(cur1, 60));
+
+		// Make sure the cursor position is correct
+		ASSERT_EQ(res1.size(), buf.offset(cur1));
+		ASSERT_EQ(res2.size(), buf.offset(cur2));
 	}
 
 	ASSERT_EQ(DATA_LENGTH, buf.offset(cur1));
@@ -375,7 +394,8 @@ TEST(Buffer, streamMoveForward)
 
 	Buffer buf{readFromVector, &state};
 	Buffer::CursorId cursor = buf.createCursor();
-	ASSERT_EQ(DATA_LENGTH - 100, buf.moveCursor(cursor, DATA_LENGTH - 100));
+	ASSERT_EQ(ssize_t(DATA_LENGTH) - 100,
+	          buf.moveCursor(cursor, DATA_LENGTH - 100));
 
 	char c;
 	std::vector<char> res;
@@ -385,6 +405,177 @@ TEST(Buffer, streamMoveForward)
 	ASSERT_EQ(partialData, res);
 }
 
+/* CharReader Test */
+
+TEST(CharReaderTest, simpleReadTest)
+{
+	std::string testStr{"this is a test"};
+	char c;
+
+	// Feed a test string into the reader
+	CharReader reader{testStr};
+
+	// Try to read the test string
+	std::string res;
+	while (!reader.atEnd()) {
+		ASSERT_TRUE(reader.read(c));
+		res.append(&c, 1);
+	}
+
+	// The two strings must equal
+	ASSERT_EQ(testStr, res);
+
+	// We must now be at line 1, column 15
+	ASSERT_EQ(1U, reader.getLine());
+	ASSERT_EQ(testStr.size() + 1, reader.getColumn());
+
+	// If we call either read or peek, false is returned
+	ASSERT_FALSE(reader.read(c));
+	ASSERT_FALSE(reader.peek(c));
+}
+
+TEST(CharReaderTest, simplePeekTest)
+{
+	std::string testStr{"this is a test"};
+	char c;
+
+	// Feed a test string into the reader
+	CharReader reader{testStr};
+
+	// Try to read the test string
+	std::string res;
+	while (reader.peek(c)) {
+		res.append(&c, 1);
+	}
+
+	// Peeking does not trigger the "atEnd" flag
+	ASSERT_FALSE(reader.atEnd());
+
+	// The two strings must equal
+	ASSERT_EQ(testStr, res);
+
+	// We must now be at line 1, column 1 and NOT at the end of the stream
+	ASSERT_EQ(1U, reader.getLine());
+	ASSERT_EQ(1U, reader.getColumn());
+	ASSERT_FALSE(reader.atEnd());
+
+	// If we consume the peek, we must be at line 1, column 15 and we should be
+	// at the end of the stream
+	reader.consumePeek();
+	ASSERT_EQ(1U, reader.getLine());
+	ASSERT_EQ(testStr.size() + 1, reader.getColumn());
+	ASSERT_TRUE(reader.atEnd());
+
+	// If we call either read or peek, false is returned
+	ASSERT_FALSE(reader.read(c));
+	ASSERT_FALSE(reader.peek(c));
+}
+
+TEST(CharReaderTest, rowColumnCounterTest)
+{
+	// Feed a test string into the reader
+	CharReader reader{"1\n\r2\n3\r\n\n4"};
+
+	// We should currently be in line 1, column 1
+	ASSERT_EQ(1U, reader.getLine());
+	ASSERT_EQ(1U, reader.getColumn());
+
+	// Read two characters
+	char c;
+	for (int i = 0; i < 2; i++)
+		reader.read(c);
+	ASSERT_EQ(2U, reader.getLine());
+	ASSERT_EQ(1U, reader.getColumn());
+
+	// Read two characters
+	for (int i = 0; i < 2; i++)
+		reader.read(c);
+	ASSERT_EQ(3U, reader.getLine());
+	ASSERT_EQ(1U, reader.getColumn());
+
+	// Read three characters
+	for (int i = 0; i < 3; i++)
+		reader.read(c);
+	ASSERT_EQ(5U, reader.getLine());
+	ASSERT_EQ(1U, reader.getColumn());
+}
+
+TEST(CharReaderTest, rowColumnCounterTestOffs)
+{
+	// Feed a test string into the reader
+	CharReader reader{"1\n\r2\n3\r\n\n4", 4, 10};
+
+	// We should currently be in line 1, column 1
+	ASSERT_EQ(4U, reader.getLine());
+	ASSERT_EQ(10U, reader.getColumn());
+
+	// Read two characters
+	char c;
+	for (int i = 0; i < 2; i++)
+		reader.read(c);
+	ASSERT_EQ(5U, reader.getLine());
+	ASSERT_EQ(1U, reader.getColumn());
+
+	// Read two characters
+	for (int i = 0; i < 2; i++)
+		reader.read(c);
+	ASSERT_EQ(6U, reader.getLine());
+	ASSERT_EQ(1U, reader.getColumn());
+
+	// Read three characters
+	for (int i = 0; i < 3; i++)
+		reader.read(c);
+	ASSERT_EQ(8U, reader.getLine());
+	ASSERT_EQ(1U, reader.getColumn());
+}
+
+TEST(CharReaderTest, linebreakSubstitutionTest)
+{
+	// Feed a test string into the reader and read all characters back
+	CharReader reader{"this\n\ris\n\rjust\na test\r\n\rtest\n\r"};
+	std::string res;
+	char c;
+	while (reader.read(c)) {
+		res.append(&c, 1);
+	}
+
+	// Test for equality
+	ASSERT_EQ("this\nis\njust\na test\n\ntest\n", res);
+}
+
+TEST(CharReaderTest, rowColumnCounterUTF8Test)
+{
+	// Feed a test string with some umlauts into the reader
+	CharReader reader{"\x61\xc3\x96\xc3\x84\xc3\x9c\xc3\x9f"};
+
+	// Read all bytes
+	char c;
+	while (reader.read(c)) {
+		// Do nothing
+	}
+
+	// The sequence above equals 5 UTF-8 characters (so after reading all the
+	// cursor is at position 6)
+	ASSERT_EQ(1U, reader.getLine());
+	ASSERT_EQ(6U, reader.getColumn());
+}
+
+TEST(CharReaderTest, streamTest)
+{
+	// Copy the test data to a string stream
+	std::stringstream ss;
+	std::copy(DATA.begin(), DATA.end(), std::ostream_iterator<char>(ss));
+
+	// Read the data back from the stream
+	std::vector<char> res;
+	char c;
+	CharReader reader{ss};
+	while (reader.read(c)) {
+		res.push_back(c);
+	}
+	ASSERT_EQ(DATA_LENGTH, res.size());
+	ASSERT_EQ(DATA, res);
+}
 }
 }
 

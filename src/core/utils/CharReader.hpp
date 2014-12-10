@@ -377,7 +377,7 @@ protected:
 		 *
 		 * @param cursor is the underlying cursor in the Buffer instance.
 		 */
-		Cursor(Buffer::CursorId cursor, size_t line = 1, size_t column = 1)
+		Cursor(Buffer::CursorId cursor, size_t line, size_t column)
 		    : cursor(cursor),
 		      line(line),
 		      column(column),
@@ -433,13 +433,19 @@ protected:
 	Cursor peekCursor;
 
 	/**
+	 * Set to true as long the underlying Buffer cursor is at the same position
+	 * for the read and the peek cursor.
+	 */
+	bool coherent;
+
+	/**
 	 * Protected constructor of the CharReader base class. Creates new read
 	 * and peek cursors for the given buffer.
 	 *
 	 * @param buffer is a reference to the underlying Buffer class responsible
 	 * for allowing to read from a single input stream from multiple locations.
 	 */
-	CharReader(std::shared_ptr<Buffer> buffer);
+	CharReader(std::shared_ptr<Buffer> buffer, size_t line, size_t column);
 
 public:
 	/**
@@ -538,14 +544,14 @@ public:
 	 *
 	 * @return the current line number.
 	 */
-	int getLine() const { return readCursor.line; }
+	size_t getLine() const { return readCursor.line; }
 
 	/**
 	 * Returns the current column (starting with one).
 	 *
 	 * @return the current column number.
 	 */
-	int getColumn() const { return readCursor.column; }
+	size_t getColumn() const { return readCursor.column; }
 };
 
 /**
@@ -570,10 +576,16 @@ private:
 
 	/**
 	 * Constructor of the CharReaderFork class.
+	 *
+	 * @param buffer is a reference at the parent Buffer instance.
+	 * @param parentPeekCursor is a reference at the parent read cursor.
+	 * @param parentPeekCursor is a reference at the parent peek cursor.
+	 * @param coherent specifies whether the char reader cursors are initialized
+	 * coherently.
 	 */
 	CharReaderFork(std::shared_ptr<Buffer> buffer,
 	               CharReader::Cursor &parentReadCursor,
-	               CharReader::Cursor &parentPeekCursor);
+	               CharReader::Cursor &parentPeekCursor, bool coherent);
 
 public:
 	/**
