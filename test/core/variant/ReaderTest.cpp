@@ -97,54 +97,56 @@ TEST(Reader, parseUnescapedString)
 	}
 }
 
+static const std::unordered_set<char> noDelim;
+
 TEST(Reader, parseInteger)
 {
 	// Valid integers
 	{
 		BufferedCharReader reader("0  ");
-		auto res = Reader::parseInteger(reader, logger, {});
+		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(0, res.second);
 	}
 
 	{
 		BufferedCharReader reader("42 ");
-		auto res = Reader::parseInteger(reader, logger, {});
+		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(42, res.second);
 	}
 
 	{
 		BufferedCharReader reader("-42");
-		auto res = Reader::parseInteger(reader, logger, {});
+		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-42, res.second);
 	}
 
 	{
 		BufferedCharReader reader("  -0x4A2  ");
-		auto res = Reader::parseInteger(reader, logger, {});
+		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0x4A2, res.second);
 	}
 
 	{
 		BufferedCharReader reader(" 0Xaffe");
-		auto res = Reader::parseInteger(reader, logger, {});
+		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(0xAFFE, res.second);
 	}
 
 	{
 		BufferedCharReader reader("0x7FFFFFFFFFFFFFFF");
-		auto res = Reader::parseInteger(reader, logger, {});
+		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(0x7FFFFFFFFFFFFFFFL, res.second);
 	}
 
 	{
 		BufferedCharReader reader("-0x7FFFFFFFFFFFFFFF");
-		auto res = Reader::parseInteger(reader, logger, {});
+		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0x7FFFFFFFFFFFFFFFL, res.second);
 	}
@@ -152,25 +154,25 @@ TEST(Reader, parseInteger)
 	// Invalid integers
 	{
 		BufferedCharReader reader("-");
-		auto res = Reader::parseInteger(reader, logger, {});
+		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
 		BufferedCharReader reader("0a");
-		auto res = Reader::parseInteger(reader, logger, {});
+		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
 		BufferedCharReader reader("-0xag");
-		auto res = Reader::parseInteger(reader, logger, {});
+		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
 		BufferedCharReader reader("0x8000000000000000");
-		auto res = Reader::parseInteger(reader, logger, {});
+		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 }
@@ -180,42 +182,42 @@ TEST(Reader, parseDouble)
 	// Valid doubles
 	{
 		BufferedCharReader reader("1.25");
-		auto res = Reader::parseDouble(reader, logger, {});
+		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(1.25, res.second);
 	}
 
 	{
 		BufferedCharReader reader(".25");
-		auto res = Reader::parseDouble(reader, logger, {});
+		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(.25, res.second);
 	}
 
 	{
 		BufferedCharReader reader(".25e1");
-		auto res = Reader::parseDouble(reader, logger, {});
+		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(2.5, res.second);
 	}
 
 	{
 		BufferedCharReader reader("-2.5e-1");
-		auto res = Reader::parseDouble(reader, logger, {});
+		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0.25, res.second);
 	}
 
 	{
 		BufferedCharReader reader("-50e-2");
-		auto res = Reader::parseDouble(reader, logger, {});
+		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0.5, res.second);
 	}
 
 	{
 		BufferedCharReader reader("-1.");
-		auto res = Reader::parseDouble(reader, logger, {});
+		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-1., res.second);
 	}
@@ -230,13 +232,13 @@ TEST(Reader, parseDouble)
 	// Invalid doubles
 	{
 		BufferedCharReader reader(".e1");
-		auto res = Reader::parseDouble(reader, logger, {});
+		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
 		BufferedCharReader reader("0e100000");
-		auto res = Reader::parseDouble(reader, logger, {});
+		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 }
