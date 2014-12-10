@@ -57,8 +57,9 @@ static std::vector<char> generateData(size_t len)
 	return res;
 }
 
+// For performance tests only
+// static constexpr size_t DATA_LENGTH = 16 * 1024 * 1024 + 795;
 static constexpr size_t DATA_LENGTH = 256 * 1024 + 795;
-//static constexpr size_t DATA_LENGTH = 16 * 1024 * 1024 + 795;
 static const std::vector<char> DATA = generateData(DATA_LENGTH);
 
 /* Buffer Test */
@@ -410,7 +411,7 @@ TEST(Buffer, streamMoveForward)
 
 /* CharReader Test */
 
-TEST(CharReaderTest, simpleReadTest)
+TEST(CharReader, simpleRead)
 {
 	std::string testStr{"this is a test"};
 	char c;
@@ -437,7 +438,7 @@ TEST(CharReaderTest, simpleReadTest)
 	ASSERT_FALSE(reader.peek(c));
 }
 
-TEST(CharReaderTest, simplePeekTest)
+TEST(CharReader, simplePeek)
 {
 	std::string testStr{"this is a test"};
 	char c;
@@ -474,7 +475,7 @@ TEST(CharReaderTest, simplePeekTest)
 	ASSERT_FALSE(reader.peek(c));
 }
 
-TEST(CharReaderTest, rowColumnCounterTest)
+TEST(CharReader, rowColumnCounter)
 {
 	// Feed a test string into the reader
 	CharReader reader{"1\n\r2\n3\r\n\n4"};
@@ -503,7 +504,7 @@ TEST(CharReaderTest, rowColumnCounterTest)
 	ASSERT_EQ(1U, reader.getColumn());
 }
 
-TEST(CharReaderTest, rowColumnCounterTestOffs)
+TEST(CharReader, rowColumnCounterTest)
 {
 	// Feed a test string into the reader
 	CharReader reader{"1\n\r2\n3\r\n\n4", 4, 10};
@@ -532,7 +533,7 @@ TEST(CharReaderTest, rowColumnCounterTestOffs)
 	ASSERT_EQ(1U, reader.getColumn());
 }
 
-TEST(CharReaderTest, linebreakSubstitutionTest)
+TEST(CharReader, linebreakSubstitution)
 {
 	// Feed a test string into the reader and read all characters back
 	CharReader reader{"this\n\ris\n\rjust\na test\r\n\rtest\n\r"};
@@ -546,7 +547,7 @@ TEST(CharReaderTest, linebreakSubstitutionTest)
 	ASSERT_EQ("this\nis\njust\na test\n\ntest\n", res);
 }
 
-TEST(CharReaderTest, rowColumnCounterUTF8Test)
+TEST(CharReader, rowColumnCounterUTF8)
 {
 	// Feed a test string with some umlauts into the reader
 	CharReader reader{"\x61\xc3\x96\xc3\x84\xc3\x9c\xc3\x9f"};
@@ -563,7 +564,7 @@ TEST(CharReaderTest, rowColumnCounterUTF8Test)
 	ASSERT_EQ(6U, reader.getColumn());
 }
 
-TEST(CharReaderTest, streamTest)
+TEST(CharReader, stream)
 {
 	// Copy the test data to a string stream
 	std::stringstream ss;
@@ -578,6 +579,52 @@ TEST(CharReaderTest, streamTest)
 	}
 	ASSERT_EQ(DATA_LENGTH, res.size());
 	ASSERT_EQ(DATA, res);
+}
+
+TEST(CharReader, fork)
+{
+	std::string testStr{"first line\n\n\rsecond line\n\rlast line"};
+	//                   0123456789 0   123456789012   3456789012
+	//                   0         1             2              3
+
+	char c;
+	CharReader reader{testStr};
+
+	// Read a few characters
+	for (int i = 0; i < 4; i++)
+		reader.read(c);
+
+	// Peek a few characters
+	for (int i = 4; i < 7; i++)
+		reader.peek(c);
+
+	// Fork the reader
+	{
+		CharReaderFork fork = reader.fork();
+
+		ASSERT_EQ(1U, fork.getLine());
+		ASSERT_EQ(5U, fork.getColumn());
+
+		fork.peek(c);
+		ASSERT_EQ('i', c);
+
+		fork.read(c);
+		ASSERT_EQ('t', c);
+
+		ASSERT_EQ(1U, fork.getLine());
+		ASSERT_EQ(6U, fork.getColumn());
+
+		ASSERT_EQ(1U, reader.getLine());
+		ASSERT_EQ(5U, reader.getColumn());
+
+		reader.read(c);
+		reader.read(c);
+		ASSERT_EQ(' ', c);
+
+		fork.commit();
+	}
+	ASSERT_EQ(1U, reader.getLine());
+	ASSERT_EQ(6U, reader.getColumn());
 }
 
 TEST(CharReaderTest, context)
@@ -602,7 +649,8 @@ TEST(CharReaderTest, context)
 		CharReader::Context ctx = reader.getContext(80);
 
 		char c;
-		for (int i = 0; i < 5; i++) reader.read(c);
+		for (int i = 0; i < 5; i++)
+			reader.read(c);
 
 		ASSERT_EQ("first line", ctx.line);
 		ASSERT_EQ(0U, ctx.relPos);
@@ -615,7 +663,8 @@ TEST(CharReaderTest, context)
 		CharReader reader{testStr};
 
 		char c;
-		for (int i = 0; i < 11; i++) reader.read(c);
+		for (int i = 0; i < 11; i++)
+			reader.read(c);
 
 		CharReader::Context ctx = reader.getContext(80);
 		ASSERT_EQ("first line", ctx.line);
@@ -629,7 +678,8 @@ TEST(CharReaderTest, context)
 		CharReader reader{testStr};
 
 		char c;
-		for (int i = 0; i < 5; i++) reader.read(c);
+		for (int i = 0; i < 5; i++)
+			reader.read(c);
 
 		CharReader::Context ctx = reader.getContext(3);
 		ASSERT_EQ("t l", ctx.line);
@@ -643,7 +693,8 @@ TEST(CharReaderTest, context)
 		CharReader reader{testStr};
 
 		char c;
-		for (int i = 0; i < 12; i++) reader.read(c);
+		for (int i = 0; i < 12; i++)
+			reader.read(c);
 
 		CharReader::Context ctx = reader.getContext(80);
 		ASSERT_EQ("second line", ctx.line);
@@ -657,7 +708,8 @@ TEST(CharReaderTest, context)
 		CharReader reader{testStr};
 
 		char c;
-		for (int i = 0; i < 23; i++) reader.read(c);
+		for (int i = 0; i < 23; i++)
+			reader.read(c);
 
 		CharReader::Context ctx = reader.getContext(80);
 		ASSERT_EQ("second line", ctx.line);
@@ -671,7 +723,8 @@ TEST(CharReaderTest, context)
 		CharReader reader{testStr};
 
 		char c;
-		for (int i = 0; i < 24; i++) reader.read(c);
+		for (int i = 0; i < 24; i++)
+			reader.read(c);
 
 		CharReader::Context ctx = reader.getContext(80);
 		ASSERT_EQ("last line", ctx.line);
@@ -685,7 +738,8 @@ TEST(CharReaderTest, context)
 		CharReader reader{testStr};
 
 		char c;
-		for (int i = 0; i < 28; i++) reader.read(c);
+		for (int i = 0; i < 28; i++)
+			reader.read(c);
 
 		CharReader::Context ctx = reader.getContext(80);
 		ASSERT_EQ("last line", ctx.line);
@@ -699,7 +753,8 @@ TEST(CharReaderTest, context)
 		CharReader reader{testStr};
 
 		char c;
-		for (int i = 0; i < 28; i++) reader.read(c);
+		for (int i = 0; i < 28; i++)
+			reader.read(c);
 
 		CharReader::Context ctx = reader.getContext(3);
 		ASSERT_EQ("t l", ctx.line);
@@ -713,7 +768,8 @@ TEST(CharReaderTest, context)
 		CharReader reader{testStr};
 
 		char c;
-		for (int i = 0; i < 100; i++) reader.read(c);
+		for (int i = 0; i < 100; i++)
+			reader.read(c);
 
 		CharReader::Context ctx = reader.getContext(80);
 		ASSERT_EQ("last line", ctx.line);
@@ -727,7 +783,8 @@ TEST(CharReaderTest, context)
 		CharReader reader{testStr};
 
 		char c;
-		for (int i = 0; i < 100; i++) reader.read(c);
+		for (int i = 0; i < 100; i++)
+			reader.read(c);
 
 		CharReader::Context ctx = reader.getContext(4);
 		ASSERT_EQ("line", ctx.line);
@@ -735,9 +792,7 @@ TEST(CharReaderTest, context)
 		ASSERT_TRUE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
-
 }
-
 }
 }
 

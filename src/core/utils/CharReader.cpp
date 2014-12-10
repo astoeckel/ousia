@@ -525,6 +525,7 @@ CharReader::Context CharReader::getContext(ssize_t maxSize)
 		// Fetch the character at the current position
 		if (buffer->fetch(cur, c)) {
 			// Abort, at linebreaks if we found a non-linebreak character
+			hadNonWhitespace = hadNonWhitespace || !Utils::isWhitespace(c);
 			if (hadNonWhitespace && (c == '\n' || c == '\r')) {
 				buffer->moveCursor(cur, 1);
 				start++;
@@ -535,11 +536,10 @@ CharReader::Context CharReader::getContext(ssize_t maxSize)
 		if (buffer->moveCursor(cur, -1) == 0) {
 			foundBegin = true;
 			break;
+		} else {
+			// Update the start position and the hadNonWhitespace flag
+			start--;
 		}
-
-		// Update the start position and the hadNonWhitespace flag
-		hadNonWhitespace = hadNonWhitespace || !Utils::isWhitespace(c);
-		start--;
 	}
 
 	// Search the end of the line
