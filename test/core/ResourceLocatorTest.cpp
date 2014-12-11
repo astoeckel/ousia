@@ -48,9 +48,9 @@ TEST(ResourceLocator, locate)
 {
 	TestResourceLocator instance;
 	ResourceLocator::Location location =
-	    instance.locate("path", "", ResourceLocator::Type::DOMAIN);
+	    instance.locate("path", "", ResourceLocator::Type::DOMAIN_DESC);
 	ASSERT_TRUE(location.found);
-	ASSERT_EQ(ResourceLocator::Type::DOMAIN, location.type);
+	ASSERT_EQ(ResourceLocator::Type::DOMAIN_DESC, location.type);
 	ASSERT_EQ("path", location.location);
 }
 
@@ -58,7 +58,7 @@ TEST(ResourceLocator, stream)
 {
 	TestResourceLocator instance;
 	ResourceLocator::Location location =
-	    instance.locate("path", "", ResourceLocator::Type::DOMAIN);
+	    instance.locate("path", "", ResourceLocator::Type::DOMAIN_DESC);
 	std::unique_ptr<std::istream> is = location.stream();
 
 	std::string str;

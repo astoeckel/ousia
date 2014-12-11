@@ -39,11 +39,11 @@ public:
 	 */
 	enum class Type {
 		// A Domain description
-		DOMAIN,
+		DOMAIN_DESC,
 		// An ECMA/JavaScript
 		SCRIPT,
 		// A Type System
-		TYPESYSTEM,
+		TYPESYS,
 		// TODO: Aren't documents and attribute descriptors missing?
 		// TODO: What is the purpose of these two?
 		GENERIC_MODULE,
