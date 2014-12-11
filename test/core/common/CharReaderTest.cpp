@@ -660,8 +660,8 @@ TEST(CharReaderTest, context)
 	// Retrieval at beginning of stream
 	{
 		CharReader reader{testStr};
-		CharReader::Context ctx = reader.getContext(80);
-		ASSERT_EQ("first line", ctx.line);
+		TextCursor::Context ctx = reader.getContext(80);
+		ASSERT_EQ("first line", ctx.text);
 		ASSERT_EQ(0U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
@@ -670,13 +670,13 @@ TEST(CharReaderTest, context)
 	// Retrieval in middle of line
 	{
 		CharReader reader{testStr};
-		CharReader::Context ctx = reader.getContext(80);
+		TextCursor::Context ctx = reader.getContext(80);
 
 		char c;
 		for (int i = 0; i < 5; i++)
 			reader.read(c);
 
-		ASSERT_EQ("first line", ctx.line);
+		ASSERT_EQ("first line", ctx.text);
 		ASSERT_EQ(0U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
@@ -690,8 +690,8 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 11; i++)
 			reader.read(c);
 
-		CharReader::Context ctx = reader.getContext(80);
-		ASSERT_EQ("first line", ctx.line);
+		TextCursor::Context ctx = reader.getContext(80);
+		ASSERT_EQ("first line", ctx.text);
 		ASSERT_EQ(10U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
@@ -705,8 +705,8 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 5; i++)
 			reader.read(c);
 
-		CharReader::Context ctx = reader.getContext(3);
-		ASSERT_EQ("t l", ctx.line);
+		TextCursor::Context ctx = reader.getContext(3);
+		ASSERT_EQ("t l", ctx.text);
 		ASSERT_EQ(1U, ctx.relPos);
 		ASSERT_TRUE(ctx.truncatedStart);
 		ASSERT_TRUE(ctx.truncatedEnd);
@@ -720,8 +720,8 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 12; i++)
 			reader.read(c);
 
-		CharReader::Context ctx = reader.getContext(80);
-		ASSERT_EQ("second line", ctx.line);
+		TextCursor::Context ctx = reader.getContext(80);
+		ASSERT_EQ("second line", ctx.text);
 		ASSERT_EQ(0U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
@@ -735,8 +735,8 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 23; i++)
 			reader.read(c);
 
-		CharReader::Context ctx = reader.getContext(80);
-		ASSERT_EQ("second line", ctx.line);
+		TextCursor::Context ctx = reader.getContext(80);
+		ASSERT_EQ("second line", ctx.text);
 		ASSERT_EQ(11U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
@@ -750,8 +750,8 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 24; i++)
 			reader.read(c);
 
-		CharReader::Context ctx = reader.getContext(80);
-		ASSERT_EQ("last line", ctx.line);
+		TextCursor::Context ctx = reader.getContext(80);
+		ASSERT_EQ("last line", ctx.text);
 		ASSERT_EQ(0U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
@@ -765,8 +765,8 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 28; i++)
 			reader.read(c);
 
-		CharReader::Context ctx = reader.getContext(80);
-		ASSERT_EQ("last line", ctx.line);
+		TextCursor::Context ctx = reader.getContext(80);
+		ASSERT_EQ("last line", ctx.text);
 		ASSERT_EQ(4U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
@@ -780,8 +780,8 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 28; i++)
 			reader.read(c);
 
-		CharReader::Context ctx = reader.getContext(3);
-		ASSERT_EQ("t l", ctx.line);
+		TextCursor::Context ctx = reader.getContext(3);
+		ASSERT_EQ("t l", ctx.text);
 		ASSERT_EQ(1U, ctx.relPos);
 		ASSERT_TRUE(ctx.truncatedStart);
 		ASSERT_TRUE(ctx.truncatedEnd);
@@ -795,8 +795,8 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 100; i++)
 			reader.read(c);
 
-		CharReader::Context ctx = reader.getContext(80);
-		ASSERT_EQ("last line", ctx.line);
+		TextCursor::Context ctx = reader.getContext(80);
+		ASSERT_EQ("last line", ctx.text);
 		ASSERT_EQ(9U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
@@ -810,8 +810,8 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 100; i++)
 			reader.read(c);
 
-		CharReader::Context ctx = reader.getContext(4);
-		ASSERT_EQ("line", ctx.line);
+		TextCursor::Context ctx = reader.getContext(4);
+		ASSERT_EQ("line", ctx.text);
 		ASSERT_EQ(4U, ctx.relPos);
 		ASSERT_TRUE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);

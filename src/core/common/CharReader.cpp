@@ -83,7 +83,7 @@ Buffer::Buffer(const std::string &str)
 Buffer::~Buffer()
 {
 	// Make sure all cursors have been deleted
-	for (bool cursor_alive: alive) {
+	for (bool cursor_alive : alive) {
 		assert(!cursor_alive);
 	}
 }
@@ -516,7 +516,7 @@ CharReaderFork CharReader::fork()
 	return CharReaderFork(buffer, readCursor, peekCursor, coherent);
 }
 
-CharReader::Context CharReader::getContext(ssize_t maxSize)
+TextCursor::Context CharReader::getContext(ssize_t maxSize)
 {
 	// Clone the current read cursor
 	Buffer::CursorId cur = buffer->createCursor(readCursor.cursor);
@@ -612,7 +612,7 @@ CharReader::Context CharReader::getContext(ssize_t maxSize)
 	// Delete the newly created cursor
 	buffer->deleteCursor(cur);
 
-	return CharReader::Context{ss.str(), relPos, !foundBegin || tStart != start,
+	return TextCursor::Context{ss.str(), relPos, !foundBegin || tStart != start,
 	                           !foundEnd || tEnd != end};
 }
 

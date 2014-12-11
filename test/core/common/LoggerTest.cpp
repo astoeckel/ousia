@@ -25,31 +25,38 @@
 namespace ousia {
 
 struct Pos {
-	int line, column;
-	Pos(int line, int column) : line(line), column(column){};
-	int getLine() const { return line; }
-	int getColumn() const { return column; }
+	TextCursor::Position pos;
+	TextCursor::Context ctx;
+
+	Pos(TextCursor::Position pos = TextCursor::Position{},
+	    TextCursor::Context ctx = TextCursor::Context{})
+	    : pos(pos), ctx(ctx){};
+
+	TextCursor::Position getPosition() { return pos; }
+	TextCursor::Context getContext() { return ctx; }
 };
 
 TEST(TerminalLogger, log)
 {
 	// Test for manual visual expection only -- no assertions
 	TerminalLogger logger{std::cerr, true};
-	logger.pushFilename("test.odp");
+	logger.pushFile("test.odp");
 
-	logger.debug("This is a test debug message", 10, 20);
-	logger.debug("This is a test debug message with no column", 10);
+	logger.debug("This is a test debug message", TextCursor::Position{10, 20});
+	logger.debug("This is a test debug message with no column",
+	             TextCursor::Position{10});
 	logger.debug("This is a test debug message with no line");
-	logger.debug("This is a test debug message with no file", "");
-	logger.debug("This is a test debug message with no file but a line", "",
-	             10);
-	logger.debug(
-	    "This is a test debug message with no file but a line and a column", "",
-	    10, 20);
-	logger.note("This is a test note", 10, 20);
-	logger.warning("This is a test warning", 10, 20);
-	logger.error("This is a test error", 10, 20);
-	logger.fatalError("This is a test fatal error!", 10, 20);
+	logger.note("This is a test note", TextCursor::Position{10, 20});
+	logger.warning("This is a test warning", TextCursor::Position{10, 20});
+	logger.error("This is a test error", TextCursor::Position{10, 20});
+	logger.fatalError("This is a test fatal error!",
+	                  TextCursor::Position{10, 20});
+
+	logger.error("This is a test error with context",
+	             TextCursor::Position{10, 20},
+	             TextCursor::Context{"int bla = blub;", 10, true, false});
+
+	Pos pos(TextCursor::Position{10, 20});
 
 	try {
 		throw LoggableException{"An exception"};
@@ -59,16 +66,13 @@ TEST(TerminalLogger, log)
 	}
 
 	try {
-		throw LoggableException{"An exception at position", Pos(10, 20)};
+		throw LoggableException{"An exception at position", pos};
 	}
 	catch (const LoggableException &ex) {
 		logger.log(ex);
 	}
 
-	logger.logAt(Severity::ERROR, "This is a positioned log message",
-	             Pos(10, 20));
-	logger.debugAt("This is a positioned debug message", Pos(10, 20));
-	logger.noteAt("This is a positioned log error", Pos(10, 20));
+	logger.logAt(Severity::ERROR, "This is a positioned log message", pos);
 }
 }
 

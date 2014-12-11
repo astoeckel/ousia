@@ -35,6 +35,7 @@
 #include <vector>
 
 #include "Exceptions.hpp"
+#include "TextCursor.hpp"
 
 namespace ousia {
 
@@ -90,6 +91,40 @@ static constexpr Severity DEFAULT_MIN_SEVERITY = Severity::DEBUG;
 class Logger {
 public:
 	/**
+	 * Describes an included file.
+	 */
+	struct File {
+		/**
+		 * Is the name of the file.
+		 */
+		std::string file;
+
+		/**
+		 * Position at which the file was included.
+		 */
+		TextCursor::Position pos;
+
+		/**
+		 * Context in which the file was included.
+		 */
+		TextCursor::Context ctx;
+
+		/**
+		 * Constructor of the File struct.
+		 *
+		 * @param file is the name of the included file.
+		 * @param pos is the position in the parent file, at which this file
+		 * was included.
+		 * @param ctx is the context in which the feil was included.
+		 */
+		File(std::string file, TextCursor::Position pos,
+		     TextCursor::Context ctx)
+		    : file(file), pos(pos), ctx(ctx)
+		{
+		}
+	};
+
+	/**
 	 * The message struct represents a single log message and all information
 	 * attached to it.
 	 */
@@ -105,79 +140,41 @@ public:
 		std::string msg;
 
 		/**
-		 * Refers to the file which provides the context for this error message.
-		 * May be empty.
+		 * Position in the text the message refers to.
 		 */
-		std::string file;
+		TextCursor::Position pos;
 
 		/**
-		 * Line in the above file the error message refers to. Ignored if
-		 * smaller than zero.
+		 * Context the message refers to.
 		 */
-		int line;
-
-		/**
-		 * Column in the above file the error message refers to. Ignored if
-		 * smaller than zero.
-		 */
-		int column;
+		TextCursor::Context ctx;
 
 		/**
 		 * Constructor of the Message struct.
 		 *
 		 * @param severity describes the message severity.
 		 * @param msg contains the actual message.
-		 * @param file provides the context the message refers to. May be empty.
 		 * @param line is the line in the above file the message refers to.
 		 * @param column is the column in the above file the message refers to.
 		 */
-		Message(Severity severity, std::string msg, std::string file, int line,
-		        int column)
+		Message(Severity severity, std::string msg, TextCursor::Position pos,
+		        TextCursor::Context ctx)
 		    : severity(severity),
 		      msg(std::move(msg)),
-		      file(std::move(file)),
-		      line(line),
-		      column(column){};
-
-		/**
-		 * Returns true if the file string is set.
-		 *
-		 * @return true if the file string is set.
-		 */
-		bool hasFile() const { return !file.empty(); }
-
-		/**
-		 * Returns true if the line is set.
-		 *
-		 * @return true if the line number is a non-negative integer.
-		 */
-		bool hasLine() const { return line >= 0; }
-
-		/**
-		 * Returns true if column and line are set (since a column has no
-		 * significance without a line number).
-		 *
-		 * @return true if line number and column number are non-negative
-		 * integers.
-		 */
-		bool hasColumn() const { return hasLine() && column >= 0; }
+		      pos(std::move(pos)),
+		      ctx(std::move(ctx)){};
 	};
 
 private:
 	/**
 	 * Minimum severity a log message should have before it is discarded.
 	 */
-	Severity minSeverity;
+	const Severity minSeverity;
 
 	/**
 	 * Maximum encountered log message severity.
 	 */
 	Severity maxEncounteredSeverity;
-
-	/**
-	 * Stack containing the current file names that have been processed.
-	 */
-	std::stack<std::string> filenameStack;
 
 protected:
 	/**
@@ -188,7 +185,23 @@ protected:
 	 * @param msg is an instance of the Message struct containing the data that
 	 * should be logged.
 	 */
-	virtual void process(const Message &msg){};
+	virtual void processMessage(Message msg) {}
+
+	/**
+	 * Called whenever a new file is pushed onto the stack.
+	 *
+	 * @param file is the file that should be pushed onto the stack.
+	 * @return the stack depth after the file has been pushed.
+	 */
+	virtual size_t processPushFile(File file) { return 0; }
+
+	/**
+	 * Called whenever a file is popped from the stack.
+	 *
+	 * @return the stack depth after the current file has been removed from the
+	 * stack.
+	 */
+	virtual size_t processPopFile() { return 0; }
 
 public:
 	/**
@@ -210,51 +223,30 @@ public:
 	virtual ~Logger(){};
 
 	/**
-	 * Logs the given message. Most generic log function.
-	 *
-	 * @param severity is the severity of the log message.
-	 * @param msg is the actual log message.
-	 * @param file is the name of the file the message refers to. May be empty.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
-	 */
-	void log(Severity severity, const std::string &msg, const std::string &file,
-	         int line = -1, int column = -1);
-
-	/**
 	 * Logs the given message. The file name is set to the topmost file name on
 	 * the file name stack.
 	 *
 	 * @param severity is the severity of the log message.
 	 * @param msg is the actual log message.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
+	 * @param pos is the position the log message refers to.
+	 * @param ctx describes the context of the log message.
 	 */
-	void log(Severity severity, const std::string &msg, int line = -1,
-	         int column = -1)
+	void log(Severity severity, std::string msg,
+	         TextCursor::Position pos = TextCursor::Position{},
+	         TextCursor::Context ctx = TextCursor::Context{})
 	{
-		log(severity, msg, currentFilename(), line, column);
-	}
+		// Update the maximum encountered severity level
+		if (static_cast<int>(severity) >
+		    static_cast<int>(maxEncounteredSeverity)) {
+			maxEncounteredSeverity = severity;
+		}
 
-	/**
-	 * Logs the given message. The file name is set to the topmost file name on
-	 * the file name stack.
-	 *
-	 * @param severity is the severity of the log message.
-	 * @param msg is the actual log message.
-	 * @param pos is a const reference to a variable which provides position
-	 * information.
-	 * @tparam PosType is the actual type of pos and must implement a getLine
-	 * and getColumn function.
-	 */
-	template <class PosType>
-	void logAt(Severity severity, const std::string &msg, const PosType &pos)
-	{
-		log(severity, msg, pos.getLine(), pos.getColumn());
+		// Only process the message if its severity is larger than the
+		// set minimum severity.
+		if (static_cast<int>(severity) >= static_cast<int>(minSeverity)) {
+			processMessage(Message{severity, std::move(msg), std::move(pos),
+			                       std::move(ctx)});
+		}
 	}
 
 	/**
@@ -264,278 +256,188 @@ public:
 	 */
 	void log(const LoggableException &ex)
 	{
-		log(Severity::ERROR, ex.msg,
-		    ex.file.empty() ? currentFilename() : ex.file, ex.line, ex.column);
+		log(Severity::ERROR, ex.msg, ex.getPosition(), ex.getContext());
 	}
 
 	/**
-	 * Logs a debug message. The file name is set to the topmost file name on
-	 * the file name stack.
-	 *
-	 * @param msg is the actual log message.
-	 * @param file is the name of the file the message refers to. May be empty.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
-	 */
-	void debug(const std::string &msg, const std::string &file, int line = -1,
-	           int column = -1)
-	{
-		log(Severity::DEBUG, msg, file, line, column);
-	}
-
-	/**
-	 * Logs a debug message. The file name is set to the topmost file name on
-	 * the file name stack.
-	 *
-	 * @param msg is the actual log message.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
-	 */
-	void debug(const std::string &msg, int line = -1, int column = -1)
-	{
-		debug(msg, currentFilename(), line, column);
-	}
-
-	/**
-	 * Logs a debug message. The file name is set to the topmost file name on
+	 * Logs the given message. The file name is set to the topmost file name on
 	 * the file name stack.
 	 *
 	 * @param severity is the severity of the log message.
 	 * @param msg is the actual log message.
-	 * @param pos is a const reference to a variable which provides position
-	 * information.
+	 * @param pos is a reference to a variable which provides position and
+	 * context information.
 	 */
 	template <class PosType>
-	void debugAt(const std::string &msg, const PosType &pos)
+	void logAt(Severity severity, std::string msg, PosType &pos)
 	{
-		debug(msg, pos.getLine(), pos.getColumn());
+		log(severity, std::move(msg), pos.getPosition(), pos.getContext());
 	}
 
 	/**
-	 * Logs a note. The file name is set to the topmost file name on
-	 * the file name stack.
+	 * Logs a debug message. Debug messages will be discarded if the software
+	 * is compiled in the release mode (with the NDEBUG flag).
 	 *
 	 * @param msg is the actual log message.
-	 * @param file is the name of the file the message refers to. May be empty.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
+	 * @param pos describes the position of the debug message.
+	 * @param ctx describes the context of the debug message.
 	 */
-	void note(const std::string &msg, const std::string &file, int line = -1,
-	          int column = -1)
+	void debug(std::string msg,
+	           TextCursor::Position pos = TextCursor::Position{},
+	           TextCursor::Context ctx = TextCursor::Context{})
 	{
-		log(Severity::NOTE, msg, file, line, column);
+#ifndef NDEBUG
+		log(Severity::DEBUG, std::move(msg), std::move(pos), std::move(ctx));
+#endif
 	}
 
 	/**
-	 * Logs a note. The file name is set to the topmost file name on
-	 * the file name stack.
+	 * Logs a debug message. Debug messages will be discarded if the software
+	 * is compiled in the release mode.
 	 *
 	 * @param msg is the actual log message.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
+	 * @param pos is a reference to a variable which provides position and
+	 * context information.
 	 */
-	void note(const std::string &msg, int line = -1, int column = -1)
+	template<class PosType>
+	void debug(std::string msg, PosType &pos)
 	{
-		note(msg, currentFilename(), line, column);
+#ifndef NDEBUG
+		logAt(Severity::DEBUG, std::move(msg), pos);
+#endif
 	}
 
 	/**
-	 * Logs a note. The file name is set to the topmost file name on
-	 * the file name stack.
+	 * Logs a note.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos is a const reference to a variable which provides position
-	 * information.
+	 * @param pos describes the position of the note.
+	 * @param ctx describes the context of the note.
 	 */
-	template <class PosType>
-	void noteAt(const std::string &msg, const PosType &pos)
+	void note(std::string msg,
+	          TextCursor::Position pos = TextCursor::Position{},
+	          TextCursor::Context ctx = TextCursor::Context{})
 	{
-		note(msg, pos.getLine(), pos.getColumn());
+		log(Severity::NOTE, std::move(msg), std::move(pos), std::move(ctx));
 	}
 
 	/**
-	 * Logs a warning. The file name is set to the topmost file name on
-	 * the file name stack.
+	 * Logs a note.
 	 *
 	 * @param msg is the actual log message.
-	 * @param file is the name of the file the message refers to. May be empty.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
+	 * @param pos is a reference to a variable which provides position and
+	 * context information.
 	 */
-	void warning(const std::string &msg, const std::string &file, int line = -1,
-	             int column = -1)
+	template<class PosType>
+	void note(std::string msg, PosType &pos)
 	{
-		log(Severity::WARNING, msg, file, line, column);
+		logAt(Severity::NOTE, std::move(msg), pos);
 	}
 
 	/**
-	 * Logs a warning. The file name is set to the topmost file name on
-	 * the file name stack.
+	 * Logs a warning.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos is a const reference to a variable which provides position
-	 * information.
+	 * @param pos describes the position of the warning.
+	 * @param ctx describes the context of the warning.
 	 */
-	template <class PosType>
-	void warningAt(const std::string &msg, const PosType &pos)
+	void warning(std::string msg,
+	             TextCursor::Position pos = TextCursor::Position{},
+	             TextCursor::Context ctx = TextCursor::Context{})
 	{
-		warning(msg, pos.getLine(), pos.getColumn());
+		log(Severity::WARNING, std::move(msg), std::move(pos), std::move(ctx));
 	}
 
 	/**
-	 * Logs a warning. The file name is set to the topmost file name on
-	 * the file name stack.
+	 * Logs a warning.
 	 *
 	 * @param msg is the actual log message.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
+	 * @param pos is a reference to a variable which provides position and
+	 * context information.
 	 */
-	void warning(const std::string &msg, int line = -1, int column = -1)
+	template<class PosType>
+	void warning(std::string msg, PosType &pos)
 	{
-		warning(msg, currentFilename(), line, column);
+		logAt(Severity::WARNING, std::move(msg), pos);
 	}
 
 	/**
-	 * Logs an error message. The file name is set to the topmost file name on
-	 * the file name stack.
+	 * Logs an error message.
 	 *
 	 * @param msg is the actual log message.
-	 * @param file is the name of the file the message refers to. May be empty.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
+	 * @param pos is the position at which the error occured.
+	 * @param ctx describes the context in which the error occured.
 	 */
-	void error(const std::string &msg, const std::string &file, int line = -1,
-	           int column = -1)
+	void error(std::string msg,
+	           TextCursor::Position pos = TextCursor::Position{},
+	           TextCursor::Context ctx = TextCursor::Context{})
 	{
-		log(Severity::ERROR, msg, file, line, column);
+		log(Severity::ERROR, std::move(msg), std::move(pos), std::move(ctx));
 	}
 
 	/**
-	 * Logs an error message. The file name is set to the topmost file name on
-	 * the file name stack.
+	 * Logs an error message.
 	 *
 	 * @param msg is the actual log message.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
+	 * @param pos is a reference to a variable which provides position and
+	 * context information.
 	 */
-	void error(const std::string &msg, int line = -1, int column = -1)
+	template<class PosType>
+	void error(std::string msg, PosType &pos)
 	{
-		error(msg, currentFilename(), line, column);
+		logAt(Severity::ERROR, std::move(msg), pos);
 	}
 
 	/**
-	 * Logs an error message. The file name is set to the topmost file name on
-	 * the file name stack.
+	 * Logs a fatal error message.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos is a const reference to a variable which provides position
-	 * information.
+	 * @param pos is the position at which the error occured.
+	 * @param ctx describes the context in which the error occured.
 	 */
-	template <class PosType>
-	void errorAt(const std::string &msg, const PosType &pos)
+	void fatalError(std::string msg,
+	                TextCursor::Position pos = TextCursor::Position{},
+	                TextCursor::Context ctx = TextCursor::Context{})
 	{
-		error(msg, pos.getLine(), pos.getColumn());
+		log(Severity::FATAL_ERROR, std::move(msg), std::move(pos),
+		    std::move(ctx));
 	}
 
-	/**
-	 * Logs a fatal error. The file name is set to the topmost file name on
-	 * the file name stack.
-	 *
-	 * @param msg is the actual log message.
-	 * @param file is the name of the file the message refers to. May be empty.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
-	 */
-	void fatalError(const std::string &msg, const std::string &file,
-	                int line = -1, int column = -1)
-	{
-		log(Severity::FATAL_ERROR, msg, file, line, column);
-	}
 
 	/**
-	 * Logs a fatal error. The file name is set to the topmost file name on
-	 * the file name stack.
+	 * Logs a fatal error message.
 	 *
 	 * @param msg is the actual log message.
-	 * @param line is the line in the above file at which the error occured.
-	 * Ignored if negative.
-	 * @param column is the column in the above file at which the error occured.
-	 * Ignored if negative.
+	 * @param pos is a reference to a variable which provides position and
+	 * context information.
 	 */
-	void fatalError(const std::string &msg, int line = -1, int column = -1)
+	template<class PosType>
+	void fatalError(std::string msg, PosType &pos)
 	{
-		fatalError(msg, currentFilename(), line, column);
-	}
-
-	/**
-	 * Logs a fatal error. The file name is set to the topmost file name on
-	 * the file name stack.
-	 *
-	 * @param msg is the actual log message.
-	 * @param pos is a const reference to a variable which provides position
-	 * information.
-	 */
-	template <class PosType>
-	void fatalErrorAt(const std::string &msg, const PosType &pos)
-	{
-		fatalError(msg, pos.getLine(), pos.getColumn());
+		logAt(Severity::FATAL_ERROR, std::move(msg), pos);
 	}
 
 	/**
 	 * Pushes a new file name onto the internal filename stack.
 	 *
-	 * @param name is the name of the file that should be added to the filename
-	 * stack.
-	 * @return the size of the filename stack. This number can be passed to the
-	 * "unwindFilenameStack" method in order to return the stack to state it was
-	 * in after this function has been called.
+	 * @param name is the name of the file to be added to the stack.
+	 * @param pos is the position from which the new file is included.
+	 * @param ctx is the context in which the new file is included.
 	 */
-	unsigned int pushFilename(const std::string &name);
+	size_t pushFile(std::string name,
+	                TextCursor::Position pos = TextCursor::Position{},
+	                TextCursor::Context ctx = TextCursor::Context{})
+	{
+		return processPushFile(
+		    File(std::move(name), std::move(pos), std::move(ctx)));
+	}
 
 	/**
 	 * Pops the filename from the internal filename stack.
 	 *
 	 * @return the current size of the filename stack.
 	 */
-	unsigned int popFilename();
-
-	/**
-	 * Pops elements from the filename stack while it has more elements than
-	 * the given number and the stack is non-empty.
-	 *
-	 * @param pos is the position the filename stack should be unwound to. Use
-	 * a number returned by pushFilename.
-	 */
-	void unwindFilenameStack(unsigned int pos);
-
-	/**
-	 * Returns the topmost filename from the internal filename stack.
-	 *
-	 * @return the topmost filename from the filename stack or an empty string
-	 * if the filename stack is empty.
-	 */
-	std::string currentFilename()
-	{
-		return filenameStack.empty() ? std::string{} : filenameStack.top();
-	}
+	size_t popFile() { return processPopFile(); }
 
 	/**
 	 * Returns the maximum severity that was encountered by the Logger but at
@@ -553,14 +455,6 @@ public:
 	 * @return the minimum severity.
 	 */
 	Severity getMinSeverity() { return minSeverity; }
-
-	/**
-	 * Sets the minimum severity. Messages with a smaller severity will be
-	 * discarded. Only new messages will be filtered according to the new value.
-	 *
-	 * @param severity is the minimum severity for new log messages.
-	 */
-	void setMinSeverity(Severity severity) { minSeverity = severity; }
 };
 
 /**
@@ -580,11 +474,20 @@ private:
 	 */
 	bool useColor;
 
-protected:
 	/**
-	 * Implements the process function and logs the messages to the output.
+	 * Stack used to keep the file references.
 	 */
-	void process(const Message &msg) override;
+	std::stack<File> files;
+
+	/**
+	 * The size of the stack the last time a file backtrace was printed.
+	 */
+	size_t lastFilePrinted = 0;
+
+protected:
+	void processMessage(Message msg) override;
+	size_t processPushFile(File file) override;
+	size_t processPopFile() override;
 
 public:
 	/**
@@ -602,6 +505,12 @@ public:
 	    : Logger(minSeverity), os(os), useColor(useColor)
 	{
 	}
+
+	/**
+	 * Returns the name of the topmost file.
+	 */
+	std::string currentFilename();
+
 };
 }
 

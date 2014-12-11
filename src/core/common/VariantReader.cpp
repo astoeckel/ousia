@@ -101,7 +101,7 @@ private:
 		// Check whether the given character is valid
 		int v = charValue(c);
 		if (v < 0 || v >= base) {
-			logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+			logger.error(ERR_UNEXPECTED_CHAR, reader);
 			return false;
 		}
 
@@ -121,7 +121,7 @@ private:
 
 		// Check for any overflows
 		if (a < 0 || n < 0 || d < 0 || e < 0) {
-			logger.errorAt(ERR_TOO_LARGE, reader);
+			logger.error(ERR_TOO_LARGE, reader);
 			return false;
 		}
 		return true;
@@ -203,7 +203,7 @@ bool Number::parse(CharReader &reader, Logger &logger,
 					case '-':
 						// Do not allow multiple minus signs
 						if (state == State::HAS_MINUS) {
-							logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+							logger.error(ERR_UNEXPECTED_CHAR, reader);
 							return false;
 						}
 						state = State::HAS_MINUS;
@@ -259,7 +259,7 @@ bool Number::parse(CharReader &reader, Logger &logger,
 					case 'e':
 					case 'E':
 						if (state == State::LEADING_POINT) {
-							logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+							logger.error(ERR_UNEXPECTED_CHAR, reader);
 							return false;
 						}
 						state = State::EXP_INIT;
@@ -276,7 +276,7 @@ bool Number::parse(CharReader &reader, Logger &logger,
 			case State::EXP_INIT:
 				if (c == '-') {
 					if (state == State::EXP_HAS_MINUS) {
-						logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+						logger.error(ERR_UNEXPECTED_CHAR, reader);
 						return false;
 					}
 					state = State::EXP_HAS_MINUS;
@@ -303,7 +303,7 @@ bool Number::parse(CharReader &reader, Logger &logger,
 	    state == State::EXP) {
 		return true;
 	}
-	logger.errorAt(ERR_UNEXPECTED_END, reader);
+	logger.error(ERR_UNEXPECTED_END, reader);
 	return false;
 }
 
@@ -322,7 +322,7 @@ template <class T>
 static std::pair<bool, T> error(CharReader &reader, Logger &logger,
                                 const char *err, T res)
 {
-	logger.errorAt(err, reader);
+	logger.error(err, reader);
 	return std::make_pair(false, std::move(res));
 }
 
@@ -410,7 +410,7 @@ std::pair<bool, std::string> VariantReader::parseString(
 						if (Utils::isNumeric(c)) {
 							// TODO: Parse octal 000 sequence
 						} else {
-							logger.errorAt(ERR_INVALID_ESCAPE, reader);
+							logger.error(ERR_INVALID_ESCAPE, reader);
 						}
 						break;
 				}
@@ -476,7 +476,7 @@ std::pair<bool, Variant::arrayType> VariantReader::parseArray(
 				} else if (!Utils::isWhitespace(c)) {
 					hadError = true;
 					state = STATE_RESYNC;
-					logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+					logger.error(ERR_UNEXPECTED_CHAR, reader);
 				}
 				reader.consumePeek();
 				break;

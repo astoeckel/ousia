@@ -25,21 +25,21 @@ namespace ousia {
 /* Class LoggableException */
 
 std::string LoggableException::formatMessage(const std::string &msg,
-                                             const std::string &file,
-                                             int line, int column)
+                                             const TextCursor::Position &pos,
+                                             const TextCursor::Context &ctx)
 {
 	std::stringstream ss;
 	ss << "error ";
-	if (!file.empty()) {
-		ss << "while processing \"" << file << "\" ";
-	}
-	if (line >= 0) {
-		ss << "at line " << line << ", ";
-		if (column >= 0) {
-			ss << "column " << column << " ";
+	if (pos.hasLine()) {
+		ss << "at line " << pos.line << ", ";
+		if (pos.hasColumn()) {
+			ss << "column " << pos.column << " ";
 		}
 	}
 	ss << "with message: " << msg;
+	if (ctx.valid()) {
+		ss << " in context \"" << ctx.text << "\"";
+	}
 	return ss.str();
 }
 }

@@ -32,6 +32,8 @@
 #include <memory>
 #include <vector>
 
+#include "TextCursor.hpp"
+
 namespace ousia {
 
 /**
@@ -359,52 +361,6 @@ class CharReaderFork;
  * of linebreaks and converts these to a single '\n'.
  */
 class CharReader {
-public:
-	/**
-	 * The context struct is used to represent the current context the char
-	 * reader is in. This context can for example be used when building error
-	 * messages.
-	 */
-	struct Context {
-		/**
-		 * Set to the content of the current line.
-		 */
-		std::string line;
-
-		/**
-		 * Relative position (in characters) within that line.
-		 */
-		size_t relPos;
-
-		/**
-		 * Set to true if the beginning of the line has been truncated (because
-		 * the reader position is too far away from the actual position of the
-		 * line).
-		 */
-		bool truncatedStart;
-
-		/**
-		 * Set to true if the end of the line has been truncated (because the
-		 * reader position is too far away from the actual end position of the
-		 * line.
-		 */
-		bool truncatedEnd;
-
-		Context()
-		    : line(), relPos(0), truncatedStart(false), truncatedEnd(false)
-		{
-		}
-
-		Context(std::string line, size_t relPos, bool truncatedStart,
-		        bool truncatedEnd)
-		    : line(std::move(line)),
-		      relPos(relPos),
-		      truncatedStart(truncatedStart),
-		      truncatedEnd(truncatedEnd)
-		{
-		}
-	};
-
 protected:
 	/**
 	 * Internally used cursor structure for managing the read and the peek
@@ -419,19 +375,20 @@ protected:
 		/**
 		 * Current line the cursor is in.
 		 */
-		uint32_t line;
+		TextCursor::PosType line;
 
 		/**
 		 * Current column the cursor is in.
 		 */
-		uint32_t column;
+		TextCursor::PosType column;
 
 		/**
 		 * Constructor of the Cursor class.
 		 *
 		 * @param cursor is the underlying cursor in the Buffer instance.
 		 */
-		Cursor(Buffer::CursorId cursor, size_t line, size_t column)
+		Cursor(Buffer::CursorId cursor, TextCursor::PosType line,
+		       TextCursor::PosType column)
 		    : cursor(cursor), line(line), column(column)
 		{
 		}
@@ -591,31 +548,35 @@ public:
 	bool atEnd() const { return buffer->atEnd(readCursor.cursor); }
 
 	/**
-	 * Returns the current line (starting with one).
-	 *
-	 * @return the current line number.
+	 * Returns the offset of the read cursor in bytes.
 	 */
-	uint32_t getLine() const { return readCursor.line; }
+	size_t getOffset() const { return buffer->offset(readCursor.cursor); }
 
 	/**
-	 * Returns the current column (starting with one).
-	 *
-	 * @return the current column number.
+	 * Returns the line number the read cursor currently is at.
 	 */
-	uint32_t getColumn() const { return readCursor.column; }
+	TextCursor::PosType getLine() const { return readCursor.line; }
 
 	/**
-	 * Returns the current byte offset of the read cursor.
-	 *
-	 * @return the byte position within the stream.
+	 * Returns the column the read cursor currently is at.
 	 */
-	size_t getOffset() const { return buffer->offset(readCursor.cursor); };
+	TextCursor::PosType getColumn() const { return readCursor.column; }
+
+	/**
+	 * Returns the current position of the read cursor (line and column).
+	 */
+	TextCursor::Position getPosition() const
+	{
+		return TextCursor::Position(getLine(), getColumn(), getOffset());
+	}
 
 	/**
 	 * Returns the line the read cursor currently is in, but at most the
 	 * given number of characters in the form of a Context structure.
+	 *
+	 * @param maxSize is the maximum length of the extracted context
 	 */
-	Context getContext(ssize_t maxSize);
+	TextCursor::Context getContext(ssize_t maxSize = 60);
 };
 
 /**
@@ -658,7 +619,6 @@ public:
 	 */
 	void commit();
 };
-
 }
 
 #endif /* _OUSIA_CHAR_READER_HPP_ */

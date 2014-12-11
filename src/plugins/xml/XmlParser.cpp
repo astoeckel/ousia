@@ -204,11 +204,15 @@ Rooted<Node> XmlParser::parse(std::istream &is, ParserContext &ctx)
 
 		// Parse the data and handle any XML error
 		if (!XML_ParseBuffer(&p, bytesRead, bytesRead == 0)) {
-			const int line = XML_GetCurrentLineNumber(&p);
-			const int column = XML_GetCurrentColumnNumber(&p);
+			const TextCursor::PosType line =
+			    static_cast<TextCursor::PosType>(XML_GetCurrentLineNumber(&p));
+			const TextCursor::PosType column = static_cast<TextCursor::PosType>(
+			    XML_GetCurrentColumnNumber(&p));
+			const size_t offs = XML_GetCurrentByteIndex(&p);
 			const XML_Error code = XML_GetErrorCode(&p);
 			const std::string msg = std::string{XML_ErrorString(code)};
-			throw ParserException{"XML Syntax Error: " + msg, line, column};
+			throw ParserException{"XML Syntax Error: " + msg, line, column,
+			                      offs};
 		}
 
 		// Abort once there are no more bytes in the stream

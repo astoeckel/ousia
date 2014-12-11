@@ -36,7 +36,7 @@ TEST(XmlParser, mismatchedTagException)
 		p.parse("<document>\n</document2>", ctx);
 	}
 	catch (ParserException ex) {
-		ASSERT_EQ(2, ex.line);
+		ASSERT_EQ(2U, ex.pos.line);
 		hadException = true;
 	}
 	ASSERT_TRUE(hadException);

@@ -23,50 +23,8 @@
 
 namespace ousia {
 
-/* Class Logger */
+/* Class Terminal */
 
-void Logger::log(Severity severity, const std::string &msg,
-                 const std::string &file, int line, int column)
-{
-	// Copy the current severity level
-	if (static_cast<int>(severity) > static_cast<int>(maxEncounteredSeverity)) {
-		maxEncounteredSeverity = severity;
-	}
-
-	// Call the actual log message function if the severity is larger or equal
-	// to the minimum severity
-	if (static_cast<int>(severity) >= static_cast<int>(minSeverity)) {
-		process(Message{severity, msg, file, line, column});
-	}
-}
-
-unsigned int Logger::pushFilename(const std::string &name)
-{
-	filenameStack.push(name);
-	return filenameStack.size();
-}
-
-unsigned int Logger::popFilename()
-{
-	filenameStack.pop();
-	return filenameStack.size();
-}
-
-void Logger::unwindFilenameStack(unsigned int pos)
-{
-	while (filenameStack.size() > pos && !filenameStack.empty()) {
-		filenameStack.pop();
-	}
-}
-
-/* Class TerminalLogger */
-
-/**
- * Small class used internally for formated terminal output using ANSI/VT100
- * escape codes on supported terminals.
- *
- * TODO: Deactivate if using windows or use the corresponding API function.
- */
 class Terminal {
 private:
 	/**
@@ -109,29 +67,49 @@ public:
 	}
 };
 
-void TerminalLogger::process(const Message &msg)
+
+/* Class TerminalLogger */
+
+/**
+ * Small class used internally for formated terminal output using ANSI/VT100
+ * escape codes on supported terminals.
+ *
+ * TODO: Deactivate if using windows or use the corresponding API function.
+ */
+
+std::string TerminalLogger::currentFilename()
+{
+	if (!files.empty()) {
+		return files.top().file;
+	}
+	return std::string{};
+}
+
+void TerminalLogger::processMessage(Message msg)
 {
 	Terminal t(useColor);
 
 	// Print the file name
-	if (msg.hasFile()) {
-		os << t.color(Terminal::WHITE, true) << msg.file << t.reset();
+	std::string filename = currentFilename();
+	bool hasFile = !filename.empty();
+	if (hasFile) {
+		os << t.color(Terminal::WHITE, true) << filename << t.reset();
 	}
 
 	// Print line and column number
-	if (msg.hasLine()) {
-		if (msg.hasFile()) {
+	if (msg.pos.hasLine()) {
+		if (hasFile) {
 			os << ':';
 		}
-		os << t.color(Terminal::WHITE, true) << msg.line
+		os << t.color(Terminal::WHITE, true) << msg.pos.line
 		   << t.reset();
-		if (msg.hasColumn()) {
-			os << ':' << msg.column;
+		if (msg.pos.hasColumn()) {
+			os << ':' << msg.pos.column;
 		}
 	}
 
 	// Print the optional seperator
-	if (msg.hasFile() || msg.hasLine()) {
+	if (hasFile || msg.pos.hasLine()) {
 		os << ": ";
 	}
 
@@ -156,6 +134,38 @@ void TerminalLogger::process(const Message &msg)
 
 	// Print the actual message
 	os << msg.msg << std::endl;
+
+	// Print the error message context if available
+	if (msg.ctx.valid()) {
+		size_t relPos = msg.ctx.relPos;
+		if (msg.ctx.truncatedStart) {
+			os << "[...] ";
+			relPos += 6;
+		}
+		os << msg.ctx.text;
+		if (msg.ctx.truncatedEnd) {
+			os << " [...]";
+		}
+		os << std::endl;
+		for (size_t i = 0; i < relPos; i++) {
+			os << ' ';
+		}
+		os << t.color(Terminal::GREEN) << '^' << t.reset() << std::endl;
+	}
 }
+
+size_t TerminalLogger::processPushFile(File file)
+{
+	files.push(file);
+	return files.size();
+}
+
+size_t TerminalLogger::processPopFile()
+{
+	files.pop();
+	return files.size();
+}
+
+
 }
 
