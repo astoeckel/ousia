@@ -32,7 +32,7 @@ namespace variant {
 // TODO: Replace delims with single char delim where possible
 // TODO: Use custom return value instead of std::pair
 // TODO: Allow buffered char reader to "fork"
-// TODO: Rename BufferedCharReader to shorter CharReader
+// TODO: Rename CharReader to shorter CharReader
 // TODO: Implement context in CharReader (to allow error messages to extract the
 // current line)
 
@@ -97,7 +97,7 @@ private:
 	 * Appends the value of the character c to the internal number
 	 * representation and reports any errors that might occur.
 	 */
-	bool appendChar(char c, int base, Part p, BufferedCharReader &reader,
+	bool appendChar(char c, int base, Part p, CharReader &reader,
 	                Logger &logger)
 	{
 		// Check whether the given character is valid
@@ -176,7 +176,7 @@ public:
 	 * the given logger instance. Numbers are terminated by one of the given
 	 * delimiters.
 	 */
-	bool parse(BufferedCharReader &reader, Logger &logger,
+	bool parse(CharReader &reader, Logger &logger,
 	           const std::unordered_set<char> &delims)
 	{
 		State state = State::INIT;
@@ -186,7 +186,7 @@ public:
 		reader.consumeWhitespace();
 
 		// Iterate over the FSM to extract numbers
-		while (reader.peek(&c)) {
+		while (reader.peek(c)) {
 			// Abort, once a delimiter or whitespace is reached
 			if (Utils::isWhitespace(c) || delims.count(c)) {
 				reader.resetPeek();
@@ -317,7 +317,7 @@ static const int STATE_WHITESPACE = 5;
 static const int STATE_RESYNC = 6;
 
 template <class T>
-static std::pair<bool, T> error(BufferedCharReader &reader, Logger &logger,
+static std::pair<bool, T> error(CharReader &reader, Logger &logger,
                                 const char *err, T res)
 {
 	logger.errorAt(err, reader);
@@ -325,7 +325,7 @@ static std::pair<bool, T> error(BufferedCharReader &reader, Logger &logger,
 }
 
 std::pair<bool, std::string> Reader::parseString(
-    BufferedCharReader &reader, Logger &logger,
+    CharReader &reader, Logger &logger,
     const std::unordered_set<char> *delims)
 {
 	// Initialize the internal state
@@ -339,9 +339,9 @@ std::pair<bool, std::string> Reader::parseString(
 	// Statemachine whic iterates over each character in the stream
 	// TODO: Combination of peeking and consumePeek is stupid as consumePeek is
 	// the default (read and putBack would obviously be better, yet the latter
-	// is not trivial to implement in the current BufferedCharReader).
+	// is not trivial to implement in the current CharReader).
 	char c;
-	while (reader.peek(&c)) {
+	while (reader.peek(c)) {
 		switch (state) {
 			case STATE_INIT:
 				if (c == '"' || c == '\'') {
@@ -423,7 +423,7 @@ std::pair<bool, std::string> Reader::parseString(
 }
 
 std::pair<bool, Variant::arrayType> Reader::parseArray(
-    BufferedCharReader &reader, Logger &logger, char delim)
+    CharReader &reader, Logger &logger, char delim)
 {
 	Variant::arrayType res;
 	bool hadError = false;
@@ -436,7 +436,7 @@ std::pair<bool, Variant::arrayType> Reader::parseArray(
 
 	// Iterate over the characters, use the parseGeneric function to read the
 	// pairs
-	while (reader.peek(&c)) {
+	while (reader.peek(c)) {
 		// Generically handle the end of the array
 		if (state != STATE_INIT && c == delim) {
 			reader.consumePeek();
@@ -491,7 +491,7 @@ std::pair<bool, Variant::arrayType> Reader::parseArray(
 }
 
 std::pair<bool, std::string> Reader::parseUnescapedString(
-    BufferedCharReader &reader, Logger &logger,
+    CharReader &reader, Logger &logger,
     const std::unordered_set<char> &delims)
 {
 	std::stringstream res;
@@ -503,7 +503,7 @@ std::pair<bool, std::string> Reader::parseUnescapedString(
 
 	// Copy all characters, skip whitespace at the end
 	int state = STATE_IN_STRING;
-	while (reader.peek(&c)) {
+	while (reader.peek(c)) {
 		if (delims.count(c)) {
 			reader.resetPeek();
 			return std::make_pair(true, res.str());
@@ -528,7 +528,7 @@ std::pair<bool, std::string> Reader::parseUnescapedString(
 }
 
 std::pair<bool, int64_t> Reader::parseInteger(
-    BufferedCharReader &reader, Logger &logger,
+    CharReader &reader, Logger &logger,
     const std::unordered_set<char> &delims)
 {
 	Number n;
@@ -545,7 +545,7 @@ std::pair<bool, int64_t> Reader::parseInteger(
 }
 
 std::pair<bool, double> Reader::parseDouble(
-    BufferedCharReader &reader, Logger &logger,
+    CharReader &reader, Logger &logger,
     const std::unordered_set<char> &delims)
 {
 	Number n;
@@ -554,14 +554,14 @@ std::pair<bool, double> Reader::parseDouble(
 }
 
 std::pair<bool, Variant> Reader::parseGeneric(
-    BufferedCharReader &reader, Logger &logger,
+    CharReader &reader, Logger &logger,
     const std::unordered_set<char> &delims)
 {
 	char c;
 
 	// Skip all whitespace characters
 	reader.consumeWhitespace();
-	while (reader.peek(&c)) {
+	while (reader.peek(c)) {
 		// Stop if a delimiter is reached
 		if (delims.count(c)) {
 			return error(reader, logger, ERR_UNEXPECTED_END, nullptr);

@@ -31,7 +31,7 @@ TEST(Reader, readString)
 {
 	// Simple, double quoted string
 	{
-		BufferedCharReader reader("\"hello world\"");
+		CharReader reader("\"hello world\"");
 		auto res = Reader::parseString(reader, logger);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
@@ -39,7 +39,7 @@ TEST(Reader, readString)
 
 	// Simple, double quoted string with whitespace
 	{
-		BufferedCharReader reader("    \"hello world\"   ");
+		CharReader reader("    \"hello world\"   ");
 		auto res = Reader::parseString(reader, logger);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
@@ -47,7 +47,7 @@ TEST(Reader, readString)
 
 	// Simple, single quoted string
 	{
-		BufferedCharReader reader("'hello world'");
+		CharReader reader("'hello world'");
 		auto res = Reader::parseString(reader, logger);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
@@ -55,7 +55,7 @@ TEST(Reader, readString)
 
 	// Escape characters
 	{
-		BufferedCharReader reader("'\\'\\\"\\b\\f\\n\\r\\t\\v'");
+		CharReader reader("'\\'\\\"\\b\\f\\n\\r\\t\\v'");
 		auto res = Reader::parseString(reader, logger);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("'\"\b\f\n\r\t\v", res.second);
@@ -66,7 +66,7 @@ TEST(Reader, parseUnescapedString)
 {
 	// Simple case
 	{
-		BufferedCharReader reader("hello world;");
+		CharReader reader("hello world;");
 		auto res = Reader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
@@ -74,7 +74,7 @@ TEST(Reader, parseUnescapedString)
 
 	// Simple case with whitespace
 	{
-		BufferedCharReader reader("    hello world   ;    ");
+		CharReader reader("    hello world   ;    ");
 		auto res = Reader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
@@ -82,7 +82,7 @@ TEST(Reader, parseUnescapedString)
 
 	// Linebreaks
 	{
-		BufferedCharReader reader("    hello\nworld   ;    ");
+		CharReader reader("    hello\nworld   ;    ");
 		auto res = Reader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello\nworld", res.second);
@@ -90,7 +90,7 @@ TEST(Reader, parseUnescapedString)
 
 	// End of stream
 	{
-		BufferedCharReader reader("    hello world ");
+		CharReader reader("    hello world ");
 		auto res = Reader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
@@ -103,49 +103,49 @@ TEST(Reader, parseInteger)
 {
 	// Valid integers
 	{
-		BufferedCharReader reader("0  ");
+		CharReader reader("0  ");
 		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(0, res.second);
 	}
 
 	{
-		BufferedCharReader reader("42 ");
+		CharReader reader("42 ");
 		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(42, res.second);
 	}
 
 	{
-		BufferedCharReader reader("-42");
+		CharReader reader("-42");
 		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-42, res.second);
 	}
 
 	{
-		BufferedCharReader reader("  -0x4A2  ");
+		CharReader reader("  -0x4A2  ");
 		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0x4A2, res.second);
 	}
 
 	{
-		BufferedCharReader reader(" 0Xaffe");
+		CharReader reader(" 0Xaffe");
 		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(0xAFFE, res.second);
 	}
 
 	{
-		BufferedCharReader reader("0x7FFFFFFFFFFFFFFF");
+		CharReader reader("0x7FFFFFFFFFFFFFFF");
 		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(0x7FFFFFFFFFFFFFFFL, res.second);
 	}
 
 	{
-		BufferedCharReader reader("-0x7FFFFFFFFFFFFFFF");
+		CharReader reader("-0x7FFFFFFFFFFFFFFF");
 		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0x7FFFFFFFFFFFFFFFL, res.second);
@@ -153,25 +153,25 @@ TEST(Reader, parseInteger)
 
 	// Invalid integers
 	{
-		BufferedCharReader reader("-");
+		CharReader reader("-");
 		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
-		BufferedCharReader reader("0a");
+		CharReader reader("0a");
 		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
-		BufferedCharReader reader("-0xag");
+		CharReader reader("-0xag");
 		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
-		BufferedCharReader reader("0x8000000000000000");
+		CharReader reader("0x8000000000000000");
 		auto res = Reader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
@@ -181,49 +181,49 @@ TEST(Reader, parseDouble)
 {
 	// Valid doubles
 	{
-		BufferedCharReader reader("1.25");
+		CharReader reader("1.25");
 		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(1.25, res.second);
 	}
 
 	{
-		BufferedCharReader reader(".25");
+		CharReader reader(".25");
 		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(.25, res.second);
 	}
 
 	{
-		BufferedCharReader reader(".25e1");
+		CharReader reader(".25e1");
 		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(2.5, res.second);
 	}
 
 	{
-		BufferedCharReader reader("-2.5e-1");
+		CharReader reader("-2.5e-1");
 		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0.25, res.second);
 	}
 
 	{
-		BufferedCharReader reader("-50e-2");
+		CharReader reader("-50e-2");
 		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0.5, res.second);
 	}
 
 	{
-		BufferedCharReader reader("-1.");
+		CharReader reader("-1.");
 		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-1., res.second);
 	}
 
 	{
-		BufferedCharReader reader("-50.e-2");
+		CharReader reader("-50.e-2");
 		auto res = Reader::parseDouble(reader, logger, {'.'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-50, res.second);
@@ -231,13 +231,13 @@ TEST(Reader, parseDouble)
 
 	// Invalid doubles
 	{
-		BufferedCharReader reader(".e1");
+		CharReader reader(".e1");
 		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
-		BufferedCharReader reader("0e100000");
+		CharReader reader("0e100000");
 		auto res = Reader::parseDouble(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
@@ -247,7 +247,7 @@ TEST(Reader, parseArray)
 {
 	// Simple case (only primitive data types)
 	{
-		BufferedCharReader reader("[\"Hello, World\", unescaped\n string ,\n"
+		CharReader reader("[\"Hello, World\", unescaped\n string ,\n"
 			"1234, 0.56, true, false, null]");
 		auto res = Reader::parseArray(reader, logger);
 		ASSERT_TRUE(res.first);
@@ -275,7 +275,7 @@ TEST(Reader, parseArray)
 
 	// Ending with comma
 	{
-		BufferedCharReader reader("[  'test' ,]");
+		CharReader reader("[  'test' ,]");
 		auto res = Reader::parseArray(reader, logger);
 		ASSERT_TRUE(res.first);
 
@@ -293,7 +293,7 @@ TEST(Reader, parseArray)
 	// TODO: Actually parseGeneric should fall back to returning a simple string
 	// if parsing of a special (non-string) type failed
 	{
-		BufferedCharReader reader("[ 0invalidNumber, str, 1invalid]");
+		CharReader reader("[ 0invalidNumber, str, 1invalid]");
 		auto res = Reader::parseArray(reader, logger);
 		ASSERT_FALSE(res.first);
 
@@ -313,7 +313,7 @@ TEST(Reader, parseGeneric)
 {
 	// Simple case, unescaped string
 	{
-		BufferedCharReader reader("hello world");
+		CharReader reader("hello world");
 		auto res = Reader::parseGeneric(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
@@ -322,7 +322,7 @@ TEST(Reader, parseGeneric)
 
 	// Simple case, double quoted string
 	{
-		BufferedCharReader reader(" \"hello world\"    ");
+		CharReader reader(" \"hello world\"    ");
 		auto res = Reader::parseGeneric(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
@@ -331,7 +331,7 @@ TEST(Reader, parseGeneric)
 
 	// Simple case, single quoted string
 	{
-		BufferedCharReader reader(" 'hello world'    ");
+		CharReader reader(" 'hello world'    ");
 		auto res = Reader::parseGeneric(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());

@@ -227,14 +227,15 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 			// parse the argument list.
 			Variant::arrayType args;
 			// we require at least one argument, if parantheses are used
-			args.push_back(variant::Reader::parseGeneric(tokenizer.getInput(),
+			// XXX
+			/*args.push_back(variant::Reader::parseGeneric(tokenizer.getInput(),
 			                                             ctx.logger,
-			                                             {',', ')'}).second);
+			                                             {',', ')'}).second);*/
 			while (expect(COMMA, tokenizer, t, false, ctx)) {
 				// as long as we find commas we expect new arguments.
-				args.push_back(
+				/*args.push_back(
 				    variant::Reader::parseGeneric(
-				        tokenizer.getInput(), ctx.logger, {',', ')'}).second);
+				        tokenizer.getInput(), ctx.logger, {',', ')'}).second);*/
 			}
 			expect(PAREN_CLOSE, tokenizer, t, true, ctx);
 			// and we return with the finished Selector.
@@ -333,8 +334,8 @@ bool CSSParser::parseRule(CodeTokenizer &tokenizer, ParserContext &ctx,
 	expect(COLON, tokenizer, t, true, ctx);
 	// then the value
 	// TODO: Resolve key for appropriate parsing function here.
-	value = variant::Reader::parseGeneric(tokenizer.getInput(), ctx.logger,
-	                                      {';'}).second;
+	/*value = variant::Reader::parseGeneric(tokenizer.getInput(), ctx.logger,
+	                                      {';'}).second;*/
 	// and a ;
 	expect(SEMICOLON, tokenizer, t, true, ctx);
 	return true;

@@ -32,7 +32,7 @@
 #include <unordered_set>
 #include <utility>
 
-#include <core/BufferedCharReader.hpp>
+#include <core/utils/CharReader.hpp>
 #include <core/Logger.hpp>
 
 #include "Variant.hpp"
@@ -46,7 +46,7 @@ private:
 	 * Parses a string which may either be enclosed by " or ', unescapes
 	 * entities in the string as specified for JavaScript.
 	 *
-	 * @param reader is a reference to the BufferedCharReader instance which is
+	 * @param reader is a reference to the CharReader instance which is
 	 * the source for the character data. The reader will be positioned after
 	 * the terminating quote character or at the terminating delimiting
 	 * character.
@@ -58,7 +58,7 @@ private:
 	 * is read.
 	 */
 	static std::pair<bool, std::string> parseString(
-	    BufferedCharReader &reader, Logger &logger,
+	    CharReader &reader, Logger &logger,
 	    const std::unordered_set<char> *delims);
 
 public:
@@ -66,7 +66,7 @@ public:
 	 * Parses a string which may either be enclosed by " or ', unescapes
 	 * entities in the string as specified for JavaScript.
 	 *
-	 * @param reader is a reference to the BufferedCharReader instance which is
+	 * @param reader is a reference to the CharReader instance which is
 	 * the source for the character data. The reader will be positioned after
 	 * the terminating quote character or at the terminating delimiting
 	 * character.
@@ -77,7 +77,7 @@ public:
 	 * outside).
 	 */
 	static std::pair<bool, std::string> parseString(
-	    BufferedCharReader &reader, Logger &logger,
+	    CharReader &reader, Logger &logger,
 	    const std::unordered_set<char> &delims)
 	{
 		return parseString(reader, logger, &delims);
@@ -87,14 +87,14 @@ public:
 	 * Parses a string which may either be enclosed by " or ', unescapes
 	 * entities in the string as specified for JavaScript.
 	 *
-	 * @param reader is a reference to the BufferedCharReader instance which is
+	 * @param reader is a reference to the CharReader instance which is
 	 * the source for the character data. The reader will be positioned after
 	 * the terminating quote character or at the terminating delimiting
 	 * character.
 	 * @param logger is the logger instance that should be used to log error
 	 * messages and warnings.
 	 */
-	static std::pair<bool, std::string> parseString(BufferedCharReader &reader,
+	static std::pair<bool, std::string> parseString(CharReader &reader,
 	                                                Logger &logger)
 	{
 		return parseString(reader, logger, nullptr);
@@ -105,61 +105,61 @@ public:
 	 * instance. This function just reads text until one of the given delimiter
 	 * characters is reached.
 	 *
-	 * @param reader is a reference to the BufferedCharReader instance which is
+	 * @param reader is a reference to the CharReader instance which is
 	 * the source for the character data. The reader will be positioned at the
 	 * terminating delimiting character.
 	 * @param delims is a set of characters which will terminate the string.
 	 * These characters are not included in the result. May not be nullptr.
 	 */
 	static std::pair<bool, std::string> parseUnescapedString(
-	    BufferedCharReader &reader, Logger &logger,
+	    CharReader &reader, Logger &logger,
 	    const std::unordered_set<char> &delims);
 
 	/**
 	 * Parses an integer from the given buffered char reader instance until one
 	 * of the given delimiter characters is reached.
 	 *
-	 * @param reader is a reference to the BufferedCharReader instance from
+	 * @param reader is a reference to the CharReader instance from
 	 * which the character data should been reader. The reader will be
 	 * positioned at the terminating delimiting character or directly after the
 	 * integer.
 	 */
 	static std::pair<bool, int64_t> parseInteger(
-	    BufferedCharReader &reader, Logger &logger,
+	    CharReader &reader, Logger &logger,
 	    const std::unordered_set<char> &delims);
 
 	/**
 	 * Parses an double from the given buffered char reader instance until one
 	 * of the given delimiter characters is reached.
 	 *
-	 * @param reader is a reference to the BufferedCharReader instance from
+	 * @param reader is a reference to the CharReader instance from
 	 * which the character data should been reader. The reader will be
 	 * positioned at the terminating delimiting character or directly after the
 	 * integer.
 	 */
 	static std::pair<bool, double> parseDouble(
-	    BufferedCharReader &reader, Logger &logger,
+	    CharReader &reader, Logger &logger,
 	    const std::unordered_set<char> &delims);
 
 	/**
 	 * Parses an array of values.
 	 */
 	static std::pair<bool, Variant::arrayType> parseArray(
-	    BufferedCharReader &reader, Logger &logger, char delim = 0);
+	    CharReader &reader, Logger &logger, char delim = 0);
 
 	/**
 	 * Tries to parse the most specific item from the given stream until one of
 	 * the given delimiters is reached or a meaningful literal has been read.
 	 * The resulting variant represents the value that has been read.
 	 *
-	 * @param reader is a reference to the BufferedCharReader instance which is
+	 * @param reader is a reference to the CharReader instance which is
 	 * the source for the character data. The reader will be positioned at the
 	 * terminating delimiting character.
 	 * @param delims is a set of characters which will terminate the string.
 	 * These characters are not included in the result. May not be nullptr.
 	 */
 	static std::pair<bool, Variant> parseGeneric(
-	    BufferedCharReader &reader, Logger &logger,
+	    CharReader &reader, Logger &logger,
 	    const std::unordered_set<char> &delims);
 };
 }

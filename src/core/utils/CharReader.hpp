@@ -652,6 +652,12 @@ public:
 	void commit();
 };
 }
+
+/**
+ * Alias of the commonly used CharReader class.
+ */
+using CharReader = utils::CharReader;
+
 }
 
 #endif /* _OUSIA_CHAR_READER_HPP_ */
