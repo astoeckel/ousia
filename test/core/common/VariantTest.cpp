@@ -20,7 +20,7 @@
 
 #include <gtest/gtest.h>
 
-#include <core/variant/Variant.hpp>
+#include <core/common/Variant.hpp>
 
 namespace ousia {
 

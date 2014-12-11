@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include <core/BufferedCharReader.hpp>
+#include <core/common/CharReader.hpp>
 
 #include <core/Tokenizer.hpp>
 
@@ -65,10 +65,9 @@ TEST(Tokenizer, testTokenization)
 {
 	TokenTreeNode root{{{"/", 1}, {"/*", 2}, {"*/", 3}}};
 
-	BufferedCharReader reader;
-	reader.feed("Test/Test /* Block Comment */");
-	//           12345678901234567890123456789
-	//           0        1         2
+	CharReader reader{"Test/Test /* Block Comment */"};
+	//                 12345678901234567890123456789
+	//                 0        1         2
 
 	std::vector<Token> expected = {
 	    {TOKEN_TEXT, "Test", 1, 1, 5, 1},
@@ -97,10 +96,7 @@ TEST(Tokenizer, testIncompleteTokens)
 {
 	TokenTreeNode root{{{"ab", 1}, {"c", 2}}};
 
-	BufferedCharReader reader;
-	reader.feed("ac");
-	//           1234567890
-	//           0        1
+	CharReader reader{"ac"};
 
 	std::vector<Token> expected = {
 	    {TOKEN_TEXT, "a", 1, 1, 2, 1},

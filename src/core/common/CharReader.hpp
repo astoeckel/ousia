@@ -33,7 +33,6 @@
 #include <vector>
 
 namespace ousia {
-namespace utils {
 
 /**
  * A chunked ring buffer used in CharReader to provide access to an input stream
@@ -659,12 +658,6 @@ public:
 	 */
 	void commit();
 };
-}
-
-/**
- * Alias of the commonly used CharReader class.
- */
-using CharReader = utils::CharReader;
 
 }
 

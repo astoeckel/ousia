@@ -97,18 +97,20 @@ ADD_DEFINITIONS(
 )
 
 ADD_LIBRARY(ousia_core
-	src/core/BufferedCharReader
 	src/core/CodeTokenizer
 	src/core/CSS
-	src/core/Exceptions
-	src/core/Logger
 	src/core/Managed
 	src/core/Node
 	src/core/Registry
 	src/core/ResourceLocator
 	src/core/Tokenizer
 #	src/core/Typesystem
-	src/core/Utils
+	src/core/common/CharReader
+	src/core/common/Exceptions
+	src/core/common/Logger
+	src/core/common/Utils
+	src/core/common/Variant
+	src/core/common/VariantReader
 	src/core/parser/Parser
 	src/core/parser/ParserStack
 	src/core/parser/Scope
@@ -116,9 +118,6 @@ ADD_LIBRARY(ousia_core
 #	src/core/script/Object
 #	src/core/script/ScriptEngine
 #	src/core/script/Variant
-	src/core/utils/CharReader
-	src/core/variant/Reader
-	src/core/variant/Variant
 )
 
 ADD_LIBRARY(ousia_css
@@ -155,10 +154,8 @@ IF(TEST)
 	)
 
 	ADD_EXECUTABLE(ousia_test_core
-		test/core/BufferedCharReaderTest
 		test/core/CodeTokenizerTest
 		test/core/CSSTest
-		test/core/LoggerTest
 		test/core/ManagedTest
 		test/core/ManagedContainersTest
 		test/core/NodeTest
@@ -166,14 +163,15 @@ IF(TEST)
 		test/core/RegistryTest
 		test/core/ResourceLocatorTest
 		test/core/TokenizerTest
-		test/core/UtilsTest
+		test/core/common/CharReaderTest
+		test/core/common/LoggerTest
+		test/core/common/VariantReaderTest
+		test/core/common/VariantTest
+		test/core/common/UtilsTest
 		test/core/parser/ParserStackTest
 #		test/core/script/FunctionTest
 #		test/core/script/ObjectTest
 #		test/core/script/VariantTest
-		test/core/utils/CharReaderTest
-		test/core/variant/ReaderTest
-		test/core/variant/VariantTest
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test_core

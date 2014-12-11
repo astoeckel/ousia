@@ -186,11 +186,11 @@ TEST(CSSParser, testParseCSS)
 	{
 		Rooted<RuleSet> ruleSet = A->getRuleSet();
 		ASSERT_EQ(2, ruleSet->getRules().size());
-		variant::Variant v = ruleSet->getRules()["ident1"];
-		ASSERT_EQ(variant::Variant::Type::STRING, v.getType());
+		Variant v = ruleSet->getRules()["ident1"];
+		ASSERT_EQ(Variant::Type::STRING, v.getType());
 		ASSERT_EQ("val4", v.asString());
 		v = ruleSet->getRules()["ident2"];
-		ASSERT_EQ(variant::Variant::Type::STRING, v.getType());
+		ASSERT_EQ(Variant::Type::STRING, v.getType());
 		ASSERT_EQ("val2", v.asString());
 	}
 	/*
@@ -211,8 +211,8 @@ TEST(CSSParser, testParseCSS)
 	{
 		Rooted<RuleSet> ruleSet = Aselect->getRuleSet();
 		ASSERT_EQ(1, ruleSet->getRules().size());
-		variant::Variant v = ruleSet->getRules()["ident3"];
-		ASSERT_EQ(variant::Variant::Type::STRING, v.getType());
+		Variant v = ruleSet->getRules()["ident3"];
+		ASSERT_EQ(Variant::Type::STRING, v.getType());
 		ASSERT_EQ("val3", v.asString());
 	}
 	/*
@@ -250,11 +250,11 @@ TEST(CSSParser, testParseCSS)
 	{
 		Rooted<RuleSet> ruleSet = BA->getRuleSet();
 		ASSERT_EQ(2, ruleSet->getRules().size());
-		variant::Variant v = ruleSet->getRules()["ident1"];
-		ASSERT_EQ(variant::Variant::Type::STRING, v.getType());
+		Variant v = ruleSet->getRules()["ident1"];
+		ASSERT_EQ(Variant::Type::STRING, v.getType());
 		ASSERT_EQ("val1", v.asString());
 		v = ruleSet->getRules()["ident2"];
-		ASSERT_EQ(variant::Variant::Type::STRING, v.getType());
+		ASSERT_EQ(Variant::Type::STRING, v.getType());
 		ASSERT_EQ("val2", v.asString());
 	}
 }

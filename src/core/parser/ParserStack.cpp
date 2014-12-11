@@ -20,8 +20,8 @@
 
 #include "ParserStack.hpp"
 
-#include <core/Utils.hpp>
-#include <core/Exceptions.hpp>
+#include <core/common/Utils.hpp>
+#include <core/common/Exceptions.hpp>
 
 namespace ousia {
 namespace parser {

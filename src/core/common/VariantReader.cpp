@@ -21,12 +21,10 @@
 #include <cmath>
 #include <sstream>
 
-#include <core/Utils.hpp>
-
-#include "Reader.hpp"
+#include "VariantReader.hpp"
+#include "Utils.hpp"
 
 namespace ousia {
-namespace variant {
 
 // TODO: Better error messages (like "Expected 'x' but got 'y'")
 // TODO: Replace delims with single char delim where possible
@@ -177,134 +175,138 @@ public:
 	 * delimiters.
 	 */
 	bool parse(CharReader &reader, Logger &logger,
-	           const std::unordered_set<char> &delims)
-	{
-		State state = State::INIT;
-		char c;
+	           const std::unordered_set<char> &delims);
+};
 
-		// Consume the first whitespace characters
-		reader.consumeWhitespace();
+bool Number::parse(CharReader &reader, Logger &logger,
+           const std::unordered_set<char> &delims)
+{
+	State state = State::INIT;
+	char c;
 
-		// Iterate over the FSM to extract numbers
-		while (reader.peek(c)) {
-			// Abort, once a delimiter or whitespace is reached
-			if (Utils::isWhitespace(c) || delims.count(c)) {
-				reader.resetPeek();
-				break;
-			}
+	// Consume the first whitespace characters
+	reader.consumeWhitespace();
 
-			// The character is not a whitespace character and not a delimiter
-			switch (state) {
-				case State::INIT:
-				case State::HAS_MINUS:
-					switch (c) {
-						case '-':
-							// Do not allow multiple minus signs
-							if (state == State::HAS_MINUS) {
-								logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
-								return false;
-							}
-							state = State::HAS_MINUS;
-							s = -1;
-							break;
-						case '0':
-							// Remember a leading zero for the detection of "0x"
-							state = State::LEADING_ZERO;
-							break;
-						case '.':
-							// Remember a leading point as ".eXXX" is invalid
-							state = State::LEADING_POINT;
-							break;
-						default:
-							state = State::INT;
-							if (!appendChar(c, 10, Part::A, reader, logger)) {
-								return false;
-							}
-							break;
-					}
-					break;
-				case State::LEADING_ZERO:
-					if (c == 'x' || c == 'X') {
-						state = State::HEX;
-						break;
-					}
-				// fallthrough
-				case State::INT:
-					switch (c) {
-						case '.':
-							state = State::POINT;
-							break;
-						case 'e':
-						case 'E':
-							state = State::EXP_INIT;
-							break;
-						default:
-							state = State::INT;
-							if (!appendChar(c, 10, Part::A, reader, logger)) {
-								return false;
-							}
-							break;
-					}
-					break;
-				case State::HEX:
-					if (!appendChar(c, 16, Part::A, reader, logger)) {
-						return false;
-					}
-					break;
-				case State::LEADING_POINT:
-				case State::POINT:
-					switch (c) {
-						case 'e':
-						case 'E':
-							if (state == State::LEADING_POINT) {
-								logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
-								return false;
-							}
-							state = State::EXP_INIT;
-							break;
-						default:
-							state = State::POINT;
-							if (!appendChar(c, 10, Part::N, reader, logger)) {
-								return false;
-							}
-							break;
-					}
-					break;
-				case State::EXP_HAS_MINUS:
-				case State::EXP_INIT:
-					if (c == '-') {
-						if (state == State::EXP_HAS_MINUS) {
+	// Iterate over the FSM to extract numbers
+	while (reader.peek(c)) {
+		// Abort, once a delimiter or whitespace is reached
+		if (Utils::isWhitespace(c) || delims.count(c)) {
+			reader.resetPeek();
+			break;
+		}
+
+		// The character is not a whitespace character and not a delimiter
+		switch (state) {
+			case State::INIT:
+			case State::HAS_MINUS:
+				switch (c) {
+					case '-':
+						// Do not allow multiple minus signs
+						if (state == State::HAS_MINUS) {
 							logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
 							return false;
 						}
-						state = State::EXP_HAS_MINUS;
-						sE = -1;
-					} else {
-						state = State::EXP;
-						if (!appendChar(c, 10, Part::E, reader, logger)) {
+						state = State::HAS_MINUS;
+						s = -1;
+						break;
+					case '0':
+						// Remember a leading zero for the detection of "0x"
+						state = State::LEADING_ZERO;
+						break;
+					case '.':
+						// Remember a leading point as ".eXXX" is invalid
+						state = State::LEADING_POINT;
+						break;
+					default:
+						state = State::INT;
+						if (!appendChar(c, 10, Part::A, reader, logger)) {
 							return false;
 						}
-					}
+						break;
+				}
+				break;
+			case State::LEADING_ZERO:
+				if (c == 'x' || c == 'X') {
+					state = State::HEX;
 					break;
-				case State::EXP:
+				}
+			// fallthrough
+			case State::INT:
+				switch (c) {
+					case '.':
+						state = State::POINT;
+						break;
+					case 'e':
+					case 'E':
+						state = State::EXP_INIT;
+						break;
+					default:
+						state = State::INT;
+						if (!appendChar(c, 10, Part::A, reader, logger)) {
+							return false;
+						}
+						break;
+				}
+				break;
+			case State::HEX:
+				if (!appendChar(c, 16, Part::A, reader, logger)) {
+					return false;
+				}
+				break;
+			case State::LEADING_POINT:
+			case State::POINT:
+				switch (c) {
+					case 'e':
+					case 'E':
+						if (state == State::LEADING_POINT) {
+							logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+							return false;
+						}
+						state = State::EXP_INIT;
+						break;
+					default:
+						state = State::POINT;
+						if (!appendChar(c, 10, Part::N, reader, logger)) {
+							return false;
+						}
+						break;
+				}
+				break;
+			case State::EXP_HAS_MINUS:
+			case State::EXP_INIT:
+				if (c == '-') {
+					if (state == State::EXP_HAS_MINUS) {
+						logger.errorAt(ERR_UNEXPECTED_CHAR, reader);
+						return false;
+					}
+					state = State::EXP_HAS_MINUS;
+					sE = -1;
+				} else {
+					state = State::EXP;
 					if (!appendChar(c, 10, Part::E, reader, logger)) {
 						return false;
 					}
-					break;
-			}
-			reader.consumePeek();
+				}
+				break;
+			case State::EXP:
+				if (!appendChar(c, 10, Part::E, reader, logger)) {
+					return false;
+				}
+				break;
 		}
-
-		// States in which ending is valid. Log an error in other states
-		if (state == State::LEADING_ZERO || state == State::HEX ||
-		    state == State::INT || state == State::POINT ||
-		    state == State::EXP) {
-			return true;
-		}
-		logger.errorAt(ERR_UNEXPECTED_END, reader);
-		return false;
+		reader.consumePeek();
 	}
-};
+
+	// States in which ending is valid. Log an error in other states
+	if (state == State::LEADING_ZERO || state == State::HEX ||
+	    state == State::INT || state == State::POINT ||
+	    state == State::EXP) {
+		return true;
+	}
+	logger.errorAt(ERR_UNEXPECTED_END, reader);
+	return false;
+}
+
 
 /* Class Reader */
 
@@ -324,7 +326,7 @@ static std::pair<bool, T> error(CharReader &reader, Logger &logger,
 	return std::make_pair(false, std::move(res));
 }
 
-std::pair<bool, std::string> Reader::parseString(
+std::pair<bool, std::string> VariantReader::parseString(
     CharReader &reader, Logger &logger,
     const std::unordered_set<char> *delims)
 {
@@ -422,7 +424,7 @@ std::pair<bool, std::string> Reader::parseString(
 	return error(reader, logger, ERR_UNEXPECTED_END, res.str());
 }
 
-std::pair<bool, Variant::arrayType> Reader::parseArray(
+std::pair<bool, Variant::arrayType> VariantReader::parseArray(
     CharReader &reader, Logger &logger, char delim)
 {
 	Variant::arrayType res;
@@ -490,7 +492,7 @@ std::pair<bool, Variant::arrayType> Reader::parseArray(
 	return error(reader, logger, ERR_UNEXPECTED_END, res);
 }
 
-std::pair<bool, std::string> Reader::parseUnescapedString(
+std::pair<bool, std::string> VariantReader::parseUnescapedString(
     CharReader &reader, Logger &logger,
     const std::unordered_set<char> &delims)
 {
@@ -527,7 +529,7 @@ std::pair<bool, std::string> Reader::parseUnescapedString(
 	return std::make_pair(true, res.str());
 }
 
-std::pair<bool, int64_t> Reader::parseInteger(
+std::pair<bool, int64_t> VariantReader::parseInteger(
     CharReader &reader, Logger &logger,
     const std::unordered_set<char> &delims)
 {
@@ -544,7 +546,7 @@ std::pair<bool, int64_t> Reader::parseInteger(
 	return std::make_pair(false, n.intValue());
 }
 
-std::pair<bool, double> Reader::parseDouble(
+std::pair<bool, double> VariantReader::parseDouble(
     CharReader &reader, Logger &logger,
     const std::unordered_set<char> &delims)
 {
@@ -553,7 +555,7 @@ std::pair<bool, double> Reader::parseDouble(
 	return std::make_pair(res, n.doubleValue());
 }
 
-std::pair<bool, Variant> Reader::parseGeneric(
+std::pair<bool, Variant> VariantReader::parseGeneric(
     CharReader &reader, Logger &logger,
     const std::unordered_set<char> &delims)
 {
@@ -582,7 +584,7 @@ std::pair<bool, Variant> Reader::parseGeneric(
 			Number n;
 
 			// Fork the reader
-			utils::CharReaderFork fork = reader.fork();
+			CharReaderFork fork = reader.fork();
 
 			// TODO: Fork logger
 
@@ -618,7 +620,6 @@ std::pair<bool, Variant> Reader::parseGeneric(
 		return std::make_pair(res.first, res.second.c_str());
 	}
 	return error(reader, logger, ERR_UNEXPECTED_END, nullptr);
-}
 }
 }
 

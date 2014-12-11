@@ -21,12 +21,10 @@
 #include <limits>
 #include <sstream>
 
-#include <core/Utils.hpp>
-
 #include "CharReader.hpp"
+#include "Utils.hpp"
 
 namespace ousia {
-namespace utils {
 
 /* Helper functions */
 
@@ -637,7 +635,6 @@ void CharReaderFork::commit()
 {
 	parentReadCursor.assign(buffer, readCursor);
 	parentPeekCursor.assign(buffer, peekCursor);
-}
 }
 }
 

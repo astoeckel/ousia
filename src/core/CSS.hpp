@@ -23,7 +23,7 @@
 #include <vector>
 #include <tuple>
 
-#include <core/variant/Variant.hpp>
+#include <core/common/Variant.hpp>
 
 #include "Managed.hpp"
 #include "Node.hpp"

@@ -22,9 +22,9 @@
 #include <vector>
 #include <utility>
 
-#include <core/BufferedCharReader.hpp>
 #include <core/CodeTokenizer.hpp>
 #include <core/CSS.hpp>
+#include <core/common/CharReader.hpp>
 #include <core/parser/Parser.hpp>
 
 namespace ousia {

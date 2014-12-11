@@ -22,7 +22,7 @@
 
 #include <sstream>
 
-#include <core/Logger.hpp>
+#include <core/common/Logger.hpp>
 
 namespace ousia {
 

@@ -22,7 +22,7 @@
 #include <map>
 #include <sstream>
 
-#include "BufferedCharReader.hpp"
+#include <core/common/CharReader.hpp>
 #include "Tokenizer.hpp"
 
 namespace ousia {
@@ -108,8 +108,8 @@ public:
 
 	/**
 	 *
-	 * @param input a BufferedCharReader containing the input for this
-	 * tokenizer, as with a regular tokenizer.
+	 * @param input a CharReader containing the input for this tokenizer, as
+	 * with a regular tokenizer.
 	 * @param root a TokenTreeNode representing the root of the TokenTree.
 	 * Please note that you have to specify all tokenIDs here that you use
 	 * in the descriptors map.
@@ -120,7 +120,7 @@ public:
 	 * and this CodeTokenizer would recognize the token "//" as starting a
 	 * line comment.
 	 */
-	CodeTokenizer(BufferedCharReader &input, const TokenTreeNode &root,
+	CodeTokenizer(CharReader &input, const TokenTreeNode &root,
 	              std::map<int, CodeTokenDescriptor> descriptors)
 	    : Tokenizer(input, root), descriptors(descriptors), state(CodeTokenizerState::NORMAL)
 	{

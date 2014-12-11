@@ -18,7 +18,7 @@
 
 #include "CSSParser.hpp"
 
-#include <core/variant/Reader.hpp>
+#include <core/common/VariantReader.hpp>
 
 namespace ousia {
 namespace parser {
@@ -77,7 +77,7 @@ static const std::map<int, CodeTokenDescriptor> CSS_DESCRIPTORS = {
 
 Rooted<Node> CSSParser::parse(std::istream &is, ParserContext &ctx)
 {
-	BufferedCharReader input{is};
+	CharReader input{is};
 	CodeTokenizer tokenizer{input, CSS_ROOT, CSS_DESCRIPTORS};
 	tokenizer.ignoreComments = true;
 	tokenizer.ignoreLinebreaks = true;
@@ -228,14 +228,14 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 			Variant::arrayType args;
 			// we require at least one argument, if parantheses are used
 			// XXX
-			/*args.push_back(variant::Reader::parseGeneric(tokenizer.getInput(),
+			args.push_back(VariantReader::parseGeneric(tokenizer.getInput(),
 			                                             ctx.logger,
-			                                             {',', ')'}).second);*/
+			                                             {',', ')'}).second);
 			while (expect(COMMA, tokenizer, t, false, ctx)) {
 				// as long as we find commas we expect new arguments.
-				/*args.push_back(
-				    variant::Reader::parseGeneric(
-				        tokenizer.getInput(), ctx.logger, {',', ')'}).second);*/
+				args.push_back(
+				    VariantReader::parseGeneric(
+				        tokenizer.getInput(), ctx.logger, {',', ')'}).second);
 			}
 			expect(PAREN_CLOSE, tokenizer, t, true, ctx);
 			// and we return with the finished Selector.
@@ -334,8 +334,8 @@ bool CSSParser::parseRule(CodeTokenizer &tokenizer, ParserContext &ctx,
 	expect(COLON, tokenizer, t, true, ctx);
 	// then the value
 	// TODO: Resolve key for appropriate parsing function here.
-	/*value = variant::Reader::parseGeneric(tokenizer.getInput(), ctx.logger,
-	                                      {';'}).second;*/
+	value = VariantReader::parseGeneric(tokenizer.getInput(), ctx.logger,
+	                                      {';'}).second;
 	// and a ;
 	expect(SEMICOLON, tokenizer, t, true, ctx);
 	return true;

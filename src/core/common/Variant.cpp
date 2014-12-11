@@ -18,8 +18,7 @@
 
 #include <sstream>
 
-#include <core/Utils.hpp>
-
+#include "Utils.hpp"
 #include "Variant.hpp"
 
 namespace ousia {

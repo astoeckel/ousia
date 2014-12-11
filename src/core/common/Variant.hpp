@@ -39,10 +39,9 @@
 // http://nikic.github.io/2012/02/02/Pointer-magic-for-efficient-dynamic-value-representations.html
 // later (will allow to use 8 bytes for a variant)
 
-#include <core/Exceptions.hpp>
+#include "Exceptions.hpp"
 
 namespace ousia {
-namespace variant {
 
 /**
  * Instances of the Variant class represent any kind of data that is exchanged
@@ -756,10 +755,6 @@ public:
 		return !(lhs == rhs);
 	}
 };
-}
-
-// Alias for the (very often used and unambigous) variant class
-using Variant = variant::Variant;
 }
 
 #endif /* _OUSIA_VARIANT_HPP_ */

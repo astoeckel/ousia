@@ -16,8 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <core/Logger.hpp>
-
+#include <core/common/Logger.hpp>
 #include <core/parser/Parser.hpp>
 
 namespace ousia {

@@ -32,15 +32,15 @@ static const int CURLY_CLOSE = 41;
 
 TEST(CodeTokenizer, testTokenizer)
 {
-	BufferedCharReader reader;
-	reader.feed("/**\n");                                 // 1
-	reader.feed(" * Some Block Comment\n");               // 2
-	reader.feed(" */\n");                                 // 3
-	reader.feed("var my_string = 'My \\'String\\'';\n");  // 4
-	reader.feed("// and a line comment\n");               // 5
-	reader.feed("var my_obj = { a = 4;}");                // 6
-	//           123456789012345678901234567890123456789
-	//           0        1         2         3
+	CharReader reader{
+	    "/**\n"                                 // 1
+	    " * Some Block Comment\n"               // 2
+	    " */\n"                                 // 3
+	    "var my_string = 'My \\'String\\'';\n"  // 4
+	    "// and a line comment\n"               // 5
+	    "var my_obj = { a = 4;}"};              // 6
+	//   123456789012345678901234567890123456789
+	//   0        1         2         3
 	TokenTreeNode root{{{"/*", 1},
 	                    {"*/", 2},
 	                    {"//", 3},
@@ -68,10 +68,10 @@ TEST(CodeTokenizer, testTokenizer)
 	    {STRING, "My 'String'", 17, 4, 32, 4},
 	    {TOKEN_TEXT, ";", 32, 4, 33, 4},
 	    {LINEBREAK, "\n", 33, 4, 1, 5},
-		//this is slightly counter-intuitive but makes sense if you think about
-		//it: As a line comment is ended by a line break the line break is
-		//technically still a part of the line comment and thus the ending
-		//is in the next line.
+	    // this is slightly counter-intuitive but makes sense if you think about
+	    // it: As a line comment is ended by a line break the line break is
+	    // technically still a part of the line comment and thus the ending
+	    // is in the next line.
 	    {LINE_COMMENT, " and a line comment", 1, 5, 1, 6},
 	    {TOKEN_TEXT, "var", 1, 6, 4, 6},
 	    {TOKEN_TEXT, "my_obj", 5, 6, 11, 6},

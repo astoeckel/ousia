@@ -17,7 +17,7 @@
 */
 
 /**
- * @file Reader.hpp
+ * @file VariantReader.hpp
  *
  * Provides parsers for various micro formats. These formats include integers,
  * doubles, strings, JSON and the Ousía struct notation.
@@ -32,23 +32,21 @@
 #include <unordered_set>
 #include <utility>
 
-#include <core/utils/CharReader.hpp>
-#include <core/Logger.hpp>
-
+#include "CharReader.hpp"
+#include "Logger.hpp"
 #include "Variant.hpp"
 
 namespace ousia {
-namespace variant {
 
-class Reader {
+class VariantReader {
 private:
 	/**
 	 * Parses a string which may either be enclosed by " or ', unescapes
 	 * entities in the string as specified for JavaScript.
 	 *
-	 * @param reader is a reference to the CharReader instance which is
-	 * the source for the character data. The reader will be positioned after
-	 * the terminating quote character or at the terminating delimiting
+	 * @param VariantReader is a reference to the CharReader instance which is
+	 * the source for the character data. The VariantReader will be positioned
+	 * after the terminating quote character or at the terminating delimiting
 	 * character.
 	 * @param logger is the logger instance that should be used to log error
 	 * messages and warnings.
@@ -58,7 +56,7 @@ private:
 	 * is read.
 	 */
 	static std::pair<bool, std::string> parseString(
-	    CharReader &reader, Logger &logger,
+	    CharReader &VariantReader, Logger &logger,
 	    const std::unordered_set<char> *delims);
 
 public:
@@ -66,9 +64,9 @@ public:
 	 * Parses a string which may either be enclosed by " or ', unescapes
 	 * entities in the string as specified for JavaScript.
 	 *
-	 * @param reader is a reference to the CharReader instance which is
-	 * the source for the character data. The reader will be positioned after
-	 * the terminating quote character or at the terminating delimiting
+	 * @param VariantReader is a reference to the CharReader instance which is
+	 * the source for the character data. The VariantReader will be positioned
+	 * after the terminating quote character or at the terminating delimiting
 	 * character.
 	 * @param logger is the logger instance that should be used to log error
 	 * messages and warnings.
@@ -77,92 +75,91 @@ public:
 	 * outside).
 	 */
 	static std::pair<bool, std::string> parseString(
-	    CharReader &reader, Logger &logger,
+	    CharReader &VariantReader, Logger &logger,
 	    const std::unordered_set<char> &delims)
 	{
-		return parseString(reader, logger, &delims);
+		return parseString(VariantReader, logger, &delims);
 	}
 
 	/**
 	 * Parses a string which may either be enclosed by " or ', unescapes
 	 * entities in the string as specified for JavaScript.
 	 *
-	 * @param reader is a reference to the CharReader instance which is
-	 * the source for the character data. The reader will be positioned after
-	 * the terminating quote character or at the terminating delimiting
+	 * @param VariantReader is a reference to the CharReader instance which is
+	 * the source for the character data. The VariantReader will be positioned 
+	 * after the terminating quote character or at the terminating delimiting
 	 * character.
 	 * @param logger is the logger instance that should be used to log error
 	 * messages and warnings.
 	 */
-	static std::pair<bool, std::string> parseString(CharReader &reader,
+	static std::pair<bool, std::string> parseString(CharReader &VariantReader,
 	                                                Logger &logger)
 	{
-		return parseString(reader, logger, nullptr);
+		return parseString(VariantReader, logger, nullptr);
 	}
 
 	/**
-	 * Extracts an unescaped string from the given buffered char reader
+	 * Extracts an unescaped string from the given buffered char VariantReader
 	 * instance. This function just reads text until one of the given delimiter
 	 * characters is reached.
 	 *
-	 * @param reader is a reference to the CharReader instance which is
-	 * the source for the character data. The reader will be positioned at the
-	 * terminating delimiting character.
+	 * @param VariantReader is a reference to the CharReader instance which is
+	 * the source for the character data. The VariantReader will be positioned
+	 * at the terminating delimiting character.
 	 * @param delims is a set of characters which will terminate the string.
 	 * These characters are not included in the result. May not be nullptr.
 	 */
 	static std::pair<bool, std::string> parseUnescapedString(
-	    CharReader &reader, Logger &logger,
+	    CharReader &VariantReader, Logger &logger,
 	    const std::unordered_set<char> &delims);
 
 	/**
-	 * Parses an integer from the given buffered char reader instance until one
-	 * of the given delimiter characters is reached.
+	 * Parses an integer from the given buffered char VariantReader instance
+	 * until one of the given delimiter characters is reached.
 	 *
-	 * @param reader is a reference to the CharReader instance from
-	 * which the character data should been reader. The reader will be
-	 * positioned at the terminating delimiting character or directly after the
-	 * integer.
+	 * @param VariantReader is a reference to the CharReader instance from
+	 * which the character data should been VariantReader. The VariantReader
+	 * will be positioned at the terminating delimiting character or directly
+	 * after the integer.
 	 */
 	static std::pair<bool, int64_t> parseInteger(
-	    CharReader &reader, Logger &logger,
+	    CharReader &VariantReader, Logger &logger,
 	    const std::unordered_set<char> &delims);
 
 	/**
-	 * Parses an double from the given buffered char reader instance until one
-	 * of the given delimiter characters is reached.
+	 * Parses an double from the given buffered char VariantReader instance
+	 * until one of the given delimiter characters is reached.
 	 *
-	 * @param reader is a reference to the CharReader instance from
-	 * which the character data should been reader. The reader will be
-	 * positioned at the terminating delimiting character or directly after the
-	 * integer.
+	 * @param VariantReader is a reference to the CharReader instance from
+	 * which the character data should been VariantReader. The VariantReader
+	 * will be positioned at the terminating delimiting character or directly
+	 * after the integer.
 	 */
 	static std::pair<bool, double> parseDouble(
-	    CharReader &reader, Logger &logger,
+	    CharReader &VariantReader, Logger &logger,
 	    const std::unordered_set<char> &delims);
 
 	/**
 	 * Parses an array of values.
 	 */
 	static std::pair<bool, Variant::arrayType> parseArray(
-	    CharReader &reader, Logger &logger, char delim = 0);
+	    CharReader &VariantReader, Logger &logger, char delim = 0);
 
 	/**
 	 * Tries to parse the most specific item from the given stream until one of
 	 * the given delimiters is reached or a meaningful literal has been read.
 	 * The resulting variant represents the value that has been read.
 	 *
-	 * @param reader is a reference to the CharReader instance which is
-	 * the source for the character data. The reader will be positioned at the
-	 * terminating delimiting character.
+	 * @param VariantReader is a reference to the CharReader instance which is
+	 * the source for the character data. The VariantReader will be positioned
+	 * at the terminating delimiting character.
 	 * @param delims is a set of characters which will terminate the string.
 	 * These characters are not included in the result. May not be nullptr.
 	 */
 	static std::pair<bool, Variant> parseGeneric(
-	    CharReader &reader, Logger &logger,
+	    CharReader &VariantReader, Logger &logger,
 	    const std::unordered_set<char> &delims);
 };
-}
 }
 
 #endif /* _OUSIA_VARIANT_READER_HPP_ */

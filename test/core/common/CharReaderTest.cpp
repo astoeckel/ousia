@@ -22,10 +22,9 @@
 
 #include "gtest/gtest.h"
 
-#include <core/utils/CharReader.hpp>
+#include <core/common/CharReader.hpp>
 
 namespace ousia {
-namespace utils {
 
 /* Test data */
 
@@ -817,7 +816,6 @@ TEST(CharReaderTest, context)
 		ASSERT_TRUE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
-}
 }
 }
 

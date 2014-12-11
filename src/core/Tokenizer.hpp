@@ -19,11 +19,12 @@
 #ifndef _OUSIA_TOKENIZER_HPP_
 #define _OUSIA_TOKENIZER_HPP_
 
+#include <cstdint>
+#include <deque>
 #include <istream>
 #include <map>
-#include <deque>
 
-#include "BufferedCharReader.hpp"
+#include <core/common/CharReader.hpp>
 
 namespace ousia {
 
@@ -120,13 +121,13 @@ static const int TOKEN_TEXT = -2;
 struct Token {
 	int tokenId;
 	std::string content;
-	int startColumn;
-	int startLine;
-	int endColumn;
-	int endLine;
+	uint32_t startColumn;
+	uint32_t startLine;
+	uint32_t endColumn;
+	uint32_t endLine;
 
-	Token(int tokenId, std::string content, int startColumn, int startLine,
-	      int endColumn, int endLine)
+	Token(int tokenId, std::string content, uint32_t startColumn, uint32_t startLine,
+	      uint32_t endColumn, uint32_t endLine)
 	    : tokenId(tokenId),
 	      content(content),
 	      startColumn(startColumn),
@@ -160,7 +161,7 @@ struct Token {
  */
 class Tokenizer {
 private:
-	BufferedCharReader &input;
+	CharReader &input;
 	const TokenTreeNode &root;
 	std::deque<Token> peeked;
 	unsigned int peekCursor = 0;
@@ -185,14 +186,14 @@ protected:
 public:
 	/**
 	 * @param input The input of a Tokenizer is given in the form of a
-	 * BufferedCharReader. Please refer to the respective documentation.
+	 * CharReader. Please refer to the respective documentation.
 	 * @param root This is meant to be the root of a TokenTree giving the
 	 * specification of user-defined tokens this Tokenizer should recognize.
 	 * The Tokenizer promises to not change the TokenTree such that you can
 	 * re-use the same specification for multiple inputs.
 	 * Please refer to the TokenTreeNode documentation for more information.
 	 */
-	Tokenizer(BufferedCharReader &input, const TokenTreeNode &root);
+	Tokenizer(CharReader &input, const TokenTreeNode &root);
 
 	/**
 	 * The next method consumes one Token from the input stream and gives
@@ -224,9 +225,9 @@ public:
 	 */
 	void consumePeek();
 
-	const BufferedCharReader &getInput() const { return input; }
+	const CharReader &getInput() const { return input; }
 	
-	BufferedCharReader &getInput() { return input; }
+	CharReader &getInput() { return input; }
 };
 }
 

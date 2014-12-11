@@ -20,7 +20,7 @@
 
 #include <expat.h>
 
-#include <core/Utils.hpp>
+#include <core/common/Utils.hpp>
 #include <core/parser/ParserStack.hpp>
 
 #include "XmlParser.hpp"

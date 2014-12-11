@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include <core/Utils.hpp>
+#include <core/common/Utils.hpp>
 
 namespace ousia {
 

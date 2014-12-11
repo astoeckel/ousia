@@ -72,7 +72,7 @@ TokenTreeNode::TokenTreeNode(const std::map<std::string, int> &inputs)
 {
 }
 
-Tokenizer::Tokenizer(BufferedCharReader &input, const TokenTreeNode &root)
+Tokenizer::Tokenizer(CharReader &input, const TokenTreeNode &root)
     : input(input), root(root)
 {
 }
@@ -81,10 +81,10 @@ bool Tokenizer::prepare()
 {
 	std::stringstream buffer;
 	char c;
-	int startColumn = input.getColumn();
-	int startLine = input.getLine();
+	uint32_t startColumn = input.getColumn();
+	uint32_t startLine = input.getLine();
 	bool bufEmpty = true;
-	while (input.peek(&c)) {
+	while (input.peek(c)) {
 		if (root.children.find(c) != root.children.end()) {
 			// if there might be a special token, keep peeking forward
 			// until we find the token (or we don't).
@@ -107,7 +107,7 @@ bool Tokenizer::prepare()
 						input.consumePeek();
 					}
 				}
-				if (!input.peek(&c)) {
+				if (!input.peek(c)) {
 					// if we are at the end we break off the search.
 					break;
 				}
@@ -153,7 +153,7 @@ bool Tokenizer::prepare()
 				}
 			} else{
 				//if we found nothing, read at least one character.
-				input.peek(&c);
+				input.peek(c);
 			}
 		}
 		buffer << c;

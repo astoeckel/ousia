@@ -32,10 +32,10 @@
 #include <set>
 #include <string>
 
-#include <core/Exceptions.hpp>
 #include <core/Node.hpp>
-#include <core/Logger.hpp>
 #include <core/Registry.hpp>
+#include <core/common/Exceptions.hpp>
+#include <core/common/Logger.hpp>
 
 #include "Scope.hpp"
 

@@ -19,7 +19,7 @@
 #include <iostream>
 #include <gtest/gtest.h>
 
-#include <core/variant/Reader.hpp>
+#include <core/common/VariantReader.hpp>
 
 namespace ousia {
 namespace variant {
@@ -32,7 +32,7 @@ TEST(Reader, readString)
 	// Simple, double quoted string
 	{
 		CharReader reader("\"hello world\"");
-		auto res = Reader::parseString(reader, logger);
+		auto res = VariantReader::parseString(reader, logger);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
 	}
@@ -40,7 +40,7 @@ TEST(Reader, readString)
 	// Simple, double quoted string with whitespace
 	{
 		CharReader reader("    \"hello world\"   ");
-		auto res = Reader::parseString(reader, logger);
+		auto res = VariantReader::parseString(reader, logger);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
 	}
@@ -48,7 +48,7 @@ TEST(Reader, readString)
 	// Simple, single quoted string
 	{
 		CharReader reader("'hello world'");
-		auto res = Reader::parseString(reader, logger);
+		auto res = VariantReader::parseString(reader, logger);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
 	}
@@ -56,7 +56,7 @@ TEST(Reader, readString)
 	// Escape characters
 	{
 		CharReader reader("'\\'\\\"\\b\\f\\n\\r\\t\\v'");
-		auto res = Reader::parseString(reader, logger);
+		auto res = VariantReader::parseString(reader, logger);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("'\"\b\f\n\r\t\v", res.second);
 	}
@@ -67,7 +67,7 @@ TEST(Reader, parseUnescapedString)
 	// Simple case
 	{
 		CharReader reader("hello world;");
-		auto res = Reader::parseUnescapedString(reader, logger, {';'});
+		auto res = VariantReader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
 	}
@@ -75,7 +75,7 @@ TEST(Reader, parseUnescapedString)
 	// Simple case with whitespace
 	{
 		CharReader reader("    hello world   ;    ");
-		auto res = Reader::parseUnescapedString(reader, logger, {';'});
+		auto res = VariantReader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
 	}
@@ -83,7 +83,7 @@ TEST(Reader, parseUnescapedString)
 	// Linebreaks
 	{
 		CharReader reader("    hello\nworld   ;    ");
-		auto res = Reader::parseUnescapedString(reader, logger, {';'});
+		auto res = VariantReader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello\nworld", res.second);
 	}
@@ -91,7 +91,7 @@ TEST(Reader, parseUnescapedString)
 	// End of stream
 	{
 		CharReader reader("    hello world ");
-		auto res = Reader::parseUnescapedString(reader, logger, {';'});
+		auto res = VariantReader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
 	}
@@ -104,49 +104,49 @@ TEST(Reader, parseInteger)
 	// Valid integers
 	{
 		CharReader reader("0  ");
-		auto res = Reader::parseInteger(reader, logger, noDelim);
+		auto res = VariantReader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(0, res.second);
 	}
 
 	{
 		CharReader reader("42 ");
-		auto res = Reader::parseInteger(reader, logger, noDelim);
+		auto res = VariantReader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(42, res.second);
 	}
 
 	{
 		CharReader reader("-42");
-		auto res = Reader::parseInteger(reader, logger, noDelim);
+		auto res = VariantReader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-42, res.second);
 	}
 
 	{
 		CharReader reader("  -0x4A2  ");
-		auto res = Reader::parseInteger(reader, logger, noDelim);
+		auto res = VariantReader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0x4A2, res.second);
 	}
 
 	{
 		CharReader reader(" 0Xaffe");
-		auto res = Reader::parseInteger(reader, logger, noDelim);
+		auto res = VariantReader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(0xAFFE, res.second);
 	}
 
 	{
 		CharReader reader("0x7FFFFFFFFFFFFFFF");
-		auto res = Reader::parseInteger(reader, logger, noDelim);
+		auto res = VariantReader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(0x7FFFFFFFFFFFFFFFL, res.second);
 	}
 
 	{
 		CharReader reader("-0x7FFFFFFFFFFFFFFF");
-		auto res = Reader::parseInteger(reader, logger, noDelim);
+		auto res = VariantReader::parseInteger(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0x7FFFFFFFFFFFFFFFL, res.second);
 	}
@@ -154,25 +154,25 @@ TEST(Reader, parseInteger)
 	// Invalid integers
 	{
 		CharReader reader("-");
-		auto res = Reader::parseInteger(reader, logger, noDelim);
+		auto res = VariantReader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
 		CharReader reader("0a");
-		auto res = Reader::parseInteger(reader, logger, noDelim);
+		auto res = VariantReader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
 		CharReader reader("-0xag");
-		auto res = Reader::parseInteger(reader, logger, noDelim);
+		auto res = VariantReader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
 		CharReader reader("0x8000000000000000");
-		auto res = Reader::parseInteger(reader, logger, noDelim);
+		auto res = VariantReader::parseInteger(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 }
@@ -182,49 +182,49 @@ TEST(Reader, parseDouble)
 	// Valid doubles
 	{
 		CharReader reader("1.25");
-		auto res = Reader::parseDouble(reader, logger, noDelim);
+		auto res = VariantReader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(1.25, res.second);
 	}
 
 	{
 		CharReader reader(".25");
-		auto res = Reader::parseDouble(reader, logger, noDelim);
+		auto res = VariantReader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(.25, res.second);
 	}
 
 	{
 		CharReader reader(".25e1");
-		auto res = Reader::parseDouble(reader, logger, noDelim);
+		auto res = VariantReader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(2.5, res.second);
 	}
 
 	{
 		CharReader reader("-2.5e-1");
-		auto res = Reader::parseDouble(reader, logger, noDelim);
+		auto res = VariantReader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0.25, res.second);
 	}
 
 	{
 		CharReader reader("-50e-2");
-		auto res = Reader::parseDouble(reader, logger, noDelim);
+		auto res = VariantReader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-0.5, res.second);
 	}
 
 	{
 		CharReader reader("-1.");
-		auto res = Reader::parseDouble(reader, logger, noDelim);
+		auto res = VariantReader::parseDouble(reader, logger, noDelim);
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-1., res.second);
 	}
 
 	{
 		CharReader reader("-50.e-2");
-		auto res = Reader::parseDouble(reader, logger, {'.'});
+		auto res = VariantReader::parseDouble(reader, logger, {'.'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ(-50, res.second);
 	}
@@ -232,13 +232,13 @@ TEST(Reader, parseDouble)
 	// Invalid doubles
 	{
 		CharReader reader(".e1");
-		auto res = Reader::parseDouble(reader, logger, noDelim);
+		auto res = VariantReader::parseDouble(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 
 	{
 		CharReader reader("0e100000");
-		auto res = Reader::parseDouble(reader, logger, noDelim);
+		auto res = VariantReader::parseDouble(reader, logger, noDelim);
 		ASSERT_FALSE(res.first);
 	}
 }
@@ -249,7 +249,7 @@ TEST(Reader, parseArray)
 	{
 		CharReader reader("[\"Hello, World\", unescaped\n string ,\n"
 			"1234, 0.56, true, false, null]");
-		auto res = Reader::parseArray(reader, logger);
+		auto res = VariantReader::parseArray(reader, logger);
 		ASSERT_TRUE(res.first);
 
 		// Make sure array has the correct size
@@ -276,7 +276,7 @@ TEST(Reader, parseArray)
 	// Ending with comma
 	{
 		CharReader reader("[  'test' ,]");
-		auto res = Reader::parseArray(reader, logger);
+		auto res = VariantReader::parseArray(reader, logger);
 		ASSERT_TRUE(res.first);
 
 		// Make sure the array has the correct size
@@ -292,7 +292,7 @@ TEST(Reader, parseArray)
 	// Recovery from invalid values
 	{
 		CharReader reader("[ 0invalidNumber, str, 1invalid]");
-		auto res = Reader::parseArray(reader, logger);
+		auto res = VariantReader::parseArray(reader, logger);
 		ASSERT_TRUE(res.first);
 
 		// Make sure the array has the correct size
@@ -315,7 +315,7 @@ TEST(Reader, parseGeneric)
 	// Simple case, unescaped string
 	{
 		CharReader reader("hello world");
-		auto res = Reader::parseGeneric(reader, logger, {';'});
+		auto res = VariantReader::parseGeneric(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
 		ASSERT_EQ("hello world", res.second.asString());
@@ -324,7 +324,7 @@ TEST(Reader, parseGeneric)
 	// Simple case, double quoted string
 	{
 		CharReader reader(" \"hello world\"    ");
-		auto res = Reader::parseGeneric(reader, logger, {';'});
+		auto res = VariantReader::parseGeneric(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
 		ASSERT_EQ("hello world", res.second.asString());
@@ -333,7 +333,7 @@ TEST(Reader, parseGeneric)
 	// Simple case, single quoted string
 	{
 		CharReader reader(" 'hello world'    ");
-		auto res = Reader::parseGeneric(reader, logger, {';'});
+		auto res = VariantReader::parseGeneric(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
 		ASSERT_EQ("hello world", res.second.asString());
