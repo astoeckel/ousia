@@ -74,5 +74,29 @@ TEST(TerminalLogger, log)
 
 	logger.logAt(Severity::ERROR, "This is a positioned log message", pos);
 }
+
+TEST(TerminalLogger, fork)
+{
+	// Test for manual visual expection only -- no assertions
+	TerminalLogger logger{std::cerr, true};
+
+	LoggerFork fork = logger.fork();
+
+	fork.pushFile("test.odp");
+	fork.error("This is a test error with context",
+	             TextCursor::Position{10, 20},
+	             TextCursor::Context{"int bla = blub;", 10, true, false});
+	fork.pushFile("test2.odp");
+	fork.error("This is a test error without context");
+	fork.popFile();
+	fork.error("Another error");
+	fork.popFile();
+	fork.error("Another error");
+
+	// Print all error messages
+	fork.commit();
+}
+
+
 }
 

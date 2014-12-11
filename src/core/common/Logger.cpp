@@ -23,6 +23,66 @@
 
 namespace ousia {
 
+/* Class Logger */
+
+void Logger::log(Severity severity, std::string msg, TextCursor::Position pos,
+                 TextCursor::Context ctx)
+{
+	// Update the maximum encountered severity level
+	if (static_cast<int>(severity) > static_cast<int>(maxEncounteredSeverity)) {
+		maxEncounteredSeverity = severity;
+	}
+
+	// Only process the message if its severity is larger than the
+	// set minimum severity.
+	if (static_cast<int>(severity) >= static_cast<int>(minSeverity)) {
+		processMessage(
+		    Message{severity, std::move(msg), std::move(pos), std::move(ctx)});
+	}
+}
+
+LoggerFork Logger::fork() { return LoggerFork{this, minSeverity}; }
+
+/* Class LoggerFork */
+
+void LoggerFork::processMessage(Message msg)
+{
+	calls.push_back(Call(CallType::MESSAGE, messages.size()));
+	messages.push_back(msg);
+}
+
+void LoggerFork::processPushFile(File file)
+{
+	calls.push_back(Call(CallType::PUSH_FILE, files.size()));
+	files.push_back(file);
+}
+
+void LoggerFork::processPopFile()
+{
+	calls.push_back(Call(CallType::POP_FILE, 0));
+}
+
+void LoggerFork::commit()
+{
+	for (const Call &call : calls) {
+		switch (call.type) {
+			case CallType::MESSAGE: {
+				const Message &msg = messages[call.dataIdx];
+				parent->log(msg.severity, msg.msg, msg.pos, msg.ctx);
+				break;
+			}
+			case CallType::PUSH_FILE: {
+				const File &file = files[call.dataIdx];
+				parent->pushFile(file.file, file.pos, file.ctx);
+				break;
+			}
+			case CallType::POP_FILE:
+				parent->popFile();
+				break;
+		}
+	}
+}
+
 /* Class Terminal */
 
 class Terminal {
@@ -67,7 +127,6 @@ public:
 	}
 };
 
-
 /* Class TerminalLogger */
 
 /**
@@ -101,8 +160,7 @@ void TerminalLogger::processMessage(Message msg)
 		if (hasFile) {
 			os << ':';
 		}
-		os << t.color(Terminal::WHITE, true) << msg.pos.line
-		   << t.reset();
+		os << t.color(Terminal::WHITE, true) << msg.pos.line << t.reset();
 		if (msg.pos.hasColumn()) {
 			os << ':' << msg.pos.column;
 		}
@@ -154,18 +212,8 @@ void TerminalLogger::processMessage(Message msg)
 	}
 }
 
-size_t TerminalLogger::processPushFile(File file)
-{
-	files.push(file);
-	return files.size();
-}
+void TerminalLogger::processPushFile(File file) { files.push(file); }
 
-size_t TerminalLogger::processPopFile()
-{
-	files.pop();
-	return files.size();
-}
-
-
+void TerminalLogger::processPopFile() { files.pop(); }
 }
 

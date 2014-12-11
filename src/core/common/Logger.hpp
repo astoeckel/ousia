@@ -79,6 +79,9 @@ static constexpr Severity DEFAULT_MIN_SEVERITY = Severity::NOTE;
 static constexpr Severity DEFAULT_MIN_SEVERITY = Severity::DEBUG;
 #endif
 
+// Forward declaration
+class LoggerFork;
+
 /**
  * The Logger class is the base class the individual logging systems should
  * derive from. It provides a simple interface for logging errors, warnings and
@@ -165,7 +168,7 @@ public:
 		      ctx(std::move(ctx)){};
 	};
 
-private:
+protected:
 	/**
 	 * Minimum severity a log message should have before it is discarded.
 	 */
@@ -176,7 +179,6 @@ private:
 	 */
 	Severity maxEncounteredSeverity;
 
-protected:
 	/**
 	 * Function to be overriden by child classes to actually display or store
 	 * the messages. The default implementation just discards all incomming
@@ -191,17 +193,13 @@ protected:
 	 * Called whenever a new file is pushed onto the stack.
 	 *
 	 * @param file is the file that should be pushed onto the stack.
-	 * @return the stack depth after the file has been pushed.
 	 */
-	virtual size_t processPushFile(File file) { return 0; }
+	virtual void processPushFile(File file) {}
 
 	/**
 	 * Called whenever a file is popped from the stack.
-	 *
-	 * @return the stack depth after the current file has been removed from the
-	 * stack.
 	 */
-	virtual size_t processPopFile() { return 0; }
+	virtual void processPopFile() {}
 
 public:
 	/**
@@ -215,12 +213,16 @@ public:
 	{
 	}
 
-	Logger(const Logger &) = delete;
-
 	/**
 	 * Virtual destructor.
 	 */
 	virtual ~Logger(){};
+
+	// No copy
+	Logger(const Logger &) = delete;
+
+	// No assign
+	Logger &operator=(const Logger &) = delete;
 
 	/**
 	 * Logs the given message. The file name is set to the topmost file name on
@@ -233,21 +235,7 @@ public:
 	 */
 	void log(Severity severity, std::string msg,
 	         TextCursor::Position pos = TextCursor::Position{},
-	         TextCursor::Context ctx = TextCursor::Context{})
-	{
-		// Update the maximum encountered severity level
-		if (static_cast<int>(severity) >
-		    static_cast<int>(maxEncounteredSeverity)) {
-			maxEncounteredSeverity = severity;
-		}
-
-		// Only process the message if its severity is larger than the
-		// set minimum severity.
-		if (static_cast<int>(severity) >= static_cast<int>(minSeverity)) {
-			processMessage(Message{severity, std::move(msg), std::move(pos),
-			                       std::move(ctx)});
-		}
-	}
+	         TextCursor::Context ctx = TextCursor::Context{});
 
 	/**
 	 * Logs the given loggable exception.
@@ -299,7 +287,7 @@ public:
 	 * @param pos is a reference to a variable which provides position and
 	 * context information.
 	 */
-	template<class PosType>
+	template <class PosType>
 	void debug(std::string msg, PosType &pos)
 	{
 #ifndef NDEBUG
@@ -328,7 +316,7 @@ public:
 	 * @param pos is a reference to a variable which provides position and
 	 * context information.
 	 */
-	template<class PosType>
+	template <class PosType>
 	void note(std::string msg, PosType &pos)
 	{
 		logAt(Severity::NOTE, std::move(msg), pos);
@@ -355,7 +343,7 @@ public:
 	 * @param pos is a reference to a variable which provides position and
 	 * context information.
 	 */
-	template<class PosType>
+	template <class PosType>
 	void warning(std::string msg, PosType &pos)
 	{
 		logAt(Severity::WARNING, std::move(msg), pos);
@@ -382,7 +370,7 @@ public:
 	 * @param pos is a reference to a variable which provides position and
 	 * context information.
 	 */
-	template<class PosType>
+	template <class PosType>
 	void error(std::string msg, PosType &pos)
 	{
 		logAt(Severity::ERROR, std::move(msg), pos);
@@ -403,7 +391,6 @@ public:
 		    std::move(ctx));
 	}
 
-
 	/**
 	 * Logs a fatal error message.
 	 *
@@ -411,7 +398,7 @@ public:
 	 * @param pos is a reference to a variable which provides position and
 	 * context information.
 	 */
-	template<class PosType>
+	template <class PosType>
 	void fatalError(std::string msg, PosType &pos)
 	{
 		logAt(Severity::FATAL_ERROR, std::move(msg), pos);
@@ -424,12 +411,11 @@ public:
 	 * @param pos is the position from which the new file is included.
 	 * @param ctx is the context in which the new file is included.
 	 */
-	size_t pushFile(std::string name,
-	                TextCursor::Position pos = TextCursor::Position{},
-	                TextCursor::Context ctx = TextCursor::Context{})
+	void pushFile(std::string name,
+	              TextCursor::Position pos = TextCursor::Position{},
+	              TextCursor::Context ctx = TextCursor::Context{})
 	{
-		return processPushFile(
-		    File(std::move(name), std::move(pos), std::move(ctx)));
+		processPushFile(File(std::move(name), std::move(pos), std::move(ctx)));
 	}
 
 	/**
@@ -437,7 +423,7 @@ public:
 	 *
 	 * @return the current size of the filename stack.
 	 */
-	size_t popFile() { return processPopFile(); }
+	void popFile() { processPopFile(); }
 
 	/**
 	 * Returns the maximum severity that was encountered by the Logger but at
@@ -455,6 +441,105 @@ public:
 	 * @return the minimum severity.
 	 */
 	Severity getMinSeverity() { return minSeverity; }
+
+	/**
+	 * Returns a forked logger instance which can be used to collect log
+	 * messages for which it is not sure whether they will be used.
+	 */
+	LoggerFork fork();
+};
+
+/**
+ * Fork of the Logger -- stores all logged messages without actually pushing
+ * them to the underlying logger instance.
+ */
+class LoggerFork : public Logger {
+private:
+	friend Logger;
+
+	/**
+	 * Intanally used to store the incomming function calls.
+	 */
+	enum class CallType { MESSAGE, PUSH_FILE, POP_FILE };
+
+	/**
+	 * Datastructure used to represent a logger function call.
+	 */
+	struct Call {
+		/**
+		 * Type of the function call.
+		 */
+		CallType type;
+
+		/**
+		 * Index of the associated data in the type-specific vector.
+		 */
+		size_t dataIdx;
+
+		/**
+		 * Constructor of the Call structure.
+		 *
+		 * @param type is the type of the call.
+		 * @param dataIdx is the index of the associated data in the type
+		 * specific data vector.
+		 */
+		Call(CallType type, size_t dataIdx) : type(type), dataIdx(dataIdx) {}
+	};
+
+	/**
+	 * Vector storing all incomming calls.
+	 */
+	std::vector<Call> calls;
+
+	/**
+	 * Vector storing all incomming messages.
+	 */
+	std::vector<Message> messages;
+
+	/**
+	 * Vector storing all incomming pushed files.
+	 */
+	std::vector<File> files;
+
+	/**
+	 * Parent logger instance.
+	 */
+	Logger *parent;
+
+	/**
+	 * Constructor of the LoggerFork class.
+	 *
+	 * @param minSeverity is the minimum severity a message should have to be
+	 * stored.
+	 * @param parent is the parent logger instance.
+	 */
+	LoggerFork(Logger *parent, Severity minSeverity)
+	    : Logger(minSeverity), parent(parent)
+	{
+	}
+
+protected:
+	void processMessage(Message msg) override;
+	void processPushFile(File file) override;
+	void processPopFile() override;
+
+public:
+	/**
+	 * Commits all collected messages to the parent Logger instance.
+	 */
+	void commit();
+
+	/**
+	 * Explicitly declared move constructor.
+	 */
+	LoggerFork(LoggerFork &&l)
+	    : Logger(l.getMinSeverity()),
+	      calls(std::move(l.calls)),
+	      messages(std::move(l.messages)),
+	      files(std::move(l.files)),
+	      parent(std::move(l.parent))
+	{
+	}
 };
 
 /**
@@ -486,8 +571,8 @@ private:
 
 protected:
 	void processMessage(Message msg) override;
-	size_t processPushFile(File file) override;
-	size_t processPopFile() override;
+	void processPushFile(File file) override;
+	void processPopFile() override;
 
 public:
 	/**
@@ -510,7 +595,6 @@ public:
 	 * Returns the name of the topmost file.
 	 */
 	std::string currentFilename();
-
 };
 }
 
