@@ -95,6 +95,8 @@ TEST(Buffer, simpleRead)
 
 	// The two strings must equal
 	ASSERT_EQ(testStr, res);
+
+	buf.deleteCursor(cursor);
 }
 
 TEST(Buffer, cursorManagement)
@@ -112,6 +114,10 @@ TEST(Buffer, cursorManagement)
 	buf.deleteCursor(c2);
 	Buffer::CursorId c4 = buf.createCursor();
 	ASSERT_EQ(1U, c4);
+
+	buf.deleteCursor(c1);
+	buf.deleteCursor(c3);
+	buf.deleteCursor(c4);
 }
 
 TEST(Buffer, twoCursors)
@@ -152,6 +158,9 @@ TEST(Buffer, twoCursors)
 	// The two strings must equal
 	ASSERT_EQ(testStr, res1);
 	ASSERT_EQ(testStr, res2);
+
+	buf.deleteCursor(cur1);
+	buf.deleteCursor(cur2);
 }
 
 TEST(Buffer, copyCursors)
@@ -203,6 +212,10 @@ TEST(Buffer, copyCursors)
 	ASSERT_EQ("test3", res3);
 
 	ASSERT_TRUE(buf.atEnd(cur3));
+
+	buf.deleteCursor(cur1);
+	buf.deleteCursor(cur2);
+	buf.deleteCursor(cur3);
 }
 
 TEST(Buffer, moveCursor)
@@ -260,6 +273,8 @@ TEST(Buffer, moveCursor)
 		}
 		ASSERT_EQ("test3", res);
 	}
+
+	buf.deleteCursor(cursor);
 }
 
 struct VectorReadState {
@@ -302,6 +317,8 @@ TEST(Buffer, simpleStream)
 
 	// The read data and the original data must be equal
 	ASSERT_EQ(DATA, res);
+
+	buf.deleteCursor(cursor);
 }
 
 TEST(Buffer, streamTwoCursors)
@@ -337,6 +354,9 @@ TEST(Buffer, streamTwoCursors)
 	// The read data and the original data must be equal
 	ASSERT_EQ(DATA, res1);
 	ASSERT_EQ(DATA, res2);
+
+	buf.deleteCursor(cur1);
+	buf.deleteCursor(cur2);
 }
 
 TEST(Buffer, streamTwoCursorsMovingInterleaved)
@@ -386,6 +406,9 @@ TEST(Buffer, streamTwoCursorsMovingInterleaved)
 	// The read data and the original data must be equal
 	ASSERT_EQ(DATA, res1);
 	ASSERT_EQ(DATA, res2);
+
+	buf.deleteCursor(cur1);
+	buf.deleteCursor(cur2);
 }
 
 TEST(Buffer, streamMoveForward)
@@ -407,6 +430,8 @@ TEST(Buffer, streamMoveForward)
 		res.push_back(c);
 	}
 	ASSERT_EQ(partialData, res);
+
+	buf.deleteCursor(cursor);
 }
 
 /* CharReader Test */

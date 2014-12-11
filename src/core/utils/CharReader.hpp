@@ -242,6 +242,14 @@ public:
 	 */
 	Buffer(const std::string &str);
 
+#ifndef NDEBUG
+	/**
+	 * Destructor of the Buffer class. Makes sure that all cursors have been
+	 * freed.
+	 */
+	~Buffer();
+#endif
+
 	// No copy
 	Buffer(const Buffer &) = delete;
 

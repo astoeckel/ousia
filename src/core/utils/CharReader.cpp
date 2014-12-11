@@ -17,6 +17,7 @@
 */
 
 #include <algorithm>
+#include <cassert>
 #include <limits>
 #include <sstream>
 
@@ -79,6 +80,16 @@ Buffer::Buffer(const std::string &str)
 	std::copy(str.begin(), str.end(), bucket.begin());
 	startBucket = buckets.begin();
 }
+
+#ifndef NDEBUG
+Buffer::~Buffer()
+{
+	// Make sure all cursors have been deleted
+	for (bool cursor_alive: alive) {
+		assert(!cursor_alive);
+	}
+}
+#endif
 
 void Buffer::advance(BucketIterator &it)
 {
