@@ -55,11 +55,92 @@ TEST(FileLocator, testAddSearchPath)
 
 	ASSERT_EQ(3, instance.getSearchPaths().size());
 
-	auto it =
-	    instance.getSearchPaths().find(ResourceLocator::Type::DOMAIN_DESC);
+	it = instance.getSearchPaths().find(ResourceLocator::Type::DOMAIN_DESC);
 
 	ASSERT_EQ(2, it->second.size());
 	ASSERT_EQ(".", it->second[0].generic_string());
 	ASSERT_EQ("..", it->second[1].generic_string());
+}
+
+void assert_located(
+    const FileLocator &instance, const std::string &path,
+    const std::string &relativeTo,
+    ResourceLocator::Type type = ResourceLocator::Type::DOMAIN_DESC)
+{
+	ResourceLocator::Location loc = instance.locate(path, relativeTo, type);
+	ASSERT_TRUE(loc.found);
+	boost::filesystem::path p(loc.location);
+	ASSERT_TRUE(boost::filesystem::exists(p));
+	ASSERT_EQ(path, p.filename());
+}
+
+void assert_not_located(
+    const FileLocator &instance, const std::string &path,
+    const std::string &relativeTo,
+    ResourceLocator::Type type = ResourceLocator::Type::DOMAIN_DESC)
+{
+	ResourceLocator::Location loc = instance.locate(path, relativeTo, type);
+	ASSERT_FALSE(loc.found);
+}
+
+TEST(FileLocator, testLocate)
+{
+	// Initialization
+	boost::filesystem::path start(".");
+	start = boost::filesystem::canonical(start);
+	std::string relativeTo;
+
+	if (start.filename() == "build") {
+		relativeTo = "..";
+		start = start.parent_path();
+	} else if (start.filename() == "application") {
+		relativeTo = ".";
+	} else {
+		ASSERT_TRUE(false);
+	}
+	FileLocator instance;
+
+	// We should be able to find the CMakeLists file in the main directory.
+	assert_located(instance, "CMakeLists.txt", relativeTo);
+	// But not the FileLocator.hpp
+	assert_not_located(instance, "FileLocator.hpp", relativeTo);
+
+	// Add the respective search path.
+	instance.addSearchPath(start / "src/plugins/boost",
+	                       {ResourceLocator::Type::DOMAIN_DESC});
+	// Now we should be able to find both.
+	assert_located(instance, "CMakeLists.txt", relativeTo);
+	assert_located(instance, "FileLocator.hpp", relativeTo);
+	// but only with the correct type.
+	assert_not_located(instance, "FileLocator.hpp", relativeTo,
+	                   ResourceLocator::Type::SCRIPT);
+}
+
+TEST(FileLocator, testStream)
+{
+	// Initialization
+	boost::filesystem::path start(".");
+	start = boost::filesystem::canonical(start);
+	std::string relativeTo;
+
+	if (start.filename() == "build") {
+		relativeTo = "..";
+		start = start.parent_path();
+	} else if (start.filename() == "application") {
+		relativeTo = ".";
+	} else {
+		ASSERT_TRUE(false);
+	}
+	FileLocator instance;
+	// Locate the CMakeLists.txt
+	ResourceLocator::Location loc = instance.locate(
+	    "CMakeLists.txt", relativeTo, ResourceLocator::Type::DOMAIN_DESC);
+	// Stream the content.
+	auto is_ptr = loc.stream();
+	// get the beginning.
+	char buf[256];
+	is_ptr->getline(buf, 256);
+	std::string first_line(buf);
+	ASSERT_EQ("# Ousía", first_line);
 }
 }

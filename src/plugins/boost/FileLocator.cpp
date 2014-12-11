@@ -41,7 +41,29 @@ ResourceLocator::Location FileLocator::locate(const std::string &path,
                                               const std::string &relativeTo,
                                               const Type type) const
 {
-	// TODO: Implement Properly
+	boost::filesystem::path base(relativeTo);
+	// use the / operator to append the path.
+	base /= path;
+	// if we already found a fitting resource there, use that.
+	if (boost::filesystem::exists(base)) {
+		std::string location =
+		    boost::filesystem::canonical(base).generic_string();
+		return ResourceLocator::Location(true, *this, type, location);
+	}
+	// otherwise look in the search paths.
+	auto it = searchPaths.find(type);
+	if (it != searchPaths.end()) {
+		for (boost::filesystem::path p : it->second) {
+			p /= path;
+			if (boost::filesystem::exists(p)) {
+				std::string location =
+				    boost::filesystem::canonical(p).generic_string();
+				return ResourceLocator::Location(true, *this, type, location);
+			}
+		}
+	}
+	// if we find the resource in none of the search paths we return a location.
+	// with the found flag set to false.
 	ResourceLocator::Location l(false, *this, type, "");
 	return l;
 }
@@ -49,8 +71,7 @@ ResourceLocator::Location FileLocator::locate(const std::string &path,
 std::unique_ptr<std::istream> FileLocator::stream(
     const std::string &location) const
 {
-	std::unique_ptr<std::istream> ifs {
-	    new std::ifstream(location)};
+	std::unique_ptr<std::istream> ifs{new std::ifstream(location)};
 	return std::move(ifs);
 }
 }

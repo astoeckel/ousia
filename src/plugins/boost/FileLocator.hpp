@@ -25,7 +25,7 @@
 #include <set>
 #include <vector>
 
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 
 
 namespace ousia {
