@@ -54,9 +54,9 @@ TEST(Registry, locateResource)
 	instance.registerResourceLocator(&locator);
 	
 	ResourceLocator::Location location =
-	    instance.locateResource("path", "", ResourceLocator::Type::DOMAIN);
+	    instance.locateResource("path", "", ResourceLocator::Type::DOMAIN_DESC);
 	ASSERT_TRUE(location.found);
-	ASSERT_EQ(ResourceLocator::Type::DOMAIN, location.type);
+	ASSERT_EQ(ResourceLocator::Type::DOMAIN_DESC, location.type);
 	ASSERT_EQ("path", location.location);
 }
 

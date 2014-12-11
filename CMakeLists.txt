@@ -32,10 +32,11 @@ OPTION(BUILD_DOCUMENTATION "Create and install the HTML based API documentation 
 # Enable C++11 and all warnings
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic-errors -std=c++11")
 
-# Include expat and mozjs-24 via PkgConfig
+# Include boost (filesystem) expat and mozjs-24 via PkgConfig
 FIND_PACKAGE(PkgConfig REQUIRED)
 PKG_CHECK_MODULES(MOZJS REQUIRED mozjs-24)
 PKG_CHECK_MODULES(EXPAT REQUIRED expat)
+FIND_PACKAGE(Boost COMPONENTS system filesystem REQUIRED)
 
 ################################################################################
 # Inclusion of doxygen                                                         #
@@ -85,6 +86,7 @@ INCLUDE_DIRECTORIES(
 	src/
 	${MOZJS_INCLUDE_DIRS}
 	${EXPAT_INCLUDE_DIRS}
+	${Boost_INCLUDE_DIR}
 )
 
 # Link directories
@@ -119,6 +121,15 @@ ADD_LIBRARY(ousia_core
 	src/core/utils/CharReader
 	src/core/variant/Reader
 	src/core/variant/Variant
+)
+
+ADD_LIBRARY(ousia_boost
+	src/plugins/boost/FileLocator
+)
+
+TARGET_LINK_LIBRARIES(ousia_boost
+	ousia_core
+	${Boost_LIBRARIES}
 )
 
 ADD_LIBRARY(ousia_css
@@ -179,6 +190,16 @@ IF(TEST)
 	TARGET_LINK_LIBRARIES(ousia_test_core
 		${GTEST_LIBRARIES}
 		ousia_core
+	)
+
+	ADD_EXECUTABLE(ousia_test_boost
+		test/plugins/boost/FileLocatorTest
+	)
+
+	TARGET_LINK_LIBRARIES(ousia_test_boost
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_boost
 	)
 
 	ADD_EXECUTABLE(ousia_test_css

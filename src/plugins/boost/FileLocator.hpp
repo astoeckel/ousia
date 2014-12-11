@@ -19,10 +19,14 @@
 #ifndef _OUSIA_FILE_LOCATOR_HPP_
 #define _OUSIA_FILE_LOCATOR_HPP_
 
+#include <core/ResourceLocator.hpp>
+
 #include <map>
 #include <set>
+#include <vector>
 
-#include <core/ResourceLocator.hpp>
+#include <boost/filesystem/path.hpp>
+
 
 namespace ousia {
 
@@ -36,10 +40,10 @@ namespace ousia {
  */
 class FileLocator : public ResourceLocator {
 private:
-	map<ResourceLocator::Type, std::vector<std::string>> searchPaths;
+	std::map<ResourceLocator::Type, std::vector<boost::filesystem::path>> searchPaths;
 
 public:
-	FileLocator() searchpaths() {}
+	FileLocator() : searchPaths() {}
 
 	/**
 	 * Adds a search paths for the given types.
@@ -49,8 +53,18 @@ public:
 	 *              resources of the specified types at the given path in the
 	 *              future.
 	 */
-	void addSearchPath(const std::string &path,
+	void addSearchPath(const boost::filesystem::path &path,
 	                   std::set<ResourceLocator::Type> types);
+
+	/**
+	 * Returns the backing map containing all search paths for a given type.
+	 * This is read-only.
+	 */
+	const std::map<ResourceLocator::Type, std::vector<boost::filesystem::path>> &
+	getSearchPaths() const
+	{
+		return searchPaths;
+	}
 
 	Location locate(const std::string &path, const std::string &relativeTo,
 	                const Type type) const override;
