@@ -577,11 +577,19 @@ std::pair<bool, Variant> Reader::parseGeneric(
 			// TODO: Parse struct descriptor
 		}
 
-		// Try to parse a number if a character in [0-9-] is reached
+		// Try to parse everything that looks like a number as number
 		if (Utils::isNumeric(c) || c == '-') {
-			reader.resetPeek();
 			Number n;
-			if (n.parse(reader, logger, delims)) {
+
+			// Fork the reader
+			utils::CharReaderFork fork = reader.fork();
+
+			// TODO: Fork logger
+
+			// Try to parse the number
+			if (n.parse(fork, logger, delims)) {
+				// Parsing was successful, advance the reader
+				fork.commit();
 				if (n.isInt()) {
 					return std::make_pair(
 					    true,
@@ -589,8 +597,6 @@ std::pair<bool, Variant> Reader::parseGeneric(
 				} else {
 					return std::make_pair(true, n.doubleValue());
 				}
-			} else {
-				return std::make_pair(false, n.doubleValue());
 			}
 		}
 

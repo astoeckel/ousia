@@ -253,7 +253,7 @@ TEST(Reader, parseArray)
 		ASSERT_TRUE(res.first);
 
 		// Make sure array has the correct size
-		ASSERT_EQ(7, res.second.size());
+		ASSERT_EQ(7U, res.second.size());
 
 		// Check the types
 		ASSERT_TRUE(res.second[0].isString());
@@ -280,7 +280,7 @@ TEST(Reader, parseArray)
 		ASSERT_TRUE(res.first);
 
 		// Make sure the array has the correct size
-		ASSERT_EQ(1, res.second.size());
+		ASSERT_EQ(1U, res.second.size());
 
 		// Check the types
 		ASSERT_TRUE(res.second[0].isString());
@@ -290,22 +290,23 @@ TEST(Reader, parseArray)
 	}
 
 	// Recovery from invalid values
-	// TODO: Actually parseGeneric should fall back to returning a simple string
-	// if parsing of a special (non-string) type failed
 	{
 		CharReader reader("[ 0invalidNumber, str, 1invalid]");
 		auto res = Reader::parseArray(reader, logger);
-		ASSERT_FALSE(res.first);
+		ASSERT_TRUE(res.first);
 
 		// Make sure the array has the correct size
-		ASSERT_EQ(3, res.second.size());
+		ASSERT_EQ(3U, res.second.size());
 
-		// Check the types (only for the valid entries, the other types are
-		// undefined)
+		// Check the types (all must be strings since the numbers are invalid)
+		ASSERT_TRUE(res.second[0].isString());
 		ASSERT_TRUE(res.second[1].isString());
+		ASSERT_TRUE(res.second[2].isString());
 
 		// Check the values
+		ASSERT_EQ("0invalidNumber", res.second[0].asString());
 		ASSERT_EQ("str", res.second[1].asString());
+		ASSERT_EQ("1invalid", res.second[2].asString());
 	}
 }
 
