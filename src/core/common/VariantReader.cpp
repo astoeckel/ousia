@@ -26,22 +26,48 @@
 
 namespace ousia {
 
-// TODO: Better error messages (like "Expected 'x' but got 'y'")
-// TODO: Replace delims with single char delim where possible
 // TODO: Use custom return value instead of std::pair
-// TODO: Allow buffered char reader to "fork"
-// TODO: Rename CharReader to shorter CharReader
-// TODO: Implement context in CharReader (to allow error messages to extract the
-// current line)
 
 /* Error Messages */
 
 static const char *ERR_UNEXPECTED_CHAR = "Unexpected character";
-static const char *ERR_UNEXPECTED_END = "Unexpected literal end";
+static const char *ERR_UNEXPECTED_END = "Unexpected end of literal";
 static const char *ERR_UNTERMINATED = "Unterminated literal";
 static const char *ERR_INVALID_ESCAPE = "Invalid escape sequence";
 static const char *ERR_INVALID_INTEGER = "Invalid integer value";
 static const char *ERR_TOO_LARGE = "Value too large to represent";
+
+template <class T>
+static std::pair<bool, T> error(CharReader &reader, Logger &logger,
+                                const std::string &err, T res)
+{
+	logger.error(err, reader);
+	return std::make_pair(false, std::move(res));
+}
+
+static std::string unexpectedMsg(const char *expected, const char got)
+{
+	std::stringstream ss;
+	ss << ERR_UNEXPECTED_CHAR << ": Expected " << expected << " but got \'"
+	   << got << "\'";
+	return ss.str();
+}
+
+static std::string invalidMsg(const char *invalidType,
+                              const std::string &invalidValue)
+{
+	std::stringstream ss;
+	ss << "Invalid " << invalidType << " \"" << invalidValue << "\"";
+	return ss.str();
+}
+
+template <class T>
+static std::pair<bool, T> unexpected(CharReader &reader, Logger &logger,
+                                     const char *expected, const char got,
+                                     T res)
+{
+	return error(reader, logger, unexpectedMsg(expected, got), res);
+}
 
 /* Class Number */
 
@@ -101,7 +127,7 @@ private:
 		// Check whether the given character is valid
 		int v = charValue(c);
 		if (v < 0 || v >= base) {
-			logger.error(ERR_UNEXPECTED_CHAR, reader);
+			logger.error(unexpectedMsg("digit", c), reader);
 			return false;
 		}
 
@@ -179,7 +205,7 @@ public:
 };
 
 bool Number::parse(CharReader &reader, Logger &logger,
-           const std::unordered_set<char> &delims)
+                   const std::unordered_set<char> &delims)
 {
 	State state = State::INIT;
 	char c;
@@ -203,7 +229,7 @@ bool Number::parse(CharReader &reader, Logger &logger,
 					case '-':
 						// Do not allow multiple minus signs
 						if (state == State::HAS_MINUS) {
-							logger.error(ERR_UNEXPECTED_CHAR, reader);
+							logger.error(unexpectedMsg("digit", c), reader);
 							return false;
 						}
 						state = State::HAS_MINUS;
@@ -259,7 +285,7 @@ bool Number::parse(CharReader &reader, Logger &logger,
 					case 'e':
 					case 'E':
 						if (state == State::LEADING_POINT) {
-							logger.error(ERR_UNEXPECTED_CHAR, reader);
+							logger.error(unexpectedMsg("digit", c), reader);
 							return false;
 						}
 						state = State::EXP_INIT;
@@ -276,7 +302,7 @@ bool Number::parse(CharReader &reader, Logger &logger,
 			case State::EXP_INIT:
 				if (c == '-') {
 					if (state == State::EXP_HAS_MINUS) {
-						logger.error(ERR_UNEXPECTED_CHAR, reader);
+						logger.error(unexpectedMsg("digit", c), reader);
 						return false;
 					}
 					state = State::EXP_HAS_MINUS;
@@ -299,36 +325,218 @@ bool Number::parse(CharReader &reader, Logger &logger,
 
 	// States in which ending is valid. Log an error in other states
 	if (state == State::LEADING_ZERO || state == State::HEX ||
-	    state == State::INT || state == State::POINT ||
-	    state == State::EXP) {
+	    state == State::INT || state == State::POINT || state == State::EXP) {
 		return true;
 	}
 	logger.error(ERR_UNEXPECTED_END, reader);
 	return false;
 }
 
-
-/* Class Reader */
+/* State machine states */
 
 static const int STATE_INIT = 0;
 static const int STATE_IN_STRING = 1;
-static const int STATE_IN_ARRAY = 2;
-static const int STATE_EXPECT_COMMA = 3;
+static const int STATE_IN_COMPLEX = 2;
 static const int STATE_ESCAPE = 4;
 static const int STATE_WHITESPACE = 5;
 static const int STATE_RESYNC = 6;
+static const int STATE_EXPECT_COMMA = 7;
+static const int STATE_HAS_KEY = 8;
 
-template <class T>
-static std::pair<bool, T> error(CharReader &reader, Logger &logger,
-                                const char *err, T res)
+/* Helper function for parsing arrays or objects */
+
+// TODO: Refactor this to own class
+
+enum class ComplexMode { ARRAY, OBJECT, BOTH };
+
+static std::string idxKey(size_t idx)
 {
-	logger.error(err, reader);
-	return std::make_pair(false, std::move(res));
+	return std::string{"#"} + std::to_string(idx);
 }
 
+static Variant parseComplexResult(Variant::mapType &objectResult,
+                                  Variant::arrayType &arrayResult, bool isArray,
+                                  ComplexMode mode)
+{
+	// If the result is an array, simply return an array variant
+	if (isArray && mode != ComplexMode::OBJECT) {
+		return Variant{arrayResult};
+	}
+
+	// Otherwise add missing array keys to the resulting map
+	for (size_t i = 0; i < arrayResult.size(); i++) {
+		objectResult.insert(std::make_pair(idxKey(i), arrayResult[i]));
+	}
+	return Variant{objectResult};
+}
+
+static std::pair<bool, Variant> parseComplex(CharReader &reader, Logger &logger,
+                                             char delim, ComplexMode mode)
+{
+	// Result for either objects or arrays
+	Variant::mapType objectResult;
+	Variant::arrayType arrayResult;
+
+	// Auxiliary state variables
+	bool hadError = false;
+	bool isArray = true;
+
+	// Determine the start state and set the actual delimiter
+	int state = delim ? STATE_IN_COMPLEX : STATE_INIT;
+	delim = delim ? delim : ']';
+
+	// Current array element index
+	size_t idx = 0;
+
+	// Current key value
+	Variant key;
+
+	// Consume all whitespace
+	reader.consumeWhitespace();
+
+	// Iterate over the characters, use the parseGeneric function to read the
+	// pairs
+	char c;
+	while (reader.peek(c)) {
+		// Generically handle the end of the array
+		if (state != STATE_INIT && c == delim) {
+			reader.consumePeek();
+
+			// Add final keys to the result
+			if (state == STATE_HAS_KEY) {
+				if (isArray) {
+					arrayResult.push_back(key);
+				} else {
+					objectResult.insert(std::make_pair(idxKey(idx), key));
+				}
+				key = nullptr;
+			}
+
+			return std::make_pair(
+			    !hadError,
+			    parseComplexResult(objectResult, arrayResult, isArray, mode));
+		} else if (Utils::isWhitespace(c)) {
+			reader.consumePeek();
+			continue;
+		}
+
+		switch (state) {
+			case STATE_INIT:
+				if (c != '[') {
+					return error(reader, logger, ERR_UNEXPECTED_CHAR,
+					             parseComplexResult(objectResult, arrayResult,
+					                                isArray, mode));
+				}
+				state = STATE_IN_COMPLEX;
+				reader.consumePeek();
+				break;
+			case STATE_IN_COMPLEX: {
+				// Try to read an element using the parseGeneric function
+				reader.resetPeek();
+				auto elem = VariantReader::parseGeneric(reader, logger,
+				                                        {',', '=', delim});
+
+				// If the reader had no error, expect an comma, otherwise skip
+				// to the next comma in the stream
+				if (elem.first) {
+					key = elem.second;
+					state = STATE_HAS_KEY;
+				} else {
+					state = STATE_RESYNC;
+					hadError = true;
+				}
+				break;
+			}
+			case STATE_HAS_KEY: {
+				// When finding an equals sign, read the value corresponding to
+				// the key
+				if (c == '=') {
+					// Abort if only arrays are allowed
+					if (mode == ComplexMode::ARRAY) {
+						logger.error(unexpectedMsg("\",\"", c), reader);
+						hadError = true;
+						state = STATE_RESYNC;
+						break;
+					}
+
+					// Make sure the key is a valid identifier, if not, issue
+					// an error
+					std::string keyString = key.toString();
+					if (!Utils::isIdentifier(keyString)) {
+						logger.error(invalidMsg("identifier", keyString),
+						             reader);
+						hadError = true;
+					}
+
+					// This no longer is an array
+					isArray = false;
+
+					// Consume the equals sign and parse the value
+					reader.consumePeek();
+					auto elem = VariantReader::parseGeneric(reader, logger,
+					                                        {',', delim});
+					if (elem.first) {
+						objectResult.insert(
+						    std::make_pair(keyString, elem.second));
+						idx++;
+					} else {
+						state = STATE_RESYNC;
+						hadError = true;
+						key = nullptr;
+						break;
+					}
+					state = STATE_EXPECT_COMMA;
+				} else if (c == ',') {
+					// Simply add the previously read value to the result
+					// array or the result object
+					if (isArray) {
+						arrayResult.push_back(key);
+					} else {
+						objectResult.insert(std::make_pair(idxKey(idx), key));
+					}
+					idx++;
+					state = STATE_IN_COMPLEX;
+					reader.consumePeek();
+				} else {
+					if (mode == ComplexMode::ARRAY) {
+						logger.error(unexpectedMsg("\",\"", c), reader);
+					} else {
+						logger.error(unexpectedMsg("\",\" or \"=\"", c),
+						             reader);
+					}
+					state = STATE_RESYNC;
+					hadError = true;
+				}
+				key = nullptr;
+				break;
+			}
+			case STATE_EXPECT_COMMA:
+				if (c == ',') {
+					state = STATE_IN_COMPLEX;
+				} else {
+					logger.error(unexpectedMsg("\",\"", c));
+					state = STATE_RESYNC;
+					hadError = true;
+				}
+				reader.consumePeek();
+				break;
+			case STATE_RESYNC:
+				// Just wait for another comma to arrive
+				if (c == ',') {
+					state = STATE_IN_COMPLEX;
+				}
+				reader.consumePeek();
+				break;
+		}
+	}
+	return error(reader, logger, ERR_UNEXPECTED_END,
+	             parseComplexResult(objectResult, arrayResult, isArray, mode));
+}
+
+/* Class Reader */
+
 std::pair<bool, std::string> VariantReader::parseString(
-    CharReader &reader, Logger &logger,
-    const std::unordered_set<char> *delims)
+    CharReader &reader, Logger &logger, const std::unordered_set<char> *delims)
 {
 	// Initialize the internal state
 	int state = STATE_INIT;
@@ -353,7 +561,7 @@ std::pair<bool, std::string> VariantReader::parseString(
 				} else if (delims && delims->count(c)) {
 					return error(reader, logger, ERR_UNEXPECTED_END, res.str());
 				}
-				return error(reader, logger, ERR_UNEXPECTED_CHAR, res.str());
+				return unexpected(reader, logger, "\" or \'", c, res.str());
 			case STATE_IN_STRING:
 				if (c == quote) {
 					reader.consumePeek();
@@ -424,77 +632,8 @@ std::pair<bool, std::string> VariantReader::parseString(
 	return error(reader, logger, ERR_UNEXPECTED_END, res.str());
 }
 
-std::pair<bool, Variant::arrayType> VariantReader::parseArray(
-    CharReader &reader, Logger &logger, char delim)
-{
-	Variant::arrayType res;
-	bool hadError = false;
-	int state = delim ? STATE_IN_ARRAY : STATE_INIT;
-	delim = delim ? delim : ']';
-	char c;
-
-	// Consume all whitespace
-	reader.consumeWhitespace();
-
-	// Iterate over the characters, use the parseGeneric function to read the
-	// pairs
-	while (reader.peek(c)) {
-		// Generically handle the end of the array
-		if (state != STATE_INIT && c == delim) {
-			reader.consumePeek();
-			return std::make_pair(!hadError, res);
-		}
-
-		switch (state) {
-			case STATE_INIT:
-				if (c != '[') {
-					return error(reader, logger, ERR_UNEXPECTED_CHAR, res);
-				}
-				state = STATE_IN_ARRAY;
-				reader.consumePeek();
-				break;
-			case STATE_IN_ARRAY: {
-				// Try to read an element using the parseGeneric function
-				reader.resetPeek();
-				auto elem = parseGeneric(reader, logger, {',', delim});
-				res.push_back(elem.second);
-
-				// If the reader had no error, expect an comma, otherwise skip
-				// to the next comma in the stream
-				if (elem.first) {
-					state = STATE_EXPECT_COMMA;
-				} else {
-					state = STATE_RESYNC;
-					hadError = true;
-				}
-				break;
-			}
-			case STATE_EXPECT_COMMA:
-				// Skip whitespace
-				if (c == ',') {
-					state = STATE_IN_ARRAY;
-				} else if (!Utils::isWhitespace(c)) {
-					hadError = true;
-					state = STATE_RESYNC;
-					logger.error(ERR_UNEXPECTED_CHAR, reader);
-				}
-				reader.consumePeek();
-				break;
-			case STATE_RESYNC:
-				// Just wait for another comma to arrive
-				if (c == ',') {
-					state = STATE_IN_ARRAY;
-				}
-				reader.consumePeek();
-				break;
-		}
-	}
-	return error(reader, logger, ERR_UNEXPECTED_END, res);
-}
-
 std::pair<bool, std::string> VariantReader::parseUnescapedString(
-    CharReader &reader, Logger &logger,
-    const std::unordered_set<char> &delims)
+    CharReader &reader, Logger &logger, const std::unordered_set<char> &delims)
 {
 	std::stringstream res;
 	std::stringstream buf;
@@ -530,8 +669,7 @@ std::pair<bool, std::string> VariantReader::parseUnescapedString(
 }
 
 std::pair<bool, int64_t> VariantReader::parseInteger(
-    CharReader &reader, Logger &logger,
-    const std::unordered_set<char> &delims)
+    CharReader &reader, Logger &logger, const std::unordered_set<char> &delims)
 {
 	Number n;
 	if (n.parse(reader, logger, delims)) {
@@ -547,79 +685,84 @@ std::pair<bool, int64_t> VariantReader::parseInteger(
 }
 
 std::pair<bool, double> VariantReader::parseDouble(
-    CharReader &reader, Logger &logger,
-    const std::unordered_set<char> &delims)
+    CharReader &reader, Logger &logger, const std::unordered_set<char> &delims)
 {
 	Number n;
 	bool res = n.parse(reader, logger, delims);
 	return std::make_pair(res, n.doubleValue());
 }
 
+std::pair<bool, Variant::arrayType> VariantReader::parseArray(
+    CharReader &reader, Logger &logger, char delim)
+{
+	auto res = parseComplex(reader, logger, delim, ComplexMode::ARRAY);
+	return std::make_pair(res.first, res.second.asArray());
+}
+
+std::pair<bool, Variant::mapType> VariantReader::parseObject(CharReader &reader,
+                                                             Logger &logger,
+                                                             char delim)
+{
+	auto res = parseComplex(reader, logger, delim, ComplexMode::OBJECT);
+	return std::make_pair(res.first, res.second.asMap());
+}
+
 std::pair<bool, Variant> VariantReader::parseGeneric(
-    CharReader &reader, Logger &logger,
-    const std::unordered_set<char> &delims)
+    CharReader &reader, Logger &logger, const std::unordered_set<char> &delims)
 {
 	char c;
 
-	// Skip all whitespace characters
+	// Skip all whitespace characters, read a character and abort if at the end
 	reader.consumeWhitespace();
-	while (reader.peek(c)) {
-		// Stop if a delimiter is reached
-		if (delims.count(c)) {
-			return error(reader, logger, ERR_UNEXPECTED_END, nullptr);
-		}
+	if (!reader.peek(c) || delims.count(c)) {
+		return error(reader, logger, ERR_UNEXPECTED_END, nullptr);
+	}
 
-		// Parse a string if a quote is reached
-		if (c == '"' || c == '\'') {
-			auto res = parseString(reader, logger);
-			return std::make_pair(res.first, res.second.c_str());
-		}
-
-		if (c == '[') {
-			// TODO: Parse struct descriptor
-		}
-
-		// Try to parse everything that looks like a number as number
-		if (Utils::isNumeric(c) || c == '-') {
-			Number n;
-
-			// Fork the reader
-			CharReaderFork fork = reader.fork();
-
-			// TODO: Fork logger
-
-			// Try to parse the number
-			if (n.parse(fork, logger, delims)) {
-				// Parsing was successful, advance the reader
-				fork.commit();
-				if (n.isInt()) {
-					return std::make_pair(
-					    true,
-					    Variant{static_cast<Variant::intType>(n.intValue())});
-				} else {
-					return std::make_pair(true, n.doubleValue());
-				}
-			}
-		}
-
-		// Parse an unescaped string in any other case
-		auto res = parseUnescapedString(reader, logger, delims);
-
-		// Handling for special primitive values
-		if (res.first) {
-			if (res.second == "true") {
-				return std::make_pair(true, Variant{true});
-			}
-			if (res.second == "false") {
-				return std::make_pair(true, Variant{false});
-			}
-			if (res.second == "null") {
-				return std::make_pair(true, Variant{nullptr});
-			}
-		}
+	// Parse a string if a quote is reached
+	if (c == '"' || c == '\'') {
+		auto res = parseString(reader, logger);
 		return std::make_pair(res.first, res.second.c_str());
 	}
-	return error(reader, logger, ERR_UNEXPECTED_END, nullptr);
+
+	// Try to parse everything that looks like a number as number
+	if (Utils::isNumeric(c) || c == '-') {
+		// Try to parse the number
+		Number n;
+		CharReaderFork readerFork = reader.fork();
+		LoggerFork loggerFork = logger.fork();
+		if (n.parse(readerFork, loggerFork, delims)) {
+			readerFork.commit();
+			loggerFork.commit();
+			if (n.isInt()) {
+				return std::make_pair(
+				    true, Variant{static_cast<Variant::intType>(n.intValue())});
+			} else {
+				return std::make_pair(true, n.doubleValue());
+			}
+		}
+	}
+
+	// Try to parse an object
+	if (c == '[') {
+		return parseComplex(reader, logger, 0, ComplexMode::BOTH);
+	}
+
+	// Parse an unescaped string in any other case
+	auto res = parseUnescapedString(reader, logger, delims);
+
+	// Handling for special primitive values
+	if (res.first) {
+		if (res.second == "true") {
+			return std::make_pair(true, Variant{true});
+		}
+		if (res.second == "false") {
+			return std::make_pair(true, Variant{false});
+		}
+		if (res.second == "null") {
+			return std::make_pair(true, Variant{nullptr});
+		}
+	}
+	return std::make_pair(res.first, res.second.c_str());
 }
 }
 

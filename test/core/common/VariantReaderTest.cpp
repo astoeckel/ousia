@@ -24,10 +24,10 @@
 namespace ousia {
 namespace variant {
 
-//static TerminalLogger logger{std::cerr, true};
-static Logger logger;
+static TerminalLogger logger{std::cerr, true};
+//static Logger logger;
 
-TEST(Reader, readString)
+TEST(VariantReader, readString)
 {
 	// Simple, double quoted string
 	{
@@ -62,7 +62,7 @@ TEST(Reader, readString)
 	}
 }
 
-TEST(Reader, parseUnescapedString)
+TEST(VariantReader, parseUnescapedString)
 {
 	// Simple case
 	{
@@ -99,7 +99,7 @@ TEST(Reader, parseUnescapedString)
 
 static const std::unordered_set<char> noDelim;
 
-TEST(Reader, parseInteger)
+TEST(VariantReader, parseInteger)
 {
 	// Valid integers
 	{
@@ -177,7 +177,7 @@ TEST(Reader, parseInteger)
 	}
 }
 
-TEST(Reader, parseDouble)
+TEST(VariantReader, parseDouble)
 {
 	// Valid doubles
 	{
@@ -243,7 +243,7 @@ TEST(Reader, parseDouble)
 	}
 }
 
-TEST(Reader, parseArray)
+TEST(VariantReader, parseArray)
 {
 	// Simple case (only primitive data types)
 	{
@@ -310,7 +310,124 @@ TEST(Reader, parseArray)
 	}
 }
 
-TEST(Reader, parseGeneric)
+TEST(VariantReader, parseObject)
+{
+	// Array as object
+	{
+		CharReader reader("[\"Hello, World\", unescaped\n string ,\n"
+			"1234, 0.56, true, false, null]");
+		auto res = VariantReader::parseObject(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		// Make sure the object has the correct size
+		ASSERT_EQ(7U, res.second.size());
+
+		// Check the types
+		ASSERT_TRUE(res.second["#0"].isString());
+		ASSERT_TRUE(res.second["#1"].isString());
+		ASSERT_TRUE(res.second["#2"].isInt());
+		ASSERT_TRUE(res.second["#3"].isDouble());
+		ASSERT_TRUE(res.second["#4"].isBool());
+		ASSERT_TRUE(res.second["#5"].isBool());
+		ASSERT_TRUE(res.second["#6"].isNull());
+
+		// Check the values
+		ASSERT_EQ("Hello, World", res.second["#0"].asString());
+		ASSERT_EQ("unescaped\n string", res.second["#1"].asString());
+		ASSERT_EQ(1234, res.second["#2"].asInt());
+		ASSERT_EQ(0.56, res.second["#3"].asDouble());
+		ASSERT_TRUE(res.second["#4"].asBool());
+		ASSERT_FALSE(res.second["#5"].asBool());
+	}
+
+	// Simple object
+	{
+		CharReader reader("[key1=foo, key2=bar]");
+		auto res = VariantReader::parseObject(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		// Make sure the object has the correct size
+		ASSERT_EQ(2U, res.second.size());
+
+		// Check the types
+		ASSERT_TRUE(res.second["key1"].isString());
+		ASSERT_TRUE(res.second["key2"].isString());
+
+		// Check the values
+		ASSERT_EQ("foo", res.second["key1"].asString());
+		ASSERT_EQ("bar", res.second["key2"].asString());
+	}
+
+	// Simple array/object interleaved
+	{
+		CharReader reader("[foo1, key1=foo, foo2, key2=bar, foo3]");
+		auto res = VariantReader::parseObject(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		// Make sure the object has the correct size
+		ASSERT_EQ(5U, res.second.size());
+
+		// Check the types
+		ASSERT_TRUE(res.second["key1"].isString());
+		ASSERT_TRUE(res.second["key2"].isString());
+		ASSERT_TRUE(res.second["#0"].isString());
+		ASSERT_TRUE(res.second["#2"].isString());
+		ASSERT_TRUE(res.second["#4"].isString());
+
+		// Check the values
+		ASSERT_EQ("foo", res.second["key1"].asString());
+		ASSERT_EQ("bar", res.second["key2"].asString());
+		ASSERT_EQ("foo1", res.second["#0"].asString());
+		ASSERT_EQ("foo2", res.second["#2"].asString());
+		ASSERT_EQ("foo3", res.second["#4"].asString());
+	}
+
+	// More complex array/object
+	{
+		CharReader reader("[key1=true, foo, key2=3.5]");
+		auto res = VariantReader::parseObject(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		// Make sure the object has the correct size
+		ASSERT_EQ(3U, res.second.size());
+
+		// Check the types
+		ASSERT_TRUE(res.second["key1"].isBool());
+		ASSERT_TRUE(res.second["key2"].isDouble());
+		ASSERT_TRUE(res.second["#1"].isString());
+
+		// Check the values
+		ASSERT_TRUE(res.second["key1"].asBool());
+		ASSERT_EQ(3.5, res.second["key2"].asDouble());
+		ASSERT_EQ("foo", res.second["#1"].asString());
+	}
+
+	// Even More complex array/object
+	{
+		CharReader reader("[\"key1\" = [4, 5, true, e=[1, 2, 3]], \"key2\"=[]]");
+		auto res = VariantReader::parseObject(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		// Make sure the object has the correct size
+		ASSERT_EQ(2U, res.second.size());
+
+		// Check the types
+		ASSERT_TRUE(res.second["key1"].isMap());
+		ASSERT_TRUE(res.second["key2"].isArray());
+
+		// Check the values
+		std::cout << res.second << std::endl;
+	}
+
+	// Invalid array/object
+	{
+		CharReader reader("[invalid key = bla]");
+		auto res = VariantReader::parseObject(reader, logger);
+		ASSERT_FALSE(res.first);
+	}
+}
+
+TEST(VariantReader, parseGeneric)
 {
 	// Simple case, unescaped string
 	{
