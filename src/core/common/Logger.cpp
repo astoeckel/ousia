@@ -118,6 +118,16 @@ public:
 		return ss.str();
 	}
 
+	std::string bright() const
+	{
+		if (!active) {
+			return std::string{};
+		}
+		std::stringstream ss;
+		ss << "\x1b[1m";
+		return ss.str();
+	}
+
 	std::string reset() const
 	{
 		if (!active) {
@@ -152,7 +162,7 @@ void TerminalLogger::processMessage(Message msg)
 	std::string filename = currentFilename();
 	bool hasFile = !filename.empty();
 	if (hasFile) {
-		os << t.color(Terminal::WHITE, true) << filename << t.reset();
+		os << t.bright() << filename << t.reset();
 	}
 
 	// Print line and column number
@@ -160,7 +170,7 @@ void TerminalLogger::processMessage(Message msg)
 		if (hasFile) {
 			os << ':';
 		}
-		os << t.color(Terminal::WHITE, true) << msg.pos.line << t.reset();
+		os << t.bright() << msg.pos.line << t.reset();
 		if (msg.pos.hasColumn()) {
 			os << ':' << msg.pos.column;
 		}

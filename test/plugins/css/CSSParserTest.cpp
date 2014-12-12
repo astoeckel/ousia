@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include <iostream>
 #include <sstream>
 
 #include <plugins/css/CSSParser.hpp>
@@ -130,7 +131,6 @@ TEST(CSSParser, testParseSelectors)
 
 TEST(CSSParser, testParseCSS)
 {
-
 	// create the CSS input
 	std::stringstream input;
 	input << "A, B A {\n";
@@ -203,7 +203,7 @@ TEST(CSSParser, testParseCSS)
 	Rooted<SelectorNode> Aselect = children[1];
 	ASSERT_EQ("A", Aselect->getName());
 	{
-		PseudoSelector select{"select",{"a","b"}, false};
+		PseudoSelector select{"select", {"a", "b"}, false};
 		ASSERT_EQ(select, Aselect->getPseudoSelector());
 	}
 	ASSERT_EQ(0, Aselect->getEdges().size());
@@ -225,7 +225,7 @@ TEST(CSSParser, testParseCSS)
 	 */
 	children = root->getChildren("B");
 	ASSERT_EQ(1, children.size());
-	
+
 	Rooted<SelectorNode> B = children[0];
 	ASSERT_EQ("B", B->getName());
 	{
@@ -235,10 +235,10 @@ TEST(CSSParser, testParseCSS)
 	ASSERT_EQ(1, B->getEdges().size());
 	ASSERT_FALSE(B->isAccepting());
 	ASSERT_EQ(0, B->getRuleSet()->getRules().size());
-	
+
 	children = B->getChildren("A");
 	ASSERT_EQ(1, children.size());
-	
+
 	Rooted<SelectorNode> BA = children[0];
 	ASSERT_EQ("A", BA->getName());
 	{
@@ -257,6 +257,43 @@ TEST(CSSParser, testParseCSS)
 		ASSERT_EQ(Variant::Type::STRING, v.getType());
 		ASSERT_EQ("val2", v.asString());
 	}
+}
+
+void assertException(std::string css)
+{
+	std::stringstream input;
+	input << css;
+	// initialize a parser context.
+	TerminalLogger logger(std::cerr, true);
+	Scope scope(nullptr);
+	Registry registry(logger);
+	Manager manager;
+	ParserContext ctx{scope, registry, logger, manager};
+
+	bool seenException = false;
+	// parse the input.
+	CSSParser instance;
+	try {
+		instance.parse(input, ctx).cast<SelectorNode>();
+	}
+	catch (ParserException ex) {
+		logger.log(ex);
+		seenException = true;
+	}
+	ASSERT_TRUE(seenException);
+}
+
+TEST(CSSParser, testParseExceptions)
+{
+	assertException(", ");
+	assertException("A::myGenerative , ");
+	assertException("A::(a)");
+	assertException("A::f()");
+	assertException("A#");
+	assertException("A[]");
+	assertException("A[a");
+	assertException("A[a=]");
+	assertException("A > ");
 }
 }
 }

@@ -72,7 +72,7 @@ TEST(TerminalLogger, log)
 		logger.log(ex);
 	}
 
-	logger.logAt(Severity::ERROR, "This is a positioned log message", pos);
+	logger.log(Severity::ERROR, "This is a positioned log message", pos);
 }
 
 TEST(TerminalLogger, fork)

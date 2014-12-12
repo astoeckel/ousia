@@ -257,7 +257,7 @@ public:
 	 * context information.
 	 */
 	template <class PosType>
-	void logAt(Severity severity, std::string msg, PosType &pos)
+	void log(Severity severity, std::string msg, PosType &pos)
 	{
 		log(severity, std::move(msg), pos.getPosition(), pos.getContext());
 	}
@@ -291,7 +291,7 @@ public:
 	void debug(std::string msg, PosType &pos)
 	{
 #ifndef NDEBUG
-		logAt(Severity::DEBUG, std::move(msg), pos);
+		log(Severity::DEBUG, std::move(msg), pos);
 #endif
 	}
 
@@ -319,7 +319,7 @@ public:
 	template <class PosType>
 	void note(std::string msg, PosType &pos)
 	{
-		logAt(Severity::NOTE, std::move(msg), pos);
+		log(Severity::NOTE, std::move(msg), pos);
 	}
 
 	/**
@@ -346,7 +346,7 @@ public:
 	template <class PosType>
 	void warning(std::string msg, PosType &pos)
 	{
-		logAt(Severity::WARNING, std::move(msg), pos);
+		log(Severity::WARNING, std::move(msg), pos);
 	}
 
 	/**
@@ -373,7 +373,7 @@ public:
 	template <class PosType>
 	void error(std::string msg, PosType &pos)
 	{
-		logAt(Severity::ERROR, std::move(msg), pos);
+		log(Severity::ERROR, std::move(msg), pos);
 	}
 
 	/**
@@ -401,7 +401,7 @@ public:
 	template <class PosType>
 	void fatalError(std::string msg, PosType &pos)
 	{
-		logAt(Severity::FATAL_ERROR, std::move(msg), pos);
+		log(Severity::FATAL_ERROR, std::move(msg), pos);
 	}
 
 	/**
