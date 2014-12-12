@@ -434,6 +434,24 @@ public:
 	bool isMap() const { return type == Type::MAP; }
 
 	/**
+	 * Checks whether this Variant instance is a primitive type.
+	 *
+	 * @return true if the Variant instance is a primitive type.
+	 */
+	bool isPrimitive() const { 
+		switch(type){
+			case Type::NULLPTR:
+			case Type::BOOL:
+			case Type::INT:
+			case Type::DOUBLE:
+			case Type::STRING:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	/**
 	 * Returns the Variant boolean value. Performs no type conversion. Throws an
 	 * exception if the underlying type is not a boolean.
 	 *

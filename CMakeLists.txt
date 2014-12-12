@@ -106,13 +106,13 @@ ADD_LIBRARY(ousia_core
 	src/core/Registry
 	src/core/ResourceLocator
 	src/core/Tokenizer
-#	src/core/Typesystem
 	src/core/common/CharReader
 	src/core/common/Exceptions
 	src/core/common/Logger
 	src/core/common/Utils
 	src/core/common/Variant
 	src/core/common/VariantReader
+	src/core/model/Typesystem
 	src/core/parser/Parser
 	src/core/parser/ParserStack
 	src/core/parser/Scope
