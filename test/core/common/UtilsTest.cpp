@@ -29,6 +29,7 @@ TEST(Utils, isIdentifier)
 	ASSERT_TRUE(Utils::isIdentifier("_t0-_EST"));
 	ASSERT_FALSE(Utils::isIdentifier("-t0-_EST"));
 	ASSERT_FALSE(Utils::isIdentifier("0t-_EST"));
+	ASSERT_FALSE(Utils::isIdentifier("invalid key"));
 }
 
 TEST(Utils, trim)

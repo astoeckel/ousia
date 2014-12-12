@@ -48,7 +48,7 @@ bool Utils::isIdentifier(const std::string &name)
 		if (first && !(isAlphabetic(c) || c == '_')) {
 			return false;
 		}
-		if (first && !(isAlphanumeric(c) || c == '_' || c == '-')) {
+		if (!first && !(isAlphanumeric(c) || c == '_' || c == '-')) {
 			return false;
 		}
 		first = false;
