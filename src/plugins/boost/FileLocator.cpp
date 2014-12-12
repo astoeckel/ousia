@@ -42,13 +42,20 @@ ResourceLocator::Location FileLocator::locate(const std::string &path,
                                               const Type type) const
 {
 	boost::filesystem::path base(relativeTo);
-	// use the / operator to append the path.
-	base /= path;
-	// if we already found a fitting resource there, use that.
 	if (boost::filesystem::exists(base)) {
-		std::string location =
-		    boost::filesystem::canonical(base).generic_string();
-		return ResourceLocator::Location(true, *this, type, location);
+		// look if 'relativeTo' is a directory already.
+		if (!boost::filesystem::is_directory(base)) {
+			// if not we use the parent directory.
+			base = base.parent_path();
+		}
+		// use the / operator to append the path.
+		base /= path;
+		// if we already found a fitting resource there, use that.
+		if (boost::filesystem::exists(base)) {
+			std::string location =
+			    boost::filesystem::canonical(base).generic_string();
+			return ResourceLocator::Location(true, *this, type, location);
+		}
 	}
 	// otherwise look in the search paths.
 	auto it = searchPaths.find(type);

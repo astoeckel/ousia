@@ -44,6 +44,8 @@ public:
 		SCRIPT,
 		// A Type System
 		TYPESYS,
+		DOCUMENT,
+		ATTRIBUTES,
 		// TODO: Aren't documents and attribute descriptors missing?
 		// TODO: What is the purpose of these two?
 		GENERIC_MODULE,
