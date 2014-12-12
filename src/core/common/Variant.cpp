@@ -138,9 +138,13 @@ Variant::stringType Variant::toString(bool escape) const
 			return std::to_string(asDouble());
 		case Type::STRING: {
 			// TODO: Use proper serialization function
-			std::stringstream ss;
-			ss << "\"" << asString() << "\"";
-			return ss.str();
+			if (escape) {
+				std::stringstream ss;
+				ss << "\"" << asString() << "\"";
+				return ss.str();
+			} else {
+				return asString();
+			}
 		}
 		case Type::ARRAY:
 			return Utils::join(asArray(), ", ", "[", "]");
