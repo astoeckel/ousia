@@ -16,8 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_MANAGED_CONTAINERS_H_
-#define _OUSIA_MANAGED_CONTAINERS_H_
+#ifndef _OUSIA_MANAGED_CONTAINER_H_
+#define _OUSIA_MANAGED_CONTAINER_H_
+
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <iostream>
+#include <map>
+#include <type_traits>
 
 #include "Managed.hpp"
 
@@ -380,5 +387,5 @@ public:
 };
 }
 
-#endif /* _OUSIA_MANAGED_CONTAINERS_H_ */
+#endif /* _OUSIA_MANAGED_CONTAINER_H_ */
 

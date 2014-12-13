@@ -16,10 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
-#include <queue>
-
 #include "Managed.hpp"
+#include "Manager.hpp"
 
 namespace ousia {
 
@@ -52,47 +50,12 @@ public:
 
 /* Class ObjectDescriptor */
 
-int ObjectDescriptor::refInCount() const
+bool Manager::ObjectDescriptor::hasInRef() const
 {
-	int res = 0;
-	for (const auto &e : refIn) {
-		res += e.second;
-	}
-	return res + rootRefCount;
+	return rootRefCount > 0 || !refIn.empty();
 }
 
-int ObjectDescriptor::refOutCount() const
-{
-	int res = 0;
-	for (const auto &e : refOut) {
-		res += e.second;
-	}
-	return res;
-}
-
-int ObjectDescriptor::refInCount(Managed *o) const
-{
-	if (o == nullptr) {
-		return rootRefCount;
-	}
-
-	const auto it = refIn.find(o);
-	if (it != refIn.cend()) {
-		return it->second;
-	}
-	return 0;
-}
-
-int ObjectDescriptor::refOutCount(Managed *o) const
-{
-	const auto it = refOut.find(o);
-	if (it != refOut.cend()) {
-		return it->second;
-	}
-	return 0;
-}
-
-void ObjectDescriptor::incrDegree(RefDir dir, Managed *o)
+void Manager::ObjectDescriptor::incrDegree(RefDir dir, Managed *o)
 {
 	// If the given Managed is null it refers to an input rooted reference
 	if (o == nullptr) {
@@ -112,7 +75,7 @@ void ObjectDescriptor::incrDegree(RefDir dir, Managed *o)
 	}
 }
 
-bool ObjectDescriptor::decrDegree(RefDir dir, Managed *o, bool all)
+bool Manager::ObjectDescriptor::decrDegree(RefDir dir, Managed *o, bool all)
 {
 	// If the given Managed is null it refers to an input rooted reference
 	if (o == nullptr) {
@@ -153,7 +116,8 @@ Manager::~Manager()
 	// All objects should have been deleted!
 	assert(objects.empty());
 
-	// Free all objects managed by the Managed manager (we'll get here if assertions
+	// Free all objects managed by the Managed manager (we'll get here if
+	// assertions
 	// are disabled)
 	if (!objects.empty()) {
 		ScopedIncrement incr{deletionRecursionDepth};
@@ -163,7 +127,7 @@ Manager::~Manager()
 	}
 }
 
-ObjectDescriptor *Manager::getDescriptor(Managed *o)
+Manager::ObjectDescriptor *Manager::getDescriptor(Managed *o)
 {
 	if (o) {
 		auto it = objects.find(o);
@@ -212,13 +176,15 @@ void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 
 	// Decrement the input degree of the input Managed
 	if (dTar && dTar->decrDegree(RefDir::IN, src, all)) {
-		// If the Managed has a zero in degree, it can be safely deleted, otherwise
+		// If the Managed has a zero in degree, it can be safely deleted,
+		// otherwise
 		// if it has no root reference, add it to the "marked" set which is
 		// subject to tracing garbage collection
-		if (dTar->refInCount() == 0) {
+		if (!dTar->hasInRef()) {
 			deleteObject(tar, dTar);
 		} else if (dTar->rootRefCount == 0) {
-			// Insert the Managed into the list of objects to be inspected by garbage
+			// Insert the Managed into the list of objects to be inspected by
+			// garbage
 			// collection
 			marked.insert(tar);
 		}
@@ -292,7 +258,8 @@ void Manager::sweep()
 	// Set containing objects which are reachable from a rooted Managed
 	std::unordered_set<Managed *> reachable;
 
-	// Deletion of objects may cause other objects to be added to the "marked" list
+	// Deletion of objects may cause other objects to be added to the "marked"
+	// list
 	// so we repeat this process until objects are no longer deleted
 	while (!marked.empty()) {
 		// Repeat until all objects in the "marked" list have been visited
@@ -333,7 +300,8 @@ void Manager::sweep()
 					Managed *srcManaged = src.first;
 
 					// Abort if the Managed already in the reachable list,
-					// otherwise add the Managed to the queue if it was not visited
+					// otherwise add the Managed to the queue if it was not
+					// visited
 					if (reachable.find(srcManaged) != reachable.end()) {
 						isReachable = true;
 						break;
@@ -362,3 +330,4 @@ void Manager::sweep()
 	}
 }
 }
+

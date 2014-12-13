@@ -22,7 +22,7 @@
 
 #include <gtest/gtest.h>
 
-#include <core/Managed.hpp>
+#include <core/managed/Managed.hpp>
 
 #include "TestManaged.hpp"
 
@@ -30,128 +30,171 @@ namespace ousia {
 
 /* Class ObjectDescriptor */
 
+class TestObjectDescriptor : public Manager::ObjectDescriptor {
+public:
+	int refInCount() const
+	{
+		int res = 0;
+		for (const auto &e : refIn) {
+			res += e.second;
+		}
+		return res + rootRefCount;
+	}
+
+	int refOutCount() const
+	{
+		int res = 0;
+		for (const auto &e : refOut) {
+			res += e.second;
+		}
+		return res;
+	}
+
+	int refInCount(Managed *o) const
+	{
+		if (o == nullptr) {
+			return rootRefCount;
+		}
+
+		const auto it = refIn.find(o);
+		if (it != refIn.cend()) {
+			return it->second;
+		}
+		return 0;
+	}
+
+	int refOutCount(Managed *o) const
+	{
+		const auto it = refOut.find(o);
+		if (it != refOut.cend()) {
+			return it->second;
+		}
+		return 0;
+	}
+};
+
 TEST(ObjectDescriptor, degree)
 {
 	// Do not use actual Managed in this test -- we don't want to test their
 	// behaviour
-	ObjectDescriptor nd;
+	TestObjectDescriptor nd;
 	Managed *n1 = reinterpret_cast<Managed *>(intptr_t{0x10});
 	Managed *n2 = reinterpret_cast<Managed *>(intptr_t{0x20});
 
 	// Input degree
-	ASSERT_EQ(0, nd.refIn.size());
+	ASSERT_EQ(0U, nd.refIn.size());
 	ASSERT_EQ(0, nd.refInCount(n1));
 
-	nd.incrDegree(RefDir::IN, n1);
+	nd.incrDegree(Manager::RefDir::IN, n1);
 	ASSERT_EQ(1, nd.refInCount());
 	ASSERT_EQ(1, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
-	ASSERT_EQ(1, nd.refIn.size());
+	ASSERT_EQ(1U, nd.refIn.size());
 
-	nd.incrDegree(RefDir::IN, n1);
+	nd.incrDegree(Manager::RefDir::IN, n1);
 	ASSERT_EQ(2, nd.refInCount());
 	ASSERT_EQ(2, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
-	ASSERT_EQ(1, nd.refIn.size());
+	ASSERT_EQ(1U, nd.refIn.size());
 
-	nd.incrDegree(RefDir::IN, n2);
+	nd.incrDegree(Manager::RefDir::IN, n2);
 	ASSERT_EQ(3, nd.refInCount());
 	ASSERT_EQ(2, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
-	ASSERT_EQ(2, nd.refIn.size());
+	ASSERT_EQ(2U, nd.refIn.size());
 
-	nd.incrDegree(RefDir::IN, nullptr);
+	nd.incrDegree(Manager::RefDir::IN, nullptr);
 	ASSERT_EQ(4, nd.refInCount());
 	ASSERT_EQ(2, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
-	ASSERT_EQ(2, nd.refIn.size());
+	ASSERT_EQ(2U, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::IN, n1));
+	ASSERT_TRUE(nd.decrDegree(Manager::RefDir::IN, n1));
 	ASSERT_EQ(3, nd.refInCount());
 	ASSERT_EQ(1, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
-	ASSERT_EQ(2, nd.refIn.size());
+	ASSERT_EQ(2U, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::IN, n1));
+	ASSERT_TRUE(nd.decrDegree(Manager::RefDir::IN, n1));
 	ASSERT_EQ(2, nd.refInCount());
 	ASSERT_EQ(0, nd.refInCount(n1));
 	ASSERT_EQ(1, nd.refInCount(n2));
-	ASSERT_EQ(1, nd.refIn.size());
+	ASSERT_EQ(1U, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::IN, n2));
+	ASSERT_TRUE(nd.decrDegree(Manager::RefDir::IN, n2));
 	ASSERT_EQ(1, nd.refInCount());
 	ASSERT_EQ(0, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
-	ASSERT_EQ(0, nd.refIn.size());
+	ASSERT_EQ(0U, nd.refIn.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::IN, nullptr));
+	ASSERT_TRUE(nd.decrDegree(Manager::RefDir::IN, nullptr));
 	ASSERT_EQ(0, nd.refInCount());
 	ASSERT_EQ(0, nd.refInCount(n1));
 	ASSERT_EQ(0, nd.refInCount(n2));
-	ASSERT_EQ(0, nd.refIn.size());
+	ASSERT_EQ(0U, nd.refIn.size());
 
 	// Output degree
-	ASSERT_EQ(0, nd.refOut.size());
+	ASSERT_EQ(0U, nd.refOut.size());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 
-	nd.incrDegree(RefDir::OUT, n1);
+	nd.incrDegree(Manager::RefDir::OUT, n1);
 	ASSERT_EQ(1, nd.refOutCount());
 	ASSERT_EQ(1, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
-	ASSERT_EQ(1, nd.refOut.size());
+	ASSERT_EQ(1U, nd.refOut.size());
 
-	nd.incrDegree(RefDir::OUT, n1);
+	nd.incrDegree(Manager::RefDir::OUT, n1);
 	ASSERT_EQ(2, nd.refOutCount());
 	ASSERT_EQ(2, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
-	ASSERT_EQ(1, nd.refOut.size());
+	ASSERT_EQ(1U, nd.refOut.size());
 
-	nd.incrDegree(RefDir::OUT, n2);
+	nd.incrDegree(Manager::RefDir::OUT, n2);
 	ASSERT_EQ(3, nd.refOutCount());
 	ASSERT_EQ(2, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
-	ASSERT_EQ(2, nd.refOut.size());
+	ASSERT_EQ(2U, nd.refOut.size());
 
-	nd.incrDegree(RefDir::OUT, nullptr);
+	nd.incrDegree(Manager::RefDir::OUT, nullptr);
 	ASSERT_EQ(3, nd.refOutCount());
 	ASSERT_EQ(2, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
-	ASSERT_EQ(2, nd.refOut.size());
+	ASSERT_EQ(2U, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::OUT, n1));
+	ASSERT_TRUE(nd.decrDegree(Manager::RefDir::OUT, n1));
 	ASSERT_EQ(2, nd.refOutCount());
 	ASSERT_EQ(1, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
-	ASSERT_EQ(2, nd.refOut.size());
+	ASSERT_EQ(2U, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::OUT, n1));
+	ASSERT_TRUE(nd.decrDegree(Manager::RefDir::OUT, n1));
 	ASSERT_EQ(1, nd.refOutCount());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 	ASSERT_EQ(1, nd.refOutCount(n2));
-	ASSERT_EQ(1, nd.refOut.size());
+	ASSERT_EQ(1U, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::OUT, n2));
+	ASSERT_TRUE(nd.decrDegree(Manager::RefDir::OUT, n2));
 	ASSERT_EQ(0, nd.refOutCount());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
-	ASSERT_EQ(0, nd.refOut.size());
+	ASSERT_EQ(0U, nd.refOut.size());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::OUT, nullptr));
+	ASSERT_TRUE(nd.decrDegree(Manager::RefDir::OUT, nullptr));
 	ASSERT_EQ(0, nd.refOutCount());
 	ASSERT_EQ(0, nd.refOutCount(n1));
 	ASSERT_EQ(0, nd.refOutCount(n2));
-	ASSERT_EQ(0, nd.refOut.size());
+	ASSERT_EQ(0U, nd.refOut.size());
 }
 
 TEST(ObjectDescriptor, rootRefCount)
 {
-	ObjectDescriptor nd;
+	TestObjectDescriptor nd;
 	ASSERT_EQ(0, nd.rootRefCount);
 
-	nd.incrDegree(RefDir::IN, nullptr);
+	nd.incrDegree(Manager::RefDir::IN, nullptr);
 	ASSERT_EQ(1, nd.rootRefCount);
 
-	nd.incrDegree(RefDir::OUT, nullptr);
+	nd.incrDegree(Manager::RefDir::OUT, nullptr);
 	ASSERT_EQ(2, nd.rootRefCount);
 
 	ASSERT_EQ(2, nd.refInCount(nullptr));
@@ -159,13 +202,13 @@ TEST(ObjectDescriptor, rootRefCount)
 	ASSERT_EQ(0, nd.refOutCount(nullptr));
 	ASSERT_EQ(0, nd.refOutCount());
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::OUT, nullptr));
+	ASSERT_TRUE(nd.decrDegree(Manager::RefDir::OUT, nullptr));
 	ASSERT_EQ(1, nd.rootRefCount);
 
-	ASSERT_TRUE(nd.decrDegree(RefDir::IN, nullptr));
+	ASSERT_TRUE(nd.decrDegree(Manager::RefDir::IN, nullptr));
 	ASSERT_EQ(0, nd.rootRefCount);
 
-	ASSERT_FALSE(nd.decrDegree(RefDir::IN, nullptr));
+	ASSERT_FALSE(nd.decrDegree(Manager::RefDir::IN, nullptr));
 	ASSERT_EQ(0, nd.rootRefCount);
 }
 
@@ -436,7 +479,7 @@ TEST(Manager, disconnectDoubleRootedSubgraph)
 }
 
 Rooted<TestManaged> createFullyConnectedGraph(Manager &mgr, int nElem,
-                                             bool alive[])
+                                              bool alive[])
 {
 	std::vector<Rooted<TestManaged>> nodes;
 
@@ -474,18 +517,13 @@ TEST(Manager, fullyConnectedGraph)
 }
 
 class HidingTestManaged : public TestManaged {
-
 private:
 	Rooted<Managed> hidden;
 
 public:
+	HidingTestManaged(Manager &mgr, bool &alive) : TestManaged(mgr, alive){};
 
-	HidingTestManaged(Manager &mgr, bool &alive) : TestManaged(mgr, alive) {};
-
-	void setHiddenRef(Handle<Managed> t) {
-		hidden = t;
-	}
-
+	void setHiddenRef(Handle<Managed> t) { hidden = t; }
 };
 
 TEST(Manager, hiddenRootedGraph)
@@ -510,6 +548,5 @@ TEST(Manager, hiddenRootedGraph)
 		ASSERT_FALSE(v);
 	}
 }
-
 }
 

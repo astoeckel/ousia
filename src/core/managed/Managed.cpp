@@ -16,47 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _TEST_MANAGED_H_
-#define _TEST_MANAGED_H_
+#include <cassert>
+#include <queue>
 
-#include <core/Managed.hpp>
+#include "Managed.hpp"
 
 namespace ousia {
 
-class TestManaged : public Managed {
-private:
-	bool &alive;
-
-	std::vector<Owned<Managed>> refs;
-
-public:
-	TestManaged(Manager &mgr, bool &alive) : Managed(mgr), alive(alive)
-	{
-		//std::cout << "create TestManaged @" << this << std::endl;
-		alive = true;
-	}
-
-	~TestManaged() override
-	{
-		//std::cout << "delete TestManaged @" << this << std::endl;
-		alive = false;
-	}
-
-	void addRef(Handle<Managed> h) { refs.push_back(acquire(h)); }
-
-	void deleteRef(Handle<Managed> h)
-	{
-		for (auto it = refs.begin(); it != refs.end();) {
-			if (*it == h) {
-				it = refs.erase(it);
-			} else {
-				it++;
-			}
-		}
-	}
-};
 
 }
-
-#endif /* _TEST_MANAGED_H_ */
-

@@ -20,8 +20,8 @@
 
 #include <gtest/gtest.h>
 
-#include <core/Managed.hpp>
-#include <core/ManagedContainers.hpp>
+#include <core/managed/Managed.hpp>
+#include <core/managed/ManagedContainer.hpp>
 
 #include "TestManaged.hpp"
 
