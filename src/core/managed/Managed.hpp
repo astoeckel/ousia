@@ -64,7 +64,7 @@ public:
 	/**
 	 * Virtual destuctor which may be overwritten by child classes.
 	 */
-	virtual ~Managed(){};
+	virtual ~Managed(){ mgr.unmanage(this); };
 
 	/**
 	 * Returns a reference ot the manager instance which owns this managed
@@ -112,6 +112,14 @@ public:
 		}
 		return res;
 	}
+
+	void storeData(const std::string &key, Handle<Managed> h);
+
+	bool hasDataKey(const std::string &key);
+
+	Rooted<Managed> readData(const std::string &key);
+
+	bool deleteData(const std::string &key);
 };
 
 /**
@@ -497,6 +505,24 @@ public:
 	 */
 	Managed *getOwner() const { return owner; }
 };
+
+
+inline void Managed::storeData(const std::string &key, Handle<Managed> h) {
+	mgr.storeData(this, key, h.get());
+}
+
+inline bool Managed::hasDataKey(const std::string &key)
+{
+	return mgr.readData(this, key) != nullptr;
+}
+
+inline Rooted<Managed> Managed::readData(const std::string &key) {
+	return mgr.readData(this, key);
+}
+
+inline bool Managed::deleteData(const std::string &key) {
+	return mgr.deleteData(this, key);
+}
 
 }
 

@@ -27,8 +27,9 @@
 #ifndef _OUSIA_MANAGER_HPP_
 #define _OUSIA_MANAGER_HPP_
 
-#include <cassert>
+#include <cstdint>
 #include <map>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -39,6 +40,12 @@ namespace ousia {
 // Forward declaration
 class Managed;
 
+/**
+ * The Manager class implements tracing garbage collection. Garbage Collection
+ * is implemented as a simple directed reference graph with connected component
+ * detection. Garbage collection is performed whenever the number of objects
+ * marked as "probably unreachable" surpasses a certain threshold.
+ */
 class Manager {
 public:
 	/**
@@ -126,7 +133,6 @@ private:
 	 */
 	static constexpr size_t SWEEP_THRESHOLD = 128;
 
-protected:
 	/**
 	 * Threshold that defines the minimum number of entries in the "marked"
 	 * set until "sweep" is called.
@@ -148,6 +154,16 @@ protected:
 	 * Set containing objects marked for deletion.
 	 */
 	std::unordered_set<Managed *> deleted;
+
+	/**
+	 * Map storing the data attached to managed objects.
+	 */
+	std::unordered_map<Managed *, std::map<std::string, Managed *>> store;
+
+	/**
+	 * Map for storing the tagged memory regions.
+	 */
+	std::map<uintptr_t, std::pair<uintptr_t, void*>> tags;
 
 	/**
 	 * Recursion depth while performing deletion. This variable is needed
@@ -207,7 +223,8 @@ public:
 	/**
 	 * Registers an object for being managed by the Manager. The Manager now has
 	 * the sole responsibility for freeing the managed object. Under no
-	 * circumstances free the object manually, this will result in double frees.
+	 * circumstances free the object manually as long as other Managed objects
+	 * still hold references to it.
 	 *
 	 * @param o is the object which is registered for being used with the
 	 * Manager.
@@ -243,6 +260,70 @@ public:
 	 * Performs garbage collection.
 	 */
 	void sweep();
+
+	/**
+	 * Registers some arbitrary data (in form of a Managed object) for the
+	 * given reference Managed object under a certain (string) key. Overrides
+	 * references to existing data for that key.
+	 *
+	 * @param ref is the Managed object for which the data should be stored.
+	 * @param key is the key under which the data should be stored.
+	 * @param data is a reference to Managed object containing the data that
+	 * should be stored.
+	 */
+	void storeData(Managed *ref, const std::string &key, Managed *data);
+
+	/**
+	 * Returns the arbitrary data stored for the given reference managed object.
+	 *
+	 * @param ref is the Managed object for which the data should be stored.
+	 * @param key is the key for which the data should be retrieved.
+	 * @return a reference to the associated data with the given key.
+	 */
+	Managed *readData(Managed *ref, const std::string &key) const;
+
+	/**
+	 * Returns a const reference to a map containing all keys and the associated
+	 * data objects.
+	 *
+	 * @param ref is the Managed object for which the data should be stored.
+	 * @return a reference to the internal map from keys to managed objects.
+	 */
+	std::map<std::string, Managed *> readData(Managed *ref) const;
+
+	/**
+	 * Deletes the data stored for the given object with the given key.
+	 *
+	 * @param ref is the Managed object for which the data should be stored.
+	 * @param key is the key for which the data should be retrieved.
+	 * @return true if data for this key was deleted, false otherwise.
+	 */
+	bool deleteData(Managed *ref, const std::string &key);
+
+	/**
+	 * Stores a tag for the given memory region. May not overlap with another
+	 * memory region.
+	 *
+	 * @param tag is user defined data that should be stored.
+	 * @param pStart marks the beginning of the memory region (inclusive),
+	 * @param pEnd is the end of the memory region (not inclusive).
+	 */
+	void tagMemoryRegion(void *tag, void *pStart, void *pEnd);
+
+	/**
+	 * Removes the tag from the given memory region. May be a part of a
+	 * previously tagged region.
+	 */
+	void untagMemoryRegion(void *pStart, void *pEnd);
+
+	/**
+	 * Returns the tag for the given pointer or nullptr if no tag is set.
+	 *
+	 * @param p is the pointer for which the tag should be queried.
+	 * @return the associated tag or nullptr if p points at a memory region for
+	 * which no tag is set.
+	 */
+	void* memoryRegionTag(void *p);
 };
 }
 

@@ -31,8 +31,8 @@
 namespace ousia {
 
 /**
- * Template class which can be used to collect "Owned" refrences to a certain
- * type of managed object. Do not use this class directly, use ManagedMap or
+ * Template class which can be used to collect refrences to a certain type of
+ * managed objects. Do not use this class directly, use ManagedMap or
  * ManagedVector instead. This class only provides functionality which is common
  * to list and map containers (iterators and state).
  *
@@ -40,7 +40,7 @@ namespace ousia {
  * @param Collection should be a STL container of Owned<T>
  */
 template <class T, class Collection>
-class ManagedContainer {
+class ManagedContainer : Managed {
 public:
 	using collection_type = Collection;
 	using value_type = typename collection_type::value_type;
@@ -81,7 +81,12 @@ public:
 	 * @param owner is the managed object which owns the collection and all
 	 * handles to other managed objects stored within.
 	 */
-	ManagedContainer(Handle<Managed> owner) : owner(owner){};
+	ManagedContainer(Handle<Managed> owner) : Managed(owner->getManager), owner(owner){};
+
+	/**
+	 * Destructor of the ManagedContainer class.
+	 */
+	virtual ~ManagedContainer() {};
 
 	/* State functions */
 	size_type size() const noexcept { return c.size(); }

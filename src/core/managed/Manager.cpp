@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cassert>
+
 #include "Managed.hpp"
 #include "Manager.hpp"
 
@@ -48,7 +50,7 @@ public:
 	~ScopedIncrement() { i--; }
 };
 
-/* Class ObjectDescriptor */
+/* Class Manager::ObjectDescriptor */
 
 bool Manager::ObjectDescriptor::hasInRef() const
 {
@@ -127,6 +129,8 @@ Manager::~Manager()
 	}
 }
 
+/* Class Manager: Garbage collection */
+
 Manager::ObjectDescriptor *Manager::getDescriptor(Managed *o)
 {
 	if (o) {
@@ -145,6 +149,11 @@ void Manager::manage(Managed *o)
 
 void Manager::addRef(Managed *tar, Managed *src)
 {
+	// Make sure the source and target manager are the same
+	if (src) {
+		assert(&tar->getManager() == &src->getManager());
+	}
+
 	// Fetch the Managed descriptors for the two objects
 	ObjectDescriptor *dTar = getDescriptor(tar);
 	ObjectDescriptor *dSrc = getDescriptor(src);
@@ -165,6 +174,11 @@ void Manager::addRef(Managed *tar, Managed *src)
 
 void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 {
+	// Make sure the source and target manager are the same
+	if (src) {
+		assert(&tar->getManager() == &src->getManager());
+	}
+
 	// Fetch the Managed descriptors for the two objects
 	ObjectDescriptor *dTar = getDescriptor(tar);
 	ObjectDescriptor *dSrc = getDescriptor(src);
@@ -177,9 +191,8 @@ void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 	// Decrement the input degree of the input Managed
 	if (dTar && dTar->decrDegree(RefDir::IN, src, all)) {
 		// If the Managed has a zero in degree, it can be safely deleted,
-		// otherwise
-		// if it has no root reference, add it to the "marked" set which is
-		// subject to tracing garbage collection
+		// otherwise if it has no root reference, add it to the "marked" set
+		// which is subject to tracing garbage collection
 		if (!dTar->hasInRef()) {
 			deleteObject(tar, dTar);
 		} else if (dTar->rootRefCount == 0) {
@@ -205,14 +218,16 @@ void Manager::deleteObject(Managed *o, ObjectDescriptor *descr)
 	}
 
 	// Increment the recursion depth counter. The "deleteRef" function called
-	// below
-	// may descend further into this function and the actual deletion should be
-	// done in a single step.
+	// below may descend further into this function and the actual deletion
+	// should be done in a single step.
 	{
 		ScopedIncrement incr{deletionRecursionDepth};
 
 		// Add the Managed to the "deleted" set
 		deleted.insert(o);
+
+		// Remove the data store entry
+		store.erase(o);
 
 		// Remove all output references of this Managed
 		while (!descr->refOut.empty()) {
@@ -329,5 +344,137 @@ void Manager::sweep()
 		purgeDeleted();
 	}
 }
+
+/* Class Manager: Attached data */
+
+void Manager::storeData(Managed *ref, const std::string &key, Managed *data)
+{
+	// Add the new reference from the reference object to the data object
+	addRef(data, ref);
+
+	// Make sure a data map for the given reference object exists
+	auto &map = store.emplace(ref, std::map<std::string, Managed *>{}).first->second;
+
+	// Insert the given data for the key, decrement the references if
+	auto it = map.find(key);
+	if (it == map.end()) {
+		map.insert(it, std::make_pair(key, data));
+	} else {
+		// Do nothing if the same data is stored
+		if (it->second == data) {
+			return;
+		}
+
+		// Delete the reference from "ref" to the previously stored element.
+		deleteRef(it->second, ref);
+
+		// Insert a new reference and add the element to the map
+		map.insert(map.erase(it), std::make_pair(key, data));
+	}
+}
+
+Managed *Manager::readData(Managed *ref, const std::string &key) const
+{
+	// Try to find the reference element in the store
+	auto storeIt = store.find(ref);
+	if (storeIt != store.end()) {
+		// Try to find the key in the map for the element
+		auto &map = storeIt->second;
+		auto mapIt = map.find(key);
+		if (mapIt != map.end()) {
+			return mapIt->second;
+		}
+	}
+	return nullptr;
+}
+
+std::map<std::string, Managed *> Manager::readData(Managed *ref) const
+{
+	// Try to find the map for the given reference element and return it
+	auto storeIt = store.find(ref);
+	if (storeIt != store.end()) {
+		return storeIt->second;
+	}
+	return std::map<std::string, Managed *>{};
+}
+
+bool Manager::deleteData(Managed *ref, const std::string &key)
+{
+	// Find the reference element in the store
+	auto storeIt = store.find(ref);
+	if (storeIt != store.end()) {
+		// Delete the key from the data map
+		auto &map = storeIt->second;
+		auto mapIt = map.find(key);
+		if (mapIt != map.end()) {
+			// Delete the reference from "ref" to the previously stored element
+			deleteRef(mapIt->second, ref);
+
+			// Remove the element from the list
+			map.erase(mapIt);
+
+			return true;
+		}
+	}
+	return false;
+}
+
+/* Class Manager: Tagged Memory */
+
+void Manager::tagMemoryRegion(void *tag, void *pStart, void *pEnd)
+{
+	// Convert start and end to integers
+	uintptr_t s1 = reinterpret_cast<uintptr_t>(pStart);
+	uintptr_t e1 = reinterpret_cast<uintptr_t>(pEnd);
+
+#ifndef NDEBUG
+	// Make sure the same memory region is not tagged multiple times
+	const auto itStart = tags.lower_bound(s1);
+	const auto itEnd = tags.upper_bound(e1);
+	for (auto it = itStart; it != itEnd; it++) {
+		uintptr_t s2 = it->first;
+		uintptr_t e2 = it->second.first;
+		assert(!((s2 >= s1 && s2 < e1) || (e2 >= s1 && e2 < e1)));
+	}
+#endif
+
+	// Insert the new region
+	tags.emplace(s1, std::make_pair(e1, tag));
+}
+
+void Manager::untagMemoryRegion(void *pStart, void *pEnd)
+{
+	// Convert start and end to integers
+	uintptr_t s1 = reinterpret_cast<uintptr_t>(pStart);
+	uintptr_t e1 = reinterpret_cast<uintptr_t>(pEnd);
+
+	auto itStart = tags.lower_bound(s1);
+	auto itEnd = tags.upper_bound(e1);
+	for (auto it = itStart; it != itEnd;) {
+		// Copy the data of the element
+		uintptr_t s2 = it->first;
+		uintptr_t e2 = it->second.first;
+		void* tag = it->second.second;
+
+		// Remove the element from the map as we need to modify it
+		it = tags.erase(it);
+		if (s1 <= s2 && e1 >= e2) {
+			// Remove completely covered elements
+			continue;
+		}
+		if (s1 > s2) {
+			// Insert s1-s2 section
+			it = tags.emplace(s2, std::make_pair(s1, tag)).first;
+		}
+		if (e1 < e2) {
+			// Insert e1-e2 section
+			it = tags.emplace(e1, std::make_pair(e2, tag)).first;
+		}
+
+		// Go to the next element
+		it++;
+	}
+}
+
 }
 
