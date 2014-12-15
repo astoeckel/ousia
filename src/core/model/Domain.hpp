@@ -85,6 +85,8 @@
 #include <core/ManagedContainers.hpp>
 #include <core/Node.hpp>
 
+#include "Typesystem.hpp"
+
 namespace ousia {
 namespace model {
 
@@ -156,6 +158,7 @@ public:
 	FieldDescriptor(Manager &mgr, std::string name, Handle<Descriptor> parent,
 	                Handle<Type> primitiveType, bool optional)
 	    : Node(mgr, std::move(name), parent),
+	      children(this),
 	      fieldType(FieldType::PRIMITIVE),
 	      primitiveType(acquire(primitiveType)),
 	      optional(optional)
@@ -170,7 +173,7 @@ public:
 	 * @param name          is the name of this field.
 	 * @param parent        is a handle of the Descriptor node that has this
 	 *                      FieldDescriptor.
-	 * @param type          is the FieldType of this FieldDescriptor, either
+	 * @param fieldType     is the FieldType of this FieldDescriptor, either
 	 *                      TREE for the main or default structure or SUBTREE
 	 *                      for supporting structures.
 	 * @param optional      should be set to 'false' is this field needs to be
@@ -178,22 +181,22 @@ public:
 	 *                      Descriptor to be valid.
 	 */
 	FieldDescriptor(Manager &mgr, std::string name, Handle<Descriptor> parent,
-	                FieldType type, ManagedVector<StructuredClass> children,
-	                bool optional)
+	                FieldType fieldType,
+	                ManagedVector<StructuredClass> children, bool optional)
 	    : Node(mgr, std::move(name), parent),
-	      fieldType(type),
 	      children(children),
+	      fieldType(fieldType),
+	      // TODO: What would be a wise initialization of the primitiveType?
 	      optional(optional)
-	// TODO: What would be a wise initialization of the primitiveType?
 	{
 	}
 
 	// TODO: Is returning a ManagedVector alright?
 	ManagedVector<StructuredClass> &getChildren() { return children; }
 
-	FieldType getFieldType() const { return type; }
+	FieldType getFieldType() const { return fieldType; }
 
-	bool isPrimitive() const { return type == FieldType::PRIMITIVE; }
+	bool isPrimitive() const { return fieldType == FieldType::PRIMITIVE; }
 
 	Rooted<Type> getPrimitiveType() const { return primitiveType; }
 };
@@ -255,7 +258,7 @@ public:
 
 // TODO: Implement
 class Cardinality {
-}
+};
 
 /**
  * A StructuredClass specifies nodes in the StructureTree of a document that
@@ -342,23 +345,71 @@ public:
 	const bool transparent;
 
 	StructuredClass(Manager &mgr, std::string name, Handle<Node> parent,
-	                const Cardinality cardinality &,
-	                // TODO: Wha would be a wise default value for isa?
+	                Handle<StructType> attributesDescriptor,
+	                ManagedVector<FieldDescriptor> fieldDescriptors,
+	                const Cardinality &cardinality,
+	                // TODO: What would be a wise default value for isa?
 	                Handle<StructuredClass> isa,
-	                ManagedVector<FieldDescriptor> parents)
-	    : Node(mgr, std::move(name), parent),
+	                ManagedVector<FieldDescriptor> parents,
+	                bool transparent)
+	    : Descriptor(mgr, std::move(name), parent, attributesDescriptor,
+	                 fieldDescriptors),
 	      cardinality(cardinality),
 	      isa(acquire(isa)),
-	      parents(parents)
+	      parents(parents),
+	      transparent(transparent)
 	{
 	}
 
 	const Cardinality &getCardinality() const { return cardinality; }
 
-	Rooted<StructuredClass> getIsA() const {return isa};
+	Rooted<StructuredClass> getIsA() const {return isa;}
 
 	// TODO: Is returning a ManagedVector alright?
 	ManagedVector<FieldDescriptor> getParents() { return parents; }
+};
+
+/**
+ * An AnnotationClass defines allowed Annotations. For more information on
+ * Annotations please refer to the Document.hpp.
+ *
+ * This class has no special properties and is in essence just a Descriptor.
+ */
+class AnnotationClass : public Descriptor {
+};
+
+/**
+ * A Domain node specifies which StructuredClasses are allowed at the root
+ * level (or which Nonterminals are axioms of the grammar) and which Annotations
+ * are allowed globally. TODO: Do we want to be able to restrict Annotations to
+ * certain Structures?
+ */
+class Domain : public Node {
+private:
+	ManagedVector<StructuredClass> rootStructures;
+	ManagedVector<AnnotationClass> annotationClasses;
+
+public:
+	Domain(Manager &mgr, std::string name,
+	                ManagedVector<StructuredClass> rootStructures,
+	                ManagedVector<AnnotationClass> annotationClasses)
+	    // TODO: Can a domain have a parent?
+	    : Node(mgr, std::move(name), nullptr),
+	      rootStructures(rootStructures),
+	      annotationClasses(annotationClasses)
+	{
+	}
+
+	// TODO: Is returning a ManagedVector alright?
+	ManagedVector<StructuredClass> getRootStructures()
+	{
+		return rootStructures;
+	}
+
+	ManagedVector<AnnotationClass> getAnnotationClasses()
+	{
+		return annotationClasses;
+	}
 };
 }
 }

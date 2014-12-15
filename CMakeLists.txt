@@ -112,7 +112,7 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Utils
 	src/core/common/Variant
 	src/core/common/VariantReader
-#	src/core/model/Domain
+	src/core/model/Domain
 	src/core/model/Typesystem
 	src/core/parser/Parser
 	src/core/parser/ParserStack
