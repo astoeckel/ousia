@@ -174,11 +174,6 @@ void Manager::addRef(Managed *tar, Managed *src)
 
 void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 {
-	// Make sure the source and target manager are the same
-	if (src) {
-		assert(&tar->getManager() == &src->getManager());
-	}
-
 	// Fetch the Managed descriptors for the two objects
 	ObjectDescriptor *dTar = getDescriptor(tar);
 	ObjectDescriptor *dSrc = getDescriptor(src);
@@ -417,63 +412,6 @@ bool Manager::deleteData(Managed *ref, const std::string &key)
 		}
 	}
 	return false;
-}
-
-/* Class Manager: Tagged Memory */
-
-void Manager::tagMemoryRegion(void *tag, void *pStart, void *pEnd)
-{
-	// Convert start and end to integers
-	uintptr_t s1 = reinterpret_cast<uintptr_t>(pStart);
-	uintptr_t e1 = reinterpret_cast<uintptr_t>(pEnd);
-
-#ifndef NDEBUG
-	// Make sure the same memory region is not tagged multiple times
-	const auto itStart = tags.lower_bound(s1);
-	const auto itEnd = tags.upper_bound(e1);
-	for (auto it = itStart; it != itEnd; it++) {
-		uintptr_t s2 = it->first;
-		uintptr_t e2 = it->second.first;
-		assert(!((s2 >= s1 && s2 < e1) || (e2 >= s1 && e2 < e1)));
-	}
-#endif
-
-	// Insert the new region
-	tags.emplace(s1, std::make_pair(e1, tag));
-}
-
-void Manager::untagMemoryRegion(void *pStart, void *pEnd)
-{
-	// Convert start and end to integers
-	uintptr_t s1 = reinterpret_cast<uintptr_t>(pStart);
-	uintptr_t e1 = reinterpret_cast<uintptr_t>(pEnd);
-
-	auto itStart = tags.lower_bound(s1);
-	auto itEnd = tags.upper_bound(e1);
-	for (auto it = itStart; it != itEnd;) {
-		// Copy the data of the element
-		uintptr_t s2 = it->first;
-		uintptr_t e2 = it->second.first;
-		void* tag = it->second.second;
-
-		// Remove the element from the map as we need to modify it
-		it = tags.erase(it);
-		if (s1 <= s2 && e1 >= e2) {
-			// Remove completely covered elements
-			continue;
-		}
-		if (s1 > s2) {
-			// Insert s1-s2 section
-			it = tags.emplace(s2, std::make_pair(s1, tag)).first;
-		}
-		if (e1 < e2) {
-			// Insert e1-e2 section
-			it = tags.emplace(e1, std::make_pair(e2, tag)).first;
-		}
-
-		// Go to the next element
-		it++;
-	}
 }
 
 }

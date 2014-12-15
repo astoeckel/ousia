@@ -64,7 +64,7 @@ public:
 	/**
 	 * Virtual destuctor which may be overwritten by child classes.
 	 */
-	virtual ~Managed(){ mgr.unmanage(this); };
+	virtual ~Managed(){};
 
 	/**
 	 * Returns a reference ot the manager instance which owns this managed

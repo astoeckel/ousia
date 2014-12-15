@@ -299,31 +299,6 @@ public:
 	 * @return true if data for this key was deleted, false otherwise.
 	 */
 	bool deleteData(Managed *ref, const std::string &key);
-
-	/**
-	 * Stores a tag for the given memory region. May not overlap with another
-	 * memory region.
-	 *
-	 * @param tag is user defined data that should be stored.
-	 * @param pStart marks the beginning of the memory region (inclusive),
-	 * @param pEnd is the end of the memory region (not inclusive).
-	 */
-	void tagMemoryRegion(void *tag, void *pStart, void *pEnd);
-
-	/**
-	 * Removes the tag from the given memory region. May be a part of a
-	 * previously tagged region.
-	 */
-	void untagMemoryRegion(void *pStart, void *pEnd);
-
-	/**
-	 * Returns the tag for the given pointer or nullptr if no tag is set.
-	 *
-	 * @param p is the pointer for which the tag should be queried.
-	 * @return the associated tag or nullptr if p points at a memory region for
-	 * which no tag is set.
-	 */
-	void* memoryRegionTag(void *p);
 };
 }
 

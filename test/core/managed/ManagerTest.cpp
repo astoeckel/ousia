@@ -548,5 +548,46 @@ TEST(Manager, hiddenRootedGraph)
 		ASSERT_FALSE(v);
 	}
 }
+
+TEST(Manager, storeData)
+{
+	Manager mgr(1);
+
+	std::array<bool, 5> a;
+
+	{
+		Rooted<TestManaged> n{new TestManaged{mgr, a[0]}};
+
+		mgr.storeData(n.get(), "key1", new TestManaged{mgr, a[1]});
+
+		Managed *m2 = new TestManaged{mgr, a[2]};
+		mgr.storeData(n.get(), "key2", m2);
+
+		ASSERT_TRUE(a[0] && a[1] && a[2]);
+
+		ASSERT_TRUE(mgr.deleteData(n.get(), "key1"));
+		ASSERT_FALSE(a[1]);
+		ASSERT_FALSE(mgr.deleteData(n.get(), "key1"));
+
+		mgr.storeData(n.get(), "key1", new TestManaged{mgr, a[3]});
+		ASSERT_TRUE(a[3]);
+
+		Managed *m = new TestManaged{mgr, a[4]};
+		mgr.storeData(n.get(), "key1", m);
+		ASSERT_FALSE(a[3]);
+		ASSERT_TRUE(a[4]);
+
+		ASSERT_EQ(m, mgr.readData(n.get(), "key1"));
+		ASSERT_EQ(m2, mgr.readData(n.get(), "key2"));
+
+		auto map = mgr.readData(n.get());
+		ASSERT_EQ(2U, map.size());
+		ASSERT_TRUE(map.find("key1") != map.end());
+		ASSERT_TRUE(map.find("key2") != map.end());
+	}
+
+	ASSERT_FALSE(a[0] || a[1] || a[2] || a[3] || a[4]);
+}
+
 }
 

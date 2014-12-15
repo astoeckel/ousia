@@ -16,7 +16,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <gtest/gtest.h>
+
+#include <core/managed/Managed.hpp>
+
+#include "TestManaged.hpp"
+
 namespace ousia {
+
+TEST(Managed, data)
+{
+	Manager mgr{1};
+
+	Rooted<Managed> n{new Managed{mgr}};
+
+	Managed *m1 = new Managed{mgr};
+	n->storeData("info", m1);
+	ASSERT_TRUE(n->hasDataKey("info"));
+	ASSERT_FALSE(n->hasDataKey("test"));
+
+	Managed *m2 = new Managed{mgr};
+	n->storeData("test", m2);
+	ASSERT_TRUE(n->hasDataKey("info"));
+	ASSERT_TRUE(n->hasDataKey("test"));
+
+	ASSERT_TRUE(n->deleteData("info"));
+	ASSERT_FALSE(n->deleteData("info"));
+	ASSERT_FALSE(n->hasDataKey("info"));
+	ASSERT_TRUE(n->hasDataKey("test"));
+}
 
 }
 

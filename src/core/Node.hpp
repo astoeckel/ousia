@@ -30,8 +30,6 @@
 
 namespace ousia {
 
-// TODO: Let Manager handle associated data
-
 /* Forward declarations */
 class Node;
 class Event;

@@ -113,7 +113,6 @@ ADD_LIBRARY(ousia_core
 #	src/core/common/VariantReader
 	src/core/managed/Managed
 	src/core/managed/Manager
-	src/core/managed/ManagedContainer
 #	src/core/model/Domain
 #	src/core/model/Typesystem
 #	src/core/parser/Parser

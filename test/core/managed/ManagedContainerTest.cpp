@@ -47,7 +47,7 @@ TEST(ManagedVector, managedVector)
 			ASSERT_TRUE(v);
 		}
 
-		ManagedVector<TestManaged> v(root, elems);
+		ManagedVector<TestManaged> v(root, elems.begin(), elems.end());
 
 		// Remove the last element from the list. It should be garbage collected.
 		v.pop_back();
@@ -69,12 +69,207 @@ TEST(ManagedVector, managedVector)
 		v.erase(v.find(elems[3]), v.find(elems[5]));
 		ASSERT_FALSE(a[3] || a[4]);
 		ASSERT_TRUE(a[5]);
+
+		{
+			// Copy the managed vector to another managed vector
+			ManagedVector<TestManaged> v2(v);
+			v2.push_back(new TestManaged{mgr, a[3]});
+			ASSERT_TRUE(a[3]);
+		}
+		ASSERT_FALSE(a[3]);
+		ASSERT_TRUE(a[5]);
 	}
 
 	for (bool v : a) {
 		ASSERT_FALSE(v);
 	}
 }
+
+
+TEST(ManagedVector, moveAssignment)
+{
+	constexpr int nElem = 16;
+	std::array<bool, nElem> a;
+
+	Manager mgr(1);
+	{
+		Rooted<Managed> root{new Managed{mgr}};
+		ManagedVector<TestManaged> v1(root);
+		{
+			ManagedVector<TestManaged> v2(root);
+
+			for (int i = 0; i < nElem; i++) {
+				v2.push_back(new TestManaged{mgr, a[i]});
+			}
+			for (bool v : a) {
+				ASSERT_TRUE(v);
+			}
+
+			v1 = std::move(v2);
+			ASSERT_EQ(nullptr, v2.getOwner());
+		}
+		for (bool v : a) {
+			ASSERT_TRUE(v);
+		}
+	}
+
+	for (bool v : a) {
+		ASSERT_FALSE(v);
+	}
+}
+
+TEST(ManagedVector, copyAssignment)
+{
+	constexpr int nElem = 16;
+	std::array<bool, nElem> a;
+
+	Manager mgr(1);
+	{
+		Rooted<Managed> root{new Managed{mgr}};
+		ManagedVector<TestManaged> v1(root);
+		{
+			ManagedVector<TestManaged> v2(root);
+
+			for (int i = 0; i < nElem; i++) {
+				v2.push_back(new TestManaged{mgr, a[i]});
+			}
+			for (bool v : a) {
+				ASSERT_TRUE(v);
+			}
+
+			v1 = v2;
+			ASSERT_TRUE(v1 == v2);
+		}
+		for (bool v : a) {
+			ASSERT_TRUE(v);
+		}
+	}
+
+	for (bool v : a) {
+		ASSERT_FALSE(v);
+	}
+}
+
+TEST(ManagedVector, copyWithNewOwner)
+{
+	constexpr int nElem = 16;
+	std::array<bool, nElem> a;
+
+	Manager mgr(1);
+	{
+		Rooted<Managed> root{new Managed{mgr}};
+		ManagedVector<TestManaged> v1(root);
+		{
+			Rooted<Managed> root2{new Managed{mgr}};
+			ManagedVector<TestManaged> v2(root2);
+
+			for (int i = 0; i < nElem; i++) {
+				v2.push_back(new TestManaged{mgr, a[i]});
+			}
+			for (bool v : a) {
+				ASSERT_TRUE(v);
+			}
+
+			ManagedVector<TestManaged> v3{root, v2};
+			v1 = std::move(v3);
+			ASSERT_EQ(nullptr, v3.getOwner());
+			ASSERT_TRUE(v1 != v2);
+		}
+		for (bool v : a) {
+			ASSERT_TRUE(v);
+		}
+	}
+
+	for (bool v : a) {
+		ASSERT_FALSE(v);
+	}
+}
+
+TEST(ManagedVector, moveWithNewOwner)
+{
+	constexpr int nElem = 16;
+	std::array<bool, nElem> a;
+
+	Manager mgr(1);
+	{
+		Rooted<Managed> root{new Managed{mgr}};
+		ManagedVector<TestManaged> v1(root);
+		{
+			Rooted<Managed> root2{new Managed{mgr}};
+			ManagedVector<TestManaged> v2(root2);
+
+			for (int i = 0; i < nElem; i++) {
+				v2.push_back(new TestManaged{mgr, a[i]});
+			}
+			for (bool v : a) {
+				ASSERT_TRUE(v);
+			}
+
+			ManagedVector<TestManaged> v3{root, std::move(v2)};
+			v1 = std::move(v3);
+			ASSERT_EQ(nullptr, v2.getOwner());
+			ASSERT_EQ(nullptr, v3.getOwner());
+		}
+		for (bool v : a) {
+			ASSERT_TRUE(v);
+		}
+	}
+
+	for (bool v : a) {
+		ASSERT_FALSE(v);
+	}
+}
+
+TEST(ManagedMap, managedMap)
+{
+	// TODO: This test is highly incomplete
+
+	constexpr int nElem = 16;
+	std::array<bool, nElem> a;
+
+	Manager mgr(1);
+	{
+		Rooted<Managed> root{new Managed{mgr}};
+
+		std::map<int, TestManaged*> elems;
+		for (int i = 0; i < nElem; i++) {
+			elems.insert(std::make_pair(i, new TestManaged{mgr, a[i]}));
+		}
+
+		for (bool v : a) {
+			ASSERT_TRUE(v);
+		}
+
+		ManagedMap<int, TestManaged> m(root, elems.begin(), elems.end());
+
+		// Remove the entry with the number 4
+		m.erase(m.find(10));
+		ASSERT_FALSE(a[10]);
+
+		// Insert a new element
+		m.insert(std::make_pair(nElem + 1, new TestManaged{mgr, a[10]}));
+		ASSERT_TRUE(a[10]);
+
+		// Erase element 3 - 5
+		m.erase(m.find(3), m.find(5));
+		ASSERT_FALSE(a[3] || a[4]);
+		ASSERT_TRUE(a[5]);
+
+		{
+			// Copy the managed map to another managed map vector
+			ManagedMap<int, TestManaged> m2(m);
+			m2.insert(std::make_pair(3, new TestManaged{mgr, a[3]}));
+			ASSERT_TRUE(a[3]);
+		}
+		ASSERT_FALSE(a[3]);
+		ASSERT_TRUE(a[5]);
+	}
+
+	for (bool v : a) {
+		ASSERT_FALSE(v);
+	}
+}
+
 
 }
 
