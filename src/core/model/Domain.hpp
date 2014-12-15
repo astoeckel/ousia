@@ -191,11 +191,11 @@ public:
 	// TODO: Is returning a ManagedVector alright?
 	ManagedVector<StructuredClass> &getChildren() { return children; }
 
-	FieldType getFieldType() { return type; }
+	FieldType getFieldType() const { return type; }
 
-	bool isPrimitive() { return type == FieldType::PRIMITIVE; }
+	bool isPrimitive() const { return type == FieldType::PRIMITIVE; }
 
-	Rooted<Type> getPrimitiveType() { return primitiveType; }
+	Rooted<Type> getPrimitiveType() const { return primitiveType; }
 };
 
 /**
@@ -236,21 +236,129 @@ public:
 	           Handle<StructType> attributesDescriptor,
 	           ManagedVector<FieldDescriptor> fieldDescriptors)
 	    : Node(mgr, std::move(name), parent),
-	      attributesDescriptor(attributesDescriptor),
+	      attributesDescriptor(acquire(attributesDescriptor)),
 	      fieldDescriptors(fieldDescriptors)
 	{
 	}
 
-	Rooted<StructType> getAttributesDescriptor()
+	Rooted<StructType> getAttributesDescriptor() const
 	{
 		return attributesDescriptor;
 	}
 
 	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<FieldDescriptor> getFieldDescriptors()
+	ManagedVector<FieldDescriptor> getFieldDescriptors() const
 	{
 		return fieldDescriptors;
 	}
+};
+
+// TODO: Implement
+class Cardinality {
+}
+
+/**
+ * A StructuredClass specifies nodes in the StructureTree of a document that
+ * implements this domain. For more information on the StructureTree please
+ * consult the Header documentation above.
+ *
+ * Note that a StructuredClass may "invade" an existing Domain description by
+ * defining itself as a viable child in one existing field. Consider a "section"
+ * StructuredClass (continuing the example in the header documentation):
+ *
+ * <StructuredClass name="section">
+ *   <FieldDescriptor name="structure", type="TREE", optional="false">
+ *     <children>
+ *       <classRef>paragraph</classRef>
+ *     </children>
+ *   </FieldDescriptor>
+ * </StructuredClass>
+ *
+ * Of course in most cases we do not only want to allow paragraphs  inside
+ * sections, but also (for example) lists. How would one add that
+ * without manipulating the existing domain or having to define an entirely
+ * new domain in which section allows for lists?
+ *
+ * Our solution to this problem is the parent mechanism. The simplified XML
+ * (TODO: Use non-simplified version as soon as possible) for the "list"
+ * StructuredClass would look like this:
+ *
+ * <StructuredClass name="list">
+ *   <FieldDescriptor name="structure", type="TREE", optional="false">
+ *     <children>
+ *       <classRef>item</classRef>
+ *     </children>
+ *   </FieldDescriptor>
+ *   <parents>
+ *     <fieldRef>section.structure</fieldRef>
+ *   </parents>
+ * </StructuredClass>
+ *
+ * This does indeed interfere with an existing domain and one must carefully
+ * craft such parent references to not create undesired side effects. However
+ * they provide the most convenient mechanism to extend existing domains
+ * without having to rewrite them.
+ *
+ * Another important factor is the 'transparent' flag. Transparent
+ * StructureClasses may be implicitly constructed in the document graph.
+ * If we go back to our example a user would (without transparency) have to
+ * explicitly declare:
+ *
+ * <book>
+ *   <section>
+ *     <paragraph>Text.</paragraph>
+ *   </section>
+ * </book>
+ *
+ * But in our mind the document
+
+ * <book>
+ *   <section>
+ *     Text.
+ *   </section>
+ * </book>
+ *
+ * Is already sufficiently specific. We can infer that a paragraph should be
+ * wrapped around "Text.". Therefore we set the 'transparent' flag of the
+ * "paragraph" StructuredClass to true. Please note that such inferences
+ * become increasingly complicated when children of transparent
+ * StructuredClasses are allowed to be transparent as well. So use with care.
+ *
+ * Finally we allow StructuredClasses to inherit attributes of other
+ * StructuredClasses. Inheritance also implies that instance of the inheriting
+ * class can be used wherever an instance of the inherited class is allowed.
+ * Inheritance therefore also goes for fields. TODO: What is the specification
+ * for field inheritance? Is the child allowed to specify children at all?
+ * Is that interpreted as overriding the parent fields or constructing a union?
+ * What about the cardinality?
+ */
+class StructuredClass : public Descriptor {
+private:
+	const Cardinality cardinality;
+	Owned<StructuredClass> isa;
+	ManagedVector<FieldDescriptor> parents;
+
+public:
+	const bool transparent;
+
+	StructuredClass(Manager &mgr, std::string name, Handle<Node> parent,
+	                const Cardinality cardinality &,
+	                // TODO: Wha would be a wise default value for isa?
+	                Handle<StructuredClass> isa,
+	                ManagedVector<FieldDescriptor> parents)
+	    : Node(mgr, std::move(name), parent),
+	      cardinality(cardinality),
+	      isa(acquire(isa)),
+	      parents(parents)
+	{
+	}
+
+	const Cardinality &getCardinality() const { return cardinality; }
+
+	Rooted<StructuredClass> getIsA() const {return isa};
+
+	// TODO: Is returning a ManagedVector alright?
+	ManagedVector<FieldDescriptor> getParents() { return parents; }
 };
 }
 }
