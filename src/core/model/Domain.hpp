@@ -188,6 +188,7 @@ public:
 	{
 	}
 
+	// TODO: Is returning a ManagedVector alright?
 	ManagedVector<StructuredClass> &getChildren() { return children; }
 
 	FieldType getFieldType() { return type; }
@@ -198,28 +199,57 @@ public:
 };
 
 /**
+ * This is a super class for StructuredClasses and AnnotationClasses and is,
+ * in itself, not supposed to be instantiated. It defines that both, Annotations
+ * and StructuredEntities, may have attributes and fields. For more information
+ * on fields please have a look at the header documentation as well as the
+ * documentation of the FieldDescriptor class.
  *
+ * Attributes are primitive content stored in a key-value fashion. Therefore
+ * the attribute specification of a descriptor is done by referencing an
+ * appropriate StructType that contains all permitted keys and value types.
  *
- * Furthermore StructuredClasses may specify a StructType of a type system,
- * which in turn specifies which key-value pairs may be added as attributes
- * to an instance of this StructuredClass.
+ * TODO: What aout optional attributes?
+ *
+ * In XML terms the difference between primitive fields and attributes can be
+ * explained as the difference between node attributes and node children.
+ * Consider the XML
+ *
+ * <A key="value">
+ *   <key>value</key>
+ * </A>
+ *
+ * key="value" inside the A-node would be an attribute, while <key>value</key>
+ * would be a primitive field. While equivalent in XML the semantics are
+ * different: An attribute describes indeed attributes, features of one single
+ * node whereas a primitive field describes the _content_ of a node.
+ *
  */
-
 class Descriptor : public Node {
 private:
-	Owned<StructType> attributes;
-	ManagedVector<FieldDescriptor> fields;
+	Owned<StructType> attributesDescriptor;
+	ManagedVector<FieldDescriptor> fieldDescriptors;
 
 public:
 	Descriptor(Manager &mgr, std::string name, Handle<Node> parent,
 	           // TODO: What would be a wise default value for attributes?
-	           Handle<StructType> attributes,
-	           ManagedVector<FieldDescriptor> fields)
+	           Handle<StructType> attributesDescriptor,
+	           ManagedVector<FieldDescriptor> fieldDescriptors)
 	    : Node(mgr, std::move(name), parent),
-	      attributes(attributes),
-	      fields(fields)
-	// TODO: What would be a wise initialization of the primitiveType?
+	      attributesDescriptor(attributesDescriptor),
+	      fieldDescriptors(fieldDescriptors)
 	{
+	}
+
+	Rooted<StructType> getAttributesDescriptor()
+	{
+		return attributesDescriptor;
+	}
+
+	// TODO: Is returning a ManagedVector alright?
+	ManagedVector<FieldDescriptor> getFieldDescriptors()
+	{
+		return fieldDescriptors;
 	}
 };
 }
