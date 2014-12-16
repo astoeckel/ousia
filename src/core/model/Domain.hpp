@@ -250,7 +250,12 @@ public:
 	}
 
 	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<FieldDescriptor> getFieldDescriptors() const
+	ManagedVector<FieldDescriptor> &getFieldDescriptors()
+	{
+		return fieldDescriptors;
+	}
+
+	const ManagedVector<FieldDescriptor> &getFieldDescriptors() const
 	{
 		return fieldDescriptors;
 	}
@@ -350,8 +355,7 @@ public:
 	                const Cardinality &cardinality,
 	                // TODO: What would be a wise default value for isa?
 	                Handle<StructuredClass> isa,
-	                ManagedVector<FieldDescriptor> parents,
-	                bool transparent)
+	                ManagedVector<FieldDescriptor> parents, bool transparent)
 	    : Descriptor(mgr, std::move(name), parent, attributesDescriptor,
 	                 fieldDescriptors),
 	      cardinality(cardinality),
@@ -363,10 +367,12 @@ public:
 
 	const Cardinality &getCardinality() const { return cardinality; }
 
-	Rooted<StructuredClass> getIsA() const {return isa;}
+	Rooted<StructuredClass> getIsA() const { return isa; }
 
 	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<FieldDescriptor> getParents() { return parents; }
+	ManagedVector<FieldDescriptor>& getParents() { return parents; }
+
+	const ManagedVector<FieldDescriptor> &getParents() const { return parents; }
 };
 
 /**
@@ -391,8 +397,8 @@ private:
 
 public:
 	Domain(Manager &mgr, std::string name,
-	                ManagedVector<StructuredClass> rootStructures,
-	                ManagedVector<AnnotationClass> annotationClasses)
+	       ManagedVector<StructuredClass> rootStructures,
+	       ManagedVector<AnnotationClass> annotationClasses)
 	    // TODO: Can a domain have a parent?
 	    : Node(mgr, std::move(name), nullptr),
 	      rootStructures(rootStructures),

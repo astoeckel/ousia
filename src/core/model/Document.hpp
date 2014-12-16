@@ -96,27 +96,26 @@ private:
 	const Variant attributes;
 	std::vector<ManagedVector<StructuredEntity>> fields;
 
-	Rooted<FieldDescriptor> getFieldDescriptor(const std::string &fieldName);
+	int getFieldDescriptorIndex(const std::string &fieldName);
 
 public:
-	DocumentEntity(Manager &mgr, std::string name = "", Handle<Node> parent,
-	               Handle<Descriptor> descriptor, Variant attributes)
+	DocumentEntity(Manager &mgr, Handle<Node> parent,
+	               Handle<Descriptor> descriptor, Variant attributes,
+	               std::string name = "")
 	    : Node(mgr, std::move(name), parent),
 	      descriptor(acquire(descriptor)),
 	      attributes(std::move(attributes))
 	{
 		// TODO: Validation at construction time?
 		// insert empty vectors for each field.
-		for (int f = 0; f < descriptor->getFieldDescriptors.size(); f++) {
-			fields.push_back(ManagedVector(this));
+		for (size_t f = 0; f < descriptor->getFieldDescriptors().size(); f++) {
+			fields.push_back(ManagedVector<StructuredEntity>(this));
 		}
 	}
 
-	Rooted<Descriptor> getDescriptor const() { return descriptor; }
+	Rooted<Descriptor> getDescriptor() const { return descriptor; }
 
-	const Variant &getAttributes() const { return attributes; }
-
-	Variant getAttributes const { return attributes; }
+	Variant getAttributes() const { return attributes; }
 
 	/**
 	 * This allows a direct manipulation of the internal data structure of a
@@ -138,7 +137,7 @@ public:
 	 */
 	bool hasField(const std::string &fieldName = "")
 	{
-		return getFieldDescriptor(fieldName) != nullptr;
+		return getFieldDescriptorIndex(fieldName) != -1;
 	}
 
 	/**
@@ -153,25 +152,19 @@ public:
 	 * FieldDescriptor matches the given name an empty ManagedVector is
 	 * returned. This is also the case, however, if there are no members for an
 	 * existing field. Therefore it is recommended to additionally check the
-	 * output of "hasField" or use the overloaded version of this method with
+	 * output of "hasField" or use the version of this method with
 	 * a FieldDescriptor as input.
 	 *
 	 * @param fieldName is the name of the field as specified in the
 	 *                  FieldDescriptor in the Domain description.
-	 * @return a ManagedVector of all StructuredEntities in that field. If the
-	 *         field is unknown or if no members exist in that field yet, the
-	 *         ManagedVector will be empty. Note that the ManagedVector is
-	 *         returned as a reference, so it is possible to manipulate this
-	 *         DocumentEntities content using this function.
+	 * @param res       is a ManagedVector reference where the result will be
+	 *                  stored. After using this method the reference will
+	 *                  either refer to all StructuredEntities in that field. If
+	 *                  the field is unknown or if no members exist in that
+	 *                  field yet, the ManagedVector will be empty.
 	 */
-	ManagedVector<StructuredEntity> &getField(const std::string &fieldName = "")
-	{
-		Rooted<FieldDescriptor> fd = getFieldDescriptor(fieldName);
-		if (fd == nullptr) {
-			return ManagedVector<StructuredEntity>(this);
-		}
-		return getField(fd);
-	}
+	void getField(ManagedVector<StructuredEntity> &res,
+	              const std::string &fieldName = "");
 
 	/**
 	 * This returns the vector of entities containing all members of the field
@@ -197,9 +190,11 @@ private:
 	ManagedVector<AnnotationEntity> annotations;
 
 public:
-	StructuredEntity(Manager &mgr, std::string name = "", Handle<Node> parent,
-	                 Handle<StructuredClass> descriptor, Variant attributes)
-	    : DocumentEntity(mgr, std::move(name), parent, descriptor, attributes),
+	StructuredEntity(Manager &mgr, Handle<Node> parent,
+	                 Handle<StructuredClass> descriptor, Variant attributes,
+	                 std::string name = "")
+	    : DocumentEntity(mgr, parent, descriptor, std::move(attributes),
+	                     std::move(name)),
 	      annotations(this)
 	{
 	}
@@ -216,15 +211,14 @@ class DocumentPrimitive : public StructuredEntity {
 public:
 	DocumentPrimitive(Manager &mgr, Handle<StructuredEntity> parent,
 	                  Variant content)
-	    : StructuredEntity(mgr, "", parent, nullptr, content)
+	    : StructuredEntity(mgr, parent, nullptr, std::move(content))
 	{
 	}
 
 	Variant getContent() const { return getAttributes(); }
-	const Variant& getContent() const { return getAttributes(); }
 
 	// TODO: Override such methods like "getField" to disable them?
-}
+};
 
 /**
  * An AnnotationEntity is a span-like instance that is not bound by the elements
@@ -262,9 +256,9 @@ public:
 		 * @param parent is the parent of this Anchor in the Structure Tree (!),
 		 *               not the AnnotationEntity that references this Anchor.
 		 */
-		Anchor(Manager &mgr, std::string name = "",
-		       Handle<StructuredEntity> parent)
-		    : StructuredEntity(mgr, name, parent, nullptr, Variant())
+		Anchor(Manager &mgr, Handle<StructuredEntity> parent,
+		       std::string name = "")
+		    : StructuredEntity(mgr, parent, nullptr, Variant(), std::move(name))
 		{
 		}
 	};
@@ -274,10 +268,11 @@ private:
 	Owned<Anchor> end;
 
 public:
-	AnnotationEntity(Manager &mgr, std::string name = "", Handle<Node> parent,
+	AnnotationEntity(Manager &mgr, Handle<Node> parent,
 	                 Handle<StructuredClass> descriptor, Variant attributes,
-	                 Handle<Anchor> start, Handle<Anchor> end)
-	    : DocumentEntity(mgr, std::move(name), parent, descriptor, attributes),
+	                 Handle<Anchor> start, Handle<Anchor> end,
+	                 std::string name = "")
+	    : DocumentEntity(mgr, parent, descriptor, attributes, std::move(name)),
 	      start(acquire(start)),
 	      end(acquire(end))
 	{
