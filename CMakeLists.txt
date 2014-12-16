@@ -114,7 +114,7 @@ ADD_LIBRARY(ousia_core
 	src/core/managed/Managed
 	src/core/managed/ManagedType
 	src/core/managed/Manager
-#	src/core/model/Domain
+	src/core/model/Domain
 	src/core/model/Typesystem
 	src/core/parser/Parser
 	src/core/parser/ParserStack
