@@ -102,7 +102,7 @@ TEST(Variant, stringValue)
 TEST(Variant, arrayValue)
 {
 	const Variant v{{"test1", 42}};
-	ASSERT_EQ(2, v.asArray().size());
+	ASSERT_EQ(2U, v.asArray().size());
 	ASSERT_EQ("test1", v.asArray()[0].asString());
 	ASSERT_EQ(42, v.asArray()[1].asInt());
 }
@@ -112,7 +112,7 @@ TEST(Variant, mapValue)
 	const Variant v{{{"key1", "entry1"}, {"key2", "entry2"}}};
 
 	auto map = v.asMap();
-	ASSERT_EQ(2, map.size());
+	ASSERT_EQ(2U, map.size());
 
 	ASSERT_EQ("entry1", map.find("key1")->second.asString());
 	ASSERT_EQ("entry2", map.find("key2")->second.asString());
