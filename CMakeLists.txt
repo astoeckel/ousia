@@ -112,6 +112,7 @@ ADD_LIBRARY(ousia_core
 #	src/core/common/Variant
 #	src/core/common/VariantReader
 	src/core/managed/Managed
+	src/core/managed/ManagedType
 	src/core/managed/Manager
 #	src/core/model/Domain
 #	src/core/model/Typesystem
@@ -179,9 +180,9 @@ IF(TEST)
 #		test/core/common/VariantReaderTest
 #		test/core/common/VariantTest
 #		test/core/common/UtilsTest
+		test/core/managed/ManagedContainerTest
 		test/core/managed/ManagedTest
 		test/core/managed/ManagerTest
-		test/core/managed/ManagedContainerTest
 #		test/core/parser/ParserStackTest
 #		test/core/script/FunctionTest
 #		test/core/script/ObjectTest

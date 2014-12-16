@@ -19,6 +19,7 @@
 #ifndef _OUSIA_MANAGED_HPP_
 #define _OUSIA_MANAGED_HPP_
 
+#include "ManagedType.hpp"
 #include "Manager.hpp"
 
 namespace ousia {
@@ -31,6 +32,9 @@ class Rooted;
 
 template <class T>
 class Owned;
+
+template <class T>
+class DefaultListener;
 
 // TODO: Implement clone, getReferenced and getReferencing
 
@@ -93,33 +97,36 @@ public:
 		return Owned<T>{t, this};
 	}
 
-	template <class T>
-	std::vector<Owned<T>> acquire(const std::vector<Handle<T>> &vec)
-	{
-		std::vector<Owned<T>> res;
-		for (auto &e : vec) {
-			res.push_back(acquire(e));
-		}
-		return res;
-	}
-
-	template <class T>
-	std::vector<Owned<T>> acquire(const std::vector<T *> &vec)
-	{
-		std::vector<Owned<T>> res;
-		for (auto &e : vec) {
-			res.push_back(acquire(e));
-		}
-		return res;
-	}
-
 	void storeData(const std::string &key, Handle<Managed> h);
 
 	bool hasDataKey(const std::string &key);
 
 	Rooted<Managed> readData(const std::string &key);
 
+	std::map<std::string, Rooted<Managed>> readData();
+
 	bool deleteData(const std::string &key);
+
+	/**
+	 * Returns the ManagedType instance registered for instances of the type
+	 * of this Managed instance.
+	 *
+	 * @return a reference to the registered ManagedType for this particular
+	 * Managed class.
+	 */
+	const ManagedType& type() const {
+		return ManagedType::typeOf(typeid(*this));
+	}
+
+	/**
+	 * Returns true if this Managed instance is of the given ManagedType.
+	 *
+	 * @param true if the ManagedType registered for this particular Managed
+	 * class is 
+	 */
+	bool isa(const ManagedType &t) const {
+		return type().isa(t);
+	}
 };
 
 /**
@@ -505,24 +512,6 @@ public:
 	 */
 	Managed *getOwner() const { return owner; }
 };
-
-
-inline void Managed::storeData(const std::string &key, Handle<Managed> h) {
-	mgr.storeData(this, key, h.get());
-}
-
-inline bool Managed::hasDataKey(const std::string &key)
-{
-	return mgr.readData(this, key) != nullptr;
-}
-
-inline Rooted<Managed> Managed::readData(const std::string &key) {
-	return mgr.readData(this, key);
-}
-
-inline bool Managed::deleteData(const std::string &key) {
-	return mgr.deleteData(this, key);
-}
 
 }
 

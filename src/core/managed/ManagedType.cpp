@@ -16,40 +16,37 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
-#include <queue>
-
-#include "Managed.hpp"
-#include "ManagedContainer.hpp"
+#include "ManagedType.hpp"
 
 namespace ousia {
 
-/* Class Managed */
+/* Instantiation of static variables */
 
-void Managed::storeData(const std::string &key, Handle<Managed> h) {
-	mgr.storeData(this, key, h.get());
-}
+const ManagedType ManagedType::None;
 
-bool Managed::hasDataKey(const std::string &key)
+/* Class ManagedType */
+
+const ManagedType &ManagedType::typeOf(const std::type_info &nativeType)
 {
-	return mgr.readData(this, key) != nullptr;
-}
-
-Rooted<Managed> Managed::readData(const std::string &key) {
-	return mgr.readData(this, key);
-}
-
-std::map<std::string, Rooted<Managed>> Managed::readData() {
-	auto map = mgr.readData(this);
-	std::map<std::string, Rooted<Managed>> res;
-	for (auto e : map) {
-		res.emplace(e.first, e.second);
+	auto it = table().find(std::type_index{nativeType});
+	if (it == table().end()) {
+		return None;
+	} else {
+		return *(it->second);
 	}
-	return res;
 }
 
-bool Managed::deleteData(const std::string &key) {
-	return mgr.deleteData(this, key);
+bool ManagedType::isa(const ManagedType &other) const
+{
+	if (&other == this) {
+		return true;
+	}
+	for (auto t : parents) {
+		if (t->isa(other)) {
+			return true;
+		}
+	}
+	return false;
+}
 }
 
-}
