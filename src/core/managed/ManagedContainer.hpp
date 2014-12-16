@@ -383,7 +383,7 @@ public:
 	/**
 	 * Generic insert operation.
 	 */
-	iterator insert(const_iterator position, value_type val)
+	iterator insert(iterator position, value_type val)
 	{
 		addElement(this->getManager(), val);
 		return c.insert(position, val);
