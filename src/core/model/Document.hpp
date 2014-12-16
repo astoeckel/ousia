@@ -77,6 +77,7 @@ namespace ousia {
 namespace model {
 
 class StructuredEntity;
+class AnnotationEntity;
 
 /**
  * A DocumentEntity is the common superclass for StructuredEntities and
@@ -185,6 +186,106 @@ public:
 	 */
 	ManagedVector<StructuredEntity> &getField(
 	    Rooted<FieldDescriptor> fieldDescriptor);
+};
+
+/**
+ * A StructuredEntity is a node in the Structure Tree of a document. For more
+ * information please refer to the header documentation above.
+ */
+class StructuredEntity : public DocumentEntity {
+private:
+	ManagedVector<AnnotationEntity> annotations;
+
+public:
+	StructuredEntity(Manager &mgr, std::string name = "", Handle<Node> parent,
+	                 Handle<StructuredClass> descriptor, Variant attributes)
+	    : DocumentEntity(mgr, std::move(name), parent, descriptor, attributes),
+	      annotations(this)
+	{
+	}
+
+	ManagedVector<AnnotationEntity> &getAnnotations() { return annotations; }
+};
+
+/**
+ * This is a wrapper for primitive types (Variants) inside the document graph.
+ * The most straightforward example for this is the actual document text, e.g.
+ * inside a paragraph. In that case this would represent a mere string.
+ */
+class DocumentPrimitive : public StructuredEntity {
+public:
+	DocumentPrimitive(Manager &mgr, Handle<StructuredEntity> parent,
+	                  Variant content)
+	    : StructuredEntity(mgr, "", parent, nullptr, content)
+	{
+	}
+
+	Variant getContent() const { return getAttributes(); }
+	const Variant& getContent() const { return getAttributes(); }
+
+	// TODO: Override such methods like "getField" to disable them?
+}
+
+/**
+ * An AnnotationEntity is a span-like instance that is not bound by the elements
+ * of the Structure Tree. An annotation may very well overlap and cross the
+ * limits of StructureEntities. A typical example for AnnotationEntities are
+ * the markups "emphasized" and "strong". In HTML like markup languages these
+ * concepts are handeled as structure elements, like this:
+ *
+ * <em>emphasized</em> <em><strong>and</strong></em> <strong>strong</strong>
+ *
+ * which is neither intuitive nor semantically sound. Therefore we take the
+ * approach of anchoring the Annotation entities in the text like this:
+ *
+ * <Anchor id=1/>emphasized <Anchor id=2/>and<Anchor id=3/> strong<Anchor id=4/>
+ * <AnnotationEntity class="emphasized" start=1 end=3/>
+ * <AnnotationEntity class="strong" start=2 end=4/>
+ *
+ * Which signifies that indeed the text "emphasized and" is emphasized, not
+ * the two text exerpts "emphasized" and "and" separately.
+ *
+ */
+class AnnotationEntity : public DocumentEntity {
+public:
+	/**
+	 * An Anchor is an elementary StructuredEntity without any children that
+	 * marks a point in the text content of the document that can later be
+	 * referenced by an AnnotationEntity as it start and end point.
+	 * Please refer to the AnnotationEntity documentation for more information.
+	 */
+	class Anchor : public StructuredEntity {
+	public:
+		/**
+		 * @param mgr    is the Manager instance.
+		 * @param name   is the Anchor id.
+		 * @param parent is the parent of this Anchor in the Structure Tree (!),
+		 *               not the AnnotationEntity that references this Anchor.
+		 */
+		Anchor(Manager &mgr, std::string name = "",
+		       Handle<StructuredEntity> parent)
+		    : StructuredEntity(mgr, name, parent, nullptr, Variant())
+		{
+		}
+	};
+
+private:
+	Owned<Anchor> start;
+	Owned<Anchor> end;
+
+public:
+	AnnotationEntity(Manager &mgr, std::string name = "", Handle<Node> parent,
+	                 Handle<StructuredClass> descriptor, Variant attributes,
+	                 Handle<Anchor> start, Handle<Anchor> end)
+	    : DocumentEntity(mgr, std::move(name), parent, descriptor, attributes),
+	      start(acquire(start)),
+	      end(acquire(end))
+	{
+	}
+
+	Rooted<Anchor> getStart() { return start; }
+
+	Rooted<Anchor> getEnd() { return end; }
 };
 }
 }
