@@ -25,8 +25,8 @@
 #include <vector>
 #include <unordered_set>
 
-#include "Managed.hpp"
-#include "ManagedContainers.hpp"
+#include <core/managed/Managed.hpp>
+#include <core/managed/ManagedContainer.hpp>
 
 namespace ousia {
 
@@ -512,33 +512,30 @@ public:
 	bool triggerEvent(Event &event, bool fromChild = false);
 };
 
-template <class T, class Collection>
-class NodeGenericList : public ManagedGenericList<T, Collection> {
-protected:
-	// TODO: Override addElement, deleteElement once this is necessary
+// TODO: Use a different listener here for updating name maps
+
+template <class T, class Listener = DefaultListener<Handle<T>>>
+class NodeVector
+    : public ManagedGenericList<T, std::vector<Handle<T>>,
+                                ListAccessor<Handle<T>>, Listener> {
 public:
-	using ManagedGenericList<T, Collection>::ManagedGenericList;
+	using Base = ManagedGenericList<T, std::vector<Handle<T>>,
+	                                ListAccessor<Handle<T>>, Listener>;
+	using Base::ManagedGenericList;
 };
 
-template <class K, class T, class Collection>
-class NodeGenericMap : public ManagedGenericMap<K, T, Collection> {
-protected:
-	// TODO: Override addElement, deleteElement once this is necessary
+template <class K, class T,
+          class Listener = DefaultListener<std::pair<K, Handle<T>>>>
+class NodeMap
+    : public ManagedGenericMap<K, T, std::map<K, Handle<T>>,
+                               MapAccessor<std::pair<K, Handle<T>>>, Listener> {
 public:
-	using ManagedGenericMap<K, T, std::vector<Owned<T>>>::ManagedGenericMap;
+	using Base =
+	    ManagedGenericMap<K, T, std::map<K, Handle<T>>,
+	                      MapAccessor<std::pair<K, Handle<T>>>, Listener>;
+	using Base::ManagedGenericMap;
 };
 
-template <class T>
-class NodeVector : public NodeGenericList<T, std::vector<Owned<T>>> {
-public:
-	using NodeGenericList<T, std::vector<Owned<T>>>::NodeGenericList;
-};
-
-template <class K, class T>
-class NodeMap : public NodeGenericMap<K, T, std::map<K, Owned<T>>> {
-public:
-	using NodeGenericMap<K, T, std::map<K, Owned<T>>>::NodeGenericMap;
-};
 
 }
 

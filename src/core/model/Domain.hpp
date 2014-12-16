@@ -27,7 +27,7 @@
 #ifndef _OUSIA_MODEL_DOMAIN_HPP_
 #define _OUSIA_MODEL_DOMAIN_HPP_
 
-#include <core/ManagedContainers.hpp>
+#include <core/managed/ManagedContainer.hpp>
 #include <core/Node.hpp>
 
 namespace ousia {

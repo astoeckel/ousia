@@ -24,8 +24,8 @@
 #include <tuple>
 
 #include <core/common/Variant.hpp>
+#include <core/managed/Managed.hpp>
 
-#include "Managed.hpp"
 #include "Node.hpp"
 
 namespace ousia {

@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include <core/Managed.hpp>
+#include <core/managed/Managed.hpp>
 
 #include <core/Node.hpp>
 

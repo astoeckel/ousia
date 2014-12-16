@@ -30,7 +30,6 @@
 #include <map>
 #include <vector>
 
-#include <core/ManagedContainers.hpp>
 #include <core/Node.hpp>
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
@@ -361,7 +360,7 @@ public:
 
 class Typesystem : public Node {
 private:
-	ManagedVector<Type> types;
+	NodeVector<Type> types;
 
 public:
 	Typesystem(Manager &mgr, std::string name, Handle<Node> parent = nullptr)
