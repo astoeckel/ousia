@@ -80,7 +80,8 @@ ManagedType Type2("Type2", typeid(TypeTestManaged2));
 ManagedType Type3("Type3", typeid(TypeTestManaged3), {&Type1});
 ManagedType Type4("Type2", typeid(TypeTestManaged4), {&Type3, &Type2});
 
-TEST(ManagedType, isa) {
+TEST(ManagedType, isa)
+{
 	ASSERT_TRUE(Type1.isa(Type1));
 	ASSERT_FALSE(Type1.isa(Type2));
 	ASSERT_FALSE(Type1.isa(Type3));
@@ -102,7 +103,8 @@ TEST(ManagedType, isa) {
 	ASSERT_TRUE(Type4.isa(Type4));
 }
 
-TEST(Managed, type) {
+TEST(Managed, type)
+{
 	Manager mgr(1);
 
 	Rooted<TypeTestManaged1> m1{new TypeTestManaged1(mgr)};
@@ -117,6 +119,5 @@ TEST(Managed, type) {
 	ASSERT_EQ(&Type4, &m4->type());
 	ASSERT_EQ(&ManagedType::None, &m5->type());
 }
-
 }
 
