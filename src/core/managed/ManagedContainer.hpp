@@ -162,7 +162,7 @@ protected:
 	void addElement(const value_type &elem)
 	{
 		Managed* managed = accessor.getManaged(elem);
-		Manager &manager = managed->getManager();
+		Manager &manager = owner ? owner->getManager() : managed->getManager();
 
 		manager.addRef(managed, owner);
 		listener.addElement(elem, owner);
@@ -179,7 +179,7 @@ protected:
 	void deleteElement(const value_type &elem)
 	{
 		Managed* managed = accessor.getManaged(elem);
-		Manager &manager = managed->getManager();
+		Manager &manager = owner ? owner->getManager() : managed->getManager();
 
 		manager.deleteRef(managed, owner);
 		listener.deleteElement(elem, owner);
