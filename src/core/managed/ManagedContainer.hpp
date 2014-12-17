@@ -27,6 +27,7 @@
 #ifndef _OUSIA_MANAGED_CONTAINER_H_
 #define _OUSIA_MANAGED_CONTAINER_H_
 
+#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -124,9 +125,8 @@ private:
 	 */
 	void initialize()
 	{
-		Manager &manager = this->getManager();
 		for (const auto &elem : *this) {
-			addElement(manager, elem);
+			addElement(elem);
 		}
 	}
 
@@ -137,9 +137,8 @@ private:
 	void finalize()
 	{
 		if (owner) {
-			Manager &manager = this->getManager();
 			for (const auto &elem : *this) {
-				deleteElement(manager, elem);
+				deleteElement(elem);
 			}
 		}
 	}
@@ -160,9 +159,12 @@ protected:
 	 * @param elem is a reference to the actual element that is being added to
 	 * the underlying container.
 	 */
-	void addElement(Manager &manager, const value_type &elem)
+	void addElement(const value_type &elem)
 	{
-		manager.addRef(accessor.getManaged(elem), owner);
+		Managed* managed = accessor.getManaged(elem);
+		Manager &manager = managed->getManager();
+
+		manager.addRef(managed, owner);
 		listener.addElement(elem, owner);
 	}
 
@@ -171,14 +173,15 @@ protected:
 	 * This function makes sure that the association from the owner to the added
 	 * element is removed.
 	 *
-	 * @param managed is the managed instance that is being deleted from the
-	 * container.
 	 * @param elem is a reference to the actual element that is being removed
 	 * from the underlying container.
 	 */
-	void deleteElement(Manager &manager, const value_type &elem)
+	void deleteElement(const value_type &elem)
 	{
-		manager.deleteRef(accessor.getManaged(elem), owner);
+		Managed* managed = accessor.getManaged(elem);
+		Manager &manager = managed->getManager();
+
+		manager.deleteRef(managed, owner);
 		listener.deleteElement(elem, owner);
 	}
 
@@ -329,11 +332,6 @@ public:
 	 */
 	Managed *getOwner() const { return owner; }
 
-	/**
-	 * Returns the manager instance associated with the owner.
-	 */
-	Manager &getManager() const { return owner->getManager(); }
-
 	/* State functions */
 
 	/**
@@ -374,9 +372,7 @@ public:
 	 */
 	void clear() noexcept
 	{
-		for (const_iterator it = cbegin(); it != cend(); it++) {
-			deleteElement(this->getManager(), *it);
-		}
+		finalize();
 		c.clear();
 	}
 
@@ -385,7 +381,7 @@ public:
 	 */
 	iterator insert(iterator position, value_type val)
 	{
-		addElement(this->getManager(), val);
+		addElement(val);
 		return c.insert(position, val);
 	}
 
@@ -397,7 +393,7 @@ public:
 	 */
 	iterator erase(iterator position)
 	{
-		deleteElement(this->getManager(), *position);
+		deleteElement(*position);
 		return c.erase(position);
 	}
 
@@ -410,7 +406,7 @@ public:
 	iterator erase(iterator first, iterator last)
 	{
 		for (const_iterator it = first; it != last; it++) {
-			this->deleteElement(this->getManager(), *it);
+			this->deleteElement(*it);
 		}
 		return c.erase(first, last);
 	}
@@ -487,16 +483,16 @@ public:
 		return Base::cend();
 	}
 
-	void push_back(Handle<T> h)
+	void push_back(const value_type &val)
 	{
-		this->addElement(this->getManager(), h.get());
-		Base::c.push_back(h.get());
+		this->addElement(val);
+		Base::c.push_back(val);
 	}
 
 	void pop_back()
 	{
 		if (!Base::empty()) {
-			this->deleteElement(this->getManager(), back());
+			this->deleteElement(back());
 		}
 		Base::c.pop_back();
 	}
@@ -526,13 +522,13 @@ public:
 
 	std::pair<iterator, bool> insert(value_type val)
 	{
-		this->addElement(this->getManager(), val);
+		this->addElement(val);
 		return Base::c.insert(val);
 	}
 
 	iterator insert(const_iterator position, value_type val)
 	{
-		this->addElement(this->getManager(), val);
+		this->addElement(val);
 		return Base::c.insert(position, val);
 	}
 
