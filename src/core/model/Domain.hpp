@@ -91,8 +91,9 @@
 namespace ousia {
 namespace model {
 
-class StructuredClass;
 class Descriptor;
+class StructuredClass;
+class Domain;
 
 /**
  * As mentioned in the description above a FieldDescriptor specifies the
@@ -147,17 +148,18 @@ public:
 	 * set to "PRIMITIVE".
 	 *
 	 * @param mgr           is the global Manager instance.
-	 * @param name          is the name of this field.
 	 * @param parent        is a handle of the Descriptor node that has this
 	 *                      FieldDescriptor.
 	 * @param primitiveType is a handle to some Type in some Typesystem of which
 	 *                      one instance is allowed to fill this field.
+	 * @param name          is the name of this field.
 	 * @param optional      should be set to 'false' is this field needs to be
 	 *                      filled in order for an instance of the parent
 	 *                      Descriptor to be valid.
 	 */
-	FieldDescriptor(Manager &mgr, std::string name, Handle<Descriptor> parent,
-	                Handle<Type> primitiveType, bool optional)
+	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
+	                Handle<Type> primitiveType, std::string name = "",
+	                bool optional = false)
 	    : Node(mgr, std::move(name), parent),
 	      children(this),
 	      fieldType(FieldType::PRIMITIVE),
@@ -171,18 +173,19 @@ public:
 	 * children here.
 	 *
 	 * @param mgr           is the global Manager instance.
-	 * @param name          is the name of this field.
 	 * @param parent        is a handle of the Descriptor node that has this
 	 *                      FieldDescriptor.
 	 * @param fieldType     is the FieldType of this FieldDescriptor, either
 	 *                      TREE for the main or default structure or SUBTREE
 	 *                      for supporting structures.
+	 * @param name          is the name of this field.
 	 * @param optional      should be set to 'false' is this field needs to be
 	 *                      filled in order for an instance of the parent
 	 *                      Descriptor to be valid.
 	 */
-	FieldDescriptor(Manager &mgr, std::string name, Handle<Descriptor> parent,
-	                FieldType fieldType, bool optional)
+	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
+	                FieldType fieldType = FieldType::TREE,
+	                std::string name = "", bool optional = false)
 	    : Node(mgr, std::move(name), parent),
 	      children(this),
 	      fieldType(fieldType),
@@ -239,10 +242,10 @@ private:
 	ManagedVector<FieldDescriptor> fieldDescriptors;
 
 public:
-	Descriptor(Manager &mgr, std::string name, Handle<Node> parent,
+	Descriptor(Manager &mgr, std::string name, Handle<Domain> domain,
 	           // TODO: What would be a wise default value for attributes?
 	           Handle<StructType> attributesDescriptor)
-	    : Node(mgr, std::move(name), parent),
+	    : Node(mgr, std::move(name), domain),
 	      attributesDescriptor(acquire(attributesDescriptor)),
 	      fieldDescriptors(this)
 	{
@@ -351,12 +354,13 @@ private:
 public:
 	const bool transparent;
 
-	StructuredClass(Manager &mgr, std::string name, Handle<Node> parent,
-	                Handle<StructType> attributesDescriptor,
+	StructuredClass(Manager &mgr, std::string name, Handle<Domain> domain,
 	                const Cardinality &cardinality,
+	                Handle<StructType> attributesDescriptor = {nullptr},
 	                // TODO: What would be a wise default value for isa?
-	                Handle<StructuredClass> isa, bool transparent)
-	    : Descriptor(mgr, std::move(name), parent, attributesDescriptor),
+	                Handle<StructuredClass> isa = {nullptr},
+	                bool transparent = false)
+	    : Descriptor(mgr, std::move(name), domain, attributesDescriptor),
 	      cardinality(cardinality),
 	      isa(acquire(isa)),
 	      parents(this),
@@ -393,13 +397,15 @@ class Domain : public Node {
 private:
 	ManagedVector<StructuredClass> rootStructures;
 	ManagedVector<AnnotationClass> annotationClasses;
+	ManagedVector<Typesystem> typesystems;
 
 public:
 	Domain(Manager &mgr, std::string name)
 	    // TODO: Can a domain have a parent?
 	    : Node(mgr, std::move(name), nullptr),
 	      rootStructures(this),
-	      annotationClasses(this)
+	      annotationClasses(this),
+	      typesystems(this)
 	{
 	}
 
@@ -422,6 +428,13 @@ public:
 	const ManagedVector<AnnotationClass> &getAnnotationClasses() const
 	{
 		return annotationClasses;
+	}
+
+	ManagedVector<Typesystem> &getTypesystems() { return typesystems; }
+
+	const ManagedVector<Typesystem> &getTypesystems() const
+	{
+		return typesystems;
 	}
 };
 }

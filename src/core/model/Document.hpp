@@ -26,9 +26,11 @@
  *
  * A Document, from top to bottom, consists of "Document" instance,
  * which "owns" the structural root node of the in-document graph. This might
- * for example be a "book" node, if the respective document implements the
- * "book" domain. That root node in turn has structure nodes as children as well
- * as annotations that refer to the content of that structure node.
+ * for example be a "book" node of the "book" domain. That root node in turn has
+ * structure nodes as children, which in turn may have children. This
+ * constitutes a Structure Tree. Additionally annotations may be attached to
+ * Structure Nodes, effectively resulting in a Document Graph instead of a
+ * Document Tree (other references may introduce cycles as well).
  *
  * Consider this simplified XML representation of a document (TODO: Use
  * non-simplified XML as soon as possible):

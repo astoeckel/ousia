@@ -32,6 +32,7 @@
 #include <unordered_set>
 #include <vector>
 #include <map>
+#include <stdexcept>
 #include <type_traits>
 
 #include "Manager.hpp"
@@ -495,6 +496,16 @@ public:
 			this->deleteElement(back());
 		}
 		Base::c.pop_back();
+	}
+	
+	Rooted<T> operator[](int i) const {
+		for (const_iterator it = Base::cbegin(); it != Base::cend(); it++) {
+			if (i == 0) {
+				return Rooted<T>(*it);
+			}
+			i--;
+		}
+		throw std::out_of_range(std::to_string(i) + " is out of range!");
 	}
 };
 

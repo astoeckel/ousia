@@ -372,6 +372,8 @@ public:
 	 * TODO: DOC
 	 */
 	void addType(Handle<Type> type) { types.push_back(type); }
+
+	const NodeVector<Type> &getTypes() const { return types; }
 };
 }
 }

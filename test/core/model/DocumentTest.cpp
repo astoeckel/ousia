@@ -20,12 +20,20 @@
 
 #include <core/model/Document.hpp>
 
+#include "ModelTestUtils.hpp"
+
 namespace ousia {
 namespace model {
+
+
 TEST(Document, testDocumentConstruction)
 {
-	// Start by constructing the domain.
-	//TODO: IMPLEMENT
+	// Construct Manager
+	Manager mgr{1};
+	// Get the domain.
+	Rooted<Domain> domain = constructBookDomain(mgr);
+
+	// TODO: IMPLEMENT
 	ASSERT_TRUE(true);
 }
 }
