@@ -208,7 +208,7 @@ void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 void Manager::deleteObject(Managed *o, ObjectDescriptor *descr)
 {
 	// Abort if the Managed already is on the "deleted" list
-	if (deleted.find(o) != deleted.end()) {
+	if (deleted.count(o)) {
 		return;
 	}
 
@@ -221,13 +221,22 @@ void Manager::deleteObject(Managed *o, ObjectDescriptor *descr)
 		// Add the Managed to the "deleted" set
 		deleted.insert(o);
 
-		// Remove the data store entry
-		store.erase(o);
+		// Make sure all input references are deleted
+		while (!descr->refIn.empty()) {
+			deleteRef(o, descr->refIn.begin()->first, true);
+		}
+
+		// Add the Managed object to the orderedDeleted list -- this should
+		// happen after all input references have been removed
+		orderedDeleted.push_back(o);
 
 		// Remove all output references of this Managed
 		while (!descr->refOut.empty()) {
 			deleteRef(descr->refOut.begin()->first, o, true);
 		}
+
+		// Remove the data store entry
+		store.erase(o);
 
 		// Remove the Managed from the "marked" set
 		marked.erase(o);
@@ -244,17 +253,15 @@ void Manager::purgeDeleted()
 		// again while deleting objects
 		ScopedIncrement incr{deletionRecursionDepth};
 
-		// Deleting objects might add new objects to the deleted list, thus the
-		// iterator would get invalid and we have to use this awkward
-		// construction
-		while (!deleted.empty()) {
-			auto it = deleted.begin();
-			Managed *o = *it;
-			deleted.erase(it);
-			marked.erase(o);
-			objects.erase(o);
-			delete o;
+		for (size_t i = 0; i < orderedDeleted.size(); i++) {
+			Managed *m = orderedDeleted[i];
+			deleted.erase(m);
+			marked.erase(m);
+			objects.erase(m);
+			delete m;
 		}
+		orderedDeleted.clear();
+		assert(deleted.empty());
 	}
 }
 
@@ -348,7 +355,8 @@ void Manager::storeData(Managed *ref, const std::string &key, Managed *data)
 	addRef(data, ref);
 
 	// Make sure a data map for the given reference object exists
-	auto &map = store.emplace(ref, std::map<std::string, Managed *>{}).first->second;
+	auto &map =
+	    store.emplace(ref, std::map<std::string, Managed *>{}).first->second;
 
 	// Insert the given data for the key, decrement the references if
 	auto it = map.find(key);
@@ -413,6 +421,5 @@ bool Manager::deleteData(Managed *ref, const std::string &key)
 	}
 	return false;
 }
-
 }
 

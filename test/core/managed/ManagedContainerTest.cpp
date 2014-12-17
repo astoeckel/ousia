@@ -220,6 +220,35 @@ TEST(ManagedVector, moveWithNewOwner)
 	}
 }
 
+class TestManagedWithContainer : public Managed {
+
+public:
+	ManagedVector<TestManaged> elems;
+
+	TestManagedWithContainer(Manager &mgr) : Managed(mgr), elems(this) {};
+
+};
+
+TEST(ManagedVector, embedded) {
+	// Note: This test depends on the correct deletion order -- otherwise
+	// valgrind shows an error
+	bool a;
+	Manager mgr(1);
+	{
+		Rooted<TestManagedWithContainer> a1{new TestManagedWithContainer(mgr)};
+		{
+			Rooted<TestManaged> a2{new TestManaged(mgr, a)};
+
+			ASSERT_TRUE(a);
+
+			a1->elems.push_back(a2);
+		}
+		ASSERT_TRUE(a);
+	}
+	ASSERT_FALSE(a);
+}
+
+
 TEST(ManagedMap, managedMap)
 {
 	// TODO: This test is highly incomplete
@@ -269,7 +298,6 @@ TEST(ManagedMap, managedMap)
 		ASSERT_FALSE(v);
 	}
 }
-
 
 }
 

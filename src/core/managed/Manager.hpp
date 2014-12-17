@@ -156,6 +156,11 @@ private:
 	std::unordered_set<Managed *> deleted;
 
 	/**
+	 * Vector containing the objects marked for deletion in an ordered fashion.
+	 */
+	std::vector<Managed *> orderedDeleted;
+
+	/**
 	 * Map storing the data attached to managed objects.
 	 */
 	std::unordered_map<Managed *, std::map<std::string, Managed *>> store;
@@ -163,7 +168,7 @@ private:
 	/**
 	 * Map for storing the tagged memory regions.
 	 */
-	std::map<uintptr_t, std::pair<uintptr_t, void*>> tags;
+	std::map<uintptr_t, std::pair<uintptr_t, void *>> tags;
 
 	/**
 	 * Recursion depth while performing deletion. This variable is needed
