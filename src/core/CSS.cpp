@@ -60,42 +60,42 @@ std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
 std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
     const std::string &className, const PseudoSelector &select)
 {
-	return getChildren(NULL, &className, &select);
+	return getChildren(nullptr, &className, &select);
 }
 
 std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
     const SelectionOperator &op, const PseudoSelector &select)
 {
-	return getChildren(&op, NULL, &select);
+	return getChildren(&op, nullptr, &select);
 }
 
 std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
     const SelectionOperator &op, const std::string &className)
 {
-	return getChildren(&op, &className, NULL);
+	return getChildren(&op, &className, nullptr);
 }
 
 std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
     const SelectionOperator &op)
 {
-	return getChildren(&op, NULL, NULL);
+	return getChildren(&op, nullptr, nullptr);
 }
 
 std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
     const std::string &className)
 {
-	return getChildren(NULL, &className, NULL);
+	return getChildren(nullptr, &className, nullptr);
 }
 
 std::vector<Rooted<SelectorNode>> SelectorNode::getChildren(
     const PseudoSelector &select)
 {
-	return getChildren(NULL, NULL, &select);
+	return getChildren(nullptr, nullptr, &select);
 }
 
 std::vector<Rooted<SelectorNode>> SelectorNode::getChildren()
 {
-	return getChildren(NULL, NULL, NULL);
+	return getChildren(nullptr, nullptr, nullptr);
 }
 
 /*
@@ -103,7 +103,7 @@ std::vector<Rooted<SelectorNode>> SelectorNode::getChildren()
  */
 
 std::vector<Rooted<SelectorNode>> SelectorNode::append(
-    Rooted<SelectorEdge> edge)
+    Handle<SelectorEdge> edge)
 {
 	std::vector<Rooted<SelectorNode>> out;
 	// look if we already have a child in an equivalent edge.
@@ -111,7 +111,7 @@ std::vector<Rooted<SelectorNode>> SelectorNode::append(
 	    getChildren(edge->getSelectionOperator(), edge->getTarget()->getName(),
 	                edge->getTarget()->getPseudoSelector());
 	// note that this can only be one child or no child.
-	if (children.size() == 0) {
+	if (children.empty()) {
 		// if there is no child the appending process is trivial: We can just
 		// add the whole subtree represented by the other node as child here.
 		edges.push_back(edge);
@@ -119,7 +119,7 @@ std::vector<Rooted<SelectorNode>> SelectorNode::append(
 		// otherwise we start the appending process recursively on the child
 		// level.
 		// TODO: RuleSet merging
-		if (edge->getTarget()->getEdges().size() == 0) {
+		if (edge->getTarget()->getEdges().empty()) {
 			// if there are no more subsequent edges this is a leafe we could
 			// not merge, because it is already present in the Tree.
 			out.push_back(children[0]);
@@ -136,8 +136,7 @@ std::vector<Rooted<SelectorNode>> SelectorNode::append(
 	return out;
 }
 
-std::vector<Rooted<SelectorNode>> SelectorNode::append(Rooted<SelectorNode> node){
-	const Rooted<SelectorEdge> e {new SelectorEdge{node->getManager(), node}};
-	return std::move(append(e));
+std::vector<Rooted<SelectorNode>> SelectorNode::append(Handle<SelectorNode> node){
+	return append(new SelectorEdge{this->getManager(), node});
 }
 }

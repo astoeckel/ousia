@@ -270,7 +270,7 @@ public:
 	    : Node(mgr, std::move(name)),
 	      pseudoSelector(std::move(pseudoSelector)),
 	      edges(this),
-	      ruleSet(new RuleSet(mgr), this)
+	      ruleSet(acquire(new RuleSet(mgr)))
 	{
 	}
 
@@ -282,7 +282,7 @@ public:
 	    : Node(mgr, std::move(name)),
 	      pseudoSelector("true", false),
 	      edges(this),
-	      ruleSet(new RuleSet(mgr), this)
+	      ruleSet(acquire(new RuleSet(mgr)))
 	{
 	}
 
@@ -385,13 +385,13 @@ public:
 	 * @return A list of leafs of this SelectorTree that could not be appended,
 	 *         because they were already contained.
 	 */
-	std::vector<Rooted<SelectorNode>> append(Rooted<SelectorEdge> edge);
+	std::vector<Rooted<SelectorNode>> append(Handle<SelectorEdge> edge);
 
 	/**
 	 * This is just a convenience function which creates a new edge
 	 * automatically using the DESCENDANT SelectionOperator.
 	 */
-	std::vector<Rooted<SelectorNode>> append(Rooted<SelectorNode> node);
+	std::vector<Rooted<SelectorNode>> append(Handle<SelectorNode> node);
 
 	bool isAccepting() { return accepting; }
 
