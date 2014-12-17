@@ -85,6 +85,7 @@
 #include <core/managed/ManagedContainer.hpp>
 #include <core/Node.hpp>
 
+#include "Cardinality.hpp"
 #include "Typesystem.hpp"
 
 namespace ousia {
@@ -181,10 +182,9 @@ public:
 	 *                      Descriptor to be valid.
 	 */
 	FieldDescriptor(Manager &mgr, std::string name, Handle<Descriptor> parent,
-	                FieldType fieldType,
-	                ManagedVector<StructuredClass> children, bool optional)
+	                FieldType fieldType, bool optional)
 	    : Node(mgr, std::move(name), parent),
-	      children(children),
+	      children(this),
 	      fieldType(fieldType),
 	      // TODO: What would be a wise initialization of the primitiveType?
 	      optional(optional)
@@ -193,6 +193,11 @@ public:
 
 	// TODO: Is returning a ManagedVector alright?
 	ManagedVector<StructuredClass> &getChildren() { return children; }
+
+	const ManagedVector<StructuredClass> &getChildren() const
+	{
+		return children;
+	}
 
 	FieldType getFieldType() const { return fieldType; }
 
@@ -236,11 +241,10 @@ private:
 public:
 	Descriptor(Manager &mgr, std::string name, Handle<Node> parent,
 	           // TODO: What would be a wise default value for attributes?
-	           Handle<StructType> attributesDescriptor,
-	           ManagedVector<FieldDescriptor> fieldDescriptors)
+	           Handle<StructType> attributesDescriptor)
 	    : Node(mgr, std::move(name), parent),
 	      attributesDescriptor(acquire(attributesDescriptor)),
-	      fieldDescriptors(fieldDescriptors)
+	      fieldDescriptors(this)
 	{
 	}
 
@@ -259,10 +263,6 @@ public:
 	{
 		return fieldDescriptors;
 	}
-};
-
-// TODO: Implement
-class Cardinality {
 };
 
 /**
@@ -342,7 +342,7 @@ class Cardinality {
  */
 class StructuredClass : public Descriptor {
 private:
-	const Cardinality cardinality;
+	const Cardinality& cardinality;
 	Owned<StructuredClass> isa;
 	ManagedVector<FieldDescriptor> parents;
 
@@ -351,16 +351,13 @@ public:
 
 	StructuredClass(Manager &mgr, std::string name, Handle<Node> parent,
 	                Handle<StructType> attributesDescriptor,
-	                ManagedVector<FieldDescriptor> fieldDescriptors,
 	                const Cardinality &cardinality,
 	                // TODO: What would be a wise default value for isa?
-	                Handle<StructuredClass> isa,
-	                ManagedVector<FieldDescriptor> parents, bool transparent)
-	    : Descriptor(mgr, std::move(name), parent, attributesDescriptor,
-	                 fieldDescriptors),
+	                Handle<StructuredClass> isa, bool transparent)
+	    : Descriptor(mgr, std::move(name), parent, attributesDescriptor),
 	      cardinality(cardinality),
 	      isa(acquire(isa)),
-	      parents(parents),
+	      parents(this),
 	      transparent(transparent)
 	{
 	}
@@ -370,7 +367,7 @@ public:
 	Rooted<StructuredClass> getIsA() const { return isa; }
 
 	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<FieldDescriptor>& getParents() { return parents; }
+	ManagedVector<FieldDescriptor> &getParents() { return parents; }
 
 	const ManagedVector<FieldDescriptor> &getParents() const { return parents; }
 };
@@ -396,23 +393,31 @@ private:
 	ManagedVector<AnnotationClass> annotationClasses;
 
 public:
-	Domain(Manager &mgr, std::string name,
-	       ManagedVector<StructuredClass> rootStructures,
-	       ManagedVector<AnnotationClass> annotationClasses)
+	Domain(Manager &mgr, std::string name)
 	    // TODO: Can a domain have a parent?
 	    : Node(mgr, std::move(name), nullptr),
-	      rootStructures(rootStructures),
-	      annotationClasses(annotationClasses)
+	      rootStructures(this),
+	      annotationClasses(this)
 	{
 	}
 
 	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<StructuredClass> getRootStructures()
+	ManagedVector<StructuredClass> &getRootStructures()
 	{
 		return rootStructures;
 	}
 
-	ManagedVector<AnnotationClass> getAnnotationClasses()
+	const ManagedVector<StructuredClass> &getRootStructures() const
+	{
+		return rootStructures;
+	}
+
+	ManagedVector<AnnotationClass> &getAnnotationClasses()
+	{
+		return annotationClasses;
+	}
+
+	const ManagedVector<AnnotationClass> &getAnnotationClasses() const
 	{
 		return annotationClasses;
 	}
