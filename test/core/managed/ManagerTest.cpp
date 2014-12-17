@@ -589,5 +589,60 @@ TEST(Manager, storeData)
 	ASSERT_FALSE(a[0] || a[1] || a[2] || a[3] || a[4]);
 }
 
+class TestDeleteOrderManaged : public Managed {
+private:
+	const int id;
+	std::vector<int> &ids;
+	std::vector<Owned<Managed>> refs;
+
+public:
+	TestDeleteOrderManaged(Manager &mgr, int id, std::vector<int> &ids)
+	    : Managed(mgr), id(id), ids(ids)
+	{
+	}
+
+	~TestDeleteOrderManaged() override
+	{
+		ids.push_back(id);
+	}
+
+	void addRef(Handle<Managed> h) { refs.push_back(acquire(h)); }
+};
+
+TEST(Manager, deleteOrder)
+{
+	std::vector<int> ids;
+	Manager mgr(1);
+
+	{
+		Rooted<TestDeleteOrderManaged> root{
+		    new TestDeleteOrderManaged{mgr, 0, ids}};
+		Rooted<TestDeleteOrderManaged> m1{
+		    new TestDeleteOrderManaged{mgr, 1, ids}};
+		Rooted<TestDeleteOrderManaged> m2{
+		    new TestDeleteOrderManaged{mgr, 2, ids}};
+		Rooted<TestDeleteOrderManaged> m3{
+		    new TestDeleteOrderManaged{mgr, 3, ids}};
+		Rooted<TestDeleteOrderManaged> m4{
+		    new TestDeleteOrderManaged{mgr, 4, ids}};
+		Rooted<TestDeleteOrderManaged> m5{
+		    new TestDeleteOrderManaged{mgr, 5, ids}};
+		Rooted<TestDeleteOrderManaged> m6{
+		    new TestDeleteOrderManaged{mgr, 6, ids}};
+		Rooted<TestDeleteOrderManaged> m7{
+		    new TestDeleteOrderManaged{mgr, 7, ids}};
+
+		root->addRef(m7);
+		m7->addRef(m2);
+		m2->addRef(m5);
+		m5->addRef(m1);
+		m1->addRef(m3);
+		m3->addRef(m6);
+		m6->addRef(m4);
+	}
+
+	std::vector<int> expected{0, 7, 2, 5, 1, 3, 6, 4};
+	ASSERT_EQ(expected, ids);
+}
 }
 
