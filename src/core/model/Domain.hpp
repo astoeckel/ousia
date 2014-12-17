@@ -84,8 +84,8 @@
 
 #include <core/managed/ManagedContainer.hpp>
 #include <core/Node.hpp>
+#include <core/RangeSet.hpp>
 
-#include "Cardinality.hpp"
 #include "Typesystem.hpp"
 
 namespace ousia {
@@ -265,6 +265,8 @@ public:
 	}
 };
 
+typedef RangeSet<size_t> Cardinality;
+
 /**
  * A StructuredClass specifies nodes in the StructureTree of a document that
  * implements this domain. For more information on the StructureTree please
@@ -342,7 +344,7 @@ public:
  */
 class StructuredClass : public Descriptor {
 private:
-	const Cardinality& cardinality;
+	const Cardinality cardinality;
 	Owned<StructuredClass> isa;
 	ManagedVector<FieldDescriptor> parents;
 
