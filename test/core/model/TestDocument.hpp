@@ -52,11 +52,28 @@ static Rooted<Document> constructBookDocument(Manager &mgr,
 	// Add its text.
 	Variant text{std::map<std::string, Variant>{
 	    {"content", Variant("Some introductory text")}}};
-	Rooted<DocumentPrimitive> text_primitive =
+	Rooted<DocumentPrimitive> foreword_text =
 	    DocumentPrimitive::buildEntity(foreword, text, "text");
+	if (foreword_text.isNull()) {
+		return {nullptr};
+	}
 	// Add a section.
 	Rooted<StructuredEntity> section =
 	    StructuredEntity::buildEntity(root, {bookDomain}, "section");
+	// Add a paragraph for it.
+	Rooted<StructuredEntity> main =
+	    StructuredEntity::buildEntity(section, {bookDomain}, "paragraph");
+	if (main.isNull()) {
+		return {nullptr};
+	}
+	// Add its text.
+	text = Variant{std::map<std::string, Variant>{
+	    {"content", Variant("Some introductory text")}}};
+	Rooted<DocumentPrimitive> main_text =
+	    DocumentPrimitive::buildEntity(foreword, text, "text");
+	if (main_text.isNull()) {
+		return {nullptr};
+	}
 
 	return doc;
 }
