@@ -28,7 +28,7 @@ namespace ousia {
 namespace model {
 
 void assert_path(std::vector<Rooted<Managed>> &result, size_t idx,
-                 const std::type_info& expected_type,
+                 const std::type_info &expected_type,
                  std::vector<std::string> expected_path)
 {
 	ASSERT_TRUE(result.size() > idx);
@@ -62,6 +62,39 @@ TEST(Document, testDomainResolving)
 	assert_path(res, 0, typeid(Domain), {"book"});
 	// Then the book structure.
 	assert_path(res, 1, typeid(StructuredClass), {"book", "book"});
+	ASSERT_EQ(2, res.size());
+
+	/*
+	 * If we explicitly ask for the "book, book" path, then only the
+	 * StructuredClass should be returned.
+	 */
+	res = domain->resolve(std::vector<std::string>{"book", "book"});
+	assert_path(res, 0, typeid(StructuredClass), {"book", "book"});
+	ASSERT_EQ(1, res.size());
+
+	/*
+	 * If we ask for "section" the result should be unique as well.
+	 */
+	res = domain->resolve(std::vector<std::string>{"section"});
+	// TODO: Is that the path result we want?
+	assert_path(res, 0, typeid(StructuredClass), {"book", "section"});
+	ASSERT_EQ(1, res.size());
+
+	/*
+	 * If we ask for the path "book", "book", "" we reference the
+	 * FieldDescriptor of the StructuredClass "book".
+	 */
+	res = domain->resolve(std::vector<std::string>{"book", "book", ""});
+	assert_path(res, 0, typeid(FieldDescriptor), {"book", "book", ""});
+	ASSERT_EQ(1, res.size());
+
+	/*
+	 * If we ask for "paragraph" it is references two times in the Domain graph,
+	 * but should be returned only once.
+	 */
+	res = domain->resolve("paragraph");
+	assert_path(res, 0, typeid(StructuredClass), {"book", "paragraph"});
+	ASSERT_EQ(1, res.size());
 }
 }
 }
