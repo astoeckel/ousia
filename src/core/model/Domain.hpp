@@ -139,6 +139,12 @@ private:
 	FieldType fieldType;
 	Owned<Type> primitiveType;
 
+protected:
+	void doResolve(std::vector<Rooted<Managed>> &res,
+	               const std::vector<std::string> &path, Filter filter,
+	               void *filterData, unsigned idx,
+	               VisitorSet &visited) override;
+
 public:
 	const bool optional;
 
@@ -220,7 +226,7 @@ public:
  * the attribute specification of a descriptor is done by referencing an
  * appropriate StructType that contains all permitted keys and value types.
  *
- * TODO: What aout optional attributes?
+ * TODO: What about optional attributes?
  *
  * In XML terms the difference between primitive fields and attributes can be
  * explained as the difference between node attributes and node children.
@@ -240,6 +246,12 @@ class Descriptor : public Node {
 private:
 	Owned<StructType> attributesDescriptor;
 	ManagedVector<FieldDescriptor> fieldDescriptors;
+
+protected:
+	void doResolve(std::vector<Rooted<Managed>> &res,
+	               const std::vector<std::string> &path, Filter filter,
+	               void *filterData, unsigned idx,
+	               VisitorSet &visited) override;
 
 public:
 	Descriptor(Manager &mgr, std::string name, Handle<Domain> domain,
@@ -351,6 +363,12 @@ private:
 	Owned<StructuredClass> isa;
 	ManagedVector<FieldDescriptor> parents;
 
+protected:
+	void doResolve(std::vector<Rooted<Managed>> &res,
+	               const std::vector<std::string> &path, Filter filter,
+	               void *filterData, unsigned idx,
+	               VisitorSet &visited) override;
+
 public:
 	const bool transparent;
 
@@ -398,6 +416,12 @@ private:
 	ManagedVector<StructuredClass> rootStructures;
 	ManagedVector<AnnotationClass> annotationClasses;
 	ManagedVector<Typesystem> typesystems;
+
+protected:
+	void doResolve(std::vector<Rooted<Managed>> &res,
+	               const std::vector<std::string> &path, Filter filter,
+	               void *filterData, unsigned idx,
+	               VisitorSet &visited) override;
 
 public:
 	Domain(Manager &mgr, std::string name)

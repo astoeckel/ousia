@@ -184,6 +184,7 @@ IF(TEST)
 		test/core/managed/ManagedContainerTest
 		test/core/managed/ManagedTest
 		test/core/managed/ManagerTest
+		test/core/model/DomainTest
 		test/core/model/DocumentTest
 		test/core/parser/ParserStackTest
 #		test/core/script/FunctionTest

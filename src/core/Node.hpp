@@ -350,6 +350,11 @@ public:
 	 * Returns the name of the node.
 	 */
 	std::string getName() const { return name; }
+	
+	/**
+	 * Returns a reference to the name of the node.
+	 */
+	const std::string& getNameRef() const { return name; }
 
 	/**
 	 * Specifies whether the node has a name, e.g. whether the current name is
