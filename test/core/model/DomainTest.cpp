@@ -22,7 +22,7 @@
 
 #include <core/model/Domain.hpp>
 
-#include "ModelTestUtils.hpp"
+#include "TestDomain.hpp"
 
 namespace ousia {
 namespace model {

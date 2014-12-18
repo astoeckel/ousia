@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _MODEL_TEST_UTILS_HPP_
-#define _MODEL_TEST_UTILS_HPP_
+#ifndef _MODEL_TEST_DOMAIN_HPP_
+#define _MODEL_TEST_DOMAIN_HPP_
 
 #include <core/model/Domain.hpp>
 #include <core/model/Typesystem.hpp>
@@ -28,20 +28,23 @@ namespace model {
 /**
  * This constructs a somewhat trivial system of standard types.
  *
- * Currently contained: string
+ * Currently contained: string, text (struct wrapper for string)
  */
 static Rooted<Typesystem> constructTypeSystem(Manager &mgr)
 {
 	Rooted<Typesystem> sys{new Typesystem(mgr, "std")};
 	Rooted<StringType> string{new StringType(mgr, sys)};
 	sys->addType(string);
+	Rooted<StructType> string_struct{new StructType(
+	    mgr, "text", sys, {{"content", "", false, sys->acquire(string)}})};
+	sys->addType(string_struct);
 
 	return sys;
 }
 
 /**
  * This constructs the "book" domain for test purposes. The structure of the
- * domain is fairly and can be seen from the construction itself.
+ * domain is fairly simple and can be seen from the construction itself.
  */
 static Rooted<Domain> constructBookDomain(Manager &mgr)
 {
@@ -77,14 +80,15 @@ static Rooted<Domain> constructBookDomain(Manager &mgr)
 	section_field->getChildren().push_back(paragraph);
 	book_field->getChildren().push_back(paragraph);
 	// ... and has a primitive field.
-	Rooted<FieldDescriptor> text{new FieldDescriptor(
-	    mgr, paragraph, domain->getTypesystems()[0]->getTypes()[0], "text",
+	Rooted<FieldDescriptor> paragraph_field{new FieldDescriptor(
+	    mgr, paragraph, domain->getTypesystems()[0]->getTypes()[1], "text",
 	    false)};
+	paragraph->getFieldDescriptors().push_back(paragraph_field);
 
 	return domain;
 }
 }
 }
 
-#endif /* _TEST_MANAGED_H_ */
+#endif /* _TEST_DOMAIN_HPP_ */
 
