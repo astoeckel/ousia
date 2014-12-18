@@ -19,8 +19,10 @@
 #include <gtest/gtest.h>
 
 #include <core/model/Document.hpp>
+#include <core/model/Domain.hpp>
 
-#include "ModelTestUtils.hpp"
+#include "TestDocument.hpp"
+#include "TestDomain.hpp"
 
 namespace ousia {
 namespace model {
@@ -32,9 +34,11 @@ TEST(Document, testDocumentConstruction)
 	Manager mgr{1};
 	// Get the domain.
 	Rooted<Domain> domain = constructBookDomain(mgr);
-
-	// TODO: IMPLEMENT
-	ASSERT_TRUE(true);
+	// Construct the document.
+	Rooted<Document> doc = constructBookDocument(mgr, domain);
+	
+	// If that works we are happy already.
+	ASSERT_FALSE(doc.isNull());
 }
 }
 }

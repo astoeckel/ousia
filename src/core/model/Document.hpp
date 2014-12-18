@@ -80,6 +80,7 @@ namespace model {
 
 class StructuredEntity;
 class AnnotationEntity;
+class Document;
 
 /**
  * A DocumentEntity is the common superclass for StructuredEntities and
@@ -110,8 +111,11 @@ public:
 	{
 		// TODO: Validation at construction time?
 		// insert empty vectors for each field.
-		for (size_t f = 0; f < descriptor->getFieldDescriptors().size(); f++) {
-			fields.push_back(ManagedVector<StructuredEntity>(this));
+		if (!descriptor.isNull()) {
+			for (size_t f = 0; f < descriptor->getFieldDescriptors().size();
+			     f++) {
+				fields.push_back(ManagedVector<StructuredEntity>(this));
+			}
 		}
 	}
 
@@ -202,6 +206,57 @@ public:
 	}
 
 	ManagedVector<AnnotationEntity> &getAnnotations() { return annotations; }
+
+	/**
+	 * This builds the root StructuredEntity for the given document. It
+	 * automatically appends the newly build entity to the given document.
+	 *
+	 * @param document   is the document this entity shall be build for. The
+	 *                   resulting entity will automatically be appended to that
+	 *                   document. Also the manager of that document will be
+	 *                   used to register the new node.
+	 * @param domains    are the domains that are used to find the
+	 *                   StructuredClass for the new node. The domains will be
+	 *                   searched in the given order.
+	 * @param className  is the name of the StructuredClass.
+	 * @param attributes are the attributes of the new node in terms of a Struct
+	 *                   variant (empty per default).
+	 * @param name       is the name of this StructuredEntity (empty per
+	 *                   default).
+	 * @return           the newly created StructuredEntity or a nullptr if some
+	 *                   input handle was empty or the given domains did not
+	 *                   contain a StructuredClass with the given name.
+	 */
+	static Rooted<StructuredEntity> buildRootEntity(
+	    Handle<Document> document, std::vector<Handle<Domain>> domains,
+	    const std::string &className, Variant attributes = Variant(),
+	    std::string name = "");
+
+	/**
+	 * This builds a StructuredEntity as child of the given DocumentEntity. It
+	 * automatically appends the newly build entity to its parent.
+	 *
+	 * @param parent     is the parent DocumentEntity. The newly constructed
+	 *                   StructuredEntity will automatically be appended to it.
+	 * @param domains    are the domains that are used to find the
+	 *                   StructuredClass for the new node. The domains will be
+	 *                   searched in the given order.
+	 * @param className  is the name of the StructuredClass.
+	 * @param fieldName  is the name of the field where the newly constructed
+	 *                   StructuredEntity shall be appended.
+	 * @param attributes are the attributes of the new node in terms of a Struct
+	 *                   variant (empty per default).
+	 * @param name       is the name of this StructuredEntity (empty per
+	 *                   default).
+	 *
+	 * @return           the newly created StructuredEntity or a nullptr if some
+	 *                   input handle was empty or the given domains did not
+	 *                   contain a StructuredClass with the given name.
+	 */
+	static Rooted<StructuredEntity> buildEntity(
+	    Handle<DocumentEntity> parent, std::vector<Handle<Domain>> domains,
+	    const std::string &className, const std::string &fieldName = "",
+	    Variant attributes = Variant(), std::string name = "");
 };
 
 /**
@@ -211,7 +266,7 @@ public:
  */
 class DocumentPrimitive : public StructuredEntity {
 public:
-	DocumentPrimitive(Manager &mgr, Handle<StructuredEntity> parent,
+	DocumentPrimitive(Manager &mgr, Handle<DocumentEntity> parent,
 	                  Variant content)
 	    : StructuredEntity(mgr, parent, nullptr, std::move(content))
 	{
@@ -220,6 +275,25 @@ public:
 	Variant getContent() const { return getAttributes(); }
 
 	// TODO: Override such methods like "getField" to disable them?
+
+	/**
+	 * This builds a DocumentPrimitive as child of the given DocumentEntity. It
+	 * automatically appends the newly build entity to its parent.
+	 *
+	 * @param parent     is the parent DocumentEntity. The newly constructed
+	 *                   DocumentPrimitive will automatically be appended to it.
+	 * @param content    is the primitive content of the new node in terms of a
+	 *                   Struct variant.
+	 * @param fieldName  is the name of the field where the newly constructed
+	 *                   StructuredEntity shall be appended.
+	 *
+	 * @return           the newly created StructuredEntity or a nullptr if some
+	 *                   input handle was empty or the given domains did not
+	 *                   contain a StructuredClass with the given name.
+	 */
+	static Rooted<DocumentPrimitive> buildEntity(
+	    Handle<DocumentEntity> parent, 
+	    Variant content, const std::string &fieldName = "");
 };
 
 /**
@@ -283,6 +357,26 @@ public:
 	Rooted<Anchor> getStart() { return start; }
 
 	Rooted<Anchor> getEnd() { return end; }
+};
+
+/**
+ * A Document is mainly a wrapper for the Root structure node of the Document
+ * Graph.
+ */
+class Document : public Node {
+private:
+	Owned<StructuredEntity> root;
+
+public:
+	Document(Manager &mgr, std::string name)
+	    // TODO: Can a document have a parent?
+	    : Node(mgr, std::move(name), nullptr)
+	{
+	}
+
+	void setRoot(Handle<StructuredEntity> root) { root = acquire(root); };
+
+	Rooted<StructuredEntity> getRoot() const { return root; }
 };
 }
 }
