@@ -50,7 +50,7 @@ protected:
 	{
 	}
 
-	virtual bool doPrepare(Variant &var, Logger &log) = 0;
+	virtual bool doPrepare(Variant &var, Logger &log) const = 0;
 
 public:
 	/**
@@ -65,12 +65,12 @@ public:
 	/**
 	 * TODO: DOC
 	 */
-	virtual Variant create() = 0;
+	virtual Variant create() const = 0;
 
 	/**
 	 * TODO: DOC
 	 */
-	bool prepare(Variant &var, Logger &log)
+	bool prepare(Variant &var, Logger &log) const
 	{
 		try {
 			return doPrepare(var, log);
@@ -88,7 +88,7 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) override
+	bool doPrepare(Variant &var, Logger &log) const override
 	{
 		if (!var.isPrimitive()) {
 			throw LoggableException{"Expected a string or primitive input."};
@@ -114,7 +114,7 @@ public:
 	/**
 	 * TODO: DOC
 	 */
-	Variant create() override { return Variant{""}; }
+	Variant create() const override { return Variant{""}; }
 };
 
 class IntType : public Type {
@@ -122,7 +122,7 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) override
+	bool doPrepare(Variant &var, Logger &log) const override
 	{
 		if (!var.isInt()) {
 			throw LoggableException{"Expected an integer value."};
@@ -142,7 +142,7 @@ public:
 	/**
 	 * TODO: DOC
 	 */
-	Variant create() override { return Variant{0}; }
+	Variant create() const override { return Variant{0}; }
 };
 
 class DoubleType : public Type {
@@ -150,7 +150,7 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) override
+	bool doPrepare(Variant &var, Logger &log) const override
 	{
 		if (!var.isInt() && !var.isDouble()) {
 			throw LoggableException{"Expected a double value."};
@@ -171,7 +171,7 @@ public:
 	/**
 	 * TODO: DOC
 	 */
-	Variant create() override { return Variant{0.}; }
+	Variant create() const override { return Variant{0.}; }
 };
 
 class UnknownType : public Type {
@@ -179,7 +179,7 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) override { return true; }
+	bool doPrepare(Variant &var, Logger &log) const override { return true; }
 
 public:
 	/**
@@ -193,7 +193,7 @@ public:
 	/**
 	 * TODO: DOC
 	 */
-	Variant create() override { return Variant{nullptr}; }
+	Variant create() const override { return Variant{nullptr}; }
 };
 
 class BoolType : public Type {
@@ -201,7 +201,7 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) override
+	bool doPrepare(Variant &var, Logger &log) const override
 	{
 		if (!var.isBool()) {
 			throw LoggableException("Expected boolean value!");
@@ -221,7 +221,7 @@ public:
 	/**
 	 * TODO: DOC
 	 */
-	Variant create() override { return Variant{false}; }
+	Variant create() const override { return Variant{false}; }
 };
 
 class EnumerationType : public Type {
@@ -232,7 +232,7 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) override
+	bool doPrepare(Variant &var, Logger &log) const override
 	{
 		if (var.isInt()) {
 			int i = var.asInt();
@@ -275,7 +275,7 @@ public:
 	/**
 	 * TODO: DOC
 	 */
-	Variant create() override { return Variant{0}; }
+	Variant create() const override { return Variant{0}; }
 };
 
 class StructType : public Type {
@@ -296,7 +296,45 @@ public:
 		}
 	};
 
-private:
+protected:
+	/**
+	 * TODO: DOC
+	 */
+	bool doPrepare(Variant &var, Logger &log) const override
+	{
+		// If we already have an array, we just check that.
+		if(var.isArray()){
+			auto arr = var.asArray();
+			for(size_t a = 0; a < attrs.size(); a++){
+				if(!attrs[a].type->prepare(arr[a], log)){
+					return false;
+				}
+			}
+			return true;
+		}
+		// Otherwise we expect a map.
+		if (!var.isMap()) {
+			throw LoggableException("Expected map!");
+		}
+		auto &map = var.asMap();
+		// We transform the map into an array with the correct values at the
+		// correct places.
+		std::vector<Variant> vec;
+		for (auto &a : attrs) {
+			auto it = map.find(a.name);
+			// we use the default if nothing is set.
+			if (it == map.end() || !a.type->prepare(it->second, log)) {
+				log.note(std::string("Using default value for ") + a.name);
+				vec.push_back(a.defaultValue);
+			} else{
+				vec.push_back(it->second);
+			}
+		}
+		var = Variant(vec);
+		return true;
+	}
+
+public:
 	std::vector<AttributeDescriptor> attrs;
 
 	StructType(Manager &mgr, std::string name, Handle<Typesystem> system,
@@ -305,15 +343,13 @@ private:
 	      attrs(std::move(attrs))
 	{
 	}
-
-public:
 	// TODO
 	//	static StructType createValidated(
 	//	    Manager &mgr, std::string name, Handle<Typesystem> system,
 	//	    Handle<StructType> parent,
 	//	    const std::vector<AttributeDescriptor> &attrs, Logger &logger);
 
-	Variant create() override { return Variant{Variant::arrayType{}}; }
+	Variant create() const override { return Variant{Variant::arrayType{}}; }
 };
 
 class ArrayType : public Type {
@@ -324,7 +360,7 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) override
+	bool doPrepare(Variant &var, Logger &log) const override
 	{
 		if (!var.isArray()) {
 			throw LoggableException("Expected array!");
@@ -353,7 +389,7 @@ public:
 	/**
 	 * TODO: DOC
 	 */
-	Variant create() override { return Variant{Variant::arrayType{}}; }
+	Variant create() const override { return Variant{Variant::arrayType{}}; }
 
 	Rooted<Type> getType() { return innerType; }
 };
@@ -372,6 +408,8 @@ public:
 	 * TODO: DOC
 	 */
 	void addType(Handle<Type> type) { types.push_back(type); }
+
+	const NodeVector<Type> &getTypes() const { return types; }
 };
 }
 }

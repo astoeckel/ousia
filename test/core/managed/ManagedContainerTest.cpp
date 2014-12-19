@@ -38,7 +38,7 @@ TEST(ManagedVector, managedVector)
 	{
 		Rooted<Managed> root{new Managed{mgr}};
 
-		std::vector<TestManaged*> elems;
+		std::vector<TestManaged *> elems;
 		for (int i = 0; i < nElem; i++) {
 			elems.push_back(new TestManaged{mgr, a[i]});
 		}
@@ -49,7 +49,8 @@ TEST(ManagedVector, managedVector)
 
 		ManagedVector<TestManaged> v(root, elems.begin(), elems.end());
 
-		// Remove the last element from the list. It should be garbage collected.
+		// Remove the last element from the list. It should be garbage
+		// collected.
 		v.pop_back();
 		ASSERT_FALSE(a[nElem - 1]);
 
@@ -84,7 +85,6 @@ TEST(ManagedVector, managedVector)
 		ASSERT_FALSE(v);
 	}
 }
-
 
 TEST(ManagedVector, moveAssignment)
 {
@@ -220,16 +220,39 @@ TEST(ManagedVector, moveWithNewOwner)
 	}
 }
 
-class TestManagedWithContainer : public Managed {
+TEST(ManagedVector, accessOperator)
+{
+	Manager mgr{1};
+	Rooted<Managed> root{new Managed{mgr}};
+	ManagedVector<Managed> instance{root};
+	Rooted<Managed> elem{new Managed{mgr}};
+	instance.push_back(elem);
 
+	ASSERT_EQ(elem, instance[0]);
+
+	// Test out of bounds.
+	bool caught = false;
+	try {
+		instance[1];
+	}
+	catch (std::out_of_range ex) {
+		caught = true;
+	}
+	ASSERT_TRUE(caught);
+
+	instance.push_back(elem);
+	ASSERT_EQ(elem, instance[1]);
+}
+
+class TestManagedWithContainer : public Managed {
 public:
 	ManagedVector<TestManaged> elems;
 
-	TestManagedWithContainer(Manager &mgr) : Managed(mgr), elems(this) {};
-
+	TestManagedWithContainer(Manager &mgr) : Managed(mgr), elems(this){};
 };
 
-TEST(ManagedVector, embedded) {
+TEST(ManagedVector, embedded)
+{
 	// Note: This test depends on the correct deletion order -- otherwise
 	// valgrind shows an error
 	bool a;
@@ -248,7 +271,6 @@ TEST(ManagedVector, embedded) {
 	ASSERT_FALSE(a);
 }
 
-
 TEST(ManagedMap, managedMap)
 {
 	// TODO: This test is highly incomplete
@@ -260,7 +282,7 @@ TEST(ManagedMap, managedMap)
 	{
 		Rooted<Managed> root{new Managed{mgr}};
 
-		std::map<int, TestManaged*> elems;
+		std::map<int, TestManaged *> elems;
 		for (int i = 0; i < nElem; i++) {
 			elems.insert(std::make_pair(i, new TestManaged{mgr, a[i]}));
 		}
@@ -298,6 +320,5 @@ TEST(ManagedMap, managedMap)
 		ASSERT_FALSE(v);
 	}
 }
-
 }
 
