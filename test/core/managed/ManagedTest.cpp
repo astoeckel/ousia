@@ -118,6 +118,11 @@ TEST(Managed, type)
 	ASSERT_EQ(&Type3, &m3->type());
 	ASSERT_EQ(&Type4, &m4->type());
 	ASSERT_EQ(&ManagedType::None, &m5->type());
+
+	ASSERT_EQ(&Type1, &ManagedType::typeOf(*m1));
+	ASSERT_EQ(&Type1, &ManagedType::typeOf<TypeTestManaged1>());
+	ASSERT_EQ(&Type1, &typeOf<TypeTestManaged1>());
+	ASSERT_EQ(&Type1, &typeOf(*m1));
 }
 }
 

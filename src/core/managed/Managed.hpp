@@ -114,19 +114,19 @@ public:
 	 * @return a reference to the registered ManagedType for this particular
 	 * Managed class.
 	 */
-	const ManagedType& type() const {
-		return ManagedType::typeOf(typeid(*this));
+	const ManagedType &type() const
+	{
+		return ManagedType::typeOf(*this);
 	}
 
 	/**
 	 * Returns true if this Managed instance is of the given ManagedType.
 	 *
 	 * @param true if the ManagedType registered for this particular Managed
-	 * class is 
+	 * class is of the given type or one of the registered parent types is of
+	 * the given type.
 	 */
-	bool isa(const ManagedType &t) const {
-		return type().isa(t);
-	}
+	bool isa(const ManagedType &t) const { return type().isa(t); }
 };
 
 /**
@@ -512,7 +512,6 @@ public:
 	 */
 	Managed *getOwner() const { return owner; }
 };
-
 }
 
 #endif /* _OUSIA_MANAGED_HPP_ */

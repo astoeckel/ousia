@@ -26,7 +26,7 @@ const ManagedType ManagedType::None;
 
 /* Class ManagedType */
 
-const ManagedType &ManagedType::typeOf(const std::type_info &nativeType)
+const ManagedType &ManagedType::rttiLookup(const std::type_info &nativeType)
 {
 	auto it = table().find(std::type_index{nativeType});
 	if (it == table().end()) {

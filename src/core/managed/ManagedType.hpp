@@ -19,10 +19,12 @@
 #ifndef _OUSIA_MANAGED_TYPE_HPP_
 #define _OUSIA_MANAGED_TYPE_HPP_
 
+#include <iostream>
+
 #include <typeinfo>
 #include <typeindex>
 #include <unordered_map>
-#include <unordered_set>
+#include <vector>
 
 namespace ousia {
 
@@ -36,7 +38,8 @@ private:
 	 * Used internally to store all registered native types and their
 	 * corresponding type information.
 	 */
-	static std::unordered_map<std::type_index, ManagedType *>& table() {
+	static std::unordered_map<std::type_index, ManagedType *> &table()
+	{
 		static std::unordered_map<std::type_index, ManagedType *> table;
 		return table;
 	}
@@ -49,7 +52,14 @@ private:
 	/**
 	 * Set containing references to the parent types.
 	 */
-	const std::unordered_set<ManagedType *> parents;
+	const std::vector<const ManagedType *> parents;
+
+	/**
+	 * Returns the ManagedType for the given type_info structure.
+	 *
+	 * @param nativeType is a pointer at the C++ RTTI information.
+	 */
+	static const ManagedType &rttiLookup(const std::type_info &nativeType);
 
 public:
 	/**
@@ -58,9 +68,30 @@ public:
 	static const ManagedType None;
 
 	/**
-	 * Returns the ManagedType for the given type_info structure.
+	 * Returns the ManagedType for the given native type.
+	 *
+	 * @tparam T is the C++ type for which the type information should be
+	 * returned.
+	 * @param obj is a dummy object for which the type information should be
+	 * returned.
 	 */
-	static const ManagedType &typeOf(const std::type_info &nativeType);
+	template <typename T>
+	static const ManagedType &typeOf(const T &obj)
+	{
+		return rttiLookup(typeid(obj));
+	}
+
+	/**
+	 * Returns the ManagedType for the given native type.
+	 *
+	 * @tparam T is the C++ type for which the type information should be
+	 * returned.
+	 */
+	template <typename T>
+	static const ManagedType &typeOf()
+	{
+		return rttiLookup(typeid(T));
+	}
 
 	/**
 	 * Default constructor. Creates a ManagedType instance with name "unknown"
@@ -92,7 +123,7 @@ public:
 	 * @param parents is a list of parent types.
 	 */
 	ManagedType(std::string name, const std::type_info &nativeType,
-	            std::unordered_set<ManagedType *> parents)
+	            const std::vector<const ManagedType *> &parents)
 	    : name(std::move(name)), parents(parents)
 	{
 		table().emplace(std::make_pair(std::type_index{nativeType}, this));
@@ -105,14 +136,39 @@ public:
 
 	/**
 	 * Returns true if this ManagedType instance is the given type or has the
-	 *given
-	 * type as one of its parents.
+	 * given type as one of its parents.
 	 *
 	 * @param other is the other type for which the relation to this type
 	 * should be checked.
 	 */
 	bool isa(const ManagedType &other) const;
 };
+
+/**
+ * Function that can be used to retrieve the RTTI information of a Managed
+ * object.
+ *
+ * @tparam T is the C++ type for which the type information should be returned.
+ */
+template <typename T>
+inline const ManagedType &typeOf()
+{
+	return ManagedType::typeOf<T>();
+}
+
+/**
+ * Function that can be used to retrieve the RTTI information of a Managed
+ * object.
+ *
+ * @tparam T is the C++ type for which the type information should be returned.
+ * @param obj is a dummy object for which the type information should be
+ * returned.
+ */
+template <typename T>
+inline const ManagedType &typeOf(const T &obj)
+{
+	return ManagedType::typeOf(obj);
+}
 }
 
 #endif /* _OUSIA_MANAGED_TYPE_HPP_ */
