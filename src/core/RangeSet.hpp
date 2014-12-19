@@ -43,22 +43,21 @@ struct Range {
 	 * invalid, with start being set to the maximum possible value of the
 	 * numerical type T, and end being set to the minimum possible value.
 	 */
-	Range() :
-		start(std::numeric_limits<T>::max()),
-		end(std::numeric_limits<T>::min())
+	Range()
+	    : start(std::numeric_limits<T>::max()),
+	      end(std::numeric_limits<T>::min())
 	{
 		// Do nothing here
 	}
 
 	/**
 	 * Copies the given start and end value. The given values are not checked
-	 * for validity. Use the "isValid" 
+	 * for validity. Use the "isValid"
 	 *
 	 * @param start is the minimum value the range still covers.
 	 * @param end is the maximum value the range still covers.
 	 */
-	Range(const T &start, const T &end) :
-		start(start), end(end)
+	Range(const T &start, const T &end) : start(start), end(end)
 	{
 		// Do nothing here
 	}
@@ -67,8 +66,7 @@ struct Range {
 	 * Creates a range that covers exactly one element, namely the value given
 	 * as parameter n.
 	 */
-	Range(const T &n) :
-		start(n), end(n)
+	Range(const T &n) : start(n), end(n)
 	{
 		// Do nothing here
 	}
@@ -79,10 +77,7 @@ struct Range {
 	 *
 	 * @return true if start is smaller or equal to end, false otherwise.
 	 */
-	bool isValid() const
-	{
-		return start <= end;
-	}
+	bool isValid() const { return start <= end; }
 
 	/**
 	 * Checks whether the given value lies inside the range.
@@ -90,10 +85,7 @@ struct Range {
 	 * @param v is the value that is being checked.
 	 * @return true if the value lies within the range, false otherwise.
 	 */
-	bool inRange(T v) const
-	{
-		return (v >= start) && (v <= end);
-	}
+	bool inRange(T v) const { return (v >= start) && (v <= end); }
 
 	/**
 	 * Checks whether the given range overlaps with another range. Not that
@@ -104,8 +96,8 @@ struct Range {
 	 */
 	bool overlaps(const Range<T> &r) const
 	{
-		return (((r.start >= start) || (r.end >= start))
-				&& ((r.start <= end) || (r.end <= end)));
+		return (((r.start >= start) || (r.end >= start)) &&
+		        ((r.start <= end) || (r.end <= end)));
 	}
 
 	/**
@@ -115,9 +107,10 @@ struct Range {
 	bool neighbours(const Range<T> &r) const
 	{
 		constexpr T eps = std::numeric_limits<T>::is_integer
-				? 1 : std::numeric_limits<T>::epsilon();
-		return ((r.start > end) && ((r.start - eps) <= end))
-				|| ((r.end < start) && ((r.end + eps) >= start));
+		                      ? 1
+		                      : std::numeric_limits<T>::epsilon();
+		return ((r.start > end) && ((r.start - eps) <= end)) ||
+		       ((r.end < start) && ((r.end + eps) >= start));
 	}
 
 	/**
@@ -131,14 +124,11 @@ struct Range {
 	/**
 	 * Checks whether this range completely covers the given range.
 	 */
-	bool covers(const Range<T> &r) const
-	{
-		return r.coveredBy(*this);
-	}
+	bool covers(const Range<T> &r) const { return r.coveredBy(*this); }
 
 	/**
-	 * Calculates the union of the two ranges -- not that this operation is only
-	 * valid if the ranges overlapp. Use the RangeSet class if you cannot
+	 * Calculates the union of the two ranges -- note that this operation is
+	 * only valid if the ranges overlapp. Use the RangeSet class if you cannot
 	 * guarantee that.
 	 */
 	Range<T> merge(const Range<T> &r) const
@@ -153,7 +143,7 @@ struct Range {
 	static Range<T> typeRange()
 	{
 		return Range(std::numeric_limits<T>::min(),
-				std::numeric_limits<T>::max());
+		             std::numeric_limits<T>::max());
 	}
 
 	/**
@@ -163,7 +153,7 @@ struct Range {
 	 * @param till is the value up to which the range should be defined (till is
 	 * included in the set).
 	 */
-	 static Range<T> typeRangeUntil(const T &till)
+	static Range<T> typeRangeUntil(const T &till)
 	{
 		return Range(std::numeric_limits<T>::min(), till);
 	}
@@ -185,9 +175,9 @@ struct Range {
  * RangeComp is a comperator used to order to sort the ranges within the
  * ranges list. Sorts by the start element.
  */
-template<typename T>
+template <typename T>
 struct RangeComp {
-	bool operator() (const Range<T>& lhs, const Range<T>& rhs) const
+	bool operator()(const Range<T> &lhs, const Range<T> &rhs) const
 	{
 		return lhs.start < rhs.start;
 	}
@@ -197,9 +187,8 @@ struct RangeComp {
  * RangeSet represents a set of ranges of the given numerical type and is thus
  * capable of representing any possible subset of the given numerical type T.
  */
-template<typename T>
+template <typename T>
 class RangeSet {
-
 protected:
 	/**
 	 * Set of ranges used internally.
@@ -216,7 +205,7 @@ protected:
 	 * end of the list if no such element was found.
 	 */
 	typename std::set<Range<T>, RangeComp<T>>::iterator firstOverlapping(
-			const Range<T> &r, const bool allowNeighbours)
+	    const Range<T> &r, const bool allowNeighbours)
 	{
 		// Find the element with the next larger start value compared to the
 		// start value given in r.
@@ -228,8 +217,8 @@ protected:
 		}
 
 		// Iterate until an overlapping element is found
-		while (!(it->overlaps(r) || (allowNeighbours && it->neighbours(r)))
-				&& (it != ranges.end())) {
+		while ((it != ranges.end()) &&
+		       !(it->overlaps(r) || (allowNeighbours && it->neighbours(r)))) {
 			it++;
 		}
 		return it;
@@ -246,9 +235,9 @@ public:
 		// Calculate a new range that covers both the new range and all old
 		// ranges in the set -- delete all old elements on the way
 		auto it = firstOverlapping(r, true);
-		while ((it->overlaps(r) || it->neighbours(r)) && it != ranges.end()) {
-				r = r.merge(*it);
-				it = ranges.erase(it);
+		while ((it != ranges.end()) && (it->overlaps(r) || it->neighbours(r))) {
+			r = r.merge(*it);
+			it = ranges.erase(it);
 		}
 
 		// Insert the new range
@@ -303,23 +292,14 @@ public:
 	/**
 	 * Empties the set.
 	 */
-	void clear()
-	{
-		ranges.clear();
-	}
+	void clear() { ranges.clear(); }
 
 	/**
 	 * Returns the current list of ranges as a const reference.
 	 */
-	const std::set<Range<T>, RangeComp<T>>& getRanges()
-	{
-		return this->ranges;
-	}
-
+	const std::set<Range<T>, RangeComp<T>> &getRanges() { return this->ranges; }
 };
-
 }
-
 
 #endif /* _OUSIA_RANGE_SET_HPP_ */
 
