@@ -23,9 +23,42 @@
 namespace ousia {
 namespace model {
 
-EnumerationType EnumerationType::createValidated(
-    Manager &mgr, std::string name, Handle<Typesystem> system,
-    const std::vector<std::string> &values, Logger &logger)
+/* Class Type */
+
+bool Type::build(Variant &var, Logger &logger) const
+{
+	try {
+		return doBuild(var, logger);
+	}
+	catch (LoggableException ex) {
+		logger.log(ex);
+		var = create();
+		return false;
+	}
+}
+
+/* Class StringType */
+
+bool StringType::doBuild(Variant &var, Logger &logger) const
+{
+	if (!var.isPrimitive()) {
+		throw LoggableException{"Expected a string or primitive input."};
+	}
+
+	if (!var.isString()) {
+		logger.note(std::string("Implicit type conversion from ") +
+		         var.getTypeName() + " to string.");
+	}
+	var = Variant{var.toString().c_str()};
+	return true;
+}
+
+/* Class EnumType */
+
+EnumType EnumType::createValidated(Manager &mgr, std::string name,
+                                   Handle<Typesystem> system,
+                                   const std::vector<std::string> &values,
+                                   Logger &logger)
 {
 	std::map<std::string, size_t> unique_values;
 	for (size_t i = 0; i < values.size(); i++) {
@@ -38,8 +71,18 @@ EnumerationType EnumerationType::createValidated(
 			             " was duplicated.");
 		}
 	}
-	return std::move(EnumerationType(mgr, name, system, unique_values));
+	return std::move(EnumType(mgr, name, system, unique_values));
 }
+
+/* RTTI type registrations */
+
+const ManagedType Type_T("Type", typeid(Type));
+const ManagedType StringType_T("StringType", typeid(StringType), {&Type_T});
+const ManagedType IntType_T("IntType", typeid(IntType), {&Type_T});
+const ManagedType DoubleType_T("DoubleType", typeid(DoubleType), {&Type_T});
+const ManagedType BoolType_T("BoolType", typeid(BoolType), {&Type_T});
+const ManagedType EnumType_T("EnumType", typeid(EnumType), {&Type_T});
+const ManagedType StructType_T("StructType", typeid(EnumType), {&Type_T});
 }
 }
 

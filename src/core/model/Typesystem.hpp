@@ -19,7 +19,9 @@
 /**
  * @file Typesystem.hpp
  *
- * TODO: Docu
+ * Contains the Entities described in a Typesystem. A Typesystem is a list
+ * of type descriptors, where a type is either primitive or a user defined
+ * type.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
@@ -40,79 +42,103 @@ namespace model {
 
 class Typesystem;
 
+/**
+ * The abstract Type class represents a type descriptor. Each Type node is part
+ * of a Typesystem instance. Concrete instances of the Type class are immutable
+ * (they are guaranteed to represent exactly one type). Note that Type classes
+ * only contain the type description, instances of the Type class do not hold
+ * any data. Data is held by instances of the Variant class. How exactly the
+ * data is represented within the Variant instances is defined by the type
+ * definitions.
+ */
 class Type : public Node {
 protected:
+	/**
+	 * Protected constructor to be called by the classes derived from the Type
+	 * class.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param name is the name of the type.
+	 * @param system is a reference to the parent TypeSystem instance.
+	 * @param primitive is set to true for primitive types, such as ints,
+	 * doubles, strings and enums.
+	 */
 	Type(Manager &mgr, std::string name, Handle<Typesystem> system,
-	     bool inheritable, bool primitive)
-	    : Node(mgr, std::move(name), system),
-	      inheritable(inheritable),
-	      primitive(primitive)
+	     bool primitive)
+	    : Node(mgr, std::move(name), system), primitive(primitive)
 	{
 	}
 
-	virtual bool doPrepare(Variant &var, Logger &log) const = 0;
+	/**
+	 * Validates and completes the given variant. This pure virtual doBuild
+	 * method must be overridden by derived classes. This function may throw
+	 * an LoggableException in case the given data cannot be converted to
+	 * the internal representation given by the type descriptor.
+	 *
+	 * @param var is a variant containing the data that should be checked and
+	 * -- if possible and necessary -- converted to a variant adhering to the
+	 * internal representation used by the Type class.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
+	 */
+	virtual bool doBuild(Variant &var, Logger &logger) const = 0;
 
 public:
 	/**
-	 * TODO: DOC
-	 */
-	const bool inheritable;
-	/**
-	 * TODO: DOC
+	 * Set to true, if this type descriptor is a primitive type.
 	 */
 	const bool primitive;
 
 	/**
-	 * TODO: DOC
+	 * Pure virtual function which must construct a valid, default instance of
+	 * the type that is being described by the typesystem.
 	 */
 	virtual Variant create() const = 0;
 
 	/**
-	 * TODO: DOC
+	 * Validates and completes the given variant which was read from a
+	 * user-supplied source.
+	 *
+	 * @param var is a variant containing the data that should be checked and
+	 * -- if possible and necessary -- converted to a variant adhering to the
+	 * internal representation used by the Type class.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool prepare(Variant &var, Logger &log) const
-	{
-		try {
-			return doPrepare(var, log);
-		}
-		catch (LoggableException ex) {
-			log.log(ex);
-			var = create();
-			return false;
-		}
-	}
+	bool build(Variant &var, Logger &logger) const;
 };
 
+/**
+ * The StringType class represents the primitive string type. There should
+ * exactly be a single instance of this class available in a preloaded type
+ * system.
+ */
 class StringType : public Type {
 protected:
 	/**
-	 * TODO: DOC
+	 * If possible, converts the given variant to a string. Only works, if the
+	 * variant contains primitive objects (integers, strings, booleans, etc.).
 	 */
-	bool doPrepare(Variant &var, Logger &log) const override
-	{
-		if (!var.isPrimitive()) {
-			throw LoggableException{"Expected a string or primitive input."};
-		}
-
-		if (!var.isString()) {
-			log.note(std::string("Implicit type conversion from ") +
-			         var.getTypeName() + " to string.");
-		}
-		var = Variant{var.toString().c_str()};
-		return true;
-	}
+	bool doBuild(Variant &var, Logger &logger) const override;
 
 public:
 	/**
-	 * TODO: DOC
+	 * Constructor of the StringType class. Only one instance of StringType
+	 * should exist per project.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param name is the name of the type.
+	 * @param system is a reference to the parent TypeSystem instance.
 	 */
 	StringType(Manager &mgr, Handle<Typesystem> system)
-	    : Type(mgr, "string", system, false, true)
+	    : Type(mgr, "string", system, true)
 	{
 	}
 
 	/**
-	 * TODO: DOC
+	 * Creates a variant containing an empty string.
+	 *
+	 * @return a variant containing an empty string.
 	 */
 	Variant create() const override { return Variant{""}; }
 };
@@ -122,7 +148,7 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) const override
+	bool doBuild(Variant &var, Logger &logger) const override
 	{
 		if (!var.isInt()) {
 			throw LoggableException{"Expected an integer value."};
@@ -135,7 +161,7 @@ public:
 	 * TODO: DOC
 	 */
 	IntType(Manager &mgr, Handle<Typesystem> system)
-	    : Type(mgr, "int", system, false, true)
+	    : Type(mgr, "int", system, true)
 	{
 	}
 
@@ -150,7 +176,7 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) const override
+	bool doBuild(Variant &var, Logger &logger) const override
 	{
 		if (!var.isInt() && !var.isDouble()) {
 			throw LoggableException{"Expected a double value."};
@@ -164,7 +190,7 @@ public:
 	 * TODO: DOC
 	 */
 	DoubleType(Manager &mgr, Handle<Typesystem> system)
-	    : Type(mgr, "double", system, false, true)
+	    : Type(mgr, "double", system, true)
 	{
 	}
 
@@ -179,14 +205,14 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) const override { return true; }
+	bool doBuild(Variant &var, Logger &logger) const override { return true; }
 
 public:
 	/**
 	 * TODO: DOC
 	 */
 	UnknownType(Manager &mgr, Handle<Typesystem> system)
-	    : Type(mgr, "unknown", system, false, true)
+	    : Type(mgr, "unknown", system, true)
 	{
 	}
 
@@ -201,7 +227,7 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) const override
+	bool doBuild(Variant &var, Logger &logger) const override
 	{
 		if (!var.isBool()) {
 			throw LoggableException("Expected boolean value!");
@@ -214,7 +240,7 @@ public:
 	 * TODO: DOC
 	 */
 	BoolType(Manager &mgr, Handle<Typesystem> system)
-	    : Type(mgr, "bool", system, false, true)
+	    : Type(mgr, "bool", system, true)
 	{
 	}
 
@@ -224,7 +250,7 @@ public:
 	Variant create() const override { return Variant{false}; }
 };
 
-class EnumerationType : public Type {
+class EnumType : public Type {
 private:
 	std::map<std::string, size_t> values;
 
@@ -232,7 +258,7 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) const override
+	bool doBuild(Variant &var, Logger &logger) const override
 	{
 		if (var.isInt()) {
 			int i = var.asInt();
@@ -245,10 +271,9 @@ protected:
 		return true;
 	}
 
-	EnumerationType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	                std::map<std::string, size_t> values)
-	    : Type(mgr, std::move(name), system, false, false),
-	      values(std::move(values))
+	EnumType(Manager &mgr, std::string name, Handle<Typesystem> system,
+	         std::map<std::string, size_t> values)
+	    : Type(mgr, std::move(name), system, false), values(std::move(values))
 	{
 	}
 
@@ -256,9 +281,9 @@ public:
 	/**
 	 * TODO: DOC
 	 */
-	EnumerationType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	                const std::vector<std::string> &values)
-	    : Type(mgr, std::move(name), system, false, false)
+	EnumType(Manager &mgr, std::string name, Handle<Typesystem> system,
+	         const std::vector<std::string> &values)
+	    : Type(mgr, std::move(name), system, false)
 	{
 		for (size_t i = 0; i < values.size(); i++) {
 			this->values.insert(std::make_pair(values[i], i));
@@ -268,9 +293,10 @@ public:
 	/**
 	 * TODO: DOC
 	 */
-	static EnumerationType createValidated(
-	    Manager &mgr, std::string name, Handle<Typesystem> system,
-	    const std::vector<std::string> &values, Logger &logger);
+	static EnumType createValidated(Manager &mgr, std::string name,
+	                                Handle<Typesystem> system,
+	                                const std::vector<std::string> &values,
+	                                Logger &logger);
 
 	/**
 	 * TODO: DOC
@@ -300,13 +326,13 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) const override
+	bool doBuild(Variant &var, Logger &logger) const override
 	{
 		// If we already have an array, we just check that.
-		if(var.isArray()){
+		if (var.isArray()) {
 			auto arr = var.asArray();
-			for(size_t a = 0; a < attrs.size(); a++){
-				if(!attrs[a].type->prepare(arr[a], log)){
+			for (size_t a = 0; a < attrs.size(); a++) {
+				if (!attrs[a].type->build(arr[a], logger)) {
 					return false;
 				}
 			}
@@ -323,10 +349,10 @@ protected:
 		for (auto &a : attrs) {
 			auto it = map.find(a.name);
 			// we use the default if nothing is set.
-			if (it == map.end() || !a.type->prepare(it->second, log)) {
-				log.note(std::string("Using default value for ") + a.name);
+			if (it == map.end() || !a.type->build(it->second, logger)) {
+				logger.note(std::string("Using default value for ") + a.name);
 				vec.push_back(a.defaultValue);
-			} else{
+			} else {
 				vec.push_back(it->second);
 			}
 		}
@@ -339,8 +365,7 @@ public:
 
 	StructType(Manager &mgr, std::string name, Handle<Typesystem> system,
 	           std::vector<AttributeDescriptor> attrs)
-	    : Type(mgr, std::move(name), system, true, false),
-	      attrs(std::move(attrs))
+	    : Type(mgr, std::move(name), system, false), attrs(std::move(attrs))
 	{
 	}
 	// TODO
@@ -360,14 +385,14 @@ protected:
 	/**
 	 * TODO: DOC
 	 */
-	bool doPrepare(Variant &var, Logger &log) const override
+	bool doBuild(Variant &var, Logger &logger) const override
 	{
 		if (!var.isArray()) {
 			throw LoggableException("Expected array!");
 		}
 		bool res = true;
 		for (auto &v : var.asArray()) {
-			if (!innerType->prepare(v, log)) {
+			if (!innerType->build(v, logger)) {
 				res = false;
 			}
 		}
@@ -381,7 +406,7 @@ public:
 	 */
 	ArrayType(Manager &mgr, std::string name, Handle<Typesystem> system,
 	          Handle<Type> innerType)
-	    : Type(mgr, std::move(name), system, false, false),
+	    : Type(mgr, std::move(name), system, false),
 	      innerType(acquire(innerType))
 	{
 	}
