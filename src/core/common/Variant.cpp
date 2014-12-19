@@ -132,10 +132,16 @@ Variant::stringType Variant::toString(bool escape) const
 			return "null";
 		case Type::BOOL:
 			return asBool() ? "true" : "false";
-		case Type::INT:
-			return std::to_string(asInt());
-		case Type::DOUBLE:
-			return std::to_string(asDouble());
+		case Type::INT: {
+			std::stringstream ss;
+			ss << asInt();
+			return ss.str();
+		}
+		case Type::DOUBLE: {
+			std::stringstream ss;
+			ss << asDouble();
+			return ss.str();
+		}
 		case Type::STRING: {
 			// TODO: Use proper serialization function
 			if (escape) {
