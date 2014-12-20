@@ -135,7 +135,7 @@ public:
 	enum class FieldType { TREE, SUBTREE, PRIMITIVE };
 
 private:
-	ManagedVector<StructuredClass> children;
+	NodeVector<StructuredClass> children;
 	FieldType fieldType;
 	Owned<Type> primitiveType;
 
@@ -200,13 +200,10 @@ public:
 	{
 	}
 
-	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<StructuredClass> &getChildren() { return children; }
+	// TODO: Is returning a NodeVector alright?
+	NodeVector<StructuredClass> &getChildren() { return children; }
 
-	const ManagedVector<StructuredClass> &getChildren() const
-	{
-		return children;
-	}
+	const NodeVector<StructuredClass> &getChildren() const { return children; }
 
 	FieldType getFieldType() const { return fieldType; }
 
@@ -214,6 +211,12 @@ public:
 
 	Rooted<Type> getPrimitiveType() const { return primitiveType; }
 };
+
+/**
+ * A global variable for the ManagedType of a FieldDescriptor.
+ */
+static ManagedType FieldDescriptorType{"FieldDescriptor",
+                                       typeid(FieldDescriptor)};
 
 /**
  * This is a super class for StructuredClasses and AnnotationClasses and is,
@@ -245,7 +248,7 @@ public:
 class Descriptor : public Node {
 private:
 	Owned<StructType> attributesDescriptor;
-	ManagedVector<FieldDescriptor> fieldDescriptors;
+	NodeVector<FieldDescriptor> fieldDescriptors;
 
 protected:
 	void doResolve(std::vector<Rooted<Managed>> &res,
@@ -268,17 +271,22 @@ public:
 		return attributesDescriptor;
 	}
 
-	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<FieldDescriptor> &getFieldDescriptors()
+	// TODO: Is returning a NodeVector alright?
+	NodeVector<FieldDescriptor> &getFieldDescriptors()
 	{
 		return fieldDescriptors;
 	}
 
-	const ManagedVector<FieldDescriptor> &getFieldDescriptors() const
+	const NodeVector<FieldDescriptor> &getFieldDescriptors() const
 	{
 		return fieldDescriptors;
 	}
 };
+
+/**
+ * A global variable for the ManagedType of a Descriptor.
+ */
+static ManagedType DescriptorType{"Descriptor", typeid(Descriptor)};
 
 typedef RangeSet<size_t> Cardinality;
 
@@ -361,7 +369,7 @@ class StructuredClass : public Descriptor {
 private:
 	const Cardinality cardinality;
 	Owned<StructuredClass> isa;
-	ManagedVector<FieldDescriptor> parents;
+	NodeVector<FieldDescriptor> parents;
 
 protected:
 	void doResolve(std::vector<Rooted<Managed>> &res,
@@ -390,11 +398,17 @@ public:
 
 	Rooted<StructuredClass> getIsA() const { return isa; }
 
-	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<FieldDescriptor> &getParents() { return parents; }
+	// TODO: Is returning a NodeVector alright?
+	NodeVector<FieldDescriptor> &getParents() { return parents; }
 
-	const ManagedVector<FieldDescriptor> &getParents() const { return parents; }
+	const NodeVector<FieldDescriptor> &getParents() const { return parents; }
 };
+
+/**
+ * A global variable for the ManagedType of a StructuredClass.
+ */
+static ManagedType StructuredClassType{
+    "StructuredClass", typeid(StructuredClass), {&DescriptorType}};
 
 /**
  * An AnnotationClass defines allowed Annotations. For more information on
@@ -406,6 +420,12 @@ class AnnotationClass : public Descriptor {
 };
 
 /**
+ * A global variable for the ManagedType of an AnnotationClass.
+ */
+static ManagedType AnnotationClassType{
+    "AnnotationClass", typeid(AnnotationClass), {&DescriptorType}};
+
+/**
  * A Domain node specifies which StructuredClasses are allowed at the root
  * level (or which Nonterminals are axioms of the grammar) and which Annotations
  * are allowed globally. TODO: Do we want to be able to restrict Annotations to
@@ -413,9 +433,9 @@ class AnnotationClass : public Descriptor {
  */
 class Domain : public Node {
 private:
-	ManagedVector<StructuredClass> rootStructures;
-	ManagedVector<AnnotationClass> annotationClasses;
-	ManagedVector<Typesystem> typesystems;
+	NodeVector<StructuredClass> rootStructures;
+	NodeVector<AnnotationClass> annotationClasses;
+	NodeVector<Typesystem> typesystems;
 
 protected:
 	void doResolve(std::vector<Rooted<Managed>> &res,
@@ -433,34 +453,33 @@ public:
 	{
 	}
 
-	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<StructuredClass> &getRootStructures()
+	// TODO: Is returning a NodeVector alright?
+	NodeVector<StructuredClass> &getRootStructures() { return rootStructures; }
+
+	const NodeVector<StructuredClass> &getRootStructures() const
 	{
 		return rootStructures;
 	}
 
-	const ManagedVector<StructuredClass> &getRootStructures() const
-	{
-		return rootStructures;
-	}
-
-	ManagedVector<AnnotationClass> &getAnnotationClasses()
+	NodeVector<AnnotationClass> &getAnnotationClasses()
 	{
 		return annotationClasses;
 	}
 
-	const ManagedVector<AnnotationClass> &getAnnotationClasses() const
+	const NodeVector<AnnotationClass> &getAnnotationClasses() const
 	{
 		return annotationClasses;
 	}
 
-	ManagedVector<Typesystem> &getTypesystems() { return typesystems; }
+	NodeVector<Typesystem> &getTypesystems() { return typesystems; }
 
-	const ManagedVector<Typesystem> &getTypesystems() const
-	{
-		return typesystems;
-	}
+	const NodeVector<Typesystem> &getTypesystems() const { return typesystems; }
 };
+
+/**
+ * A global variable for the ManagedType of a Domain.
+ */
+static ManagedType DomainType{"Domain", typeid(Domain)};
 }
 }
 

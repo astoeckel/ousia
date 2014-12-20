@@ -97,7 +97,7 @@ class DocumentEntity : public Node {
 private:
 	Owned<Descriptor> descriptor;
 	const Variant attributes;
-	std::vector<ManagedVector<StructuredEntity>> fields;
+	std::vector<NodeVector<StructuredEntity>> fields;
 
 	int getFieldDescriptorIndex(const std::string &fieldName);
 
@@ -114,7 +114,7 @@ public:
 		if (!descriptor.isNull()) {
 			for (size_t f = 0; f < descriptor->getFieldDescriptors().size();
 			     f++) {
-				fields.push_back(ManagedVector<StructuredEntity>(this));
+				fields.push_back(NodeVector<StructuredEntity>(this));
 			}
 		}
 	}
@@ -127,7 +127,7 @@ public:
 	 * This allows a direct manipulation of the internal data structure of a
 	 * DocumentEntity and is not recommended. TODO: Delete this?
 	 */
-	std::vector<ManagedVector<StructuredEntity>> &getFields() { return fields; }
+	std::vector<NodeVector<StructuredEntity>> &getFields() { return fields; }
 
 	/**
 	 * This returns true if there is a FieldDescriptor in the Descriptor for
@@ -155,7 +155,7 @@ public:
 	 * 2.) the only FieldDescriptor (if only one is specified).
 	 *
 	 * Note that the output of this method might well be ambigous: If no
-	 * FieldDescriptor matches the given name an empty ManagedVector is
+	 * FieldDescriptor matches the given name an empty NodeVector is
 	 * returned. This is also the case, however, if there are no members for an
 	 * existing field. Therefore it is recommended to additionally check the
 	 * output of "hasField" or use the version of this method with
@@ -163,13 +163,13 @@ public:
 	 *
 	 * @param fieldName is the name of the field as specified in the
 	 *                  FieldDescriptor in the Domain description.
-	 * @param res       is a ManagedVector reference where the result will be
+	 * @param res       is a NodeVector reference where the result will be
 	 *                  stored. After using this method the reference will
 	 *                  either refer to all StructuredEntities in that field. If
 	 *                  the field is unknown or if no members exist in that
-	 *                  field yet, the ManagedVector will be empty.
+	 *                  field yet, the NodeVector will be empty.
 	 */
-	void getField(ManagedVector<StructuredEntity> &res,
+	void getField(NodeVector<StructuredEntity> &res,
 	              const std::string &fieldName = "");
 
 	/**
@@ -181,11 +181,16 @@ public:
 	 *
 	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
 	 *                        this DocumentEntity.
-	 * @return a ManagedVector of all StructuredEntities in that field.
+	 * @return a NodeVector of all StructuredEntities in that field.
 	 */
-	ManagedVector<StructuredEntity> &getField(
+	NodeVector<StructuredEntity> &getField(
 	    Rooted<FieldDescriptor> fieldDescriptor);
 };
+
+/**
+ * A global variable for the ManagedType of a DocumentEntity.
+ */
+static ManagedType DocumentEntityType{"DocumentEntity", typeid(DocumentEntity)};
 
 /**
  * A StructuredEntity is a node in the Structure Tree of a document. For more
@@ -193,7 +198,7 @@ public:
  */
 class StructuredEntity : public DocumentEntity {
 private:
-	ManagedVector<AnnotationEntity> annotations;
+	NodeVector<AnnotationEntity> annotations;
 
 public:
 	StructuredEntity(Manager &mgr, Handle<Node> parent,
@@ -205,7 +210,7 @@ public:
 	{
 	}
 
-	ManagedVector<AnnotationEntity> &getAnnotations() { return annotations; }
+	NodeVector<AnnotationEntity> &getAnnotations() { return annotations; }
 
 	/**
 	 * This builds the root StructuredEntity for the given document. It
@@ -260,6 +265,12 @@ public:
 };
 
 /**
+ * A global variable for the ManagedType of a StructuredEntity.
+ */
+static ManagedType StructuredEntityType{
+    "StructuredEntity", typeid(StructuredEntity), {&DocumentEntityType}};
+
+/**
  * This is a wrapper for primitive types (Variants) inside the document graph.
  * The most straightforward example for this is the actual document text, e.g.
  * inside a paragraph. In that case this would represent a mere string.
@@ -292,9 +303,15 @@ public:
 	 *                   contain a StructuredClass with the given name.
 	 */
 	static Rooted<DocumentPrimitive> buildEntity(
-	    Handle<DocumentEntity> parent, 
-	    Variant content, const std::string &fieldName = "");
+	    Handle<DocumentEntity> parent, Variant content,
+	    const std::string &fieldName = "");
 };
+
+/**
+ * A global variable for the ManagedType of a DocumentPrimitive.
+ */
+static ManagedType DocumentPrimitiveType{
+    "DocumentPrimitive", typeid(DocumentPrimitive), {&StructuredEntityType}};
 
 /**
  * An AnnotationEntity is a span-like instance that is not bound by the elements
@@ -360,6 +377,18 @@ public:
 };
 
 /**
+ * A global variable for the ManagedType of an Anchor.
+ */
+static ManagedType AnchorType{
+    "Anchor", typeid(AnnotationEntity::Anchor), {&StructuredEntityType}};
+
+/**
+ * A global variable for the ManagedType of an AnnotationEntity.
+ */
+static ManagedType AnnotationEntityType{
+    "AnnotationEntity", typeid(AnnotationEntity), {&DocumentEntityType}};
+
+/**
  * A Document is mainly a wrapper for the Root structure node of the Document
  * Graph.
  */
@@ -378,6 +407,11 @@ public:
 
 	Rooted<StructuredEntity> getRoot() const { return root; }
 };
+
+/**
+ * A global variable for the ManagedType of a Document.
+ */
+static ManagedType DocumentType{"Document", typeid(Document)};
 }
 }
 
