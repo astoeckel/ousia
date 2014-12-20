@@ -106,6 +106,7 @@ Variant::intType Variant::toInt() const
 		case Type::STRING:
 			return 0;  // TODO: Parse string as int
 		case Type::ARRAY: {
+			// JavaScript behaviour when converting arrays to ints
 			const arrayType &a = asArray();
 			return (a.size() == 1) ? a[0].toInt() : 0;
 		}
@@ -129,6 +130,7 @@ Variant::doubleType Variant::toDouble() const
 		case Type::STRING:
 			return 0.0;  // TODO: Parse string as double
 		case Type::ARRAY: {
+			// JavaScript behaviour when converting array to doubles
 			const arrayType &a = asArray();
 			return (a.size() == 1) ? a[0].toDouble() : 0;
 		}
