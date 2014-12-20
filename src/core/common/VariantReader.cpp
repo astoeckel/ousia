@@ -21,6 +21,8 @@
 #include <cmath>
 #include <sstream>
 
+#include <utf8.h>
+
 #include "VariantReader.hpp"
 #include "Utils.hpp"
 
@@ -79,11 +81,6 @@ static std::pair<bool, T> unexpected(CharReader &reader, Logger &logger,
 class Number {
 private:
 	/**
-	 * Reprsents the part of the number: Base value a, nominator n, exponent e.
-	 */
-	enum class Part { A, N, E };
-
-	/**
 	 * State used in the parser state machine
 	 */
 	enum class State {
@@ -117,43 +114,12 @@ private:
 		return -1;
 	}
 
-	/**
-	 * Appends the value of the character c to the internal number
-	 * representation and reports any errors that might occur.
-	 */
-	bool appendChar(char c, int base, Part p, CharReader &reader,
-	                Logger &logger)
-	{
-		// Check whether the given character is valid
-		int v = charValue(c);
-		if (v < 0 || v >= base) {
-			logger.error(unexpectedMsg("digit", c), reader);
-			return false;
-		}
-
-		// Append the number to the specified part
-		switch (p) {
-			case Part::A:
-				a = a * base + v;
-				break;
-			case Part::N:
-				n = n * base + v;
-				d = d * base;
-				break;
-			case Part::E:
-				e = e * base + v;
-				break;
-		}
-
-		// Check for any overflows
-		if (a < 0 || n < 0 || d < 0 || e < 0) {
-			logger.error(ERR_TOO_LARGE, reader);
-			return false;
-		}
-		return true;
-	}
-
 public:
+	/**
+	 * Reprsents the part of the number: Base value a, nominator n, exponent e.
+	 */
+	enum class Part { A, N, E };
+
 	/**
 	 * Sign and exponent sign.
 	 */
@@ -196,12 +162,51 @@ public:
 	bool isInt() { return (n == 0) && (d == 1) && (e == 0); }
 
 	/**
+	 * Appends the value of the character c to the internal number
+	 * representation and reports any errors that might occur.
+	 */
+	bool appendChar(char c, int base, Part p, CharReader &reader,
+	                Logger &logger)
+	{
+		// Check whether the given character is valid
+		int v = charValue(c);
+		if (v < 0 || v >= base) {
+			logger.error(unexpectedMsg("digit", c), reader);
+			return false;
+		}
+
+		// Append the number to the specified part
+		switch (p) {
+			case Part::A:
+				a = a * base + v;
+				break;
+			case Part::N:
+				n = n * base + v;
+				d = d * base;
+				break;
+			case Part::E:
+				e = e * base + v;
+				break;
+		}
+
+		// Check for any overflows
+		if (a < 0 || n < 0 || d < 0 || e < 0) {
+			logger.error(ERR_TOO_LARGE, reader);
+			return false;
+		}
+		return true;
+	}
+
+	/**
 	 * Tries to parse the number from the given stream and loggs any errors to
 	 * the given logger instance. Numbers are terminated by one of the given
 	 * delimiters.
 	 */
 	bool parse(CharReader &reader, Logger &logger,
 	           const std::unordered_set<char> &delims);
+
+	bool parseFixedLenInt(CharReader &reader, Logger &logger, int base,
+	                      int len);
 };
 
 bool Number::parse(CharReader &reader, Logger &logger,
@@ -330,6 +335,24 @@ bool Number::parse(CharReader &reader, Logger &logger,
 	}
 	logger.error(ERR_UNEXPECTED_END, reader);
 	return false;
+}
+
+bool Number::parseFixedLenInt(CharReader &reader, Logger &logger, int base,
+                              int len)
+{
+	char c;
+	reader.consumePeek();
+	for (int i = 0; i < len; i++) {
+		if (!reader.peek(c)) {
+			logger.error("Unexpected end of escape sequence", reader);
+			return false;
+		}
+		if (!appendChar(c, base, Number::Part::A, reader, logger)) {
+			return false;
+		}
+		reader.consumePeek();
+	}
+	return true;
 }
 
 /* State machine states */
@@ -535,10 +558,32 @@ static std::pair<bool, Variant> parseComplex(CharReader &reader, Logger &logger,
 
 /* Class Reader */
 
+static bool encodeUtf8(std::stringstream &res, CharReader &reader,
+                       Logger &logger, int64_t v, bool latin1)
+{
+	// Encode the unicode codepoint as UTF-8
+	uint32_t cp = static_cast<uint32_t>(v);
+	if (latin1 && cp > 0xFF) {
+		logger.error("Not a valid ISO-8859-1 (Latin-1) character, skipping", reader);
+		return false;
+	}
+
+	// Append the code point to the output stream
+	try {
+		utf8::append(cp, std::ostream_iterator<uint8_t>{res});
+		return true;
+	}
+	catch (utf8::invalid_code_point ex) {
+		logger.error("Invalid Unicode codepoint, skipping", reader);
+	}
+	return false;
+}
+
 std::pair<bool, std::string> VariantReader::parseString(
     CharReader &reader, Logger &logger, const std::unordered_set<char> *delims)
 {
 	// Initialize the internal state
+	bool hadError = false;
 	int state = STATE_INIT;
 	char quote = 0;
 	std::stringstream res;
@@ -565,7 +610,7 @@ std::pair<bool, std::string> VariantReader::parseString(
 			case STATE_IN_STRING:
 				if (c == quote) {
 					reader.consumePeek();
-					return std::make_pair(true, res.str());
+					return std::make_pair(!hadError, res.str());
 				} else if (c == '\\') {
 					state = STATE_ESCAPE;
 					reader.consumePeek();
@@ -608,17 +653,39 @@ std::pair<bool, std::string> VariantReader::parseString(
 						break;
 					case '\n':
 						break;
-					case 'x':
-						// TODO: Parse Latin-1 sequence hex XX
+					case 'x': {
+						// Parse Latin-1 sequence \xXX
+						Number n;
+						hadError =
+						    !(n.parseFixedLenInt(reader, logger, 16, 2) &&
+						      encodeUtf8(res, reader, logger, n.intValue(),
+						                 true)) ||
+						    hadError;
 						break;
-					case 'u':
-						// TODO: Parse 16-Bit unicode character hex XXXX
+					}
+					case 'u': {
+						// Parse Unicode sequence \uXXXX
+						Number n;
+						hadError =
+						    !(n.parseFixedLenInt(reader, logger, 16, 4) &&
+						      encodeUtf8(res, reader, logger, n.intValue(),
+						                 false)) ||
+						    hadError;
 						break;
+					}
 					default:
 						if (Utils::isNumeric(c)) {
-							// TODO: Parse octal 000 sequence
+							// Parse Latin-1 sequence \000
+							reader.resetPeek();
+							Number n;
+							hadError =
+							    !(n.parseFixedLenInt(reader, logger, 8, 3) &&
+							      encodeUtf8(res, reader, logger, n.intValue(),
+							                 true)) ||
+							    hadError;
 						} else {
 							logger.error(ERR_INVALID_ESCAPE, reader);
+							hadError = true;
 						}
 						break;
 				}

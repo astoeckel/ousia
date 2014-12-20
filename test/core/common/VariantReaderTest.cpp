@@ -60,6 +60,71 @@ TEST(VariantReader, readString)
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("'\"\b\f\n\r\t\v", res.second);
 	}
+
+
+	// Hex Unicode character
+	{
+		CharReader reader("'linebreak\\u000A in unicode'");
+		auto res = VariantReader::parseString(reader, logger, {';'});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ("linebreak\n in unicode", res.second);
+	}
+}
+
+TEST(VariantReader, readStringUnicode)
+{
+	// Hex Unicode character
+	{
+		CharReader reader("'linebreak \\u000A in unicode'");
+		auto res = VariantReader::parseString(reader, logger, {';'});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ("linebreak \n in unicode", res.second);
+	}
+
+	// Hex Unicode character
+	{
+		CharReader reader("'hammer and sickle \\u262D in unicode'");
+		auto res = VariantReader::parseString(reader, logger, {';'});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ("hammer and sickle \342\230\255 in unicode", res.second);
+	}
+
+	// Octal Latin-1 character
+	{
+		CharReader reader("'copyright symbol \\251 in Unicode'");
+		auto res = VariantReader::parseString(reader, logger, {';'});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ("copyright symbol \302\251 in Unicode", res.second);
+	}
+
+	// Hexadecimal Latin-1 character
+	{
+		CharReader reader("'copyright symbol \\xA9 in Unicode'");
+		auto res = VariantReader::parseString(reader, logger, {';'});
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ("copyright symbol \302\251 in Unicode", res.second);
+	}
+
+	// Errornous unicode escape sequence
+	{
+		CharReader reader("'\\uBLUB'");
+		auto res = VariantReader::parseString(reader, logger, {';'});
+		ASSERT_FALSE(res.first);
+	}
+
+	// Errornous octal escape sequence
+	{
+		CharReader reader("'\\400'");
+		auto res = VariantReader::parseString(reader, logger, {';'});
+		ASSERT_FALSE(res.first);
+	}
+
+	// Errornous hexadecimal latin1 escape sequence
+	{
+		CharReader reader("'\\xa'");
+		auto res = VariantReader::parseString(reader, logger, {';'});
+		ASSERT_FALSE(res.first);
+	}
 }
 
 TEST(VariantReader, parseUnescapedString)
