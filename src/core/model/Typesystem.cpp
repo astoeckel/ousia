@@ -76,13 +76,13 @@ EnumType EnumType::createValidated(Manager &mgr, std::string name,
 
 /* RTTI type registrations */
 
-const ManagedType Type_T("Type", typeid(Type));
-const ManagedType StringType_T("StringType", typeid(StringType), {&Type_T});
-const ManagedType IntType_T("IntType", typeid(IntType), {&Type_T});
-const ManagedType DoubleType_T("DoubleType", typeid(DoubleType), {&Type_T});
-const ManagedType BoolType_T("BoolType", typeid(BoolType), {&Type_T});
-const ManagedType EnumType_T("EnumType", typeid(EnumType), {&Type_T});
-const ManagedType StructType_T("StructType", typeid(EnumType), {&Type_T});
+const Rtti<Type> Type_T("Type");
+const Rtti<StringType> StringType_T("StringType", {&Type_T});
+const Rtti<IntType> IntType_T("IntType", {&Type_T});
+const Rtti<DoubleType> DoubleType_T("DoubleType", {&Type_T});
+const Rtti<BoolType> BoolType_T("BoolType", {&Type_T});
+const Rtti<EnumType> EnumType_T("EnumType", {&Type_T});
+const Rtti<StructType> StructType_T("StructType", {&Type_T});
 }
 }
 

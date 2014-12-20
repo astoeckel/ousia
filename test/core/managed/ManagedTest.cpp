@@ -75,33 +75,10 @@ class TypeTestManaged5 : public Managed {
 	using Managed::Managed;
 };
 
-ManagedType Type1("Type1", typeid(TypeTestManaged1));
-ManagedType Type2("Type2", typeid(TypeTestManaged2));
-ManagedType Type3("Type3", typeid(TypeTestManaged3), {&Type1});
-ManagedType Type4("Type2", typeid(TypeTestManaged4), {&Type3, &Type2});
-
-TEST(ManagedType, isa)
-{
-	ASSERT_TRUE(Type1.isa(Type1));
-	ASSERT_FALSE(Type1.isa(Type2));
-	ASSERT_FALSE(Type1.isa(Type3));
-	ASSERT_FALSE(Type1.isa(Type4));
-
-	ASSERT_FALSE(Type2.isa(Type1));
-	ASSERT_TRUE(Type2.isa(Type2));
-	ASSERT_FALSE(Type2.isa(Type3));
-	ASSERT_FALSE(Type2.isa(Type4));
-
-	ASSERT_TRUE(Type3.isa(Type1));
-	ASSERT_FALSE(Type3.isa(Type2));
-	ASSERT_TRUE(Type3.isa(Type3));
-	ASSERT_FALSE(Type3.isa(Type4));
-
-	ASSERT_TRUE(Type4.isa(Type1));
-	ASSERT_TRUE(Type4.isa(Type2));
-	ASSERT_TRUE(Type4.isa(Type3));
-	ASSERT_TRUE(Type4.isa(Type4));
-}
+static const Rtti<TypeTestManaged1> Type1("Type1");
+static const Rtti<TypeTestManaged2> Type2("Type2");
+static const Rtti<TypeTestManaged3> Type3("Type3", {&Type1});
+static const Rtti<TypeTestManaged4> Type4("Type4", {&Type3, &Type2});
 
 TEST(Managed, type)
 {
@@ -117,10 +94,8 @@ TEST(Managed, type)
 	ASSERT_EQ(&Type2, &m2->type());
 	ASSERT_EQ(&Type3, &m3->type());
 	ASSERT_EQ(&Type4, &m4->type());
-	ASSERT_EQ(&ManagedType::None, &m5->type());
+	ASSERT_EQ(&RttiBase::None, &m5->type());
 
-	ASSERT_EQ(&Type1, &ManagedType::typeOf(*m1));
-	ASSERT_EQ(&Type1, &ManagedType::typeOf<TypeTestManaged1>());
 	ASSERT_EQ(&Type1, &typeOf<TypeTestManaged1>());
 	ASSERT_EQ(&Type1, &typeOf(*m1));
 }

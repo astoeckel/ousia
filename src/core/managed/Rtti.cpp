@@ -16,27 +16,39 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ManagedType.hpp"
+#include "Rtti.hpp"
 
 namespace ousia {
 
-/* Instantiation of static variables */
+/* Class RttiStore */
 
-const ManagedType ManagedType::None;
-
-/* Class ManagedType */
-
-const ManagedType &ManagedType::rttiLookup(const std::type_info &nativeType)
+std::unordered_map<std::type_index, const RttiBase *> &RttiStore::table()
 {
-	auto it = table().find(std::type_index{nativeType});
-	if (it == table().end()) {
-		return None;
+	static std::unordered_map<std::type_index, const RttiBase *> table;
+	return table;
+}
+
+void RttiStore::store(const std::type_info &native, const RttiBase *rtti)
+{
+	table().emplace(std::type_index{native}, rtti);
+}
+
+const RttiBase &RttiStore::lookup(const std::type_info &native)
+{
+	const auto &tbl = table();
+	auto it = tbl.find(std::type_index{native});
+	if (it == tbl.end()) {
+		return RttiBase::None;
 	} else {
 		return *(it->second);
 	}
 }
 
-bool ManagedType::isa(const ManagedType &other) const
+/* Class RttiBase */
+
+const RttiBase RttiBase::None;
+
+bool RttiBase::isa(const RttiBase &other) const
 {
 	if (&other == this) {
 		return true;
@@ -48,5 +60,7 @@ bool ManagedType::isa(const ManagedType &other) const
 	}
 	return false;
 }
+
+
 }
 

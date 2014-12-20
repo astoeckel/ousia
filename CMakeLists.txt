@@ -32,11 +32,16 @@ OPTION(BUILD_DOCUMENTATION "Create and install the HTML based API documentation 
 # Enable C++11 and all warnings
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic-errors -std=c++11")
 
-# Include boost (filesystem) expat and mozjs-24 via PkgConfig
+# Include expat and mozjs-24 via PkgConfig
 FIND_PACKAGE(PkgConfig REQUIRED)
 PKG_CHECK_MODULES(MOZJS REQUIRED mozjs-24)
 PKG_CHECK_MODULES(EXPAT REQUIRED expat)
+
+# Include required Boost components using the Boost cmake package
 FIND_PACKAGE(Boost COMPONENTS system filesystem REQUIRED)
+
+# Set utf8cpp include path
+SET(UTF8CPP_INCLUDE_DIR "lib/utf8")
 
 ################################################################################
 # Inclusion of doxygen                                                         #
@@ -87,6 +92,7 @@ INCLUDE_DIRECTORIES(
 	${MOZJS_INCLUDE_DIRS}
 	${EXPAT_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIR}
+	${UTF8CPP_INCLUDE_DIR}
 )
 
 # Link directories
@@ -112,8 +118,8 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Variant
 	src/core/common/VariantReader
 	src/core/managed/Managed
-	src/core/managed/ManagedType
 	src/core/managed/Manager
+	src/core/managed/Rtti
 	src/core/model/Document
 	src/core/model/Domain
 	src/core/model/Typesystem
@@ -184,6 +190,7 @@ IF(TEST)
 		test/core/managed/ManagedContainerTest
 		test/core/managed/ManagedTest
 		test/core/managed/ManagerTest
+		test/core/managed/RttiTest
 		test/core/model/DomainTest
 		test/core/model/DocumentTest
 		test/core/model/TypesystemTest

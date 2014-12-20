@@ -19,7 +19,7 @@
 #ifndef _OUSIA_MANAGED_HPP_
 #define _OUSIA_MANAGED_HPP_
 
-#include "ManagedType.hpp"
+#include "Rtti.hpp"
 #include "Manager.hpp"
 
 namespace ousia {
@@ -108,25 +108,25 @@ public:
 	bool deleteData(const std::string &key);
 
 	/**
-	 * Returns the ManagedType instance registered for instances of the type
-	 * of this Managed instance.
+	 * Returns the RttiBase instance registered for instances of the type of
+	 * this Managed instance.
 	 *
-	 * @return a reference to the registered ManagedType for this particular
+	 * @return a reference to the registered RttiBase for this particular
 	 * Managed class.
 	 */
-	const ManagedType &type() const
+	const RttiBase &type() const
 	{
-		return ManagedType::typeOf(*this);
+		return typeOf(*this);
 	}
 
 	/**
-	 * Returns true if this Managed instance is of the given ManagedType.
+	 * Returns true if this Managed instance is of the given RttiBase.
 	 *
-	 * @param true if the ManagedType registered for this particular Managed
+	 * @param true if the RttiBase registered for this particular Managed
 	 * class is of the given type or one of the registered parent types is of
 	 * the given type.
 	 */
-	bool isa(const ManagedType &t) const { return type().isa(t); }
+	bool isa(const RttiBase &t) const { return type().isa(t); }
 };
 
 /**
