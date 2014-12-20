@@ -38,15 +38,13 @@ const RttiBase &RttiStore::lookup(const std::type_info &native)
 	const auto &tbl = table();
 	auto it = tbl.find(std::type_index{native});
 	if (it == tbl.end()) {
-		return RttiBase::None;
+		return RttiTypes::None;
 	} else {
 		return *(it->second);
 	}
 }
 
 /* Class RttiBase */
-
-const RttiBase RttiBase::None;
 
 bool RttiBase::isa(const RttiBase &other) const
 {
@@ -61,6 +59,14 @@ bool RttiBase::isa(const RttiBase &other) const
 	return false;
 }
 
+/* Constant initialization */
+
+const RttiBase RttiTypes::None;
+const RttiBase RttiTypes::Int;
+const RttiBase RttiTypes::Double;
+const RttiBase RttiTypes::String;
+const RttiBase RttiTypes::Array;
+const RttiBase RttiTypes::Map;
 
 }
 

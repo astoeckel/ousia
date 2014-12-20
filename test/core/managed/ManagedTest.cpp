@@ -94,7 +94,7 @@ TEST(Managed, type)
 	ASSERT_EQ(&Type2, &m2->type());
 	ASSERT_EQ(&Type3, &m3->type());
 	ASSERT_EQ(&Type4, &m4->type());
-	ASSERT_EQ(&RttiBase::None, &m5->type());
+	ASSERT_EQ(&RttiTypes::None, &m5->type());
 
 	ASSERT_EQ(&Type1, &typeOf<TypeTestManaged1>());
 	ASSERT_EQ(&Type1, &typeOf(*m1));

@@ -19,7 +19,8 @@
 #ifndef _OUSIA_MANAGED_HPP_
 #define _OUSIA_MANAGED_HPP_
 
-#include "Rtti.hpp"
+#include <core/common/Rtti.hpp>
+
 #include "Manager.hpp"
 
 namespace ousia {

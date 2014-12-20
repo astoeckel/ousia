@@ -113,13 +113,14 @@ ADD_LIBRARY(ousia_core
 	src/core/Tokenizer
 	src/core/common/CharReader
 	src/core/common/Exceptions
+	src/core/common/Function
 	src/core/common/Logger
+	src/core/common/Rtti
 	src/core/common/Utils
 	src/core/common/Variant
 	src/core/common/VariantReader
 	src/core/managed/Managed
 	src/core/managed/Manager
-	src/core/managed/Rtti
 	src/core/model/Document
 	src/core/model/Domain
 	src/core/model/Typesystem
@@ -184,13 +185,13 @@ IF(TEST)
 		test/core/TokenizerTest
 		test/core/common/CharReaderTest
 		test/core/common/LoggerTest
+		test/core/common/RttiTest
 		test/core/common/VariantReaderTest
 		test/core/common/VariantTest
 		test/core/common/UtilsTest
 		test/core/managed/ManagedContainerTest
 		test/core/managed/ManagedTest
 		test/core/managed/ManagerTest
-		test/core/managed/RttiTest
 		test/core/managed/VariantObjectTest
 		test/core/model/DomainTest
 		test/core/model/DocumentTest

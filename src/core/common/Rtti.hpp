@@ -49,7 +49,7 @@
  * \code{.hpp}
  * // Only needed if the type needs to be accessed
  * // from other compilation units!
- * const Rtti<MyType> MyType_Rtti;
+ * extern const Rtti<MyType> MyType_Rtti;
  * \endcode
  * In the source file:
  * \code{.cpp}
@@ -59,8 +59,8 @@
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_MANAGED_RTTI_HPP_
-#define _OUSIA_MANAGED_RTTI_HPP_
+#ifndef _OUSIA_RTTI_HPP_
+#define _OUSIA_RTTI_HPP_
 
 #include <typeinfo>
 #include <typeindex>
@@ -116,11 +116,6 @@ private:
 	const std::vector<const RttiBase *> parents;
 
 public:
-	/**
-	 * Rtti of no particular type.
-	 */
-	static const RttiBase None;
-
 	/**
 	 * Human readable name associated with the type.
 	 */
@@ -214,7 +209,45 @@ inline const RttiBase &typeOf(const T &obj)
 {
 	return RttiStore::lookup(typeid(obj));
 }
+
+/**
+ * Struct defining static constants describing certain Variant types. These 
+ * constants are used to e.g. define the type of function arguments while 
+ * allowing for both primitive variant types and more complex variant types.
+ */
+struct RttiTypes {
+	/**
+	 * Type of no particular color.
+	 */
+	static const RttiBase None;
+
+	/**
+	 * Constant representing a variant int type.
+	 */
+	static const RttiBase Int;
+
+	/**
+	 * Constant representing a variant double type.
+	 */
+	static const RttiBase Double;
+
+	/**
+	 * Constant representing a variant string type.
+	 */
+	static const RttiBase String;
+
+	/**
+	 * Constant representing a variant array type.
+	 */
+	static const RttiBase Array;
+
+	/**
+	 * Constant representing a variant map type.
+	 */
+	static const RttiBase Map;
+};
+
 }
 
-#endif /* _OUSIA_MANAGED_RTTI_HPP_ */
+#endif /* _OUSIA_RTTI_HPP_ */
 
