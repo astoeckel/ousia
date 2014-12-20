@@ -203,10 +203,7 @@ public:
 	// TODO: Is returning a NodeVector alright?
 	NodeVector<StructuredClass> &getChildren() { return children; }
 
-	const NodeVector<StructuredClass> &getChildren() const
-	{
-		return children;
-	}
+	const NodeVector<StructuredClass> &getChildren() const { return children; }
 
 	FieldType getFieldType() const { return fieldType; }
 
@@ -214,6 +211,12 @@ public:
 
 	Rooted<Type> getPrimitiveType() const { return primitiveType; }
 };
+
+/**
+ * A global variable for the ManagedType of a FieldDescriptor.
+ */
+static ManagedType FieldDescriptorType{"FieldDescriptor",
+                                       typeid(FieldDescriptor)};
 
 /**
  * This is a super class for StructuredClasses and AnnotationClasses and is,
@@ -279,6 +282,11 @@ public:
 		return fieldDescriptors;
 	}
 };
+
+/**
+ * A global variable for the ManagedType of a Descriptor.
+ */
+static ManagedType DescriptorType{"Descriptor", typeid(Descriptor)};
 
 typedef RangeSet<size_t> Cardinality;
 
@@ -397,6 +405,12 @@ public:
 };
 
 /**
+ * A global variable for the ManagedType of a StructuredClass.
+ */
+static ManagedType StructuredClassType{
+    "StructuredClass", typeid(StructuredClass), {&DescriptorType}};
+
+/**
  * An AnnotationClass defines allowed Annotations. For more information on
  * Annotations please refer to the Document.hpp.
  *
@@ -404,6 +418,12 @@ public:
  */
 class AnnotationClass : public Descriptor {
 };
+
+/**
+ * A global variable for the ManagedType of an AnnotationClass.
+ */
+static ManagedType AnnotationClassType{
+    "AnnotationClass", typeid(AnnotationClass), {&DescriptorType}};
 
 /**
  * A Domain node specifies which StructuredClasses are allowed at the root
@@ -434,10 +454,7 @@ public:
 	}
 
 	// TODO: Is returning a NodeVector alright?
-	NodeVector<StructuredClass> &getRootStructures()
-	{
-		return rootStructures;
-	}
+	NodeVector<StructuredClass> &getRootStructures() { return rootStructures; }
 
 	const NodeVector<StructuredClass> &getRootStructures() const
 	{
@@ -456,11 +473,13 @@ public:
 
 	NodeVector<Typesystem> &getTypesystems() { return typesystems; }
 
-	const NodeVector<Typesystem> &getTypesystems() const
-	{
-		return typesystems;
-	}
+	const NodeVector<Typesystem> &getTypesystems() const { return typesystems; }
 };
+
+/**
+ * A global variable for the ManagedType of a Domain.
+ */
+static ManagedType DomainType{"Domain", typeid(Domain)};
 }
 }
 

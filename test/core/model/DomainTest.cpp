@@ -28,23 +28,21 @@ namespace ousia {
 namespace model {
 
 void assert_path(std::vector<Rooted<Managed>> &result, size_t idx,
-                 const std::type_info &expected_type,
+                 const ManagedType &expected_type,
                  std::vector<std::string> expected_path)
 {
 	ASSERT_TRUE(result.size() > idx);
 	// check class/type
-	ASSERT_EQ(expected_type, typeid(*result[idx]));
-	// transform to node
-	Managed *m = &(*result[idx]);
-	Node *n = dynamic_cast<Node *>(m);
-	ASSERT_TRUE(n);
+	ASSERT_TRUE(result[idx]->isa(expected_type));
+	// cast to node
+	Rooted<Node> n = result[idx].cast<Node>();
 	// extract actual path
 	std::vector<std::string> actual_path = n->path();
 	// check path
 	ASSERT_EQ(expected_path, actual_path);
 }
 
-TEST(Document, testDomainResolving)
+TEST(Domain, testDomainResolving)
 {
 	// Construct Manager
 	Manager mgr{1};
@@ -59,9 +57,9 @@ TEST(Document, testDomainResolving)
 	std::vector<Rooted<Managed>> res =
 	    domain->resolve(std::vector<std::string>{"book"});
 	// First we expect the book domain.
-	assert_path(res, 0, typeid(Domain), {"book"});
+	assert_path(res, 0, DomainType, {"book"});
 	// Then the book structure.
-	assert_path(res, 1, typeid(StructuredClass), {"book", "book"});
+	assert_path(res, 1, StructuredClassType, {"book", "book"});
 	ASSERT_EQ(2, res.size());
 
 	/*
@@ -69,7 +67,7 @@ TEST(Document, testDomainResolving)
 	 * StructuredClass should be returned.
 	 */
 	res = domain->resolve(std::vector<std::string>{"book", "book"});
-	assert_path(res, 0, typeid(StructuredClass), {"book", "book"});
+	assert_path(res, 0, StructuredClassType, {"book", "book"});
 	ASSERT_EQ(1, res.size());
 
 	/*
@@ -77,7 +75,7 @@ TEST(Document, testDomainResolving)
 	 */
 	res = domain->resolve(std::vector<std::string>{"section"});
 	// TODO: Is that the path result we want?
-	assert_path(res, 0, typeid(StructuredClass), {"book", "section"});
+	assert_path(res, 0, StructuredClassType, {"book", "section"});
 	ASSERT_EQ(1, res.size());
 
 	/*
@@ -85,7 +83,7 @@ TEST(Document, testDomainResolving)
 	 * FieldDescriptor of the StructuredClass "book".
 	 */
 	res = domain->resolve(std::vector<std::string>{"book", "book", ""});
-	assert_path(res, 0, typeid(FieldDescriptor), {"book", "book", ""});
+	assert_path(res, 0, FieldDescriptorType, {"book", "book", ""});
 	ASSERT_EQ(1, res.size());
 
 	/*
@@ -93,7 +91,7 @@ TEST(Document, testDomainResolving)
 	 * but should be returned only once.
 	 */
 	res = domain->resolve("paragraph");
-	assert_path(res, 0, typeid(StructuredClass), {"book", "paragraph"});
+	assert_path(res, 0, StructuredClassType, {"book", "paragraph"});
 	ASSERT_EQ(1, res.size());
 }
 }

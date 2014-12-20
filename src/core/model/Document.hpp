@@ -188,6 +188,11 @@ public:
 };
 
 /**
+ * A global variable for the ManagedType of a DocumentEntity.
+ */
+static ManagedType DocumentEntityType{"DocumentEntity", typeid(DocumentEntity)};
+
+/**
  * A StructuredEntity is a node in the Structure Tree of a document. For more
  * information please refer to the header documentation above.
  */
@@ -260,6 +265,12 @@ public:
 };
 
 /**
+ * A global variable for the ManagedType of a StructuredEntity.
+ */
+static ManagedType StructuredEntityType{
+    "StructuredEntity", typeid(StructuredEntity), {&DocumentEntityType}};
+
+/**
  * This is a wrapper for primitive types (Variants) inside the document graph.
  * The most straightforward example for this is the actual document text, e.g.
  * inside a paragraph. In that case this would represent a mere string.
@@ -292,9 +303,15 @@ public:
 	 *                   contain a StructuredClass with the given name.
 	 */
 	static Rooted<DocumentPrimitive> buildEntity(
-	    Handle<DocumentEntity> parent, 
-	    Variant content, const std::string &fieldName = "");
+	    Handle<DocumentEntity> parent, Variant content,
+	    const std::string &fieldName = "");
 };
+
+/**
+ * A global variable for the ManagedType of a DocumentPrimitive.
+ */
+static ManagedType DocumentPrimitiveType{
+    "DocumentPrimitive", typeid(DocumentPrimitive), {&StructuredEntityType}};
 
 /**
  * An AnnotationEntity is a span-like instance that is not bound by the elements
@@ -360,6 +377,18 @@ public:
 };
 
 /**
+ * A global variable for the ManagedType of an Anchor.
+ */
+static ManagedType AnchorType{
+    "Anchor", typeid(AnnotationEntity::Anchor), {&StructuredEntityType}};
+
+/**
+ * A global variable for the ManagedType of an AnnotationEntity.
+ */
+static ManagedType AnnotationEntityType{
+    "AnnotationEntity", typeid(AnnotationEntity), {&DocumentEntityType}};
+
+/**
  * A Document is mainly a wrapper for the Root structure node of the Document
  * Graph.
  */
@@ -378,6 +407,11 @@ public:
 
 	Rooted<StructuredEntity> getRoot() const { return root; }
 };
+
+/**
+ * A global variable for the ManagedType of a Document.
+ */
+static ManagedType DocumentType{"Document", typeid(Document)};
 }
 }
 
