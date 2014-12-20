@@ -135,7 +135,7 @@ public:
 	enum class FieldType { TREE, SUBTREE, PRIMITIVE };
 
 private:
-	ManagedVector<StructuredClass> children;
+	NodeVector<StructuredClass> children;
 	FieldType fieldType;
 	Owned<Type> primitiveType;
 
@@ -200,10 +200,10 @@ public:
 	{
 	}
 
-	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<StructuredClass> &getChildren() { return children; }
+	// TODO: Is returning a NodeVector alright?
+	NodeVector<StructuredClass> &getChildren() { return children; }
 
-	const ManagedVector<StructuredClass> &getChildren() const
+	const NodeVector<StructuredClass> &getChildren() const
 	{
 		return children;
 	}
@@ -245,7 +245,7 @@ public:
 class Descriptor : public Node {
 private:
 	Owned<StructType> attributesDescriptor;
-	ManagedVector<FieldDescriptor> fieldDescriptors;
+	NodeVector<FieldDescriptor> fieldDescriptors;
 
 protected:
 	void doResolve(std::vector<Rooted<Managed>> &res,
@@ -268,13 +268,13 @@ public:
 		return attributesDescriptor;
 	}
 
-	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<FieldDescriptor> &getFieldDescriptors()
+	// TODO: Is returning a NodeVector alright?
+	NodeVector<FieldDescriptor> &getFieldDescriptors()
 	{
 		return fieldDescriptors;
 	}
 
-	const ManagedVector<FieldDescriptor> &getFieldDescriptors() const
+	const NodeVector<FieldDescriptor> &getFieldDescriptors() const
 	{
 		return fieldDescriptors;
 	}
@@ -361,7 +361,7 @@ class StructuredClass : public Descriptor {
 private:
 	const Cardinality cardinality;
 	Owned<StructuredClass> isa;
-	ManagedVector<FieldDescriptor> parents;
+	NodeVector<FieldDescriptor> parents;
 
 protected:
 	void doResolve(std::vector<Rooted<Managed>> &res,
@@ -390,10 +390,10 @@ public:
 
 	Rooted<StructuredClass> getIsA() const { return isa; }
 
-	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<FieldDescriptor> &getParents() { return parents; }
+	// TODO: Is returning a NodeVector alright?
+	NodeVector<FieldDescriptor> &getParents() { return parents; }
 
-	const ManagedVector<FieldDescriptor> &getParents() const { return parents; }
+	const NodeVector<FieldDescriptor> &getParents() const { return parents; }
 };
 
 /**
@@ -413,9 +413,9 @@ class AnnotationClass : public Descriptor {
  */
 class Domain : public Node {
 private:
-	ManagedVector<StructuredClass> rootStructures;
-	ManagedVector<AnnotationClass> annotationClasses;
-	ManagedVector<Typesystem> typesystems;
+	NodeVector<StructuredClass> rootStructures;
+	NodeVector<AnnotationClass> annotationClasses;
+	NodeVector<Typesystem> typesystems;
 
 protected:
 	void doResolve(std::vector<Rooted<Managed>> &res,
@@ -433,30 +433,30 @@ public:
 	{
 	}
 
-	// TODO: Is returning a ManagedVector alright?
-	ManagedVector<StructuredClass> &getRootStructures()
+	// TODO: Is returning a NodeVector alright?
+	NodeVector<StructuredClass> &getRootStructures()
 	{
 		return rootStructures;
 	}
 
-	const ManagedVector<StructuredClass> &getRootStructures() const
+	const NodeVector<StructuredClass> &getRootStructures() const
 	{
 		return rootStructures;
 	}
 
-	ManagedVector<AnnotationClass> &getAnnotationClasses()
+	NodeVector<AnnotationClass> &getAnnotationClasses()
 	{
 		return annotationClasses;
 	}
 
-	const ManagedVector<AnnotationClass> &getAnnotationClasses() const
+	const NodeVector<AnnotationClass> &getAnnotationClasses() const
 	{
 		return annotationClasses;
 	}
 
-	ManagedVector<Typesystem> &getTypesystems() { return typesystems; }
+	NodeVector<Typesystem> &getTypesystems() { return typesystems; }
 
-	const ManagedVector<Typesystem> &getTypesystems() const
+	const NodeVector<Typesystem> &getTypesystems() const
 	{
 		return typesystems;
 	}

@@ -25,7 +25,7 @@ namespace model {
 
 int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName)
 {
-	const ManagedVector<FieldDescriptor> &fds =
+	const NodeVector<FieldDescriptor> &fds =
 	    descriptor->getFieldDescriptors();
 	unsigned int f = 0;
 
@@ -57,21 +57,21 @@ int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName)
 	return -1;
 }
 
-void DocumentEntity::getField(ManagedVector<StructuredEntity> &res,
+void DocumentEntity::getField(NodeVector<StructuredEntity> &res,
                               const std::string &fieldName)
 {
 	int f = getFieldDescriptorIndex(fieldName);
 	if (f < 0) {
-		ManagedVector<StructuredEntity> empty{this};
-		res = ManagedVector<StructuredEntity>(this);
+		NodeVector<StructuredEntity> empty{this};
+		res = NodeVector<StructuredEntity>(this);
 	}
 	res = fields[f];
 }
 
-ManagedVector<StructuredEntity> &DocumentEntity::getField(
+NodeVector<StructuredEntity> &DocumentEntity::getField(
     Rooted<FieldDescriptor> fieldDescriptor)
 {
-	const ManagedVector<FieldDescriptor> &fds =
+	const NodeVector<FieldDescriptor> &fds =
 	    descriptor->getFieldDescriptors();
 	int f = 0;
 	for (auto &fd : fds) {
@@ -156,7 +156,7 @@ Rooted<StructuredEntity> StructuredEntity::buildEntity(
 		return {nullptr};
 	}
 	// append the new entity to the right field.
-	ManagedVector<StructuredEntity> field{parent};
+	NodeVector<StructuredEntity> field{parent};
 	parent->getField(field, fieldName);
 	field.push_back(entity);
 
@@ -180,7 +180,7 @@ Rooted<DocumentPrimitive> DocumentPrimitive::buildEntity(
 		return {nullptr};
 	}
 	// append the new entity to the right field.
-	ManagedVector<StructuredEntity> field{parent};
+	NodeVector<StructuredEntity> field{parent};
 	parent->getField(field, fieldName);
 	field.push_back(entity);
 
