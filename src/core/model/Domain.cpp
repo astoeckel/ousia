@@ -34,7 +34,7 @@ void FieldDescriptor::doResolve(std::vector<Rooted<Managed>> &res,
 }
 
 // TODO: better alias?
-static std::string DESCRIPTOR_ATTRIBUTES_ALIAS {"attributes"};
+static std::string DESCRIPTOR_ATTRIBUTES_ALIAS{"attributes"};
 
 void Descriptor::doResolve(std::vector<Rooted<Managed>> &res,
                            const std::vector<std::string> &path, Filter filter,
@@ -46,8 +46,9 @@ void Descriptor::doResolve(std::vector<Rooted<Managed>> &res,
 		fd->resolve(res, path, filter, filterData, idx, visited, nullptr);
 	}
 	// TODO: This throws a SEGFAULT for some reason.
-//	attributesDescriptor->resolve(res, path, filter, filterData, idx, visited,
-//	                              &DESCRIPTOR_ATTRIBUTES_ALIAS);
+	//	attributesDescriptor->resolve(res, path, filter, filterData, idx,
+	// visited,
+	//	                              &DESCRIPTOR_ATTRIBUTES_ALIAS);
 }
 
 void StructuredClass::doResolve(std::vector<Rooted<Managed>> &res,
@@ -56,7 +57,7 @@ void StructuredClass::doResolve(std::vector<Rooted<Managed>> &res,
                                 VisitorSet &visited)
 {
 	Descriptor::doResolve(res, path, filter, filterData, idx, visited);
-	if(!isa.isNull()){
+	if (!isa.isNull()) {
 		isa->doResolve(res, path, filter, filterData, idx, visited);
 	}
 }
@@ -75,6 +76,16 @@ void Domain::doResolve(std::vector<Rooted<Managed>> &res,
 		t->resolve(res, path, filter, filterData, idx, visited, nullptr);
 	}
 }
+
+/* Type registrations */
+
+const Rtti<FieldDescriptor> FieldDescriptor_Rtti{"FieldDescriptor"};
+const Rtti<Descriptor> Descriptor_Rtti{"Descriptor"};
+const Rtti<StructuredClass> StructuredClass_Rtti{"StructuredClass",
+                                                 {&Descriptor_Rtti}};
+const Rtti<AnnotationClass> AnnotationClass_Rtti{"AnnotationClass",
+                                                 {&Descriptor_Rtti}};
+const Rtti<Domain> Domain_Rtti{"Domain"};
 }
 }
 

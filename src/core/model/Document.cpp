@@ -25,8 +25,7 @@ namespace model {
 
 int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName)
 {
-	const NodeVector<FieldDescriptor> &fds =
-	    descriptor->getFieldDescriptors();
+	const NodeVector<FieldDescriptor> &fds = descriptor->getFieldDescriptors();
 	unsigned int f = 0;
 
 	// look if we have an empty name.
@@ -71,8 +70,7 @@ void DocumentEntity::getField(NodeVector<StructuredEntity> &res,
 NodeVector<StructuredEntity> &DocumentEntity::getField(
     Rooted<FieldDescriptor> fieldDescriptor)
 {
-	const NodeVector<FieldDescriptor> &fds =
-	    descriptor->getFieldDescriptors();
+	const NodeVector<FieldDescriptor> &fds = descriptor->getFieldDescriptors();
 	int f = 0;
 	for (auto &fd : fds) {
 		if (fd->getName() == fieldDescriptor->getName() &&
@@ -187,6 +185,19 @@ Rooted<DocumentPrimitive> DocumentPrimitive::buildEntity(
 	// and return it.
 	return entity;
 }
+
+/* Type registrations */
+
+const Rtti<Document> Document_Rtti{"Document"};
+const Rtti<DocumentEntity> DocumentEntity_Rtti{"DocumentEntity"};
+const Rtti<AnnotationEntity> AnnotationEntity_Rtti{"AnnotationEntity",
+                                                   {&DocumentEntity_Rtti}};
+const Rtti<StructuredEntity> StructuredEntity_Rtti{"StructuredEntity",
+                                                   {&DocumentEntity_Rtti}};
+const Rtti<DocumentPrimitive> DocumentPrimitive_Rtti{"DocumentPrimitive",
+                                                     {&StructuredEntity_Rtti}};
+const Rtti<AnnotationEntity::Anchor> Anchor_Rtti{"Anchor",
+                                                 {&StructuredEntity_Rtti}};
 }
 }
 

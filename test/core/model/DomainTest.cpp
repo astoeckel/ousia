@@ -28,7 +28,7 @@ namespace ousia {
 namespace model {
 
 void assert_path(std::vector<Rooted<Managed>> &result, size_t idx,
-                 const ManagedType &expected_type,
+                 const RttiBase &expected_type,
                  std::vector<std::string> expected_path)
 {
 	ASSERT_TRUE(result.size() > idx);
@@ -57,9 +57,9 @@ TEST(Domain, testDomainResolving)
 	std::vector<Rooted<Managed>> res =
 	    domain->resolve(std::vector<std::string>{"book"});
 	// First we expect the book domain.
-	assert_path(res, 0, DomainType, {"book"});
+	assert_path(res, 0, typeOf<Domain>(), {"book"});
 	// Then the book structure.
-	assert_path(res, 1, StructuredClassType, {"book", "book"});
+	assert_path(res, 1, typeOf<StructuredClass>(), {"book", "book"});
 	ASSERT_EQ(2, res.size());
 
 	/*
@@ -67,7 +67,7 @@ TEST(Domain, testDomainResolving)
 	 * StructuredClass should be returned.
 	 */
 	res = domain->resolve(std::vector<std::string>{"book", "book"});
-	assert_path(res, 0, StructuredClassType, {"book", "book"});
+	assert_path(res, 0, typeOf<StructuredClass>(), {"book", "book"});
 	ASSERT_EQ(1, res.size());
 
 	/*
@@ -75,7 +75,7 @@ TEST(Domain, testDomainResolving)
 	 */
 	res = domain->resolve(std::vector<std::string>{"section"});
 	// TODO: Is that the path result we want?
-	assert_path(res, 0, StructuredClassType, {"book", "section"});
+	assert_path(res, 0, typeOf<StructuredClass>(), {"book", "section"});
 	ASSERT_EQ(1, res.size());
 
 	/*
@@ -83,7 +83,7 @@ TEST(Domain, testDomainResolving)
 	 * FieldDescriptor of the StructuredClass "book".
 	 */
 	res = domain->resolve(std::vector<std::string>{"book", "book", ""});
-	assert_path(res, 0, FieldDescriptorType, {"book", "book", ""});
+	assert_path(res, 0, typeOf<FieldDescriptor>(), {"book", "book", ""});
 	ASSERT_EQ(1, res.size());
 
 	/*
@@ -91,7 +91,7 @@ TEST(Domain, testDomainResolving)
 	 * but should be returned only once.
 	 */
 	res = domain->resolve("paragraph");
-	assert_path(res, 0, StructuredClassType, {"book", "paragraph"});
+	assert_path(res, 0, typeOf<StructuredClass>(), {"book", "paragraph"});
 	ASSERT_EQ(1, res.size());
 }
 }

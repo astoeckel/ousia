@@ -20,8 +20,41 @@
  * @file Rtti.hpp
  *
  * Classes used for storing runtime type information (RTTI). RTTI is used to
- * lookup objects in the object graph of a certain type and to attach
+ * resolve objects of a certain type in the object graph and to attach
  * information that should be accessible to the script engine.
+ *
+ * <b>Why is this needed?</b> C++ provides the <tt>typeid</tt> operator to 
+ * retrieve a reference at an internal table associated with type information
+ * for the given class. However, there is no native way for attaching additonal
+ * information to this type information table. Additional information we need to
+ * store is the inheritance graph (which cannot easily be extracted from C++)
+ * and information that is relevant for script engines (such as a list of 
+ * methods and properties). One could of course store information about the type 
+ * within each instance of this type, however when managing thousands of objects 
+ * this would mean an additional overhead.
+ *
+ * <b>How to use:</b> The Rtti class allows to attach this information to a
+ * certain C++ file. To do so, create a global constant of the type
+ * Rtti<T> in the cpp file associated with the type declaration, where T 
+ * is the type you want to register. As the type must only be registered once, 
+ * you must not declare the variable as "static" in the header file (this would 
+ * register it whever the header is included). If you want to access the global 
+ * constant from other Rtti definitions (as parent), create a forward declaration 
+ * in the header file. If you want to access the RTTI of a certain object or
+ * type, use the global typeOf() function (however, don't use it  
+ * within global variable initializations).
+ *
+ * <b>Example:</b>
+ * In the header file:
+ * \code{.hpp}
+ * // Only needed if the type needs to be accessed
+ * // from other compilation units!
+ * const Rtti<MyType> MyType_Rtti;
+ * \endcode
+ * In the source file:
+ * \code{.cpp}
+ * const Rtti<MyType> MyType_Rtti{"MyType", {&MyOtherType_Rtti}, [...]};
+ * \endcode
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
@@ -154,7 +187,9 @@ public:
 
 /**
  * Function that can be used to retrieve the RTTI information of a Managed
- * object.
+ * object. Do not use this function in the initialization of global Rtti
+ * variables, use pointers at the other global variable instead (as the 
+ * initialization order is not well defined).
  *
  * @tparam T is the C++ type for which the type information should be returned.
  */
@@ -166,7 +201,9 @@ inline const RttiBase &typeOf()
 
 /**
  * Function that can be used to retrieve the RTTI information of a Managed
- * object.
+ * object. Do not use this function in the initialization of global Rtti
+ * variables, use pointers at the other global variable instead (as the 
+ * initialization order is not well defined).
  *
  * @tparam T is the C++ type for which the type information should be returned.
  * @param obj is a dummy object for which the type information should be
