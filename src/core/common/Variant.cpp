@@ -18,6 +18,8 @@
 
 #include <sstream>
 
+#include <core/managed/Managed.hpp>
+
 #include "Utils.hpp"
 #include "Variant.hpp"
 
@@ -37,6 +39,19 @@ Variant::TypeException::TypeException(Type actualType, Type requestedType)
 
 /* Class Variant */
 
+void Variant::copyObject(objectType o)
+{
+	Managed *managed = static_cast<objectType>(o);
+	managed->getManager().addRef(o, nullptr);
+	ptrVal = managed;
+}
+
+void Variant::destroyObject()
+{
+	Managed *managed = static_cast<objectType>(ptrVal);
+	managed->getManager().deleteRef(managed, nullptr);
+}
+
 const char *Variant::getTypeName(Type type)
 {
 	switch (type) {
@@ -54,6 +69,8 @@ const char *Variant::getTypeName(Type type)
 			return "array";
 		case Type::MAP:
 			return "map";
+		case Type::OBJECT:
+			return "object";
 	}
 	return "unknown";
 }
@@ -69,11 +86,7 @@ Variant::boolType Variant::toBool() const
 			return asInt() != 0;
 		case Type::DOUBLE:
 			return asDouble() != 0.0;
-		case Type::STRING:
-			return true;
-		case Type::ARRAY:
-			return true;
-		case Type::MAP:
+		default:
 			return true;
 	}
 	return false;
@@ -91,12 +104,12 @@ Variant::intType Variant::toInt() const
 		case Type::DOUBLE:
 			return asDouble();
 		case Type::STRING:
-			return 0; // TODO: Parse string as int
+			return 0;  // TODO: Parse string as int
 		case Type::ARRAY: {
 			const arrayType &a = asArray();
 			return (a.size() == 1) ? a[0].toInt() : 0;
 		}
-		case Type::MAP:
+		default:
 			return 0;
 	}
 	return false;
@@ -114,13 +127,13 @@ Variant::doubleType Variant::toDouble() const
 		case Type::DOUBLE:
 			return asDouble();
 		case Type::STRING:
-			return 0.0; // TODO: Parse string as double
+			return 0.0;  // TODO: Parse string as double
 		case Type::ARRAY: {
 			const arrayType &a = asArray();
 			return (a.size() == 1) ? a[0].toDouble() : 0;
 		}
-		case Type::MAP:
-			return 0;
+		default:
+			return 0.0;
 	}
 	return false;
 }
@@ -156,9 +169,13 @@ Variant::stringType Variant::toString(bool escape) const
 			return Utils::join(asArray(), ", ", "[", "]");
 		case Type::MAP:
 			return Utils::join(asMap(), ", ", "{", "}");
+		case Type::OBJECT: {
+			std::stringstream ss;
+			ss << "<object " << ptrVal << ">";
+			return ss.str();
+		}
 	}
 	return "";
 }
-
 }
 

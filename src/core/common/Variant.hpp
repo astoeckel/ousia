@@ -43,6 +43,9 @@
 
 namespace ousia {
 
+/* Forward declaration of the Managed class */
+class Managed;
+
 /**
  * Instances of the Variant class represent any kind of data that is exchanged
  * between the host application and the script engine. Variants are immutable.
@@ -59,7 +62,8 @@ public:
 		DOUBLE,
 		STRING,
 		ARRAY,
-		MAP
+		MAP,
+		OBJECT
 	};
 
 	/**
@@ -100,6 +104,7 @@ public:
 	using stringType = std::string;
 	using arrayType = std::vector<Variant>;
 	using mapType = std::map<std::string, Variant>;
+	using objectType = Managed *;
 
 private:
 	/**
@@ -146,6 +151,21 @@ private:
 	}
 
 	/**
+	 * Function used to copy a reference to a managed object (not defined in the
+	 * header to prevent an explicit reference to the Managed type).
+	 *
+	 * @param o is the pointer at the object that should be copied.
+	 */
+	void copyObject(objectType o);
+
+	/**
+	 * Function used internally to destroy a reference to a managed object (not 
+	 * defined in the header to prevent an explicit reference to the Managed 
+	 * type).
+	 */
+	void destroyObject();
+
+	/**
 	 * Used internally to assign the value of another Variant instance to this
 	 * instance.
 	 *
@@ -176,6 +196,9 @@ private:
 			case Type::MAP:
 				ptrVal = new mapType(v.asMap());
 				break;
+			case Type::OBJECT:
+				copyObject(v.asObject());
+				break;
 		}
 	}
 
@@ -204,6 +227,7 @@ private:
 			case Type::STRING:
 			case Type::ARRAY:
 			case Type::MAP:
+			case Type::OBJECT:
 				ptrVal = v.ptrVal;
 				v.ptrVal = nullptr;
 				break;
@@ -215,23 +239,29 @@ private:
 	 * Used internally to destroy any value that was allocated on the heap.
 	 */
 	void destroy()
-	{
-		if (ptrVal) {
-			switch (type) {
-				case Type::STRING:
-					delete static_cast<stringType *>(ptrVal);
-					break;
-				case Type::ARRAY:
-					delete static_cast<arrayType *>(ptrVal);
-					break;
-				case Type::MAP:
-					delete static_cast<mapType *>(ptrVal);
-					break;
-				default:
-					break;
-			}
+{
+	if (ptrVal) {
+		switch (type) {
+			case Type::STRING:
+				delete static_cast<stringType *>(ptrVal);
+				break;
+			case Type::ARRAY:
+				delete static_cast<arrayType *>(ptrVal);
+				break;
+			case Type::MAP:
+				delete static_cast<mapType *>(ptrVal);
+				break;
+			case Type::OBJECT:
+				destroyObject();
+				break;
+			default:
+				break;
 		}
+#ifndef NDEBUG
+		ptrVal = nullptr;
+#endif
 	}
+}
 
 public:
 	/**
@@ -308,6 +338,14 @@ public:
 	 * @param m is a reference to the map.
 	 */
 	Variant(mapType m) : ptrVal(nullptr) { setMap(std::move(m)); }
+
+	/**
+	 * Constructor for storing managed objects. The reference at the managed
+	 * object is stored as a Rooted object.
+	 *
+	 * @param o is a reference to the object.
+	 */
+	Variant(objectType o) : ptrVal(nullptr) { setObject(o); }
 
 	/**
 	 * Copy assignment operator.
@@ -434,12 +472,20 @@ public:
 	bool isMap() const { return type == Type::MAP; }
 
 	/**
+	 * Checks whether this Variant instance is an object.
+	 *
+	 * @return true if the Variant instance is an object, false otherwise.
+	 */
+	bool isObject() const { return type == Type::OBJECT; }
+
+	/**
 	 * Checks whether this Variant instance is a primitive type.
 	 *
 	 * @return true if the Variant instance is a primitive type.
 	 */
-	bool isPrimitive() const { 
-		switch(type){
+	bool isPrimitive() const
+	{
+		switch (type) {
 			case Type::NULLPTR:
 			case Type::BOOL:
 			case Type::INT:
@@ -543,6 +589,36 @@ public:
 	 * @return the map value as reference.
 	 */
 	mapType &asMap() { return asObj<mapType>(Type::MAP); }
+
+	/**
+	 * Returns a pointer pointing at the stored managed object. Performs no type 
+	 * conversion. Throws an exception if the underlying type is not a managed
+	 * object.
+	 *
+	 * @return pointer at the stored managed object.
+	 */
+	objectType asObject()
+	{
+		if (isObject()) {
+			return static_cast<objectType>(ptrVal);
+		}
+		throw TypeException(getType(), Type::OBJECT);
+	}
+
+	/**
+	 * Returns a pointer pointing at the stored managed object. Performs no type 
+	 * conversion. Throws an exception if the underlying type is not a managed
+	 * object.
+	 *
+	 * @return const pointer at the stored managed object.
+	 */
+	const objectType asObject() const
+	{
+		if (isObject()) {
+			return static_cast<objectType>(ptrVal);
+		}
+		throw TypeException(getType(), Type::OBJECT);
+	}
 
 	/**
 	 * Returns the value of the Variant as boolean, performs type conversion.
@@ -669,6 +745,17 @@ public:
 	}
 
 	/**
+	 * Sets the variant to the given managed object. The variant is equivalent
+	 * to a Rooted handle.
+	 */
+	void setObject(objectType o)
+	{
+		destroy();
+		type = Type::OBJECT;
+		copyObject(o);
+	}
+
+	/**
 	 * Returns the current type of the Variant.
 	 *
 	 * @return the current type of the Variant.
@@ -707,6 +794,15 @@ public:
 	 * Comprison operators.
 	 */
 
+	/**
+	 * Returns true if the given left hand side is smaller than the right hand
+	 * side. Uses the comparison algorithm of the stored object. Throws an 
+	 * exception if the types of the two variants are not equal.
+	 *
+	 * @param lhs is the left hand side of the comparison.
+	 * @param rhs is the right hand side of the comparison.
+	 * @return true if lhs is smaller than rhs.
+	 */
 	friend bool operator<(const Variant &lhs, const Variant &rhs)
 	{
 		// If the types do not match, we can not do a meaningful comparison.
@@ -728,22 +824,63 @@ public:
 				return lhs.asArray() < rhs.asArray();
 			case Type::MAP:
 				return lhs.asMap() < rhs.asMap();
+			case Type::OBJECT:
+				return lhs.asObject() < rhs.asObject();
 		}
 		throw OusiaException("Internal Error! Unknown type!");
 	}
+
+	/**
+	 * Returns true if the given left hand side is larger than the right hand
+	 * side. Uses the comparison algorithm of the stored object. Throws an 
+	 * exception if the types of the two variants are not equal.
+	 *
+	 * @param lhs is the left hand side of the comparison.
+	 * @param rhs is the right hand side of the comparison.
+	 * @return true if lhs is larger than rhs.
+	 */
 	friend bool operator>(const Variant &lhs, const Variant &rhs)
 	{
 		return rhs < lhs;
 	}
+
+	/**
+	 * Returns true if the given left hand side is smaller or equal to the
+	 * right hand side. Uses the comparison algorithm of the stored object.
+	 * Throws an exception if the types of the two variants are not equal.
+	 *
+	 * @param lhs is the left hand side of the comparison.
+	 * @param rhs is the right hand side of the comparison.
+	 * @return true if lhs is smaller than or equal to rhs.
+	 */
 	friend bool operator<=(const Variant &lhs, const Variant &rhs)
 	{
 		return !(lhs > rhs);
 	}
+
+	/**
+	 * Returns true if the given left hand side is larger or equal to the
+	 * right hand side. Uses the comparison algorithm of the stored object.
+	 * Throws an exception if the types of the two variants are not equal.
+	 *
+	 * @param lhs is the left hand side of the comparison.
+	 * @param rhs is the right hand side of the comparison.
+	 * @return true if lhs is larger than or equal to rhs.
+	 */
 	friend bool operator>=(const Variant &lhs, const Variant &rhs)
 	{
 		return !(lhs < rhs);
 	}
 
+	/**
+	 * Returns true if the given left hand side and right hand side are equal. 
+	 * Uses the comparison algorithm of the stored object. Returns false if the 
+	 * two variants do not have the same type.
+	 *
+	 * @param lhs is the left hand side of the comparison.
+	 * @param rhs is the right hand side of the comparison.
+	 * @return true if lhs equals rhs.
+	 */
 	friend bool operator==(const Variant &lhs, const Variant &rhs)
 	{
 		if (lhs.getType() != rhs.getType()) {
@@ -764,11 +901,22 @@ public:
 				return lhs.asArray() == rhs.asArray();
 			case Type::MAP:
 				return lhs.asMap() == rhs.asMap();
+			case Type::OBJECT:
+				return lhs.asObject() == rhs.asObject();
 		}
 		throw OusiaException("Internal Error! Unknown type!");
 	}
-	
-	friend bool operator!=(const Variant &lhs, const Variant &rhs)
+
+	/**
+	 * Returns true if the given left hand side are equal. Uses the comparison 
+	 * algorithm of the stored object. Returns true if the two variants do not
+	 * have the same type.
+	 *
+	 * @param lhs is the left hand side of the comparison.
+	 * @param rhs is the right hand side of the comparison.
+	 * @return true if lhs is not equal to rhs.
+	 */
+	 friend bool operator!=(const Variant &lhs, const Variant &rhs)
 	{
 		return !(lhs == rhs);
 	}

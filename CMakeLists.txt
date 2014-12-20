@@ -191,6 +191,7 @@ IF(TEST)
 		test/core/managed/ManagedTest
 		test/core/managed/ManagerTest
 		test/core/managed/RttiTest
+		test/core/managed/VariantObjectTest
 		test/core/model/DomainTest
 		test/core/model/DocumentTest
 		test/core/model/TypesystemTest
