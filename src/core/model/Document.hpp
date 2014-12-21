@@ -365,6 +365,7 @@ public:
  */
 class Document : public Node {
 private:
+	//TODO: Might there be several roots? E.g. metadata?
 	Owned<StructuredEntity> root;
 
 public:

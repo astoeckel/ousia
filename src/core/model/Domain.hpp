@@ -368,6 +368,9 @@ protected:
 
 public:
 	const bool transparent;
+	// TODO: Is it possible to have root=true and cardinality other than 1?
+	// This also refers to the question in Document.hpp: Is it possible to have
+	// more than 1 root?
 	const bool root;
 
 	/**
