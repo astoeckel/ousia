@@ -18,6 +18,7 @@
 
 #include "Typesystem.hpp"
 
+#include <core/common/Rtti.hpp>
 #include <core/common/Utils.hpp>
 
 namespace ousia {

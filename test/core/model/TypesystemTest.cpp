@@ -20,6 +20,7 @@
 
 #include <iostream>
 
+#include <core/common/Rtti.hpp>
 #include <core/model/Typesystem.hpp>
 
 namespace ousia {

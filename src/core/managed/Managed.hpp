@@ -19,8 +19,6 @@
 #ifndef _OUSIA_MANAGED_HPP_
 #define _OUSIA_MANAGED_HPP_
 
-#include <core/common/Rtti.hpp>
-
 #include "Manager.hpp"
 
 namespace ousia {
@@ -36,6 +34,8 @@ class Owned;
 
 template <class T>
 class DefaultListener;
+
+class RttiBase;
 
 // TODO: Implement clone, getReferenced and getReferencing
 
@@ -98,6 +98,8 @@ public:
 		return Owned<T>{t, this};
 	}
 
+	/* Data store methods */
+
 	void storeData(const std::string &key, Handle<Managed> h);
 
 	bool hasDataKey(const std::string &key);
@@ -108,6 +110,8 @@ public:
 
 	bool deleteData(const std::string &key);
 
+	/* RTTI methods */
+
 	/**
 	 * Returns the RttiBase instance registered for instances of the type of
 	 * this Managed instance.
@@ -115,10 +119,7 @@ public:
 	 * @return a reference to the registered RttiBase for this particular
 	 * Managed class.
 	 */
-	const RttiBase &type() const
-	{
-		return typeOf(*this);
-	}
+	const RttiBase &type() const;
 
 	/**
 	 * Returns true if this Managed instance is of the given RttiBase.
@@ -127,7 +128,7 @@ public:
 	 * class is of the given type or one of the registered parent types is of
 	 * the given type.
 	 */
-	bool isa(const RttiBase &t) const { return type().isa(t); }
+	bool isa(const RttiBase &t) const;
 };
 
 /**

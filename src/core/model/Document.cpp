@@ -19,6 +19,7 @@
 #include "Document.hpp"
 
 #include <core/common/Exceptions.hpp>
+#include <core/common/Rtti.hpp>
 
 namespace ousia {
 namespace model {

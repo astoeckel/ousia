@@ -19,6 +19,8 @@
 #include <cassert>
 #include <queue>
 
+#include <core/common/Rtti.hpp>
+
 #include "Managed.hpp"
 #include "ManagedContainer.hpp"
 
@@ -51,5 +53,12 @@ std::map<std::string, Rooted<Managed>> Managed::readData() {
 bool Managed::deleteData(const std::string &key) {
 	return mgr.deleteData(this, key);
 }
+
+const RttiBase &Managed::type() const
+{
+	return typeOf(*this);
+}
+
+bool Managed::isa(const RttiBase &t) const { return type().isa(t); }
 
 }
