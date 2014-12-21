@@ -400,9 +400,9 @@ public:
 	 */
 	StructuredClass(Manager &mgr, std::string name, Handle<Domain> domain,
 	                const Cardinality &cardinality,
-	                Handle<StructType> attributesDescriptor = {nullptr},
+	                Handle<StructType> attributesDescriptor = nullptr,
 	                // TODO: What would be a wise default value for isa?
-	                Handle<StructuredClass> isa = {nullptr},
+	                Handle<StructuredClass> isa = nullptr,
 	                bool transparent = false,
 	                bool root = false)
 	    : Descriptor(mgr, std::move(name), domain, attributesDescriptor),

@@ -36,7 +36,8 @@ static Rooted<Typesystem> constructTypeSystem(Manager &mgr)
 	Rooted<StringType> string{new StringType(mgr, sys)};
 	sys->addType(string);
 	Rooted<StructType> string_struct{new StructType(
-	    mgr, "text", sys, {{"content", "", false, sys->acquire(string)}})};
+	    mgr, "text", sys, {new StructType::AttributeDescriptor(
+	                          mgr, "content", "", false, string)})};
 	sys->addType(string_struct);
 
 	return sys;

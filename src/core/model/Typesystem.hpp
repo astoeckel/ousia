@@ -306,18 +306,21 @@ public:
 
 class StructType : public Type {
 public:
-	struct AttributeDescriptor {
+	class AttributeDescriptor : public Managed {
+	public:
 		const std::string name;
 		const Variant defaultValue;
 		const bool optional;
 		const Owned<Type> type;
 
-		AttributeDescriptor(std::string name, Variant defaultValue,
-		                    bool optional, Owned<Type> type)
-		    : name(name),
+		AttributeDescriptor(Manager &mgr, std::string name,
+		                    Variant defaultValue, bool optional,
+		                    Handle<Type> type)
+		    : Managed(mgr),
+		      name(name),
 		      defaultValue(defaultValue),
 		      optional(optional),
-		      type(type)
+		      type(acquire(type))
 		{
 		}
 	};
@@ -332,7 +335,7 @@ protected:
 		if (var.isArray()) {
 			auto arr = var.asArray();
 			for (size_t a = 0; a < attrs.size(); a++) {
-				if (!attrs[a].type->build(arr[a], logger)) {
+				if (!attrs[a]->type->build(arr[a], logger)) {
 					return false;
 				}
 			}
@@ -345,13 +348,13 @@ protected:
 		auto &map = var.asMap();
 		// We transform the map into an array with the correct values at the
 		// correct places.
-		std::vector<Variant> vec;
+		Variant::arrayType vec;
 		for (auto &a : attrs) {
-			auto it = map.find(a.name);
+			auto it = map.find(a->name);
 			// we use the default if nothing is set.
-			if (it == map.end() || !a.type->build(it->second, logger)) {
-				logger.note(std::string("Using default value for ") + a.name);
-				vec.push_back(a.defaultValue);
+			if (it == map.end() || !a->type->build(it->second, logger)) {
+				logger.note(std::string("Using default value for ") + a->name);
+				vec.push_back(a->defaultValue);
 			} else {
 				vec.push_back(it->second);
 			}
@@ -361,11 +364,11 @@ protected:
 	}
 
 public:
-	std::vector<AttributeDescriptor> attrs;
+	const ManagedVector<AttributeDescriptor> attrs;
 
 	StructType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	           std::vector<AttributeDescriptor> attrs)
-	    : Type(mgr, std::move(name), system, false), attrs(std::move(attrs))
+	           ManagedVector<AttributeDescriptor> attrs)
+	    : Type(mgr, std::move(name), system, false), attrs(this, std::move(attrs))
 	{
 	}
 	// TODO
