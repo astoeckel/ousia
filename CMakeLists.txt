@@ -41,7 +41,7 @@ PKG_CHECK_MODULES(EXPAT REQUIRED expat)
 FIND_PACKAGE(Boost COMPONENTS system filesystem REQUIRED)
 
 # Set utf8cpp include path
-SET(UTF8CPP_INCLUDE_DIR "lib/utf8")
+SET(UTF8CPP_INCLUDE_DIR "lib/utf8cpp")
 
 ################################################################################
 # Inclusion of doxygen                                                         #

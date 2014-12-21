@@ -68,7 +68,7 @@ void Domain::doResolve(std::vector<Rooted<Managed>> &res,
                        const std::vector<std::string> &path, Filter filter,
                        void *filterData, unsigned idx, VisitorSet &visited)
 {
-	for (auto &s : rootStructures) {
+	for (auto &s : structureClasses) {
 		s->resolve(res, path, filter, filterData, idx, visited, nullptr);
 	}
 	for (auto &a : annotationClasses) {
