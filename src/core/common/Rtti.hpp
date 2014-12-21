@@ -49,11 +49,13 @@
  * \code{.hpp}
  * // Only needed if the type needs to be accessed
  * // from other compilation units!
- * extern const Rtti<MyType> MyType_Rtti;
+ * namespace RttiTypes {
+ *     extern const Rtti<MyType> MyType;
+ * }
  * \endcode
  * In the source file:
  * \code{.cpp}
- * const Rtti<MyType> MyType_Rtti{"MyType", {&MyOtherType_Rtti}, [...]};
+ * const Rtti<MyType> RttiTypes::MyType{"MyType", {&RttiTypes::MyOtherType}, [...]};
  * \endcode
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
@@ -215,37 +217,37 @@ inline const RttiBase &typeOf(const T &obj)
  * constants are used to e.g. define the type of function arguments while 
  * allowing for both primitive variant types and more complex variant types.
  */
-struct RttiTypes {
+namespace RttiTypes {
 	/**
 	 * Type of no particular color.
 	 */
-	static const RttiBase None;
+	extern const RttiBase None;
 
 	/**
 	 * Constant representing a variant int type.
 	 */
-	static const RttiBase Int;
+	extern const RttiBase Int;
 
 	/**
 	 * Constant representing a variant double type.
 	 */
-	static const RttiBase Double;
+	extern const RttiBase Double;
 
 	/**
 	 * Constant representing a variant string type.
 	 */
-	static const RttiBase String;
+	extern const RttiBase String;
 
 	/**
 	 * Constant representing a variant array type.
 	 */
-	static const RttiBase Array;
+	extern const RttiBase Array;
 
 	/**
 	 * Constant representing a variant map type.
 	 */
-	static const RttiBase Map;
-};
+	extern const RttiBase Map;
+}
 
 }
 

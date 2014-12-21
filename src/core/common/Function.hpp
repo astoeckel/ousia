@@ -29,23 +29,25 @@
 #define _OUSIA_FUNCTION_HPP_
 
 #include <cassert>
-#include <memory>
 
 #include <core/managed/Managed.hpp>
 
+#include "Rtti.hpp"
 #include "Variant.hpp"
 
 namespace ousia {
 
 /**
- * The AbstractFunction interface defines all the methods needed to represent
- * a reference at a generic function object. Function objects can be called
- * using the call function in which an array of Variant is supplied to the
- * function and a Variant is returned to the caller.
+ * The Function interface defines all the methods needed to represent a
+ * generic function. Function objects can be called using the "call" function in 
+ * which an array of Variant is supplied to the function and a Variant is
+ * returned to the caller.
  */
-class AbstractFunction : public Managed {
-public:
+class Function : public Managed {
+protected:
+	using Managed::Managed;
 
+public:
 	/**
 	 * Abstract function which is meant to call the underlying function (be it
 	 * a host or a script function) with the given arguments.
@@ -65,7 +67,7 @@ public:
  * @tparam T is the type of the method that should be called.
  */
 template <class T>
-class Method : public AbstractFunction {
+class Method : public Function {
 public:
 	/**
 	 * Type of the Callback function that is being called by the "call"
@@ -85,20 +87,14 @@ private:
 	const Callback method;
 
 public:
+	using Function::Function;
+
 	/**
 	 * Constructor of the Method class.
 	 *
 	 * @param method is a pointer at the C++ function that should be called.
 	 */
 	Method(Callback method) : method(method){};
-
-	/**
-	 * Creates a copy of this Method object.
-	 */
-	std::unique_ptr<AbstractFunction> clone() const override
-	{
-		return std::unique_ptr<AbstractFunction>{new Method<T>(method)};
-	}
 
 	/**
 	 * Calls the underlying method.
@@ -120,6 +116,11 @@ public:
 		return method(args, tRef);
 	}
 };
+
+namespace RttiTypes {
+	extern const Rtti<Function> Function;
+}
+
 }
 
 #endif /* _OUSIA_FUNCTION_HPP_ */
