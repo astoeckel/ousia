@@ -212,7 +212,6 @@ public:
 	Rooted<Type> getPrimitiveType() const { return primitiveType; }
 };
 
-
 /**
  * This is a super class for StructuredClasses and AnnotationClasses and is,
  * in itself, not supposed to be instantiated. It defines that both, Annotations
@@ -369,18 +368,46 @@ protected:
 
 public:
 	const bool transparent;
+	const bool root;
 
+	/**
+	 * The constructor for a StructuredClass.
+	 *
+	 * @param mgr                  is the current Manager.
+	 * @param name                 is the name of the StructuredClass.
+	 * @param domain               is the Domain this StructuredClass belongs
+	 *                             to.
+	 * @param cardinality          specifies how often an element of this type
+	 *                             may occur at a specific point in the
+	 *                             StructureTree. For example: A document should
+	 *                             have at least one author.
+	 * @param attributesDescriptor references a StructType that in turn
+	 *                             specifies which key-value pairs are permitted
+	 *                             as attributes for this StructuredClass. The
+	 *                             default value is a null-reference, meaning
+	 *                             that no attributes are permitted.
+	 * @param isa                  references a parent StructuredClass. Please
+	 *                             look for more information on inheritance in
+	 *                             the class documentation above. The default is
+	 *                             a null reference, meaning no parent class.
+	 * @param transparent          specifies whether this StructuredClass is
+	 *                             transparent. For more information on
+	 *                             transparency please refer to the class
+	 *                             documentation above. The default is false.
+	 */
 	StructuredClass(Manager &mgr, std::string name, Handle<Domain> domain,
 	                const Cardinality &cardinality,
 	                Handle<StructType> attributesDescriptor = {nullptr},
 	                // TODO: What would be a wise default value for isa?
 	                Handle<StructuredClass> isa = {nullptr},
-	                bool transparent = false)
+	                bool transparent = false,
+	                bool root = false)
 	    : Descriptor(mgr, std::move(name), domain, attributesDescriptor),
 	      cardinality(cardinality),
 	      isa(acquire(isa)),
 	      parents(this),
-	      transparent(transparent)
+	      transparent(transparent),
+	      root(root)
 	{
 	}
 
@@ -404,15 +431,16 @@ class AnnotationClass : public Descriptor {
 };
 
 /**
- * A Domain node specifies which StructuredClasses are allowed at the root
- * level (or which Nonterminals are axioms of the grammar) and which Annotations
- * are allowed globally. TODO: Do we want to be able to restrict Annotations to
- * certain Structures?
+ * A Domain node specifies which StructuredClasses and which AnnotationClasses
+ * are part of this domain. TODO: Do we want to be able to restrict Annotations
+ * to certain Structures?
  */
 class Domain : public Node {
 private:
-	NodeVector<StructuredClass> rootStructures;
+	NodeVector<StructuredClass> structureClasses;
 	NodeVector<AnnotationClass> annotationClasses;
+	// TODO: Is it wise to attach the type systems here? If not: What would be
+	// a good alternative.
 	NodeVector<Typesystem> typesystems;
 
 protected:
@@ -425,18 +453,21 @@ public:
 	Domain(Manager &mgr, std::string name)
 	    // TODO: Can a domain have a parent?
 	    : Node(mgr, std::move(name), nullptr),
-	      rootStructures(this),
+	      structureClasses(this),
 	      annotationClasses(this),
 	      typesystems(this)
 	{
 	}
 
 	// TODO: Is returning a NodeVector alright?
-	NodeVector<StructuredClass> &getRootStructures() { return rootStructures; }
-
-	const NodeVector<StructuredClass> &getRootStructures() const
+	NodeVector<StructuredClass> &getStructureClasses()
 	{
-		return rootStructures;
+		return structureClasses;
+	}
+
+	const NodeVector<StructuredClass> &getStructureClasses() const
+	{
+		return structureClasses;
 	}
 
 	NodeVector<AnnotationClass> &getAnnotationClasses()

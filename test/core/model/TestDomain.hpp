@@ -59,9 +59,9 @@ static Rooted<Domain> constructBookDomain(Manager &mgr)
 	any.merge(Range<size_t>::typeRangeFrom(0));
 
 	// Set up the "book" node.
-	Rooted<StructuredClass> book{
-	    new StructuredClass(mgr, "book", domain, single)};
-	domain->getRootStructures().push_back(book);
+	Rooted<StructuredClass> book{new StructuredClass(
+	    mgr, "book", domain, single, {nullptr}, {nullptr}, false, true)};
+	domain->getStructureClasses().push_back(book);
 	// The structure field of it.
 	Rooted<FieldDescriptor> book_field{new FieldDescriptor(mgr, book)};
 	book->getFieldDescriptors().push_back(book_field);
@@ -70,6 +70,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr)
 	Rooted<StructuredClass> section{
 	    new StructuredClass(mgr, "section", domain, any)};
 	book_field->getChildren().push_back(section);
+	domain->getStructureClasses().push_back(section);
 	// And the field of it.
 	Rooted<FieldDescriptor> section_field{new FieldDescriptor(mgr, section)};
 	section->getFieldDescriptors().push_back(section_field);
@@ -79,6 +80,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr)
 	    mgr, "paragraph", domain, any, {nullptr}, {nullptr}, true)};
 	section_field->getChildren().push_back(paragraph);
 	book_field->getChildren().push_back(paragraph);
+	domain->getStructureClasses().push_back(paragraph);
 	// ... and has a primitive field.
 	Rooted<FieldDescriptor> paragraph_field{new FieldDescriptor(
 	    mgr, paragraph, domain->getTypesystems()[0]->getTypes()[1], "text",
