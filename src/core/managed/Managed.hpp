@@ -56,7 +56,7 @@ class RttiBase;
  * the makeRooted and makeOwned functions.
  *
  * Managed additionally offer the ability to attach arbitrary data to them (with
- * no overhead for objects which do not use this ability). RTTI type information 
+ * no overhead for objects which do not use this ability). RTTI type information
  * about the actual Managed object type can be retrieved using the type() and
  * isa() functions. The acquire() function allows to convinently convert an
  * Handle to another object to an Owned instance, owned by this Managed
@@ -275,7 +275,7 @@ public:
 	template <class T2>
 	Handle<T2> cast()
 	{
-		return Handle<T2>{static_cast<T2 *>(ptr)};
+		return Handle<T2>(static_cast<T2 *>(ptr));
 	}
 };
 
@@ -303,7 +303,7 @@ private:
 
 public:
 	/**
-	 * Creates an empty Owned.
+	 * Creates a Rooted handle pointing at the null pointer.
 	 */
 	Rooted() : Handle<T>(nullptr){};
 
