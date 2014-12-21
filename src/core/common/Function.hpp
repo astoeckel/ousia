@@ -31,6 +31,8 @@
 #include <cassert>
 #include <memory>
 
+#include <core/managed/Managed.hpp>
+
 #include "Variant.hpp"
 
 namespace ousia {
@@ -41,33 +43,8 @@ namespace ousia {
  * using the call function in which an array of Variant is supplied to the
  * function and a Variant is returned to the caller.
  */
-class AbstractFunction {
-private:
-	/**
-	 * Private, non-callable constructor.
-	 */
-	AbstractFunction(){};
-
-	/* No copy constructor */
-	AbstractFunction(const AbstractFunction &) = delete;
-
-	/* No move constructor */
-	AbstractFunction(AbstractFunction &&) = delete;
-
+class AbstractFunction : public Managed {
 public:
-	/**
-	 * Pure virtual method used to create a copy of the AbstractFunction
-	 * object.
-	 *
-	 * @return a unique pointer pointing at a copy of the AbstractFunction
-	 * object.
-	 */
-	virtual std::unique_ptr<AbstractFunction> clone() const = 0;
-
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~AbstractFunction() {}
 
 	/**
 	 * Abstract function which is meant to call the underlying function (be it
