@@ -28,6 +28,7 @@
 #define _OUSIA_MANAGED_CONTAINER_H_
 
 #include <iostream>
+#include <initializer_list>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -187,6 +188,18 @@ protected:
 	}
 
 public:
+
+	/**
+	 * Constructor of the ManagedContainer class with no owner (will contain
+	 * rooted entries).
+	 */
+	ManagedContainer() : owner(nullptr) {};
+
+	/**
+	 * Constructor of the ManagedContainer class with an initializer list but
+	 * no owner (will contain rooted entries).
+	 */
+	ManagedContainer(std::initializer_list<T> l) : owner(nullptr), c(l) {};
 
 	/**
 	 * Constructor of the ManagedContainer class.
