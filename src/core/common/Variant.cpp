@@ -21,6 +21,7 @@
 #include <core/managed/Managed.hpp>
 
 #include "Utils.hpp"
+#include "Function.hpp"
 #include "Variant.hpp"
 
 namespace ousia {
@@ -71,6 +72,8 @@ const char *Variant::getTypeName(Type type)
 			return "map";
 		case Type::OBJECT:
 			return "object";
+		case Type::FUNCTION:
+			return "function";
 	}
 	return "unknown";
 }
@@ -174,6 +177,11 @@ Variant::stringType Variant::toString(bool escape) const
 		case Type::OBJECT: {
 			std::stringstream ss;
 			ss << "<object " << ptrVal << ">";
+			return ss.str();
+		}
+		case Type::FUNCTION: {
+			std::stringstream ss;
+			ss << "<function " << static_cast<functionType*>(ptrVal)->get() << ">";
 			return ss.str();
 		}
 	}

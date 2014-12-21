@@ -20,7 +20,6 @@
 
 namespace ousia {
 
-const Rtti<Function> RttiTypes::Function("function");
 
 }
 

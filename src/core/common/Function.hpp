@@ -30,9 +30,6 @@
 
 #include <cassert>
 
-#include <core/managed/Managed.hpp>
-
-#include "Rtti.hpp"
 #include "Variant.hpp"
 
 namespace ousia {
@@ -43,11 +40,12 @@ namespace ousia {
  * which an array of Variant is supplied to the function and a Variant is
  * returned to the caller.
  */
-class Function : public Managed {
-protected:
-	using Managed::Managed;
-
+class Function {
 public:
+	Function(const Function&) = delete;
+	Function(Function&&) = delete;
+	virtual ~Function() {};
+
 	/**
 	 * Abstract function which is meant to call the underlying function (be it
 	 * a host or a script function) with the given arguments.
@@ -87,8 +85,6 @@ private:
 	const Callback method;
 
 public:
-	using Function::Function;
-
 	/**
 	 * Constructor of the Method class.
 	 *
@@ -116,10 +112,6 @@ public:
 		return method(args, tRef);
 	}
 };
-
-namespace RttiTypes {
-	extern const Rtti<Function> Function;
-}
 
 }
 

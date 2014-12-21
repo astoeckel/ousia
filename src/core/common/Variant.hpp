@@ -31,6 +31,7 @@
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #include <ostream>
@@ -45,6 +46,9 @@ namespace ousia {
 
 /* Forward declaration of the Managed class */
 class Managed;
+
+/* Forward declaration of the Function class */
+class Function;
 
 /**
  * Instances of the Variant class represent any kind of data that is exchanged
@@ -63,7 +67,8 @@ public:
 		STRING,
 		ARRAY,
 		MAP,
-		OBJECT
+		OBJECT,
+		FUNCTION
 	};
 
 	/**
@@ -105,6 +110,7 @@ public:
 	using arrayType = std::vector<Variant>;
 	using mapType = std::map<std::string, Variant>;
 	using objectType = Managed *;
+	using functionType = std::shared_ptr<Function>;
 
 private:
 	/**
@@ -159,8 +165,8 @@ private:
 	void copyObject(objectType o);
 
 	/**
-	 * Function used internally to destroy a reference to a managed object (not 
-	 * defined in the header to prevent an explicit reference to the Managed 
+	 * Function used internally to destroy a reference to a managed object (not
+	 * defined in the header to prevent an explicit reference to the Managed
 	 * type).
 	 */
 	void destroyObject();
@@ -199,6 +205,9 @@ private:
 			case Type::OBJECT:
 				copyObject(v.asObject());
 				break;
+			case Type::FUNCTION:
+				ptrVal = new functionType(v.asFunction());
+				break;
 		}
 	}
 
@@ -228,6 +237,7 @@ private:
 			case Type::ARRAY:
 			case Type::MAP:
 			case Type::OBJECT:
+			case Type::FUNCTION:
 				ptrVal = v.ptrVal;
 				v.ptrVal = nullptr;
 				break;
@@ -239,29 +249,32 @@ private:
 	 * Used internally to destroy any value that was allocated on the heap.
 	 */
 	void destroy()
-{
-	if (ptrVal) {
-		switch (type) {
-			case Type::STRING:
-				delete static_cast<stringType *>(ptrVal);
-				break;
-			case Type::ARRAY:
-				delete static_cast<arrayType *>(ptrVal);
-				break;
-			case Type::MAP:
-				delete static_cast<mapType *>(ptrVal);
-				break;
-			case Type::OBJECT:
-				destroyObject();
-				break;
-			default:
-				break;
-		}
+	{
+		if (ptrVal) {
+			switch (type) {
+				case Type::STRING:
+					delete static_cast<stringType *>(ptrVal);
+					break;
+				case Type::ARRAY:
+					delete static_cast<arrayType *>(ptrVal);
+					break;
+				case Type::MAP:
+					delete static_cast<mapType *>(ptrVal);
+					break;
+				case Type::OBJECT:
+					destroyObject();
+					break;
+				case Type::FUNCTION:
+					delete static_cast<functionType *>(ptrVal);
+					break;
+				default:
+					break;
+			}
 #ifndef NDEBUG
-		ptrVal = nullptr;
+			ptrVal = nullptr;
 #endif
+		}
 	}
-}
 
 public:
 	/**
@@ -479,6 +492,13 @@ public:
 	bool isObject() const { return type == Type::OBJECT; }
 
 	/**
+	 * Checks whether this Variant instance is a function.
+	 *
+	 * @return true if the Variant instance is a function, false otherwise.
+	 */
+	bool isFunction() const { return type == Type::FUNCTION; }
+
+	/**
 	 * Checks whether this Variant instance is a primitive type.
 	 *
 	 * @return true if the Variant instance is a primitive type.
@@ -583,15 +603,7 @@ public:
 	const mapType &asMap() const { return asObj<mapType>(Type::MAP); }
 
 	/**
-	 * Returns a reference to the map value. Performs no type conversion.
-	 * Throws an exception if the underlying type is not a map.
-	 *
-	 * @return the map value as reference.
-	 */
-	mapType &asMap() { return asObj<mapType>(Type::MAP); }
-
-	/**
-	 * Returns a pointer pointing at the stored managed object. Performs no type 
+	 * Returns a pointer pointing at the stored managed object. Performs no type
 	 * conversion. Throws an exception if the underlying type is not a managed
 	 * object.
 	 *
@@ -606,7 +618,7 @@ public:
 	}
 
 	/**
-	 * Returns a pointer pointing at the stored managed object. Performs no type 
+	 * Returns a pointer pointing at the stored managed object. Performs no type
 	 * conversion. Throws an exception if the underlying type is not a managed
 	 * object.
 	 *
@@ -618,6 +630,35 @@ public:
 			return static_cast<objectType>(ptrVal);
 		}
 		throw TypeException(getType(), Type::OBJECT);
+	}
+
+	/**
+	 * Returns a reference to the map value. Performs no type conversion.
+	 * Throws an exception if the underlying type is not a map.
+	 *
+	 * @return the map value as reference.
+	 */
+	mapType &asMap() { return asObj<mapType>(Type::MAP); }
+
+	/**
+	 * Returns a shared pointer pointing at the stored function object. Performs
+	 * no type conversion. Throws an exception if the underlying type is not a
+	 * function.
+	 *
+	 * @return pointer at the stored managed object.
+	 */
+	functionType &asFunction() { return asObj<functionType>(Type::FUNCTION); }
+
+	/**
+	 * Returns a shared pointer pointing at the stored function object. Performs
+	 * no type conversion. Throws an exception if the underlying type is not a
+	 * function.
+	 *
+	 * @return const pointer at the stored managed object.
+	 */
+	const functionType &asFunction() const
+	{
+		return asObj<functionType>(Type::FUNCTION);
 	}
 
 	/**
@@ -796,7 +837,7 @@ public:
 
 	/**
 	 * Returns true if the given left hand side is smaller than the right hand
-	 * side. Uses the comparison algorithm of the stored object. Throws an 
+	 * side. Uses the comparison algorithm of the stored object. Throws an
 	 * exception if the types of the two variants are not equal.
 	 *
 	 * @param lhs is the left hand side of the comparison.
@@ -826,13 +867,15 @@ public:
 				return lhs.asMap() < rhs.asMap();
 			case Type::OBJECT:
 				return lhs.asObject() < rhs.asObject();
+			case Type::FUNCTION:
+				return lhs.asFunction() < rhs.asFunction();
 		}
 		throw OusiaException("Internal Error! Unknown type!");
 	}
 
 	/**
 	 * Returns true if the given left hand side is larger than the right hand
-	 * side. Uses the comparison algorithm of the stored object. Throws an 
+	 * side. Uses the comparison algorithm of the stored object. Throws an
 	 * exception if the types of the two variants are not equal.
 	 *
 	 * @param lhs is the left hand side of the comparison.
@@ -873,8 +916,8 @@ public:
 	}
 
 	/**
-	 * Returns true if the given left hand side and right hand side are equal. 
-	 * Uses the comparison algorithm of the stored object. Returns false if the 
+	 * Returns true if the given left hand side and right hand side are equal.
+	 * Uses the comparison algorithm of the stored object. Returns false if the
 	 * two variants do not have the same type.
 	 *
 	 * @param lhs is the left hand side of the comparison.
@@ -903,12 +946,14 @@ public:
 				return lhs.asMap() == rhs.asMap();
 			case Type::OBJECT:
 				return lhs.asObject() == rhs.asObject();
+			case Type::FUNCTION:
+				return lhs.asFunction() == rhs.asFunction();
 		}
 		throw OusiaException("Internal Error! Unknown type!");
 	}
 
 	/**
-	 * Returns true if the given left hand side are equal. Uses the comparison 
+	 * Returns true if the given left hand side are equal. Uses the comparison
 	 * algorithm of the stored object. Returns true if the two variants do not
 	 * have the same type.
 	 *
@@ -916,7 +961,7 @@ public:
 	 * @param rhs is the right hand side of the comparison.
 	 * @return true if lhs is not equal to rhs.
 	 */
-	 friend bool operator!=(const Variant &lhs, const Variant &rhs)
+	friend bool operator!=(const Variant &lhs, const Variant &rhs)
 	{
 		return !(lhs == rhs);
 	}
