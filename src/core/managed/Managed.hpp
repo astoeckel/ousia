@@ -16,6 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/**
+ * @file Managed.hpp
+ *
+ * Describes the garbage collectable Managed class and Handle types pointing at
+ * instances of this class.
+ *
+ * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
+ */
+
 #ifndef _OUSIA_MANAGED_HPP_
 #define _OUSIA_MANAGED_HPP_
 
@@ -45,6 +54,13 @@ class RttiBase;
  * Never free instances of this class yourself (even by playing an instance of
  * this class on the steck). Create any new instance of any managed object with
  * the makeRooted and makeOwned functions.
+ *
+ * Managed additionally offer the ability to attach arbitrary data to them (with
+ * no overhead for objects which do not use this ability). RTTI type information 
+ * about the actual Managed object type can be retrieved using the type() and
+ * isa() functions. The acquire() function allows to convinently convert an
+ * Handle to another object to an Owned instance, owned by this Managed
+ * instance.
  */
 class Managed {
 protected:
@@ -74,11 +90,20 @@ public:
 	/**
 	 * Returns a reference ot the manager instance which owns this managed
 	 * object.
+	 *
+	 * @return a reference at the underlying Manager object which manages this
+	 * particular Managed instance.
 	 */
 	Manager &getManager() { return mgr; }
 
 	/**
-	 * Acquires a reference to the object wraped in the given handle.
+	 * Acquires a reference to the object wraped in the given handle -- creates
+	 * a new Owned handle instance with this Managed instance as owner and the
+	 * given object handle as the referenced object.
+	 *
+	 * @param h is a Handle pointing at the object that should be acquired.
+	 * @return a Owned handle with this Managed instance as owner and the given
+	 * object as reference.
 	 */
 	template <class T>
 	Owned<T> acquire(const Handle<T> &h)
@@ -86,12 +111,15 @@ public:
 		return Owned<T>{h, this};
 	}
 
-	template <class T>
-	Owned<T> acquire(Handle<T> &&h)
-	{
-		return Owned<T>{h, this};
-	}
-
+	/**
+	 * Acquires a reference to the given pointer to a Managed object -- creates
+	 * a new Owned handle instance with this Managed instance as owner and the
+	 * given object as the referenced object.
+	 *
+	 * @param h is a Handle pointing at the object that should be acquired.
+	 * @return a Owned handle with this Managed instance as owner and the given
+	 * object pointer as reference.
+	 */
 	template <class T>
 	Owned<T> acquire(T *t)
 	{
