@@ -41,9 +41,6 @@ class Rooted;
 template <class T>
 class Owned;
 
-template <class T>
-class DefaultListener;
-
 class RttiBase;
 
 // TODO: Implement clone, getReferenced and getReferencing
