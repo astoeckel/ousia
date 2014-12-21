@@ -30,7 +30,7 @@ TEST(Variant, simpleManagedObject)
 	Manager mgr(1);
 	bool a = false;
 	{
-		TestManaged *p = new TestManaged{mgr, a};
+		Handle<TestManaged> p{new TestManaged{mgr, a}};
 		Variant v(p);
 		ASSERT_TRUE(v.isObject());
 		ASSERT_EQ(p, v.asObject());
@@ -44,7 +44,7 @@ TEST(Variant, managedObjectCopy)
 	Manager mgr(1);
 	bool a = false;
 	{
-		TestManaged *p = new TestManaged{mgr, a};
+		Handle<TestManaged> p{new TestManaged{mgr, a}};
 		Variant v1(p);
 		{
 			Variant v2 = v1;
@@ -62,7 +62,7 @@ TEST(Variant, managedObjectMove)
 	Manager mgr(1);
 	bool a = false;
 	{
-		TestManaged *p = new TestManaged{mgr, a};
+		Handle<TestManaged> p{new TestManaged{mgr, a}};
 		Variant v1(p);
 		{
 			Variant v2 = std::move(v1);

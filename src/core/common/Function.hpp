@@ -36,15 +36,18 @@ namespace ousia {
 
 /**
  * The Function interface defines all the methods needed to represent a
- * generic function. Function objects can be called using the "call" function in 
+ * generic function. Function objects can be called using the "call" function in
  * which an array of Variant is supplied to the function and a Variant is
  * returned to the caller.
  */
 class Function {
+protected:
+	Function() {};
+
 public:
-	Function(const Function&) = delete;
-	Function(Function&&) = delete;
-	virtual ~Function() {};
+	Function(const Function &) = delete;
+	Function(Function &&) = delete;
+	virtual ~Function(){};
 
 	/**
 	 * Abstract function which is meant to call the underlying function (be it
@@ -90,29 +93,22 @@ public:
 	 *
 	 * @param method is a pointer at the C++ function that should be called.
 	 */
-	Method(Callback method) : method(method){};
+	Method(Callback method) : method(method) {};
 
 	/**
 	 * Calls the underlying method.
 	 *
-	 * @param args is a vector containing all arguments that shouild be passed
+	 * @param args is a vector containing all arguments that should be passed
 	 * to the method.
 	 * @return a Variant containing the return value.
 	 */
 	Variant call(const Variant::arrayType &args = Variant::arrayType{},
 	             void *thisRef = nullptr) const override
 	{
-		// Dynamically cast thisRef to the given type
-		T *tRef = dynamic_cast<T>(thisRef);
-
-		// Make sure the cast is successfull
-		assert(tRef != nullptr);
-
 		// Call the method
-		return method(args, tRef);
+		return method(args,  static_cast<T*>(thisRef));
 	}
 };
-
 }
 
 #endif /* _OUSIA_FUNCTION_HPP_ */

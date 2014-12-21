@@ -40,12 +40,11 @@
 // http://nikic.github.io/2012/02/02/Pointer-magic-for-efficient-dynamic-value-representations.html
 // later (will allow to use 8 bytes for a variant)
 
+#include <core/managed/Managed.hpp>
+
 #include "Exceptions.hpp"
 
 namespace ousia {
-
-/* Forward declaration of the Managed class */
-class Managed;
 
 /* Forward declaration of the Function class */
 class Function;
@@ -109,7 +108,7 @@ public:
 	using stringType = std::string;
 	using arrayType = std::vector<Variant>;
 	using mapType = std::map<std::string, Variant>;
-	using objectType = Managed *;
+	using objectType = Rooted<Managed>;
 	using functionType = std::shared_ptr<Function>;
 
 private:
@@ -157,21 +156,6 @@ private:
 	}
 
 	/**
-	 * Function used to copy a reference to a managed object (not defined in the
-	 * header to prevent an explicit reference to the Managed type).
-	 *
-	 * @param o is the pointer at the object that should be copied.
-	 */
-	void copyObject(objectType o);
-
-	/**
-	 * Function used internally to destroy a reference to a managed object (not
-	 * defined in the header to prevent an explicit reference to the Managed
-	 * type).
-	 */
-	void destroyObject();
-
-	/**
 	 * Used internally to assign the value of another Variant instance to this
 	 * instance.
 	 *
@@ -203,7 +187,7 @@ private:
 				ptrVal = new mapType(v.asMap());
 				break;
 			case Type::OBJECT:
-				copyObject(v.asObject());
+				ptrVal = new objectType(v.asObject());
 				break;
 			case Type::FUNCTION:
 				ptrVal = new functionType(v.asFunction());
@@ -262,7 +246,7 @@ private:
 					delete static_cast<mapType *>(ptrVal);
 					break;
 				case Type::OBJECT:
-					destroyObject();
+					delete static_cast<objectType *>(ptrVal);
 					break;
 				case Type::FUNCTION:
 					delete static_cast<functionType *>(ptrVal);
@@ -358,7 +342,8 @@ public:
 	 *
 	 * @param o is a reference to the object.
 	 */
-	Variant(objectType o) : ptrVal(nullptr) { setObject(o); }
+	template <class T>
+	Variant(Handle<T> o) : ptrVal(nullptr) { setObject(o); }
 
 	/**
 	 * Copy assignment operator.
@@ -611,10 +596,7 @@ public:
 	 */
 	objectType asObject()
 	{
-		if (isObject()) {
-			return static_cast<objectType>(ptrVal);
-		}
-		throw TypeException(getType(), Type::OBJECT);
+		return asObj<objectType>(Type::OBJECT);
 	}
 
 	/**
@@ -626,10 +608,7 @@ public:
 	 */
 	const objectType asObject() const
 	{
-		if (isObject()) {
-			return static_cast<objectType>(ptrVal);
-		}
-		throw TypeException(getType(), Type::OBJECT);
+		return asObj<objectType>(Type::OBJECT);
 	}
 
 	/**
@@ -789,11 +768,12 @@ public:
 	 * Sets the variant to the given managed object. The variant is equivalent
 	 * to a Rooted handle.
 	 */
-	void setObject(objectType o)
+	template<class T>
+	void setObject(Handle<T> o)
 	{
 		destroy();
 		type = Type::OBJECT;
-		copyObject(o);
+		ptrVal = new objectType(o);
 	}
 
 	/**
@@ -866,7 +846,7 @@ public:
 			case Type::MAP:
 				return lhs.asMap() < rhs.asMap();
 			case Type::OBJECT:
-				return lhs.asObject() < rhs.asObject();
+				return lhs.asObject().get() < rhs.asObject().get();
 			case Type::FUNCTION:
 				return lhs.asFunction() < rhs.asFunction();
 		}

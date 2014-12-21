@@ -184,6 +184,7 @@ IF(TEST)
 		test/core/ResourceLocatorTest
 		test/core/TokenizerTest
 		test/core/common/CharReaderTest
+		test/core/common/FunctionTest
 		test/core/common/LoggerTest
 		test/core/common/RttiTest
 		test/core/common/VariantReaderTest

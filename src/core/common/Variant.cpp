@@ -21,7 +21,6 @@
 #include <core/managed/Managed.hpp>
 
 #include "Utils.hpp"
-#include "Function.hpp"
 #include "Variant.hpp"
 
 namespace ousia {
@@ -39,19 +38,6 @@ Variant::TypeException::TypeException(Type actualType, Type requestedType)
 }
 
 /* Class Variant */
-
-void Variant::copyObject(objectType o)
-{
-	Managed *managed = static_cast<objectType>(o);
-	managed->getManager().addRef(o, nullptr);
-	ptrVal = managed;
-}
-
-void Variant::destroyObject()
-{
-	Managed *managed = static_cast<objectType>(ptrVal);
-	managed->getManager().deleteRef(managed, nullptr);
-}
 
 const char *Variant::getTypeName(Type type)
 {
