@@ -35,6 +35,7 @@
 #include <core/Node.hpp>
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
+#include <core/common/Rtti.hpp>
 #include <core/common/Variant.hpp>
 
 namespace ousia {
@@ -59,7 +60,7 @@ protected:
 	 *
 	 * @param mgr is the Manager instance to be used for the Node.
 	 * @param name is the name of the type.
-	 * @param system is a reference to the parent TypeSystem instance.
+	 * @param system is a reference to the parent Typesystem instance.
 	 * @param primitive is set to true for primitive types, such as ints,
 	 * doubles, strings and enums.
 	 */
@@ -106,6 +107,14 @@ public:
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool build(Variant &var, Logger &logger) const;
+
+	/**
+	 * Returns the underlying Typesystem instance.
+	 */
+	Rooted<Typesystem> getTypesystem()
+	{
+		return this->getParent().cast<Typesystem>();
+	}
 };
 
 /**
@@ -128,7 +137,7 @@ public:
 	 *
 	 * @param mgr is the Manager instance to be used for the Node.
 	 * @param name is the name of the type.
-	 * @param system is a reference to the parent TypeSystem instance.
+	 * @param system is a reference to the parent Typesystem instance.
 	 */
 	StringType(Manager &mgr, Handle<Typesystem> system)
 	    : Type(mgr, "string", system, true)
@@ -368,7 +377,8 @@ public:
 
 	StructType(Manager &mgr, std::string name, Handle<Typesystem> system,
 	           ManagedVector<AttributeDescriptor> attrs)
-	    : Type(mgr, std::move(name), system, false), attrs(this, std::move(attrs))
+	    : Type(mgr, std::move(name), system, false),
+	      attrs(this, std::move(attrs))
 	{
 	}
 	// TODO
@@ -380,65 +390,223 @@ public:
 	Variant create() const override { return Variant{Variant::arrayType{}}; }
 };
 
+/**
+ * The ArrayType class represents an array with elements of a fixed inner type.
+ * ArrayTypes are anonymous (they have an empty name) and always have the
+ * Typesystem instance of the inner type as parent. ArrayType instances are
+ * created implicitly if the user requests an array of a certain type.
+ */
 class ArrayType : public Type {
 private:
+	/**
+	 * Contains the inner type of the array.
+	 */
 	Owned<Type> innerType;
 
 protected:
 	/**
-	 * TODO: DOC
+	 * Makes sure the given variant is an array and its elements match the inner
+	 * type of the Arraqy.
+	 *
+	 * @param var is a variant containing the array data that should be checked
+	 * and passed to the inner type validation function.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &var, Logger &logger) const override
-	{
-		if (!var.isArray()) {
-			throw LoggableException("Expected array!");
-		}
-		bool res = true;
-		for (auto &v : var.asArray()) {
-			if (!innerType->build(v, logger)) {
-				res = false;
-			}
-		}
-
-		return res;
-	}
+	bool doBuild(Variant &var, Logger &logger) const override;
 
 public:
 	/**
-	 * TODO: DOC
+	 * Constructor of the ArrayType class.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param innerType is the type of the elements stored in the array.
 	 */
-	ArrayType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	          Handle<Type> innerType)
-	    : Type(mgr, std::move(name), system, false),
+	ArrayType(Manager &mgr, Handle<Type> innerType)
+	    : Type(mgr, "", innerType->getTypesystem(), false),
 	      innerType(acquire(innerType))
 	{
 	}
 
 	/**
-	 * TODO: DOC
+	 * Create a new, empty variant containing array data.
+	 *
+	 * @return an empty variant array.
 	 */
 	Variant create() const override { return Variant{Variant::arrayType{}}; }
 
-	Rooted<Type> getType() { return innerType; }
+	/**
+	 * Returns a Rooted reference pointing at the inner type of the array (e.g.
+	 * the type of the elements stored in the array).
+	 *
+	 * @return Rooted reference pointing at the innerType.
+	 */
+	Rooted<Type> getInnerType() { return innerType; }
 };
 
-class Typesystem : public Node {
+/**
+ * The Constant type represents a constant stored in a typesystem. A typical
+ * application of a constant is e.g. to define predefined color values.
+ */
+class Constant : public Node {
 private:
-	NodeVector<Type> types;
+	/**
+	 * Reference at the Type instance describing the type of the Constant.
+	 */
+	Owned<Type> type;
+
+	/**
+	 * Actual value of the constant.
+	 */
+	Variant value;
 
 public:
-	Typesystem(Manager &mgr, std::string name, Handle<Node> parent = nullptr)
-	    : Node(mgr, name, parent), types(this)
+	/**
+	 * Constructor of the Constant node.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param name is the name of the constant.
+	 * @param system is the parent typesystem.
+	 * @param type is a reference at the actual type of the constant.
+	 * @param value is the actual value of the constant. The value must have
+	 * went through the "build" function of the type.
+	 */
+	Constant(Manager &mgr, std::string name, Handle<Typesystem> system,
+	         Handle<Type> type, Variant value)
+	    : Node(mgr, std::move(name), system),
+	      type(acquire(type)),
+	      value(std::move(value))
 	{
 	}
 
 	/**
-	 * TODO: DOC
+	 * Returns a reference pointing at the Type instance describing the type
+	 * of this node.
+	 *
+	 * @return a Rooted handle pointing at the Type node of the constant.
+	 */
+	Rooted<Type> getType() { return type; }
+
+	/**
+	 * Returns a reference pointing at the value of the constant. The value must
+	 * be interpreted with the help of the type of the constant.
+	 *
+	 * @return a const reference to the actual value of the constant.
+	 */
+	const Variant &getValue() { return value; }
+};
+
+/**
+ * The Typesystem class represents a collection of types and constants.
+ */
+class Typesystem : public Node {
+private:
+	/**
+	 * List containing all types.
+	 */
+	NodeVector<Type> types;
+
+	/**
+	 * List containing all constants.
+	 */
+	NodeVector<Constant> constants;
+
+public:
+	/**
+	 * Constructor of the Typesystem class.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param name is the name of the typesystem.
+	 */
+	Typesystem(Manager &mgr, std::string name)
+	    : Node(mgr, name), types(this), constants(this)
+	{
+	}
+
+	/**
+	 * Adds the given type to the to the type list.
+	 *
+	 * @param type is the Type that should be stored in this Typesystem
+	 * instance.
 	 */
 	void addType(Handle<Type> type) { types.push_back(type); }
 
+	/**
+	 * Adds the given constant to the constant list.
+	 */
+	void addConstant(Handle<Constant> constant)
+	{
+		constants.push_back(constant);
+	}
+
+	/**
+	 * Returns a reference to list containing all registered types.
+	 *
+	 * @return NodeVector containing all registered types.
+	 */
 	const NodeVector<Type> &getTypes() const { return types; }
+
+	/**
+	 * Returns a reference to a list containing all registered constantants.
+	 *
+	 * @return NodeVector containing all registered constants.
+	 */
+	const NodeVector<Constant> &getConstants() const { return constants; }
 };
+}
+
+/* RTTI type registrations */
+
+namespace RttiTypes {
+/**
+ * Type information for the Type class.
+ */
+extern const Rtti<model::Type> Type;
+
+/**
+ * Type information for the StringType class.
+ */
+extern const Rtti<model::StringType> StringType;
+
+/**
+ * Type information for the IntType class.
+ */
+extern const Rtti<model::IntType> IntType;
+
+/**
+ * Type information for the DoubleType class.
+ */
+extern const Rtti<model::DoubleType> DoubleType;
+
+/**
+ * Type information for the BoolType class.
+ */
+extern const Rtti<model::BoolType> BoolType;
+
+/**
+ * Type information for the EnumType class.
+ */
+extern const Rtti<model::EnumType> EnumType;
+
+/**
+ * Type information for the StructType class.
+ */
+extern const Rtti<model::StructType> StructType;
+
+/**
+ * Type information for the ArrayType class.
+ */
+extern const Rtti<model::ArrayType> ArrayType;
+
+/**
+ * Type information for the Constant class.
+ */
+extern const Rtti<model::Constant> Constant;
+
+/**
+ * Type information for the Typesystem class.
+ */
+extern const Rtti<model::Typesystem> Typesystem;
 }
 }
 

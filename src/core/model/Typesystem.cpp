@@ -48,7 +48,7 @@ bool StringType::doBuild(Variant &var, Logger &logger) const
 
 	if (!var.isString()) {
 		logger.note(std::string("Implicit type conversion from ") +
-		         var.getTypeName() + " to string.");
+		            var.getTypeName() + " to string.");
 	}
 	var = Variant{var.toString().c_str()};
 	return true;
@@ -75,15 +75,38 @@ EnumType EnumType::createValidated(Manager &mgr, std::string name,
 	return std::move(EnumType(mgr, name, system, unique_values));
 }
 
+/* Class ArrayType */
+
+bool ArrayType::doBuild(Variant &var, Logger &logger) const
+{
+		if (!var.isArray()) {
+			throw LoggableException("Expected array!");
+		}
+		bool res = true;
+		for (auto &v : var.asArray()) {
+			if (!innerType->build(v, logger)) {
+				res = false;
+			}
+		}
+
+		return res;
+}
+
+}
+
 /* RTTI type registrations */
 
-const Rtti<Type> Type_Rtti{"Type"};
-const Rtti<StringType> StringType_Rtti{"StringType", {&Type_Rtti}};
-const Rtti<IntType> IntType_Rtti{"IntType", {&Type_Rtti}};
-const Rtti<DoubleType> DoubleType_Rtti{"DoubleType", {&Type_Rtti}};
-const Rtti<BoolType> BoolType_Rtti{"BoolType", {&Type_Rtti}};
-const Rtti<EnumType> EnumType_Rtti{"EnumType", {&Type_Rtti}};
-const Rtti<StructType> StructType_Rtti{"StructType", {&Type_Rtti}};
+namespace RttiTypes {
+const Rtti<model::Type> Type{"Type", {&Node}};
+const Rtti<model::StringType> StringType{"StringType", {&Type}};
+const Rtti<model::IntType> IntType{"IntType", {&Type}};
+const Rtti<model::DoubleType> DoubleType{"DoubleType", {&Type}};
+const Rtti<model::BoolType> BoolType{"BoolType", {&Type}};
+const Rtti<model::EnumType> EnumType{"EnumType", {&Type}};
+const Rtti<model::StructType> StructType{"StructType", {&Type}};
+const Rtti<model::ArrayType> ArrayType{"ArrayType", {&Type}};
+const Rtti<model::Constant> Constant{"Constant", {&Node}};
+const Rtti<model::Typesystem> Typesystem{"Typesystem", {&Node}};
 }
 }
 

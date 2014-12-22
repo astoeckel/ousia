@@ -139,4 +139,8 @@ bool Node::triggerEvent(Event &event, bool fromChild) {
 	return res;
 }
 
+/* RTTI type registrations */
+
+const Rtti<Node> RttiTypes::Node{"Node"};
+
 }

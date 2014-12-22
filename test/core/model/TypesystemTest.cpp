@@ -26,17 +26,20 @@
 namespace ousia {
 namespace model {
 
-TEST(Type, rtti)
-{
-	Manager mgr(1);
-	Rooted<StringType> strType{new StringType(mgr, nullptr)};
+/* Class StringType */
 
-	ASSERT_TRUE(typeOf(*strType).isa(typeOf<Type>()));
+TEST(StringType, rtti)
+{
+	Manager mgr;
+	Rooted<StringType> strType{new StringType(mgr, nullptr)};
+	ASSERT_TRUE(strType->isa(typeOf<Type>()));
+	ASSERT_TRUE(strType->isa(typeOf<Node>()));
+	ASSERT_TRUE(strType->isa(RttiTypes::StringType));
 }
 
 TEST(StringType, creation)
 {
-	Manager mgr(1);
+	Manager mgr;
 	Rooted<StringType> strType{new StringType(mgr, nullptr)};
 
 	Variant val = strType->create();
@@ -47,7 +50,7 @@ TEST(StringType, creation)
 TEST(StringType, conversion)
 {
 	Logger logger;
-	Manager mgr(1);
+	Manager mgr;
 	Rooted<StringType> strType{new StringType(mgr, nullptr)};
 
 	{
@@ -98,7 +101,59 @@ TEST(StringType, conversion)
 		ASSERT_TRUE(val.isString());
 		ASSERT_EQ("", val.asString());
 	}
+}
 
+/* Class ArrayType */
+
+TEST(ArrayType, rtti)
+{
+	Manager mgr;
+	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
+	Rooted<ArrayType> arrayType{new ArrayType(mgr, stringType)};
+	ASSERT_TRUE(arrayType->isa(RttiTypes::ArrayType));
+	ASSERT_TRUE(arrayType->isa(typeOf<Type>()));
+	ASSERT_TRUE(arrayType->isa(typeOf<Node>()));
+}
+
+TEST(ArrayType, creation)
+{
+	Manager mgr;
+	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
+	Rooted<ArrayType> arrayType{new ArrayType(mgr, stringType)};
+
+	Variant val = arrayType->create();
+	ASSERT_TRUE(val.isArray());
+}
+
+TEST(ArrayType, conversion)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
+	Rooted<ArrayType> arrayType{new ArrayType(mgr, stringType)};
+
+	{
+		Variant val{{1, "test", false, 42.5}};
+		ASSERT_TRUE(arrayType->build(val, logger));
+		ASSERT_TRUE(val.isArray());
+
+		auto arr = val.asArray();
+		ASSERT_EQ(4U, arr.size());
+		for (size_t i = 0; i < arr.size(); i++) {
+			ASSERT_TRUE(arr[i].isString());
+		}
+		ASSERT_EQ("1", arr[0].asString());
+		ASSERT_EQ("test", arr[1].asString());
+		ASSERT_EQ("false", arr[2].asString());
+		ASSERT_EQ("42.5", arr[3].asString());
+	}
+
+	{
+		Variant val{1};
+		ASSERT_FALSE(arrayType->build(val, logger));
+		ASSERT_TRUE(val.isArray());
+		ASSERT_EQ(0U, val.asArray().size());
+	}
 }
 
 }

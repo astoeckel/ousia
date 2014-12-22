@@ -25,6 +25,7 @@
 #include <vector>
 #include <unordered_set>
 
+#include <core/common/Rtti.hpp>
 #include <core/managed/Managed.hpp>
 #include <core/managed/ManagedContainer.hpp>
 
@@ -541,6 +542,12 @@ public:
 	using Base::ManagedGenericMap;
 };
 
+namespace RttiTypes {
+	/**
+	 * Typeinformation for the base "Node" class.
+	 */
+	extern const Rtti<Node> Node;
+}
 
 }
 
