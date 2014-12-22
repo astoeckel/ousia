@@ -122,8 +122,7 @@ public:
 
 /**
  * The StringType class represents the primitive string type. There should
- * exactly be a single instance of this class available in a preloaded type
- * system.
+ * be exactly one instance of this class available in a preloaded type system.
  */
 class StringType : public Type {
 protected:
@@ -161,14 +160,14 @@ public:
 };
 
 /**
- * The IntType class represents the primitive integer type. There should exactly
- * be a single instance of this class available in a preloaded type system.
+ * The IntType class represents the primitive integer type. There should be 
+ * exactly one instance of this class available in a preloaded type system.
  */
 class IntType : public Type {
 protected:
 	/**
-	 * Simply expects the given variant to be an integer. Does not perform any
-	 * type conversion.
+	 * Expects the given variant to be an integer. Does not perform any type 
+	 * conversion.
 	 *
 	 * @param var is a variant containing the data that should be checked.
 	 * @param logger is the Logger instance into which errors should be written.
@@ -198,23 +197,31 @@ public:
 	Variant create() const override { return Variant{0}; }
 };
 
+/**
+ * The DoubleType class represents the primitive double type. There should
+ * exactly be a single instance of this class available in a preloaded type 
+ * system.
+ */
 class DoubleType : public Type {
 protected:
 	/**
-	 * TODO: DOC
+	 * Expects the given variant to be a double or an integer. Converts integers
+	 * to doubles.
+	 *
+	 * @param var is a variant containing the data that should be checked.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &var, Logger &logger) const override
-	{
-		if (!var.isInt() && !var.isDouble()) {
-			throw LoggableException{"Expected a double value."};
-		}
-		var = Variant{var.toDouble()};
-		return true;
-	}
+	bool doBuild(Variant &var, Logger &logger) const override;
 
 public:
 	/**
-	 * TODO: DOC
+	 * Constructor of the DoubleType class. Only one instance of DoubleType
+	 * should exist per project graph.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param name is the name of the type.
+	 * @param system is a reference to the parent Typesystem instance.
 	 */
 	DoubleType(Manager &mgr, Handle<Typesystem> system)
 	    : Type(mgr, "double", system, true)
@@ -222,31 +229,11 @@ public:
 	}
 
 	/**
-	 * TODO: DOC
+	 * Returns a variant containing the double value zero.
+	 *
+	 * @return the double value zero.
 	 */
-	Variant create() const override { return Variant{0.}; }
-};
-
-class UnknownType : public Type {
-protected:
-	/**
-	 * TODO: DOC
-	 */
-	bool doBuild(Variant &var, Logger &logger) const override { return true; }
-
-public:
-	/**
-	 * TODO: DOC
-	 */
-	UnknownType(Manager &mgr, Handle<Typesystem> system)
-	    : Type(mgr, "unknown", system, true)
-	{
-	}
-
-	/**
-	 * TODO: DOC
-	 */
-	Variant create() const override { return Variant{nullptr}; }
+	Variant create() const override { return Variant{0.0}; }
 };
 
 class BoolType : public Type {
@@ -463,6 +450,49 @@ public:
 };
 
 /**
+ * The UnknownType class represents a type whose type could not be resolved.
+ * This class may also be used while constructing the Typesystem tree, if a
+ * type has not yet been fully created. UnknownType instances are not part of a
+ * typesystem, but merely placeholders which may once be replaced by an actual
+ * reference to an actual Type node.
+ *
+ * TODO: Implement generic object for unresolved Nodes, not only types. For this
+ * implement Manager.replace, which replaces all references to a certain object
+ * with a new one.
+ */
+class UnknownType : public Type {
+protected:
+	/**
+	 * As the UnknownType carries no type information, it does not modify the 
+	 * given variant and always succeeds (returns true).
+	 *
+	 * @return always true.
+	 */
+	bool doBuild(Variant &, Logger &) const override { return true; }
+
+public:
+	/**
+	 * Creates a new UnknownType instance, which is a place holder for a not
+	 * (yet) resolved type.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param name is the name of the unresolved type which may be used later
+	 * to perform a complete resolution.
+	 */
+	UnknownType(Manager &mgr, std::string name)
+	    : Type(mgr, std::move(name), nullptr, false)
+	{
+	}
+
+	/**
+	 * Returns a nullptr variant.
+	 *
+	 * @return a Variant instance with nullptr value.
+	 */
+	Variant create() const override { return Variant{nullptr}; }
+};
+
+/**
  * The Constant type represents a constant stored in a typesystem. A typical
  * application of a constant is e.g. to define predefined color values.
  */
@@ -615,6 +645,11 @@ extern const Rtti<model::StructType> StructType;
  * Type information for the ArrayType class.
  */
 extern const Rtti<model::ArrayType> ArrayType;
+
+/**
+ * Type information for the UnknownType class.
+ */
+extern const Rtti<model::UnknownType> UnknownType;
 
 /**
  * Type information for the Constant class.

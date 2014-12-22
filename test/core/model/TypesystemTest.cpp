@@ -144,6 +144,54 @@ TEST(IntType, conversion)
 	}
 }
 
+/* Class IntType */
+
+TEST(DoubleType, rtti)
+{
+	Manager mgr;
+	Rooted<DoubleType> doubleType{new DoubleType(mgr, nullptr)};
+	ASSERT_TRUE(doubleType->isa(RttiTypes::DoubleType));
+	ASSERT_TRUE(doubleType->isa(typeOf<Type>()));
+	ASSERT_TRUE(doubleType->isa(typeOf<Node>()));
+}
+
+TEST(DoubleType, creation)
+{
+	Manager mgr;
+	Rooted<DoubleType> doubleType{new DoubleType(mgr, nullptr)};
+	Variant val = doubleType->create();
+	ASSERT_TRUE(val.isDouble());
+	ASSERT_EQ(0.0, val.asDouble());
+}
+
+TEST(DoubleType, conversion)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<DoubleType> doubleType{new DoubleType(mgr, nullptr)};
+
+	{
+		Variant val{3.14};
+		ASSERT_TRUE(doubleType->build(val, logger));
+		ASSERT_TRUE(val.isDouble());
+		ASSERT_EQ(3.14, val.asDouble());
+	}
+
+	{
+		Variant val{314};
+		ASSERT_TRUE(doubleType->build(val, logger));
+		ASSERT_TRUE(val.isDouble());
+		ASSERT_EQ(314.0, val.asDouble());
+	}
+
+	{
+		Variant val{"1"};
+		ASSERT_FALSE(doubleType->build(val, logger));
+		ASSERT_TRUE(val.isDouble());
+		ASSERT_EQ(0.0, val.asDouble());
+	}
+}
+
 /* Class ArrayType */
 
 TEST(ArrayType, rtti)
@@ -195,6 +243,40 @@ TEST(ArrayType, conversion)
 		ASSERT_FALSE(arrayType->build(val, logger));
 		ASSERT_TRUE(val.isArray());
 		ASSERT_TRUE(val.asArray().empty());
+	}
+}
+
+/* Class UnknownType */
+
+TEST(UnknownType, rtti)
+{
+	Manager mgr;
+	Rooted<UnknownType> unknownType{new UnknownType(mgr, "unknown")};
+	ASSERT_TRUE(unknownType->isa(RttiTypes::UnknownType));
+	ASSERT_TRUE(unknownType->isa(typeOf<Type>()));
+	ASSERT_TRUE(unknownType->isa(typeOf<Node>()));
+}
+
+TEST(UnknownType, creation)
+{
+	Manager mgr;
+	Rooted<UnknownType> unknownType{new UnknownType(mgr, "unknown")};
+
+	Variant val = unknownType->create();
+	ASSERT_TRUE(val.isNull());
+}
+
+TEST(UnknownType, conversion)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<UnknownType> unknownType{new UnknownType(mgr, "unknown")};
+
+	{
+		Variant val1{{1, "test", false, 42.5}};
+		Variant val2 = val1;
+		ASSERT_TRUE(unknownType->build(val1, logger));
+		ASSERT_EQ(val1, val2);
 	}
 }
 

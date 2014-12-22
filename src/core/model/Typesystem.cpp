@@ -64,6 +64,17 @@ bool IntType::doBuild(Variant &var, Logger &logger) const
 	return true;
 }
 
+/* Class DoubleType */
+
+bool DoubleType::doBuild(Variant &var, Logger &logger) const
+{
+	if (!var.isInt() && !var.isDouble()) {
+		throw LoggableException{"Expected a double value."};
+	}
+	var = Variant{var.toDouble()};
+	return true;
+}
+
 /* Class EnumType */
 
 EnumType EnumType::createValidated(Manager &mgr, std::string name,
@@ -113,6 +124,7 @@ const Rtti<model::BoolType> BoolType{"BoolType", {&Type}};
 const Rtti<model::EnumType> EnumType{"EnumType", {&Type}};
 const Rtti<model::StructType> StructType{"StructType", {&Type}};
 const Rtti<model::ArrayType> ArrayType{"ArrayType", {&Type}};
+const Rtti<model::UnknownType> UnknownType{"UnknownType", {&Type}};
 const Rtti<model::Constant> Constant{"Constant", {&Node}};
 const Rtti<model::Typesystem> Typesystem{"Typesystem", {&Node}};
 }
