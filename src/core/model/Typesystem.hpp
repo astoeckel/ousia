@@ -110,6 +110,9 @@ public:
 
 	/**
 	 * Returns the underlying Typesystem instance.
+	 *
+	 * @return a Rooted reference pointing at the underlying typesystem
+	 * instance.
 	 */
 	Rooted<Typesystem> getTypesystem()
 	{
@@ -127,13 +130,18 @@ protected:
 	/**
 	 * If possible, converts the given variant to a string. Only works, if the
 	 * variant contains primitive objects (integers, strings, booleans, etc.).
+	 *
+	 * @param var is a variant containing the data that should be checked and
+	 * converted to a string.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool doBuild(Variant &var, Logger &logger) const override;
 
 public:
 	/**
 	 * Constructor of the StringType class. Only one instance of StringType
-	 * should exist per project.
+	 * should exist per project graph.
 	 *
 	 * @param mgr is the Manager instance to be used for the Node.
 	 * @param name is the name of the type.
@@ -152,22 +160,30 @@ public:
 	Variant create() const override { return Variant{""}; }
 };
 
+/**
+ * The IntType class represents the primitive integer type. There should exactly
+ * be a single instance of this class available in a preloaded type system.
+ */
 class IntType : public Type {
 protected:
 	/**
-	 * TODO: DOC
+	 * Simply expects the given variant to be an integer. Does not perform any
+	 * type conversion.
+	 *
+	 * @param var is a variant containing the data that should be checked.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &var, Logger &logger) const override
-	{
-		if (!var.isInt()) {
-			throw LoggableException{"Expected an integer value."};
-		}
-		return true;
-	}
+	bool doBuild(Variant &var, Logger &logger) const override;
 
 public:
 	/**
-	 * TODO: DOC
+	 * Constructor of the IntType class. Only one instance of IntType should
+	 * exist per project graph.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param name is the name of the type.
+	 * @param system is a reference to the parent Typesystem instance.
 	 */
 	IntType(Manager &mgr, Handle<Typesystem> system)
 	    : Type(mgr, "int", system, true)
@@ -175,7 +191,9 @@ public:
 	}
 
 	/**
-	 * TODO: DOC
+	 * Returns a variant containing the integer value zero.
+	 *
+	 * @return the integer value zero.
 	 */
 	Variant create() const override { return Variant{0}; }
 };

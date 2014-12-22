@@ -54,6 +54,16 @@ bool StringType::doBuild(Variant &var, Logger &logger) const
 	return true;
 }
 
+/* Class IntType */
+
+bool IntType::doBuild(Variant &var, Logger &logger) const
+{
+	if (!var.isInt()) {
+		throw LoggableException{"Expected an integer value."};
+	}
+	return true;
+}
+
 /* Class EnumType */
 
 EnumType EnumType::createValidated(Manager &mgr, std::string name,
@@ -79,19 +89,17 @@ EnumType EnumType::createValidated(Manager &mgr, std::string name,
 
 bool ArrayType::doBuild(Variant &var, Logger &logger) const
 {
-		if (!var.isArray()) {
-			throw LoggableException("Expected array!");
+	if (!var.isArray()) {
+		throw LoggableException("Expected array!");
+	}
+	bool res = true;
+	for (auto &v : var.asArray()) {
+		if (!innerType->build(v, logger)) {
+			res = false;
 		}
-		bool res = true;
-		for (auto &v : var.asArray()) {
-			if (!innerType->build(v, logger)) {
-				res = false;
-			}
-		}
-
-		return res;
+	}
+	return res;
 }
-
 }
 
 /* RTTI type registrations */

@@ -103,6 +103,47 @@ TEST(StringType, conversion)
 	}
 }
 
+/* Class IntType */
+
+TEST(IntType, rtti)
+{
+	Manager mgr;
+	Rooted<IntType> intType{new IntType(mgr, nullptr)};
+	ASSERT_TRUE(intType->isa(RttiTypes::IntType));
+	ASSERT_TRUE(intType->isa(typeOf<Type>()));
+	ASSERT_TRUE(intType->isa(typeOf<Node>()));
+}
+
+TEST(IntType, creation)
+{
+	Manager mgr;
+	Rooted<IntType> intType{new IntType(mgr, nullptr)};
+	Variant val = intType->create();
+	ASSERT_TRUE(val.isInt());
+	ASSERT_EQ(0, val.asInt());
+}
+
+TEST(IntType, conversion)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<IntType> intType{new IntType(mgr, nullptr)};
+
+	{
+		Variant val{314};
+		ASSERT_TRUE(intType->build(val, logger));
+		ASSERT_TRUE(val.isInt());
+		ASSERT_EQ(314, val.asInt());
+	}
+
+	{
+		Variant val{"1"};
+		ASSERT_FALSE(intType->build(val, logger));
+		ASSERT_TRUE(val.isInt());
+		ASSERT_EQ(0, val.asInt());
+	}
+}
+
 /* Class ArrayType */
 
 TEST(ArrayType, rtti)
@@ -123,6 +164,7 @@ TEST(ArrayType, creation)
 
 	Variant val = arrayType->create();
 	ASSERT_TRUE(val.isArray());
+	ASSERT_TRUE(val.asArray().empty());
 }
 
 TEST(ArrayType, conversion)
@@ -152,7 +194,7 @@ TEST(ArrayType, conversion)
 		Variant val{1};
 		ASSERT_FALSE(arrayType->build(val, logger));
 		ASSERT_TRUE(val.isArray());
-		ASSERT_EQ(0U, val.asArray().size());
+		ASSERT_TRUE(val.asArray().empty());
 	}
 }
 
