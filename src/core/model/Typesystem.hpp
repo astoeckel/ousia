@@ -92,7 +92,9 @@ public:
 
 	/**
 	 * Pure virtual function which must construct a valid, default instance of
-	 * the type that is being described by the typesystem.
+	 * the type that is being described by the typesystem. This function is
+	 * usually called as a last resort if an instance of a certain type is
+	 * requested but cannot be generated from the given user data.
 	 */
 	virtual Variant create() const = 0;
 
@@ -160,13 +162,13 @@ public:
 };
 
 /**
- * The IntType class represents the primitive integer type. There should be 
+ * The IntType class represents the primitive integer type. There should be
  * exactly one instance of this class available in a preloaded type system.
  */
 class IntType : public Type {
 protected:
 	/**
-	 * Expects the given variant to be an integer. Does not perform any type 
+	 * Expects the given variant to be an integer. Does not perform any type
 	 * conversion.
 	 *
 	 * @param var is a variant containing the data that should be checked.
@@ -198,9 +200,8 @@ public:
 };
 
 /**
- * The DoubleType class represents the primitive double type. There should
- * exactly be a single instance of this class available in a preloaded type 
- * system.
+ * The DoubleType class represents the primitive double type. There should be
+ * exactly one instance of this class available in a preloaded type system.
  */
 class DoubleType : public Type {
 protected:
@@ -236,22 +237,30 @@ public:
 	Variant create() const override { return Variant{0.0}; }
 };
 
+/**
+ * The BoolType class represents the primitive boolean type. There should be
+ * exactly one instance of this class available in a preloaded type system.
+ */
 class BoolType : public Type {
 protected:
 	/**
-	 * TODO: DOC
+	 * Expects the given variant to be a boolean. Performs no implicit type
+	 * conversion.
+	 *
+	 * @param var is a variant containing the data that should be checked.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &var, Logger &logger) const override
-	{
-		if (!var.isBool()) {
-			throw LoggableException("Expected boolean value!");
-		}
-		return true;
-	}
+	bool doBuild(Variant &var, Logger &logger) const override;
 
 public:
 	/**
-	 * TODO: DOC
+	 * Constructor of the BoolType class. Only one instance of BoolType should
+	 * exist per project graph.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param name is the name of the type.
+	 * @param system is a reference to the parent Typesystem instance.
 	 */
 	BoolType(Manager &mgr, Handle<Typesystem> system)
 	    : Type(mgr, "bool", system, true)
@@ -259,51 +268,47 @@ public:
 	}
 
 	/**
-	 * TODO: DOC
+	 * Creates a variant with the boolean value false.
+	 *
+	 * @return a Variant with the boolean value false.
 	 */
 	Variant create() const override { return Variant{false}; }
 };
 
+/**
+ * The EnumType class represents a user defined enumeration type.
+ */
 class EnumType : public Type {
 private:
-	std::map<std::string, size_t> values;
+	/**
+	 * Map containing the enumeration type values and the associated integer
+	 * representation.
+	 */
+	const std::map<std::string, Variant::intType> values;
 
 protected:
 	/**
-	 * TODO: DOC
+	 * Converts the given variant to the corresponding enum type representation.
+	 * The variant may either be a magic string containing the name of an
+	 * enumeration type or an integer.
+	 *
+	 * @param var is a variant containing the data that should be checked.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &var, Logger &logger) const override
-	{
-		if (var.isInt()) {
-			int i = var.asInt();
-			if (i < 0 || i >= (int)values.size()) {
-				throw LoggableException("Value is out of range.");
-			}
-		} else if (var.isString()) {
-		}
+	bool doBuild(Variant &var, Logger &logger) const override;
 
-		return true;
-	}
-
+	/**
+	 * Protected constructor of the EnumType class used to create a new EnumType
+	 * instance from a previously created name to value map.
+	 */
 	EnumType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	         std::map<std::string, size_t> values)
+	         std::map<std::string, Variant::intType> values)
 	    : Type(mgr, std::move(name), system, false), values(std::move(values))
 	{
 	}
 
 public:
-	/**
-	 * TODO: DOC
-	 */
-	EnumType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	         const std::vector<std::string> &values)
-	    : Type(mgr, std::move(name), system, false)
-	{
-		for (size_t i = 0; i < values.size(); i++) {
-			this->values.insert(std::make_pair(values[i], i));
-		}
-	}
-
 	/**
 	 * TODO: DOC
 	 */
@@ -318,27 +323,74 @@ public:
 	Variant create() const override { return Variant{0}; }
 };
 
-class StructType : public Type {
+/**
+ * The Attribute class describes a single attribute of a StructuredType entry.
+ */
+class Attribute : public Node {
+private:
+	/**
+	 * Reference to the actual type of the attribute.
+	 */
+	Owned<Type> type;
+
 public:
-	class AttributeDescriptor : public Managed {
-	public:
-		const std::string name;
-		const Variant defaultValue;
-		const bool optional;
-		const Owned<Type> type;
+	/**
+	 * Default value of the attribute.
+	 */
+	const Variant defaultValue;
 
-		AttributeDescriptor(Manager &mgr, std::string name,
-		                    Variant defaultValue, bool optional,
-		                    Handle<Type> type)
-		    : Managed(mgr),
-		      name(name),
-		      defaultValue(defaultValue),
-		      optional(optional),
-		      type(acquire(type))
-		{
-		}
-	};
+	/**
+	 * Flag indicating whether this attribute is actually optional or not.
+	 */
+	const bool optional;
 
+	/**
+	 * Constructor of the Attribute class.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param type holds a reference to the type descriptor holding the type
+	 * of the attribute.
+	 * @param defaultValue is the default value of the attribute
+	 * @param optional should be set to true if the if the default value should
+	 * be used.
+	 */
+	Attribute(Manager &mgr, std::string name, Handle<Type> type,
+	          Variant defaultValue, bool optional)
+	    : Node(mgr, std::move(name)),
+	      type(acquire(type)),
+	      defaultValue(defaultValue),
+	      optional(optional)
+	{
+	}
+
+	/**
+	 * Constructor of the Attribute class with no default value.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param type holds a reference to the type descriptor holding the type
+	 * of the attribute.
+	 */
+	Attribute(Manager &mgr, std::string name, Handle<Type> type)
+	    : Node(mgr, std::move(name)),
+	      type(acquire(type)),
+	      defaultValue(nullptr),
+	      optional(false)
+	{
+	}
+
+	/**
+	 * Returns a reference to the type descriptor holding the type of the
+	 * attribute.
+	 *
+	 * @return the underlying type of the Rooted object.
+	 */
+	Rooted<Type> getType() const { return type; }
+};
+
+/**
+ * The StructType class represents a user defined structure.
+ */
+class StructType : public Type {
 protected:
 	/**
 	 * TODO: DOC
@@ -348,8 +400,8 @@ protected:
 		// If we already have an array, we just check that.
 		if (var.isArray()) {
 			auto arr = var.asArray();
-			for (size_t a = 0; a < attrs.size(); a++) {
-				if (!attrs[a]->type->build(arr[a], logger)) {
+			for (size_t a = 0; a < attributes.size(); a++) {
+				if (!attributes[a]->getType()->build(arr[a], logger)) {
 					return false;
 				}
 			}
@@ -363,11 +415,12 @@ protected:
 		// We transform the map into an array with the correct values at the
 		// correct places.
 		Variant::arrayType vec;
-		for (auto &a : attrs) {
-			auto it = map.find(a->name);
+		for (auto &a : attributes) {
+			auto it = map.find(a->getName());
 			// we use the default if nothing is set.
-			if (it == map.end() || !a->type->build(it->second, logger)) {
-				logger.note(std::string("Using default value for ") + a->name);
+			if (it == map.end() || !a->getType()->build(it->second, logger)) {
+				logger.note(std::string("Using default value for ") +
+				            a->getName());
 				vec.push_back(a->defaultValue);
 			} else {
 				vec.push_back(it->second);
@@ -378,19 +431,18 @@ protected:
 	}
 
 public:
-	const ManagedVector<AttributeDescriptor> attrs;
+	const NodeVector<Attribute> attributes;
 
 	StructType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	           ManagedVector<AttributeDescriptor> attrs)
+	           ManagedVector<Attribute> attributes)
 	    : Type(mgr, std::move(name), system, false),
-	      attrs(this, std::move(attrs))
+	      attributes(this, std::move(attributes))
 	{
 	}
 	// TODO
 	//	static StructType createValidated(
 	//	    Manager &mgr, std::string name, Handle<Typesystem> system,
-	//	    Handle<StructType> parent,
-	//	    const std::vector<AttributeDescriptor> &attrs, Logger &logger);
+	//           ManagedVector<Attribute> attributes);
 
 	Variant create() const override { return Variant{Variant::arrayType{}}; }
 };
@@ -463,7 +515,7 @@ public:
 class UnknownType : public Type {
 protected:
 	/**
-	 * As the UnknownType carries no type information, it does not modify the 
+	 * As the UnknownType carries no type information, it does not modify the
 	 * given variant and always succeeds (returns true).
 	 *
 	 * @return always true.

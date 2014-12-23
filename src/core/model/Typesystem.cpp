@@ -42,15 +42,20 @@ bool Type::build(Variant &var, Logger &logger) const
 
 bool StringType::doBuild(Variant &var, Logger &logger) const
 {
+	// Cannot convert non-primitive values to strings
 	if (!var.isPrimitive()) {
 		throw LoggableException{"Expected a string or primitive input."};
 	}
 
-	if (!var.isString()) {
-		logger.note(std::string("Implicit type conversion from ") +
+	// Perform an implicit type conversion
+	if (!var.isString() || var.isMagic()) {
+		// Convert the variant value to a string and set it
+		var = var.toString().c_str();
+
+		// Log conversions as these may be potentially unwanted
+		logger.note(std::string("Implicit conversion from ") +
 		            var.getTypeName() + " to string.");
 	}
-	var = Variant{var.toString().c_str()};
 	return true;
 }
 
@@ -75,14 +80,48 @@ bool DoubleType::doBuild(Variant &var, Logger &logger) const
 	return true;
 }
 
+/* Class BoolType */
+
+bool BoolType::doBuild(Variant &var, Logger &logger) const
+{
+	if (!var.isBool()) {
+		throw LoggableException("Expected boolean value!");
+	}
+	return true;
+}
+
 /* Class EnumType */
+
+bool EnumType::doBuild(Variant &var, Logger &logger) const
+{
+	if (var.isInt()) {
+		int i = var.asInt();
+		if (i < 0 || i >= (int)values.size()) {
+			throw LoggableException("Value is out of range.");
+		}
+	} else if (var.isMagic()) {
+		// Fetch the given constant name and look it up in the value map
+		const std::string &name = var.asMagic();
+		auto it = values.find(name);
+
+		// Throw an execption
+		if (it == values.end()) {
+			throw LoggableException(std::string("Unknown enum constant: \"") +
+			                        name + std::string("\""));
+		}
+		var = it->second;
+	}
+	return true;
+}
 
 EnumType EnumType::createValidated(Manager &mgr, std::string name,
                                    Handle<Typesystem> system,
                                    const std::vector<std::string> &values,
                                    Logger &logger)
 {
-	std::map<std::string, size_t> unique_values;
+	// Map used to store the unique values of the enum
+	std::map<std::string, Variant::intType> unique_values;
+
 	for (size_t i = 0; i < values.size(); i++) {
 		if (!Utils::isIdentifier(values[i])) {
 			logger.error(values[i] + " is no valid identifier.");

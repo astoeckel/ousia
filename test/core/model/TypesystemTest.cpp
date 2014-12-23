@@ -144,7 +144,7 @@ TEST(IntType, conversion)
 	}
 }
 
-/* Class IntType */
+/* Class DoubleType */
 
 TEST(DoubleType, rtti)
 {
@@ -191,6 +191,55 @@ TEST(DoubleType, conversion)
 		ASSERT_EQ(0.0, val.asDouble());
 	}
 }
+
+/* Class BoolType */
+
+TEST(BoolType, rtti)
+{
+	Manager mgr;
+	Rooted<BoolType> boolType{new BoolType(mgr, nullptr)};
+	ASSERT_TRUE(boolType->isa(RttiTypes::BoolType));
+	ASSERT_TRUE(boolType->isa(typeOf<Type>()));
+	ASSERT_TRUE(boolType->isa(typeOf<Node>()));
+}
+
+TEST(BoolType, creation)
+{
+	Manager mgr;
+	Rooted<BoolType> boolType{new BoolType(mgr, nullptr)};
+	Variant val = boolType->create();
+	ASSERT_TRUE(val.isBool());
+	ASSERT_FALSE(val.asBool());
+}
+
+TEST(BoolType, conversion)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<BoolType> boolType{new BoolType(mgr, nullptr)};
+
+	{
+		Variant val{true};
+		ASSERT_TRUE(boolType->build(val, logger));
+		ASSERT_TRUE(val.isBool());
+		ASSERT_TRUE(val.asBool());
+	}
+
+	{
+		Variant val{false};
+		ASSERT_TRUE(boolType->build(val, logger));
+		ASSERT_TRUE(val.isBool());
+		ASSERT_FALSE(val.asBool());
+	}
+
+	{
+		Variant val{314};
+		ASSERT_FALSE(boolType->build(val, logger));
+		ASSERT_TRUE(val.isBool());
+		ASSERT_FALSE(val.asBool());
+	}
+}
+
 
 /* Class ArrayType */
 
