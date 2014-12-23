@@ -51,6 +51,7 @@ const char *Variant::getTypeName(Type type)
 		case Type::DOUBLE:
 			return "double";
 		case Type::STRING:
+		case Type::MAGIC:
 			return "string";
 		case Type::ARRAY:
 			return "array";
@@ -93,6 +94,7 @@ Variant::intType Variant::toInt() const
 		case Type::DOUBLE:
 			return asDouble();
 		case Type::STRING:
+		case Type::MAGIC:
 			return 0;  // TODO: Parse string as int
 		case Type::ARRAY: {
 			// JavaScript behaviour when converting arrays to ints
@@ -117,6 +119,7 @@ Variant::doubleType Variant::toDouble() const
 		case Type::DOUBLE:
 			return asDouble();
 		case Type::STRING:
+		case Type::MAGIC:
 			return 0.0;  // TODO: Parse string as double
 		case Type::ARRAY: {
 			// JavaScript behaviour when converting array to doubles
@@ -147,6 +150,7 @@ Variant::stringType Variant::toString(bool escape) const
 			return ss.str();
 		}
 		case Type::STRING: {
+		case Type::MAGIC:
 			// TODO: Use proper serialization function
 			if (escape) {
 				std::stringstream ss;

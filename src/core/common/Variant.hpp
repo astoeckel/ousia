@@ -64,6 +64,7 @@ public:
 		INT,
 		DOUBLE,
 		STRING,
+		MAGIC,
 		ARRAY,
 		MAP,
 		OBJECT,
@@ -178,6 +179,7 @@ private:
 				doubleVal = v.doubleVal;
 				break;
 			case Type::STRING:
+			case Type::MAGIC:
 				ptrVal = new stringType(v.asString());
 				break;
 			case Type::ARRAY:
@@ -218,6 +220,7 @@ private:
 				doubleVal = v.doubleVal;
 				break;
 			case Type::STRING:
+			case Type::MAGIC:
 			case Type::ARRAY:
 			case Type::MAP:
 			case Type::OBJECT:
@@ -237,6 +240,7 @@ private:
 		if (ptrVal) {
 			switch (type) {
 				case Type::STRING:
+				case Type::MAGIC:
 					delete static_cast<stringType *>(ptrVal);
 					break;
 				case Type::ARRAY:
@@ -343,7 +347,11 @@ public:
 	 * @param o is a reference to the object.
 	 */
 	template <class T>
-	Variant(Handle<T> o) : ptrVal(nullptr) { setObject(o); }
+	Variant(Handle<T> o)
+	    : ptrVal(nullptr)
+	{
+		setObject(o);
+	}
 
 	/**
 	 * Copy assignment operator.
@@ -449,11 +457,23 @@ public:
 	bool isDouble() const { return type == Type::DOUBLE; }
 
 	/**
-	 * Checks whether this Variant instance is a string.
+	 * Checks whether this Variant instance is a string or a magic string.
 	 *
 	 * @return true if the Variant instance is a string, false otherwise.
 	 */
-	bool isString() const { return type == Type::STRING; }
+	bool isString() const
+	{
+		return type == Type::STRING || type == Type::MAGIC;
+	}
+
+	/**
+	 * Checks whether this Variant instance is a magic string. Magic strings
+	 * are created if a unquoted string is parsed and may e.g. be treated as
+	 * constants.
+	 *
+	 * @return true if the Variant instance is a string, false otherwise.
+	 */
+	bool isMagic() const { return type == Type::MAGIC; }
 
 	/**
 	 * Checks whether this Variant instance is an array.
@@ -552,16 +572,51 @@ public:
 	 */
 	const stringType &asString() const
 	{
-		return asObj<stringType>(Type::STRING);
+		if (isMagic()) {
+			return asObj<stringType>(Type::MAGIC);
+		} else {
+			return asObj<stringType>(Type::STRING);
+		}
 	}
 
 	/**
-	 * Returns a const reference to the string value. Performs no type
-	 * conversion. Throws an exception if the underlying type is not a string.
+	 * Returns a reference to the string value. Performs no type conversion. 
+	 * Throws an exception if the underlying type is not a string.
 	 *
 	 * @return the string value as reference.
 	 */
-	stringType &asString() { return asObj<stringType>(Type::STRING); }
+	stringType &asString()
+	{
+		if (isMagic()) {
+			return asObj<stringType>(Type::MAGIC);
+		} else {
+			return asObj<stringType>(Type::STRING);
+		}
+	}
+
+	/**
+	 * Returns a const reference to the magic string value. Performs no type
+	 * conversion. Throws an exception if the underlying type is not a magic
+	 * string.
+	 *
+	 * @return the magic string value as const reference.
+	 */
+	const stringType &asMagic() const
+	{
+		return asObj<stringType>(Type::MAGIC);
+	}
+
+	/**
+	 * Returns a reference to the magic string value. Performs no type 
+	 * conversion. Throws an exception if the underlying type is not a magic
+	 * string.
+	 *
+	 * @return the magic string value as const reference.
+	 */
+	stringType &asMagic()
+	{
+		return asObj<stringType>(Type::MAGIC);
+	}
 
 	/**
 	 * Returns a const reference to the array value. Performs no type
@@ -594,10 +649,7 @@ public:
 	 *
 	 * @return pointer at the stored managed object.
 	 */
-	objectType asObject()
-	{
-		return asObj<objectType>(Type::OBJECT);
-	}
+	objectType asObject() { return asObj<objectType>(Type::OBJECT); }
 
 	/**
 	 * Returns a pointer pointing at the stored managed object. Performs no type
@@ -723,11 +775,29 @@ public:
 	 */
 	void setString(const char *s)
 	{
-		if (isString()) {
+		if (isString() || isMagic()) {
+			type = Type::STRING;
 			asString().assign(s);
 		} else {
 			destroy();
 			type = Type::STRING;
+			ptrVal = new stringType(s);
+		}
+	}
+
+	/**
+	 * Sets the variant to the given magic string value.
+	 *
+	 * @param d is the new magic string value.
+	 */
+	void setMagic(const char *s)
+	{
+		if (isString() || isMagic()) {
+			type = Type::MAGIC;
+			asString().assign(s);
+		} else {
+			destroy();
+			type = Type::MAGIC;
 			ptrVal = new stringType(s);
 		}
 	}
@@ -768,7 +838,7 @@ public:
 	 * Sets the variant to the given managed object. The variant is equivalent
 	 * to a Rooted handle.
 	 */
-	template<class T>
+	template <class T>
 	void setObject(Handle<T> o)
 	{
 		destroy();
@@ -839,6 +909,7 @@ public:
 				return lhs.intVal < rhs.intVal;
 			case Type::DOUBLE:
 				return lhs.doubleVal < rhs.doubleVal;
+			case Type::MAGIC:
 			case Type::STRING:
 				return lhs.asString() < rhs.asString();
 			case Type::ARRAY:
@@ -919,6 +990,7 @@ public:
 			case Type::DOUBLE:
 				return lhs.doubleVal == rhs.doubleVal;
 			case Type::STRING:
+			case Type::MAGIC:
 				return lhs.asString() == rhs.asString();
 			case Type::ARRAY:
 				return lhs.asArray() == rhs.asArray();
