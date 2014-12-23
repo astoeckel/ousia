@@ -22,10 +22,9 @@
 #include <core/common/VariantReader.hpp>
 
 namespace ousia {
-namespace variant {
 
-static TerminalLogger logger{std::cerr, true};
-//static Logger logger;
+// static TerminalLogger logger{std::cerr, true};
+static Logger logger;
 
 TEST(VariantReader, readString)
 {
@@ -60,7 +59,6 @@ TEST(VariantReader, readString)
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("'\"\b\f\n\r\t\v", res.second);
 	}
-
 
 	// Hex Unicode character
 	{
@@ -127,6 +125,73 @@ TEST(VariantReader, readStringUnicode)
 	}
 }
 
+TEST(VariantReader, parseToken)
+{
+	// Simple case
+	{
+		CharReader reader("hello world;");
+		{
+			auto res = VariantReader::parseToken(reader, logger, {';'});
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ("hello", res.second);
+		}
+
+		{
+			auto res = VariantReader::parseToken(reader, logger, {';'});
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ("world", res.second);
+		}
+	}
+
+	// Simple case with whitespace
+	{
+		CharReader reader("    hello world   ;    ");
+		{
+			auto res = VariantReader::parseToken(reader, logger, {';'});
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ("hello", res.second);
+		}
+
+		{
+			auto res = VariantReader::parseToken(reader, logger, {';'});
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ("world", res.second);
+		}
+	}
+
+	// Linebreaks
+	{
+		CharReader reader("    hello\nworld   ;    ");
+		{
+			auto res = VariantReader::parseToken(reader, logger, {';'});
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ("hello", res.second);
+		}
+
+		{
+			auto res = VariantReader::parseToken(reader, logger, {';'});
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ("world", res.second);
+		}
+	}
+
+	// End of stream
+	{
+		CharReader reader("    hello world");
+		{
+			auto res = VariantReader::parseToken(reader, logger, {';'});
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ("hello", res.second);
+		}
+
+		{
+			auto res = VariantReader::parseToken(reader, logger, {';'});
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ("world", res.second);
+		}
+	}
+}
+
 TEST(VariantReader, parseUnescapedString)
 {
 	// Simple case
@@ -155,7 +220,7 @@ TEST(VariantReader, parseUnescapedString)
 
 	// End of stream
 	{
-		CharReader reader("    hello world ");
+		CharReader reader("    hello world");
 		auto res = VariantReader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
@@ -312,8 +377,9 @@ TEST(VariantReader, parseArray)
 {
 	// Simple case (only primitive data types)
 	{
-		CharReader reader("[\"Hello, World\", unescaped\n string ,\n"
-			"1234, 0.56, true, false, null]");
+		CharReader reader(
+		    "[\"Hello, World\", unescaped\n string ,\n"
+		    "1234, 0.56, true, false, null]");
 		auto res = VariantReader::parseArray(reader, logger);
 		ASSERT_TRUE(res.first);
 
@@ -379,8 +445,9 @@ TEST(VariantReader, parseObject)
 {
 	// Array as object
 	{
-		CharReader reader("[\"Hello, World\", unescaped\n string ,\n"
-			"1234, 0.56, true, false, null]");
+		CharReader reader(
+		    "[\"Hello, World\", unescaped\n string ,\n"
+		    "1234, 0.56, true, false, null]");
 		auto res = VariantReader::parseObject(reader, logger);
 		ASSERT_TRUE(res.first);
 
@@ -469,7 +536,8 @@ TEST(VariantReader, parseObject)
 
 	// Even More complex array/object
 	{
-		CharReader reader("[\"key1\" = [4, 5, true, e=[1, 2, 3]], \"key2\"=[]]");
+		CharReader reader(
+		    "[\"key1\" = [4, 5, true, e=[1, 2, 3]], \"key2\"=[]]");
 		auto res = VariantReader::parseObject(reader, logger);
 		ASSERT_TRUE(res.first);
 
@@ -481,7 +549,22 @@ TEST(VariantReader, parseObject)
 		ASSERT_TRUE(res.second["key2"].isArray());
 
 		// Check the values
-		std::cout << res.second << std::endl;
+		auto m = res.second["key1"].asMap();
+		ASSERT_EQ(4U, m.size());
+		ASSERT_TRUE(m["#0"].isInt());
+		ASSERT_TRUE(m["#1"].isInt());
+		ASSERT_TRUE(m["#2"].isBool());
+		ASSERT_TRUE(m["e"].isArray());
+		ASSERT_EQ(4, m["#0"].asInt());
+		ASSERT_EQ(5, m["#1"].asInt());
+		ASSERT_TRUE(m["#2"].asBool());
+		ASSERT_EQ(3U, m["e"].asArray().size());
+		ASSERT_EQ(1, m["e"].asArray()[0].asInt());
+		ASSERT_EQ(2, m["e"].asArray()[1].asInt());
+		ASSERT_EQ(3, m["e"].asArray()[2].asInt());
+
+		auto a = res.second["key2"].asArray();
+		ASSERT_EQ(0U, a.size());
 	}
 
 	// Invalid array/object
@@ -492,36 +575,226 @@ TEST(VariantReader, parseObject)
 	}
 }
 
-TEST(VariantReader, parseGeneric)
+TEST(VariantReader, parseGenericToken)
 {
 	// Simple case, unescaped string
 	{
 		CharReader reader("hello world");
-		auto res = VariantReader::parseGeneric(reader, logger, {';'});
+		auto res =
+		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
+		ASSERT_FALSE(res.second.isMagic());
 		ASSERT_EQ("hello world", res.second.asString());
 	}
 
 	// Simple case, double quoted string
 	{
 		CharReader reader(" \"hello world\"    ");
-		auto res = VariantReader::parseGeneric(reader, logger, {';'});
+		auto res =
+		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
+		ASSERT_FALSE(res.second.isMagic());
 		ASSERT_EQ("hello world", res.second.asString());
 	}
 
 	// Simple case, single quoted string
 	{
 		CharReader reader(" 'hello world'    ");
-		auto res = VariantReader::parseGeneric(reader, logger, {';'});
+		auto res =
+		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
+		ASSERT_FALSE(res.second.isMagic());
+		ASSERT_EQ("hello world", res.second.asString());
+	}
+
+	// Integer
+	{
+		CharReader reader("1234");
+		auto res =
+		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isInt());
+		ASSERT_EQ(1234, res.second.asInt());
+	}
+
+	// Double
+	{
+		CharReader reader("1234.5");
+		auto res =
+		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isDouble());
+		ASSERT_EQ(1234.5, res.second.asDouble());
+	}
+
+	// Boolean (true)
+	{
+		CharReader reader("true");
+		auto res =
+		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isBool());
+		ASSERT_TRUE(res.second.asBool());
+	}
+
+	// Boolean (false)
+	{
+		CharReader reader("false");
+		auto res =
+		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isBool());
+		ASSERT_FALSE(res.second.asBool());
+	}
+
+	// Nullptr
+	{
+		CharReader reader("null");
+		auto res =
+		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isNull());
+	}
+
+	// Simple case, unescaped string
+	{
+		CharReader reader("hello world");
+
+		{
+			auto res =
+			    VariantReader::parseGenericToken(reader, logger, {';'}, false);
+			ASSERT_TRUE(res.first);
+			ASSERT_TRUE(res.second.isString());
+			ASSERT_TRUE(res.second.isMagic());
+			ASSERT_EQ("hello", res.second.asString());
+		}
+
+		{
+			auto res =
+			    VariantReader::parseGenericToken(reader, logger, {';'}, false);
+			ASSERT_TRUE(res.first);
+			ASSERT_TRUE(res.second.isString());
+			ASSERT_TRUE(res.second.isMagic());
+			ASSERT_EQ("world", res.second.asString());
+		}
+	}
+
+	// Simple case, double quoted string
+	{
+		CharReader reader(" \"hello world\"    ");
+		auto res =
+		    VariantReader::parseGenericToken(reader, logger, {';'}, false);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isString());
+		ASSERT_FALSE(res.second.isMagic());
+		ASSERT_EQ("hello world", res.second.asString());
+	}
+
+	// Simple case, single quoted string
+	{
+		CharReader reader(" 'hello world'    ");
+		auto res =
+		    VariantReader::parseGenericToken(reader, logger, {';'}, false);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isString());
+		ASSERT_FALSE(res.second.isMagic());
 		ASSERT_EQ("hello world", res.second.asString());
 	}
 }
 
+TEST(VariantReader, parseGeneric)
+{
+	// Simple case, unescaped string
+	{
+		CharReader reader("hello");
+		auto res = VariantReader::parseGeneric(reader, logger, {';'});
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isMagic());
+		ASSERT_EQ("hello", res.second.asMagic());
+	}
+
+	// Simple case, unescaped string with multiple array entries
+	{
+		CharReader reader("hello world");
+		auto res = VariantReader::parseGeneric(reader, logger, {';'});
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isArray());
+
+		auto arr = res.second.asArray();
+		ASSERT_EQ(2U, arr.size());
+		ASSERT_TRUE(arr[0].isMagic());
+		ASSERT_TRUE(arr[1].isMagic());
+		ASSERT_EQ("hello", arr[0].asMagic());
+		ASSERT_EQ("world", arr[1].asMagic());
+	}
+
+	// Delimiter test
+	{
+		CharReader reader("hello; world");
+		auto res = VariantReader::parseGeneric(reader, logger, {';'});
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isMagic());
+		ASSERT_EQ("hello", res.second.asMagic());
+
+		char c;
+		ASSERT_TRUE(reader.peek(c));
+		ASSERT_EQ(';', c);
+	}
+
+	// More complex CSS-like case
+	{
+		CharReader reader("1px solid blue");
+		auto res = VariantReader::parseGeneric(reader, logger, {';'});
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isArray());
+
+		auto arr = res.second.asArray();
+		ASSERT_EQ(3U, arr.size());
+		ASSERT_TRUE(arr[0].isString());
+		ASSERT_TRUE(arr[1].isMagic());
+		ASSERT_TRUE(arr[2].isMagic());
+		ASSERT_EQ("1px", arr[0].asString());
+		ASSERT_EQ("solid", arr[1].asMagic());
+		ASSERT_EQ("blue", arr[2].asMagic());
+	}
+}
+
+TEST(VariantReader, parseGenericComplex)
+{
+	CharReader reader("10 true [1, 2] [] [foo=bar,h]; []");
+	auto res = VariantReader::parseGeneric(reader, logger, {';'});
+	ASSERT_TRUE(res.first);
+	ASSERT_TRUE(res.second.isArray());
+
+	auto arr = res.second.asArray();
+	ASSERT_EQ(5U, arr.size());
+	ASSERT_TRUE(arr[0].isInt());
+	ASSERT_TRUE(arr[1].isBool());
+	ASSERT_TRUE(arr[2].isArray());
+	ASSERT_TRUE(arr[3].isArray());
+	ASSERT_TRUE(arr[4].isMap());
+
+	ASSERT_EQ(10, arr[0].asInt());
+	ASSERT_TRUE(arr[1].asBool());
+
+	ASSERT_EQ(2U, arr[2].asArray().size());
+	ASSERT_EQ(1, arr[2].asArray()[0].asInt());
+	ASSERT_EQ(2, arr[2].asArray()[1].asInt());
+
+	ASSERT_EQ(0U, arr[3].asArray().size());
+
+	ASSERT_EQ(2U, arr[4].asMap().size());
+	ASSERT_TRUE(arr[4].asMap().count("foo"));
+	ASSERT_TRUE(arr[4].asMap().count("#1"));
+	ASSERT_TRUE(arr[4].asMap().find("foo")->second.isMagic());
+	ASSERT_EQ("bar", arr[4].asMap().find("foo")->second.asMagic());
+
+	char c;
+	ASSERT_TRUE(reader.peek(c));
+	ASSERT_EQ(';', c);
 }
 }
 

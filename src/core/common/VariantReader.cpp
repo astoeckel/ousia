@@ -456,8 +456,8 @@ static std::pair<bool, Variant> parseComplex(CharReader &reader, Logger &logger,
 			case STATE_IN_COMPLEX: {
 				// Try to read an element using the parseGeneric function
 				reader.resetPeek();
-				auto elem = VariantReader::parseGeneric(reader, logger,
-				                                        {',', '=', delim});
+				auto elem = VariantReader::parseGenericToken(
+				    reader, logger, {',', '=', delim}, true);
 
 				// If the reader had no error, expect an comma, otherwise skip
 				// to the next comma in the stream
@@ -496,8 +496,8 @@ static std::pair<bool, Variant> parseComplex(CharReader &reader, Logger &logger,
 
 					// Consume the equals sign and parse the value
 					reader.consumePeek();
-					auto elem = VariantReader::parseGeneric(reader, logger,
-					                                        {',', delim});
+					auto elem = VariantReader::parseGenericToken(
+					    reader, logger, {',', delim}, true);
 					if (elem.first) {
 						objectResult.insert(
 						    std::make_pair(keyString, elem.second));
@@ -537,7 +537,7 @@ static std::pair<bool, Variant> parseComplex(CharReader &reader, Logger &logger,
 				if (c == ',') {
 					state = STATE_IN_COMPLEX;
 				} else {
-					logger.error(unexpectedMsg("\",\"", c));
+					logger.error(unexpectedMsg("\",\"", c), reader);
 					state = STATE_RESYNC;
 					hadError = true;
 				}
@@ -564,7 +564,8 @@ static bool encodeUtf8(std::stringstream &res, CharReader &reader,
 	// Encode the unicode codepoint as UTF-8
 	uint32_t cp = static_cast<uint32_t>(v);
 	if (latin1 && cp > 0xFF) {
-		logger.error("Not a valid ISO-8859-1 (Latin-1) character, skipping", reader);
+		logger.error("Not a valid ISO-8859-1 (Latin-1) character, skipping",
+		             reader);
 		return false;
 	}
 
@@ -699,6 +700,31 @@ std::pair<bool, std::string> VariantReader::parseString(
 	return error(reader, logger, ERR_UNEXPECTED_END, res.str());
 }
 
+std::pair<bool, std::string> VariantReader::parseToken(
+    CharReader &reader, Logger &logger, const std::unordered_set<char> &delims)
+{
+	std::stringstream res;
+	char c;
+
+	// Consume all whitespace
+	reader.consumeWhitespace();
+
+	// Copy all characters, skip whitespace at the end
+	int state = STATE_WHITESPACE;
+	while (reader.peek(c)) {
+		bool whitespace = Utils::isWhitespace(c);
+		if (delims.count(c) || (state == STATE_IN_STRING && whitespace)) {
+			reader.resetPeek();
+			return std::make_pair(state == STATE_IN_STRING, res.str());
+		} else if (!whitespace) {
+			state = STATE_IN_STRING;
+			res << c;
+		}
+		reader.consumePeek();
+	}
+	return std::make_pair(state == STATE_IN_STRING, res.str());
+}
+
 std::pair<bool, std::string> VariantReader::parseUnescapedString(
     CharReader &reader, Logger &logger, const std::unordered_set<char> &delims)
 {
@@ -777,11 +803,44 @@ std::pair<bool, Variant::mapType> VariantReader::parseObject(CharReader &reader,
 std::pair<bool, Variant> VariantReader::parseGeneric(
     CharReader &reader, Logger &logger, const std::unordered_set<char> &delims)
 {
+	Variant::arrayType arr;
+	char c;
+	bool hadError = false;
+
+	// Parse generic tokens until the end of the stream or the delimiter is
+	// reached
+	while (reader.peek(c) && !delims.count(c)) {
+		reader.resetPeek();
+		auto res = parseGenericToken(reader, logger, delims);
+		hadError = hadError || !res.first;
+		arr.push_back(res.second);
+	}
+	reader.resetPeek();
+
+	// The resulting array should not be empty
+	if (arr.empty()) {
+		return error(reader, logger, ERR_UNEXPECTED_END, nullptr);
+	}
+
+	// If there only one element was extracted, return this element instead of
+	// an array
+	if (arr.size() == 1) {
+		return std::make_pair(!hadError, arr[0]);
+	} else {
+		return std::make_pair(!hadError, Variant{arr});
+	}
+}
+
+std::pair<bool, Variant> VariantReader::parseGenericToken(
+    CharReader &reader, Logger &logger, const std::unordered_set<char> &delims,
+    bool extractUnescapedStrings)
+{
 	char c;
 
 	// Skip all whitespace characters, read a character and abort if at the end
 	reader.consumeWhitespace();
 	if (!reader.peek(c) || delims.count(c)) {
+		reader.resetPeek();
 		return error(reader, logger, ERR_UNEXPECTED_END, nullptr);
 	}
 
@@ -814,8 +873,13 @@ std::pair<bool, Variant> VariantReader::parseGeneric(
 		return parseComplex(reader, logger, 0, ComplexMode::BOTH);
 	}
 
-	// Parse an unescaped string in any other case
-	auto res = parseUnescapedString(reader, logger, delims);
+	// Otherwise parse a single token
+	std::pair<bool, std::string> res;
+	if (extractUnescapedStrings) {
+		res = parseUnescapedString(reader, logger, delims);
+	} else {
+		res = parseToken(reader, logger, delims);
+	}
 
 	// Handling for special primitive values
 	if (res.first) {
@@ -829,7 +893,16 @@ std::pair<bool, Variant> VariantReader::parseGeneric(
 			return std::make_pair(true, Variant{nullptr});
 		}
 	}
-	return std::make_pair(res.first, res.second.c_str());
+
+	// Check whether the parsed string is a valid identifier -- if yes, flag it
+	// as "magic" string
+	if (Utils::isIdentifier(res.second)) {
+		Variant v;
+		v.setMagic(res.second.c_str());
+		return std::make_pair(res.first, v);
+	} else {
+		return std::make_pair(res.first, Variant{res.second.c_str()});
+	}
 }
 }
 

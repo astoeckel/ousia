@@ -98,9 +98,27 @@ public:
 	}
 
 	/**
-	 * Extracts an unescaped string from the given CharReader instance.
-	 * This function just reads text until one of the given delimiter
+	 * Extracts a single token from the given CharReader instance. Skips any
+	 * whitespace character until a non-whitespace character is reached. Stops
+	 * if another whitespace character is read or one of the given delimiters
 	 * characters is reached.
+	 *
+	 * @param reader is a reference to the CharReader instance which is
+	 * the source for the character data. The reader will be positioned at the
+	 * terminating delimiting character.
+	 * @param logger is the logger instance that should be used to log error
+	 * messages and warnings.
+	 * @param delims is a set of characters which will terminate the string.
+	 * These characters are not included in the result.
+	 */
+	static std::pair<bool, std::string> parseToken(
+	    CharReader &reader, Logger &logger,
+	    const std::unordered_set<char> &delims);
+
+	/**
+	 * Extracts an unescaped string from the given CharReader instance. Skips
+	 * any whitespace character one of the given delimiters is reached. Strips
+	 * whitespace at the end of the string.
 	 *
 	 * @param reader is a reference to the CharReader instance which is
 	 * the source for the character data. The reader will be positioned at the
@@ -178,8 +196,9 @@ public:
 
 	/**
 	 * Tries to parse the most specific item from the given stream until one of
-	 * the given delimiters is reached or a meaningful literal has been read.
-	 * The resulting variant represents the value that has been read.
+	 * the given delimiters is reached or a meaningful literal (possibly an 
+	 * array of literals) has been read. The resulting variant represents the 
+	 * value that has been read.
 	 *
 	 * @param reader is a reference to the CharReader instance which is
 	 * the source for the character data. The reader will be positioned
@@ -190,6 +209,26 @@ public:
 	static std::pair<bool, Variant> parseGeneric(
 	    CharReader &reader, Logger &logger,
 	    const std::unordered_set<char> &delims);
+
+	/**
+	 * Tries to parse the most specific item from the given stream until one of
+	 * the given delimiters is reached or a meaningful literal has been read.
+	 * The resulting variant represents the value that has been read.
+	 *
+	 * @param reader is a reference to the CharReader instance which is
+	 * the source for the character data. The reader will be positioned
+	 * at the terminating delimiting character.
+	 * @param delims is a set of characters which will terminate the string.
+	 * These characters are not included in the result. May not be nullptr.
+	 * @param extractUnescapedStrings if set to true, interprets non-primitive
+	 * literals as unescaped strings, which may also contain whitespace 
+	 * characters. Otherwise string literals are only generated until the next
+	 * whitespace character.
+	 */
+	static std::pair<bool, Variant> parseGenericToken(
+	    CharReader &reader, Logger &logger,
+	    const std::unordered_set<char> &delims,
+	    bool extractUnescapedStrings = false);
 };
 }
 
