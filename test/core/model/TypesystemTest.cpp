@@ -240,6 +240,145 @@ TEST(BoolType, conversion)
 	}
 }
 
+/* Class EnumType */
+
+TEST(EnumType, rtti)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<EnumType> enumType{EnumType::createValidated(
+	    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
+	ASSERT_TRUE(enumType->isa(RttiTypes::EnumType));
+	ASSERT_TRUE(enumType->isa(typeOf<Type>()));
+	ASSERT_TRUE(enumType->isa(typeOf<Node>()));
+}
+
+TEST(EnumType, creation)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<EnumType> enumType{EnumType::createValidated(
+	    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
+	Variant val = enumType->create();
+	ASSERT_TRUE(val.isInt());
+	ASSERT_EQ(0, val.asInt());
+}
+
+TEST(EnumType, conversion)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<EnumType> enumType{EnumType::createValidated(
+	    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
+
+	{
+		Variant val{1};
+		ASSERT_TRUE(enumType->build(val, logger));
+		ASSERT_TRUE(val.isInt());
+		ASSERT_EQ(1, val.asInt());
+	}
+
+	{
+		Variant val;
+		val.setMagic("a");
+		ASSERT_TRUE(enumType->build(val, logger));
+		ASSERT_TRUE(val.isInt());
+		ASSERT_EQ(0, val.asInt());
+	}
+
+	{
+		Variant val;
+		val.setMagic("c");
+		ASSERT_TRUE(enumType->build(val, logger));
+		ASSERT_TRUE(val.isInt());
+		ASSERT_EQ(2, val.asInt());
+	}
+
+	{
+		Variant val{"c"};
+		ASSERT_FALSE(enumType->build(val, logger));
+		ASSERT_TRUE(val.isInt());
+		ASSERT_EQ(0, val.asInt());
+	}
+
+	{
+		Variant val;
+		val.setMagic("d");
+		ASSERT_FALSE(enumType->build(val, logger));
+		ASSERT_TRUE(val.isInt());
+		ASSERT_EQ(0, val.asInt());
+	}
+
+	{
+		Variant val{5};
+		ASSERT_FALSE(enumType->build(val, logger));
+		ASSERT_TRUE(val.isInt());
+		ASSERT_EQ(0, val.asInt());
+	}
+}
+
+TEST(EnumType, createValidated)
+{
+	Manager mgr;
+
+	{
+		Logger logger;
+		Rooted<EnumType> enumType{EnumType::createValidated(
+		    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
+		ASSERT_EQ(Severity::DEBUG, logger.getMaxEncounteredSeverity());
+	}
+
+	{
+		Logger logger;
+		Rooted<EnumType> enumType{EnumType::createValidated(
+		    mgr, "enum", nullptr, {"a", "a", "c"}, logger)};
+		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
+	}
+
+	{
+		Logger logger;
+		Rooted<EnumType> enumType{EnumType::createValidated(
+		    mgr, "enum", nullptr, {}, logger)};
+		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
+	}
+
+	{
+		Logger logger;
+		Rooted<EnumType> enumType{EnumType::createValidated(
+		    mgr, "enum", nullptr, {"a a"}, logger)};
+		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
+	}
+}
+
+TEST(EnumType, nameOf)
+{
+	Logger logger;
+	Manager mgr;
+
+	Rooted<EnumType> enumType{EnumType::createValidated(
+	    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
+
+	ASSERT_EQ("a", enumType->nameOf(0));
+	ASSERT_EQ("b", enumType->nameOf(1));
+	ASSERT_EQ("c", enumType->nameOf(2));
+	ASSERT_THROW(enumType->nameOf(-1), LoggableException);
+	ASSERT_THROW(enumType->nameOf(3), LoggableException);
+}
+
+TEST(EnumType, valueOf)
+{
+	Logger logger;
+	Manager mgr;
+
+	Rooted<EnumType> enumType{EnumType::createValidated(
+	    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
+
+	ASSERT_EQ(0, enumType->valueOf("a"));
+	ASSERT_EQ(1, enumType->valueOf("b"));
+	ASSERT_EQ(2, enumType->valueOf("c"));
+	ASSERT_THROW(enumType->valueOf("d"), LoggableException);
+	ASSERT_THROW(enumType->valueOf("e"), LoggableException);
+}
 
 /* Class ArrayType */
 
@@ -328,6 +467,5 @@ TEST(UnknownType, conversion)
 		ASSERT_EQ(val1, val2);
 	}
 }
-
 }
 }

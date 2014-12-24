@@ -94,34 +94,48 @@ bool BoolType::doBuild(Variant &var, Logger &logger) const
 
 bool EnumType::doBuild(Variant &var, Logger &logger) const
 {
+	// If the variant is an int, check whether the value is in range
 	if (var.isInt()) {
 		int i = var.asInt();
 		if (i < 0 || i >= (int)values.size()) {
 			throw LoggableException("Value is out of range.");
 		}
-	} else if (var.isMagic()) {
+		return true;
+	}
+
+	// If the given variant is a magic value it may be an enumeration constant.
+	// Set the variant to the numeric value
+	if (var.isMagic()) {
 		// Fetch the given constant name and look it up in the value map
 		const std::string &name = var.asMagic();
 		auto it = values.find(name);
 
-		// Throw an execption
+		// Throw an execption if the given string value is not found
 		if (it == values.end()) {
 			throw LoggableException(std::string("Unknown enum constant: \"") +
 			                        name + std::string("\""));
 		}
 		var = it->second;
+		return true;
 	}
-	return true;
+	throw LoggableException{"Expected integer or identifier"};
 }
 
-EnumType EnumType::createValidated(Manager &mgr, std::string name,
+Rooted<EnumType> EnumType::createValidated(Manager &mgr, std::string name,
                                    Handle<Typesystem> system,
                                    const std::vector<std::string> &values,
                                    Logger &logger)
 {
 	// Map used to store the unique values of the enum
-	std::map<std::string, Variant::intType> unique_values;
+	std::map<std::string, Ordinal> unique_values;
 
+	// The given vector may not be empty
+	if (values.empty()) {
+		logger.error("Enumeration constants may not be empty.");
+	}
+
+	// Iterate over the input vector, check the constant names for validity and
+	// uniqueness and insert them into the internal values map
 	for (size_t i = 0; i < values.size(); i++) {
 		if (!Utils::isIdentifier(values[i])) {
 			logger.error(values[i] + " is no valid identifier.");
@@ -132,7 +146,28 @@ EnumType EnumType::createValidated(Manager &mgr, std::string name,
 			             " was duplicated.");
 		}
 	}
-	return std::move(EnumType(mgr, name, system, unique_values));
+	return new EnumType{mgr, name, system, unique_values};
+}
+
+std::string EnumType::nameOf(Ordinal i) const
+{
+	if (i >= 0 && i < (int)values.size()) {
+		for (const auto &v : values) {
+			if (v.second == i) {
+				return v.first;
+			}
+		}
+	}
+	throw LoggableException("Ordinal value out of range.");
+}
+
+EnumType::Ordinal EnumType::valueOf(const std::string &name) const
+{
+	auto it = values.find(name);
+	if (it != values.end()) {
+		return it->second;
+	}
+	throw LoggableException(std::string("Unknown enum constant: ") + name);
 }
 
 /* Class ArrayType */

@@ -279,12 +279,15 @@ public:
  * The EnumType class represents a user defined enumeration type.
  */
 class EnumType : public Type {
+public:
+	using Ordinal = Variant::intType;
+
 private:
 	/**
 	 * Map containing the enumeration type values and the associated integer
 	 * representation.
 	 */
-	const std::map<std::string, Variant::intType> values;
+	const std::map<std::string, Ordinal> values;
 
 protected:
 	/**
@@ -303,24 +306,47 @@ protected:
 	 * instance from a previously created name to value map.
 	 */
 	EnumType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	         std::map<std::string, Variant::intType> values)
+	         std::map<std::string, Ordinal> values)
 	    : Type(mgr, std::move(name), system, false), values(std::move(values))
 	{
 	}
 
 public:
 	/**
-	 * TODO: DOC
+	 * Creates a new enum instance and validates the incomming value vector.
+	 *
+	 * @param mgr is the underlying Manager instance.
+	 * @param name is the name of the EnumType instance. Should be a valid
+	 * identifier.
+	 * @param values is a vector containing the enumeration type constants.
+	 * The constants are checked for validity (must be a valid identifier) and
+	 * uniqueness (each value must exist exactly once).
+	 * @param logger is the Logger instance into which errors should be written.
 	 */
-	static EnumType createValidated(Manager &mgr, std::string name,
-	                                Handle<Typesystem> system,
-	                                const std::vector<std::string> &values,
-	                                Logger &logger);
+	static Rooted<EnumType> createValidated(
+	    Manager &mgr, std::string name, Handle<Typesystem> system,
+	    const std::vector<std::string> &values, Logger &logger);
 
 	/**
-	 * TODO: DOC
+	 * Creates a Variant containing a valid representation of a variable of this
+	 * EnumType instance. The variant will point at the first enumeration
+	 * constant.
+	 *
+	 * @return a variant pointing at the first enumeration constant.
 	 */
 	Variant create() const override { return Variant{0}; }
+
+	/**
+	 * Returns the name of the given ordinal number. Throws a LoggableException
+	 * if the ordinal number is out of range.
+	 */
+	std::string nameOf(Ordinal i) const;
+
+	/**
+	 * Returns the ordinal numer associated with the given enumeration constant
+	 * name. Throws a LoggableException if the string does not exist.
+	 */
+	Ordinal valueOf(const std::string &name) const;
 };
 
 /**
@@ -350,6 +376,7 @@ public:
 	 * @param mgr is the Manager instance to be used for the Node.
 	 * @param type holds a reference to the type descriptor holding the type
 	 * of the attribute.
+	 * @param name is the name of the Attribute. Should be a valid identifier.
 	 * @param defaultValue is the default value of the attribute
 	 * @param optional should be set to true if the if the default value should
 	 * be used.
