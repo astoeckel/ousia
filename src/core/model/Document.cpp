@@ -155,7 +155,7 @@ Rooted<StructuredEntity> StructuredEntity::buildEntity(
 		return {nullptr};
 	}
 	// append the new entity to the right field.
-	NodeVector<StructuredEntity> field{parent};
+	NodeVector<StructuredEntity> field(parent);
 	parent->getField(field, fieldName);
 	field.push_back(entity);
 
@@ -179,7 +179,7 @@ Rooted<DocumentPrimitive> DocumentPrimitive::buildEntity(
 		return {nullptr};
 	}
 	// append the new entity to the right field.
-	NodeVector<StructuredEntity> field{parent};
+	NodeVector<StructuredEntity> field(parent);
 	parent->getField(field, fieldName);
 	field.push_back(entity);
 

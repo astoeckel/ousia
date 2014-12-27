@@ -224,7 +224,7 @@ TEST(ManagedVector, accessOperator)
 {
 	Manager mgr{1};
 	Rooted<Managed> root{new Managed{mgr}};
-	ManagedVector<Managed> instance{root};
+	ManagedVector<Managed> instance(root);
 	Rooted<Managed> elem{new Managed{mgr}};
 	instance.push_back(elem);
 
