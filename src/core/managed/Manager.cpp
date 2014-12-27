@@ -16,6 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+//#define DEBUG_MANAGER
+
+#ifdef DEBUG_MANAGER
+#include <iostream>
+#endif
+
 #include <cassert>
 
 #include "Managed.hpp"
@@ -144,11 +150,18 @@ Manager::ObjectDescriptor *Manager::getDescriptor(Managed *o)
 
 void Manager::manage(Managed *o)
 {
+#ifdef DEBUG_MANAGER
+	std::cout << "manage " << o << std::endl;
+#endif
 	objects.emplace(std::make_pair(o, ObjectDescriptor{}));
 }
 
 void Manager::addRef(Managed *tar, Managed *src)
 {
+#ifdef DEBUG_MANAGER
+	std::cout << "addRef " << tar << " <- " << src << std::endl;
+#endif
+
 	// Make sure the source and target manager are the same
 	if (src) {
 		assert(&tar->getManager() == &src->getManager());
@@ -174,6 +187,10 @@ void Manager::addRef(Managed *tar, Managed *src)
 
 void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 {
+#ifdef DEBUG_MANAGER
+	std::cout << "deleteRef " << tar << " <- " << src << std::endl;
+#endif
+
 	// Fetch the Managed descriptors for the two objects
 	ObjectDescriptor *dTar = getDescriptor(tar);
 	ObjectDescriptor *dSrc = getDescriptor(src);
@@ -207,6 +224,10 @@ void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 
 void Manager::deleteObject(Managed *o, ObjectDescriptor *descr)
 {
+#ifdef DEBUG_MANAGER
+	std::cout << "deleteObject " << o << std::endl;
+#endif
+
 	// Abort if the Managed already is on the "deleted" list
 	if (deleted.count(o)) {
 		return;
