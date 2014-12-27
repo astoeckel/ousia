@@ -336,7 +336,7 @@ bool Buffer::atEnd(Buffer::CursorId cursor) const
 	       (c.bucket == endBucket && c.bucketOffs == endBucket->size());
 }
 
-bool Buffer::fetchCharacter(CursorId cursor, char &c, bool incr)
+inline bool Buffer::fetchCharacter(CursorId cursor, char &c, bool incr)
 {
 	Cursor &cur = cursors[cursor];
 	while (true) {
