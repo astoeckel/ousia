@@ -30,13 +30,13 @@ namespace model {
  *
  * Currently contained: string, text (struct wrapper for string)
  */
-static Rooted<Typesystem> constructTypeSystem(Manager &mgr)
+static Rooted<Typesystem> constructTypeSystem(Manager &mgr, Logger &logger)
 {
 	Rooted<Typesystem> sys{new Typesystem(mgr, "std")};
 	Rooted<StringType> string{new StringType(mgr, sys)};
 	sys->addType(string);
-	Rooted<StructType> string_struct{new StructType(
-	    mgr, "text", sys, {new Attribute(mgr, "content", string, "", false)})};
+	Rooted<StructType> string_struct{StructType::createValidated(
+	    mgr, "text", sys, nullptr, {new Attribute(mgr, "content", string, "", false)}, logger)};
 	sys->addType(string_struct);
 
 	return sys;
@@ -46,12 +46,12 @@ static Rooted<Typesystem> constructTypeSystem(Manager &mgr)
  * This constructs the "book" domain for test purposes. The structure of the
  * domain is fairly simple and can be seen from the construction itself.
  */
-static Rooted<Domain> constructBookDomain(Manager &mgr)
+static Rooted<Domain> constructBookDomain(Manager &mgr, Logger &logger)
 {
 	// Start with the Domain itself.
 	Rooted<Domain> domain{new Domain(mgr, "book")};
 	// The standard type system.
-	domain->getTypesystems().push_back(constructTypeSystem(mgr));
+	domain->getTypesystems().push_back(constructTypeSystem(mgr, logger));
 	// Set up the cardinalities we'll need.
 	Cardinality single;
 	single.merge({1});

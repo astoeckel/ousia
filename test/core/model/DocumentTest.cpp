@@ -27,16 +27,16 @@
 namespace ousia {
 namespace model {
 
-
 TEST(Document, testDocumentConstruction)
 {
 	// Construct Manager
+	Logger logger;
 	Manager mgr{1};
 	// Get the domain.
-	Rooted<Domain> domain = constructBookDomain(mgr);
+	Rooted<Domain> domain = constructBookDomain(mgr, logger);
 	// Construct the document.
 	Rooted<Document> doc = constructBookDocument(mgr, domain);
-	
+
 	// If that works we are happy already.
 	ASSERT_FALSE(doc.isNull());
 }

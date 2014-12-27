@@ -76,13 +76,13 @@ protected:
 	 * an LoggableException in case the given data cannot be converted to
 	 * the internal representation given by the type descriptor.
 	 *
-	 * @param var is a variant containing the data that should be checked and
+	 * @param data is a variant containing the data that should be checked and
 	 * -- if possible and necessary -- converted to a variant adhering to the
 	 * internal representation used by the Type class.
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	virtual bool doBuild(Variant &var, Logger &logger) const = 0;
+	virtual bool doBuild(Variant &data, Logger &logger) const = 0;
 
 public:
 	/**
@@ -102,13 +102,13 @@ public:
 	 * Validates and completes the given variant which was read from a
 	 * user-supplied source.
 	 *
-	 * @param var is a variant containing the data that should be checked and
+	 * @param data is a variant containing the data that should be checked and
 	 * -- if possible and necessary -- converted to a variant adhering to the
 	 * internal representation used by the Type class.
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool build(Variant &var, Logger &logger) const;
+	bool build(Variant &data, Logger &logger) const;
 
 	/**
 	 * Returns the underlying Typesystem instance.
@@ -132,12 +132,12 @@ protected:
 	 * If possible, converts the given variant to a string. Only works, if the
 	 * variant contains primitive objects (integers, strings, booleans, etc.).
 	 *
-	 * @param var is a variant containing the data that should be checked and
+	 * @param data is a variant containing the data that should be checked and
 	 * converted to a string.
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &var, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger) const override;
 
 public:
 	/**
@@ -171,11 +171,11 @@ protected:
 	 * Expects the given variant to be an integer. Does not perform any type
 	 * conversion.
 	 *
-	 * @param var is a variant containing the data that should be checked.
+	 * @param data is a variant containing the data that should be checked.
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &var, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger) const override;
 
 public:
 	/**
@@ -209,11 +209,11 @@ protected:
 	 * Expects the given variant to be a double or an integer. Converts integers
 	 * to doubles.
 	 *
-	 * @param var is a variant containing the data that should be checked.
+	 * @param data is a variant containing the data that should be checked.
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &var, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger) const override;
 
 public:
 	/**
@@ -247,11 +247,11 @@ protected:
 	 * Expects the given variant to be a boolean. Performs no implicit type
 	 * conversion.
 	 *
-	 * @param var is a variant containing the data that should be checked.
+	 * @param data is a variant containing the data that should be checked.
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &var, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger) const override;
 
 public:
 	/**
@@ -289,27 +289,33 @@ private:
 	 */
 	const std::map<std::string, Ordinal> values;
 
-protected:
 	/**
-	 * Converts the given variant to the corresponding enum type representation.
-	 * The variant may either be a magic string containing the name of an
-	 * enumeration type or an integer.
+	 * Private constructor of the EnumType class used to create a new EnumType
+	 * instance from a previously created name to value map. The parameters are
+	 * not checked for validity.
 	 *
-	 * @param var is a variant containing the data that should be checked.
-	 * @param logger is the Logger instance into which errors should be written.
-	 * @return true if the conversion was successful, false otherwise.
-	 */
-	bool doBuild(Variant &var, Logger &logger) const override;
-
-	/**
-	 * Protected constructor of the EnumType class used to create a new EnumType
-	 * instance from a previously created name to value map.
+	 * @param mgr is the underlying Manager instance.
+	 * @param name is the name of the EnumType instance. Should be a valid
+	 * identifier.
+	 * @param values is a vector containing the enumeration type constants.
 	 */
 	EnumType(Manager &mgr, std::string name, Handle<Typesystem> system,
 	         std::map<std::string, Ordinal> values)
 	    : Type(mgr, std::move(name), system, false), values(std::move(values))
 	{
 	}
+
+protected:
+	/**
+	 * Converts the given variant to the corresponding enum type representation.
+	 * The variant may either be a magic string containing the name of an
+	 * enumeration type or an integer.
+	 *
+	 * @param data is a variant containing the data that should be checked.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
+	 */
+	bool doBuild(Variant &data, Logger &logger) const override;
 
 public:
 	/**
@@ -318,6 +324,7 @@ public:
 	 * @param mgr is the underlying Manager instance.
 	 * @param name is the name of the EnumType instance. Should be a valid
 	 * identifier.
+	 * @param system is a reference to the parent Typesystem instance.
 	 * @param values is a vector containing the enumeration type constants.
 	 * The constants are checked for validity (must be a valid identifier) and
 	 * uniqueness (each value must exist exactly once).
@@ -357,7 +364,7 @@ private:
 	/**
 	 * Reference to the actual type of the attribute.
 	 */
-	Owned<Type> type;
+	const Owned<Type> type;
 
 public:
 	/**
@@ -377,12 +384,13 @@ public:
 	 * @param type holds a reference to the type descriptor holding the type
 	 * of the attribute.
 	 * @param name is the name of the Attribute. Should be a valid identifier.
-	 * @param defaultValue is the default value of the attribute
+	 * @param defaultValue is the default value of the attribute and must have
+	 * been passed through the build of the specified type.
 	 * @param optional should be set to true if the if the default value should
 	 * be used.
 	 */
 	Attribute(Manager &mgr, std::string name, Handle<Type> type,
-	          Variant defaultValue, bool optional)
+	          Variant defaultValue, bool optional = true)
 	    : Node(mgr, std::move(name)),
 	      type(acquire(type)),
 	      defaultValue(defaultValue),
@@ -418,60 +426,197 @@ public:
  * The StructType class represents a user defined structure.
  */
 class StructType : public Type {
-protected:
+private:
 	/**
-	 * TODO: DOC
+	 * Reference to the parent structure type (or nullptr if the struct type is
+	 * not derived from any other struct type).
 	 */
-	bool doBuild(Variant &var, Logger &logger) const override
-	{
-		// If we already have an array, we just check that.
-		if (var.isArray()) {
-			auto arr = var.asArray();
-			for (size_t a = 0; a < attributes.size(); a++) {
-				if (!attributes[a]->getType()->build(arr[a], logger)) {
-					return false;
-				}
-			}
-			return true;
-		}
-		// Otherwise we expect a map.
-		if (!var.isMap()) {
-			throw LoggableException("Expected map!");
-		}
-		auto &map = var.asMap();
-		// We transform the map into an array with the correct values at the
-		// correct places.
-		Variant::arrayType vec;
-		for (auto &a : attributes) {
-			auto it = map.find(a->getName());
-			// we use the default if nothing is set.
-			if (it == map.end() || !a->getType()->build(it->second, logger)) {
-				logger.note(std::string("Using default value for ") +
-				            a->getName());
-				vec.push_back(a->defaultValue);
-			} else {
-				vec.push_back(it->second);
-			}
-		}
-		var = Variant(vec);
-		return true;
-	}
+	const Owned<StructType> parent;
 
-public:
+	/**
+	 * Vector containing references to all attribute descriptors.
+	 */
 	const NodeVector<Attribute> attributes;
 
+	/**
+	 * Map storing the attribute names.
+	 */
+	const std::map<std::string, size_t> attributeNames;
+
+	/**
+	 * Resolves an attribute key string of the form "#idx" to the corresponding
+	 * attribute index.
+	 *
+	 * @param key is the key to be parsed.
+	 * @param val is the variable in which the result should be stored.
+	 * @return true if the operation was successful, false otherwise.
+	 */
+	bool resolveIndexKey(const std::string &key, size_t &idx) const;
+
+	/**
+	 * Resolves an attribute key strin of the form "key" to the corresponding
+	 * attribute index.
+	 *
+	 * @param key is the key to be parsed.
+	 * @param val is the variable in which the result should be stored.
+	 * @return true if the operation was successful, false otherwise.
+	 */
+	bool resolveIdentifierKey(const std::string &key, size_t &idx) const;
+
+	/**
+	 * Resolves the given attribute key to the corresponding array index.
+	 *
+	 * @param key is the key to be parsed.
+	 * @param val is the variable in which the result should be stored.
+	 * @return true if the operation was successful, false otherwise.
+	 */
+	bool resolveKey(const std::string &key, size_t &idx) const;
+
+	/**
+	 * Inserts default values into unset attribute slots. Loggs errors if a
+	 * attribute that was not explicitly set has no default value associated to
+	 * it.
+	 *
+	 * @param data is a variant with array type that should be updated.
+	 * @param set indicating which array slots that have been set explicitly.
+	 * @param logger used to which error messages and warnings are logged.
+	 * @return true if the operation is successful, false otherwise.
+	 */
+	bool insertDefaults(Variant &data, const std::vector<bool> &set,
+	                    Logger &logger) const;
+
+	/**
+	 * Checks an array for validity and if possible updates its content to match
+	 * the types of the structure type.
+	 *
+	 * @param data is the variant to be checked.
+	 * @param logger used to which error messages and warnings are logged.
+	 * @param trim if true, longer arrays are accepted and trimmed to the number
+	 * of attributes (as needed when casting from a derived type).
+	 * @return true if the operation is successful, false otherwise.
+	 */
+	bool buildFromArray(Variant &data, Logger &logger, bool trim) const;
+
+	/**
+	 * Checks a map and its entries for validity and if possible updates its
+	 * content to match the types of the structure type.
+	 *
+	 * @param data is the variant to be checked.
+	 * @param logger used to which error messages and warnings are logged.
+	 * @param trim if true, unspecified indices are ignored. This may be needed
+	 * when casting from a derived type.
+	 * @return true if the operation is successful, false otherwise.
+	 */
+	bool buildFromMap(Variant &data, Logger &logger, bool trim) const;
+
+	/**
+	 * Checks a map or an array for validity and if possible updates its content
+	 * to match the types of the structure type.
+	 *
+	 * @param data is the variant to be checked.
+	 * @param logger used to which error messages and warnings are logged.
+	 * @param trim if true, unspecified indices are ignored. This may be needed
+	 * when casting from a derived type.
+	 * @return true if the operation is successful, false otherwise.
+	 */
+	bool buildFromArrayOrMap(Variant &data, Logger &logger, bool trim) const;
+
+	/**
+	 * Private constructor of the StructType class, creates a new instance
+	 * without performing any validity checks.
+	 *
+	 * @param mgr is the underlying Manager instance.
+	 * @param name is the name of the EnumType instance. Should be a valid
+	 * identifier.
+	 * @param system is a reference to the parent Typesystem instance.
+	 * @param parent is a reference to the StructType this type is derived from,
+	 * may be nullptr.
+	 * @param attributes is a vector containing the struct type attributes.
+	 */
 	StructType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	           ManagedVector<Attribute> attributes)
+	           Handle<StructType> parent, NodeVector<Attribute> attributes,
+	           std::map<std::string, size_t> attributeNames)
 	    : Type(mgr, std::move(name), system, false),
-	      attributes(this, std::move(attributes))
+	      parent(acquire(parent)),
+	      attributes(this, std::move(attributes)),
+	      attributeNames(std::move(attributeNames))
 	{
 	}
-	// TODO
-	//	static StructType createValidated(
-	//	    Manager &mgr, std::string name, Handle<Typesystem> system,
-	//           ManagedVector<Attribute> attributes);
 
-	Variant create() const override { return Variant{Variant::arrayType{}}; }
+protected:
+	/**
+	 * Converts the given variant to the representation of the structure type.
+	 * The variant may either be an array containing the values of the
+	 * attributes in the correct order or a map containing the names of the
+	 * attributes or their position in the for of a hash symbol "#" folowed by
+	 * the index of the attribute. The resulting variant is an array containg
+	 * the value of each attribute, extended by the default values
+	 * in the correct order.
+	 *
+	 * @param data is a variant containing the data that should be checked.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
+	 */
+	bool doBuild(Variant &data, Logger &logger) const override;
+
+public:
+	/**
+	 * Creates a new instance of the StructType class and checks the given
+	 * parameters for validity.
+	 *
+	 * @param mgr is the underlying Manager instance.
+	 * @param name is the name of the EnumType instance. Should be a valid
+	 * identifier.
+	 * @param system is a reference to the parent Typesystem instance.
+	 * @param parent is a reference to the StructType this type is derived from,
+	 * may be nullptr.
+	 * @param attributes is a vector containing the struct type attributes.
+	 * The attributes are checked for validity (their names must be a valid
+	 * identifiers) and uniqueness (each value must exist exactly once).
+	 * @param logger is the Logger instance into which errors should be written.
+	 */
+	static Rooted<StructType> createValidated(Manager &mgr, std::string name,
+	                                          Handle<Typesystem> system,
+	                                          Handle<StructType> parent,
+	                                          NodeVector<Attribute> attributes,
+	                                          Logger &logger);
+
+	/**
+	 * Creates a Variant containing a valid representation of a data instance of
+	 * this StructType.
+	 *
+	 * @return a valid, empty data instance of this type.
+	 */
+	Variant create() const override;
+
+	/**
+	 * Function to return true if the other type either equals this type or this
+	 * type is derived from the other type.
+	 *
+	 * @param other is the other struct type that should be checked.
+	 * @return true if the other type instance points at the same instance as
+	 * this type or this type is derived from the other type.
+	 */
+	bool derivedFrom(Handle<StructType> other) const;
+
+	/**
+	 * Casts the given type instance of a derived type to a type instance valid
+	 * for this type. This operation is only valid if this type instance is a
+	 * parent of the type instance that generated the data.
+	 *
+	 * @param data is the data that should be cast to this type. The data must
+	 * have been built by a derived type of this type instance.
+	 * @param logger is the Logger instance to which errors should be logged.
+	 */
+	Variant cast(Variant &data, Logger &logger) const;
+
+	/**
+	 * Returns a handle pointing at the parent type.
+	 *
+	 * @return a rooted handle pointing at the parent type or nullptr, if this
+	 * struct type has no parent.
+	 */
+	Rooted<StructType> getParent() const { return parent; }
 };
 
 /**
@@ -492,12 +637,12 @@ protected:
 	 * Makes sure the given variant is an array and its elements match the inner
 	 * type of the Arraqy.
 	 *
-	 * @param var is a variant containing the array data that should be checked
+	 * @param data is a variant containing the array data that should be checked
 	 * and passed to the inner type validation function.
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &var, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger) const override;
 
 public:
 	/**

@@ -337,15 +337,15 @@ TEST(EnumType, createValidated)
 
 	{
 		Logger logger;
-		Rooted<EnumType> enumType{EnumType::createValidated(
-		    mgr, "enum", nullptr, {}, logger)};
+		Rooted<EnumType> enumType{
+		    EnumType::createValidated(mgr, "enum", nullptr, {}, logger)};
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
 
 	{
 		Logger logger;
-		Rooted<EnumType> enumType{EnumType::createValidated(
-		    mgr, "enum", nullptr, {"a a"}, logger)};
+		Rooted<EnumType> enumType{
+		    EnumType::createValidated(mgr, "enum", nullptr, {"a a"}, logger)};
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
 }
@@ -378,6 +378,33 @@ TEST(EnumType, valueOf)
 	ASSERT_EQ(2, enumType->valueOf("c"));
 	ASSERT_THROW(enumType->valueOf("d"), LoggableException);
 	ASSERT_THROW(enumType->valueOf("e"), LoggableException);
+}
+
+/* Class StructType */
+
+static Rooted<StructType> createStructType(Manager &mgr, Logger &logger)
+{
+	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
+	Rooted<IntType> intType{new IntType(mgr, nullptr)};
+	Rooted<StructType> structType{StructType::createValidated(
+	    mgr, "struct", nullptr, nullptr,
+	    NodeVector<Attribute>{
+	        new Attribute{mgr, "attr1", stringType, "attr1default"},
+	        new Attribute{mgr, "attr2", stringType},
+	        new Attribute{mgr, "attr3", intType, 3},
+	        new Attribute{mgr, "attr4", intType}},
+	    logger)};
+	return structType;
+}
+
+TEST(StructType, rtti)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<StructType> structType = createStructType(mgr, logger);
+	ASSERT_TRUE(structType->isa(RttiTypes::StructType));
+	ASSERT_TRUE(structType->isa(typeOf<Type>()));
+	ASSERT_TRUE(structType->isa(typeOf<Node>()));
 }
 
 /* Class ArrayType */

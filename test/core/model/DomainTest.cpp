@@ -46,9 +46,10 @@ void assert_path(std::vector<Rooted<Managed>> &result, size_t idx,
 TEST(Domain, testDomainResolving)
 {
 	// Construct Manager
+	Logger logger;
 	Manager mgr{1};
 	// Get the domain.
-	Rooted<Domain> domain = constructBookDomain(mgr);
+	Rooted<Domain> domain = constructBookDomain(mgr, logger);
 
 	/*
 	 * Start with the "book" search keyword. This should resolve to the domain
