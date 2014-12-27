@@ -351,11 +351,11 @@ public:
 	 * Returns the name of the node.
 	 */
 	std::string getName() const { return name; }
-	
+
 	/**
 	 * Returns a reference to the name of the node.
 	 */
-	const std::string& getNameRef() const { return name; }
+	const std::string &getNameRef() const { return name; }
 
 	/**
 	 * Specifies whether the node has a name, e.g. whether the current name is
@@ -437,7 +437,7 @@ public:
 	 * @return a vector containing all found node references.
 	 */
 	std::vector<Rooted<Managed>> resolve(const std::vector<std::string> &path,
-	                                  Filter filter, void *filterData);
+	                                     Filter filter, void *filterData);
 
 	/**
 	 * Function which resolves a name path to a list of possible nodes starting
@@ -466,7 +466,7 @@ public:
 	 * @return a vector containing all found node references.
 	 */
 	std::vector<Rooted<Managed>> resolve(const char *, Filter filter,
-	                                  void *filterData)
+	                                     void *filterData)
 	{
 		return resolve(std::vector<std::string>{name}, filter, filterData);
 	}
@@ -543,12 +543,11 @@ public:
 };
 
 namespace RttiTypes {
-	/**
-	 * Typeinformation for the base "Node" class.
-	 */
-	extern const Rtti<Node> Node;
+/**
+ * Typeinformation for the base "Node" class.
+ */
+extern const Rtti<Node> Node;
 }
-
 }
 
 #endif /* _OUSIA_NODE_HPP_ */
