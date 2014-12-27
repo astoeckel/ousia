@@ -257,6 +257,31 @@ public:
 	}
 
 	/**
+	 * Comparison operator between base Owned and base Owned.
+	 */
+	template <class T2>
+	bool operator!=(const Handle<T2> &h) const
+	{
+		return ptr != h.get();
+	}
+
+	/**
+	 * Comparison operator between base Owned and pointer.
+	 */
+	friend bool operator!=(const Handle<T> &h, const Managed *o)
+	{
+		return h.get() != o;
+	}
+
+	/**
+	 * Comparison operator between base Owned and pointer.
+	 */
+	friend bool operator!=(const Managed *o, const Handle<T> &h)
+	{
+		return o != h.get();
+	}
+
+	/**
 	 * Returns true if the handle is the null pointer.
 	 */
 	bool isNull() const { return ptr == nullptr; }
