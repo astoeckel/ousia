@@ -27,7 +27,6 @@
 #ifndef _OUSIA_MANAGED_CONTAINER_H_
 #define _OUSIA_MANAGED_CONTAINER_H_
 
-#include <iostream>
 #include <initializer_list>
 #include <unordered_map>
 #include <unordered_set>
@@ -63,10 +62,7 @@ struct ListAccessor {
  */
 template <class ValueType>
 struct MapAccessor {
-	Managed *getManaged(const ValueType &val) const
-	{
-		return val.second.get();
-	}
+	Managed *getManaged(const ValueType &val) const { return val.second.get(); }
 };
 
 /**
@@ -133,17 +129,23 @@ private:
 	}
 
 	/**
-	 * Calls the "deleteElement" function of each element and thus finalizes
-	 * the references from the owner to the elements.
+	 * Calls the "deleteElement" function for each element in the given
+	 * collection.
+	 *
+	 * @param collection for which the deleteElement function is invoked.
 	 */
-	void finalize()
+	void finalize(const Collection &collection)
 	{
-		if (owner) {
-			for (const auto &elem : *this) {
-				deleteElement(elem);
-			}
+		for (const auto &elem : collection) {
+			deleteElement(elem);
 		}
 	}
+
+	/**
+	 * Calls the "deleteElement" function for each element in the underlying
+	 * STL collection.
+	 */
+	void finalize() { finalize(c); }
 
 protected:
 	/**
@@ -163,7 +165,7 @@ protected:
 	 */
 	void addElement(const value_type &elem)
 	{
-		Managed* managed = accessor.getManaged(elem);
+		Managed *managed = accessor.getManaged(elem);
 		Manager &manager = owner ? owner->getManager() : managed->getManager();
 
 		manager.addRef(managed, owner);
@@ -180,7 +182,7 @@ protected:
 	 */
 	void deleteElement(const value_type &elem)
 	{
-		Managed* managed = accessor.getManaged(elem);
+		Managed *managed = accessor.getManaged(elem);
 		Manager &manager = owner ? owner->getManager() : managed->getManager();
 
 		manager.deleteRef(managed, owner);
@@ -188,18 +190,20 @@ protected:
 	}
 
 public:
-
 	/**
 	 * Constructor of the ManagedContainer class with no owner (will contain
 	 * rooted entries).
 	 */
-	ManagedContainer() : owner(nullptr) {};
+	ManagedContainer() : owner(nullptr){};
 
 	/**
 	 * Constructor of the ManagedContainer class with an initializer list but
 	 * no owner (will contain rooted entries).
 	 */
-	ManagedContainer(std::initializer_list<T> l) : owner(nullptr), c(l) {};
+	ManagedContainer(std::initializer_list<value_type> l) : owner(nullptr), c(l)
+	{
+		initialize();
+	};
 
 	/**
 	 * Constructor of the ManagedContainer class.
@@ -207,7 +211,7 @@ public:
 	 * @param owner is the managed object which owns the collection and all
 	 * handles to other managed objects stored within.
 	 */
-	ManagedContainer(Handle<Managed> owner) : owner(owner.get()) {};
+	ManagedContainer(Handle<Managed> owner) : owner(owner.get()){};
 
 	/**
 	 * Copy constructor. Creates a copy of the given container with the same
@@ -262,9 +266,9 @@ public:
 	ManagedContainer(Handle<Managed> owner, own_type &&other)
 	    : owner(owner.get()), c(std::move(other.c))
 	{
-		other.finalize();
-		other.owner = nullptr;
 		initialize();
+		other.finalize(c);
+		other.owner = nullptr;
 	}
 
 	/**
@@ -510,8 +514,9 @@ public:
 		}
 		Base::c.pop_back();
 	}
-	
-	Rooted<T> operator[](int i) const {
+
+	Rooted<T> operator[](int i) const
+	{
 		for (const_iterator it = Base::cbegin(); it != Base::cend(); it++) {
 			if (i == 0) {
 				return Rooted<T>(*it);
