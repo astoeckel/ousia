@@ -313,30 +313,50 @@ bool StructType::doBuild(Variant &data, Logger &logger) const
 	return buildFromArrayOrMap(data, logger, false);
 }
 
-Rooted<StructType> StructType::createValidated(
-    Manager &mgr, std::string name, Handle<Typesystem> system,
-    Handle<StructType> parent, NodeVector<Attribute> attributes, Logger &logger)
+Rooted<StructType> StructType::createValidated(Manager &mgr, std::string name,
+                                               Handle<Typesystem> system,
+                                               Handle<StructType> parent,
+                                               NodeVector<Attribute> attributes,
+                                               Logger &logger)
 {
 	// Check the attributes for validity and uniqueness
 	std::map<std::string, size_t> attributeNames;
+	NodeVector<Attribute> collectedAttributes;
+
+	// Copy the attributes from the parent structure
+	if (parent != nullptr) {
+		attributeNames = parent->attributeNames;
+		collectedAttributes = parent->attributes;
+	}
+
+	// Check the attributes for validity and uniqueness
 	for (size_t idx = 0; idx < attributes.size(); idx++) {
 		// Check for valid attribute names
 		const std::string &attrName = attributes[idx]->getName();
 		if (!Utils::isIdentifier(name)) {
-			logger.error(std::string("Invalid attribute name \"") + name +
+			logger.error(std::string("Invalid attribute name \"") + attrName +
 			             std::string("\""));
 		}
 
 		// Check for uniqueness
 		auto res = attributeNames.emplace(attrName, idx);
 		if (!res.second) {
-			logger.error(std::string("Attribute with name \"") + name +
+			logger.error(std::string("Attribute with name \"") + attrName +
 			             std::string("\" defined multiple times"));
+			if (parent != nullptr && parent->indexOf(attrName) >= 0) {
+				logger.note(std::string("Attribute \"") + attrName +
+				            std::string("\" was defined in parent class \"") +
+				            parent->getName() + std::string("\""));
+			}
 		}
+
+		// Store the attribute in the complete attribute list
+		collectedAttributes.push_back(attributes[idx]);
 	}
 
 	// Call the private constructor
-	return new StructType(mgr, name, system, parent, attributes, attributeNames);
+	return new StructType(mgr, name, system, parent, collectedAttributes,
+	                      attributeNames);
 }
 
 Variant StructType::create() const
@@ -367,6 +387,15 @@ bool StructType::derivedFrom(Handle<StructType> other) const
 Variant StructType::cast(Variant &data, Logger &logger) const
 {
 	return buildFromArrayOrMap(data, logger, true);
+}
+
+ssize_t StructType::indexOf(const std::string &name) const
+{
+	size_t res;
+	if (resolveIdentifierKey(name, res)) {
+		return res;
+	}
+	return -1;
 }
 
 /* Class ArrayType */

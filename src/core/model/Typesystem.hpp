@@ -617,6 +617,16 @@ public:
 	 * struct type has no parent.
 	 */
 	Rooted<StructType> getParent() const { return parent; }
+
+	/**
+	 * Returns the index of the given attribute in a data array representing
+	 * the StructType.
+	 *
+	 * @param name is the name of the attribute for which the index is
+	 * requested.
+	 * @return the index or -1 if the attribute does not exist.
+	 */
+	ssize_t indexOf(const std::string &name) const;
 };
 
 /**

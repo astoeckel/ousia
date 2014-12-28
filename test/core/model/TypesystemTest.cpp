@@ -397,6 +397,21 @@ static Rooted<StructType> createStructType(Manager &mgr, Logger &logger)
 	return structType;
 }
 
+static Rooted<StructType> createStructTypeWithParent(Handle<StructType> parent,
+                                                     Manager &mgr,
+                                                     Logger &logger)
+{
+	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
+	Rooted<IntType> intType{new IntType(mgr, nullptr)};
+	Rooted<StructType> structType{StructType::createValidated(
+	    mgr, "struct", nullptr, parent,
+	    NodeVector<Attribute>{new Attribute{mgr, "aa", stringType, "value1"},
+	                          new Attribute{mgr, "bc", intType, 42},
+	                          new Attribute{mgr, "cd", parent}},
+	    logger)};
+	return structType;
+}
+
 TEST(StructType, rtti)
 {
 	Logger logger;
@@ -426,6 +441,35 @@ TEST(StructType, creation)
 	ASSERT_EQ("", arr[1].asString());
 	ASSERT_EQ(3, arr[2].asInt());
 	ASSERT_EQ(0, arr[3].asInt());
+}
+
+TEST(StructType, creationWithParent)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<StructType> structType = createStructType(mgr, logger);
+	Rooted<StructType> structWithParentType =
+	    createStructTypeWithParent(structType, mgr, logger);
+
+	Variant val = structWithParentType->create();
+	ASSERT_TRUE(val.isArray());
+	ASSERT_EQ(7U, val.asArray().size());
+
+	const auto &arr = val.asArray();
+	ASSERT_TRUE(arr[0].isString());
+	ASSERT_TRUE(arr[1].isString());
+	ASSERT_TRUE(arr[2].isInt());
+	ASSERT_TRUE(arr[3].isInt());
+	ASSERT_TRUE(arr[4].isString());
+	ASSERT_TRUE(arr[5].isInt());
+	ASSERT_TRUE(arr[6].isArray());
+
+	ASSERT_EQ("attr1default", arr[0].asString());
+	ASSERT_EQ("", arr[1].asString());
+	ASSERT_EQ(3, arr[2].asInt());
+	ASSERT_EQ(0, arr[3].asInt());
+	ASSERT_EQ("value1", arr[4].asString());
+	ASSERT_EQ(42, arr[5].asInt());
 }
 
 /* Class ArrayType */
