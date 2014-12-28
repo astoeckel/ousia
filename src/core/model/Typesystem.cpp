@@ -244,7 +244,8 @@ bool StructType::buildFromArray(Variant &data, Logger &logger, bool trim) const
 	}
 
 	// Make sure the given attributes have to correct type
-	for (size_t a = 0; a < n; a++) {
+	const size_t len = std::min(n, N);
+	for (size_t a = 0; a < len; a++) {
 		set[a] = attributes[a]->getType()->build(arr[a], logger);
 		ok = ok && set[a];
 	}

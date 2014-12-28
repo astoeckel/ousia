@@ -472,6 +472,57 @@ TEST(StructType, creationWithParent)
 	ASSERT_EQ(42, arr[5].asInt());
 }
 
+TEST(StructType, derivedFrom)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<StructType> structType = createStructType(mgr, logger);
+	Rooted<StructType> structWithParentType =
+	    createStructTypeWithParent(structType, mgr, logger);
+
+	ASSERT_TRUE(structType->derivedFrom(structType));
+	ASSERT_TRUE(structWithParentType->derivedFrom(structType));
+	ASSERT_TRUE(structWithParentType->derivedFrom(structWithParentType));
+	ASSERT_FALSE(structType->derivedFrom(structWithParentType));
+}
+
+TEST(StructType, cast)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<StructType> structType = createStructType(mgr, logger);
+	Rooted<StructType> structWithParentType =
+	    createStructTypeWithParent(structType, mgr, logger);
+
+	Variant val = structWithParentType->create();
+
+	Variant casted = structType->cast(val, logger);
+	ASSERT_EQ(4U, val.asArray().size());
+
+	const auto &arr = val.asArray();
+	ASSERT_TRUE(arr[0].isString());
+	ASSERT_TRUE(arr[1].isString());
+	ASSERT_TRUE(arr[2].isInt());
+	ASSERT_TRUE(arr[3].isInt());
+
+	ASSERT_EQ("attr1default", arr[0].asString());
+	ASSERT_EQ("", arr[1].asString());
+	ASSERT_EQ(3, arr[2].asInt());
+	ASSERT_EQ(0, arr[3].asInt());
+}
+
+TEST(StructType, indexOf)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<StructType> structType = createStructType(mgr, logger);
+	ASSERT_EQ(0, structType->indexOf("d"));
+	ASSERT_EQ(1, structType->indexOf("b"));
+	ASSERT_EQ(2, structType->indexOf("c"));
+	ASSERT_EQ(3, structType->indexOf("a"));
+	ASSERT_EQ(-1, structType->indexOf("#0"));
+}
+
 /* Class ArrayType */
 
 TEST(ArrayType, rtti)
