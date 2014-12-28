@@ -344,7 +344,11 @@ Variant StructType::create() const
 	Variant::arrayType arr;
 	arr.resize(attributes.size());
 	for (size_t idx = 0; idx < attributes.size(); idx++) {
-		arr[idx] = attributes[idx]->getType()->create();
+		if (attributes[idx]->optional) {
+			arr[idx] = attributes[idx]->defaultValue;
+		} else {
+			arr[idx] = attributes[idx]->getType()->create();
+		}
 	}
 	return arr;
 }
