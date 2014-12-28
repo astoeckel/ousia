@@ -496,7 +496,7 @@ TEST(StructType, cast)
 
 	Variant val = structWithParentType->create();
 
-	Variant casted = structType->cast(val, logger);
+	ASSERT_TRUE(structType->cast(val, logger));
 	ASSERT_EQ(4U, val.asArray().size());
 
 	const auto &arr = val.asArray();
@@ -522,6 +522,45 @@ TEST(StructType, indexOf)
 	ASSERT_EQ(3, structType->indexOf("a"));
 	ASSERT_EQ(-1, structType->indexOf("#0"));
 }
+
+TEST(StructType, buildWithDefaults)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<StructType> structType = createStructType(mgr, logger);
+
+	{
+		Variant var{{{"b", 42}, {"a", 5}}};
+		ASSERT_TRUE(structType->build(var, logger));
+
+		const auto &arr = var.asArray();
+		ASSERT_EQ(4U, arr.size());
+		ASSERT_EQ("attr1default", arr[0].asString());
+		ASSERT_EQ("42", arr[1].asString());
+		ASSERT_EQ(3, arr[2].asInt());
+		ASSERT_EQ(5, arr[3].asInt());
+	}
+}
+
+TEST(StructType, buildWithIndicesAndDefaults)
+{
+	Logger logger;
+	Manager mgr;
+	Rooted<StructType> structType = createStructType(mgr, logger);
+
+	{
+		Variant var{{{"b", 42}, {"#3", 5}, {"#0", "foo"}}};
+		ASSERT_TRUE(structType->build(var, logger));
+
+		const auto &arr = var.asArray();
+		ASSERT_EQ(4U, arr.size());
+		ASSERT_EQ("foo", arr[0].asString());
+		ASSERT_EQ("42", arr[1].asString());
+		ASSERT_EQ(3, arr[2].asInt());
+		ASSERT_EQ(5, arr[3].asInt());
+	}
+}
+
 
 /* Class ArrayType */
 

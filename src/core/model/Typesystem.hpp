@@ -607,8 +607,9 @@ public:
 	 * @param data is the data that should be cast to this type. The data must
 	 * have been built by a derived type of this type instance.
 	 * @param logger is the Logger instance to which errors should be logged.
+	 * @return true if the operation is successful, false otherwise.
 	 */
-	Variant cast(Variant &data, Logger &logger) const;
+	bool cast(Variant &data, Logger &logger) const;
 
 	/**
 	 * Returns a handle pointing at the parent type.

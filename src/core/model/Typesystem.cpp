@@ -385,7 +385,7 @@ bool StructType::derivedFrom(Handle<StructType> other) const
 	return false;
 }
 
-Variant StructType::cast(Variant &data, Logger &logger) const
+bool StructType::cast(Variant &data, Logger &logger) const
 {
 	return buildFromArrayOrMap(data, logger, true);
 }
