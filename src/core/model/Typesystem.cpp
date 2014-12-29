@@ -48,13 +48,14 @@ bool StringType::doBuild(Variant &data, Logger &logger) const
 	}
 
 	// Perform an implicit type conversion
-	if (!data.isString() || data.isMagic()) {
+	if (!data.isString()) {
 		// Convert the variant value to a string and set it
+		const char *oldName = data.getTypeName();
 		data = data.toString().c_str();
 
 		// Log conversions as these may be potentially unwanted
 		logger.note(std::string("Implicit conversion from ") +
-		            data.getTypeName() + " to string.");
+		            oldName + " to string.");
 	}
 	return true;
 }
@@ -137,7 +138,7 @@ Rooted<EnumType> EnumType::createValidated(
 	// uniqueness and insert them into the internal values map
 	for (size_t i = 0; i < values.size(); i++) {
 		if (!Utils::isIdentifier(values[i])) {
-			logger.error(values[i] + " is no valid identifier.");
+			logger.error(std::string("\"") + values[i] + "\" is no valid identifier.");
 		}
 
 		if (!(unique_values.insert(std::make_pair(values[i], i))).second) {
@@ -215,9 +216,9 @@ bool StructType::insertDefaults(Variant &data, const std::vector<bool> &set,
 			} else {
 				ok = false;
 				arr[a] = attributes[a]->getType()->create();
-				logger.error(std::string("Expected attribute ") +
+				logger.error(std::string("Expected attribute \"") +
 				             attributes[a]->getName() +
-				             std::string(", but no value given."));
+				             std::string("\", but no value given."));
 			}
 		}
 	}
@@ -306,7 +307,7 @@ bool StructType::buildFromArrayOrMap(Variant &data, Logger &logger,
 		return buildFromMap(data, logger, trim);
 	}
 	throw LoggableException(
-	    "Expected array or map for building a struct type!");
+	    std::string("Expected array or map for building a struct type, but got ") + data.getTypeName());
 }
 
 bool StructType::doBuild(Variant &data, Logger &logger) const
@@ -404,7 +405,7 @@ ssize_t StructType::indexOf(const std::string &name) const
 bool ArrayType::doBuild(Variant &data, Logger &logger) const
 {
 	if (!data.isArray()) {
-		throw LoggableException("Expected array!");
+		throw LoggableException(std::string("Expected array, but got ") + data.getTypeName());
 	}
 	bool res = true;
 	for (auto &v : data.asArray()) {

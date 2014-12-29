@@ -26,6 +26,9 @@
 namespace ousia {
 namespace model {
 
+static TerminalLogger logger(std::cerr, true);
+//static Logger logger;
+
 /* Class StringType */
 
 TEST(StringType, rtti)
@@ -49,7 +52,6 @@ TEST(StringType, creation)
 
 TEST(StringType, conversion)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<StringType> strType{new StringType(mgr, nullptr)};
 
@@ -125,7 +127,6 @@ TEST(IntType, creation)
 
 TEST(IntType, conversion)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<IntType> intType{new IntType(mgr, nullptr)};
 
@@ -166,7 +167,6 @@ TEST(DoubleType, creation)
 
 TEST(DoubleType, conversion)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<DoubleType> doubleType{new DoubleType(mgr, nullptr)};
 
@@ -214,7 +214,6 @@ TEST(BoolType, creation)
 
 TEST(BoolType, conversion)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<BoolType> boolType{new BoolType(mgr, nullptr)};
 
@@ -244,7 +243,6 @@ TEST(BoolType, conversion)
 
 TEST(EnumType, rtti)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<EnumType> enumType{EnumType::createValidated(
 	    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
@@ -255,7 +253,6 @@ TEST(EnumType, rtti)
 
 TEST(EnumType, creation)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<EnumType> enumType{EnumType::createValidated(
 	    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
@@ -266,7 +263,6 @@ TEST(EnumType, creation)
 
 TEST(EnumType, conversion)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<EnumType> enumType{EnumType::createValidated(
 	    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
@@ -322,28 +318,28 @@ TEST(EnumType, createValidated)
 	Manager mgr;
 
 	{
-		Logger logger;
+		logger.resetMaxEncounteredSeverity();
 		Rooted<EnumType> enumType{EnumType::createValidated(
 		    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
 		ASSERT_EQ(Severity::DEBUG, logger.getMaxEncounteredSeverity());
 	}
 
 	{
-		Logger logger;
+		logger.resetMaxEncounteredSeverity();
 		Rooted<EnumType> enumType{EnumType::createValidated(
 		    mgr, "enum", nullptr, {"a", "a", "c"}, logger)};
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
 
 	{
-		Logger logger;
+		logger.resetMaxEncounteredSeverity();
 		Rooted<EnumType> enumType{
 		    EnumType::createValidated(mgr, "enum", nullptr, {}, logger)};
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
 
 	{
-		Logger logger;
+		logger.resetMaxEncounteredSeverity();
 		Rooted<EnumType> enumType{
 		    EnumType::createValidated(mgr, "enum", nullptr, {"a a"}, logger)};
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
@@ -352,7 +348,6 @@ TEST(EnumType, createValidated)
 
 TEST(EnumType, nameOf)
 {
-	Logger logger;
 	Manager mgr;
 
 	Rooted<EnumType> enumType{EnumType::createValidated(
@@ -367,7 +362,6 @@ TEST(EnumType, nameOf)
 
 TEST(EnumType, valueOf)
 {
-	Logger logger;
 	Manager mgr;
 
 	Rooted<EnumType> enumType{EnumType::createValidated(
@@ -414,7 +408,6 @@ static Rooted<StructType> createStructTypeWithParent(Handle<StructType> parent,
 
 TEST(StructType, rtti)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<StructType> structType = createStructType(mgr, logger);
 	ASSERT_TRUE(structType->isa(RttiTypes::StructType));
@@ -424,7 +417,6 @@ TEST(StructType, rtti)
 
 TEST(StructType, creation)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<StructType> structType = createStructType(mgr, logger);
 	Variant val = structType->create();
@@ -445,7 +437,6 @@ TEST(StructType, creation)
 
 TEST(StructType, creationWithParent)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<StructType> structType = createStructType(mgr, logger);
 	Rooted<StructType> structWithParentType =
@@ -474,7 +465,6 @@ TEST(StructType, creationWithParent)
 
 TEST(StructType, derivedFrom)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<StructType> structType = createStructType(mgr, logger);
 	Rooted<StructType> structWithParentType =
@@ -488,7 +478,6 @@ TEST(StructType, derivedFrom)
 
 TEST(StructType, cast)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<StructType> structType = createStructType(mgr, logger);
 	Rooted<StructType> structWithParentType =
@@ -513,7 +502,6 @@ TEST(StructType, cast)
 
 TEST(StructType, indexOf)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<StructType> structType = createStructType(mgr, logger);
 	ASSERT_EQ(0, structType->indexOf("d"));
@@ -525,7 +513,6 @@ TEST(StructType, indexOf)
 
 TEST(StructType, buildWithDefaults)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<StructType> structType = createStructType(mgr, logger);
 
@@ -540,11 +527,22 @@ TEST(StructType, buildWithDefaults)
 		ASSERT_EQ(3, arr[2].asInt());
 		ASSERT_EQ(5, arr[3].asInt());
 	}
+
+	{
+		Variant var{Variant::mapType{{"a", 5}}};
+		ASSERT_FALSE(structType->build(var, logger));
+
+		const auto &arr = var.asArray();
+		ASSERT_EQ(4U, arr.size());
+		ASSERT_EQ("attr1default", arr[0].asString());
+		ASSERT_EQ("", arr[1].asString());
+		ASSERT_EQ(3, arr[2].asInt());
+		ASSERT_EQ(5, arr[3].asInt());
+	}
 }
 
 TEST(StructType, buildWithIndicesAndDefaults)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<StructType> structType = createStructType(mgr, logger);
 
@@ -560,7 +558,6 @@ TEST(StructType, buildWithIndicesAndDefaults)
 		ASSERT_EQ(5, arr[3].asInt());
 	}
 }
-
 
 /* Class ArrayType */
 
@@ -587,7 +584,6 @@ TEST(ArrayType, creation)
 
 TEST(ArrayType, conversion)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
 	Rooted<ArrayType> arrayType{new ArrayType(mgr, stringType)};
@@ -638,7 +634,6 @@ TEST(UnknownType, creation)
 
 TEST(UnknownType, conversion)
 {
-	Logger logger;
 	Manager mgr;
 	Rooted<UnknownType> unknownType{new UnknownType(mgr, "unknown")};
 
