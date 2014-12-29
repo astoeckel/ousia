@@ -435,6 +435,14 @@ public:
 	Severity getMaxEncounteredSeverity() { return maxEncounteredSeverity; }
 
 	/**
+	 * Resets the maximum encountered severity to the debug level.
+	 */
+	void resetMaxEncounteredSeverity()
+	{
+		maxEncounteredSeverity = Severity::DEBUG;
+	}
+
+	/**
 	 * Returns the minimum severity. Messages with a smaller severity are
 	 * discarded.
 	 *
