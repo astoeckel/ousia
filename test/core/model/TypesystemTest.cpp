@@ -476,6 +476,52 @@ TEST(StructType, derivedFrom)
 	ASSERT_FALSE(structType->derivedFrom(structWithParentType));
 }
 
+TEST(StructType, createValidated)
+{
+	Manager mgr;
+	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
+	Rooted<IntType> intType{new IntType(mgr, nullptr)};
+
+	{
+		logger.resetMaxEncounteredSeverity();
+		Rooted<StructType> structType{StructType::createValidated(
+			mgr, "struct", nullptr, nullptr,
+			NodeVector<Attribute>{
+			    new Attribute{mgr, "d", stringType, "attr1default"},
+			    new Attribute{mgr, "b", stringType},
+			    new Attribute{mgr, "c", intType, 3},
+			    new Attribute{mgr, "a", intType}},
+			logger)};
+		ASSERT_EQ(Severity::DEBUG, logger.getMaxEncounteredSeverity());
+	}
+
+	{
+		logger.resetMaxEncounteredSeverity();
+		Rooted<StructType> structType{StructType::createValidated(
+			mgr, "struct", nullptr, nullptr,
+			NodeVector<Attribute>{
+			    new Attribute{mgr, "d", stringType, "attr1default"},
+			    new Attribute{mgr, "b", stringType},
+			    new Attribute{mgr, "a", intType, 3},
+			    new Attribute{mgr, "a", intType}},
+			logger)};
+		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
+	}
+
+	{
+		logger.resetMaxEncounteredSeverity();
+		Rooted<StructType> structType{StructType::createValidated(
+			mgr, "struct", nullptr, nullptr,
+			NodeVector<Attribute>{
+			    new Attribute{mgr, "d", stringType, "attr1default"},
+			    new Attribute{mgr, "b", stringType},
+			    new Attribute{mgr, "a", intType, 3},
+			    new Attribute{mgr, "a a", intType}},
+			logger)};
+		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
+	}
+}
+
 TEST(StructType, cast)
 {
 	Manager mgr;
@@ -511,11 +557,12 @@ TEST(StructType, indexOf)
 	ASSERT_EQ(-1, structType->indexOf("#0"));
 }
 
-TEST(StructType, buildWithDefaults)
+TEST(StructType, build)
 {
 	Manager mgr;
 	Rooted<StructType> structType = createStructType(mgr, logger);
 
+	// All mandatory attributes given as map
 	{
 		Variant var{{{"b", 42}, {"a", 5}}};
 		ASSERT_TRUE(structType->build(var, logger));
@@ -528,6 +575,21 @@ TEST(StructType, buildWithDefaults)
 		ASSERT_EQ(5, arr[3].asInt());
 	}
 
+
+	// All mandatory attributes given as array
+	{
+		Variant var{{"v1", 2, 3, 4}};
+		ASSERT_TRUE(structType->build(var, logger));
+
+		const auto &arr = var.asArray();
+		ASSERT_EQ(4U, arr.size());
+		ASSERT_EQ("v1", arr[0].asString());
+		ASSERT_EQ("2", arr[1].asString());
+		ASSERT_EQ(3, arr[2].asInt());
+		ASSERT_EQ(4, arr[3].asInt());
+	}
+
+	// Too few attributes
 	{
 		Variant var{Variant::mapType{{"a", 5}}};
 		ASSERT_FALSE(structType->build(var, logger));
@@ -539,12 +601,32 @@ TEST(StructType, buildWithDefaults)
 		ASSERT_EQ(3, arr[2].asInt());
 		ASSERT_EQ(5, arr[3].asInt());
 	}
-}
 
-TEST(StructType, buildWithIndicesAndDefaults)
-{
-	Manager mgr;
-	Rooted<StructType> structType = createStructType(mgr, logger);
+	// Too few attributes
+	{
+		Variant var{Variant::arrayType{}};
+		ASSERT_FALSE(structType->build(var, logger));
+
+		const auto &arr = var.asArray();
+		ASSERT_EQ(4U, arr.size());
+		ASSERT_EQ("attr1default", arr[0].asString());
+		ASSERT_EQ("", arr[1].asString());
+		ASSERT_EQ(3, arr[2].asInt());
+		ASSERT_EQ(0, arr[3].asInt());
+	}
+
+	// Too few attributes
+	{
+		Variant var{{"v1", 2}};
+		ASSERT_FALSE(structType->build(var, logger));
+
+		const auto &arr = var.asArray();
+		ASSERT_EQ(4U, arr.size());
+		ASSERT_EQ("v1", arr[0].asString());
+		ASSERT_EQ("2", arr[1].asString());
+		ASSERT_EQ(3, arr[2].asInt());
+		ASSERT_EQ(0, arr[3].asInt());
+	}
 
 	{
 		Variant var{{{"b", 42}, {"#3", 5}, {"#0", "foo"}}};

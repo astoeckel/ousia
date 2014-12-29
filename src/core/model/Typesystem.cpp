@@ -44,7 +44,7 @@ bool StringType::doBuild(Variant &data, Logger &logger) const
 {
 	// Cannot convert non-primitive values to strings
 	if (!data.isPrimitive()) {
-		throw LoggableException{"Expected a string or primitive input."};
+		throw LoggableException{"Expected string or primitive input."};
 	}
 
 	// Perform an implicit type conversion
@@ -65,7 +65,7 @@ bool StringType::doBuild(Variant &data, Logger &logger) const
 bool IntType::doBuild(Variant &data, Logger &logger) const
 {
 	if (!data.isInt()) {
-		throw LoggableException{"Expected an integer value."};
+		throw LoggableException{"Expected integer value."};
 	}
 	return true;
 }
@@ -75,7 +75,7 @@ bool IntType::doBuild(Variant &data, Logger &logger) const
 bool DoubleType::doBuild(Variant &data, Logger &logger) const
 {
 	if (!data.isInt() && !data.isDouble()) {
-		throw LoggableException{"Expected a double value."};
+		throw LoggableException{"Expected double value."};
 	}
 	data = Variant{data.toDouble()};
 	return true;
@@ -216,9 +216,9 @@ bool StructType::insertDefaults(Variant &data, const std::vector<bool> &set,
 			} else {
 				ok = false;
 				arr[a] = attributes[a]->getType()->create();
-				logger.error(std::string("Expected attribute \"") +
+				logger.error(std::string("No value given for mandatory attribute \"") +
 				             attributes[a]->getName() +
-				             std::string("\", but no value given."));
+				             std::string("\""));
 			}
 		}
 	}
@@ -335,7 +335,7 @@ Rooted<StructType> StructType::createValidated(Manager &mgr, std::string name,
 	for (size_t idx = 0; idx < attributes.size(); idx++) {
 		// Check for valid attribute names
 		const std::string &attrName = attributes[idx]->getName();
-		if (!Utils::isIdentifier(name)) {
+		if (!Utils::isIdentifier(attrName)) {
 			logger.error(std::string("Invalid attribute name \"") + attrName +
 			             std::string("\""));
 		}
