@@ -32,7 +32,7 @@
 #include <memory>
 #include <vector>
 
-#include "TextCursor.hpp"
+#include "Location.hpp"
 
 namespace ousia {
 
@@ -375,20 +375,21 @@ protected:
 		/**
 		 * Current line the cursor is in.
 		 */
-		TextCursor::PosType line;
+		int line;
 
 		/**
 		 * Current column the cursor is in.
 		 */
-		TextCursor::PosType column;
+		int column;
 
 		/**
 		 * Constructor of the Cursor class.
 		 *
 		 * @param cursor is the underlying cursor in the Buffer instance.
+		 * @param line is the line at which the cursor is positioned.
+		 * @param column is the column at which the cursor is positioned.
 		 */
-		Cursor(Buffer::CursorId cursor, TextCursor::PosType line,
-		       TextCursor::PosType column)
+		Cursor(Buffer::CursorId cursor, int line, int column)
 		    : cursor(cursor), line(line), column(column)
 		{
 		}
@@ -422,6 +423,28 @@ private:
 	 * been reached.
 	 */
 	bool readAtCursor(Cursor &cursor, char &c);
+
+	/**
+	 * Returns the line the given cursor currently is in, but at most the
+	 * given number of characters in the form of a Context structure.
+	 *
+	 * @param maxSize is the maximum length of the extracted context
+	 * @param referenceCursor is a cursor in the internal buffer pointing at the
+	 * location at which the context should be read.
+	 */
+	SourceContext getContextAt(ssize_t maxSize,
+	                           Buffer::CursorId referenceCursor);
+
+	/**
+	 * Returns the line the at the given byte offset, but at most the
+	 * given number of characters in the form of a Context structure.
+	 *
+	 * @param maxSize is the maximum length of the extracted context
+	 * @param offs is the byte offset for which the context should be read.
+	 * @return the context at the specified position or an empty (invalid)
+	 * context if the context could not be read.
+	 */
+	SourceContext getContextAtOffs(ssize_t maxSize, size_t offs);
 
 protected:
 	/**
@@ -555,19 +578,19 @@ public:
 	/**
 	 * Returns the line number the read cursor currently is at.
 	 */
-	TextCursor::PosType getLine() const { return readCursor.line; }
+	int getLine() const { return readCursor.line; }
 
 	/**
 	 * Returns the column the read cursor currently is at.
 	 */
-	TextCursor::PosType getColumn() const { return readCursor.column; }
+	int getColumn() const { return readCursor.column; }
 
 	/**
 	 * Returns the current position of the read cursor (line and column).
 	 */
-	TextCursor::Position getPosition() const
+	SourceLocation getLocation() const
 	{
-		return TextCursor::Position(getLine(), getColumn(), getOffset());
+		return SourceLocation(getLine(), getColumn(), getOffset());
 	}
 
 	/**
@@ -576,7 +599,20 @@ public:
 	 *
 	 * @param maxSize is the maximum length of the extracted context
 	 */
-	TextCursor::Context getContext(ssize_t maxSize = 60);
+	SourceContext getContext(ssize_t maxSize = 60);
+
+	/**
+	 * Function that can be used to provide the context for a certain source
+	 * location. A pointer to this function can be supplied to a Logger instance
+	 * in the pushFile() method. The data should be set to a pointer to the
+	 * CharReader instance.
+	 *
+	 * @param location is the location for which the context should be returned.
+	 * Only the "offs" field within the location is used.
+	 * @param data is a pointer pointing at a CharReader instance.
+	 */
+	static SourceContext contextCallback(const SourceLocation &location,
+	                                     void *data);
 };
 
 /**

@@ -516,10 +516,11 @@ CharReaderFork CharReader::fork()
 	return CharReaderFork(buffer, readCursor, peekCursor, coherent);
 }
 
-TextCursor::Context CharReader::getContext(ssize_t maxSize)
+SourceContext CharReader::getContextAt(ssize_t maxSize,
+                                       Buffer::CursorId referenceCursor)
 {
-	// Clone the current read cursor
-	Buffer::CursorId cur = buffer->createCursor(readCursor.cursor);
+	// Clone the given read cursor
+	Buffer::CursorId cur = buffer->createCursor(referenceCursor);
 
 	// Fetch the start position of the search
 	ssize_t offs = buffer->offset(cur);
@@ -612,8 +613,37 @@ TextCursor::Context CharReader::getContext(ssize_t maxSize)
 	// Delete the newly created cursor
 	buffer->deleteCursor(cur);
 
-	return TextCursor::Context{ss.str(), relPos, !foundBegin || tStart != start,
-	                           !foundEnd || tEnd != end};
+	return SourceContext{ss.str(), relPos, !foundBegin || tStart != start,
+	                     !foundEnd || tEnd != end};
+}
+
+SourceContext CharReader::getContextAtOffs(ssize_t maxSize, size_t offs)
+{
+	// Create a new cursor and calculate how far it has to be moved to reach
+	// the position specified in the location instance
+	Buffer::CursorId cur = buffer->createCursor();
+	ssize_t moveOffs = buffer->offset(cur) - offs;
+
+	// Try to move the cursor to the specified position and read the context
+	SourceContext res;
+	if (buffer->moveCursor(cur, moveOffs) == moveOffs) {
+		res = getContextAt(60, cur);
+	}
+
+	// Delete the read cursor
+	buffer->deleteCursor(cur);
+	return res;
+}
+
+SourceContext CharReader::getContext(ssize_t maxSize)
+{
+	return getContextAt(maxSize, readCursor.cursor);
+}
+
+SourceContext CharReader::contextCallback(const SourceLocation &location,
+                                          void *data)
+{
+	return static_cast<CharReader *>(data)->getContextAtOffs(60, location.offs);
 }
 
 /* Class CharReaderFork */
