@@ -20,6 +20,7 @@
 #include <sstream>
 
 #include "Logger.hpp"
+#include "Terminal.hpp"
 
 namespace ousia {
 
@@ -191,121 +192,6 @@ bool ConcreteLogger::hasError()
 	return getSeverityCount(Severity::ERROR) > 0 ||
 	       getSeverityCount(Severity::FATAL_ERROR) > 0;
 }
-
-/* Class Terminal */
-
-/**
- * The Terminal class contains some helper functions used to interact with the
- * terminal as used for colorful output when logging error messages.
- *
- * TODO: Disable on Windows or use corresponding API-functions for setting the
- * color.
- */
-class Terminal {
-private:
-	/**
-	 * If set to false, no control codes are generated.
-	 */
-	bool active;
-
-public:
-	/**
-	 * ANSI color code for black.
-	 */
-	static const int BLACK = 30;
-
-	/**
-	 * ANSI color code for red.
-	 */
-	static const int RED = 31;
-
-	/**
-	 * ANSI color code for green.
-	 */
-	static const int GREEN = 32;
-
-	/**
-	 * ANSI color code for yellow.
-	 */
-	static const int YELLOW = 33;
-
-	/**
-	 * ANSI color code for blue.
-	 */
-	static const int BLUE = 34;
-
-	/**
-	 * ANSI color code for magenta.
-	 */
-	static const int MAGENTA = 35;
-
-	/**
-	 * ANSI color code for cyan.
-	 */
-	static const int CYAN = 36;
-
-	/**
-	 * ANSI color code for white.
-	 */
-	static const int WHITE = 37;
-
-	/**
-	 * Creates a new instance of the Terminal class.
-	 *
-	 * @param active specifies whether color codes should be generated.
-	 */
-	Terminal(bool active) : active(active) {}
-
-	/**
-	 * Returns a control string for switching to the given color.
-	 *
-	 * @param color is the color the terminal should switch to.
-	 * @param bright specifies whether the terminal should switch to the bright
-	 * mode.
-	 * @return a control string to be included in the output stream.
-	 */
-	std::string color(int color, bool bright = true) const
-	{
-		if (!active) {
-			return std::string{};
-		}
-		std::stringstream ss;
-		ss << "\x1b[";
-		if (bright) {
-			ss << "1;";
-		}
-		ss << color << "m";
-		return ss.str();
-	}
-
-	/**
-	 * Returns a control string for switching to the bright mode.
-	 *
-	 * @return a control string to be included in the output stream.
-	 */
-	std::string bright() const
-	{
-		if (!active) {
-			return std::string{};
-		}
-		std::stringstream ss;
-		ss << "\x1b[1m";
-		return ss.str();
-	}
-
-	/**
-	 * Returns a control string for switching to the default mode.
-	 *
-	 * @return a control string to be included in the output stream.
-	 */
-	std::string reset() const
-	{
-		if (!active) {
-			return std::string{};
-		}
-		return "\x1b[0m";
-	}
-};
 
 /* Class TerminalLogger */
 
