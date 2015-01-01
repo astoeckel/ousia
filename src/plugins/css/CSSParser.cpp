@@ -137,7 +137,7 @@ void CSSParser::parseSelectors(Rooted<SelectorNode> root,
 		case 2:
 			// as the parseSelector is supposed to parse only a SelectorPath
 			// there should not be more than one leaf.
-			throw ParserException{
+			throw LoggableException{
 			    "Internal Error: More than one leaf in SelectorPath!",
 			    tokenizer.getInput()};
 	}
@@ -348,10 +348,10 @@ bool CSSParser::expect(int expectedType, CodeTokenizer &tokenizer, Token &t,
 	if (end || t.tokenId != expectedType) {
 		if (force) {
 			if (end) {
-				throw ParserException{"Unexpected end of file!",
+				throw LoggableException{"Unexpected end of file!",
 				                      tokenizer.getInput()};
 			} else {
-				throw ParserException{"Unexpected token!",
+				throw LoggableException{"Unexpected token!",
 				                      tokenizer.getInput()};
 			}
 		} else {

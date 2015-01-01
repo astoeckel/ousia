@@ -17,9 +17,11 @@
 */
 
 #include <iostream>
+#include <vector>
 
 #include <expat.h>
 
+#include <core/common/CharReader.hpp>
 #include <core/common/Utils.hpp>
 #include <core/parser/ParserStack.hpp>
 
@@ -40,10 +42,12 @@ static const State STATE_INCLUDE = 101;
 static const State STATE_INLINE = 102;
 
 /* Type system definitions */
-static const State STATE_TYPES = 200;
-static const State STATE_CONSTANT = 201;
-static const State STATE_ENUM = 202;
-static const State STATE_STRUCT = 203;
+static const State STATE_TYPESYSTEM = 200;
+static const State STATE_TYPES = 201;
+static const State STATE_CONSTANTS = 202;
+static const State STATE_CONSTANT = 203;
+static const State STATE_ENUM = 204;
+static const State STATE_STRUCT = 205;
 
 class TestHandler : public Handler {
 public:
@@ -89,10 +93,13 @@ static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
     {"inline", {{STATE_ALL}, createTestHandler, STATE_INLINE}},
 
     /* Typesystem definitions */
-    {"typesystem", {{STATE_NONE, STATE_HEAD}, createTestHandler, STATE_TYPES}},
+    {"typesystem",
+     {{STATE_NONE, STATE_HEAD}, createTestHandler, STATE_TYPESYSTEM}},
+    {"types", {{STATE_TYPESYSTEM}, createTestHandler, STATE_TYPES}},
+    {"constants", {{STATE_TYPESYSTEM}, createTestHandler, STATE_CONSTANTS}},
     {"enum", {{STATE_TYPES}, createTestHandler, STATE_ENUM}},
     {"struct", {{STATE_TYPES}, createTestHandler, STATE_STRUCT}},
-    {"constant", {{STATE_TYPES}, createTestHandler, STATE_CONSTANT}}};
+    {"constant", {{STATE_CONSTANTS}, createTestHandler, STATE_CONSTANT}}};
 
 /**
  * Wrapper class around the XML_Parser pointer which safely frees it whenever
@@ -118,7 +125,7 @@ public:
 	{
 		parser = XML_ParserCreate(encoding);
 		if (!parser) {
-			throw ParserException{
+			throw LoggableException{
 			    "Internal error: Could not create expat XML parser!"};
 		}
 	}
@@ -182,6 +189,7 @@ Rooted<Node> XmlParser::parse(std::istream &is, ParserContext &ctx)
 
 	// Create the parser stack instance and pass the reference to the state
 	// machine descriptor
+	CharReader reader(is);
 	ParserStack stack{ctx, XML_HANDLERS};
 	XML_SetUserData(&p, &stack);
 
@@ -191,27 +199,38 @@ Rooted<Node> XmlParser::parse(std::istream &is, ParserContext &ctx)
 	XML_SetCharacterDataHandler(&p, xmlCharacterDataHandler);
 
 	// Feed data into expat while there is data to process
-	const std::streamsize BUFFER_SIZE = 4096;  // TODO: Move to own header?
+	constexpr size_t BUFFER_SIZE = 64 * 1024;
 	while (true) {
 		// Fetch a buffer from expat for the input data
 		char *buf = static_cast<char *>(XML_GetBuffer(&p, BUFFER_SIZE));
 		if (!buf) {
-			throw ParserException{"Internal error: XML parser out of memory!"};
+			throw LoggableException{"Internal error: XML parser out of memory!"};
 		}
 
-		// Read the input data from the stream
-		const std::streamsize bytesRead = is.read(buf, BUFFER_SIZE).gcount();
+		// Read the input file line by line (this needs to be done to allow
+		// for nice error messages)
+		// TODO: Add a corresponding function to the reader
+		size_t bytesRead = 0;
+		char *tar = buf;
+		while (bytesRead < BUFFER_SIZE && reader.read(*tar)) {
+			bytesRead++;
+			if (*tar == '\n') {
+				break;
+			}
+			tar++;
+		}
 
 		// Parse the data and handle any XML error
 		if (!XML_ParseBuffer(&p, bytesRead, bytesRead == 0)) {
-			const TextCursor::PosType line =
-			    static_cast<TextCursor::PosType>(XML_GetCurrentLineNumber(&p));
-			const TextCursor::PosType column = static_cast<TextCursor::PosType>(
-			    XML_GetCurrentColumnNumber(&p));
-			const size_t offs = XML_GetCurrentByteIndex(&p);
-			const XML_Error code = XML_GetErrorCode(&p);
-			const std::string msg = std::string{XML_ErrorString(code)};
-			throw ParserException{"XML Syntax Error: " + msg, line, column,
+			// Fetch the current line number and column
+			int line = XML_GetCurrentLineNumber(&p);
+			int column = XML_GetCurrentColumnNumber(&p);
+			size_t offs = XML_GetCurrentByteIndex(&p);
+
+			// Throw a corresponding exception
+			XML_Error code = XML_GetErrorCode(&p);
+			std::string msg = std::string{XML_ErrorString(code)};
+			throw LoggableException{"XML: " + msg, line, column,
 			                      offs};
 		}
 
@@ -220,7 +239,6 @@ Rooted<Node> XmlParser::parse(std::istream &is, ParserContext &ctx)
 			break;
 		}
 	}
-
 	return nullptr;
 }
 }

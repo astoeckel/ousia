@@ -45,14 +45,6 @@ namespace parser {
 // TODO: Implement a proper Mimetype class
 
 /**
- * Exception to be thrown whenever an error occurs inside a specific parser.
- */
-class ParserException : public LoggableException {
-public:
-	using LoggableException::LoggableException;
-};
-
-/**
  * Struct containing the objects that are passed to a parser instance.
  */
 struct ParserContext {
@@ -105,6 +97,11 @@ public:
 	    : ParserContext(scope, registry, logger, manager),
 	      scope(nullptr),
 	      registry(logger){};
+
+	StandaloneParserContext(Logger &l)
+	    : ParserContext(scope, registry, l, manager),
+	      scope(nullptr),
+	      registry(l){};
 };
 
 /**
