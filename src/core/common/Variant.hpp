@@ -572,27 +572,16 @@ public:
 	 */
 	const stringType &asString() const
 	{
-		if (isMagic()) {
-			return asObj<stringType>(Type::MAGIC);
-		} else {
-			return asObj<stringType>(Type::STRING);
-		}
+		return asObj<stringType>(Type::STRING);
 	}
 
 	/**
-	 * Returns a reference to the string value. Performs no type conversion. 
+	 * Returns a reference to the string value. Performs no type conversion.
 	 * Throws an exception if the underlying type is not a string.
 	 *
 	 * @return the string value as reference.
 	 */
-	stringType &asString()
-	{
-		if (isMagic()) {
-			return asObj<stringType>(Type::MAGIC);
-		} else {
-			return asObj<stringType>(Type::STRING);
-		}
-	}
+	stringType &asString() { return asObj<stringType>(Type::STRING); }
 
 	/**
 	 * Returns a const reference to the magic string value. Performs no type
@@ -603,11 +592,14 @@ public:
 	 */
 	const stringType &asMagic() const
 	{
-		return asObj<stringType>(Type::MAGIC);
+		if (type == Type::MAGIC) {
+			return asObj<stringType>(Type::STRING);
+		}
+		throw TypeException{getType(), Type::MAGIC};
 	}
 
 	/**
-	 * Returns a reference to the magic string value. Performs no type 
+	 * Returns a reference to the magic string value. Performs no type
 	 * conversion. Throws an exception if the underlying type is not a magic
 	 * string.
 	 *
@@ -615,7 +607,10 @@ public:
 	 */
 	stringType &asMagic()
 	{
-		return asObj<stringType>(Type::MAGIC);
+		if (type == Type::MAGIC) {
+			return asObj<stringType>(Type::STRING);
+		}
+		throw TypeException{getType(), Type::MAGIC};
 	}
 
 	/**
@@ -775,7 +770,7 @@ public:
 	 */
 	void setString(const char *s)
 	{
-		if (isString() || isMagic()) {
+		if (isString()) {
 			type = Type::STRING;
 			asString().assign(s);
 		} else {
@@ -792,7 +787,7 @@ public:
 	 */
 	void setMagic(const char *s)
 	{
-		if (isString() || isMagic()) {
+		if (isString()) {
 			type = Type::MAGIC;
 			asString().assign(s);
 		} else {
@@ -851,7 +846,13 @@ public:
 	 *
 	 * @return the current type of the Variant.
 	 */
-	Type getType() const { return type; }
+	Type getType() const
+	{
+		if (isMagic()) {
+			return Type::STRING;
+		}
+		return type;
+	}
 
 	/**
 	 * Returns the name of the given variant type as C-style string.

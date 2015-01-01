@@ -51,8 +51,9 @@ const char *Variant::getTypeName(Type type)
 		case Type::DOUBLE:
 			return "double";
 		case Type::STRING:
-		case Type::MAGIC:
 			return "string";
+		case Type::MAGIC:
+			return "magic";
 		case Type::ARRAY:
 			return "array";
 		case Type::MAP:
