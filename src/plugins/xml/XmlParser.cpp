@@ -182,14 +182,13 @@ std::set<std::string> XmlParser::mimetypes()
 	return std::set<std::string>{{"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"}};
 }
 
-Rooted<Node> XmlParser::parse(std::istream &is, ParserContext &ctx)
+Rooted<Node> XmlParser::parse(CharReader &reader, ParserContext &ctx)
 {
 	// Create the parser object
 	ScopedExpatXmlParser p{"UTF-8"};
 
 	// Create the parser stack instance and pass the reference to the state
 	// machine descriptor
-	CharReader reader(is);
 	ParserStack stack{ctx, XML_HANDLERS};
 	XML_SetUserData(&p, &stack);
 
@@ -207,18 +206,8 @@ Rooted<Node> XmlParser::parse(std::istream &is, ParserContext &ctx)
 			throw LoggableException{"Internal error: XML parser out of memory!"};
 		}
 
-		// Read the input file line by line (this needs to be done to allow
-		// for nice error messages)
-		// TODO: Add a corresponding function to the reader
-		size_t bytesRead = 0;
-		char *tar = buf;
-		while (bytesRead < BUFFER_SIZE && reader.read(*tar)) {
-			bytesRead++;
-			if (*tar == '\n') {
-				break;
-			}
-			tar++;
-		}
+		// Read into the buffer
+		size_t bytesRead = reader.readRaw(buf, BUFFER_SIZE);
 
 		// Parse the data and handle any XML error
 		if (!XML_ParseBuffer(&p, bytesRead, bytesRead == 0)) {

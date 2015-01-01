@@ -75,10 +75,9 @@ static const std::map<int, CodeTokenDescriptor> CSS_DESCRIPTORS = {
     {ESCAPE, {CodeTokenMode::ESCAPE, ESCAPE}},
     {LINEBREAK, {CodeTokenMode::LINEBREAK, LINEBREAK}}};
 
-Rooted<Node> CSSParser::parse(std::istream &is, ParserContext &ctx)
+Rooted<Node> CSSParser::parse(CharReader &reader, ParserContext &ctx)
 {
-	CharReader input{is};
-	CodeTokenizer tokenizer{input, CSS_ROOT, CSS_DESCRIPTORS};
+	CodeTokenizer tokenizer{reader, CSS_ROOT, CSS_DESCRIPTORS};
 	tokenizer.ignoreComments = true;
 	tokenizer.ignoreLinebreaks = true;
 	Rooted<SelectorNode> root = {new SelectorNode{ctx.manager, "root"}};

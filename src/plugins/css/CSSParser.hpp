@@ -142,13 +142,16 @@ public:
 	 * rules. You are permitted to just insert a CSS Selector expression
 	 * specifying some part of a DocumentTree you want to refer to.
 	 *
-	 * @param is  is a reference to the input stream that should be parsed.
+	 * @param reader is a reference to the CharReader instance from which the
+	 * input data should be read.
 	 * @param ctx is a reference to the context that should be used while
 	 *            parsing the document.
 	 * @return    returns the root node of the resulting SelectorTree. For more
 	 *            information on the return conventions consult the Parser.hpp.
 	 */
-	Rooted<Node> parse(std::istream &is, ParserContext &ctx) override;
+	Rooted<Node> parse(CharReader &reader, ParserContext &ctx) override;
+
+	using Parser::parse;
 
 	/**
 	 * As befits a class called CSSParser, this Parser parses CSS.

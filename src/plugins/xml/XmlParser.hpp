@@ -52,11 +52,11 @@ public:
 	 * Parses the given input stream as XML file and returns the parsed
 	 * top-level node.
 	 *
-	 * @param is is the input stream that will be parsed.
+	 * @param reader is the CharReader from which the input should be read.
 	 * @param ctx is a reference to the ParserContext instance that should be
 	 * used.
 	 */
-	Rooted<Node> parse(std::istream &is, ParserContext &ctx) override;
+	Rooted<Node> parse(CharReader &reader, ParserContext &ctx) override;
 
 	using Parser::parse;
 };

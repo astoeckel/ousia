@@ -40,7 +40,7 @@ TEST(XmlParser, mismatchedTagException)
 		p.parse("<document>\n</document2>", ctx);
 	}
 	catch (LoggableException ex) {
-		ASSERT_EQ(2U, ex.loc.line);
+		ASSERT_EQ(2, ex.loc.line);
 		hadException = true;
 	}
 	ASSERT_TRUE(hadException);
@@ -66,11 +66,16 @@ TEST(XmlParser, namespaces)
 {
 	StandaloneParserContext ctx(logger);
 	XmlParser p;
-
-	try {
-		p.parse(TEST_DATA, ctx);
-	} catch(LoggableException ex) {
-		logger.log(ex);
+	CharReader reader(TEST_DATA);
+	{
+		ScopedLogger sl(logger, "test.oxd", SourceLocation{},
+		                CharReader::contextCallback, &reader);
+		try {
+			p.parse(TEST_DATA, ctx);
+		}
+		catch (LoggableException ex) {
+			logger.log(ex);
+		}
 	}
 }
 }

@@ -34,6 +34,7 @@
 
 #include <core/Node.hpp>
 #include <core/Registry.hpp>
+#include <core/common/CharReader.hpp>
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
 
@@ -62,6 +63,7 @@ struct ParserContext {
 	 * Reference to the Logger the parser should log any messages to.
 	 */
 	Logger &logger;
+
 	/**
 	 * Reference to the Manager the parser should append nodes to.
 	 */
@@ -132,7 +134,7 @@ public:
 	 * inclusion in the document graph. This method should be overridden by
 	 * derived classes.
 	 *
-	 * @param is is a reference to the input stream that should be parsed.
+	 * @param reader is a reference to the CharReader that should be used.
 	 * @param ctx is a reference to the context that should be used while
 	 * parsing the document.
 	 * @return a reference to the node representing the subgraph that has been
@@ -140,7 +142,7 @@ public:
 	 * calling code will try to resolve these. If no valid node can be produced,
 	 * a corresponding LoggableException must be thrown by the parser.
 	 */
-	virtual Rooted<Node> parse(std::istream &is, ParserContext &ctx) = 0;
+	virtual Rooted<Node> parse(CharReader &reader, ParserContext &ctx) = 0;
 
 	/**
 	 * Parses the given string and returns a corresponding node for

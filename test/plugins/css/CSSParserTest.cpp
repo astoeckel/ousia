@@ -28,9 +28,8 @@ namespace parser {
 namespace css {
 TEST(CSSParser, testParseSelectors)
 {
-	// create a string describing a SelectorTree as input.
-	std::stringstream input;
-	input << "A>B,A B:r, C#a A[bla=\"blub\"], A::g(4,2,3)";
+	// create a string describing a SelectorTree
+	std::string data{"A>B,A B:r, C#a A[bla=\"blub\"], A::g(4,2,3)"};
 	/* This should describe the tree:
 	 * root_____
 	 * | \      \
@@ -42,9 +41,9 @@ TEST(CSSParser, testParseSelectors)
 	// initialize an empty parser context.
 	StandaloneParserContext ctx;
 
-	// parse the input.
+	// parse the data.
 	CSSParser instance;
-	Rooted<SelectorNode> root = instance.parse(input, ctx).cast<SelectorNode>();
+	Rooted<SelectorNode> root = instance.parse(data, ctx).cast<SelectorNode>();
 
 	// we expect three children of the root node overall.
 	ASSERT_EQ(3, root->getEdges().size());
@@ -153,7 +152,9 @@ TEST(CSSParser, testParseCSS)
 
 	// parse the input.
 	CSSParser instance;
-	Rooted<SelectorNode> root = instance.parse(input, ctx).cast<SelectorNode>();
+	CharReader reader{input};
+	Rooted<SelectorNode> root =
+	    instance.parse(reader, ctx).cast<SelectorNode>();
 
 	// we expect three children of the root node overall.
 	ASSERT_EQ(3, root->getEdges().size());
@@ -261,26 +262,25 @@ TEST(CSSParser, testParseCSS)
 
 void assertException(std::string css)
 {
-	std::stringstream input;
-	input << css;
-	// initialize a parser context.
+	CharReader reader(css);
 	TerminalLogger logger(std::cerr, true);
-	Scope scope(nullptr);
-	Registry registry(logger);
-	Manager manager;
-	ParserContext ctx{scope, registry, logger, manager};
+	{
+		ScopedLogger sl(logger, "test.css", SourceLocation{},
+		                CharReader::contextCallback, &reader);
+		Scope scope(nullptr);
+		Registry registry(logger);
+		Manager manager;
+		ParserContext ctx{scope, registry, logger, manager};
 
-	bool seenException = false;
-	// parse the input.
-	CSSParser instance;
-	try {
-		instance.parse(input, ctx).cast<SelectorNode>();
+		CSSParser instance;
+		try {
+			instance.parse(reader, ctx).cast<SelectorNode>();
+		}
+		catch (LoggableException ex) {
+			logger.log(ex);
+		}
+		ASSERT_TRUE(logger.hasError());
 	}
-	catch (LoggableException ex) {
-		logger.log(ex);
-		seenException = true;
-	}
-	ASSERT_TRUE(seenException);
 }
 
 TEST(CSSParser, testParseExceptions)
