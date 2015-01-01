@@ -27,7 +27,7 @@
 #ifndef _OUSIA_EXCEPTIONS_HPP_
 #define _OUSIA_EXCEPTIONS_HPP_
 
-#include "TextCursor.hpp"
+#include "Location.hpp"
 
 namespace ousia {
 
@@ -83,8 +83,7 @@ private:
 	 * reported to the runtime environment.
 	 */
 	static std::string formatMessage(const std::string &msg,
-	                                 const TextCursor::Position &pos,
-	                                 const TextCursor::Context &ctx);
+	                                 const SourceLocation &loc);
 
 public:
 	/**
@@ -95,27 +94,19 @@ public:
 	/**
 	 * Position in the document at which the exception occurred.
 	 */
-	const TextCursor::Position pos;
-
-	/**
-	 * Context in the document text in which the exception occurred.
-	 */
-	const TextCursor::Context ctx;
+	const SourceLocation loc;
 
 	/**
 	 * Constructor of the LoggableException class.
 	 *
 	 * @param msg contains the error message.
-	 * @param pos is the position at which the error occured.
-	 * @param ctx describes the context in which the error occured.
+	 * @param loc is the position at which the error occured.
 	 */
 	LoggableException(std::string msg,
-	                  TextCursor::Position pos = TextCursor::Position{},
-	                  TextCursor::Context ctx = TextCursor::Context{})
-	    : OusiaException(formatMessage(msg, pos, ctx)),
+	                  SourceLocation loc = SourceLocation{})
+	    : OusiaException(formatMessage(msg, loc)),
 	      msg(std::move(msg)),
-	      pos(std::move(pos)),
-	      ctx(std::move(ctx))
+	      loc(std::move(loc))
 	{
 	}
 
@@ -127,9 +118,9 @@ public:
 	 * @param column is the column in the above file the message refers to.
 	 * @param offs is the byte offset.
 	 */
-	LoggableException(std::string msg, TextCursor::PosType line,
-	                  TextCursor::PosType column, size_t offs)
-	    : LoggableException(msg, TextCursor::Position(line, column, offs))
+	LoggableException(std::string msg, int line,
+	                  int column, size_t offs)
+	    : LoggableException(msg, SourceLocation(line, column, offs))
 	{
 	}
 
@@ -137,11 +128,11 @@ public:
 	 * Constructor of LoggableException for arbitrary position objects.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos is a reference to a variable with position and context data.
+	 * @param loc is a reference to a variable with position and context data.
 	 */
-	template <class PosType>
-	LoggableException(std::string msg, PosType &pos)
-	    : LoggableException(std::move(msg), pos.getPosition(), pos.getContext())
+	template <class LocationType>
+	LoggableException(std::string msg, LocationType &loc)
+	    : LoggableException(std::move(msg), loc.getLocation())
 	{
 	}
 
@@ -150,14 +141,7 @@ public:
 	 *
 	 * @return the position descriptor.
 	 */
-	TextCursor::Position getPosition() const { return pos; }
-
-	/**
-	 * Returns the context in which the exception occured in the text.
-	 *
-	 * @return the context descriptor.
-	 */
-	TextCursor::Context getContext() const { return ctx; }
+	const SourceLocation& getLocation() const { return loc; }
 };
 }
 
