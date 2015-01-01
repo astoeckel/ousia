@@ -75,6 +75,7 @@ enum class Severity : uint8_t {
 
 // Forward declaration
 class LoggerFork;
+class ScopedLogger;
 
 /**
  * The Logger class is the base class the individual logging systems should
@@ -88,6 +89,7 @@ class LoggerFork;
 class Logger {
 public:
 	friend LoggerFork;
+	friend ScopedLogger;
 
 	/**
 	 * Describes a file inclusion.
@@ -391,13 +393,16 @@ public:
 	 *
 	 * @param name is the name of the file to be added to the stack.
 	 * @param loc is the position from which the new file is included.
+	 * @param ctxCallback is the callback function that should be called if a
+	 * SourceLocation needs to be resolved to a SourceContext.
+	 * @param ctxCallbackData is the data that should be passed to the callback.
 	 */
 	void pushFile(std::string name, SourceLocation loc = SourceLocation{},
-	              SourceContextCallback contextCallback = nullptr,
-	              void *contextCallbackData = nullptr)
+	              SourceContextCallback ctxCallback = nullptr,
+	              void *ctxCallbackData = nullptr)
 	{
 		processPushFile(
-		    File(std::move(name), loc, contextCallback, contextCallbackData));
+		    File(std::move(name), loc, ctxCallback, ctxCallbackData));
 	}
 
 	/**
@@ -539,10 +544,123 @@ public:
 	void purge();
 };
 
+/**
+ * The ScopedLogger class can be used to automatically pop any pushed file from
+ * the File stack maintained by a Logger class (in a RAII manner). This
+ * simplifies managing pushing and popping files in case there are multiple
+ * return calls or exceptions thrown.
+ */
+class ScopedLogger : public Logger {
+private:
+	/**
+	 * Reference to the parent logger instance.
+	 */
+	Logger &parent;
+
+	/**
+	 * Number of push calls.
+	 */
+	size_t depth;
+
+protected:
+	/**
+	 * Relays the processMessage call to the parent logger.
+	 *
+	 * @param msg is the message to be relayed to the parent logger.
+	 */
+	void processMessage(const Message &msg) override
+	{
+		parent.processMessage(msg);
+	}
+
+	/**
+	 * Relays the filterMessage call to the parent logger.
+	 *
+	 * @param msg is the message to be relayed to the parent logger.
+	 */
+	bool filterMessage(const Message &msg) override
+	{
+		return parent.filterMessage(msg);
+	}
+
+	/**
+	 * Relays the processPushFile call to the parent logger and increments the
+	 * stack depth counter.
+	 *
+	 * @param file is the File instance to be relayed to the parent logger.
+	 */
+	void processPushFile(const File &file)
+	{
+		parent.processPushFile(file);
+		depth++;
+	}
+
+	/**
+	 * Relays the processPopFile call to the parent logger and decrements the
+	 * stack depth counter.
+	 */
+	void processPopFile()
+	{
+		depth--;
+		parent.processPopFile();
+	}
+
+	/**
+	 * Relays the processSetDefaultLocation call to the parent logger.
+	 *
+	 * @param loc is the location to be passed to the parent logger.
+	 */
+	void processSetDefaultLocation(const SourceLocation &loc)
+	{
+		parent.processSetDefaultLocation(loc);
+	}
+
+public:
+	/**
+	 * Constructor of the ScopedLogger class.
+	 *
+	 * @param parent is the parent logger instance to which all calls should
+	 * be relayed.
+	 */
+	ScopedLogger(Logger &parent) : Logger(), parent(parent) {}
+
+	/**
+	 * Constructor of the ScopedLogger class, pushes a first file instance onto
+	 * the file stack.
+	 *
+	 * @param parent is the parent logger instance to which all calls should
+	 * be relayed.
+	 * @param name is the name of the file to be added to the stack.
+	 * @param loc is the position from which the new file is included.
+	 * @param ctxCallback is the callback function that should be called if a
+	 * SourceLocation needs to be resolved to a SourceContext.
+	 * @param ctxCallbackData is the data that should be passed to the callback.
+	 */
+	ScopedLogger(Logger &parent, std::string name,
+	             SourceLocation loc = SourceLocation{},
+	             SourceContextCallback ctxCallback = nullptr,
+	             void *ctxCallbackData = nullptr)
+	    : Logger(), parent(parent)
+	{
+		pushFile(name, loc, ctxCallback, ctxCallbackData);
+	}
+
+	/**
+	 * Destructor of the ScopedLogger class, automatically unwinds the file
+	 * stack.
+	 */
+	~ScopedLogger()
+	{
+		while (depth > 0) {
+			processPopFile();
+		}
+	}
+};
+
 #ifdef NDEBUG
-static constexpr Severity DEFAULT_MIN_SEVERITY = Severity::NOTE;
+constexpr Severity DEFAULT_MIN_SEVERITY = Severity::NOTE;
 #else
-static constexpr Severity DEFAULT_MIN_SEVERITY = Severity::DEBUG;
+constexpr Severity DEFAULT_MIN_SEVERITY = Severity::DEBUG;
 #endif
 
 /**
