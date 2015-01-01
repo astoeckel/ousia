@@ -25,33 +25,27 @@ namespace ousia {
 
 /* Class Logger */
 
-void Logger::log(Severity severity, std::string msg, TextCursor::Position pos,
-                 TextCursor::Context ctx)
+void Logger::log(Severity severity, const std::string &msg,
+                 const SourceLocation &loc)
 {
-	// Update the maximum encountered severity level
-	if (static_cast<int>(severity) > static_cast<int>(maxEncounteredSeverity)) {
-		maxEncounteredSeverity = severity;
-	}
-
-	// Only process the message if its severity is larger than the
-	// set minimum severity.
-	if (static_cast<int>(severity) >= static_cast<int>(minSeverity)) {
-		processMessage(
-		    Message{severity, std::move(msg), std::move(pos), std::move(ctx)});
+	// Assemble the message and pass it through the filter, then process it
+	Message message { severity, std::move(msg), loc };
+	if (filterMessage(message)) {
+		processMessage(message);
 	}
 }
 
-LoggerFork Logger::fork() { return LoggerFork{this, minSeverity}; }
+LoggerFork Logger::fork() { return LoggerFork(this); }
 
 /* Class LoggerFork */
 
-void LoggerFork::processMessage(Message msg)
+void LoggerFork::processMessage(const Message &msg)
 {
 	calls.push_back(Call(CallType::MESSAGE, messages.size()));
 	messages.push_back(msg);
 }
 
-void LoggerFork::processPushFile(File file)
+void LoggerFork::processPushFile(const File &file)
 {
 	calls.push_back(Call(CallType::PUSH_FILE, files.size()));
 	files.push_back(file);
@@ -62,25 +56,139 @@ void LoggerFork::processPopFile()
 	calls.push_back(Call(CallType::POP_FILE, 0));
 }
 
+void LoggerFork::processSetDefaultLocation(const SourceLocation &loc)
+{
+	// Check whether setDefaultLocation was called immediately before, if yes,
+	// simply override the data
+	if (!calls.empty() && calls.back().type == CallType::SET_DEFAULT_LOCATION) {
+		locations.back() = loc;
+	} else {
+		calls.push_back(Call(CallType::SET_DEFAULT_LOCATION, locations.size()));
+		locations.push_back(loc);
+	}
+}
+
+void LoggerFork::purge()
+{
+	calls.clear();
+	messages.clear();
+	files.clear();
+	locations.clear();
+}
+
 void LoggerFork::commit()
 {
 	for (const Call &call : calls) {
 		switch (call.type) {
 			case CallType::MESSAGE: {
-				const Message &msg = messages[call.dataIdx];
-				parent->log(msg.severity, msg.msg, msg.pos, msg.ctx);
+				if (parent->filterMessage(messages[call.dataIdx])) {
+					parent->processMessage(messages[call.dataIdx]);
+				}
 				break;
 			}
 			case CallType::PUSH_FILE: {
-				const File &file = files[call.dataIdx];
-				parent->pushFile(file.file, file.pos, file.ctx);
+				parent->processPushFile(files[call.dataIdx]);
 				break;
 			}
 			case CallType::POP_FILE:
-				parent->popFile();
+				parent->processPopFile();
+				break;
+			case CallType::SET_DEFAULT_LOCATION:
+				parent->processSetDefaultLocation(locations[call.dataIdx]);
 				break;
 		}
 	}
+	purge();
+}
+
+/* Class ConcreteLogger */
+
+static const Logger::File EMPTY_FILE{"", SourceLocation{}, nullptr, nullptr};
+
+void ConcreteLogger::processPushFile(const File &file)
+{
+	files.push_back(file);
+}
+
+void ConcreteLogger::processPopFile() { files.pop_back(); }
+
+bool ConcreteLogger::filterMessage(const Message &msg)
+{
+	// Increment the message count for this severity
+	uint8_t sev = static_cast<uint8_t>(msg.severity);
+	if (sev >= messageCounts.size()) {
+		messageCounts.resize(sev + 1);
+	}
+	messageCounts[sev]++;
+
+	// Filter messages with too small severity
+	return sev >= static_cast<uint8_t>(minSeverity);
+}
+
+void ConcreteLogger::processSetDefaultLocation(const SourceLocation &loc)
+{
+	defaultLocation = loc;
+}
+
+const Logger::File &ConcreteLogger::currentFile() const
+{
+	if (!files.empty()) {
+		return files.back();
+	}
+	return EMPTY_FILE;
+}
+
+const std::string &ConcreteLogger::currentFilename() const
+{
+	return currentFile().file;
+}
+
+const SourceLocation &ConcreteLogger::messageLocation(const Message &msg) const
+{
+	if (msg.loc.valid()) {
+		return msg.loc;
+	}
+	return defaultLocation;
+}
+
+SourceContext ConcreteLogger::messageContext(const Message &msg) const
+{
+	const Logger::File &file = currentFile();
+	if (file.ctxCallback) {
+		return file.ctxCallback(messageLocation(msg), file.ctxCallbackData);
+	}
+	return SourceContext{};
+}
+
+Severity ConcreteLogger::getMaxEncounteredSeverity()
+{
+	for (ssize_t i = messageCounts.size() - 1; i >= 0; i--) {
+		if (messageCounts[i] > 0) {
+			return static_cast<Severity>(i);
+		}
+	}
+	return Severity::DEBUG;
+}
+
+size_t ConcreteLogger::getSeverityCount(Severity severity)
+{
+	uint8_t sev = static_cast<uint8_t>(severity);
+	if (sev >= messageCounts.size()) {
+		return 0;
+	}
+	return messageCounts[sev];
+}
+
+void ConcreteLogger::reset()
+{
+	files.clear();
+	messageCounts.clear();
+}
+
+bool ConcreteLogger::hasError()
+{
+	return getSeverityCount(Severity::ERROR) > 0 ||
+	       getSeverityCount(Severity::FATAL_ERROR) > 0;
 }
 
 /* Class Terminal */
@@ -200,38 +308,34 @@ public:
 
 /* Class TerminalLogger */
 
-std::string TerminalLogger::currentFilename()
-{
-	if (!files.empty()) {
-		return files.top().file;
-	}
-	return std::string{};
-}
-
-void TerminalLogger::processMessage(Message msg)
+void TerminalLogger::processMessage(const Message &msg)
 {
 	Terminal t(useColor);
 
+	// Fetch filename, position and context
+	const std::string filename = currentFilename();
+	const SourceLocation pos = messageLocation(msg);
+	const SourceContext ctx = messageContext(msg);
+
 	// Print the file name
-	std::string filename = currentFilename();
 	bool hasFile = !filename.empty();
 	if (hasFile) {
 		os << t.bright() << filename << t.reset();
 	}
 
 	// Print line and column number
-	if (msg.pos.hasLine()) {
+	if (pos.hasLine()) {
 		if (hasFile) {
 			os << ':';
 		}
-		os << t.bright() << msg.pos.line << t.reset();
-		if (msg.pos.hasColumn()) {
-			os << ':' << msg.pos.column;
+		os << t.bright() << pos.line << t.reset();
+		if (pos.hasColumn()) {
+			os << ':' << pos.column;
 		}
 	}
 
 	// Print the optional seperator
-	if (hasFile || msg.pos.hasLine()) {
+	if (hasFile || pos.hasLine()) {
 		os << ": ";
 	}
 
@@ -258,26 +362,30 @@ void TerminalLogger::processMessage(Message msg)
 	os << msg.msg << std::endl;
 
 	// Print the error message context if available
-	if (msg.ctx.valid()) {
-		size_t relPos = msg.ctx.relPos;
-		if (msg.ctx.truncatedStart) {
+	if (ctx.valid()) {
+		size_t relPos = ctx.relPos;
+		if (ctx.truncatedStart) {
 			os << "[...] ";
-			relPos += 6;
 		}
-		os << msg.ctx.text;
-		if (msg.ctx.truncatedEnd) {
+		os << ctx.text;
+		if (ctx.truncatedEnd) {
 			os << " [...]";
 		}
 		os << std::endl;
+
+		if (ctx.truncatedStart) {
+			os << "      ";
+		}
+
 		for (size_t i = 0; i < relPos; i++) {
-			os << ' ';
+			if (i < ctx.text.size() && ctx.text[i] == '\t') {
+				os << '\t';
+			} else {
+				os << ' ';
+			}
 		}
 		os << t.color(Terminal::GREEN) << '^' << t.reset() << std::endl;
 	}
 }
-
-void TerminalLogger::processPushFile(File file) { files.push(file); }
-
-void TerminalLogger::processPopFile() { files.pop(); }
 }
 

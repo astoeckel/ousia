@@ -29,20 +29,20 @@
 #ifndef _OUSIA_LOGGER_HPP_
 #define _OUSIA_LOGGER_HPP_
 
+#include <cstdint>
 #include <ostream>
-#include <stack>
 #include <string>
 #include <vector>
 
 #include "Exceptions.hpp"
-#include "TextCursor.hpp"
+#include "Location.hpp"
 
 namespace ousia {
 
 /**
  * Enum containing the severities used for logging errors and debug messages.
  */
-enum class Severity : int {
+enum class Severity : uint8_t {
 	/**
      * Indicates that this message was only printed for debugging. Note that
      * in release builds messages with this severity are discarded.
@@ -73,12 +73,6 @@ enum class Severity : int {
 	FATAL_ERROR = 4
 };
 
-#ifdef NDEBUG
-static constexpr Severity DEFAULT_MIN_SEVERITY = Severity::NOTE;
-#else
-static constexpr Severity DEFAULT_MIN_SEVERITY = Severity::DEBUG;
-#endif
-
 // Forward declaration
 class LoggerFork;
 
@@ -93,36 +87,49 @@ class LoggerFork;
  */
 class Logger {
 public:
+	friend LoggerFork;
+
 	/**
-	 * Describes an included file.
+	 * Describes a file inclusion.
 	 */
 	struct File {
 		/**
-		 * Is the name of the file.
+		 * Current filename.
 		 */
 		std::string file;
 
 		/**
-		 * Position at which the file was included.
+		 * Location at which the file was included.
 		 */
-		TextCursor::Position pos;
+		SourceLocation loc;
 
 		/**
-		 * Context in which the file was included.
+		 * Callback used to retrieve the context for a certain location
 		 */
-		TextCursor::Context ctx;
+		SourceContextCallback ctxCallback;
 
 		/**
-		 * Constructor of the File struct.
+		 * Data to be passed to the callback.
+		 */
+		void *ctxCallbackData;
+
+		/**
+		 * Constructor of the Scope struct.
 		 *
-		 * @param file is the name of the included file.
-		 * @param pos is the position in the parent file, at which this file
-		 * was included.
-		 * @param ctx is the context in which the feil was included.
+		 * @param type is the type of
+		 * @param file is the name of the current file.
+		 * @param loc is the location at which the file was included.
+		 * @param ctxCallback is the callback function that should be called
+		 * for looking up the context belonging to a SourceLocation instance.
+		 * @param ctxCallbackData is additional data that should be passed to
+		 * the callback function.
 		 */
-		File(std::string file, TextCursor::Position pos,
-		     TextCursor::Context ctx)
-		    : file(file), pos(pos), ctx(ctx)
+		File(std::string file, SourceLocation loc,
+		     SourceContextCallback ctxCallback, void *ctxCallbackData)
+		    : file(std::move(file)),
+		      loc(loc),
+		      ctxCallback(ctxCallback),
+		      ctxCallbackData(ctxCallbackData)
 		{
 		}
 	};
@@ -143,42 +150,21 @@ public:
 		std::string msg;
 
 		/**
-		 * Position in the text the message refers to.
+		 * Location passed along with the message.
 		 */
-		TextCursor::Position pos;
-
-		/**
-		 * Context the message refers to.
-		 */
-		TextCursor::Context ctx;
+		SourceLocation loc;
 
 		/**
 		 * Constructor of the Message struct.
 		 *
 		 * @param severity describes the message severity.
 		 * @param msg contains the actual message.
-		 * @param line is the line in the above file the message refers to.
-		 * @param column is the column in the above file the message refers to.
 		 */
-		Message(Severity severity, std::string msg, TextCursor::Position pos,
-		        TextCursor::Context ctx)
-		    : severity(severity),
-		      msg(std::move(msg)),
-		      pos(std::move(pos)),
-		      ctx(std::move(ctx)){};
+		Message(Severity severity, std::string msg, const SourceLocation &loc)
+		    : severity(severity), msg(std::move(msg)), loc(loc){};
 	};
 
 protected:
-	/**
-	 * Minimum severity a log message should have before it is discarded.
-	 */
-	const Severity minSeverity;
-
-	/**
-	 * Maximum encountered log message severity.
-	 */
-	Severity maxEncounteredSeverity;
-
 	/**
 	 * Function to be overriden by child classes to actually display or store
 	 * the messages. The default implementation just discards all incomming
@@ -187,36 +173,45 @@ protected:
 	 * @param msg is an instance of the Message struct containing the data that
 	 * should be logged.
 	 */
-	virtual void processMessage(Message msg) {}
+	virtual void processMessage(const Message &msg) {}
+
+	/**
+	 * Called right before the processMessage function is called. Allows any
+	 * concrete implementation of the Logger class to discard certain messages.
+	 *
+	 * @param msg is the message that should be filtered.
+	 * @return true if the message should be passed to the processMessage
+	 * method, false otherwise.
+	 */
+	virtual bool filterMessage(const Message &msg) { return true; }
 
 	/**
 	 * Called whenever a new file is pushed onto the stack.
 	 *
-	 * @param file is the file that should be pushed onto the stack.
+	 * @param file is the file structure that should be stored on the stack.
 	 */
-	virtual void processPushFile(File file) {}
+	virtual void processPushFile(const File &file) {}
 
 	/**
-	 * Called whenever a file is popped from the stack.
+	 * Called whenever a scope is popped from the stack.
 	 */
 	virtual void processPopFile() {}
 
-public:
 	/**
-	 * Constructor of the Logger class.
+	 * Called whenever the setDefaultLocation function is called.
 	 *
-	 * @param minSeverity is the minimum severity a log message should have.
-	 * Messages below this severity are discarded.
+	 * @param loc is the default location that should be set.
 	 */
-	Logger(Severity minSeverity = DEFAULT_MIN_SEVERITY)
-	    : minSeverity(minSeverity), maxEncounteredSeverity(Severity::DEBUG)
-	{
-	}
+	virtual void processSetDefaultLocation(const SourceLocation &loc) {}
 
+public:
 	/**
 	 * Virtual destructor.
 	 */
 	virtual ~Logger(){};
+
+	// Default constructor
+	Logger() {}
 
 	// No copy
 	Logger(const Logger &) = delete;
@@ -230,12 +225,10 @@ public:
 	 *
 	 * @param severity is the severity of the log message.
 	 * @param msg is the actual log message.
-	 * @param pos is the position the log message refers to.
-	 * @param ctx describes the context of the log message.
+	 * @param loc is the location in the source file the message refers to.
 	 */
-	void log(Severity severity, std::string msg,
-	         TextCursor::Position pos = TextCursor::Position{},
-	         TextCursor::Context ctx = TextCursor::Context{});
+	void log(Severity severity, const std::string &msg,
+	         const SourceLocation &loc = SourceLocation{});
 
 	/**
 	 * Logs the given loggable exception.
@@ -244,7 +237,7 @@ public:
 	 */
 	void log(const LoggableException &ex)
 	{
-		log(Severity::ERROR, ex.msg, ex.getPosition(), ex.getContext());
+		log(Severity::ERROR, ex.msg, ex.getLocation());
 	}
 
 	/**
@@ -253,13 +246,13 @@ public:
 	 *
 	 * @param severity is the severity of the log message.
 	 * @param msg is the actual log message.
-	 * @param pos is a reference to a variable which provides position and
-	 * context information.
+	 * @param loc is a reference to a variable which provides location
+	 * information.
 	 */
-	template <class PosType>
-	void log(Severity severity, std::string msg, PosType &pos)
+	template <class LocationType>
+	void log(Severity severity, const std::string &msg, LocationType &loc)
 	{
-		log(severity, std::move(msg), pos.getPosition(), pos.getContext());
+		log(severity, msg, loc.getLocation());
 	}
 
 	/**
@@ -267,15 +260,13 @@ public:
 	 * is compiled in the release mode (with the NDEBUG flag).
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos describes the position of the debug message.
-	 * @param ctx describes the context of the debug message.
+	 * @param loc is the location in the source file the message refers to.
 	 */
-	void debug(std::string msg,
-	           TextCursor::Position pos = TextCursor::Position{},
-	           TextCursor::Context ctx = TextCursor::Context{})
+	void debug(const std::string &msg,
+	           const SourceLocation &loc = SourceLocation{})
 	{
 #ifndef NDEBUG
-		log(Severity::DEBUG, std::move(msg), std::move(pos), std::move(ctx));
+		log(Severity::DEBUG, msg, loc);
 #endif
 	}
 
@@ -284,14 +275,14 @@ public:
 	 * is compiled in the release mode.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos is a reference to a variable which provides position and
-	 * context information.
+	 * @param loc is a reference to a variable which provides position
+	 * information.
 	 */
-	template <class PosType>
-	void debug(std::string msg, PosType &pos)
+	template <class LocationType>
+	void debug(const std::string &msg, LocationType &loc)
 	{
 #ifndef NDEBUG
-		log(Severity::DEBUG, std::move(msg), pos);
+		log(Severity::DEBUG, msg, loc);
 #endif
 	}
 
@@ -299,167 +290,162 @@ public:
 	 * Logs a note.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos describes the position of the note.
-	 * @param ctx describes the context of the note.
+	 * @param loc is the location in the source file the message refers to.
 	 */
-	void note(std::string msg,
-	          TextCursor::Position pos = TextCursor::Position{},
-	          TextCursor::Context ctx = TextCursor::Context{})
+	void note(const std::string &msg,
+	          const SourceLocation &loc = SourceLocation{})
 	{
-		log(Severity::NOTE, std::move(msg), std::move(pos), std::move(ctx));
+		log(Severity::NOTE, msg, loc);
 	}
 
 	/**
 	 * Logs a note.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos is a reference to a variable which provides position and
-	 * context information.
+	 * @param loc is a reference to a variable which provides position
+	 * information.
 	 */
-	template <class PosType>
-	void note(std::string msg, PosType &pos)
+	template <class LocationType>
+	void note(const std::string &msg, LocationType &loc)
 	{
-		log(Severity::NOTE, std::move(msg), pos);
+		log(Severity::NOTE, msg, loc);
 	}
 
 	/**
 	 * Logs a warning.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos describes the position of the warning.
-	 * @param ctx describes the context of the warning.
+	 * @param loc is a reference to a variable which provides position
 	 */
-	void warning(std::string msg,
-	             TextCursor::Position pos = TextCursor::Position{},
-	             TextCursor::Context ctx = TextCursor::Context{})
+	void warning(const std::string &msg,
+	             const SourceLocation &loc = SourceLocation{})
 	{
-		log(Severity::WARNING, std::move(msg), std::move(pos), std::move(ctx));
+		log(Severity::WARNING, msg, loc);
 	}
 
 	/**
 	 * Logs a warning.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos is a reference to a variable which provides position and
-	 * context information.
+	 * @param loc is a reference to a variable which provides position
+	 * information.
 	 */
-	template <class PosType>
-	void warning(std::string msg, PosType &pos)
+	template <class LocationType>
+	void warning(const std::string &msg, LocationType &loc)
 	{
-		log(Severity::WARNING, std::move(msg), pos);
+		log(Severity::WARNING, msg, loc);
 	}
 
 	/**
 	 * Logs an error message.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos is the position at which the error occured.
-	 * @param ctx describes the context in which the error occured.
+	 * @param loc is a reference to a variable which provides position
 	 */
-	void error(std::string msg,
-	           TextCursor::Position pos = TextCursor::Position{},
-	           TextCursor::Context ctx = TextCursor::Context{})
+	void error(const std::string &msg,
+	           const SourceLocation &loc = SourceLocation{})
 	{
-		log(Severity::ERROR, std::move(msg), std::move(pos), std::move(ctx));
+		log(Severity::ERROR, msg, std::move(loc));
 	}
 
 	/**
 	 * Logs an error message.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos is a reference to a variable which provides position and
-	 * context information.
+	 * @param loc is a reference to a variable which provides position
+	 * information.
 	 */
-	template <class PosType>
-	void error(std::string msg, PosType &pos)
+	template <class LocationType>
+	void error(const std::string &msg, LocationType &loc)
 	{
-		log(Severity::ERROR, std::move(msg), pos);
+		log(Severity::ERROR, msg, loc);
 	}
 
 	/**
 	 * Logs a fatal error message.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos is the position at which the error occured.
-	 * @param ctx describes the context in which the error occured.
+	 * @param loc is a reference to a variable which provides position
 	 */
-	void fatalError(std::string msg,
-	                TextCursor::Position pos = TextCursor::Position{},
-	                TextCursor::Context ctx = TextCursor::Context{})
+	void fatalError(const std::string &msg,
+	                const SourceLocation &loc = SourceLocation{})
 	{
-		log(Severity::FATAL_ERROR, std::move(msg), std::move(pos),
-		    std::move(ctx));
+		log(Severity::FATAL_ERROR, msg, loc);
 	}
 
 	/**
 	 * Logs a fatal error message.
 	 *
 	 * @param msg is the actual log message.
-	 * @param pos is a reference to a variable which provides position and
-	 * context information.
+	 * @param loc is a reference to a variable which provides position
+	 * information.
 	 */
-	template <class PosType>
-	void fatalError(std::string msg, PosType &pos)
+	template <class LocationType>
+	void fatalError(const std::string &msg, LocationType &loc)
 	{
-		log(Severity::FATAL_ERROR, std::move(msg), pos);
+		log(Severity::FATAL_ERROR, msg, loc);
 	}
 
 	/**
 	 * Pushes a new file name onto the internal filename stack.
 	 *
 	 * @param name is the name of the file to be added to the stack.
-	 * @param pos is the position from which the new file is included.
-	 * @param ctx is the context in which the new file is included.
+	 * @param loc is the position from which the new file is included.
 	 */
-	void pushFile(std::string name,
-	              TextCursor::Position pos = TextCursor::Position{},
-	              TextCursor::Context ctx = TextCursor::Context{})
+	void pushFile(std::string name, SourceLocation loc = SourceLocation{},
+	              SourceContextCallback contextCallback = nullptr,
+	              void *contextCallbackData = nullptr)
 	{
-		processPushFile(File(std::move(name), std::move(pos), std::move(ctx)));
+		processPushFile(
+		    File(std::move(name), loc, contextCallback, contextCallbackData));
 	}
 
 	/**
-	 * Pops the filename from the internal filename stack.
-	 *
-	 * @return the current size of the filename stack.
+	 * Pops the filename from the internal filename stack. Resets any location
+	 * set by the setDefaultLocation() method.
 	 */
-	void popFile() { processPopFile(); }
-
-	/**
-	 * Returns the maximum severity that was encountered by the Logger but at
-	 * least Severity::DEBUG.
-	 *
-	 * @return the severity of the most severe log message but at least
-	 * Severity::DEBUG.
-	 */
-	Severity getMaxEncounteredSeverity() { return maxEncounteredSeverity; }
-
-	/**
-	 * Resets the maximum encountered severity to the debug level.
-	 */
-	void resetMaxEncounteredSeverity()
+	void popFile()
 	{
-		maxEncounteredSeverity = Severity::DEBUG;
+		processPopFile();
+		resetDefaultLocation();
 	}
 
 	/**
-	 * Returns the minimum severity. Messages with a smaller severity are
-	 * discarded.
+	 * Sets the default location. The default location is automatically reset
+	 * once the popFile() method is called.
 	 *
-	 * @return the minimum severity.
+	 * @param loc is the location that should be used if no (valid) location is
+	 * specified in the Logger.
 	 */
-	Severity getMinSeverity() { return minSeverity; }
+	void setDefaultLocation(const SourceLocation &loc)
+	{
+		processSetDefaultLocation(loc);
+	}
+
+	/**
+	 * Resets the default location, a previously set default location will be
+	 * no longer used.
+	 */
+	void resetDefaultLocation() { processSetDefaultLocation(SourceLocation{}); }
 
 	/**
 	 * Returns a forked logger instance which can be used to collect log
 	 * messages for which it is not sure whether they will be used.
+	 *
+	 * @return a LoggerFork instance which buffers all method calls and commits
+	 * them once the "commit()" method is called.
 	 */
 	LoggerFork fork();
 };
 
 /**
  * Fork of the Logger -- stores all logged messages without actually pushing
- * them to the underlying logger instance.
+ * them to the underlying logger instance. Maintains its own
+ * maxEncounteredSeverity independently from the parent Logger instance.
+ * Internally the LoggerFork class records all calls to the internal
+ * processMessage, processPushScope and processPopFile calls and replays these
+ * calls in the exact order on the parent Logger instance once the commit
+ * function is called.
  */
 class LoggerFork : public Logger {
 private:
@@ -468,7 +454,7 @@ private:
 	/**
 	 * Intanally used to store the incomming function calls.
 	 */
-	enum class CallType { MESSAGE, PUSH_FILE, POP_FILE };
+	enum class CallType { MESSAGE, PUSH_FILE, POP_FILE, SET_DEFAULT_LOCATION };
 
 	/**
 	 * Datastructure used to represent a logger function call.
@@ -505,9 +491,14 @@ private:
 	std::vector<Message> messages;
 
 	/**
-	 * Vector storing all incomming pushed files.
+	 * Vector storing all incomming pushed Scope instances.
 	 */
 	std::vector<File> files;
+
+	/**
+	 * Vector storing all incomming location instances.
+	 */
+	std::vector<SourceLocation> locations;
 
 	/**
 	 * Parent logger instance.
@@ -517,44 +508,178 @@ private:
 	/**
 	 * Constructor of the LoggerFork class.
 	 *
-	 * @param minSeverity is the minimum severity a message should have to be
-	 * stored.
 	 * @param parent is the parent logger instance.
 	 */
-	LoggerFork(Logger *parent, Severity minSeverity)
-	    : Logger(minSeverity), parent(parent)
-	{
-	}
+	LoggerFork(Logger *parent) : parent(parent) {}
 
 protected:
-	void processMessage(Message msg) override;
-	void processPushFile(File file) override;
+	void processMessage(const Message &msg) override;
+	void processPushFile(const File &file) override;
 	void processPopFile() override;
+	void processSetDefaultLocation(const SourceLocation &loc) override;
 
 public:
+	// Default move constructor
+	LoggerFork(LoggerFork &&l)
+	    : calls(std::move(l.calls)),
+	      messages(std::move(l.messages)),
+	      files(std::move(l.files)),
+	      locations(std::move(l.locations)),
+	      parent(std::move(l.parent)){};
+
 	/**
 	 * Commits all collected messages to the parent Logger instance.
 	 */
 	void commit();
 
 	/**
-	 * Explicitly declared move constructor.
+	 * Purges all collected messages. Resets the LoggerFork to its initial
+	 * state (except for the maximum encountered severity).
 	 */
-	LoggerFork(LoggerFork &&l)
-	    : Logger(l.getMinSeverity()),
-	      calls(std::move(l.calls)),
-	      messages(std::move(l.messages)),
-	      files(std::move(l.files)),
-	      parent(std::move(l.parent))
+	void purge();
+};
+
+#ifdef NDEBUG
+static constexpr Severity DEFAULT_MIN_SEVERITY = Severity::NOTE;
+#else
+static constexpr Severity DEFAULT_MIN_SEVERITY = Severity::DEBUG;
+#endif
+
+/**
+ * The ConcreteLogger class contains data fields used to specify the minimum
+ * severity and to gather statistics about encountered log messages.
+ * Additionally it provides the File stack and helper functions that can be
+ * used to access location and context of a given message.
+ */
+class ConcreteLogger : public Logger {
+private:
+	/**
+	 * Stack containing the current file instance.
+	 */
+	std::vector<File> files;
+
+	/**
+	 * Vector used to store the counts of each message type.
+	 */
+	std::vector<size_t> messageCounts;
+
+	/**
+	 * Minimum severity to be used for filtering messages.
+	 */
+	Severity minSeverity;
+
+	/**
+	 * Current default location.
+	 */
+	SourceLocation defaultLocation;
+
+protected:
+	/**
+	 * Filters the messages according to the given minimum severity.
+	 *
+	 * @param msg is the message that should be filtered.
+	 * @return true if the message has a higher or equal severity compared to
+	 * the minimum severity.
+	 */
+	bool filterMessage(const Message &msg) override;
+
+	/**
+	 * Pushes the given file descriptor onto the internal file stack.
+	 *
+	 * @param file is the File descriptor to be pushed onto the internal file
+	 * stack.
+	 */
+	void processPushFile(const File &file) override;
+
+	/**
+	 * Pops the given file descriptor from the internal file stack.
+	 */
+	void processPopFile() override;
+
+	/**
+	 * Sets the default location.
+	 *
+	 * @param loc is the new default location.
+	 */
+	void processSetDefaultLocation(const SourceLocation &loc) override;
+
+public:
+	/**
+	 * Creates a ConcreteLogger instance with the given minimum severity.
+	 *
+	 * @param minSeverity is the severity below which message should be
+	 * discarded.
+	 */
+	ConcreteLogger(Severity minSeverity = DEFAULT_MIN_SEVERITY)
+	    : minSeverity(minSeverity)
 	{
 	}
+
+	/**
+	 * Returns the name of the current file or an empty instance of the File
+	 * instance if no current file is available.
+	 *
+	 * @return the name of the current file.
+	 */
+	const File &currentFile() const;
+
+	/**
+	 * Returns the current filename or an empty string if no surch file is
+	 * available.
+	 */
+	const std::string &currentFilename() const;
+
+	/**
+	 * Returns the current cursor location.
+	 *
+	 * @return the current cursor location.
+	 */
+	const SourceLocation &messageLocation(const Message &msg) const;
+
+	/**
+	 * Returns the current cursor context.
+	 *
+	 * @return the current cursor context.
+	 */
+	SourceContext messageContext(const Message &msg) const;
+
+	/**
+	 * Returns the maximum encountered severity.
+	 *
+	 * @return the maximum encountered severity.
+	 */
+	Severity getMaxEncounteredSeverity();
+
+	/**
+	 * Returns the number of messages for the given severity.
+	 *
+	 * @param severity is the log severity for which the message count should
+	 * be returned.
+	 * @return the number of messages for this severity. Returns zero for
+	 * invalid arguments.
+	 */
+	size_t getSeverityCount(Severity severity);
+
+	/**
+	 * Resets the statistics gathered by the ConcreteLogger instance (the number
+	 * of messages per log severity) and the internal file stack.
+	 */
+	void reset();
+
+	/**
+	 * Returns true if at least one message with either a fatal error or error
+	 * severity was logged.
+	 *
+	 * @return true if an error or fatal error was logged.
+	 */
+	bool hasError();
 };
 
 /**
  * Class extending the Logger class and printing the log messages to the given
  * stream.
  */
-class TerminalLogger : public Logger {
+class TerminalLogger : public ConcreteLogger {
 private:
 	/**
 	 * Reference to the target output stream.
@@ -567,20 +692,8 @@ private:
 	 */
 	bool useColor;
 
-	/**
-	 * Stack used to keep the file references.
-	 */
-	std::stack<File> files;
-
-	/**
-	 * The size of the stack the last time a file backtrace was printed.
-	 */
-	size_t lastFilePrinted = 0;
-
 protected:
-	void processMessage(Message msg) override;
-	void processPushFile(File file) override;
-	void processPopFile() override;
+	void processMessage(const Message &msg) override;
 
 public:
 	/**
@@ -595,14 +708,9 @@ public:
 	 */
 	TerminalLogger(std::ostream &os, bool useColor = false,
 	               Severity minSeverity = DEFAULT_MIN_SEVERITY)
-	    : Logger(minSeverity), os(os), useColor(useColor)
+	    : ConcreteLogger(minSeverity), os(os), useColor(useColor)
 	{
 	}
-
-	/**
-	 * Returns the name of the topmost file.
-	 */
-	std::string currentFilename();
 };
 }
 
