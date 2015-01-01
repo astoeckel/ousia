@@ -116,6 +116,7 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Function
 	src/core/common/Logger
 	src/core/common/Rtti
+	src/core/common/Terminal
 	src/core/common/Utils
 	src/core/common/Variant
 	src/core/common/VariantReader
