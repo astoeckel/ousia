@@ -154,8 +154,9 @@ const SourceLocation &ConcreteLogger::messageLocation(const Message &msg) const
 SourceContext ConcreteLogger::messageContext(const Message &msg) const
 {
 	const Logger::File &file = currentFile();
-	if (file.ctxCallback) {
-		return file.ctxCallback(messageLocation(msg), file.ctxCallbackData);
+	const SourceLocation &loc = messageLocation(msg);
+	if (file.ctxCallback && loc.valid()) {
+		return file.ctxCallback(loc, file.ctxCallbackData);
 	}
 	return SourceContext{};
 }
