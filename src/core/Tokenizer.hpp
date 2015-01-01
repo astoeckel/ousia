@@ -121,13 +121,13 @@ static const int TOKEN_TEXT = -2;
 struct Token {
 	int tokenId;
 	std::string content;
-	uint32_t startColumn;
-	uint32_t startLine;
-	uint32_t endColumn;
-	uint32_t endLine;
+	int startColumn;
+	int startLine;
+	int endColumn;
+	int endLine;
 
-	Token(int tokenId, std::string content, uint32_t startColumn, uint32_t startLine,
-	      uint32_t endColumn, uint32_t endLine)
+	Token(int tokenId, std::string content, int startColumn, int startLine,
+	      int endColumn, int endLine)
 	    : tokenId(tokenId),
 	      content(content),
 	      startColumn(startColumn),

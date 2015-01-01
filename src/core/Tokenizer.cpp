@@ -81,8 +81,8 @@ bool Tokenizer::prepare()
 {
 	std::stringstream buffer;
 	char c;
-	uint32_t startColumn = input.getColumn();
-	uint32_t startLine = input.getLine();
+	int startColumn = input.getColumn();
+	int startLine = input.getLine();
 	bool bufEmpty = true;
 	while (input.peek(c)) {
 		if (root.children.find(c) != root.children.end()) {
