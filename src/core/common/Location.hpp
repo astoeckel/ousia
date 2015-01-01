@@ -16,32 +16,26 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_TEXT_CURSOR_HPP_
-#define _OUSIA_TEXT_CURSOR_HPP_
+#ifndef _OUSIA_LOCATION_HPP_
+#define _OUSIA_LOCATION_HPP_
 
 namespace ousia {
-namespace TextCursor {
 
 /**
- * Type used for representing line or column positions.
+ * Struct representing a location within a source file. A position is defined by
+ * a byte offset (which is always reproducable), a line number and a column
+ * number (which may differ depending on the encoding used).
  */
-using PosType = unsigned int;
-
-/**
- * Struct representing a position within the text. A position is defined by a
- * byte offset (which is always reproducable), a line number and a column
- * number.
- */
-struct Position {
+struct SourceLocation {
 	/**
 	 * Current line, starting with one.
 	 */
-	PosType line;
+	int line;
 
 	/**
 	 * Current column, starting with one.
 	 */
-	PosType column;
+	int column;
 
 	/**
 	 * Current byte offset.
@@ -49,37 +43,37 @@ struct Position {
 	size_t offs;
 
 	/**
-	 * Default constructor of the Position struct, initializes all memebers
-	 * with zero.
+	 * Default constructor of the SourceLocation struct, initializes all
+	 * memebers with zero.
 	 */
-	Position() : line(0), column(0), offs(0) {}
+	SourceLocation() : line(0), column(0), offs(0) {}
 
 	/**
-	 * Creates a new Position struct with only a line and no column.
+	 * Creates a new SourceLocation struct with only a line and no column.
 	 *
 	 * @param line is the line number.
 	 * @param column is the column number.
 	 */
-	Position(PosType line) : line(line), column(0), offs(0) {}
+	SourceLocation(int line) : line(line), column(0), offs(0) {}
 
 	/**
-	 * Creates a new Position struct with a line and column.
+	 * Creates a new SourceLocation struct with a line and column.
 	 *
 	 * @param line is the line number.
 	 * @param column is the column number.
 	 */
-	Position(PosType line, PosType column) : line(line), column(column), offs(0)
+	SourceLocation(int line, int column) : line(line), column(column), offs(0)
 	{
 	}
 
 	/**
-	 * Creates a new Position struct with a line, column and byte offset.
+	 * Creates a new SourceLocation struct with a line, column and byte offset.
 	 *
 	 * @param line is the line number.
 	 * @param column is the column number.
 	 * @param offs is the byte offset.
 	 */
-	Position(PosType line, PosType column, size_t offs)
+	SourceLocation(int line, int column, size_t offs)
 	    : line(line), column(column), offs(offs)
 	{
 	}
@@ -97,13 +91,21 @@ struct Position {
 	 * @return true for valid column numbers.
 	 */
 	bool hasColumn() const { return column > 0; }
+
+	/**
+	 * Returns true, if the position is valid, false otherwise. This function is
+	 * equivalent to the hasLine() function.
+	 *
+	 * @return true if the Position struct is valid.
+	 */
+	bool valid() const { return hasLine(); }
 };
 
 /**
- * Represents the current context a CharReader is in. Used for building error
+ * Represents the context of a SourceLocation instance. Used to build error
  * messages.
  */
-struct Context {
+struct SourceContext {
 	/**
 	 * Set to the content of the current line.
 	 */
@@ -113,7 +115,7 @@ struct Context {
 	 * Relative position (in characters) within that line. May point to
 	 * locations beyond the text content.
 	 */
-	PosType relPos;
+	int relPos;
 
 	/**
 	 * Set to true if the beginning of the line has been truncated (because
@@ -132,10 +134,13 @@ struct Context {
 	/**
 	 * Default constructor, initializes all members with zero values.
 	 */
-	Context() : text(), relPos(0), truncatedStart(false), truncatedEnd(false) {}
+	SourceContext()
+	    : text(), relPos(0), truncatedStart(false), truncatedEnd(false)
+	{
+	}
 
 	/**
-	 * Constructor of the Context class.
+	 * Constructor of the SourceContext class.
 	 *
 	 * @param text is the current line the text cursor is at.
 	 * @param relPos is the relative position of the text cursor within that
@@ -145,8 +150,8 @@ struct Context {
 	 * @param truncatedEnd specifies whether the text was truncated at the
 	 * end.
 	 */
-	Context(std::string text, size_t relPos, bool truncatedStart,
-	        bool truncatedEnd)
+	SourceContext(std::string text, size_t relPos, bool truncatedStart,
+	              bool truncatedEnd)
 	    : text(std::move(text)),
 	      relPos(relPos),
 	      truncatedStart(truncatedStart),
@@ -161,8 +166,17 @@ struct Context {
 	 */
 	bool valid() const { return !text.empty(); }
 };
-}
+
+/**
+ * Callback used to lookup the context corresponding to the given source
+ * location.
+ *
+ * @param location is the location for which the context should be looked up.
+ * @param data is used defined data associated with the callback.
+ */
+using SourceContextCallback = SourceContext (*)(const SourceLocation &location,
+                                                void *data);
 }
 
-#endif /* _OUSIA_TEXT_CURSOR_HPP_ */
+#endif /* _OUSIA_LOCATION_HPP_ */
 
