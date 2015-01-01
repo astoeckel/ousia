@@ -516,6 +516,18 @@ CharReaderFork CharReader::fork()
 	return CharReaderFork(buffer, readCursor, peekCursor, coherent);
 }
 
+size_t CharReader::readRaw(char *buf, size_t size)
+{
+	// TODO: This is inefficient, implement ranged read in the Buffer class and
+	// use it
+	size_t res = 0;
+	while (res < size && read(*buf)) {
+		buf++;
+		res++;
+	}
+	return res;
+}
+
 SourceContext CharReader::getContextAt(ssize_t maxSize,
                                        Buffer::CursorId referenceCursor)
 {
@@ -622,7 +634,7 @@ SourceContext CharReader::getContextAtOffs(ssize_t maxSize, size_t offs)
 	// Create a new cursor and calculate how far it has to be moved to reach
 	// the position specified in the location instance
 	Buffer::CursorId cur = buffer->createCursor();
-	ssize_t moveOffs = buffer->offset(cur) - offs;
+	ssize_t moveOffs = offs - buffer->offset(cur);
 
 	// Try to move the cursor to the specified position and read the context
 	SourceContext res;

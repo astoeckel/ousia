@@ -38,9 +38,8 @@ namespace ousia {
 
 /**
  * A chunked ring buffer used in CharReader to provide access to an input stream
- * with multiple read cursors. The Buffer automatically expands to the
- * size of the spanned by the read cursors while reusing already allocated
- * memory.
+ * with multiple read cursors. The Buffer automatically expands to the size of
+ * the spanned by the read cursors while reusing already allocated memory.
  */
 class Buffer {
 public:
@@ -561,6 +560,16 @@ public:
 	 * CharReader instance.
 	 */
 	CharReaderFork fork();
+
+	/**
+	 * Reads raw data from the CharReader without any processing. Data is always
+	 * read from the read cursor.
+	 *
+	 * @param buf is the target memory buffer.
+	 * @param size is the number of bytes to be read.
+	 * @return the number of bytes read.
+	 */
+	size_t readRaw(char *buf, size_t size);
 
 	/**
 	 * Returns true if there are no more characters as the stream was
