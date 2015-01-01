@@ -276,7 +276,7 @@ void assertException(std::string css)
 	try {
 		instance.parse(input, ctx).cast<SelectorNode>();
 	}
-	catch (ParserException ex) {
+	catch (LoggableException ex) {
 		logger.log(ex);
 		seenException = true;
 	}

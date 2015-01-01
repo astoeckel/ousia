@@ -27,7 +27,7 @@ namespace ousia {
 namespace model {
 
 static TerminalLogger logger(std::cerr, true);
-//static Logger logger;
+//static ConcreteLogger logger;
 
 /* Class StringType */
 
@@ -318,28 +318,28 @@ TEST(EnumType, createValidated)
 	Manager mgr;
 
 	{
-		logger.resetMaxEncounteredSeverity();
+		logger.reset();
 		Rooted<EnumType> enumType{EnumType::createValidated(
 		    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
 		ASSERT_EQ(Severity::DEBUG, logger.getMaxEncounteredSeverity());
 	}
 
 	{
-		logger.resetMaxEncounteredSeverity();
+		logger.reset();
 		Rooted<EnumType> enumType{EnumType::createValidated(
 		    mgr, "enum", nullptr, {"a", "a", "c"}, logger)};
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
 
 	{
-		logger.resetMaxEncounteredSeverity();
+		logger.reset();
 		Rooted<EnumType> enumType{
 		    EnumType::createValidated(mgr, "enum", nullptr, {}, logger)};
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
 
 	{
-		logger.resetMaxEncounteredSeverity();
+		logger.reset();
 		Rooted<EnumType> enumType{
 		    EnumType::createValidated(mgr, "enum", nullptr, {"a a"}, logger)};
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
@@ -483,7 +483,7 @@ TEST(StructType, createValidated)
 	Rooted<IntType> intType{new IntType(mgr, nullptr)};
 
 	{
-		logger.resetMaxEncounteredSeverity();
+		logger.reset();
 		Rooted<StructType> structType{StructType::createValidated(
 			mgr, "struct", nullptr, nullptr,
 			NodeVector<Attribute>{
@@ -496,7 +496,7 @@ TEST(StructType, createValidated)
 	}
 
 	{
-		logger.resetMaxEncounteredSeverity();
+		logger.reset();
 		Rooted<StructType> structType{StructType::createValidated(
 			mgr, "struct", nullptr, nullptr,
 			NodeVector<Attribute>{
@@ -509,7 +509,7 @@ TEST(StructType, createValidated)
 	}
 
 	{
-		logger.resetMaxEncounteredSeverity();
+		logger.reset();
 		Rooted<StructType> structType{StructType::createValidated(
 			mgr, "struct", nullptr, nullptr,
 			NodeVector<Attribute>{

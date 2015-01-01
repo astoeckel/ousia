@@ -454,7 +454,7 @@ TEST(CharReader, simpleRead)
 	ASSERT_EQ(testStr, res);
 
 	// We must now be at line 1, column 15
-	ASSERT_EQ(1U, reader.getLine());
+	ASSERT_EQ(1, reader.getLine());
 	ASSERT_EQ(testStr.size() + 1, reader.getColumn());
 
 	// If we call either read or peek, false is returned
@@ -483,14 +483,14 @@ TEST(CharReader, simplePeek)
 	ASSERT_EQ(testStr, res);
 
 	// We must now be at line 1, column 1 and NOT at the end of the stream
-	ASSERT_EQ(1U, reader.getLine());
-	ASSERT_EQ(1U, reader.getColumn());
+	ASSERT_EQ(1, reader.getLine());
+	ASSERT_EQ(1, reader.getColumn());
 	ASSERT_FALSE(reader.atEnd());
 
 	// If we consume the peek, we must be at line 1, column 15 and we should be
 	// at the end of the stream
 	reader.consumePeek();
-	ASSERT_EQ(1U, reader.getLine());
+	ASSERT_EQ(1, reader.getLine());
 	ASSERT_EQ(testStr.size() + 1, reader.getColumn());
 	ASSERT_TRUE(reader.atEnd());
 
@@ -505,27 +505,27 @@ TEST(CharReader, rowColumnCounter)
 	CharReader reader{"1\n\r2\n3\r\n\n4"};
 
 	// We should currently be in line 1, column 1
-	ASSERT_EQ(1U, reader.getLine());
-	ASSERT_EQ(1U, reader.getColumn());
+	ASSERT_EQ(1, reader.getLine());
+	ASSERT_EQ(1, reader.getColumn());
 
 	// Read two characters
 	char c;
 	for (int i = 0; i < 2; i++)
 		reader.read(c);
-	ASSERT_EQ(2U, reader.getLine());
-	ASSERT_EQ(1U, reader.getColumn());
+	ASSERT_EQ(2, reader.getLine());
+	ASSERT_EQ(1, reader.getColumn());
 
 	// Read two characters
 	for (int i = 0; i < 2; i++)
 		reader.read(c);
-	ASSERT_EQ(3U, reader.getLine());
-	ASSERT_EQ(1U, reader.getColumn());
+	ASSERT_EQ(3, reader.getLine());
+	ASSERT_EQ(1, reader.getColumn());
 
 	// Read three characters
 	for (int i = 0; i < 3; i++)
 		reader.read(c);
-	ASSERT_EQ(5U, reader.getLine());
-	ASSERT_EQ(1U, reader.getColumn());
+	ASSERT_EQ(5, reader.getLine());
+	ASSERT_EQ(1, reader.getColumn());
 }
 
 TEST(CharReader, rowColumnCounterTest)
@@ -534,27 +534,27 @@ TEST(CharReader, rowColumnCounterTest)
 	CharReader reader{"1\n\r2\n3\r\n\n4", 4, 10};
 
 	// We should currently be in line 1, column 1
-	ASSERT_EQ(4U, reader.getLine());
-	ASSERT_EQ(10U, reader.getColumn());
+	ASSERT_EQ(4, reader.getLine());
+	ASSERT_EQ(10, reader.getColumn());
 
 	// Read two characters
 	char c;
 	for (int i = 0; i < 2; i++)
 		reader.read(c);
-	ASSERT_EQ(5U, reader.getLine());
-	ASSERT_EQ(1U, reader.getColumn());
+	ASSERT_EQ(5, reader.getLine());
+	ASSERT_EQ(1, reader.getColumn());
 
 	// Read two characters
 	for (int i = 0; i < 2; i++)
 		reader.read(c);
-	ASSERT_EQ(6U, reader.getLine());
-	ASSERT_EQ(1U, reader.getColumn());
+	ASSERT_EQ(6, reader.getLine());
+	ASSERT_EQ(1, reader.getColumn());
 
 	// Read three characters
 	for (int i = 0; i < 3; i++)
 		reader.read(c);
-	ASSERT_EQ(8U, reader.getLine());
-	ASSERT_EQ(1U, reader.getColumn());
+	ASSERT_EQ(8, reader.getLine());
+	ASSERT_EQ(1, reader.getColumn());
 }
 
 TEST(CharReader, linebreakSubstitution)
@@ -584,8 +584,8 @@ TEST(CharReader, rowColumnCounterUTF8)
 
 	// The sequence above equals 5 UTF-8 characters (so after reading all the
 	// cursor is at position 6)
-	ASSERT_EQ(1U, reader.getLine());
-	ASSERT_EQ(6U, reader.getColumn());
+	ASSERT_EQ(1, reader.getLine());
+	ASSERT_EQ(6, reader.getColumn());
 }
 
 TEST(CharReader, stream)
@@ -626,8 +626,8 @@ TEST(CharReader, fork)
 	{
 		CharReaderFork fork = reader.fork();
 
-		ASSERT_EQ(1U, fork.getLine());
-		ASSERT_EQ(5U, fork.getColumn());
+		ASSERT_EQ(1, fork.getLine());
+		ASSERT_EQ(5, fork.getColumn());
 
 		fork.peek(c);
 		ASSERT_EQ('i', c);
@@ -635,11 +635,11 @@ TEST(CharReader, fork)
 		fork.read(c);
 		ASSERT_EQ('t', c);
 
-		ASSERT_EQ(1U, fork.getLine());
-		ASSERT_EQ(6U, fork.getColumn());
+		ASSERT_EQ(1, fork.getLine());
+		ASSERT_EQ(6, fork.getColumn());
 
-		ASSERT_EQ(1U, reader.getLine());
-		ASSERT_EQ(5U, reader.getColumn());
+		ASSERT_EQ(1, reader.getLine());
+		ASSERT_EQ(5, reader.getColumn());
 
 		reader.read(c);
 		reader.read(c);
@@ -647,8 +647,8 @@ TEST(CharReader, fork)
 
 		fork.commit();
 	}
-	ASSERT_EQ(1U, reader.getLine());
-	ASSERT_EQ(6U, reader.getColumn());
+	ASSERT_EQ(1, reader.getLine());
+	ASSERT_EQ(6, reader.getColumn());
 }
 
 TEST(CharReaderTest, context)
@@ -660,7 +660,7 @@ TEST(CharReaderTest, context)
 	// Retrieval at beginning of stream
 	{
 		CharReader reader{testStr};
-		TextCursor::Context ctx = reader.getContext(80);
+		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("first line", ctx.text);
 		ASSERT_EQ(0U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
@@ -670,7 +670,7 @@ TEST(CharReaderTest, context)
 	// Retrieval in middle of line
 	{
 		CharReader reader{testStr};
-		TextCursor::Context ctx = reader.getContext(80);
+		SourceContext ctx = reader.getContext(80);
 
 		char c;
 		for (int i = 0; i < 5; i++)
@@ -690,7 +690,7 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 11; i++)
 			reader.read(c);
 
-		TextCursor::Context ctx = reader.getContext(80);
+		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("first line", ctx.text);
 		ASSERT_EQ(10U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
@@ -705,7 +705,7 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 5; i++)
 			reader.read(c);
 
-		TextCursor::Context ctx = reader.getContext(3);
+		SourceContext ctx = reader.getContext(3);
 		ASSERT_EQ("t l", ctx.text);
 		ASSERT_EQ(1U, ctx.relPos);
 		ASSERT_TRUE(ctx.truncatedStart);
@@ -720,7 +720,7 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 12; i++)
 			reader.read(c);
 
-		TextCursor::Context ctx = reader.getContext(80);
+		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("second line", ctx.text);
 		ASSERT_EQ(0U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
@@ -735,7 +735,7 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 23; i++)
 			reader.read(c);
 
-		TextCursor::Context ctx = reader.getContext(80);
+		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("second line", ctx.text);
 		ASSERT_EQ(11U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
@@ -750,7 +750,7 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 24; i++)
 			reader.read(c);
 
-		TextCursor::Context ctx = reader.getContext(80);
+		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("last line", ctx.text);
 		ASSERT_EQ(0U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
@@ -765,7 +765,7 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 28; i++)
 			reader.read(c);
 
-		TextCursor::Context ctx = reader.getContext(80);
+		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("last line", ctx.text);
 		ASSERT_EQ(4U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
@@ -780,7 +780,7 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 28; i++)
 			reader.read(c);
 
-		TextCursor::Context ctx = reader.getContext(3);
+		SourceContext ctx = reader.getContext(3);
 		ASSERT_EQ("t l", ctx.text);
 		ASSERT_EQ(1U, ctx.relPos);
 		ASSERT_TRUE(ctx.truncatedStart);
@@ -795,7 +795,7 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 100; i++)
 			reader.read(c);
 
-		TextCursor::Context ctx = reader.getContext(80);
+		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("last line", ctx.text);
 		ASSERT_EQ(9U, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
@@ -810,7 +810,7 @@ TEST(CharReaderTest, context)
 		for (int i = 0; i < 100; i++)
 			reader.read(c);
 
-		TextCursor::Context ctx = reader.getContext(4);
+		SourceContext ctx = reader.getContext(4);
 		ASSERT_EQ("line", ctx.text);
 		ASSERT_EQ(4U, ctx.relPos);
 		ASSERT_TRUE(ctx.truncatedStart);

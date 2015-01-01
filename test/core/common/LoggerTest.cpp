@@ -25,16 +25,19 @@
 namespace ousia {
 
 struct Pos {
-	TextCursor::Position pos;
-	TextCursor::Context ctx;
+	SourceLocation pos;
 
-	Pos(TextCursor::Position pos = TextCursor::Position{},
-	    TextCursor::Context ctx = TextCursor::Context{})
-	    : pos(pos), ctx(ctx){};
+	Pos(SourceLocation pos = SourceLocation{})
+	    : pos(pos) {};
 
-	TextCursor::Position getPosition() { return pos; }
-	TextCursor::Context getContext() { return ctx; }
+	SourceLocation getLocation() { return pos; }
 };
+
+static SourceContext contextCallback(const SourceLocation &location,
+	                                     void *)
+{
+	return SourceContext{"int bla = blub;", 10, true, false};
+}
 
 TEST(TerminalLogger, log)
 {
@@ -42,21 +45,20 @@ TEST(TerminalLogger, log)
 	TerminalLogger logger{std::cerr, true};
 	logger.pushFile("test.odp");
 
-	logger.debug("This is a test debug message", TextCursor::Position{10, 20});
+	logger.debug("This is a test debug message", SourceLocation{10, 20});
 	logger.debug("This is a test debug message with no column",
-	             TextCursor::Position{10});
+	             SourceLocation{10});
 	logger.debug("This is a test debug message with no line");
-	logger.note("This is a test note", TextCursor::Position{10, 20});
-	logger.warning("This is a test warning", TextCursor::Position{10, 20});
-	logger.error("This is a test error", TextCursor::Position{10, 20});
-	logger.fatalError("This is a test fatal error!",
-	                  TextCursor::Position{10, 20});
+	logger.note("This is a test note", SourceLocation{10, 20});
+	logger.warning("This is a test warning", SourceLocation{10, 20});
+	logger.error("This is a test error", SourceLocation{10, 20});
+	logger.fatalError("This is a test fatal error!", SourceLocation{10, 20});
 
-	logger.error("This is a test error with context",
-	             TextCursor::Position{10, 20},
-	             TextCursor::Context{"int bla = blub;", 10, true, false});
+	logger.pushFile("test2.odp", SourceLocation{}, contextCallback);
+	logger.error("This is a test error with context", SourceLocation{10, 20});
+	logger.popFile();
 
-	Pos pos(TextCursor::Position{10, 20});
+	Pos pos(SourceLocation{10, 20});
 
 	try {
 		throw LoggableException{"An exception"};
@@ -82,10 +84,8 @@ TEST(TerminalLogger, fork)
 
 	LoggerFork fork = logger.fork();
 
-	fork.pushFile("test.odp");
-	fork.error("This is a test error with context",
-	             TextCursor::Position{10, 20},
-	             TextCursor::Context{"int bla = blub;", 10, true, false});
+	fork.pushFile("test.odp", SourceLocation{}, contextCallback);
+	fork.error("This is a test error with context", SourceLocation{10, 20});
 	fork.pushFile("test2.odp");
 	fork.error("This is a test error without context");
 	fork.popFile();
@@ -96,7 +96,5 @@ TEST(TerminalLogger, fork)
 	// Print all error messages
 	fork.commit();
 }
-
-
 }
 

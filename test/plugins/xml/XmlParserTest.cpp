@@ -20,11 +20,15 @@
 
 #include <gtest/gtest.h>
 
+#include <core/common/Logger.hpp>
+
 #include <plugins/xml/XmlParser.hpp>
 
 namespace ousia {
 namespace parser {
 namespace xml {
+
+TerminalLogger logger(std::cerr, true);
 
 TEST(XmlParser, mismatchedTagException)
 {
@@ -35,8 +39,8 @@ TEST(XmlParser, mismatchedTagException)
 	try {
 		p.parse("<document>\n</document2>", ctx);
 	}
-	catch (ParserException ex) {
-		ASSERT_EQ(2U, ex.pos.line);
+	catch (LoggableException ex) {
+		ASSERT_EQ(2U, ex.loc.line);
 		hadException = true;
 	}
 	ASSERT_TRUE(hadException);
@@ -47,8 +51,10 @@ const char *TEST_DATA =
     "<document a:bc=\"b\">\n"
     "	<head>\n"
     "		<typesystem name=\"color\">\n"
-    "			<struct name=\"color\">\n"
-    "			</struct>\n"
+    "			<types>\n"
+    "				<struct name=\"color\">\n"
+    "				</struct>\n"
+    "			</type>\n"
     "		</typesystem>\n"
     "	</head>\n"
     "	<body xmlAttr=\"blub\">\n"
@@ -58,10 +64,14 @@ const char *TEST_DATA =
 
 TEST(XmlParser, namespaces)
 {
-	StandaloneParserContext ctx;
+	StandaloneParserContext ctx(logger);
 	XmlParser p;
 
-	p.parse(TEST_DATA, ctx);
+	try {
+		p.parse(TEST_DATA, ctx);
+	} catch(LoggableException ex) {
+		logger.log(ex);
+	}
 }
 }
 }
