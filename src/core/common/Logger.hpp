@@ -640,7 +640,7 @@ public:
 	             SourceLocation loc = SourceLocation{},
 	             SourceContextCallback ctxCallback = nullptr,
 	             void *ctxCallbackData = nullptr)
-	    : Logger(), parent(parent)
+	    : Logger(), parent(parent), depth(0)
 	{
 		pushFile(name, loc, ctxCallback, ctxCallbackData);
 	}
