@@ -38,6 +38,8 @@
 #include <vector>
 
 #include <core/common/Variant.hpp>
+#include <core/common/Logger.hpp>
+#include <core/model/Typesystem.hpp>
 
 #include "Parser.hpp"
 
@@ -60,9 +62,6 @@ static const State STATE_NONE = -1;
 class Handler {
 private:
 	Rooted<Node> node;
-
-protected:
-	void setNode(Handle<Node> node) { this->node = node; }
 
 public:
 	/**
@@ -132,7 +131,7 @@ public:
 	virtual void start(const Variant &args) = 0;
 
 	/**
-	 * Called whenever the command for which this handler
+	 * Called whenever the command for which this handler is defined ends.
 	 */
 	virtual void end() = 0;
 
@@ -153,7 +152,7 @@ public:
 	 *
 	 * @param handler is a reference at the child Handler instance.
 	 */
-	virtual void child(std::shared_ptr<Handler> handler){};
+	virtual void child(std::shared_ptr<Handler> handler);
 };
 
 /**
@@ -212,12 +211,34 @@ struct HandlerDescriptor {
 	 */
 	const bool arbitraryChildren;
 
+	/**
+	 * Pointer pointing at a StructType describing the layout of the given when
+	 * a new Handler instance is instantiated.
+	 */
+	const Rooted<model::StructType> argsType;
+
+	/**
+	 * Constructor of the HandlerDescriptor class.
+	 *
+	 * @param parentStates is a set of states in which a new handler of this
+	 * type may be instantiated.
+	 * @param ctor is a function pointer pointing at a function that
+	 * instantiates the acutal Handler instance.
+	 * @param targetState is the state the ParserStack switches to after
+	 * instantiating an in instance of the described Handler instances.
+	 * @param arbitraryChildren allows the Handler instance to handle any child
+	 * node.
+	 * @param argsType is a struct type describing the arguments that can be
+	 * passed to the Handler or nullptr if no check should be performed.
+	 */
 	HandlerDescriptor(std::set<State> parentStates, HandlerConstructor ctor,
-	                  State targetState, bool arbitraryChildren = false)
+	                  State targetState, bool arbitraryChildren = false,
+	                  Handle<model::StructType> argsType = nullptr)
 	    : parentStates(std::move(parentStates)),
 	      ctor(ctor),
 	      targetState(targetState),
-	      arbitraryChildren(arbitraryChildren)
+	      arbitraryChildren(arbitraryChildren),
+	      argsType(argsType)
 	{
 	}
 

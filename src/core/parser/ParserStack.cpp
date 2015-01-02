@@ -37,6 +37,11 @@ void Handler::data(const std::string &data, int field)
 	}
 }
 
+void Handler::child(std::shared_ptr<Handler> handler)
+{
+	// Do nothing here
+}
+
 /* Class HandlerDescriptor */
 
 HandlerInstance HandlerDescriptor::create(const ParserContext &ctx,
@@ -45,7 +50,14 @@ HandlerInstance HandlerDescriptor::create(const ParserContext &ctx,
                                           const Variant &args) const
 {
 	Handler *h = ctor(ctx, name, targetState, parentState, isChild);
-	h->start(args);
+
+	// Canonicalize the arguments
+	Variant arguments = args;
+	if (argsType != nullptr) {
+		argsType->build(arguments, ctx.logger);
+	}
+
+	h->start(arguments);
 	return HandlerInstance(h, this);
 }
 
@@ -67,8 +79,8 @@ static LoggableException invalidCommand(const std::string &name,
 		    std::string{"Expected "} +
 		    (expected.size() == 1 ? std::string{"\""}
 		                          : std::string{"one of \""}) +
-		    Utils::join(expected, "\", \"") + std::string{"\", but got \""} + name +
-		    std::string{"\""}};
+		    Utils::join(expected, "\", \"") + std::string{"\", but got \""} +
+		    name + std::string{"\""}};
 	}
 }
 
