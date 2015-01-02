@@ -71,7 +71,10 @@ struct MapAccessor {
 template <class ValueType>
 struct DefaultListener {
 	void addElement(const ValueType &val, Managed *owner) {}
-	void deleteElement(const ValueType &val, Managed *owner) {}
+	void deleteElement(const ValueType &val, Managed *owner,
+	                   bool fromDestructor)
+	{
+	}
 };
 
 /**
@@ -107,17 +110,6 @@ private:
 	Managed *owner;
 
 	/**
-	 * Accessor used to access the managed instance inside a "reference type".
-	 */
-	Accessor accessor;
-
-	/**
-	 * Listener which is notified whenever an element is added to or removed
-	 * from the list.
-	 */
-	Listener listener;
-
-	/**
 	 * Calls the "addElement" function of each element and thus initializes
 	 * the references from the owner to the elements.
 	 */
@@ -133,21 +125,37 @@ private:
 	 * collection.
 	 *
 	 * @param collection for which the deleteElement function is invoked.
+	 * @param fromDestructor set to true if the function is called from the
+	 * destructor.
 	 */
-	void finalize(const Collection &collection)
+	void finalize(const Collection &collection, bool fromDestructor = false)
 	{
 		for (const auto &elem : collection) {
-			deleteElement(elem);
+			deleteElement(elem, fromDestructor);
 		}
 	}
 
 	/**
 	 * Calls the "deleteElement" function for each element in the underlying
 	 * STL collection.
+	 *
+	 * @param fromDestructor set to true if the function is called from the
+	 * destructor.
 	 */
-	void finalize() { finalize(c); }
+	void finalize(bool fromDestructor = false) { finalize(c, fromDestructor); }
 
 protected:
+	/**
+	 * Accessor used to access the managed instance inside a "reference type".
+	 */
+	Accessor accessor;
+
+	/**
+	 * Listener which is notified whenever an element is added to or removed
+	 * from the list.
+	 */
+	Listener listener;
+
 	/**
 	 * Underlying STL collection.
 	 */
@@ -180,13 +188,13 @@ protected:
 	 * @param elem is a reference to the actual element that is being removed
 	 * from the underlying container.
 	 */
-	void deleteElement(const value_type &elem)
+	void deleteElement(const value_type &elem, bool fromDestructor = false)
 	{
 		Managed *managed = accessor.getManaged(elem);
 		Manager &manager = owner ? owner->getManager() : managed->getManager();
 
+		listener.deleteElement(elem, owner, fromDestructor);
 		manager.deleteRef(managed, owner);
-		listener.deleteElement(elem, owner);
 	}
 
 public:
@@ -195,6 +203,15 @@ public:
 	 * rooted entries).
 	 */
 	ManagedContainer() : owner(nullptr){};
+
+	/**
+	 * Constructor of the ManagedContainer class with no owner (will contain
+	 * rooted entries) but a listener instance.
+	 *
+	 * @param listener is the Listener instance listener inside the
+	 * ManagedContainer should be initialized with.
+	 */
+	ManagedContainer(Listener listener) : owner(nullptr), listener(listener){};
 
 	/**
 	 * Constructor of the ManagedContainer class with an initializer list but
@@ -212,6 +229,17 @@ public:
 	 * handles to other managed objects stored within.
 	 */
 	ManagedContainer(Handle<Managed> owner) : owner(owner.get()){};
+
+	/**
+	 * Constructor of the ManagedContainer class.
+	 *
+	 * @param owner is the managed object which owns the collection and all
+	 * handles to other managed objects stored within.
+	 * @param listener is the Listener instance listener inside the
+	 * ManagedContainer should be initialized with.
+	 */
+	ManagedContainer(Handle<Managed> owner, Listener listener)
+	    : owner(owner.get()), listener(listener){};
 
 	/**
 	 * Copy constructor. Creates a copy of the given container with the same
@@ -237,11 +265,49 @@ public:
 	}
 
 	/**
+	 * Copy constructor. Creates a copy of the given container with another
+	 * owner.
+	 *
+	 * @param owner is the managed object which owns the collection and all
+	 * handles to other managed objects stored within.
+	 * @param other is the other container that should be copied.
+	 * @param listener is the Listener instance listener inside the
+	 * ManagedContainer should be initialized with.
+	 */
+	ManagedContainer(Handle<Managed> owner, Listener listener,
+	                 const own_type &other)
+	    : owner(owner.get()), listener(listener), c(other.c)
+	{
+		initialize();
+	}
+
+	/**
 	 * Copy constructor. Creates a copy of the given container and takes over
 	 * ownership.
+	 *
+	 * @param owner is the managed object which owns the collection and all
+	 * handles to other managed objects stored within.
+	 * @param collection is the other container that should be copied.
 	 */
 	ManagedContainer(Handle<Managed> owner, const Collection &collection)
 	    : owner(owner.get()), c(collection)
+	{
+		initialize();
+	}
+
+	/**
+	 * Copy constructor. Creates a copy of the given container and takes over
+	 * ownership.
+	 *
+	 * @param owner is the managed object which owns the collection and all
+	 * handles to other managed objects stored within.
+	 * @param collection is the other container that should be copied.
+	 * @param listener is the Listener instance listener inside the
+	 * ManagedContainer should be initialized with.
+	 */
+	ManagedContainer(Handle<Managed> owner, Listener listener,
+	                 const Collection &collection)
+	    : owner(owner.get()), listener(listener), c(collection)
 	{
 		initialize();
 	}
@@ -258,13 +324,33 @@ public:
 	}
 
 	/**
-	 * Copy constructor. Creates a copy of the given container with another
-	 * owner.
+	 * Move constructor. Moves the given container to this instance but
+	 * exchanges the owner.
 	 *
+	 * @param owner is the managed object which owns the collection and all
+	 * handles to other managed objects stored within.
 	 * @param other is the other container that should be moved.
 	 */
 	ManagedContainer(Handle<Managed> owner, own_type &&other)
 	    : owner(owner.get()), c(std::move(other.c))
+	{
+		initialize();
+		other.finalize(c);
+		other.owner = nullptr;
+	}
+
+	/**
+	 * Move constructor. Moves the given container to this instance but
+	 * exchanges the owner and the listener.
+	 *
+	 * @param owner is the managed object which owns the collection and all
+	 * handles to other managed objects stored within.
+	 * @param listener is the Listener instance listener inside the
+	 * ManagedContainer should be initialized with.
+	 * @param other is the other container that should be moved.
+	 */
+	ManagedContainer(Handle<Managed> owner, Listener listener, own_type &&other)
+	    : owner(owner.get()), listener(listener), c(std::move(other.c))
 	{
 		initialize();
 		other.finalize(c);
@@ -297,7 +383,7 @@ public:
 	 * Destructor of the ManagedContainer class. Calls the "deleteElement"
 	 * function for each element in the container.
 	 */
-	~ManagedContainer() { finalize(); };
+	~ManagedContainer() { finalize(true); };
 
 	/**
 	 * Copy assignment operator.
@@ -399,8 +485,9 @@ public:
 	 */
 	iterator insert(iterator position, value_type val)
 	{
+		auto res = c.insert(position, val);
 		addElement(val);
-		return c.insert(position, val);
+		return res;
 	}
 
 	/**
@@ -503,8 +590,8 @@ public:
 
 	void push_back(const value_type &val)
 	{
-		this->addElement(val);
 		Base::c.push_back(val);
+		this->addElement(val);
 	}
 
 	void pop_back()
@@ -551,14 +638,16 @@ public:
 
 	std::pair<iterator, bool> insert(value_type val)
 	{
+		auto res = Base::c.insert(val);
 		this->addElement(val);
-		return Base::c.insert(val);
+		return res;
 	}
 
 	iterator insert(const_iterator position, value_type val)
 	{
+		auto res = Base::c.insert(position, val);
 		this->addElement(val);
-		return Base::c.insert(position, val);
+		return res;
 	}
 
 	template <class InputIterator>
