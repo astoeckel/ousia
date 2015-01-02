@@ -124,6 +124,7 @@ ADD_LIBRARY(ousia_core
 	src/core/managed/Manager
 	src/core/model/Document
 	src/core/model/Domain
+	src/core/model/Index
 	src/core/model/Node
 	src/core/model/Typesystem
 	src/core/parser/Parser
@@ -198,6 +199,7 @@ IF(TEST)
 		test/core/managed/VariantObjectTest
 		test/core/model/DomainTest
 		test/core/model/DocumentTest
+		test/core/model/IndexTest
 		test/core/model/NodeTest
 		test/core/model/TypesystemTest
 		test/core/parser/ParserStackTest

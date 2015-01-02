@@ -29,6 +29,8 @@
 #include <core/managed/Managed.hpp>
 #include <core/managed/ManagedContainer.hpp>
 
+#include "Index.hpp"
+
 namespace ousia {
 
 /**
@@ -292,7 +294,7 @@ public:
 
 // TODO: Use a different listener here for updating name maps
 
-template <class T, class Listener = DefaultListener<Handle<T>>>
+template <class T, class Listener = Index>
 class NodeVector
     : public ManagedGenericList<T, std::vector<Handle<T>>,
                                 ListAccessor<Handle<T>>, Listener> {
@@ -300,10 +302,11 @@ public:
 	using Base = ManagedGenericList<T, std::vector<Handle<T>>,
 	                                ListAccessor<Handle<T>>, Listener>;
 	using Base::ManagedGenericList;
+
+	Index& getIndex() { return this->listener;}
 };
 
-template <class K, class T,
-          class Listener = DefaultListener<std::pair<K, Handle<T>>>>
+template <class K, class T, class Listener = Index>
 class NodeMap
     : public ManagedGenericMap<K, T, std::map<K, Handle<T>>,
                                MapAccessor<std::pair<K, Handle<T>>>, Listener> {
@@ -312,6 +315,8 @@ public:
 	    ManagedGenericMap<K, T, std::map<K, Handle<T>>,
 	                      MapAccessor<std::pair<K, Handle<T>>>, Listener>;
 	using Base::ManagedGenericMap;
+
+	Index& getIndex() { return this->listener;}
 };
 
 namespace RttiTypes {

@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <core/common/Exceptions.hpp>
+
 #include "Node.hpp"
 
 namespace ousia {
@@ -90,8 +92,8 @@ int Node::resolve(std::vector<Rooted<Managed>> &res,
 }
 
 std::vector<Rooted<Managed>> Node::resolve(const std::vector<std::string> &path,
-                                        Filter filter = nullptr,
-                                        void *filterData = nullptr)
+                                           Filter filter = nullptr,
+                                           void *filterData = nullptr)
 {
 	std::vector<Rooted<Managed>> res;
 	VisitorSet visited;
@@ -102,5 +104,4 @@ std::vector<Rooted<Managed>> Node::resolve(const std::vector<std::string> &path,
 /* RTTI type registrations */
 
 const Rtti<Node> RttiTypes::Node{"Node"};
-
 }
