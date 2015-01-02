@@ -497,14 +497,18 @@ TEST(StructType, createValidated)
 
 	{
 		logger.reset();
-		Rooted<StructType> structType{StructType::createValidated(
-			mgr, "struct", nullptr, nullptr,
-			NodeVector<Attribute>{
-			    new Attribute{mgr, "d", stringType, "attr1default"},
-			    new Attribute{mgr, "b", stringType},
-			    new Attribute{mgr, "a", intType, 3},
-			    new Attribute{mgr, "a", intType}},
-			logger)};
+		try {
+			Rooted<StructType> structType{StructType::createValidated(
+				mgr, "struct", nullptr, nullptr,
+				NodeVector<Attribute>{
+					new Attribute{mgr, "d", stringType, "attr1default"},
+					new Attribute{mgr, "b", stringType},
+					new Attribute{mgr, "a", intType, 3},
+					new Attribute{mgr, "a", intType}},
+				logger)};
+		} catch (LoggableException ex) {
+			logger.log(ex);
+		}
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
 
