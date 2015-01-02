@@ -325,11 +325,12 @@ public:
 	 * from the the reference object to the owner is added. The argument may be
 	 * nullptr in which case no reference is added. The owner is passed to the
 	 * event handler as second parameter.
+	 * @param data is some user defined data.
 	 * @return a numeric event id, which is unique for the given reference
 	 * object. The event id must be used when unregistering event handlers.
 	 */
 	EventId registerEvent(Managed *ref, EventType type, EventHandler handler,
-	                      Managed *owner);
+	                      Managed *owner, void *data);
 
 	/**
 	 * Unregisters the event with the given event id from the given reference
@@ -344,12 +345,30 @@ public:
 	bool unregisterEvent(Managed *ref, EventId id);
 
 	/**
+	 * Searches for the event with the given signature and removes it.
+	 *
+	 * @param ref is the reference object for which the event should be
+	 * registered.
+	 * @param type is the event type that should be registered.
+	 * @param handler is the callback function.
+	 * @param owner is a managed object that owns the event handler. A reference
+	 * from the the reference object to the owner is added. The argument may be
+	 * nullptr in which case no reference is added. The owner is passed to the
+	 * event handler as second parameter.
+	 * @param data is some user defined data.
+	 * @return true if the operation was successful, false if either the
+	 * reference object or and event with the given signature do not exist.
+	 */
+	bool unregisterEvent(Managed *ref, EventType type, EventHandler handler,
+	                     Managed *owner, void *data);
+
+	/**
 	 * Triggers the event of the given type for the reference object.
 	 *
 	 * @param ref is the object for which the given event should be triggered.
 	 * @param data is the event data that should be passed to the handlers.
 	 */
-	bool triggerEvent(Managed *ref, Event &data);
+	bool triggerEvent(Managed *ref, Event &ev);
 };
 }
 

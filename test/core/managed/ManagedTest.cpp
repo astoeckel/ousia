@@ -108,7 +108,7 @@ public:
 	int triggered = false;
 };
 
-static void handleEvent(const Event &ev, Managed *owner)
+static void handleEvent(const Event &ev, Managed *owner, void *data)
 {
 	static_cast<TestManagedEventOwner *>(owner)->triggered++;
 }

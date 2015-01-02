@@ -28,7 +28,8 @@ namespace ousia {
 
 /* Class Managed */
 
-void Managed::storeData(const std::string &key, Handle<Managed> h) {
+void Managed::storeData(const std::string &key, Handle<Managed> h)
+{
 	mgr.storeData(this, key, h.get());
 }
 
@@ -37,11 +38,13 @@ bool Managed::hasDataKey(const std::string &key)
 	return mgr.readData(this, key) != nullptr;
 }
 
-Rooted<Managed> Managed::readData(const std::string &key) {
+Rooted<Managed> Managed::readData(const std::string &key)
+{
 	return mgr.readData(this, key);
 }
 
-std::map<std::string, Rooted<Managed>> Managed::readData() {
+std::map<std::string, Rooted<Managed>> Managed::readData()
+{
 	auto map = mgr.readData(this);
 	std::map<std::string, Rooted<Managed>> res;
 	for (auto e : map) {
@@ -50,14 +53,15 @@ std::map<std::string, Rooted<Managed>> Managed::readData() {
 	return res;
 }
 
-bool Managed::deleteData(const std::string &key) {
+bool Managed::deleteData(const std::string &key)
+{
 	return mgr.deleteData(this, key);
 }
 
 EventId Managed::registerEvent(EventType type, EventHandler handler,
-                      Handle<Managed> owner)
+                               Handle<Managed> owner, void *data)
 {
-	return mgr.registerEvent(this, type, handler, owner.get());
+	return mgr.registerEvent(this, type, handler, owner.get(), data);
 }
 
 bool Managed::unregisterEvent(EventId id)
@@ -65,16 +69,15 @@ bool Managed::unregisterEvent(EventId id)
 	return mgr.unregisterEvent(this, id);
 }
 
-bool Managed::triggerEvent(Event &data)
+bool Managed::unregisterEvent(EventType type, EventHandler handler,
+                              Handle<Managed> owner, void *data)
 {
-	return mgr.triggerEvent(this, data);
+	return mgr.unregisterEvent(this, type, handler, owner.get(), data);
 }
 
-const RttiBase &Managed::type() const
-{
-	return typeOf(*this);
-}
+bool Managed::triggerEvent(Event &ev) { return mgr.triggerEvent(this, ev); }
+
+const RttiBase &Managed::type() const { return typeOf(*this); }
 
 bool Managed::isa(const RttiBase &t) const { return type().isa(t); }
-
 }

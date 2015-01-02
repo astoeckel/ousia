@@ -447,7 +447,7 @@ bool Manager::deleteData(Managed *ref, const std::string &key)
 /* Class Manager: Event handling */
 
 EventId Manager::registerEvent(Managed *ref, EventType type,
-                               EventHandler handler, Managed *owner)
+                               EventHandler handler, Managed *owner, void *data)
 {
 	// Add a reference from the reference object to the owner object
 	if (owner) {
@@ -457,7 +457,7 @@ EventId Manager::registerEvent(Managed *ref, EventType type,
 	// Create a event handler descriptor and store it along with the
 	auto &vec = events.emplace(ref, std::vector<EventHandlerDescriptor>{})
 	                .first->second;
-	const EventHandlerDescriptor descr(type, handler, owner);
+	const EventHandlerDescriptor descr(type, handler, owner, data);
 	for (size_t i = 0; i < vec.size(); i++) {
 		if (!vec[i].handler) {
 			vec[i] = descr;
@@ -490,14 +490,40 @@ bool Manager::unregisterEvent(Managed *ref, EventId id)
 	return false;
 }
 
-bool Manager::triggerEvent(Managed *ref, Event &data)
+bool Manager::unregisterEvent(Managed *ref, EventType type,
+                              EventHandler handler, Managed *owner, void *data)
+{
+	auto eventsIt = events.find(ref);
+	if (eventsIt != events.end()) {
+		auto &vec = eventsIt->second;
+		for (EventHandlerDescriptor &descr : vec) {
+			if (descr.type == type && descr.handler == handler &&
+			    descr.owner == owner && descr.data == data) {
+				// Delete the reference from the reference object to the handler
+				if (descr.owner) {
+					deleteRef(descr.owner, ref);
+				}
+
+				// Remove the handler from the list by resetting handler and
+				// owner to nullptr
+				descr.handler = nullptr;
+				descr.owner = nullptr;
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool Manager::triggerEvent(Managed *ref, Event &ev)
 {
 	bool hasHandler = false;
 	auto eventsIt = events.find(ref);
 	if (eventsIt != events.end()) {
 		for (EventHandlerDescriptor &descr : eventsIt->second) {
-			if (descr.type == data.type && descr.handler) {
-				descr.handler(data, descr.owner);
+			if (descr.type == ev.type && descr.handler) {
+				ev.sender = ref;
+				descr.handler(ev, descr.owner, descr.data);
 				hasHandler = true;
 			}
 		}

@@ -146,11 +146,29 @@ public:
 	 * from the the reference object to the owner is added. The argument may be
 	 * nullptr in which case no reference is added. The owner is passed to the
 	 * event handler as second parameter.
+	 * @param data is some user defined data.
 	 * @return a numeric event id, which is unique for the given reference
 	 * object. The event id must be used when unregistering event handlers.
 	 */
 	EventId registerEvent(EventType type, EventHandler handler,
-	                      Handle<Managed> owner);
+	                      Handle<Managed> owner,
+	                      void *data = nullptr);
+
+	/**
+	 * Unregisters the event handler with the given signature.
+	 *
+	 * @param type is the event type that should be registered.
+	 * @param handler is the callback function.
+	 * @param owner is a managed object that owns the event handler. A reference
+	 * from the the reference object to the owner is added. The argument may be
+	 * nullptr in which case no reference is added. The owner is passed to the
+	 * event handler as second parameter.
+	 * @param data is some user defined data.
+	 * @return a numeric event id, which is unique for the given reference
+	 * object. The event id must be used when unregistering event handlers.
+	 */
+	bool unregisterEvent(EventType type, EventHandler handler,
+	                     Handle<Managed> owner, void *data = nullptr);
 
 	/**
 	 * Unregisters the event with the given event id.
@@ -167,7 +185,7 @@ public:
 	 *
 	 * @param data is the event data that should be passed to the handlers.
 	 */
-	bool triggerEvent(Event &data);
+	bool triggerEvent(Event &ev);
 
 	/* RTTI methods */
 
