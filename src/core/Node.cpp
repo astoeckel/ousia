@@ -25,8 +25,10 @@ namespace ousia {
 void Node::setName(std::string name)
 {
 	// Call the name change event
-	NameChangeEvent ev{this->name, name};
-	triggerEvent(ev);
+	{
+		NameChangeEvent ev{this->name, name};
+		triggerEvent(ev);
+	}
 
 	// Set the new name
 	this->name = std::move(name);
@@ -94,48 +96,6 @@ std::vector<Rooted<Managed>> Node::resolve(const std::vector<std::string> &path,
 	std::vector<Rooted<Managed>> res;
 	VisitorSet visited;
 	resolve(res, path, filter, filterData, 0, visited, nullptr);
-	return res;
-}
-
-int Node::registerEventHandler(EventType type, EventHandler handler,
-                               Handle<Managed> owner,
-                               bool includeChildren)
-{
-	const int id = handlerIdCounter++;
-	handlers.insert(std::make_pair(
-	    type,
-	    EventHandlerDescriptor{id, handler, owner, this, includeChildren}));
-	return id;
-}
-
-bool Node::unregisterEventHandler(int id) {
-	for (auto it = handlers.begin(); it != handlers.end(); it++) {
-		if (it->second.id == id) {
-			handlers.erase(it);
-			return true;
-		}
-	}
-	return false;
-}
-
-bool Node::triggerEvent(Event &event, bool fromChild) {
-	bool res = false;
-	// Iterate over all event handlers
-	const auto range = handlers.equal_range(event.type);
-	for (auto it = range.first; it != range.second; it++) {
-		// Fetch a reference to the descriptor, check whether it should be
-		// called for bubbled events
-		EventHandlerDescriptor descr = it->second;
-		if (!fromChild || descr.includeChildren) {
-			descr.handler(event, descr.owner);
-			res = true;
-		}
-	}
-
-	// If possible, let the event bubble up to the parent node
-	if (event.canBubble() && !parent.isNull()) {
-		res = parent->triggerEvent(event, true) | res;
-	}
 	return res;
 }
 

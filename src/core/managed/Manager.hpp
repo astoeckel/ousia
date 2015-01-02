@@ -35,6 +35,8 @@
 #include <vector>
 #include <queue>
 
+#include "Events.hpp"
+
 namespace ousia {
 
 // Forward declaration
@@ -166,9 +168,9 @@ private:
 	std::unordered_map<Managed *, std::map<std::string, Managed *>> store;
 
 	/**
-	 * Map for storing the tagged memory regions.
+	 * Map storing any attached events.
 	 */
-	std::map<uintptr_t, std::pair<uintptr_t, void *>> tags;
+	std::unordered_map<Managed *, std::vector<EventHandlerDescriptor>> events;
 
 	/**
 	 * Recursion depth while performing deletion. This variable is needed
@@ -225,6 +227,8 @@ public:
 	 */
 	~Manager();
 
+	/* Reference management and garbage collection */
+
 	/**
 	 * Registers an object for being managed by the Manager. The Manager now has
 	 * the sole responsibility for freeing the managed object. Under no
@@ -266,6 +270,8 @@ public:
 	 */
 	void sweep();
 
+	/* Data storage */
+
 	/**
 	 * Registers some arbitrary data (in form of a Managed object) for the
 	 * given reference Managed object under a certain (string) key. Overrides
@@ -304,6 +310,46 @@ public:
 	 * @return true if data for this key was deleted, false otherwise.
 	 */
 	bool deleteData(Managed *ref, const std::string &key);
+
+	/* Events */
+
+	/**
+	 * Registers an event handler for an event of the given type for the object
+	 * referenced by ref.
+	 *
+	 * @param ref is the reference object for which the event should be
+	 * registered.
+	 * @param type is the event type that should be registered.
+	 * @param handler is the callback function.
+	 * @param owner is a managed object that owns the event handler. A reference
+	 * from the the reference object to the owner is added. The argument may be
+	 * nullptr in which case no reference is added. The owner is passed to the
+	 * event handler as second parameter.
+	 * @return a numeric event id, which is unique for the given reference
+	 * object. The event id must be used when unregistering event handlers.
+	 */
+	EventId registerEvent(Managed *ref, EventType type, EventHandler handler,
+	                      Managed *owner);
+
+	/**
+	 * Unregisters the event with the given event id from the given reference
+	 * object.
+	 *
+	 * @param ref is the reference object from which the event should be
+	 * removed.
+	 * @param id is the event that should be unregistered.
+	 * @return true if the operation was successful, false if either the
+	 * reference object or the event id do not exist.
+	 */
+	bool unregisterEvent(Managed *ref, EventId id);
+
+	/**
+	 * Triggers the event of the given type for the reference object.
+	 *
+	 * @param ref is the object for which the given event should be triggered.
+	 * @param data is the event data that should be passed to the handlers.
+	 */
+	bool triggerEvent(Managed *ref, Event &data);
 };
 }
 

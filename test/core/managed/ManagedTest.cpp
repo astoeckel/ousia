@@ -100,5 +100,99 @@ TEST(Managed, type)
 	ASSERT_EQ(&Type1, &typeOf<TypeTestManaged1>());
 	ASSERT_EQ(&Type1, &typeOf(*m1));
 }
+
+class TestManagedEventOwner : public TestManaged {
+public:
+	using TestManaged::TestManaged;
+
+	int triggered = false;
+};
+
+static void handleEvent(const Event &ev, Managed *owner)
+{
+	static_cast<TestManagedEventOwner *>(owner)->triggered++;
+}
+
+TEST(Managed, events)
+{
+	Manager mgr(1);
+	std::array<bool, 4> a;
+	{
+		Rooted<TestManaged> n{new TestManaged(mgr, a[0])};
+
+		Handle<TestManagedEventOwner> e1{new TestManagedEventOwner(mgr, a[1])};
+		Handle<TestManagedEventOwner> e2{new TestManagedEventOwner(mgr, a[2])};
+		Handle<TestManagedEventOwner> e3{new TestManagedEventOwner(mgr, a[3])};
+		{
+			Rooted<TestManagedEventOwner> re1{e1};
+			Rooted<TestManagedEventOwner> re2{e2};
+			Rooted<TestManagedEventOwner> re3{e3};
+
+			ASSERT_EQ(0, n->registerEvent(EventType::UPDATE, handleEvent, re1));
+			ASSERT_EQ(
+			    1, n->registerEvent(EventType::NAME_CHANGE, handleEvent, re2));
+			ASSERT_EQ(
+			    2, n->registerEvent(EventType::NAME_CHANGE, handleEvent, re3));
+			ASSERT_TRUE(a[0] && a[1] && a[2] && a[3]);
+		}
+		ASSERT_TRUE(a[0] && a[1] && a[2] && a[3]);
+
+		ASSERT_EQ(0, e1->triggered);
+		ASSERT_EQ(0, e2->triggered);
+		ASSERT_EQ(0, e3->triggered);
+
+		{
+			Event ev{EventType::ADD_CHILD};
+			ASSERT_FALSE(n->triggerEvent(ev));
+		}
+
+		{
+			Event ev{EventType::UPDATE};
+			ASSERT_TRUE(n->triggerEvent(ev));
+			ASSERT_EQ(1, e1->triggered);
+			ASSERT_EQ(0, e2->triggered);
+			ASSERT_EQ(0, e3->triggered);
+		}
+
+		{
+			Event ev{EventType::NAME_CHANGE};
+			ASSERT_TRUE(n->triggerEvent(ev));
+			ASSERT_EQ(1, e1->triggered);
+			ASSERT_EQ(1, e2->triggered);
+			ASSERT_EQ(1, e3->triggered);
+		}
+
+		ASSERT_TRUE(n->unregisterEvent(1));
+		ASSERT_FALSE(n->unregisterEvent(1));
+		ASSERT_FALSE(a[2]);
+
+		{
+			Event ev{EventType::NAME_CHANGE};
+			ASSERT_TRUE(n->triggerEvent(ev));
+			ASSERT_EQ(1, e1->triggered);
+			ASSERT_EQ(2, e3->triggered);
+		}
+
+		ASSERT_TRUE(n->unregisterEvent(0));
+		ASSERT_FALSE(n->unregisterEvent(0));
+		ASSERT_FALSE(a[1]);
+
+		{
+			Event ev{EventType::UPDATE};
+			ASSERT_FALSE(n->triggerEvent(ev));
+			ASSERT_EQ(2, e3->triggered);
+		}
+
+		ASSERT_TRUE(n->unregisterEvent(2));
+		ASSERT_FALSE(n->unregisterEvent(2));
+		ASSERT_FALSE(a[3]);
+
+		{
+			Event ev{EventType::NAME_CHANGE};
+			ASSERT_FALSE(n->triggerEvent(ev));
+		}
+	}
+	ASSERT_FALSE(a[0] || a[1] || a[2] || a[3]);
+}
 }
 

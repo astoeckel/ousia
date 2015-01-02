@@ -135,6 +135,40 @@ public:
 
 	bool deleteData(const std::string &key);
 
+	/* Event handling methods */
+
+	/**
+	 * Registers an event handler for an event of the given type.
+	 *
+	 * @param type is the event type that should be registered.
+	 * @param handler is the callback function.
+	 * @param owner is a managed object that owns the event handler. A reference
+	 * from the the reference object to the owner is added. The argument may be
+	 * nullptr in which case no reference is added. The owner is passed to the
+	 * event handler as second parameter.
+	 * @return a numeric event id, which is unique for the given reference
+	 * object. The event id must be used when unregistering event handlers.
+	 */
+	EventId registerEvent(EventType type, EventHandler handler,
+	                      Handle<Managed> owner);
+
+	/**
+	 * Unregisters the event with the given event id.
+	 *
+	 * @param id is the event that should be unregistered as returned by the
+	 * registerEvent function.
+	 * @return true if the operation was successful, false if either the
+	 * reference object or the event id do not exist.
+	 */
+	bool unregisterEvent(EventId id);
+
+	/**
+	 * Triggers the event of the given type for the reference object.
+	 *
+	 * @param data is the event data that should be passed to the handlers.
+	 */
+	bool triggerEvent(Event &data);
+
 	/* RTTI methods */
 
 	/**

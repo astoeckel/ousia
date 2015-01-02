@@ -256,8 +256,9 @@ void Manager::deleteObject(Managed *o, ObjectDescriptor *descr)
 			deleteRef(descr->refOut.begin()->first, o, true);
 		}
 
-		// Remove the data store entry
+		// Remove the data store and the event store entry
 		store.erase(o);
+		events.erase(o);
 
 		// Remove the Managed from the "marked" set
 		marked.erase(o);
@@ -441,6 +442,67 @@ bool Manager::deleteData(Managed *ref, const std::string &key)
 		}
 	}
 	return false;
+}
+
+/* Class Manager: Event handling */
+
+EventId Manager::registerEvent(Managed *ref, EventType type,
+                               EventHandler handler, Managed *owner)
+{
+	// Add a reference from the reference object to the owner object
+	if (owner) {
+		addRef(owner, ref);
+	}
+
+	// Create a event handler descriptor and store it along with the
+	auto &vec = events.emplace(ref, std::vector<EventHandlerDescriptor>{})
+	                .first->second;
+	const EventHandlerDescriptor descr(type, handler, owner);
+	for (size_t i = 0; i < vec.size(); i++) {
+		if (!vec[i].handler) {
+			vec[i] = descr;
+			return i;
+		}
+	}
+	vec.push_back(descr);
+	return vec.size() - 1;
+}
+
+bool Manager::unregisterEvent(Managed *ref, EventId id)
+{
+	auto eventsIt = events.find(ref);
+	if (eventsIt != events.end()) {
+		auto &vec = eventsIt->second;
+		if (id < vec.size() && vec[id].handler) {
+			// Delete the reference from the reference object to the handler
+			EventHandlerDescriptor &descr = vec[id];
+			if (descr.owner) {
+				deleteRef(descr.owner, ref);
+			}
+
+			// Remove the handler from the list by resetting handler and owner
+			// to nullptr
+			descr.handler = nullptr;
+			descr.owner = nullptr;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Manager::triggerEvent(Managed *ref, Event &data)
+{
+	bool hasHandler = false;
+	auto eventsIt = events.find(ref);
+	if (eventsIt != events.end()) {
+		for (EventHandlerDescriptor &descr : eventsIt->second) {
+			if (descr.type == data.type && descr.handler) {
+				descr.handler(data, descr.owner);
+				hasHandler = true;
+			}
+		}
+	}
+	return hasHandler;
 }
 }
 

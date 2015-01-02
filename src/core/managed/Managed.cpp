@@ -54,6 +54,22 @@ bool Managed::deleteData(const std::string &key) {
 	return mgr.deleteData(this, key);
 }
 
+EventId Managed::registerEvent(EventType type, EventHandler handler,
+                      Handle<Managed> owner)
+{
+	return mgr.registerEvent(this, type, handler, owner.get());
+}
+
+bool Managed::unregisterEvent(EventId id)
+{
+	return mgr.unregisterEvent(this, id);
+}
+
+bool Managed::triggerEvent(Event &data)
+{
+	return mgr.triggerEvent(this, data);
+}
+
 const RttiBase &Managed::type() const
 {
 	return typeOf(*this);
