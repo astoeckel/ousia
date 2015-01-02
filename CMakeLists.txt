@@ -181,7 +181,6 @@ IF(TEST)
 	ADD_EXECUTABLE(ousia_test_core
 		test/core/CodeTokenizerTest
 		test/core/CSSTest
-		test/core/NodeTest
 		test/core/RangeSetTest
 		test/core/RegistryTest
 		test/core/ResourceLocatorTest
@@ -199,6 +198,7 @@ IF(TEST)
 		test/core/managed/VariantObjectTest
 		test/core/model/DomainTest
 		test/core/model/DocumentTest
+		test/core/model/NodeTest
 		test/core/model/TypesystemTest
 		test/core/parser/ParserStackTest
 #		test/core/script/FunctionTest
