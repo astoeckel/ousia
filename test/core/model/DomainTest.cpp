@@ -64,34 +64,26 @@ TEST(Domain, testDomainResolving)
 	assert_path(res, 1, typeOf<StructuredClass>(), {"book", "book"});
 	ASSERT_EQ(2, res.size());
 
-	/*
-	 * If we explicitly ask for the "book, book" path, then only the
-	 * StructuredClass should be returned.
-	 */
+	// If we explicitly ask for the "book, book" path, then only the
+	// StructuredClass should be returned.
 	res = domain->resolve(std::vector<std::string>{"book", "book"});
 	assert_path(res, 0, typeOf<StructuredClass>(), {"book", "book"});
 	ASSERT_EQ(1, res.size());
 
-	/*
-	 * If we ask for "section" the result should be unique as well.
-	 */
+	// If we ask for "section" the result should be unique as well.
 	res = domain->resolve(std::vector<std::string>{"section"});
 	// TODO: Is that the path result we want?
 	assert_path(res, 0, typeOf<StructuredClass>(), {"book", "section"});
 	ASSERT_EQ(1, res.size());
 
-	/*
-	 * If we ask for the path "book", "book", "" we reference the
-	 * FieldDescriptor of the StructuredClass "book".
-	 */
+	// If we ask for the path "book", "book", "" we reference the
+	// FieldDescriptor of the StructuredClass "book".
 	res = domain->resolve(std::vector<std::string>{"book", "book", ""});
 	assert_path(res, 0, typeOf<FieldDescriptor>(), {"book", "book", ""});
 	ASSERT_EQ(1, res.size());
 
-	/*
-	 * If we ask for "paragraph" it is references two times in the Domain graph,
-	 * but should be returned only once.
-	 */
+	// If we ask for "paragraph" it is references two times in the Domain graph,
+	// but should be returned only once.
 	res = domain->resolve("paragraph");
 	assert_path(res, 0, typeOf<StructuredClass>(), {"book", "paragraph"});
 	ASSERT_EQ(1, res.size());
