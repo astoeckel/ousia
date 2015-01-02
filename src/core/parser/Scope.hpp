@@ -21,7 +21,7 @@
 
 #include <deque>
 
-#include <core/Node.hpp>
+#include <core/model/Node.hpp>
 
 /**
  * @file Scope.hpp

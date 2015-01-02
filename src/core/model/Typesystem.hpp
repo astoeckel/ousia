@@ -32,11 +32,12 @@
 #include <map>
 #include <vector>
 
-#include <core/Node.hpp>
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
 #include <core/common/Rtti.hpp>
 #include <core/common/Variant.hpp>
+
+#include "Node.hpp"
 
 namespace ousia {
 namespace model {

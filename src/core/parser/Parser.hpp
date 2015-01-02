@@ -32,11 +32,11 @@
 #include <set>
 #include <string>
 
-#include <core/Node.hpp>
 #include <core/Registry.hpp>
 #include <core/common/CharReader.hpp>
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
+#include <core/model/Node.hpp>
 
 #include "Scope.hpp"
 

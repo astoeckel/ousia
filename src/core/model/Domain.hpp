@@ -83,9 +83,9 @@
 #define _OUSIA_MODEL_DOMAIN_HPP_
 
 #include <core/managed/ManagedContainer.hpp>
-#include <core/Node.hpp>
 #include <core/RangeSet.hpp>
 
+#include "Node.hpp"
 #include "Typesystem.hpp"
 
 namespace ousia {

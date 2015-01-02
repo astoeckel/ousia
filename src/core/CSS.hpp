@@ -25,8 +25,7 @@
 
 #include <core/common/Variant.hpp>
 #include <core/managed/Managed.hpp>
-
-#include "Node.hpp"
+#include <core/model/Node.hpp>
 
 namespace ousia {
 

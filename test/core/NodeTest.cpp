@@ -19,8 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <core/managed/Managed.hpp>
-
-#include <core/Node.hpp>
+#include <core/model/Node.hpp>
 
 namespace ousia {
 namespace dom {

@@ -107,7 +107,6 @@ ADD_DEFINITIONS(
 ADD_LIBRARY(ousia_core
 	src/core/CodeTokenizer
 	src/core/CSS
-	src/core/Node
 	src/core/Registry
 	src/core/ResourceLocator
 	src/core/Tokenizer
@@ -125,6 +124,7 @@ ADD_LIBRARY(ousia_core
 	src/core/managed/Manager
 	src/core/model/Document
 	src/core/model/Domain
+	src/core/model/Node
 	src/core/model/Typesystem
 	src/core/parser/Parser
 	src/core/parser/ParserStack

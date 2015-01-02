@@ -69,9 +69,9 @@
 #define _OUSIA_MODEL_DOCUMENT_HPP_
 
 #include <core/managed/ManagedContainer.hpp>
-#include <core/Node.hpp>
 #include <core/common/Variant.hpp>
 
+#include "Node.hpp"
 #include "Domain.hpp"
 #include "Typesystem.hpp"
 
