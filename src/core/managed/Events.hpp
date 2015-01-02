@@ -74,8 +74,9 @@ enum class EventType : int {
  * @param event is a reference to the object holding the event data.
  * @param owner is a reference to the managed object that was given in the
  * registerEventHandler function.
+ * @param data is some user defined data.
  */
-using EventHandler = void (*)(const Event &event, Managed* owner);
+using EventHandler = void (*)(const Event &event, Managed *owner, void *data);
 
 /**
  * The Event class and its child classes are responsible for containing the
@@ -126,9 +127,7 @@ struct NameChangeEvent : public Event {
 	 * copied, only the reference is passed around.
 	 */
 	NameChangeEvent(const std::string &oldName, const std::string &newName)
-	    : Event(EventType::NAME_CHANGE),
-	      oldName(oldName),
-	      newName(newName)
+	    : Event(EventType::NAME_CHANGE), oldName(oldName), newName(newName)
 	{
 	}
 };
@@ -153,6 +152,11 @@ struct EventHandlerDescriptor {
 	Managed *owner;
 
 	/**
+	 * User defined data.
+	 */
+	void *data;
+
+	/**
 	 * Constructor of the EventHandlerDescriptor struct.
 	 *
 	 * @param type is the event type for which the handler is registered.
@@ -162,11 +166,11 @@ struct EventHandlerDescriptor {
 	 * going to be called. This can be used to make sure that the method which
 	 * handles the events has access to its owned object as long as the event
 	 * handler lives.
+	 * @param data is some arbitrary user defined data.
 	 */
-	EventHandlerDescriptor(EventType type, EventHandler handler, Managed *owner)
-	    :  type(type),
-	    handler(handler),
-	      owner(owner)
+	EventHandlerDescriptor(EventType type, EventHandler handler, Managed *owner,
+	                       void *data)
+	    : type(type), handler(handler), owner(owner), data(data)
 	{
 	}
 };
