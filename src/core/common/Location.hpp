@@ -19,6 +19,8 @@
 #ifndef _OUSIA_LOCATION_HPP_
 #define _OUSIA_LOCATION_HPP_
 
+#include <string>
+
 namespace ousia {
 
 /**
