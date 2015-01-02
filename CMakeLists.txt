@@ -120,6 +120,7 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Utils
 	src/core/common/Variant
 	src/core/common/VariantReader
+	src/core/managed/Events
 	src/core/managed/Managed
 	src/core/managed/Manager
 	src/core/model/Document
