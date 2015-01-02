@@ -174,6 +174,7 @@ IF(TEST)
 
 	INCLUDE_DIRECTORIES(
 		${GTEST_INCLUDE_DIRS}
+		test/
 	)
 
 	ADD_EXECUTABLE(ousia_test_core
