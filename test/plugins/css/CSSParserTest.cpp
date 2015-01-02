@@ -23,6 +23,8 @@
 
 #include <plugins/css/CSSParser.hpp>
 
+#include <core/parser/StandaloneParserContext.hpp>
+
 namespace ousia {
 namespace parser {
 namespace css {

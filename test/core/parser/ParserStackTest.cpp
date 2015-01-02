@@ -21,6 +21,7 @@
 #include <gtest/gtest.h>
 
 #include <core/parser/ParserStack.hpp>
+#include <core/parser/StandaloneParserContext.hpp>
 
 namespace ousia {
 namespace parser {

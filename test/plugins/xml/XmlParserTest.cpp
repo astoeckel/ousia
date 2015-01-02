@@ -21,6 +21,7 @@
 #include <gtest/gtest.h>
 
 #include <core/common/Logger.hpp>
+#include <core/parser/StandaloneParserContext.hpp>
 
 #include <plugins/xml/XmlParser.hpp>
 
@@ -28,7 +29,7 @@ namespace ousia {
 namespace parser {
 namespace xml {
 
-TerminalLogger logger(std::cerr, true);
+static TerminalLogger logger(std::cerr, true);
 
 TEST(XmlParser, mismatchedTagException)
 {
