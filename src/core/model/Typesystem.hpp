@@ -835,6 +835,73 @@ public:
 	 * @return NodeVector containing all registered constants.
 	 */
 	const NodeVector<Constant> &getConstants() const { return constants; }
+
+	static Rooted<Typesystem> createSystemTypesystem(Manager &mgr);
+};
+
+/**
+ * The SystemTypesystem class represents the typesystem defining the primitive
+ * types. There should be exactly one SystemTypesystem instance in each project.
+ */
+class SystemTypesystem : public Typesystem {
+private:
+	/**
+	 * Reference to the string type.
+	 */
+	Handle<StringType> stringType;
+
+	/**
+	 * Reference to the string type.
+	 */
+	Handle<IntType> intType;
+
+	/**
+	 * Reference to the double type.
+	 */
+	Handle<DoubleType> doubleType;
+
+	/**
+	 * Reference to the bool type.
+	 */
+	Handle<BoolType> boolType;
+
+public:
+	/**
+	 * Creates the SystemTypesystem containing all basic types (string, int,
+	 * double, bool).
+	 *
+	 * @param mgr is the Manager instance which manages the new Typesystem
+	 * instance.
+	 */
+	SystemTypesystem(Manager &mgr);
+
+	/**
+	 * Returns the primitive string type.
+	 *
+	 * @return a reference to the primitive StringType instance.
+	 */
+	Rooted<StringType> getStringType() { return stringType; }
+
+	/**
+	 * Returns the primitive integer type.
+	 *
+	 * @return a reference to the primitive IntType instance.
+	 */
+	Rooted<IntType> getIntType() { return intType; }
+
+	/**
+	 * Returns the primitive double type.
+	 *
+	 * @return a reference to the primitive DoubleType instance.
+	 */
+	Rooted<DoubleType> getDoubleType() { return doubleType; }
+
+	/**
+	 * Returns the primitive boolean type.
+	 *
+	 * @return a reference to the primitive BoolType instance.
+	 */
+	Rooted<BoolType> getBoolType() { return boolType; }
 };
 }
 
@@ -895,6 +962,12 @@ extern const Rtti<model::Constant> Constant;
  * Type information for the Typesystem class.
  */
 extern const Rtti<model::Typesystem> Typesystem;
+
+/**
+ * Type information for the SystemTypesystem class.
+ */
+extern const Rtti<model::SystemTypesystem> SystemTypesystem;
+
 }
 }
 
