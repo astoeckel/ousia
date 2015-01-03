@@ -50,12 +50,12 @@
  * // Only needed if the type needs to be accessed
  * // from other compilation units!
  * namespace RttiTypes {
- *     extern const Rtti<MyType> MyType;
+ *     extern const Rtti<MyT> MyT;
  * }
  * \endcode
  * In the source file:
  * \code{.cpp}
- * const Rtti<MyType> RttiTypes::MyType{"MyType", {&RttiTypes::MyOtherType}, [...]};
+ * const Rtti<MyT> RttiTypes::MyT{"MyT", {&RttiTypes::MyOtherT}, [...]};
  * \endcode
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
@@ -67,6 +67,7 @@
 #include <typeinfo>
 #include <typeindex>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace ousia {
@@ -113,9 +114,28 @@ public:
 class RttiBase {
 private:
 	/**
-	 * Set containing references to the parent types.
+	 * Set to true if once the parents and the aggregated types list have been
+	 * completed (by including the parents of the original parent elements and
+	 * the aggregated types of the original aggregated types).
 	 */
-	const std::vector<const RttiBase *> parents;
+	mutable bool initialized;
+
+	/**
+	 * Set containing references to all parent types, including their parents.
+	 */
+	mutable std::unordered_set<const RttiBase *> parents;
+
+	/**
+	 * Set containing references to all types this type is aggregated of,
+	 * including all aggregated types of the original aggregated types.
+	 */
+	mutable std::unordered_set<const RttiBase *> aggregatedTypes;
+
+	/**
+	 * Adds the parent types of the parents and the aggregated types of the
+	 * aggregated types to the internal sets.
+	 */
+	void initialize() const;
 
 public:
 	/**
@@ -139,10 +159,15 @@ public:
 	 * the compiler.
 	 * @param parents is a list of parent types.
 	 */
-	RttiBase(
-	    std::string name, const std::type_info &native,
-	    std::vector<const RttiBase *> parents = std::vector<const RttiBase *>{})
-	    : parents(std::move(parents)), name(std::move(name))
+	RttiBase(std::string name, const std::type_info &native,
+	         std::unordered_set<const RttiBase *> parents =
+	             std::unordered_set<const RttiBase *>{},
+	         std::unordered_set<const RttiBase *> aggregatedTypes =
+	             std::unordered_set<const RttiBase *>{})
+	    : initialized(false),
+	      parents(std::move(parents)),
+	      aggregatedTypes(aggregatedTypes),
+	      name(std::move(name))
 	{
 		RttiStore::store(native, this);
 	}
@@ -155,6 +180,16 @@ public:
 	 * should be checked.
 	 */
 	bool isa(const RttiBase &other) const;
+
+	/**
+	 * Returns true if an instance of this type may have references to the other
+	 * given type. This mechanism is used to prune impossible paths when
+	 * resolving objects of a certain type by name in an object graph.
+	 *
+	 * @param other is the other type for which should be checked whether this
+	 * type is directly or indirectly aggregated of it.
+	 */
+	bool contains(const RttiBase &other) const;
 };
 
 /**
@@ -175,9 +210,12 @@ public:
 	 * @param name is the name of the type.
 	 * @param parents is a list of parent types.
 	 */
-	Rtti(std::string name, const std::vector<const RttiBase *> &parents =
-	                           std::vector<const RttiBase *>{})
-	    : RttiBase(name, typeid(T), parents)
+	Rtti(std::string name, const std::unordered_set<const RttiBase *> &parents =
+	                           std::unordered_set<const RttiBase *>{},
+	     std::unordered_set<const RttiBase *> aggregatedTypes =
+	         std::unordered_set<const RttiBase *>{})
+	    : RttiBase(name, typeid(T), std::move(parents),
+	               std::move(aggregatedTypes))
 	{
 	}
 };
@@ -212,43 +250,12 @@ inline const RttiBase &typeOf(const T &obj)
 	return RttiStore::lookup(typeid(obj));
 }
 
-/**
- * Struct defining static constants describing certain Variant types. These 
- * constants are used to e.g. define the type of function arguments while 
- * allowing for both primitive variant types and more complex variant types.
- */
 namespace RttiTypes {
-	/**
-	 * Type of no particular color.
-	 */
-	extern const RttiBase None;
-
-	/**
-	 * Constant representing a variant int type.
-	 */
-	extern const RttiBase Int;
-
-	/**
-	 * Constant representing a variant double type.
-	 */
-	extern const RttiBase Double;
-
-	/**
-	 * Constant representing a variant string type.
-	 */
-	extern const RttiBase String;
-
-	/**
-	 * Constant representing a variant array type.
-	 */
-	extern const RttiBase Array;
-
-	/**
-	 * Constant representing a variant map type.
-	 */
-	extern const RttiBase Map;
+/**
+ * Type of no particular type.
+ */
+extern const RttiBase None;
 }
-
 }
 
 #endif /* _OUSIA_RTTI_HPP_ */

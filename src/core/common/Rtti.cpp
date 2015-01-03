@@ -46,27 +46,50 @@ const RttiBase &RttiStore::lookup(const std::type_info &native)
 
 /* Class RttiBase */
 
-bool RttiBase::isa(const RttiBase &other) const
+void RttiBase::initialize() const
 {
-	if (&other == this) {
-		return true;
-	}
-	for (auto t : parents) {
-		if (t->isa(other)) {
-			return true;
+	// Only run this function exactly once -- directly set the initialized flag
+	// to prevent unwanted recursion
+	if (!initialized) {
+		initialized = true;
+
+		// Insert the parent types of the parent types
+		{
+			std::unordered_set<const RttiBase *> origParents = parents;
+			for (const RttiBase *parent : origParents) {
+				parent->initialize();
+				parents.insert(parent->parents.begin(), parent->parents.end());
+			}
+			parents.insert(this);
+		}
+
+		// Insert the aggregated types of the aggregated types
+		{
+			std::unordered_set<const RttiBase *> origAggregatedTypes =
+			    aggregatedTypes;
+			for (const RttiBase *aggregatedType : origAggregatedTypes) {
+				aggregatedType->initialize();
+				aggregatedTypes.insert(aggregatedType->aggregatedTypes.begin(),
+				                       aggregatedType->aggregatedTypes.end());
+			}
 		}
 	}
-	return false;
+}
+
+bool RttiBase::isa(const RttiBase &other) const
+{
+	initialize();
+	return parents.count(&other) > 0;
+}
+
+bool RttiBase::contains(const RttiBase &other) const
+{
+	initialize();
+	return aggregatedTypes.count(&other) > 0;
 }
 
 /* Constant initialization */
 
 const RttiBase RttiTypes::None;
-const RttiBase RttiTypes::Int;
-const RttiBase RttiTypes::Double;
-const RttiBase RttiTypes::String;
-const RttiBase RttiTypes::Array;
-const RttiBase RttiTypes::Map;
-
 }
 
