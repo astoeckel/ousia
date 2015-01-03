@@ -444,13 +444,17 @@ const Rtti<model::IntType> IntType{"IntType", {&Type}};
 const Rtti<model::DoubleType> DoubleType{"DoubleType", {&Type}};
 const Rtti<model::BoolType> BoolType{"BoolType", {&Type}};
 const Rtti<model::EnumType> EnumType{"EnumType", {&Type}};
-const Rtti<model::StructType> StructType{"StructType", {&Type}};
+const Rtti<model::StructType> StructType{"StructType", {&Type}, {&Attribute}};
 const Rtti<model::ArrayType> ArrayType{"ArrayType", {&Type}};
 const Rtti<model::UnknownType> UnknownType{"UnknownType", {&Type}};
 const Rtti<model::Constant> Constant{"Constant", {&Node}};
-const Rtti<model::Typesystem> Typesystem{"Typesystem", {&Node}};
-const Rtti<model::SystemTypesystem> SystemTypesystem{"SystemTypesystem",
-                                                     {&Typesystem}};
+const Rtti<model::Attribute> Attribute{"Attribute", {&Node}};
+const Rtti<model::Typesystem> Typesystem{
+    "Typesystem", {&Node}, {&StructType, &EnumType, &Constant}};
+const Rtti<model::SystemTypesystem> SystemTypesystem{
+    "SystemTypesystem",
+    {&Typesystem},
+    {&StringType, &IntType, &DoubleType, &BoolType, &EnumType}};
 }
 }
 

@@ -38,6 +38,19 @@ TEST(StringType, rtti)
 	ASSERT_TRUE(strType->isa(typeOf<Type>()));
 	ASSERT_TRUE(strType->isa(typeOf<Node>()));
 	ASSERT_TRUE(strType->isa(RttiTypes::StringType));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::Type));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::StringType));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::IntType));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::DoubleType));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::BoolType));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::EnumType));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::StructType));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::ArrayType));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::UnknownType));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::Constant));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::Attribute));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::Typesystem));
+	ASSERT_FALSE(strType->aggregatedOf(RttiTypes::SystemTypesystem));
 }
 
 TEST(StringType, creation)
@@ -114,6 +127,19 @@ TEST(IntType, rtti)
 	ASSERT_TRUE(intType->isa(RttiTypes::IntType));
 	ASSERT_TRUE(intType->isa(typeOf<Type>()));
 	ASSERT_TRUE(intType->isa(typeOf<Node>()));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::Type));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::StringType));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::IntType));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::DoubleType));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::BoolType));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::EnumType));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::StructType));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::ArrayType));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::UnknownType));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::Constant));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::Attribute));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::Typesystem));
+	ASSERT_FALSE(intType->aggregatedOf(RttiTypes::SystemTypesystem));
 }
 
 TEST(IntType, creation)
@@ -154,6 +180,19 @@ TEST(DoubleType, rtti)
 	ASSERT_TRUE(doubleType->isa(RttiTypes::DoubleType));
 	ASSERT_TRUE(doubleType->isa(typeOf<Type>()));
 	ASSERT_TRUE(doubleType->isa(typeOf<Node>()));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::Type));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::StringType));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::IntType));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::DoubleType));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::BoolType));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::EnumType));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::StructType));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::ArrayType));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::UnknownType));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::Constant));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::Attribute));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::Typesystem));
+	ASSERT_FALSE(doubleType->aggregatedOf(RttiTypes::SystemTypesystem));
 }
 
 TEST(DoubleType, creation)
@@ -201,6 +240,19 @@ TEST(BoolType, rtti)
 	ASSERT_TRUE(boolType->isa(RttiTypes::BoolType));
 	ASSERT_TRUE(boolType->isa(typeOf<Type>()));
 	ASSERT_TRUE(boolType->isa(typeOf<Node>()));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::Type));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::StringType));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::IntType));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::DoubleType));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::BoolType));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::EnumType));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::StructType));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::ArrayType));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::UnknownType));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::Constant));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::Attribute));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::Typesystem));
+	ASSERT_FALSE(boolType->aggregatedOf(RttiTypes::SystemTypesystem));
 }
 
 TEST(BoolType, creation)
@@ -249,6 +301,19 @@ TEST(EnumType, rtti)
 	ASSERT_TRUE(enumType->isa(RttiTypes::EnumType));
 	ASSERT_TRUE(enumType->isa(typeOf<Type>()));
 	ASSERT_TRUE(enumType->isa(typeOf<Node>()));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::Type));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::StringType));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::IntType));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::DoubleType));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::BoolType));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::EnumType));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::StructType));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::ArrayType));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::UnknownType));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::Constant));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::Attribute));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::Typesystem));
+	ASSERT_FALSE(enumType->aggregatedOf(RttiTypes::SystemTypesystem));
 }
 
 TEST(EnumType, creation)
@@ -413,6 +478,19 @@ TEST(StructType, rtti)
 	ASSERT_TRUE(structType->isa(RttiTypes::StructType));
 	ASSERT_TRUE(structType->isa(typeOf<Type>()));
 	ASSERT_TRUE(structType->isa(typeOf<Node>()));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::Type));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::StringType));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::IntType));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::DoubleType));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::BoolType));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::EnumType));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::StructType));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::ArrayType));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::UnknownType));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::Constant));
+	ASSERT_TRUE(structType->aggregatedOf(RttiTypes::Attribute));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::Typesystem));
+	ASSERT_FALSE(structType->aggregatedOf(RttiTypes::SystemTypesystem));
 }
 
 TEST(StructType, creation)
@@ -655,6 +733,19 @@ TEST(ArrayType, rtti)
 	ASSERT_TRUE(arrayType->isa(RttiTypes::ArrayType));
 	ASSERT_TRUE(arrayType->isa(typeOf<Type>()));
 	ASSERT_TRUE(arrayType->isa(typeOf<Node>()));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::Type));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::StringType));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::IntType));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::DoubleType));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::BoolType));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::EnumType));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::StructType));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::ArrayType));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::UnknownType));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::Constant));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::Attribute));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::Typesystem));
+	ASSERT_FALSE(arrayType->aggregatedOf(RttiTypes::SystemTypesystem));
 }
 
 TEST(ArrayType, creation)
@@ -707,6 +798,19 @@ TEST(UnknownType, rtti)
 	ASSERT_TRUE(unknownType->isa(RttiTypes::UnknownType));
 	ASSERT_TRUE(unknownType->isa(typeOf<Type>()));
 	ASSERT_TRUE(unknownType->isa(typeOf<Node>()));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::Type));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::StringType));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::IntType));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::DoubleType));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::BoolType));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::EnumType));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::StructType));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::ArrayType));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::UnknownType));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::Constant));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::Attribute));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::Typesystem));
+	ASSERT_FALSE(unknownType->aggregatedOf(RttiTypes::SystemTypesystem));
 }
 
 TEST(UnknownType, creation)
@@ -730,5 +834,49 @@ TEST(UnknownType, conversion)
 		ASSERT_EQ(val1, val2);
 	}
 }
+
+/* Class Typesystem */
+
+TEST(Typesystem, rtti)
+{
+	Manager mgr{1};
+	Rooted<Typesystem> typesystem{new Typesystem{mgr, "typesystem"}};
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::Type));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::StringType));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::IntType));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::DoubleType));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::BoolType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::EnumType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::StructType));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::ArrayType));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::UnknownType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::Constant));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::Attribute));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::Typesystem));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::SystemTypesystem));
+}
+
+/* Class SystemTypesystem */
+
+TEST(SystemTypesystem, rtti)
+{
+	Manager mgr{1};
+	Rooted<SystemTypesystem> typesystem{new SystemTypesystem{mgr}};
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::Type));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::StringType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::IntType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::DoubleType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::BoolType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::EnumType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::StructType));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::ArrayType));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::UnknownType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::Constant));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::Attribute));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::Typesystem));
+	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::SystemTypesystem));
+}
+
+
 }
 }

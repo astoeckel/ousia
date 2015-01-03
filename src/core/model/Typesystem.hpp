@@ -960,6 +960,11 @@ extern const Rtti<model::UnknownType> UnknownType;
 extern const Rtti<model::Constant> Constant;
 
 /**
+ * Type information for the Constant class.
+ */
+extern const Rtti<model::Attribute> Attribute;
+
+/**
  * Type information for the Typesystem class.
  */
 extern const Rtti<model::Typesystem> Typesystem;
