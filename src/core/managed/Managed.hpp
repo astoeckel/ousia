@@ -199,13 +199,23 @@ public:
 	const RttiBase &type() const;
 
 	/**
-	 * Returns true if this Managed instance is of the given RttiBase.
+	 * Returns true if this Managed instance is of the type described by the
+	 * given RttiBase instance.
 	 *
 	 * @param true if the RttiBase registered for this particular Managed
 	 * class is of the given type or one of the registered parent types is of
 	 * the given type.
 	 */
 	bool isa(const RttiBase &t) const;
+
+	/**
+	 * Returns true if this Managed instance may contain instances of the type
+	 * described by the given RttiBase instance.
+	 *
+	 * @param true if the RttiBase registered for this particular Managed class
+	 * may contain instance of the given type.
+	 */
+	bool aggregatedOf(const RttiBase &t) const;
 };
 
 /**

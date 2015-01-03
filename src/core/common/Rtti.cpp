@@ -54,7 +54,7 @@ void RttiBase::initialize() const
 		initialized = true;
 
 		// Insert the parent types of the parent types and the aggregated types
-		// if the parents
+		// of the parents
 		{
 			std::unordered_set<const RttiBase *> origParents = parents;
 			for (const RttiBase *parent : origParents) {
@@ -69,7 +69,8 @@ void RttiBase::initialize() const
 			parents.insert(this);
 		}
 
-		// Insert the aggregated types of the aggregated types
+		// Insert the aggregated types of the aggregated types and the parents
+		// of each aggregated type
 		{
 			std::unordered_set<const RttiBase *> origAggregatedTypes =
 			    aggregatedTypes;
@@ -90,7 +91,7 @@ bool RttiBase::isa(const RttiBase &other) const
 	return parents.count(&other) > 0;
 }
 
-bool RttiBase::contains(const RttiBase &other) const
+bool RttiBase::aggregatedOf(const RttiBase &other) const
 {
 	initialize();
 	return aggregatedTypes.count(&other) > 0;

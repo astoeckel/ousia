@@ -189,7 +189,7 @@ public:
 	 * @param other is the other type for which should be checked whether this
 	 * type is directly or indirectly aggregated of it.
 	 */
-	bool contains(const RttiBase &other) const;
+	bool aggregatedOf(const RttiBase &other) const;
 };
 
 /**

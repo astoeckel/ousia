@@ -80,4 +80,9 @@ bool Managed::triggerEvent(Event &ev) { return mgr.triggerEvent(this, ev); }
 const RttiBase &Managed::type() const { return typeOf(*this); }
 
 bool Managed::isa(const RttiBase &t) const { return type().isa(t); }
+
+bool Managed::aggregatedOf(const RttiBase &t) const
+{
+	return type().aggregatedOf(t);
+}
 }

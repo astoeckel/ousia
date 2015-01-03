@@ -76,42 +76,42 @@ TEST(Rtti, isa)
 	ASSERT_TRUE(Type4.isa(Type4));
 }
 
-TEST(Rtti, contains)
+TEST(Rtti, aggregatedOf)
 {
 	std::vector<const RttiBase *> types{&Type1, &Type2, &Type3, &Type4};
 	for (auto t : types) {
-		ASSERT_FALSE(t->contains(Type1));
-		ASSERT_FALSE(t->contains(Type2));
-		ASSERT_FALSE(t->contains(Type3));
-		ASSERT_FALSE(t->contains(Type4));
-		ASSERT_FALSE(t->contains(Type5));
-		ASSERT_FALSE(t->contains(Type6));
-		ASSERT_FALSE(t->contains(Type7));
+		ASSERT_FALSE(t->aggregatedOf(Type1));
+		ASSERT_FALSE(t->aggregatedOf(Type2));
+		ASSERT_FALSE(t->aggregatedOf(Type3));
+		ASSERT_FALSE(t->aggregatedOf(Type4));
+		ASSERT_FALSE(t->aggregatedOf(Type5));
+		ASSERT_FALSE(t->aggregatedOf(Type6));
+		ASSERT_FALSE(t->aggregatedOf(Type7));
 	}
 
-	ASSERT_TRUE(Type5.contains(Type1));
-	ASSERT_FALSE(Type5.contains(Type2));
-	ASSERT_FALSE(Type5.contains(Type3));
-	ASSERT_FALSE(Type5.contains(Type4));
-	ASSERT_FALSE(Type5.contains(Type5));
-	ASSERT_TRUE(Type5.contains(Type6));
-	ASSERT_TRUE(Type5.contains(Type7));
+	ASSERT_TRUE(Type5.aggregatedOf(Type1));
+	ASSERT_FALSE(Type5.aggregatedOf(Type2));
+	ASSERT_FALSE(Type5.aggregatedOf(Type3));
+	ASSERT_FALSE(Type5.aggregatedOf(Type4));
+	ASSERT_FALSE(Type5.aggregatedOf(Type5));
+	ASSERT_TRUE(Type5.aggregatedOf(Type6));
+	ASSERT_TRUE(Type5.aggregatedOf(Type7));
 
-	ASSERT_TRUE(Type6.contains(Type1));
-	ASSERT_FALSE(Type6.contains(Type2));
-	ASSERT_FALSE(Type6.contains(Type3));
-	ASSERT_FALSE(Type6.contains(Type4));
-	ASSERT_FALSE(Type6.contains(Type5));
-	ASSERT_FALSE(Type6.contains(Type6));
-	ASSERT_FALSE(Type6.contains(Type7));
+	ASSERT_TRUE(Type6.aggregatedOf(Type1));
+	ASSERT_FALSE(Type6.aggregatedOf(Type2));
+	ASSERT_FALSE(Type6.aggregatedOf(Type3));
+	ASSERT_FALSE(Type6.aggregatedOf(Type4));
+	ASSERT_FALSE(Type6.aggregatedOf(Type5));
+	ASSERT_FALSE(Type6.aggregatedOf(Type6));
+	ASSERT_FALSE(Type6.aggregatedOf(Type7));
 
-	ASSERT_TRUE(Type7.contains(Type1));
-	ASSERT_FALSE(Type7.contains(Type2));
-	ASSERT_FALSE(Type7.contains(Type3));
-	ASSERT_FALSE(Type7.contains(Type4));
-	ASSERT_FALSE(Type7.contains(Type5));
-	ASSERT_FALSE(Type7.contains(Type6));
-	ASSERT_FALSE(Type7.contains(Type7));
+	ASSERT_TRUE(Type7.aggregatedOf(Type1));
+	ASSERT_FALSE(Type7.aggregatedOf(Type2));
+	ASSERT_FALSE(Type7.aggregatedOf(Type3));
+	ASSERT_FALSE(Type7.aggregatedOf(Type4));
+	ASSERT_FALSE(Type7.aggregatedOf(Type5));
+	ASSERT_FALSE(Type7.aggregatedOf(Type6));
+	ASSERT_FALSE(Type7.aggregatedOf(Type7));
 }
 }
 }
