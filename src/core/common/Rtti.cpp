@@ -53,12 +53,18 @@ void RttiBase::initialize() const
 	if (!initialized) {
 		initialized = true;
 
-		// Insert the parent types of the parent types
+		// Insert the parent types of the parent types and the aggregated types
+		// if the parents
 		{
 			std::unordered_set<const RttiBase *> origParents = parents;
 			for (const RttiBase *parent : origParents) {
 				parent->initialize();
 				parents.insert(parent->parents.begin(), parent->parents.end());
+			}
+			for (const RttiBase *parent : parents) {
+				parent->initialize();
+				aggregatedTypes.insert(parent->aggregatedTypes.begin(),
+				                       parent->aggregatedTypes.end());
 			}
 			parents.insert(this);
 		}
@@ -71,6 +77,8 @@ void RttiBase::initialize() const
 				aggregatedType->initialize();
 				aggregatedTypes.insert(aggregatedType->aggregatedTypes.begin(),
 				                       aggregatedType->aggregatedTypes.end());
+				aggregatedTypes.insert(aggregatedType->parents.begin(),
+				                       aggregatedType->parents.end());
 			}
 		}
 	}
