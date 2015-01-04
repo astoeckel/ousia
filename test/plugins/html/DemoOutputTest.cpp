@@ -41,6 +41,11 @@ TEST(DemoHTMLTransformer, writeHTML)
 	// Construct the document.
 	Rooted<model::Document> doc = model::constructBookDocument(mgr, domain);
 
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+	// dump the manager state
+	mgr.exportGraphviz("bookDocument.dot");
+#endif
+
 	// print it
 	DemoHTMLTransformer transformer;
 	transformer.writeHTML(doc, std::cout);
