@@ -78,16 +78,18 @@ void Domain::doResolve(std::vector<Rooted<Managed>> &res,
 		t->resolve(res, path, filter, filterData, idx, visited, nullptr);
 	}
 }
-
+}
 /* Type registrations */
 
-const Rtti<FieldDescriptor> FieldDescriptor_Rtti{"FieldDescriptor"};
-const Rtti<Descriptor> Descriptor_Rtti{"Descriptor"};
-const Rtti<StructuredClass> StructuredClass_Rtti{"StructuredClass",
-                                                 {&Descriptor_Rtti}};
-const Rtti<AnnotationClass> AnnotationClass_Rtti{"AnnotationClass",
-                                                 {&Descriptor_Rtti}};
-const Rtti<Domain> Domain_Rtti{"Domain"};
+namespace RttiTypes {
+const Rtti<model::FieldDescriptor> FieldDescriptor{"FieldDescriptor"};
+const Rtti<model::Descriptor> Descriptor{"Descriptor"};
+const Rtti<model::StructuredClass> StructuredClass{
+    "StructuredClass", {&Descriptor}, {&FieldDescriptor}};
+const Rtti<model::AnnotationClass> AnnotationClass{"AnnotationClass",
+                                                   {&Descriptor}};
+const Rtti<model::Domain> Domain{
+    "Domain", {}, {&StructuredClass, &AnnotationClass}};
 }
 }
 

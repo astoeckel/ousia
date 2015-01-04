@@ -82,6 +82,7 @@
 #ifndef _OUSIA_MODEL_DOMAIN_HPP_
 #define _OUSIA_MODEL_DOMAIN_HPP_
 
+#include <core/common/Rtti.hpp>
 #include <core/managed/ManagedContainer.hpp>
 #include <core/RangeSet.hpp>
 
@@ -488,6 +489,17 @@ public:
 	const NodeVector<Typesystem> &getTypesystems() const { return typesystems; }
 };
 }
+
+namespace RttiTypes {
+
+extern const Rtti<model::FieldDescriptor> FieldDescriptor;
+extern const Rtti<model::Descriptor> Descriptor;
+extern const Rtti<model::StructuredClass> StructuredClass;
+extern const Rtti<model::AnnotationClass> AnnotationClass;
+extern const Rtti<model::Domain> Domain;
+
+}
+
 }
 
 #endif /* _OUSIA_MODEL_DOMAIN_HPP_ */
