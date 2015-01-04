@@ -515,10 +515,14 @@ TEST(StructType, creation)
 
 TEST(StructType, creationWithParent)
 {
-	Manager mgr;
+	Manager mgr{1};
 	Rooted<StructType> structType = createStructType(mgr, logger);
+	{
 	Rooted<StructType> structWithParentType =
 	    createStructTypeWithParent(structType, mgr, logger);
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+	mgr.exportGraphviz("structTypeTest1.dot");
+#endif
 
 	Variant val = structWithParentType->create();
 	ASSERT_TRUE(val.isArray());
@@ -539,6 +543,10 @@ TEST(StructType, creationWithParent)
 	ASSERT_EQ(0, arr[3].asInt());
 	ASSERT_EQ("value1", arr[4].asString());
 	ASSERT_EQ(42, arr[5].asInt());
+	}
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+	mgr.exportGraphviz("structTypeTest2.dot");
+#endif
 }
 
 TEST(StructType, derivedFrom)
