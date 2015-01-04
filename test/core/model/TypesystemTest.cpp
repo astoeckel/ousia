@@ -850,10 +850,10 @@ TEST(Typesystem, rtti)
 	Manager mgr{1};
 	Rooted<Typesystem> typesystem{new Typesystem{mgr, "typesystem"}};
 	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::Type));
-	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::StringType));
-	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::IntType));
-	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::DoubleType));
-	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::BoolType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::StringType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::IntType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::DoubleType));
+	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::BoolType));
 	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::EnumType));
 	ASSERT_TRUE(typesystem->aggregatedOf(RttiTypes::StructType));
 	ASSERT_FALSE(typesystem->aggregatedOf(RttiTypes::ArrayType));

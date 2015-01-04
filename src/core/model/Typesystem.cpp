@@ -450,11 +450,12 @@ const Rtti<model::UnknownType> UnknownType{"UnknownType", {&Type}};
 const Rtti<model::Constant> Constant{"Constant", {&Node}};
 const Rtti<model::Attribute> Attribute{"Attribute", {&Node}};
 const Rtti<model::Typesystem> Typesystem{
-    "Typesystem", {&Node}, {&StructType, &EnumType, &Constant}};
-const Rtti<model::SystemTypesystem> SystemTypesystem{
-    "SystemTypesystem",
-    {&Typesystem},
-    {&StringType, &IntType, &DoubleType, &BoolType, &EnumType}};
+    "Typesystem",
+    {&Node},
+    {&StringType, &IntType, &DoubleType, &BoolType, &EnumType, &StructType,
+     &Constant}};
+const Rtti<model::SystemTypesystem> SystemTypesystem{"SystemTypesystem",
+                                                     {&Typesystem}};
 }
 }
 
