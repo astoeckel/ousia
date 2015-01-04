@@ -703,7 +703,7 @@ void Manager::exportGraphviz(const char *filename)
 						break;
 				}
 				edgeCount -= c;
-				fs << "headlabel=\"" << std::dec << c << "\"]" << std::endl;
+				fs << "labeldistance=\"2\",headlabel=\"" << std::dec << c << "\"]" << std::endl;
 			}
 		}
 
@@ -716,7 +716,7 @@ void Manager::exportGraphviz(const char *filename)
 			uintptr_t pTar = reinterpret_cast<uintptr_t>(owner);
 			fs << "\tn" << std::hex << std::noshowbase << p << ":ev_" << d.getEventTypeName() << " -> n"
 			   << std::hex << std::noshowbase << pTar
-			   << " [weight=0,penwidth=1,color=darkolivegreen4,style=dashed]"
+			   << " [weight=0,penwidth=0.5,color=darkolivegreen4,style=dashed,arrowhead=vee]"
 			   << std::endl;
 		}
 
