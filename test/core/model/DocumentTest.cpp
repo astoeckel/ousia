@@ -37,8 +37,68 @@ TEST(Document, testDocumentConstruction)
 	// Construct the document.
 	Rooted<Document> doc = constructBookDocument(mgr, domain);
 
-	// If that works we are happy already.
+	// Check the document content.
 	ASSERT_FALSE(doc.isNull());
+	// get root node.
+	Rooted<StructuredEntity> root = doc->getRoot();
+	ASSERT_FALSE(root.isNull());
+	ASSERT_EQ("book", root->getDescriptor()->getName());
+	ASSERT_TRUE(root->hasField());
+	ASSERT_EQ(2, root->getField().size());
+	// get foreword (paragraph)
+	{
+		Rooted<StructuredEntity> foreword = root->getField()[0];
+		ASSERT_FALSE(foreword.isNull());
+		ASSERT_EQ("paragraph", foreword->getDescriptor()->getName());
+		// it should contain one text node
+		ASSERT_TRUE(foreword->hasField());
+		ASSERT_EQ(1, foreword->getField().size());
+		// which in turn should have a primitive content field containing the
+		// right text.
+		{
+			Rooted<StructuredEntity> text = foreword->getField()[0];
+			ASSERT_FALSE(text.isNull());
+			ASSERT_EQ("text", text->getDescriptor()->getName());
+			ASSERT_TRUE(text->hasField());
+			ASSERT_EQ(1, text->getField().size());
+			ASSERT_TRUE(text->getField()[0]->isa(typeOf<DocumentPrimitive>()));
+			Variant content =
+			    text->getField()[0].cast<DocumentPrimitive>()->getContent();
+			ASSERT_EQ("Some introductory text", content.asString());
+		}
+	}
+	// get section
+	{
+		Rooted<StructuredEntity> section = root->getField()[1];
+		ASSERT_FALSE(section.isNull());
+		ASSERT_EQ("section", section->getDescriptor()->getName());
+		// it should contain one paragraph
+		ASSERT_TRUE(section->hasField());
+		ASSERT_EQ(1, section->getField().size());
+		{
+			Rooted<StructuredEntity> par = section->getField()[0];
+			ASSERT_FALSE(par.isNull());
+			ASSERT_EQ("paragraph", par->getDescriptor()->getName());
+			// it should contain one text node
+			ASSERT_TRUE(par->hasField());
+			ASSERT_EQ(1, par->getField().size());
+			// which in turn should have a primitive content field containing
+			// the
+			// right text.
+			{
+				Rooted<StructuredEntity> text = par->getField()[0];
+				ASSERT_FALSE(text.isNull());
+				ASSERT_EQ("text", text->getDescriptor()->getName());
+				ASSERT_TRUE(text->hasField());
+				ASSERT_EQ(1, text->getField().size());
+				ASSERT_TRUE(
+				    text->getField()[0]->isa(typeOf<DocumentPrimitive>()));
+				Variant content =
+				    text->getField()[0].cast<DocumentPrimitive>()->getContent();
+				ASSERT_EQ("Some actual text", content.asString());
+			}
+		}
+	}
 }
 }
 }

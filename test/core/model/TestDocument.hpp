@@ -50,11 +50,16 @@ static Rooted<Document> constructBookDocument(Manager &mgr,
 		return {nullptr};
 	}
 	// Add its text.
-	Variant text{std::map<std::string, Variant>{
-	    {"content", Variant("Some introductory text")}}};
-	Rooted<DocumentPrimitive> foreword_text =
-	    DocumentPrimitive::buildEntity(foreword, text, "text");
+	Rooted<StructuredEntity> foreword_text =
+	    StructuredEntity::buildEntity(foreword, {bookDomain}, "text");
 	if (foreword_text.isNull()) {
+		return {nullptr};
+	}
+	// And its primitive content
+	Variant text{"Some introductory text"};
+	Rooted<DocumentPrimitive> foreword_primitive =
+	    DocumentPrimitive::buildEntity(foreword_text, text, "content");
+	if (foreword_primitive.isNull()) {
 		return {nullptr};
 	}
 	// Add a section.
@@ -67,11 +72,16 @@ static Rooted<Document> constructBookDocument(Manager &mgr,
 		return {nullptr};
 	}
 	// Add its text.
-	text = Variant{std::map<std::string, Variant>{
-	    {"content", Variant("Some introductory text")}}};
-	Rooted<DocumentPrimitive> main_text =
-	    DocumentPrimitive::buildEntity(foreword, text, "text");
+	Rooted<StructuredEntity> main_text =
+	    StructuredEntity::buildEntity(main, {bookDomain}, "text");
 	if (main_text.isNull()) {
+		return {nullptr};
+	}
+	// And its primitive content
+	text = Variant{"Some actual text"};
+	Rooted<DocumentPrimitive> main_primitive =
+	    DocumentPrimitive::buildEntity(main_text, text, "content");
+	if (main_primitive.isNull()) {
 		return {nullptr};
 	}
 
