@@ -153,6 +153,14 @@ TARGET_LINK_LIBRARIES(ousia_css
 	ousia_core
 )
 
+ADD_LIBRARY(ousia_html
+	src/plugins/html/DemoOutput
+)
+
+TARGET_LINK_LIBRARIES(ousia_html
+	ousia_core
+)
+
 ADD_LIBRARY(ousia_xml
 	src/plugins/xml/XmlParser
 )
