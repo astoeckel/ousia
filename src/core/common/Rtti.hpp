@@ -251,6 +251,7 @@ inline const RttiBase &typeOf(const T &obj)
 }
 
 namespace RttiTypes {
+
 /**
  * Type of no particular type.
  */

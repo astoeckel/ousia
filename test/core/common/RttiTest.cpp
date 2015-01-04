@@ -49,9 +49,14 @@ const Rtti<RttiTestClass1> Type1("Type1");
 const Rtti<RttiTestClass2> Type2("Type2");
 const Rtti<RttiTestClass3> Type3("Type3", {&Type1});
 const Rtti<RttiTestClass4> Type4("Type4", {&Type3, &Type2});
-const Rtti<RttiTestClass5> Type5("Type5", {}, {&Type6, &Type7});
-const Rtti<RttiTestClass6> Type6("Type6", {}, {&Type1});
-const Rtti<RttiTestClass7> Type7("Type7", {&Type6}, {});
+const Rtti<RttiTestClass5> Type5("Type5",
+                                 std::unordered_set<const RttiBase *>{},
+                                 {&Type6, &Type7});
+const Rtti<RttiTestClass6> Type6("Type6",
+                                 std::unordered_set<const RttiBase *>{},
+                                 {&Type1});
+const Rtti<RttiTestClass7> Type7("Type7", {&Type6},
+                                 std::unordered_set<const RttiBase *>{});
 
 TEST(Rtti, isa)
 {

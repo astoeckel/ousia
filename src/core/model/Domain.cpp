@@ -89,7 +89,7 @@ const Rtti<model::StructuredClass> StructuredClass{
 const Rtti<model::AnnotationClass> AnnotationClass{"AnnotationClass",
                                                    {&Descriptor}};
 const Rtti<model::Domain> Domain{
-    "Domain", {}, {&StructuredClass, &AnnotationClass}};
+    "Domain", std::unordered_set<const RttiBase*>{}, {&StructuredClass, &AnnotationClass}};
 }
 }
 
