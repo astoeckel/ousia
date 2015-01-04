@@ -173,6 +173,18 @@ struct EventHandlerDescriptor {
 	    : type(type), handler(handler), owner(owner), data(data)
 	{
 	}
+
+	/**
+	 * Returns a human readable name of the given event type.
+	 */
+	static const char *getEventTypeName(EventType type);
+
+	/**
+	 * Returns the name of the current event type.
+	 */
+	const char *getEventTypeName() const {
+		return getEventTypeName(this->type);
+	}
 };
 }
 

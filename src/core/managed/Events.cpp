@@ -19,5 +19,21 @@
 #include "Events.hpp"
 
 namespace ousia {
+
+const char *EventHandlerDescriptor::getEventTypeName(EventType type)
+{
+	switch (type) {
+		case EventType::UPDATE:
+			return "update";
+		case EventType::NAME_CHANGE:
+			return "name_change";
+		case EventType::ADD_CHILD:
+			return "add_child";
+		case EventType::DELETE_CHILD:
+			return "delete_child";
+	}
+	return "";
+}
+
 }
 
