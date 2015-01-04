@@ -28,6 +28,8 @@
 #ifndef _OUSIA_EVENTS_HPP_
 #define _OUSIA_EVENTS_HPP_
 
+#include <cstdint>
+
 #include <string>
 
 namespace ousia {
@@ -147,9 +149,9 @@ struct EventHandlerDescriptor {
 	EventHandler handler;
 
 	/**
-	 * Owner object.
+	 * Weak reference to the owner object.
 	 */
-	Managed *owner;
+	uint64_t ownerUid;
 
 	/**
 	 * User defined data.
@@ -162,15 +164,15 @@ struct EventHandlerDescriptor {
 	 * @param type is the event type for which the handler is registered.
 	 * @param handler is the function pointer which is going to be called once
 	 * the associated event handler has fired.
-	 * @param owner is a user-specified object which owns the method that is
+	 * @param ownerUid is a user-specified object which owns the method that is
 	 * going to be called. This can be used to make sure that the method which
 	 * handles the events has access to its owned object as long as the event
 	 * handler lives.
 	 * @param data is some arbitrary user defined data.
 	 */
-	EventHandlerDescriptor(EventType type, EventHandler handler, Managed *owner,
-	                       void *data)
-	    : type(type), handler(handler), owner(owner), data(data)
+	EventHandlerDescriptor(EventType type, EventHandler handler,
+	                       uint64_t ownerUid, void *data)
+	    : type(type), handler(handler), ownerUid(ownerUid), data(data)
 	{
 	}
 
@@ -182,7 +184,8 @@ struct EventHandlerDescriptor {
 	/**
 	 * Returns the name of the current event type.
 	 */
-	const char *getEventTypeName() const {
+	const char *getEventTypeName() const
+	{
 		return getEventTypeName(this->type);
 	}
 };

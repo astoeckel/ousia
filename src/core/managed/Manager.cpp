@@ -21,6 +21,8 @@
 #include "Managed.hpp"
 #include "Manager.hpp"
 
+//#define MANAGER_DEBUG_PRINT
+
 #if defined(MANAGER_DEBUG_PRINT) || defined(MANAGER_GRAPHVIZ_EXPORT)
 #include <iostream>
 #include <fstream>
@@ -473,15 +475,10 @@ bool Manager::deleteData(Managed *ref, const std::string &key)
 EventId Manager::registerEvent(Managed *ref, EventType type,
                                EventHandler handler, Managed *owner, void *data)
 {
-	// Add a reference from the reference object to the owner object
-	if (owner) {
-		addRef(owner, ref);
-	}
-
 	// Create a event handler descriptor and store it along with the
 	auto &vec = events.emplace(ref, std::vector<EventHandlerDescriptor>{})
 	                .first->second;
-	const EventHandlerDescriptor descr(type, handler, owner, data);
+	const EventHandlerDescriptor descr(type, handler, getUid(owner), data);
 	for (size_t i = 0; i < vec.size(); i++) {
 		if (!vec[i].handler) {
 			vec[i] = descr;
@@ -498,16 +495,11 @@ bool Manager::unregisterEvent(Managed *ref, EventId id)
 	if (eventsIt != events.end()) {
 		auto &vec = eventsIt->second;
 		if (id < vec.size() && vec[id].handler) {
-			// Delete the reference from the reference object to the handler
-			EventHandlerDescriptor &descr = vec[id];
-			if (descr.owner) {
-				deleteRef(descr.owner, ref);
-			}
-
 			// Remove the handler from the list by resetting handler and owner
 			// to nullptr
+			EventHandlerDescriptor &descr = vec[id];
 			descr.handler = nullptr;
-			descr.owner = nullptr;
+			descr.ownerUid = 0;
 			return true;
 		}
 	}
@@ -519,19 +511,15 @@ bool Manager::unregisterEvent(Managed *ref, EventType type,
 {
 	auto eventsIt = events.find(ref);
 	if (eventsIt != events.end()) {
+		const ManagedUid ownerUid = getUid(owner);
 		auto &vec = eventsIt->second;
 		for (EventHandlerDescriptor &descr : vec) {
 			if (descr.type == type && descr.handler == handler &&
-			    descr.owner == owner && descr.data == data) {
-				// Delete the reference from the reference object to the handler
-				if (descr.owner) {
-					deleteRef(descr.owner, ref);
-				}
-
+			    descr.ownerUid == ownerUid && descr.data == data) {
 				// Remove the handler from the list by resetting handler and
 				// owner to nullptr
 				descr.handler = nullptr;
-				descr.owner = nullptr;
+				descr.ownerUid = 0;
 				return true;
 			}
 		}
@@ -544,12 +532,27 @@ bool Manager::triggerEvent(Managed *ref, Event &ev)
 	bool hasHandler = false;
 	auto eventsIt = events.find(ref);
 	if (eventsIt != events.end()) {
-		for (EventHandlerDescriptor &descr : eventsIt->second) {
+		std::vector<EventHandlerDescriptor> descrs = eventsIt->second;
+		for (auto it = descrs.begin(); it != descrs.end();) {
+			const EventHandlerDescriptor &descr = *it;
 			if (descr.type == ev.type && descr.handler) {
+				// Resolve the given owner uid to a managed pointer -- erase the
+				// event handler if the owner no longer exists
+				Managed *owner = nullptr;
+				if (descr.ownerUid != 0) {
+					owner = getManaged(descr.ownerUid);
+					if (!owner) {
+						it = descrs.erase(it);
+						continue;
+					}
+				}
+
+				// Call the event handler
 				ev.sender = ref;
-				descr.handler(ev, descr.owner, descr.data);
+				descr.handler(ev, owner, descr.data);
 				hasHandler = true;
 			}
+			it++;
 		}
 	}
 	return hasHandler;
@@ -560,7 +563,7 @@ bool Manager::triggerEvent(Managed *ref, Event &ev)
 // Note: This is just an ugly hack used for development. Do not complain. You
 // have been warned.
 
-enum class EdgeType { NORMAL, EVENT, DATA, AGGREGATE };
+enum class EdgeType { NORMAL, DATA, AGGREGATE };
 
 void Manager::exportGraphviz(const char *filename)
 {
@@ -660,16 +663,6 @@ void Manager::exportGraphviz(const char *filename)
 				std::string port = "";
 				EdgeType et = EdgeType::NORMAL;
 
-				// Check whether an event with the given target node exists
-				for (auto it = eventData.begin(); it != eventData.end(); it++) {
-					if (it->handler && it->owner == e.first) {
-						et = EdgeType::EVENT;
-						port = std::string(":ev_") +
-						       std::string(it->getEventTypeName());
-						eventData.erase(it);
-						break;
-					}
-				}
 				if (et == EdgeType::NORMAL) {
 					for (auto it = storeData.begin(); it != storeData.end();
 					     it++) {
@@ -690,10 +683,11 @@ void Manager::exportGraphviz(const char *filename)
 				   << " -> n" << std::hex << std::noshowbase << pTar << " [";
 				int c = edgeCount;
 				switch (et) {
-					case EdgeType::EVENT:
-						fs << "weight=5,penwidth=1,color=darkolivegreen4,";
-						c = 1;
-						break;
+					/*		case EdgeType::EVENT:
+					            fs <<
+					   "weight=5,penwidth=1,color=darkolivegreen4,";
+					            c = 1;
+					            break;*/
 					case EdgeType::DATA:
 						fs << "weight=5,penwidth=1,color=orangered2,";
 						c = 1;
@@ -713,15 +707,27 @@ void Manager::exportGraphviz(const char *filename)
 			}
 		}
 
+		// Create edges for all events
+		for (auto &d : eventData) {
+			Managed *owner = getManaged(d.ownerUid);
+			if (!owner) {
+				continue;
+			}
+			uintptr_t pTar = reinterpret_cast<uintptr_t>(owner);
+			fs << "\tn" << std::hex << std::noshowbase << p << ":ev_" << d.getEventTypeName() << " -> n"
+			   << std::hex << std::noshowbase << pTar
+			   << " [weight=0,penwidth=1,color=darkolivegreen4,style=dashed]"
+			   << std::endl;
+		}
+
 		// Display root edges
 		if (objectDescr.rootRefCount > 0) {
 			fs << "\tr" << std::hex << std::noshowbase << p
 			   << " [shape=\"point\",width=0.1]" << std::endl;
 			fs << "\tr" << std::hex << std::noshowbase << p << " -> n"
-			   << std::hex << std::noshowbase << p
-			   << " [weight=10,style=\"dashed\",headlabel="
-			      "\"" << std::dec << objectDescr.rootRefCount << "\"]"
-			   << std::endl;
+			   << std::hex << std::noshowbase << p << " [weight=1000,headlabel="
+			                                          "\"" << std::dec
+			   << objectDescr.rootRefCount << "\"]" << std::endl;
 		}
 
 		idx++;

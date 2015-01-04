@@ -375,10 +375,9 @@ public:
 	 * registered.
 	 * @param type is the event type that should be registered.
 	 * @param handler is the callback function.
-	 * @param owner is a managed object that owns the event handler. A reference
-	 * from the the reference object to the owner is added. The argument may be
-	 * nullptr in which case no reference is added. The owner is passed to the
-	 * event handler as second parameter.
+	 * @param owner is a managed object that owns the event handler. May be
+	 * nullptr. The owner is only referenced via a weak reference. If the owner
+	 * is freed, the event handler will no longer be called.
 	 * @param data is some user defined data.
 	 * @return a numeric event id, which is unique for the given reference
 	 * object. The event id must be used when unregistering event handlers.
@@ -405,10 +404,8 @@ public:
 	 * registered.
 	 * @param type is the event type that should be registered.
 	 * @param handler is the callback function.
-	 * @param owner is a managed object that owns the event handler. A reference
-	 * from the the reference object to the owner is added. The argument may be
-	 * nullptr in which case no reference is added. The owner is passed to the
-	 * event handler as second parameter.
+	 * @param owner is a managed object that owns the event handler. May be
+	 * nullptr.
 	 * @param data is some user defined data.
 	 * @return true if the operation was successful, false if either the
 	 * reference object or and event with the given signature do not exist.
