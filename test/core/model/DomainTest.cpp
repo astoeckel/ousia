@@ -58,6 +58,7 @@ TEST(Domain, testDomainResolving)
 	 */
 	std::vector<Rooted<Managed>> res =
 	    domain->resolve(std::vector<std::string>{"book"});
+
 	// First we expect the book domain.
 	assert_path(res, 0, typeOf<Domain>(), {"book"});
 	// Then the book structure.

@@ -463,7 +463,7 @@ static Rooted<StructType> createStructTypeWithParent(Handle<StructType> parent,
 	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
 	Rooted<IntType> intType{new IntType(mgr, nullptr)};
 	Rooted<StructType> structType{StructType::createValidated(
-	    mgr, "struct", nullptr, parent,
+	    mgr, "struct2", nullptr, parent,
 	    NodeVector<Attribute>{new Attribute{mgr, "aa", stringType, "value1"},
 	                          new Attribute{mgr, "bc", intType, 42},
 	                          new Attribute{mgr, "cd", parent}},
