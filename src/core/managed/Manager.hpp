@@ -376,6 +376,16 @@ public:
 	bool triggerEvent(Managed *ref, Event &ev);
 
 #ifdef MANAGER_GRAPHVIZ_EXPORT
+	/**
+	 * Exports the current object graph managed by this manager instance to the
+	 * given file. The file is in the Graphviz format (http://graphviz.org/) and
+	 * can be visualized using the "dot" tool. The exported graph is purely for
+	 * debugging and visualization purposes. This function is not compiled in
+	 * for release versions of Ousía.
+	 *
+	 * @param filename is the file to which the Graphviz description should be
+	 * written. The given file is overwritten if it already exists.
+	 */
 	void exportGraphviz(const char* filename);
 #endif
 };
