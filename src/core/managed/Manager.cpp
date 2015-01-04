@@ -154,7 +154,9 @@ void Manager::manage(Managed *o)
 #ifdef MANAGER_DEBUG_PRINT
 	std::cout << "manage " << o << std::endl;
 #endif
-	objects.emplace(std::make_pair(o, ObjectDescriptor{}));
+	objects.emplace(o, ObjectDescriptor{nextUid});
+	uids.emplace(nextUid, o);
+	nextUid++;
 }
 
 void Manager::addRef(Managed *tar, Managed *src)
@@ -257,7 +259,8 @@ void Manager::deleteObject(Managed *o, ObjectDescriptor *descr)
 			deleteRef(descr->refOut.begin()->first, o, true);
 		}
 
-		// Remove the data store and the event store entry
+		// Remove the uid, data and event store entry
+		uids.erase(descr->uid);
 		store.erase(o);
 		events.erase(o);
 
@@ -368,6 +371,26 @@ void Manager::sweep()
 		// Now purge all objects marked for deletion
 		purgeDeleted();
 	}
+}
+
+/* Class Managed: Unique IDs */
+
+ManagedUid Manager::getUid(Managed *o)
+{
+	const auto it = objects.find(o);
+	if (it != objects.end()) {
+		return it->second.uid;
+	}
+	return 0;
+}
+
+Managed *Manager::getManaged(ManagedUid uid)
+{
+	const auto it = uids.find(uid);
+	if (it != uids.end()) {
+		return it->second;
+	}
+	return nullptr;
 }
 
 /* Class Manager: Attached data */

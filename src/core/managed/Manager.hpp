@@ -47,6 +47,8 @@ namespace ousia {
 // Forward declaration
 class Managed;
 
+using ManagedUid = uint64_t;
+
 /**
  * The Manager class implements tracing garbage collection. Garbage Collection
  * is implemented as a simple directed reference graph with connected component
@@ -71,6 +73,12 @@ public:
 	struct ObjectDescriptor {
 	public:
 		/**
+		 * Unique ID assigned to the object. Valid unique ids are positive,
+		 * non-zero values.
+		 */
+		const ManagedUid uid;
+
+		/**
 		 * Contains the number of references to rooted handles. A managed
 		 * objects
 		 * whith at least one rooted reference is considered reachable.
@@ -94,7 +102,14 @@ public:
 		/**
 		 * Default constructor of the ObjectDescriptor class.
 		 */
-		ObjectDescriptor() : rootRefCount(0){};
+		ObjectDescriptor() : uid(0), rootRefCount(0) {};
+
+		/**
+		 * Creates a new ObjectDescriptor with the given unique id.
+		 *
+		 * @param uid is the unique id to be stored.
+		 */
+		ObjectDescriptor(ManagedUid uid) : uid(uid), rootRefCount(0) {};
 
 		/**
 		 * Returns true, if the ObjectDescriptor has at least one input
@@ -147,10 +162,21 @@ private:
 	const size_t threshold;
 
 	/**
+	 * Next UID being assigned to the next object for which the "manage"
+	 * function is called.
+	 */
+	ManagedUid nextUid = 1;
+
+	/**
 	 * Map used to store the descriptors for all managed objects. Every object
 	 * that has at least one root, in or out reference has an entry in this map.
 	 */
 	std::unordered_map<Managed *, ObjectDescriptor> objects;
+
+	/**
+	 * Map from Uids to Managed pointers.
+	 */
+	std::unordered_map<ManagedUid, Managed *> uids;
 
 	/**
 	 * Set containing the objects marked for sweeping.
@@ -274,6 +300,29 @@ public:
 	 * Performs garbage collection.
 	 */
 	void sweep();
+
+	/* Unique IDs */
+
+	/**
+	 * Returns the unique identifier (UID) of the given object. Valid UIDs are
+	 * positive non-zero values. A value of zero indicates that the given object
+	 * does no longer exists or was not registered in the manager instance.
+	 *
+	 * @param o is a pointer to the managed object for which the UID should be
+	 * returned.
+	 * @return the unique id of the object or zero if the object does not exist.
+	 */
+	ManagedUid getUid(Managed *o);
+
+	/**
+	 * Returns a pointer to the given managed object or nullptr if the object
+	 * no longer exists. This behaviour can be used to implement weak
+	 * references.
+	 *
+	 * @param uid is the unique id for which the object should be returned.
+	 * @return a pointer to the object with the given uid.
+	 */
+	Managed * getManaged(ManagedUid uid);
 
 	/* Data storage */
 
