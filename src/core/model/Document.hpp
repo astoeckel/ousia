@@ -32,21 +32,33 @@
  * Structure Nodes, effectively resulting in a Document Graph instead of a
  * Document Tree (other references may introduce cycles as well).
  *
- * Consider this simplified XML representation of a document (TODO: Use
- * non-simplified XML as soon as possible):
+ * Consider this XML representation of a document using the "book" domain:
  *
- * <Document implements="book">
- *   <StructureEntity class="book">
- *     <StructureEntity class="section">
- *       <DocumentPrimitive>
- *         This is some text with some <Anchor id="1"/>emphasized and
- *         <Anchor id="2"/>strong<Anchor id="3"/> text.
- *       </DocumentPrimitive>
- *       <AnnotationEntity class="emphasized" start="1", end="3"/>
- *       <AnnotationEntity class="strong" start="2", end="3"/>
- *     </StructureEntity>
- *   </StructureEntity>
- * </Document>
+ * <doc>
+ * 	<head>
+ * 		<import rel="domain" src="book_domain.oxm"/>
+ * 		<import rel="domain" src="emphasized_domain.oxm"/>
+ * 		<alias tag="paragraph" aka="p"/>
+ * 	</head>
+ * 	<book>
+ * 		This might be some introductory text or a dedication. Ideally, of
+ * 		course, such elements would be semantically specified as such in
+ * 		additional domains (or in this one).
+ * 		<chapter name="myFirstChapter">
+ * 			Here we might have an introduction to the chapter, including some
+ * 			overview of the chapters structure.
+ * 			<section name="myFirstSection">
+ * 				Here we might find the actual section content.
+ * 			</section>
+ * 			<section name="mySndSection">
+ * 				Here we might find the actual section <em>content</em>.
+ *
+ *
+ * 				And there might even be another paragraph.
+ * 			</section>
+ * 		</chapter>
+ * 	</book>
+ * </doc>
  *
  * As can be seen the StructureEntities inherently follow a tree structure that
  * is restricted by the implicit context free grammar of the "book" Domain
@@ -56,11 +68,31 @@
  * Another interesting fact is the special place of AnnotationEntities: They are
  * Defined by start and end Anchors in the text. Note that this allows for
  * overlapping annotations and provides a more intuitive (and semantically
- * sound) handling of such span-like concepts.
+ * sound) handling of such span-like concepts. So the
+ *
+ * <em>content</em>
+ *
+ * is implicitly expanded to:
+ *
+ * <a id="1"/>content<a id="2"/>
+ * <emphasized start="1" end="2"/>
+ *
  * Note that the place of an AnnotationEntity within the XML above is not
  * strictly defined. It might as well be placed as a child of the "book" node.
  * In general it is recommended to use the lowest possible place in the
  * StructureTree to include the AnnotationEntity for better readability.
+ *
+ * Also note that text content like
+ *
+ * Here we might find the actual section content.
+ *
+ * is implicitly expanded using transparency to:
+ *
+ * <paragraph>
+ * 	<text>
+ * 		Here we might find the actual section content.
+ * 	</text>
+ * </paragraph>
  *
  * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
  */
@@ -365,7 +397,7 @@ public:
  */
 class Document : public Node {
 private:
-	//TODO: Might there be several roots? E.g. metadata?
+	// TODO: Might there be several roots? E.g. metadata?
 	Owned<StructuredEntity> root;
 
 public:
