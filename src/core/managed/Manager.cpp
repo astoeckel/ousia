@@ -16,16 +16,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//#define DEBUG_MANAGER
-
-#ifdef DEBUG_MANAGER
-#include <iostream>
-#endif
-
 #include <cassert>
 
 #include "Managed.hpp"
 #include "Manager.hpp"
+
+#if defined(MANAGER_DEBUG_PRINT) || defined(MANAGER_GRAPHVIZ_EXPORT)
+#include <iostream>
+#include <fstream>
+#include "core/common/Rtti.hpp"
+#include "core/model/Node.hpp"
+#endif
 
 namespace ousia {
 
@@ -150,7 +151,7 @@ Manager::ObjectDescriptor *Manager::getDescriptor(Managed *o)
 
 void Manager::manage(Managed *o)
 {
-#ifdef DEBUG_MANAGER
+#ifdef MANAGER_DEBUG_PRINT
 	std::cout << "manage " << o << std::endl;
 #endif
 	objects.emplace(std::make_pair(o, ObjectDescriptor{}));
@@ -158,7 +159,7 @@ void Manager::manage(Managed *o)
 
 void Manager::addRef(Managed *tar, Managed *src)
 {
-#ifdef DEBUG_MANAGER
+#ifdef MANAGER_DEBUG_PRINT
 	std::cout << "addRef " << tar << " <- " << src << std::endl;
 #endif
 
@@ -187,7 +188,7 @@ void Manager::addRef(Managed *tar, Managed *src)
 
 void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 {
-#ifdef DEBUG_MANAGER
+#ifdef MANAGER_DEBUG_PRINT
 	std::cout << "deleteRef " << tar << " <- " << src << std::endl;
 #endif
 
@@ -224,7 +225,7 @@ void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 
 void Manager::deleteObject(Managed *o, ObjectDescriptor *descr)
 {
-#ifdef DEBUG_MANAGER
+#ifdef MANAGER_DEBUG_PRINT
 	std::cout << "deleteObject " << o << std::endl;
 #endif
 
@@ -530,5 +531,181 @@ bool Manager::triggerEvent(Managed *ref, Event &ev)
 	}
 	return hasHandler;
 }
+
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+
+// Note: This is just an ugly hack used for development. Do not complain. You
+// have been warned.
+
+enum class EdgeType { NORMAL, EVENT, DATA, AGGREGATE };
+
+void Manager::exportGraphviz(const char *filename)
+{
+	std::fstream fs(filename, std::ios_base::out);
+	if (!fs.good()) {
+		throw "Error while opening output file.";
+	}
+
+	fs << "digraph G {" << std::endl;
+	fs << "\tnode [shape=plaintext,fontsize=10]" << std::endl;
+
+	size_t idx = 0;
+	for (auto &object : objects) {
+		// References to the object descriptor and the object
+		Managed *objectPtr = object.first;
+		ObjectDescriptor &objectDescr = object.second;
+
+		// Read flags, data and events
+		bool isMarked = marked.count(objectPtr) > 0;
+		bool isDeleted = deleted.count(objectPtr) > 0;
+		std::map<std::string, Managed *> storeData =
+		    store.count(objectPtr) > 0 ? store[objectPtr]
+		                               : std::map<std::string, Managed *>{};
+		std::vector<EventHandlerDescriptor> eventData =
+		    events.count(objectPtr) > 0 ? events[objectPtr]
+		                                : std::vector<EventHandlerDescriptor>{};
+
+		// Read type information and Node name (if available)
+		const RttiBase &type = objectPtr->type();
+		const std::string &typeName = type.name;
+		std::string name = "";
+		if (type.isa(RttiTypes::Node)) {
+			name = dynamic_cast<const Node *>(objectPtr)->getName();
+		}
+
+		// Print the node
+		uintptr_t p = reinterpret_cast<uintptr_t>(objectPtr);
+		fs << "\tn" << std::hex << std::noshowbase << p << " [" << std::endl;
+
+		// Print the label
+		fs << "\t\tlabel=<"
+		   << "<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">"
+		   << "<TR><TD>" << std::hex << std::showbase << p << "</TD></TR>"
+		   << "<TR><TD><I>" << typeName << "</I></TD></TR>";
+
+		// Print any name
+		if (!name.empty()) {
+			fs << "<TR><TD><B>" << name << "</B></TD></TR>";
+		}
+
+		// Print any available data element
+		{
+			for (auto &d : storeData) {
+				fs << "<TR><TD PORT=\"data_" << d.first
+				   << "\"><FONT COLOR=\"orangered2\">" << d.first
+				   << "</FONT></TD></TR>";
+			}
+		}
+
+		// Print any available event
+		{
+			std::unordered_set<const char *> eventTypes;
+			for (auto &d : eventData) {
+				if (d.handler) {
+					eventTypes.insert(d.getEventTypeName());
+				}
+			}
+			for (const char *name : eventTypes) {
+				fs << "<TR><TD PORT=\"ev_" << name
+				   << "\"><FONT COLOR=\"darkolivegreen4\">" << name
+				   << "</FONT></TD></TR>";
+			}
+		}
+
+		fs << "</TABLE>>" << std::endl;
+
+		// Color deleted and marked objects in other colors
+		if (isDeleted) {
+			fs << ",color=firebrick4";
+		} else if (isMarked) {
+			fs << ",color=gray40";
+		}
+
+		fs << "\t]" << std::endl;
+
+		// Create edges to all outgoing nodes
+		for (const auto &e : objectDescr.refOut) {
+			// Copy the number of references -- repeat until all references have
+			// been drawn
+			int edgeCount = e.second;
+			while (edgeCount > 0) {
+				// Get the type of the target element
+				uintptr_t pTar = reinterpret_cast<uintptr_t>(e.first);
+				const RttiBase &typeTar = e.first->type();
+
+				// Get some information about the edge
+				std::string port = "";
+				EdgeType et = EdgeType::NORMAL;
+
+				// Check whether an event with the given target node exists
+				for (auto it = eventData.begin(); it != eventData.end(); it++) {
+					if (it->handler && it->owner == e.first) {
+						et = EdgeType::EVENT;
+						port = std::string(":ev_") +
+						       std::string(it->getEventTypeName());
+						eventData.erase(it);
+						break;
+					}
+				}
+				if (et == EdgeType::NORMAL) {
+					for (auto it = storeData.begin(); it != storeData.end();
+					     it++) {
+						if (it->second == e.first) {
+							et = EdgeType::DATA;
+							port = std::string(":data_") + it->first;
+							storeData.erase(it);
+							break;
+						}
+					}
+				}
+				if (et == EdgeType::NORMAL && type.aggregatedOf(typeTar)) {
+					et = EdgeType::AGGREGATE;
+				}
+
+				// Print the edge
+				fs << "\tn" << std::hex << std::noshowbase << p << port
+				   << " -> n" << std::hex << std::noshowbase << pTar << " [";
+				int c = edgeCount;
+				switch (et) {
+					case EdgeType::EVENT:
+						fs << "weight=5,penwidth=1,color=darkolivegreen4,";
+						c = 1;
+						break;
+					case EdgeType::DATA:
+						fs << "weight=5,penwidth=1,color=orangered2,";
+						c = 1;
+						break;
+					case EdgeType::AGGREGATE:
+						fs << "weight=100,color=dodgerblue4,arrowhead=diamond,"
+						      "penwidth=2,";
+						c = edgeCount;
+						break;
+					default:
+						fs << "weight=0,penwidth=0.5,";
+						c = edgeCount;
+						break;
+				}
+				edgeCount -= c;
+				fs << "headlabel=\"" << std::dec << c << "\"]" << std::endl;
+			}
+		}
+
+		// Display root edges
+		if (objectDescr.rootRefCount > 0) {
+			fs << "\tr" << std::hex << std::noshowbase << p
+			   << " [shape=\"point\",width=0.1]" << std::endl;
+			fs << "\tr" << std::hex << std::noshowbase << p << " -> n"
+			   << std::hex << std::noshowbase << p
+			   << " [weight=10,style=\"dashed\",headlabel="
+			      "\"" << std::dec << objectDescr.rootRefCount << "\"]"
+			   << std::endl;
+		}
+
+		idx++;
+	}
+
+	fs << "}" << std::endl;
+}
+#endif
 }
 

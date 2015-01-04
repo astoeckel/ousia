@@ -27,6 +27,11 @@
 #ifndef _OUSIA_MANAGER_HPP_
 #define _OUSIA_MANAGER_HPP_
 
+//#define MANAGER_DEBUG_PRINT
+#ifndef NDEBUG
+#define MANAGER_GRAPHVIZ_EXPORT
+#endif
+
 #include <cstdint>
 #include <map>
 #include <string>
@@ -369,6 +374,10 @@ public:
 	 * @param data is the event data that should be passed to the handlers.
 	 */
 	bool triggerEvent(Managed *ref, Event &ev);
+
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+	void exportGraphviz(const char* filename);
+#endif
 };
 }
 
