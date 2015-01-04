@@ -30,24 +30,65 @@
  * terms "StructuredClass" and "FieldDescriptor".
  * On the top level you would start with a StructuredClass, say "book", which
  * in turn might contain two FieldDescriptors, one for the meta data of ones
- * book and one for the actual structure. Consider the following (simplified)
- * XML notation (TODO: Use a non-simplified notation as soon as the format is
- * clear.)
+ * book and one for the actual structure. Consider the following XML:
  *
- * <StructuredClass name="book">
- *   <FieldDescriptor name="structure", type="TREE", optional="false">
- *     <children>
- *       Here we would reference the possible child classes, e.g. section,
- *       paragraph, etc.
- *     </children>
- *   </FieldDescriptor>
- *   <FieldDescriptor name="meta", type="SUBTREE", optional="true">
- *     <children>
- *       Here we would reference the possible child classes for meta,
- *       information, e.g. authors, date, version, etc.
- *     </children>
- *   </FieldDescriptor>
- * </StructuredClass>
+ * <domain name="book">
+ * 	<structs>
+ * 		<struct name="book" cardinality="1" isRoot="true">
+ * 			<fields>
+ * 				<field>
+ * 					<children>
+ * 						<child name="book.chapter"/>
+ * 						<child name="book.paragraph"/>
+ * 					</children>
+ * 				</field>
+ * 			</fields>
+ * 		</struct>
+ * 		<struct name="chapter">
+ * 			<fields>
+ * 				<field>
+ * 					<children>
+ * 						<child name="book.section"/>
+ * 						<child name="book.paragraph"/>
+ * 					</children>
+ * 				</field>
+ * 			</fields>
+ * 		</struct>
+ * 		<struct name="section">
+ * 			<fields>
+ * 				<field>
+ * 					<children>
+ * 						<child name="book.subsection"/>
+ * 						<child name="book.paragraph"/>
+ * 					</children>
+ * 				</field>
+ * 			</fields>
+ * 		</struct>
+ * 		<struct name="subsection">
+ * 			<fields>
+ * 				<field>
+ * 					<children>
+ * 						<child name="book.paragraph"/>
+ * 					</children>
+ * 				</field>
+ * 			</fields>
+ * 		</struct>
+ * 		<struct name="paragraph" transparent="true" role="paragraph">
+ * 			<fields>
+ * 				<field>
+ * 					<children>
+ * 						<child name="book.text"/>
+ * 					</children>
+ * 				</field>
+ * 			</fields>
+ * 		</struct>
+ * 		<struct name="text" transparent="true" role="text">
+ * 			<fields>
+ * 				<field name="content" type="PRIMITIVE" primitiveType="string"/>
+ * 			</fields>
+ * 		</struct>
+ * 	</structs>
+ * </domain>
  *
  * Note that we define one field as the TREE (meaning the main or default
  * document structure) and one mearly as SUBTREE, relating to supporting
@@ -58,11 +99,19 @@
  * TREE field and at least one permitted child must exist, either primitive or
  * as another StructuredClass.
  *
- * The translation to context free grammars is roughly as follows:
+ * The translation to context free grammars is as follows:
  *
- * BOOK           := book BOOK_STRUCTURE BOOK_META
- * BOOK_STRUCTURE := SECTION BOOK_STRUCTURE | PARAGRAPH BOOK_STRUCTURE | epsilon
- * BOOK_META      := AUTHOR BOOK_META | DATE BOOK_META
+ * BOOK              := <book> BOOK_TREE </book>
+ * BOOK_TREE         := CHAPTER BOOK_TREE | PARAGRAPH BOOK_TREE | epsilon
+ * CHAPTER           := <chapter> CHAPTER_TREE </chapter>
+ * CHAPTER_TREE      := SECTION CHAPTER_TREE | PARAGRAPH CHAPTER_TREE | epsilon
+ * SECTION           := <section> SECTION_TREE </section>
+ * SECTION_TREE      := SUBSECTION SECTION_TREE | PARAGRAPH SECTION_TREE |
+ *                      epsilon
+ * SUBSECTION        := <subsection> SUBSECTION_TREE </subsection>
+ * SUBSECTION_TREE   := PARAGRAPH SUBSECTION_TREE | epsilon
+ * PARAGRAPH         := <paragraph> PARAGRAPH_CONTENT </paragraph>
+ * PARAGRAPH_CONTENT := string
  *
  * Note that this translation recurs to further nonterminals like SECTION but
  * necessarily produces one "book" terminal. Also note that, in principle,
@@ -70,11 +119,72 @@
  * the proper StructuredClass. This can be regulated by the "cardinality"
  * property of a StructuredClass.
  *
+ * It is possible to add further fields, like we would in the "headings" domain
+ * to add titles to our structure.
+ *
+ * <domain name="headings">
+ * 	<head>
+ * 		<import rel="domain" src="book.oxm"/>
+ * 	</head>
+ * 	<structs>
+ * 		<struct name="heading" cardinality="0-1" transparent="true">
+ * 			<parents>
+ * 				<parent name="book.book">
+ * 					<field name="heading" type="SUBTREE"/>
+ * 				</parent>
+ * 				...
+ * 			</parents>
+ * 			<fields>
+ * 				<fieldRef name="book.paragraph.">
+ * 			</fields>
+ * 	</structs>
+ * </domain>
+ *
+ * This would change the context free grammar as follows:
+ *
+ * BOOK              := <book> HEADING BOOK_TREE </book>
+ * HEADING           := <heading> PARAGRAPH </heading>
+ *
  * AnnotationClasses on the other hand do not specify a context free grammar.
  * They merely specify what kinds of Annotations are allowed within this domain
  * and which fields or attributes they have. Note that Annotations are allowed
  * to define structured children that manifest e.g. meta information of that
- * Annotation.
+ * Annotation. An example for that would be the "comment" domain:
+ *
+ * <domain name="comments">
+ * 	<head>
+ * 		<import rel="domain" src="book.oxm"/>
+ * 	</head>
+ * 	<annos>
+ * 		<anno name="comment">
+ * 			<fields>
+ * 				<field name="replies" type="SUBTREE">
+ * 					<children>
+ * 						<child name="reply"/>
+ * 					</children>
+ * 				</field>
+ * 			</fields>
+ * 		</anno>
+ * 	</annos>
+ * 	<structs>
+ * 		<struct name="reply">
+ * 			<fields>
+ * 				<field name="replies" type="SUBTREE">
+ * 					<children>
+ * 						<child name="reply"/>
+ * 					</children>
+ * 				</field>
+ * 				<field name="content" type="SUBTREE">
+ * 					<children>
+ * 						<child name="book.paragraph"/>
+ * 					</children>
+ * 				</field>
+ * 			</fields>
+ * 		</struct>
+ * 	</structs>
+ * </domain>
+ *
+ * Here we have comment annotations, which have a reply tree as sub structure.
  *
  * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
  */
@@ -105,13 +215,17 @@ class Domain;
  * Hierarchy.
  *
  * As an example consider the "paragraph" StructuredClass, which might allow
- * the actual text content. Here is the according simplified XML (TODO: replace
- * with a non-simplified version as soon as the XML syntax is clear.)
+ * the actual text content. Here is the according XML:
  *
- * <StructuredClass name="paragraph">
- *   <FieldDescriptor name="text", type="PRIMITIVE", optional="false",
- *                    primitiveType="string"/>
- * </StructuredClass>
+ * 		<struct name="paragraph" transparent="true" role="paragraph">
+ * 			<fields>
+ * 				<field>
+ * 					<children>
+ * 						<child name="book.text"/>
+ * 					</children>
+ * 				</field>
+ * 			</fields>
+ * 		</struct>
  *
  * Accordingly the primitiveType field of a FieldDescriptor may only be
  * defined if the type is set to "PRIMITIVE". If the type is something else
@@ -286,36 +400,28 @@ typedef RangeSet<size_t> Cardinality;
  * consult the Header documentation above.
  *
  * Note that a StructuredClass may "invade" an existing Domain description by
- * defining itself as a viable child in one existing field. Consider a "section"
- * StructuredClass (continuing the example in the header documentation):
+ * defining itself as a viable child in one existing field. Consider the
+ * example of the "heading" domain from the header documentation again:
  *
- * <StructuredClass name="section">
- *   <FieldDescriptor name="structure", type="TREE", optional="false">
- *     <children>
- *       <classRef>paragraph</classRef>
- *     </children>
- *   </FieldDescriptor>
- * </StructuredClass>
+ * <domain name="headings">
+ * 	<head>
+ * 		<import rel="domain" src="book.oxm"/>
+ * 	</head>
+ * 	<structs>
+ * 		<struct name="heading" cardinality="0-1" transparent="true">
+ * 			<parents>
+ * 				<parent name="book.book">
+ * 					<field name="heading" type="SUBTREE"/>
+ * 				</parent>
+ * 				...
+ * 			</parents>
+ * 			<fields>
+ * 				<fieldRef name="book.paragraph.">
+ * 			</fields>
+ * 	</structs>
+ * </domain>
  *
- * Of course in most cases we do not only want to allow paragraphs  inside
- * sections, but also (for example) lists. How would one add that
- * without manipulating the existing domain or having to define an entirely
- * new domain in which section allows for lists?
- *
- * Our solution to this problem is the parent mechanism. The simplified XML
- * (TODO: Use non-simplified version as soon as possible) for the "list"
- * StructuredClass would look like this:
- *
- * <StructuredClass name="list">
- *   <FieldDescriptor name="structure", type="TREE", optional="false">
- *     <children>
- *       <classRef>item</classRef>
- *     </children>
- *   </FieldDescriptor>
- *   <parents>
- *     <fieldRef>section.structure</fieldRef>
- *   </parents>
- * </StructuredClass>
+ * The "parent" construct allows to "invade" another domain.
  *
  * This does indeed interfere with an existing domain and one must carefully
  * craft such parent references to not create undesired side effects. However
@@ -404,8 +510,7 @@ public:
 	                Handle<StructType> attributesDescriptor = nullptr,
 	                // TODO: What would be a wise default value for isa?
 	                Handle<StructuredClass> isa = nullptr,
-	                bool transparent = false,
-	                bool root = false)
+	                bool transparent = false, bool root = false)
 	    : Descriptor(mgr, std::move(name), domain, attributesDescriptor),
 	      cardinality(cardinality),
 	      isa(acquire(isa)),
@@ -497,9 +602,7 @@ extern const Rtti<model::Descriptor> Descriptor;
 extern const Rtti<model::StructuredClass> StructuredClass;
 extern const Rtti<model::AnnotationClass> AnnotationClass;
 extern const Rtti<model::Domain> Domain;
-
 }
-
 }
 
 #endif /* _OUSIA_MODEL_DOMAIN_HPP_ */

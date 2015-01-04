@@ -153,6 +153,14 @@ TARGET_LINK_LIBRARIES(ousia_css
 	ousia_core
 )
 
+ADD_LIBRARY(ousia_html
+	src/plugins/html/DemoOutput
+)
+
+TARGET_LINK_LIBRARIES(ousia_html
+	ousia_core
+)
+
 ADD_LIBRARY(ousia_xml
 	src/plugins/xml/XmlParser
 )
@@ -233,6 +241,16 @@ IF(TEST)
 		ousia_css
 	)
 
+	ADD_EXECUTABLE(ousia_test_html
+		test/plugins/html/DemoOutputTest
+	)
+
+	TARGET_LINK_LIBRARIES(ousia_test_html
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_html
+	)
+
 	ADD_EXECUTABLE(ousia_test_xml
 		test/plugins/xml/XmlParserTest
 	)
@@ -256,8 +274,9 @@ IF(TEST)
 	# Register the unit tests
 	ADD_TEST(ousia_test_core ousia_test_core)
 	ADD_TEST(ousia_test_boost ousia_test_boost)
-	ADD_TEST(ousia_test_xml ousia_test_xml)
 	ADD_TEST(ousia_test_css ousia_test_css)
+	ADD_TEST(ousia_test_html ousia_test_html)
+	ADD_TEST(ousia_test_xml ousia_test_xml)
 #	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
 ENDIF()
 

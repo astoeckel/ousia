@@ -32,21 +32,33 @@
  * Structure Nodes, effectively resulting in a Document Graph instead of a
  * Document Tree (other references may introduce cycles as well).
  *
- * Consider this simplified XML representation of a document (TODO: Use
- * non-simplified XML as soon as possible):
+ * Consider this XML representation of a document using the "book" domain:
  *
- * <Document implements="book">
- *   <StructureEntity class="book">
- *     <StructureEntity class="section">
- *       <DocumentPrimitive>
- *         This is some text with some <Anchor id="1"/>emphasized and
- *         <Anchor id="2"/>strong<Anchor id="3"/> text.
- *       </DocumentPrimitive>
- *       <AnnotationEntity class="emphasized" start="1", end="3"/>
- *       <AnnotationEntity class="strong" start="2", end="3"/>
- *     </StructureEntity>
- *   </StructureEntity>
- * </Document>
+ * <doc>
+ * 	<head>
+ * 		<import rel="domain" src="book_domain.oxm"/>
+ * 		<import rel="domain" src="emphasized_domain.oxm"/>
+ * 		<alias tag="paragraph" aka="p"/>
+ * 	</head>
+ * 	<book>
+ * 		This might be some introductory text or a dedication. Ideally, of
+ * 		course, such elements would be semantically specified as such in
+ * 		additional domains (or in this one).
+ * 		<chapter name="myFirstChapter">
+ * 			Here we might have an introduction to the chapter, including some
+ * 			overview of the chapters structure.
+ * 			<section name="myFirstSection">
+ * 				Here we might find the actual section content.
+ * 			</section>
+ * 			<section name="mySndSection">
+ * 				Here we might find the actual section <em>content</em>.
+ *
+ *
+ * 				And there might even be another paragraph.
+ * 			</section>
+ * 		</chapter>
+ * 	</book>
+ * </doc>
  *
  * As can be seen the StructureEntities inherently follow a tree structure that
  * is restricted by the implicit context free grammar of the "book" Domain
@@ -56,11 +68,31 @@
  * Another interesting fact is the special place of AnnotationEntities: They are
  * Defined by start and end Anchors in the text. Note that this allows for
  * overlapping annotations and provides a more intuitive (and semantically
- * sound) handling of such span-like concepts.
+ * sound) handling of such span-like concepts. So the
+ *
+ * <em>content</em>
+ *
+ * is implicitly expanded to:
+ *
+ * <a id="1"/>content<a id="2"/>
+ * <emphasized start="1" end="2"/>
+ *
  * Note that the place of an AnnotationEntity within the XML above is not
  * strictly defined. It might as well be placed as a child of the "book" node.
  * In general it is recommended to use the lowest possible place in the
  * StructureTree to include the AnnotationEntity for better readability.
+ *
+ * Also note that text content like
+ *
+ * Here we might find the actual section content.
+ *
+ * is implicitly expanded using transparency to:
+ *
+ * <paragraph>
+ * 	<text>
+ * 		Here we might find the actual section content.
+ * 	</text>
+ * </paragraph>
  *
  * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
  */
@@ -124,12 +156,6 @@ public:
 	Variant getAttributes() const { return attributes; }
 
 	/**
-	 * This allows a direct manipulation of the internal data structure of a
-	 * DocumentEntity and is not recommended. TODO: Delete this?
-	 */
-	std::vector<NodeVector<StructuredEntity>> &getFields() { return fields; }
-
-	/**
 	 * This returns true if there is a FieldDescriptor in the Descriptor for
 	 * this DocumentEntity which has the given name. If an empty name is
 	 * given it is assumed that the 'default' FieldDescriptor is referenced,
@@ -148,29 +174,18 @@ public:
 
 	/**
 	 * This returns the vector of entities containing all members of the field
-	 * for which the FieldDescriptor has the specified name. If an empty name is
-	 * given it is assumed that the 'default' FieldDescriptor is referenced,
-	 * where 'default' means either:
+	 * with the given name.  If an empty name is given it is assumed that the
+	 * 'default' FieldDescriptor is referenced, where 'default' means either:
 	 * 1.) The only TREE typed FieldDescriptor (if present) or
 	 * 2.) the only FieldDescriptor (if only one is specified).
 	 *
-	 * Note that the output of this method might well be ambigous: If no
-	 * FieldDescriptor matches the given name an empty NodeVector is
-	 * returned. This is also the case, however, if there are no members for an
-	 * existing field. Therefore it is recommended to additionally check the
-	 * output of "hasField" or use the version of this method with
-	 * a FieldDescriptor as input.
+	 * If the name is unknown an exception is thrown.
 	 *
-	 * @param fieldName is the name of the field as specified in the
+	 * @param fieldName is the name of a field as specified in the
 	 *                  FieldDescriptor in the Domain description.
-	 * @param res       is a NodeVector reference where the result will be
-	 *                  stored. After using this method the reference will
-	 *                  either refer to all StructuredEntities in that field. If
-	 *                  the field is unknown or if no members exist in that
-	 *                  field yet, the NodeVector will be empty.
+	 * @return a NodeVector of all StructuredEntities in that field.
 	 */
-	void getField(NodeVector<StructuredEntity> &res,
-	              const std::string &fieldName = "");
+	NodeVector<StructuredEntity> &getField(const std::string &fieldName = "");
 
 	/**
 	 * This returns the vector of entities containing all members of the field
@@ -184,7 +199,7 @@ public:
 	 * @return a NodeVector of all StructuredEntities in that field.
 	 */
 	NodeVector<StructuredEntity> &getField(
-	    Rooted<FieldDescriptor> fieldDescriptor);
+	    Handle<FieldDescriptor> fieldDescriptor);
 };
 
 /**
@@ -365,7 +380,7 @@ public:
  */
 class Document : public Node {
 private:
-	//TODO: Might there be several roots? E.g. metadata?
+	// TODO: Might there be several roots? E.g. metadata?
 	Owned<StructuredEntity> root;
 
 public:
@@ -375,7 +390,7 @@ public:
 	{
 	}
 
-	void setRoot(Handle<StructuredEntity> root) { root = acquire(root); };
+	void setRoot(Handle<StructuredEntity> root) { this->root = acquire(root); };
 
 	Rooted<StructuredEntity> getRoot() const { return root; }
 };

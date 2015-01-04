@@ -15,7 +15,15 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+/**
+ * @file CSSParser.hpp
+ *
+ * Contains the classes needed to transform a CSS string to a CSS SelectorTree
+ * with attached RuleSets. The details are explained in the class
+ * documentations.
+ *
+ * @author Benjamin Paassen - bpaassen@techfak.uni-bielefeld.de
+ */
 #ifndef _OUSIA_CSS_PARSER_HPP_
 #define _OUSIA_CSS_PARSER_HPP_
 

@@ -81,11 +81,20 @@ static Rooted<Domain> constructBookDomain(Manager &mgr, Logger &logger)
 	section_field->getChildren().push_back(paragraph);
 	book_field->getChildren().push_back(paragraph);
 	domain->getStructureClasses().push_back(paragraph);
-	// ... and has a primitive field.
-	Rooted<FieldDescriptor> paragraph_field{new FieldDescriptor(
-	    mgr, paragraph, domain->getTypesystems()[0]->getTypes()[1], "text",
-	    false)};
+	// And the field of it.
+	Rooted<FieldDescriptor> paragraph_field{new FieldDescriptor(mgr, paragraph)};
 	paragraph->getFieldDescriptors().push_back(paragraph_field);
+	
+	// Finally we add the "text" node, which is transparent as well.
+	Rooted<StructuredClass> text{new StructuredClass(
+	    mgr, "text", domain, any, {nullptr}, {nullptr}, true)};
+	paragraph_field->getChildren().push_back(text);
+	domain->getStructureClasses().push_back(text);
+	// ... and has a primitive field.
+	Rooted<FieldDescriptor> text_field{new FieldDescriptor(
+	    mgr, text, domain->getTypesystems()[0]->getTypes()[0], "content",
+	    false)};
+	text->getFieldDescriptors().push_back(text_field);
 
 	return domain;
 }

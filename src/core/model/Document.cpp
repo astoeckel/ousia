@@ -57,20 +57,22 @@ int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName)
 	return -1;
 }
 
-void DocumentEntity::getField(NodeVector<StructuredEntity> &res,
-                              const std::string &fieldName)
+NodeVector<StructuredEntity> &DocumentEntity::getField(
+    const std::string &fieldName)
 {
 	int f = getFieldDescriptorIndex(fieldName);
 	if (f < 0) {
-		NodeVector<StructuredEntity> empty{this};
-		res = NodeVector<StructuredEntity>(this);
+		throw OusiaException("No field for the given name exists!");
 	}
-	res = fields[f];
+	return fields[f];
 }
 
 NodeVector<StructuredEntity> &DocumentEntity::getField(
-    Rooted<FieldDescriptor> fieldDescriptor)
+    Handle<FieldDescriptor> fieldDescriptor)
 {
+	if(fieldDescriptor.isNull()){
+		throw OusiaException("The given FieldDescriptor handle is null!");
+	}
 	const NodeVector<FieldDescriptor> &fds = descriptor->getFieldDescriptors();
 	int f = 0;
 	for (auto &fd : fds) {
@@ -155,8 +157,7 @@ Rooted<StructuredEntity> StructuredEntity::buildEntity(
 		return {nullptr};
 	}
 	// append the new entity to the right field.
-	NodeVector<StructuredEntity> field(parent);
-	parent->getField(field, fieldName);
+	NodeVector<StructuredEntity>& field = parent->getField(fieldName);
 	field.push_back(entity);
 
 	// and return it.
@@ -179,8 +180,7 @@ Rooted<DocumentPrimitive> DocumentPrimitive::buildEntity(
 		return {nullptr};
 	}
 	// append the new entity to the right field.
-	NodeVector<StructuredEntity> field(parent);
-	parent->getField(field, fieldName);
+	NodeVector<StructuredEntity>& field = parent->getField(fieldName);
 	field.push_back(entity);
 
 	// and return it.
