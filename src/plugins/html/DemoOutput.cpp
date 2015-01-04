@@ -31,7 +31,7 @@ void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
 	out << "<?xml version=\" 1.0 \"?>\n";
 	out << "<html>\n";
 	out << "\t<head>\n";
-	out << "\t\t<title>Test HTML Output for" << doc->getName() << "</title>\n";
+	out << "\t\t<title>Test HTML Output for " << doc->getName() << "</title>\n";
 	out << "\t</head>\n";
 	out << "\t<body>\n";
 
@@ -76,10 +76,9 @@ void DemoHTMLTransformer::writeSection(Handle<model::StructuredEntity> sec,
 		// if the input node is no section, we ignore it.
 		return;
 	}
-	// get the fields.
-	std::vector<NodeVector<model::StructuredEntity>> &fields = sec->getFields();
 	// check if we have a heading.
-	if (fields.size() > 1 && fields[1].size() > 0) {
+	if (sec->hasField("heading")) {
+		Rooted<model::StructuredEntity> heading = sec->getField("heading")[0];
 		out << "\t\t";
 		switch (type) {
 			case SectionType::BOOK:
@@ -99,7 +98,7 @@ void DemoHTMLTransformer::writeSection(Handle<model::StructuredEntity> sec,
 				break;
 		}
 		// the second field marks the heading. So let's write it.
-		writeParagraph(fields[1][0], out, false);
+		writeParagraph(heading, out, false);
 		// close the heading tag.
 		switch (type) {
 			case SectionType::BOOK:
@@ -122,7 +121,8 @@ void DemoHTMLTransformer::writeSection(Handle<model::StructuredEntity> sec,
 	}
 
 	// then write the section content recursively.
-	for (auto &n : fields[0]) {
+	NodeVector<model::StructuredEntity> mainField = sec->getField();
+	for (auto &n : mainField) {
 		/*
 		 * Strictly speaking this is the wrong mechanism, because we would have
 		 * to make an "isa" call here because we can not rely on our knowledge
@@ -149,15 +149,13 @@ void DemoHTMLTransformer::writeParagraph(Handle<model::StructuredEntity> par,
 	if (par->getDescriptor()->getName() != "paragraph") {
 		throw OusiaException("Expected paragraph!");
 	}
-	// get the fields.
-	std::vector<NodeVector<model::StructuredEntity>> &fields = par->getFields();
-	// write heading if its there.
 	// check if we have a heading.
-	if (fields.size() > 1 && fields[1].size() > 0) {
+	if (par->hasField("heading")) {
+		Rooted<model::StructuredEntity> heading = par->getField("heading")[0];
 		// start the heading tag
 		out << "\t\t<h5>";
 		// the second field marks the heading. So let's write it.
-		writeParagraph(fields[1][0], out, false);
+		writeParagraph(heading, out, false);
 		// close the heading tag.
 		out << "</h5>\n";
 	}
@@ -167,13 +165,13 @@ void DemoHTMLTransformer::writeParagraph(Handle<model::StructuredEntity> par,
 	}
 	// write content
 	// TODO: What about emphasis?
-	for (auto &text : fields[0]) {
+	for (auto &text : par->getField()) {
 		if (text->getDescriptor()->getName() != "text") {
 			throw OusiaException("Expected text!");
 		}
 		Handle<model::DocumentPrimitive> primitive =
-		    text->getFields()[0][0].cast<model::DocumentPrimitive>();
-		if (primitive == nullptr) {
+		    text->getField()[0].cast<model::DocumentPrimitive>();
+		if (primitive.isNull()) {
 			throw OusiaException("Text field is not primitive!");
 		}
 		out << primitive->getContent().asString();
