@@ -395,6 +395,15 @@ public:
 	Rooted<StructuredEntity> getRoot() const { return root; }
 };
 }
+
+namespace RttiTypes {
+extern const Rtti<model::Document> Document;
+extern const Rtti<model::DocumentEntity> DocumentEntity;
+extern const Rtti<model::AnnotationEntity> AnnotationEntity;
+extern const Rtti<model::StructuredEntity> StructuredEntity;
+extern const Rtti<model::DocumentPrimitive> DocumentPrimitive;
+extern const Rtti<model::AnnotationEntity::Anchor> Anchor;
+}
 }
 
 #endif /* _OUSIA_MODEL_DOCUMENT_HPP_ */

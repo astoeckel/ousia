@@ -70,7 +70,7 @@ NodeVector<StructuredEntity> &DocumentEntity::getField(
 NodeVector<StructuredEntity> &DocumentEntity::getField(
     Handle<FieldDescriptor> fieldDescriptor)
 {
-	if(fieldDescriptor.isNull()){
+	if (fieldDescriptor.isNull()) {
 		throw OusiaException("The given FieldDescriptor handle is null!");
 	}
 	const NodeVector<FieldDescriptor> &fds = descriptor->getFieldDescriptors();
@@ -157,7 +157,7 @@ Rooted<StructuredEntity> StructuredEntity::buildEntity(
 		return {nullptr};
 	}
 	// append the new entity to the right field.
-	NodeVector<StructuredEntity>& field = parent->getField(fieldName);
+	NodeVector<StructuredEntity> &field = parent->getField(fieldName);
 	field.push_back(entity);
 
 	// and return it.
@@ -180,7 +180,7 @@ Rooted<DocumentPrimitive> DocumentPrimitive::buildEntity(
 		return {nullptr};
 	}
 	// append the new entity to the right field.
-	NodeVector<StructuredEntity>& field = parent->getField(fieldName);
+	NodeVector<StructuredEntity> &field = parent->getField(fieldName);
 	field.push_back(entity);
 
 	// and return it.
@@ -188,17 +188,23 @@ Rooted<DocumentPrimitive> DocumentPrimitive::buildEntity(
 }
 
 /* Type registrations */
+}
 
-const Rtti<Document> Document_Rtti{"Document"};
-const Rtti<DocumentEntity> DocumentEntity_Rtti{"DocumentEntity"};
-const Rtti<AnnotationEntity> AnnotationEntity_Rtti{"AnnotationEntity",
-                                                   {&DocumentEntity_Rtti}};
-const Rtti<StructuredEntity> StructuredEntity_Rtti{"StructuredEntity",
-                                                   {&DocumentEntity_Rtti}};
-const Rtti<DocumentPrimitive> DocumentPrimitive_Rtti{"DocumentPrimitive",
-                                                     {&StructuredEntity_Rtti}};
-const Rtti<AnnotationEntity::Anchor> Anchor_Rtti{"Anchor",
-                                                 {&StructuredEntity_Rtti}};
+namespace RttiTypes {
+const Rtti<model::Document> Document{"Document",
+                                     std::unordered_set<const RttiBase *>{},
+                                     {&AnnotationEntity, &StructuredEntity}};
+const Rtti<model::DocumentEntity> DocumentEntity{"DocumentEntity"};
+const Rtti<model::AnnotationEntity> AnnotationEntity{
+    "AnnotationEntity", {&DocumentEntity}, {&StructuredEntity}};
+const Rtti<model::StructuredEntity> StructuredEntity{
+    "StructuredEntity",
+    {&DocumentEntity},
+    {&StructuredEntity, &Anchor, &DocumentPrimitive}};
+const Rtti<model::DocumentPrimitive> DocumentPrimitive{"DocumentPrimitive",
+                                                       {&StructuredEntity}};
+const Rtti<model::AnnotationEntity::Anchor> Anchor{"Anchor",
+                                                   {&StructuredEntity}};
 }
 }
 
