@@ -26,32 +26,15 @@ namespace ousia {
 namespace model {
 
 /**
- * This constructs a somewhat trivial system of standard types.
- *
- * Currently contained: string, text (struct wrapper for string)
- */
-static Rooted<Typesystem> constructTypeSystem(Manager &mgr, Logger &logger)
-{
-	Rooted<Typesystem> sys{new Typesystem(mgr, "std")};
-	Rooted<StringType> string{new StringType(mgr, sys)};
-	sys->addType(string);
-	Rooted<StructType> string_struct{StructType::createValidated(
-	    mgr, "text", sys, nullptr, {new Attribute(mgr, "content", string, "", false)}, logger)};
-	sys->addType(string_struct);
-
-	return sys;
-}
-
-/**
  * This constructs the "book" domain for test purposes. The structure of the
  * domain is fairly simple and can be seen from the construction itself.
  */
-static Rooted<Domain> constructBookDomain(Manager &mgr, Logger &logger)
+static Rooted<Domain> constructBookDomain(Manager &mgr,
+                                          Handle<SystemTypesystem> sys,
+                                          Logger &logger)
 {
 	// Start with the Domain itself.
-	Rooted<Domain> domain{new Domain(mgr, "book")};
-	// The standard type system.
-	domain->getTypesystems().push_back(constructTypeSystem(mgr, logger));
+	Rooted<Domain> domain{new Domain(mgr, sys, "book")};
 	// Set up the cardinalities we'll need.
 	Cardinality single;
 	single.merge({1});
@@ -82,9 +65,10 @@ static Rooted<Domain> constructBookDomain(Manager &mgr, Logger &logger)
 	book_field->getChildren().push_back(paragraph);
 	domain->getStructureClasses().push_back(paragraph);
 	// And the field of it.
-	Rooted<FieldDescriptor> paragraph_field{new FieldDescriptor(mgr, paragraph)};
+	Rooted<FieldDescriptor> paragraph_field{
+	    new FieldDescriptor(mgr, paragraph)};
 	paragraph->getFieldDescriptors().push_back(paragraph_field);
-	
+
 	// Finally we add the "text" node, which is transparent as well.
 	Rooted<StructuredClass> text{new StructuredClass(
 	    mgr, "text", domain, any, {nullptr}, {nullptr}, true)};

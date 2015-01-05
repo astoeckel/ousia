@@ -32,8 +32,9 @@ TEST(Document, testDocumentConstruction)
 	// Construct Manager
 	Logger logger;
 	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Get the domain.
-	Rooted<Domain> domain = constructBookDomain(mgr, logger);
+	Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
 	// Construct the document.
 	Rooted<Document> doc = constructBookDocument(mgr, domain);
 

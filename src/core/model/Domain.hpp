@@ -559,12 +559,12 @@ protected:
 	               VisitorSet &visited) override;
 
 public:
-	Domain(Manager &mgr, std::string name)
+	Domain(Manager &mgr, Handle<SystemTypesystem> sys, std::string name)
 	    // TODO: Can a domain have a parent?
 	    : Node(mgr, std::move(name), nullptr),
 	      structureClasses(this),
 	      annotationClasses(this),
-	      typesystems(this)
+	      typesystems(this, std::vector<Handle<Typesystem>>{sys})
 	{
 	}
 

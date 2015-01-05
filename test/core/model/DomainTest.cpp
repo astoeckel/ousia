@@ -48,8 +48,9 @@ TEST(Domain, testDomainResolving)
 	// Construct Manager
 	Logger logger;
 	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Get the domain.
-	Rooted<Domain> domain = constructBookDomain(mgr, logger);
+	Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
 
 	/*
 	 * Start with the "book" search keyword. This should resolve to the domain

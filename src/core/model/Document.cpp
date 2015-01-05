@@ -191,10 +191,9 @@ Rooted<DocumentPrimitive> DocumentPrimitive::buildEntity(
 }
 
 namespace RttiTypes {
-const Rtti<model::Document> Document{"Document",
-                                     std::unordered_set<const RttiBase *>{},
-                                     {&AnnotationEntity, &StructuredEntity}};
-const Rtti<model::DocumentEntity> DocumentEntity{"DocumentEntity"};
+const Rtti<model::Document> Document{
+    "Document", {&Node}, {&AnnotationEntity, &StructuredEntity}};
+const Rtti<model::DocumentEntity> DocumentEntity{"DocumentEntity", {&Node}};
 const Rtti<model::AnnotationEntity> AnnotationEntity{
     "AnnotationEntity", {&DocumentEntity}, {&StructuredEntity}};
 const Rtti<model::StructuredEntity> StructuredEntity{

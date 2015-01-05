@@ -36,8 +36,9 @@ TEST(DemoHTMLTransformer, writeHTML)
 	// Construct Manager
 	Logger logger;
 	Manager mgr{1};
+	Rooted<model::SystemTypesystem> sys{new model::SystemTypesystem(mgr)};
 	// Get the domain.
-	Rooted<model::Domain> domain = model::constructBookDomain(mgr, logger);
+	Rooted<model::Domain> domain = constructBookDomain(mgr, sys, logger);
 	// Construct the document.
 	Rooted<model::Document> doc = model::constructBookDocument(mgr, domain);
 

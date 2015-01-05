@@ -82,14 +82,14 @@ void Domain::doResolve(std::vector<Rooted<Managed>> &res,
 /* Type registrations */
 
 namespace RttiTypes {
-const Rtti<model::FieldDescriptor> FieldDescriptor{"FieldDescriptor"};
-const Rtti<model::Descriptor> Descriptor{"Descriptor"};
+const Rtti<model::FieldDescriptor> FieldDescriptor{"FieldDescriptor", {&Node}};
+const Rtti<model::Descriptor> Descriptor{"Descriptor", {&Node}};
 const Rtti<model::StructuredClass> StructuredClass{
     "StructuredClass", {&Descriptor}, {&FieldDescriptor}};
 const Rtti<model::AnnotationClass> AnnotationClass{"AnnotationClass",
                                                    {&Descriptor}};
 const Rtti<model::Domain> Domain{
-    "Domain", std::unordered_set<const RttiBase*>{}, {&StructuredClass, &AnnotationClass}};
+    "Domain", {&Node}, {&StructuredClass, &AnnotationClass}};
 }
 }
 
