@@ -81,8 +81,8 @@ const RttiBase &Managed::type() const { return typeOf(*this); }
 
 bool Managed::isa(const RttiBase &t) const { return type().isa(t); }
 
-bool Managed::aggregatedOf(const RttiBase &t) const
+bool Managed::composedOf(const RttiBase &t) const
 {
-	return type().aggregatedOf(t);
+	return type().composedOf(t);
 }
 }

@@ -215,7 +215,7 @@ public:
 	 * @param true if the RttiBase registered for this particular Managed class
 	 * may contain instance of the given type.
 	 */
-	bool aggregatedOf(const RttiBase &t) const;
+	bool composedOf(const RttiBase &t) const;
 };
 
 /**

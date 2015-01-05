@@ -114,9 +114,9 @@ public:
 class RttiBase {
 private:
 	/**
-	 * Set to true if once the parents and the aggregated types list have been
+	 * Set to true if once the parents and the composite types list have been
 	 * completed (by including the parents of the original parent elements and
-	 * the aggregated types of the original aggregated types).
+	 * the composite types of the original composite types).
 	 */
 	mutable bool initialized;
 
@@ -126,14 +126,14 @@ private:
 	mutable std::unordered_set<const RttiBase *> parents;
 
 	/**
-	 * Set containing references to all types this type is aggregated of,
-	 * including all aggregated types of the original aggregated types.
+	 * Set containing references to all types this type is a composition of,
+	 * including all composite types of the original composite types.
 	 */
-	mutable std::unordered_set<const RttiBase *> aggregatedTypes;
+	mutable std::unordered_set<const RttiBase *> compositeTypes;
 
 	/**
-	 * Adds the parent types of the parents and the aggregated types of the
-	 * aggregated types to the internal sets.
+	 * Adds the parent types of the original parents and the composite types of
+	 * the original composite types to the internal sets for faster lookup.
 	 */
 	void initialize() const;
 
@@ -162,11 +162,11 @@ public:
 	RttiBase(std::string name, const std::type_info &native,
 	         std::unordered_set<const RttiBase *> parents =
 	             std::unordered_set<const RttiBase *>{},
-	         std::unordered_set<const RttiBase *> aggregatedTypes =
+	         std::unordered_set<const RttiBase *> compositeTypes =
 	             std::unordered_set<const RttiBase *>{})
 	    : initialized(false),
 	      parents(std::move(parents)),
-	      aggregatedTypes(aggregatedTypes),
+	      compositeTypes(compositeTypes),
 	      name(std::move(name))
 	{
 		RttiStore::store(native, this);
@@ -187,9 +187,9 @@ public:
 	 * resolving objects of a certain type by name in an object graph.
 	 *
 	 * @param other is the other type for which should be checked whether this
-	 * type is directly or indirectly aggregated of it.
+	 * type is directly or indirectly composed of it.
 	 */
-	bool aggregatedOf(const RttiBase &other) const;
+	bool composedOf(const RttiBase &other) const;
 };
 
 /**
@@ -212,10 +212,10 @@ public:
 	 */
 	Rtti(std::string name, const std::unordered_set<const RttiBase *> &parents =
 	                           std::unordered_set<const RttiBase *>{},
-	     std::unordered_set<const RttiBase *> aggregatedTypes =
+	     std::unordered_set<const RttiBase *> compositeTypes =
 	         std::unordered_set<const RttiBase *>{})
 	    : RttiBase(name, typeid(T), std::move(parents),
-	               std::move(aggregatedTypes))
+	               std::move(compositeTypes))
 	{
 	}
 };

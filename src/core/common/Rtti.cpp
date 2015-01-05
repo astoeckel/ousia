@@ -53,7 +53,7 @@ void RttiBase::initialize() const
 	if (!initialized) {
 		initialized = true;
 
-		// Insert the parent types of the parent types and the aggregated types
+		// Insert the parent types of the parent types and the composite types
 		// of the parents
 		{
 			std::unordered_set<const RttiBase *> origParents = parents;
@@ -63,23 +63,23 @@ void RttiBase::initialize() const
 			}
 			for (const RttiBase *parent : parents) {
 				parent->initialize();
-				aggregatedTypes.insert(parent->aggregatedTypes.begin(),
-				                       parent->aggregatedTypes.end());
+				compositeTypes.insert(parent->compositeTypes.begin(),
+				                       parent->compositeTypes.end());
 			}
 			parents.insert(this);
 		}
 
-		// Insert the aggregated types of the aggregated types and the parents
-		// of each aggregated type
+		// Insert the composite types of the composite types and the parents
+		// of each composite type
 		{
-			std::unordered_set<const RttiBase *> origAggregatedTypes =
-			    aggregatedTypes;
-			for (const RttiBase *aggregatedType : origAggregatedTypes) {
-				aggregatedType->initialize();
-				aggregatedTypes.insert(aggregatedType->aggregatedTypes.begin(),
-				                       aggregatedType->aggregatedTypes.end());
-				aggregatedTypes.insert(aggregatedType->parents.begin(),
-				                       aggregatedType->parents.end());
+			std::unordered_set<const RttiBase *> origCompositeTypes =
+			    compositeTypes;
+			for (const RttiBase *compositeType : origCompositeTypes) {
+				compositeType->initialize();
+				compositeTypes.insert(compositeType->compositeTypes.begin(),
+				                       compositeType->compositeTypes.end());
+				compositeTypes.insert(compositeType->parents.begin(),
+				                       compositeType->parents.end());
 			}
 		}
 	}
@@ -91,10 +91,10 @@ bool RttiBase::isa(const RttiBase &other) const
 	return parents.count(&other) > 0;
 }
 
-bool RttiBase::aggregatedOf(const RttiBase &other) const
+bool RttiBase::composedOf(const RttiBase &other) const
 {
 	initialize();
-	return aggregatedTypes.count(&other) > 0;
+	return compositeTypes.count(&other) > 0;
 }
 
 /* Constant initialization */

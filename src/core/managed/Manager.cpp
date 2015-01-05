@@ -674,7 +674,7 @@ void Manager::exportGraphviz(const char *filename)
 						}
 					}
 				}
-				if (et == EdgeType::NORMAL && type.aggregatedOf(typeTar)) {
+				if (et == EdgeType::NORMAL && type.composedOf(typeTar)) {
 					et = EdgeType::AGGREGATE;
 				}
 
