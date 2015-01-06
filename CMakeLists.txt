@@ -110,6 +110,7 @@ ADD_LIBRARY(ousia_core
 	src/core/Registry
 	src/core/ResourceLocator
 	src/core/Tokenizer
+	src/core/XML
 	src/core/common/CharReader
 	src/core/common/Exceptions
 	src/core/common/Function
@@ -194,6 +195,7 @@ IF(TEST)
 		test/core/RegistryTest
 		test/core/ResourceLocatorTest
 		test/core/TokenizerTest
+		test/core/XMLTest
 		test/core/common/CharReaderTest
 		test/core/common/FunctionTest
 		test/core/common/LoggerTest

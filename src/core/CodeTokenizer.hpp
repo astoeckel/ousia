@@ -16,6 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/**
+ * @file CodeTokenizer.hpp
+ 
+ * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
+ */
 #ifndef _OUSIA_CODE_TOKENIZER_HPP_
 #define _OUSIA_CODE_TOKENIZER_HPP_
 
