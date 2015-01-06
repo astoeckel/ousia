@@ -105,6 +105,152 @@ public:
 };
 
 /**
+ * The RttiBuilder class is used to conveniently build new instances of the Rtti
+ * or the RttiBase class. It follows the "Builder" pattern and allows to create
+ * the properties of the RttiBase class by chaining method calls. The RttiBase
+ * and Rtti class can be constructed from the RttiBuilder instance.
+ */
+class RttiBuilder {
+public:
+	/**
+	 * Type describing a set of RttiBase pointers.
+	 */
+	using RttiBaseSet = std::unordered_set<const RttiBase *>;
+
+	/**
+	 * Contains the human readable name of the type for which the type
+	 * information is being built.
+	 */
+	std::string currentName;
+
+	/**
+	 * Set containing references to all parent types.
+	 */
+	RttiBaseSet parentTypes;
+
+	/**
+	 * Set containing references to all composite types.
+	 */
+	RttiBaseSet compositeTypes;
+
+	/**
+	 * Default constructor, initializes the name of the type described by the
+	 * RttiBaseSet with "unknown".
+	 */
+	RttiBuilder() : currentName("unknown"){};
+
+	/**
+	 * Default constructor, initializes the name of the type described by the
+	 * RttiBaseSet with the given name.
+	 *
+	 * @param name is the initial name of the type described by the type
+	 * builder.
+	 */
+	RttiBuilder(std::string name) : currentName(std::move(name)){};
+
+	/**
+	 * Sets the human readable name of the type information being built to the
+	 * given string.
+	 *
+	 * @param s is the name to which the name should be set.
+	 * @return a reference to the current RttiBuilder reference to allow method
+	 * chaining.
+	 */
+	RttiBuilder &name(const std::string &s)
+	{
+		currentName = s;
+		return *this;
+	}
+
+	/**
+	 * Adds the given type descriptor as "parent" of the type information that
+	 * is being built by this RttiBuilder instance.
+	 *
+	 * @param p is the pointer to the type descriptor that should be added.
+	 * @return a reference to the current RttiBuilder reference to allow method
+	 * chaining.
+	 */
+	RttiBuilder &parent(const RttiBase *p)
+	{
+		parentTypes.insert(p);
+		return *this;
+	}
+
+	/**
+	 * Adds the given type descriptor as "parent" of the type information that
+	 * is being built by this RttiBuilder instance.
+	 *
+	 * @param p is the pointer to the type descriptor that should be added.
+	 * @return a reference to the current RttiBuilder reference to allow method
+	 * chaining.
+	 */
+	RttiBuilder &parent(const RttiBase &p)
+	{
+		parentTypes.insert(&p);
+		return *this;
+	}
+
+	/**
+	 * Adds the given type descriptors as "parent" of the type information that
+	 * is being built by this RttiBuilder instance.
+	 *
+	 * @param p is a
+	 * @return a reference to the current RttiBuilder reference to allow method
+	 * chaining.
+	 */
+	RttiBuilder &parent(const RttiBaseSet &p)
+	{
+		parentTypes.insert(p.begin(), p.end());
+		return *this;
+	}
+
+	/**
+	 * Marks the current type being built by this RttiBuilder instance as being
+	 * a composition of the given other type.
+	 *
+	 * @param p is the pointer to the type descriptor that should be added as
+	 * composition type.
+	 * @return a reference to the current RttiBuilder reference to allow method
+	 * chaining.
+	 */
+	RttiBuilder &composedOf(const RttiBase *p)
+	{
+		compositeTypes.insert(p);
+		return *this;
+	}
+
+	/**
+	 * Marks the current type being built by this RttiBuilder instance as being
+	 * a composition of the given other type.
+	 *
+	 * @param p is the pointer to the type descriptor that should be added as
+	 * composition type.
+	 * @return a reference to the current RttiBuilder reference to allow method
+	 * chaining.
+	 */
+	RttiBuilder &composedOf(const RttiBase &p)
+	{
+		compositeTypes.insert(&p);
+		return *this;
+	}
+
+	/**
+	 * Marks the current type being built by this RttiBuilder instance as being
+	 * a composition of the given other types.
+	 *
+	 * @param p is the pointer to the type descriptor that should be added as
+	 * composition type.
+	 * @return a reference to the current RttiBuilder reference to allow method
+	 * chaining.
+	 */
+	RttiBuilder &composedOf(const RttiBaseSet &p)
+	{
+		compositeTypes.insert(p.begin(), p.end());
+		return *this;
+	}
+};
+
+/**
  * The Rtti class allows for attaching data to native types that can be accessed
  * at runtime. This type information can e.g. be retrieved using the "type"
  * method of the Managed class. This system is used for attaching human readable
@@ -151,13 +297,15 @@ public:
 
 	/**
 	 * Creates a new RttiBase instance and registers it in the global type
-	 * table. Use the Rtti class for more convinient registration of type
-	 * information.
+	 * table. Use the Rtti and the RttiBuilder class for more convenient
+	 * registration of type information.
 	 *
 	 * @param name is the name of the type.
 	 * @param native is a reference at the native type information provided by
 	 * the compiler.
 	 * @param parents is a list of parent types.
+	 * @param compositeTypes is a list of types of which instances of this type
+	 * are composited (consist of).
 	 */
 	RttiBase(std::string name, const std::type_info &native,
 	         std::unordered_set<const RttiBase *> parents =
@@ -168,6 +316,22 @@ public:
 	      parents(std::move(parents)),
 	      compositeTypes(compositeTypes),
 	      name(std::move(name))
+	{
+		RttiStore::store(native, this);
+	}
+
+	/**
+	 * Creates a new RttiBase instance and registers it in the global type
+	 * table. Use the Rtti class for more convenient registration of type
+	 * information.
+	 *
+	 * @param builder is the builder instance containing the Rtti data.
+	 */
+	RttiBase(const std::type_info &native, const RttiBuilder &builder)
+	    : initialized(false),
+	      parents(builder.parentTypes),
+	      compositeTypes(builder.compositeTypes),
+	      name(builder.currentName)
 	{
 		RttiStore::store(native, this);
 	}
@@ -204,11 +368,12 @@ template <class T>
 class Rtti : public RttiBase {
 public:
 	/**
-	 * Creates a new RttiBase instance and registers it in the global type
-	 * table.
+	 * Creates a new Rtti instance and registers it in the global type table.
 	 *
 	 * @param name is the name of the type.
 	 * @param parents is a list of parent types.
+	 * @param compositeTypes is a list of types of which instances of this type
+	 * are composited (consist of).
 	 */
 	Rtti(std::string name, const std::unordered_set<const RttiBase *> &parents =
 	                           std::unordered_set<const RttiBase *>{},
@@ -218,6 +383,15 @@ public:
 	               std::move(compositeTypes))
 	{
 	}
+
+	/**
+	 * Creates a new Rtti instance from the data stored in the given builder
+	 * instance and registers it in the global type table.
+	 *
+	 * @param builder is the RttiBuilder instance containing the data from which
+	 * the Rtti information should be copied.
+	 */
+	Rtti(const RttiBuilder &builder) : RttiBase(typeid(T), builder){};
 };
 
 /**
