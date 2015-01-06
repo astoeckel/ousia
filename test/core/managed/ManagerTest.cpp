@@ -503,13 +503,14 @@ TEST(Manager, fullyConnectedGraph)
 	constexpr int nElem = 64;
 	std::array<bool, nElem> a;
 
-	Manager mgr(1);
+	Manager mgr;
 	{
 		Rooted<TestManaged> n = createFullyConnectedGraph(mgr, nElem, &a[0]);
 		for (bool v : a) {
 			ASSERT_TRUE(v);
 		}
 	}
+	mgr.sweep();
 
 	for (bool v : a) {
 		ASSERT_FALSE(v);
