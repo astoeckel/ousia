@@ -191,19 +191,21 @@ Rooted<DocumentPrimitive> DocumentPrimitive::buildEntity(
 }
 
 namespace RttiTypes {
-const Rtti<model::Document> Document{
-    "Document", {&Node}, {&AnnotationEntity, &StructuredEntity}};
-const Rtti<model::DocumentEntity> DocumentEntity{"DocumentEntity", {&Node}};
-const Rtti<model::AnnotationEntity> AnnotationEntity{
-    "AnnotationEntity", {&DocumentEntity}, {&StructuredEntity}};
-const Rtti<model::StructuredEntity> StructuredEntity{
-    "StructuredEntity",
-    {&DocumentEntity},
-    {&StructuredEntity, &Anchor, &DocumentPrimitive}};
-const Rtti<model::DocumentPrimitive> DocumentPrimitive{"DocumentPrimitive",
-                                                       {&StructuredEntity}};
-const Rtti<model::AnnotationEntity::Anchor> Anchor{"Anchor",
-                                                   {&StructuredEntity}};
+const Rtti<model::DocumentEntity> DocumentEntity =
+    RttiBuilder("DocumentEntity").parent(&Node);
+const Rtti<model::Document> Document =
+    RttiBuilder("Document").parent(&Node).composedOf(
+        {&AnnotationEntity, &StructuredEntity});
+const Rtti<model::AnnotationEntity> AnnotationEntity =
+    RttiBuilder("AnnotationEntity").parent(&DocumentEntity).composedOf(
+        &StructuredEntity);
+const Rtti<model::StructuredEntity> StructuredEntity =
+    RttiBuilder("StructuredEntity").parent(&DocumentEntity).composedOf(
+        {&StructuredEntity, &Anchor, &DocumentPrimitive});
+const Rtti<model::DocumentPrimitive> DocumentPrimitive =
+    RttiBuilder("DocumentPrimitive").parent(&StructuredEntity);
+const Rtti<model::AnnotationEntity::Anchor> Anchor =
+    RttiBuilder("Anchor").parent(&StructuredEntity);
 }
 }
 

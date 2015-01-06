@@ -82,14 +82,18 @@ void Domain::doResolve(std::vector<Rooted<Managed>> &res,
 /* Type registrations */
 
 namespace RttiTypes {
-const Rtti<model::FieldDescriptor> FieldDescriptor{"FieldDescriptor", {&Node}};
-const Rtti<model::Descriptor> Descriptor{"Descriptor", {&Node}};
-const Rtti<model::StructuredClass> StructuredClass{
-    "StructuredClass", {&Descriptor}, {&FieldDescriptor}};
-const Rtti<model::AnnotationClass> AnnotationClass{"AnnotationClass",
-                                                   {&Descriptor}};
-const Rtti<model::Domain> Domain{
-    "Domain", {&Node}, {&StructuredClass, &AnnotationClass}};
+const Rtti<model::FieldDescriptor> FieldDescriptor =
+    RttiBuilder("FieldDescriptor").parent(&Node);
+const Rtti<model::Descriptor> Descriptor =
+    RttiBuilder("Descriptor").parent(&Node);
+const Rtti<model::StructuredClass> StructuredClass =
+    RttiBuilder("StructuredClass").parent(&Descriptor).composedOf(
+        &FieldDescriptor);
+const Rtti<model::AnnotationClass> AnnotationClass =
+    RttiBuilder("AnnotationClass").parent(&Descriptor);
+const Rtti<model::Domain> Domain =
+    RttiBuilder("Domain").parent(&Node).composedOf(
+        {&StructuredClass, &AnnotationClass});
 }
 }
 

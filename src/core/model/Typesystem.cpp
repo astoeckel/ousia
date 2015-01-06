@@ -438,24 +438,27 @@ SystemTypesystem::SystemTypesystem(Manager &mgr)
 /* RTTI type registrations */
 
 namespace RttiTypes {
-const Rtti<model::Type> Type{"Type", {&Node}};
-const Rtti<model::StringType> StringType{"StringType", {&Type}};
-const Rtti<model::IntType> IntType{"IntType", {&Type}};
-const Rtti<model::DoubleType> DoubleType{"DoubleType", {&Type}};
-const Rtti<model::BoolType> BoolType{"BoolType", {&Type}};
-const Rtti<model::EnumType> EnumType{"EnumType", {&Type}};
-const Rtti<model::StructType> StructType{"StructType", {&Type}, {&Attribute}};
-const Rtti<model::ArrayType> ArrayType{"ArrayType", {&Type}};
-const Rtti<model::UnknownType> UnknownType{"UnknownType", {&Type}};
-const Rtti<model::Constant> Constant{"Constant", {&Node}};
-const Rtti<model::Attribute> Attribute{"Attribute", {&Node}};
-const Rtti<model::Typesystem> Typesystem{
-    "Typesystem",
-    {&Node},
-    {&StringType, &IntType, &DoubleType, &BoolType, &EnumType, &StructType,
-     &Constant}};
-const Rtti<model::SystemTypesystem> SystemTypesystem{"SystemTypesystem",
-                                                     {&Typesystem}};
+const Rtti<model::Type> Type = RttiBuilder("Type").parent(&Node);
+const Rtti<model::StringType> StringType =
+    RttiBuilder("StringType").parent(&Type);
+const Rtti<model::IntType> IntType = RttiBuilder("IntType").parent(&Type);
+const Rtti<model::DoubleType> DoubleType =
+    RttiBuilder("DoubleType").parent(&Type);
+const Rtti<model::BoolType> BoolType = RttiBuilder("BoolType").parent(&Type);
+const Rtti<model::EnumType> EnumType = RttiBuilder("EnumType").parent(&Type);
+const Rtti<model::StructType> StructType =
+    RttiBuilder("StructType").parent(&Type).composedOf(&Attribute);
+const Rtti<model::ArrayType> ArrayType = RttiBuilder("ArrayType").parent(&Type);
+const Rtti<model::UnknownType> UnknownType =
+    RttiBuilder("UnknownType").parent(&Type);
+const Rtti<model::Constant> Constant = RttiBuilder("Constant").parent(&Node);
+const Rtti<model::Attribute> Attribute = RttiBuilder("Attribute").parent(&Node);
+const Rtti<model::Typesystem> Typesystem =
+    RttiBuilder("Typesystem").parent(&Node).composedOf(
+        {&StringType, &IntType, &DoubleType, &BoolType, &EnumType, &StructType,
+         &Constant});
+const Rtti<model::SystemTypesystem> SystemTypesystem =
+    RttiBuilder("SystemTypesystem").parent(&Typesystem);
 }
 }
 
