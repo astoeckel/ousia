@@ -100,10 +100,8 @@ static Rooted<StructuredClass> resolveDescriptor(
 		}
 		// Otherwise take the first valid result.
 		for (auto &r : resolved) {
-			Managed *m = &(*r);
-			StructuredClass *c = dynamic_cast<StructuredClass *>(m);
-			if (c != nullptr) {
-				return Rooted<StructuredClass>(c);
+			if(r->isa(typeOf<StructuredClass>())){
+				return r.cast<StructuredClass>();
 			}
 		}
 	}

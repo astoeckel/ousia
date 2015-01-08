@@ -261,6 +261,11 @@ protected:
 	               VisitorSet &visited) override;
 
 public:
+	/**
+	 * Note, that this flag will always be set to "false" for non-primitive
+	 * FieldDescriptors, because in that case the cardinalities regulate
+	 * whether children have to be inserted or not.
+	 */
 	const bool optional;
 
 	// TODO: What about the name of default fields?
@@ -300,18 +305,15 @@ public:
 	 *                      TREE for the main or default structure or SUBTREE
 	 *                      for supporting structures.
 	 * @param name          is the name of this field.
-	 * @param optional      should be set to 'false' is this field needs to be
-	 *                      filled in order for an instance of the parent
-	 *                      Descriptor to be valid.
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
 	                FieldType fieldType = FieldType::TREE,
-	                std::string name = "", bool optional = false)
+	                std::string name = "")
 	    : Node(mgr, std::move(name), parent),
 	      children(this),
 	      fieldType(fieldType),
 	      // TODO: What would be a wise initialization of the primitiveType?
-	      optional(optional)
+	      optional(false)
 	{
 	}
 
