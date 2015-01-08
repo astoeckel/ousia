@@ -26,7 +26,6 @@
 namespace ousia {
 namespace model {
 
-
 static Rooted<StructuredClass> resolveDescriptor(Handle<Domain> domain,
                                                  const std::string &className)
 {
@@ -76,14 +75,52 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 	return domain;
 }
 
+static bool addText(Handle<StructuredEntity> parent,
+                    std::vector<Handle<Domain>> &doms,
+                    const std::string &content)
+{
+	// Add its text.
+	Rooted<StructuredEntity> text =
+	    StructuredEntity::buildEntity(parent, doms, "text");
+	if (text.isNull()) {
+		return false;
+	}
+	// And its primitive content
+	Variant content_var{content.c_str()};
+	Rooted<DocumentPrimitive> primitive =
+	    DocumentPrimitive::buildEntity(text, content_var, "content");
+	if (primitive.isNull()) {
+		return false;
+	}
+
+	return true;
+}
+
+static bool addHeading(Handle<StructuredEntity> parent,
+                       std::vector<Handle<Domain>> &doms,
+                       const std::string &text)
+{
+	// Add the heading.
+	Rooted<StructuredEntity> heading = StructuredEntity::buildEntity(
+	    parent, doms, "heading", "heading", {}, "");
+	if (heading.isNull()) {
+		return false;
+	}
+	// Add its text.
+	if (!addText(heading, doms, text)) {
+		return false;
+	}
+	return true;
+}
+
 /**
  * This constructs a more advanced book document using not only the book
  * domain but also headings, emphasis and lists.
  * TODO: insert emphasis and lists.
  */
 static Rooted<Document> constructAdvancedDocument(Manager &mgr,
-                                              Rooted<Domain> bookDom,
-                                              Rooted<Domain> headingDom)
+                                                  Rooted<Domain> bookDom,
+                                                  Rooted<Domain> headingDom)
 {
 	std::vector<Handle<Domain>> doms{bookDom, headingDom};
 
@@ -96,29 +133,44 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr,
 	if (book.isNull()) {
 		return {nullptr};
 	}
-	{
+
 	// Add the heading.
-	Rooted<StructuredEntity> heading = StructuredEntity::buildEntity(
-	    book, doms, "heading", "heading", {}, "");
-	if (heading.isNull()) {
+	// TODO: use em here.
+	if (!addHeading(book, doms,
+	                "Beantwortung der Frage: <em>Was ist Aufklärung?</em>")) {
 		return {nullptr};
 	}
+
+	// Add the main section.
+	Rooted<StructuredEntity> sec =
+	    StructuredEntity::buildEntity(book, doms, "section");
+
+	// Add the heading.
+	if (!addHeading(sec, doms, "Was ist Aufklärung?")) {
+		return {nullptr};
+	}
+
+	// Add paragraph with main text.
 	{
+		Rooted<StructuredEntity> p =
+		    StructuredEntity::buildEntity(sec, doms, "paragraph");
 		// Add its text.
-		Rooted<StructuredEntity> text =
-		    StructuredEntity::buildEntity(heading, doms, "text");
-		if (text.isNull()) {
+		// TODO: Use em and strong here
+		if (!addText(p, doms,
+		             "  <strong>Aufklärung ist der Ausgang des Menschen aus "
+		             "seiner selbstverschuldeten Unmündigkeit</strong>. "
+		             "<em>Unmündigkeit</em> ist das Unvermögen, sich seines "
+		             "Verstandes ohne Leitung eines anderen zu bedienen. "
+		             "<em>Selbstverschuldet</em> ist diese Unmündigkeit, wenn "
+		             "die Ursache derselben nicht am Mangel des Verstandes, "
+		             "sondern der Entschließung und des Mutes liegt, sich "
+		             "seiner ohne Leitung eines andern zu bedienen. <em>Sapere "
+		             "aude! Habe Mut, dich deines eigenen Verstandes zu "
+		             "bedienen!</em> ist also der Wahlspruch der "
+		             "Aufklärung.")) {
 			return {nullptr};
 		}
-		// And its primitive content
-		// TODO: use em here.
-		Variant content {"Beantwortung der Frage: <em>Was ist Aufklärung?</em>"};
-		Rooted<DocumentPrimitive> main_primitive =
-		    DocumentPrimitive::buildEntity(text, content, "content");
-		if (main_primitive.isNull()) {
-			return {nullptr};
-		}
-	}}
+	}
 
 	return doc;
 }

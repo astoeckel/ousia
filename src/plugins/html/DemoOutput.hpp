@@ -46,13 +46,7 @@ private:
 	 */
 	Rooted<xml::Element> transformSection(Handle<model::StructuredEntity> sec);
 	Rooted<xml::Element> transformParagraph(Handle<model::StructuredEntity> par);
-	/**
-	 * This method is to be called recursively to write a list to HTML.
-	 * TODO: Implement
-	 */
-//	void writeList(Handle<StructuredEntity> sec, std::ostream& out,
-//	               int tabdepth);
-
+//	Rooted<xml::Element> transformList(Handle<model::StructuredEntity> list);
 	//TODO: Implement emphasis.
 
 public:

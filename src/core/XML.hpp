@@ -64,9 +64,12 @@ public:
 	/**
 	 * This method writes an XML prolog and the XML representing the current
 	 * node, including all children, to the given output stream.
-	 * @param out is the output stream the serialized data shall be written to.
+	 * @param out     is the output stream the serialized data shall be
+	 *                written to.
+	 * @param doctype enables you to add a prefix after the XML prolog
+	 *                specifying the doctype.
 	 */
-	void serialize(std::ostream &out);
+	void serialize(std::ostream &out, const std::string & doctype = "");
 	/**
 	 * This method just writes the XML representation of this node to the
 	 * output stream, without the XML prolog.
