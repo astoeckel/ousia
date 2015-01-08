@@ -18,6 +18,7 @@
 
 #include <core/common/Exceptions.hpp>
 #include <core/common/Rtti.hpp>
+#include <core/common/Variant.hpp>
 
 #include "DemoOutput.hpp"
 
@@ -27,24 +28,35 @@ namespace html {
 void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
                                     std::ostream &out)
 {
-	// write preamble
-	out << "<?xml version=\" 1.0 \"?>\n";
-	out << "<html>\n";
-	out << "\t<head>\n";
-	out << "\t\t<title>Test HTML Output for " << doc->getName() << "</title>\n";
-	out << "\t</head>\n";
-	out << "\t<body>\n";
+	Manager &mgr = doc->getManager();
+	// Create an XML object tree for the document first.
+	Rooted<xml::Element> html{new xml::Element{mgr, "html"}};
+	// add the head Element
+	Rooted<xml::Element> head{new xml::Element{mgr, "head"}};
+	html->children.push_back(head);
+	// add the title Element with Text
+	Rooted<xml::Element> title{new xml::Element{mgr, "title"}};
+	head->children.push_back(title);
+	title->children.push_back(
+	    new xml::Text(mgr, "Test HTML Output for " + doc->getName()));
+	// add the body Element
+	Rooted<xml::Element> body{new xml::Element{mgr, "body"}};
+	html->children.push_back(body);
 
-	// look for the book root node.
+	// So far was the "preamble". No we have to get to the document content.
+
+	// extract the book root node.
 	Rooted<model::StructuredEntity> root = doc->getRoot();
 	if (root->getDescriptor()->getName() != "book") {
 		throw OusiaException("The given documents root is no book node!");
 	}
-	// write it to HTML.
-	writeSection(root, out);
-	// write end
-	out << "\t</body>\n";
-	out << "</html>\n";
+	// transform the book node.
+	Rooted<xml::Element> book = transformSection(root);
+	// add it as child to the body node.
+	body->children.push_back(book);
+
+	// After the content has been transformed, we serialize it.
+	html->serialize(out);
 }
 
 /**
@@ -67,61 +79,54 @@ SectionType getSectionType(const std::string &name)
 	}
 }
 
-void DemoHTMLTransformer::writeSection(Handle<model::StructuredEntity> sec,
-                                       std::ostream &out)
+Rooted<xml::Element> DemoHTMLTransformer::transformSection(Handle<model::StructuredEntity> section)
 {
+	Manager &mgr = section->getManager();
 	// check the section type.
-	SectionType type = getSectionType(sec->getDescriptor()->getName());
+	const std::string secclass = section->getDescriptor()->getName();
+	SectionType type = getSectionType(secclass);
 	if (type == SectionType::NONE) {
 		// if the input node is no section, we ignore it.
-		return;
+		return {nullptr};
 	}
+	// create a div tag containing the sections content.
+	Rooted<xml::Element> sec{
+	    new xml::Element{mgr, "div", {{"class", secclass}}}};
 	// check if we have a heading.
-	if (sec->hasField("heading")) {
-		Rooted<model::StructuredEntity> heading = sec->getField("heading")[0];
-		out << "\t\t";
+	if (section->hasField("heading")) {
+		Rooted<model::StructuredEntity> heading =
+		    section->getField("heading")[0];
+		std::string headingclass;
 		switch (type) {
 			case SectionType::BOOK:
-				out << "<h1>";
+				headingclass = "h1";
 				break;
 			case SectionType::CHAPTER:
-				out << "<h2>";
+				headingclass = "h2";
 				break;
 			case SectionType::SECTION:
-				out << "<h3>";
+				headingclass = "h3";
 				break;
 			case SectionType::SUBSECTION:
-				out << "<h4>";
+				headingclass = "h4";
 				break;
 			case SectionType::NONE:
 				// this can not happen;
 				break;
 		}
-		// the second field marks the heading. So let's write it.
-		writeParagraph(heading, out, false);
-		// close the heading tag.
-		switch (type) {
-			case SectionType::BOOK:
-				out << "</h1>";
-				break;
-			case SectionType::CHAPTER:
-				out << "</h2>";
-				break;
-			case SectionType::SECTION:
-				out << "</h3>";
-				break;
-			case SectionType::SUBSECTION:
-				out << "</h4>";
-				break;
-			case SectionType::NONE:
-				// this can not happen;
-				break;
+		Rooted<xml::Element> h{new xml::Element{mgr, headingclass}};
+		sec->children.push_back(h);
+		// extract the heading text, enveloped in a paragraph Element.
+		Rooted<xml::Element> h_content = transformParagraph(heading);
+		// We omit the paragraph Element and add the children directly to the
+		// heading Element
+		for (auto &n : h_content->children) {
+			h->children.push_back(n);
 		}
-		out << "\n";
 	}
 
-	// then write the section content recursively.
-	NodeVector<model::StructuredEntity> mainField = sec->getField();
+	// Then we get all the children.
+	NodeVector<model::StructuredEntity> mainField = section->getField();
 	for (auto &n : mainField) {
 		/*
 		 * Strictly speaking this is the wrong mechanism, because we would have
@@ -130,56 +135,59 @@ void DemoHTMLTransformer::writeSection(Handle<model::StructuredEntity> sec,
 		 * to be a listener structure of transformations that check if they can
 		 * transform this specific node.
 		 */
-		std::string childDescriptorName = n->getDescriptor()->getName();
+		const std::string childDescriptorName = n->getDescriptor()->getName();
+		Rooted<xml::Element> child;
 		if (childDescriptorName == "paragraph") {
-			writeParagraph(n, out);
+			child = transformParagraph(n);
 			// TODO: Implement
 			//		} else if(childDescriptorName == "ul"){
 			//			writeList(n, out);
 		} else {
-			writeSection(n, out);
+			child = transformSection(n);
+		}
+		if (!child.isNull()) {
+			sec->children.push_back(child);
 		}
 	}
+	return sec;
 }
 
-void DemoHTMLTransformer::writeParagraph(Handle<model::StructuredEntity> par,
-                                         std::ostream &out, bool writePTags)
+Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(Handle<model::StructuredEntity> par)
 {
-	// validate descriptor.
-	if (par->getDescriptor()->getName() != "paragraph") {
-		throw OusiaException("Expected paragraph!");
-	}
+	Manager &mgr = par->getManager();
+	// create the p xml::Element
+	Rooted<xml::Element> p{new xml::Element{mgr, "p"}};
+
 	// check if we have a heading.
 	if (par->hasField("heading")) {
 		Rooted<model::StructuredEntity> heading = par->getField("heading")[0];
-		// start the heading tag
-		out << "\t\t<h5>";
-		// the second field marks the heading. So let's write it.
-		writeParagraph(heading, out, false);
-		// close the heading tag.
-		out << "</h5>\n";
-	}
-	// write start tag
-	if (writePTags) {
-		out << "\t\t<p>";
-	}
-	// write content
-	// TODO: What about emphasis?
-	for (auto &text : par->getField()) {
-		if (text->getDescriptor()->getName() != "text") {
-			throw OusiaException("Expected text!");
+		// put the heading in a strong xml::Element.
+		Rooted<xml::Element> strong{new xml::Element{mgr, "strong"}};
+		p->children.push_back(strong);
+		// extract the heading text, enveloped in a paragraph Element.
+		Rooted<xml::Element> h_content = transformParagraph(heading);
+		// We omit the paragraph Element and add the children directly to the
+		// heading Element
+		for (auto &n : h_content->children) {
+			strong->children.push_back(n);
 		}
-		Handle<model::DocumentPrimitive> primitive =
-		    text->getField()[0].cast<model::DocumentPrimitive>();
-		if (primitive.isNull()) {
-			throw OusiaException("Text field is not primitive!");
+	}
+	
+	// transform paragraph children to XML as well
+	for (auto &n : par->getField()) {
+		std::string childDescriptorName = n->getDescriptor()->getName();
+		if (childDescriptorName == "text") {
+			Handle<model::DocumentPrimitive> primitive =
+			    n->getField()[0].cast<model::DocumentPrimitive>();
+			if (primitive.isNull()) {
+				throw OusiaException("Text field is not primitive!");
+			}
+			p->children.push_back(
+			    new xml::Text(mgr, primitive->getContent().asString()));
 		}
-		out << primitive->getContent().asString();
+		// TODO: Handle non-text content
 	}
-	// write end tag
-	if (writePTags) {
-		out << "</p>\n";
-	}
+	return p;
 }
 }
 }

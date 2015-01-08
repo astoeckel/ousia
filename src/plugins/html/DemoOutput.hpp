@@ -33,6 +33,7 @@
 #include <ostream>
 
 #include <core/model/Document.hpp>
+#include <core/XML.hpp>
 
 namespace ousia {
 namespace html {
@@ -40,15 +41,11 @@ namespace html {
 class DemoHTMLTransformer {
 private:
 	/**
-	 * This method is to be called recursively to write a chapter, section or
-	 * subsection to HTML.
+	 * These methods are called recursively to transform a document to an XML
+	 * tree.
 	 */
-	void writeSection(Handle<model::StructuredEntity> sec, std::ostream& out);
-	/**
-	 * This method is to be called recursively to write a paragraph to HTML.
-	 */
-	void writeParagraph(Handle<model::StructuredEntity> par, std::ostream& out,
-	                    bool writePTags = true);
+	Rooted<xml::Element> transformSection(Handle<model::StructuredEntity> sec);
+	Rooted<xml::Element> transformParagraph(Handle<model::StructuredEntity> par);
 	/**
 	 * This method is to be called recursively to write a list to HTML.
 	 * TODO: Implement
