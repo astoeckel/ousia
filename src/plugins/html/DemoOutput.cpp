@@ -147,9 +147,8 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 		Rooted<xml::Element> child;
 		if (childDescriptorName == "paragraph") {
 			child = transformParagraph(n);
-			// TODO: Implement
-			//		} else if(childDescriptorName == "ul"){
-			//			writeList(n, out);
+		} else if (childDescriptorName == "ul" || childDescriptorName == "ol") {
+			child = transformList(n);
 		} else {
 			child = transformSection(n);
 		}
@@ -199,13 +198,30 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 	return p;
 }
 
-// Rooted<xml::Element>
-// DemoHTMLTransformer::transformList(Handle<model::StructuredEntity> list){
-//	Manager &mgr = list->getManager();
-//	// create the list Element, which is either ul or ol (depends on descriptor)
-//	std::string listclass = list->getDescriptor()->getName();
-//	Rooted<xml::Element> l{new xml::Element{mgr, listclass}};
-//	// iterate through
-//}
+Rooted<xml::Element> DemoHTMLTransformer::transformList(
+    Handle<model::StructuredEntity> list)
+{
+	Manager &mgr = list->getManager();
+	// create the list Element, which is either ul or ol (depends on descriptor)
+	std::string listclass = list->getDescriptor()->getName();
+	Rooted<xml::Element> l{new xml::Element{mgr, listclass}};
+	// iterate through list items.
+	for (auto &item : list->getField()) {
+		std::string itDescrName = item->getDescriptor()->getName();
+		if (itDescrName == "item") {
+			// create the list item.
+			Rooted<xml::Element> li{new xml::Element{mgr, "li"}};
+			l->children.push_back(li);
+			// extract the item text, enveloped in a paragraph Element.
+			Rooted<xml::Element> li_content = transformParagraph(item);
+			// We omit the paragraph Element and add the children directly to
+			// the list item
+			for (auto &n : li_content->children) {
+				li->children.push_back(n);
+			}
+		}
+	}
+	return l;
+}
 }
 }

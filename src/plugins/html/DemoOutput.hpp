@@ -46,8 +46,8 @@ private:
 	 */
 	Rooted<xml::Element> transformSection(Handle<model::StructuredEntity> sec);
 	Rooted<xml::Element> transformParagraph(Handle<model::StructuredEntity> par);
-//	Rooted<xml::Element> transformList(Handle<model::StructuredEntity> list);
-	//TODO: Implement emphasis.
+	Rooted<xml::Element> transformList(Handle<model::StructuredEntity> list);
+//	TODO: Implement emphasis.
 
 public:
 	/**

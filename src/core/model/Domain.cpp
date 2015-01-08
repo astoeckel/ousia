@@ -53,16 +53,16 @@ void Descriptor::doResolve(std::vector<Rooted<Managed>> &res,
 	//	                              &DESCRIPTOR_ATTRIBUTES_ALIAS);
 }
 
-void StructuredClass::doResolve(std::vector<Rooted<Managed>> &res,
-                                const std::vector<std::string> &path,
-                                Filter filter, void *filterData, unsigned idx,
-                                VisitorSet &visited)
-{
-	Descriptor::doResolve(res, path, filter, filterData, idx, visited);
-	if (!isa.isNull()) {
-		isa->doResolve(res, path, filter, filterData, idx, visited);
-	}
-}
+//void StructuredClass::doResolve(std::vector<Rooted<Managed>> &res,
+//                                const std::vector<std::string> &path,
+//                                Filter filter, void *filterData, unsigned idx,
+//                                VisitorSet &visited)
+//{
+//	Descriptor::doResolve(res, path, filter, filterData, idx, visited);
+//	if (!isa.isNull()) {
+//		isa->doResolve(res, path, filter, filterData, idx, visited);
+//	}
+//}
 
 void Domain::doResolve(std::vector<Rooted<Managed>> &res,
                        const std::vector<std::string> &path, Filter filter,

@@ -56,7 +56,7 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 	card.merge({0, 1});
 	// set up heading StructuredClass.
 	Rooted<StructuredClass> heading{new StructuredClass(
-	    mgr, "heading", {nullptr}, card, {nullptr}, {nullptr}, true)};
+	    mgr, "heading", domain, card, {nullptr}, {nullptr}, true)};
 	// as field we actually want to refer to the field of paragraph.
 	Rooted<StructuredClass> p = resolveDescriptor(bookDomain, "paragraph");
 	heading->getFieldDescriptors().push_back(p->getFieldDescriptors()[0]);
@@ -71,6 +71,40 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 		    mgr, desc, FieldDescriptor::FieldType::SUBTREE, "heading")};
 		heading_field->getChildren().push_back(heading);
 		desc->getFieldDescriptors().push_back(heading_field);
+	}
+	return domain;
+}
+
+/**
+ * This constructs the "list" domain given the book domain.
+ */
+static Rooted<Domain> constructListDomain(Manager &mgr,
+                                          Handle<SystemTypesystem> sys,
+                                          Handle<Domain> bookDomain,
+                                          Logger &logger)
+{
+	// set up domain node.
+	Rooted<Domain> domain{new Domain(mgr, sys, "list")};
+	// set up cardinality
+	Cardinality any;
+	any.merge(Range<size_t>::typeRangeFrom(0));
+	// get book.paragraph
+	Rooted<StructuredClass> p = resolveDescriptor(bookDomain, "paragraph");
+	// set up item StructuredClass;
+	Rooted<StructuredClass> item{new StructuredClass(
+	    mgr, "item", domain, any, {nullptr}, {nullptr}, false)};
+	domain->getStructureClasses().push_back(item);
+	// as field we actually want to refer to the field of paragraph.
+	item->getFieldDescriptors().push_back(p->getFieldDescriptors()[0]);
+	// set up list StructuredClasses.
+	std::vector<std::string> listTypes{"ol", "ul"};
+	for (auto &listType : listTypes) {
+		Rooted<StructuredClass> list{new StructuredClass(
+		    mgr, listType, domain, any, {nullptr}, p, false)};
+		Rooted<FieldDescriptor> list_field{new FieldDescriptor(mgr, list)};
+		list_field->getChildren().push_back(item);
+		list->getFieldDescriptors().push_back(list_field);
+		domain->getStructureClasses().push_back(list);
 	}
 	return domain;
 }
@@ -120,9 +154,10 @@ static bool addHeading(Handle<StructuredEntity> parent,
  */
 static Rooted<Document> constructAdvancedDocument(Manager &mgr,
                                                   Rooted<Domain> bookDom,
-                                                  Rooted<Domain> headingDom)
+                                                  Rooted<Domain> headingDom,
+                                                  Rooted<Domain> listDom)
 {
-	std::vector<Handle<Domain>> doms{bookDom, headingDom};
+	std::vector<Handle<Domain>> doms{bookDom, headingDom, listDom};
 
 	// Start with the (empty) document.
 	Rooted<Document> doc{new Document(mgr, "kant_was_ist_aufklaerung.oxd")};
@@ -144,6 +179,9 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr,
 	// Add the main section.
 	Rooted<StructuredEntity> sec =
 	    StructuredEntity::buildEntity(book, doms, "section");
+	if (sec.isNull()) {
+		return {nullptr};
+	}
 
 	// Add the heading.
 	if (!addHeading(sec, doms, "Was ist Aufklärung?")) {
@@ -154,6 +192,9 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr,
 	{
 		Rooted<StructuredEntity> p =
 		    StructuredEntity::buildEntity(sec, doms, "paragraph");
+		if (p.isNull()) {
+			return {nullptr};
+		}
 		// Add its text.
 		// TODO: Use em and strong here
 		if (!addText(p, doms,
@@ -169,6 +210,51 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr,
 		             "bedienen!</em> ist also der Wahlspruch der "
 		             "Aufklärung.")) {
 			return {nullptr};
+		}
+	}
+
+	// Add the "Lesarten" section
+	Rooted<StructuredEntity> lesarten =
+	    StructuredEntity::buildEntity(book, doms, "section");
+	if (lesarten.isNull()) {
+		return {nullptr};
+	}
+	// Add the heading.
+	if (!addHeading(lesarten, doms, "Lesarten")) {
+		return {nullptr};
+	}
+	// Add list with citations
+	{
+		//TODO: We need to restrict this to the list domain. Otherwise
+		// this leads to resolve errors for some reason.
+		Rooted<StructuredEntity> ul =
+		    StructuredEntity::buildEntity(lesarten, {listDom}, "ul");
+		if (ul.isNull()) {
+			return {nullptr};
+		}
+		std::vector<std::string> citations{
+		    "Berlinische Monatsschrift. Dezember-Heft 1784. S. 481–494.",
+		    "Kant. Kleine Schriften. Neuwied 1793. Haupt. 8o. S. 34–50.",
+		    "I. Kant. Zerstreute Aufsätze. Frankfurt und Leipzig 1793. 8o. S. "
+		    "25–37.",
+		    "I. Kant. Sämmtliche kleine Schriften. 4 Bände. 1797–98. 8o.  "
+		    "Königsberg u. Leipzig (Voigt, Jena). Nachdruck. Bd. III, S. "
+		    "159–172.",
+		    "  I. Kant's vermischte Schriften. 3 Bände. Halle 1799. "
+		    "(Tieftrunk). Bd. II. S. 687–700.",
+		    "Kant. Vorzügliche kleine Schriften und Aufsätze, hrsg. mit Noten "
+		    "von F. Ch. Starke. 2 Bände. Leipzig 1833 und Quedlinburg 1838. "
+		    "Bd. I, S. 75–84."};
+		for (auto &cit : citations) {
+			// TODO: This needs to be restricted as well.
+			Rooted<StructuredEntity> item =
+			    StructuredEntity::buildEntity(ul, {listDom}, "item");
+			if (item.isNull()) {
+				return {nullptr};
+			}
+			if (!addText(item, doms, cit)) {
+				return {nullptr};
+			}
 		}
 	}
 

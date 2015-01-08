@@ -468,12 +468,6 @@ private:
 	Owned<StructuredClass> isa;
 	NodeVector<FieldDescriptor> parents;
 
-protected:
-	void doResolve(std::vector<Rooted<Managed>> &res,
-	               const std::vector<std::string> &path, Filter filter,
-	               void *filterData, unsigned idx,
-	               VisitorSet &visited) override;
-
 public:
 	const bool transparent;
 	// TODO: Is it possible to have root=true and cardinality other than 1?

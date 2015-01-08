@@ -43,8 +43,11 @@ TEST(DemoHTMLTransformer, writeHTML)
 	    model::constructBookDomain(mgr, sys, logger);
 	Rooted<model::Domain> headingDom =
 	    model::constructHeadingDomain(mgr, sys, bookDom, logger);
+	Rooted<model::Domain> listDom =
+	    model::constructListDomain(mgr, sys, bookDom, logger);
 	// Construct the document.
-	Rooted<model::Document> doc = model::constructAdvancedDocument(mgr, bookDom, headingDom);
+	Rooted<model::Document> doc =
+	    model::constructAdvancedDocument(mgr, bookDom, headingDom, listDom);
 
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	// dump the manager state
