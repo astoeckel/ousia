@@ -50,6 +50,7 @@ TEST(Node, testSerialize)
 
 	// Now this is what we expect to see:
 	std::string expected{
+	    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 	    "<html>\n"
 	    "\t<head>\n"
 	    "\t\t<title>\n"

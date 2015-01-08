@@ -4,7 +4,12 @@
 namespace ousia {
 namespace xml {
 
-void Element::serialize(std::ostream& out, unsigned int tabdepth)
+void Node::serialize(std::ostream& out){
+	out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+	doSerialize(out, 0);
+}
+
+void Element::doSerialize(std::ostream& out, unsigned int tabdepth)
 {
 	for (unsigned int t = 0; t < tabdepth; t++) {
 		out << '\t';
@@ -15,7 +20,7 @@ void Element::serialize(std::ostream& out, unsigned int tabdepth)
 	}
 	out << ">\n";
 	for (auto &n : children) {
-		n->serialize(out, tabdepth + 1);
+		n->doSerialize(out, tabdepth + 1);
 	}
 	for (unsigned int t = 0; t < tabdepth; t++) {
 		out << '\t';
@@ -23,7 +28,7 @@ void Element::serialize(std::ostream& out, unsigned int tabdepth)
 	out << "</" << name << ">\n";
 }
 
-void Text::serialize(std::ostream& out, unsigned int tabdepth)
+void Text::doSerialize(std::ostream& out, unsigned int tabdepth)
 {
 	for (unsigned int t = 0; t < tabdepth; t++) {
 		out << '\t';

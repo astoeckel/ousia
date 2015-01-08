@@ -57,18 +57,25 @@ namespace xml {
  * implement.
  */
 class Node : public Managed {
+
 public:
 	Node(Manager &mgr) : Managed(mgr){};
 
 	/**
-	 * When called this Node should serialize its data and write it to the
-	 * given output stream. In case of Elements this includes child elements.
+	 * This method writes an XML prolog and the XML representing the current
+	 * node, including all children, to the given output stream.
+	 * @param out is the output stream the serialized data shall be written to.
+	 */
+	void serialize(std::ostream &out);
+	/**
+	 * This method just writes the XML representation of this node to the
+	 * output stream, without the XML prolog.
 	 *
 	 * @param out      the output stream the serialized data shall be written
 	 *                 to.
 	 * @param tabdepth the current tabdepth for prettier output.
 	 */
-	virtual void serialize(std::ostream &out, unsigned int tabdepth) = 0;
+	virtual void doSerialize(std::ostream &out, unsigned int tabdepth) = 0;
 };
 
 /**
@@ -103,7 +110,7 @@ public:
 	 * * The end tag of this element.
 	 *
 	 */
-	void serialize(std::ostream &out, unsigned int tabdepth = 0) override;
+	void doSerialize(std::ostream &out, unsigned int tabdepth) override;
 };
 
 class Text : public Node {
@@ -116,7 +123,7 @@ public:
 	 * This just writes the text to the output.
 	 *
 	 */
-	void serialize(std::ostream &out, unsigned int tabdepth = 0) override;
+	void doSerialize(std::ostream &out, unsigned int tabdepth) override;
 };
 }
 }
