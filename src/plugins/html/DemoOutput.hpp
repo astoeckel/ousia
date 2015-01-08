@@ -30,6 +30,7 @@
 #ifndef _OUSIA_HTML_DEMO_OUTPUT_HPP_
 #define _OUSIA_HTML_DEMO_OUTPUT_HPP_
 
+#include <map>
 #include <ostream>
 
 #include <core/model/Document.hpp>
@@ -38,16 +39,31 @@
 namespace ousia {
 namespace html {
 
+typedef std::map<std::string, Rooted<model::AnnotationEntity>> AnnoMap;
+
 class DemoHTMLTransformer {
 private:
 	/**
-	 * These methods are called recursively to transform a document to an XML
-	 * tree.
+	 * This transforms a section-like entity, namely book, section
+	 * and subsection, to an XHTML element, including its header. For the
+	 * children of the default field the respective transform function is
+	 * called recursively.
 	 */
-	Rooted<xml::Element> transformSection(Handle<model::StructuredEntity> sec);
-	Rooted<xml::Element> transformParagraph(Handle<model::StructuredEntity> par);
-	Rooted<xml::Element> transformList(Handle<model::StructuredEntity> list);
-//	TODO: Implement emphasis.
+	Rooted<xml::Element> transformSection(Handle<model::StructuredEntity> sec,
+	                                       AnnoMap& startMap,  AnnoMap& endMap);
+	/**
+	 * This transforms a list entity, namely ul and ol to an XHTML element.
+	 * For each item, the transformParagraph function is called.
+	 */
+	Rooted<xml::Element> transformList(Handle<model::StructuredEntity> list,
+	                                    AnnoMap& startMap, AnnoMap& endMap);
+	/**
+	 * This transforms a paragraph-like entity, namely heading, item and
+	 * paragraph, to an XHTML element including the text and the anchors
+	 * contained. For anchor handling we require the AnnoMaps.
+	 */
+	Rooted<xml::Element> transformParagraph(Handle<model::StructuredEntity> par,
+	                                        AnnoMap& startMap, AnnoMap& endMap);
 
 public:
 	/**
@@ -68,7 +84,7 @@ public:
 	 *            and lists domains but no other.
 	 * @param out is the output stream the data shall be written to.
 	 */
-	void writeHTML(Handle<model::Document> doc, std::ostream& out);
+	void writeHTML(Handle<model::Document> doc, std::ostream &out);
 };
 }
 }
