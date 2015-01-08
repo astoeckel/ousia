@@ -306,8 +306,7 @@ public:
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
 	                FieldType fieldType = FieldType::TREE,
-	                std::string name = "",
-	                bool optional = false)
+	                std::string name = "", bool optional = false)
 	    : Node(mgr, std::move(name), parent),
 	      children(this),
 	      fieldType(fieldType),
@@ -532,6 +531,13 @@ public:
  * This class has no special properties and is in essence just a Descriptor.
  */
 class AnnotationClass : public Descriptor {
+public:
+	AnnotationClass(Manager &mgr, std::string name, Handle<Domain> domain,
+	                // TODO: What would be a wise default value for attributes?
+	                Handle<StructType> attributesDescriptor)
+	    : Descriptor(mgr, std::move(name), domain, attributesDescriptor)
+	{
+	}
 };
 
 /**

@@ -183,6 +183,10 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 
 	// transform paragraph children to XML as well
 	for (auto &n : par->getField()) {
+		if (n->isa(typeOf<model::AnnotationEntity::Anchor>())) {
+			// TODO: Handle Anchors!
+			continue;
+		}
 		std::string childDescriptorName = n->getDescriptor()->getName();
 		if (childDescriptorName == "text") {
 			Handle<model::DocumentPrimitive> primitive =
@@ -193,7 +197,6 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 			p->children.push_back(
 			    new xml::Text(mgr, primitive->getContent().asString()));
 		}
-		// TODO: Handle non-text content
 	}
 	return p;
 }

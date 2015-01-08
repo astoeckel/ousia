@@ -45,6 +45,8 @@ TEST(DemoHTMLTransformer, writeHTML)
 	    model::constructHeadingDomain(mgr, sys, bookDom, logger);
 	Rooted<model::Domain> listDom =
 	    model::constructListDomain(mgr, sys, bookDom, logger);
+	Rooted<model::Domain> emDom =
+	    model::constructEmphasisDomain(mgr, sys, logger);
 	// Construct the document.
 	Rooted<model::Document> doc =
 	    model::constructAdvancedDocument(mgr, bookDom, headingDom, listDom);

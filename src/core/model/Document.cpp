@@ -100,7 +100,7 @@ static Rooted<StructuredClass> resolveDescriptor(
 		}
 		// Otherwise take the first valid result.
 		for (auto &r : resolved) {
-			if(r->isa(typeOf<StructuredClass>())){
+			if (r->isa(typeOf<StructuredClass>())) {
 				return r.cast<StructuredClass>();
 			}
 		}
@@ -155,6 +155,9 @@ Rooted<StructuredEntity> StructuredEntity::buildEntity(
 		return {nullptr};
 	}
 	// append the new entity to the right field.
+	if (!parent->hasField(fieldName)) {
+		return {nullptr};
+	}
 	NodeVector<StructuredEntity> &field = parent->getField(fieldName);
 	field.push_back(entity);
 
@@ -178,11 +181,58 @@ Rooted<DocumentPrimitive> DocumentPrimitive::buildEntity(
 		return {nullptr};
 	}
 	// append the new entity to the right field.
+	if (!parent->hasField(fieldName)) {
+		return {nullptr};
+	}
 	NodeVector<StructuredEntity> &field = parent->getField(fieldName);
 	field.push_back(entity);
-
 	// and return it.
 	return entity;
+}
+
+Rooted<AnnotationEntity::Anchor> AnnotationEntity::buildAnchor(
+    Handle<DocumentEntity> parent, std::string id, const std::string &fieldName)
+{
+	// If the parent is not set, we can not build the anchor.
+	if (parent == nullptr) {
+		return {nullptr};
+	}
+	// Then construct the Anchor itself
+	Rooted<Anchor> anchor{
+	    new AnnotationEntity::Anchor(parent->getManager(), parent, id)};
+	// append the new entity to the right field.
+	if (!parent->hasField(fieldName)) {
+		return {nullptr};
+	}
+	NodeVector<StructuredEntity> &field = parent->getField(fieldName);
+	field.push_back(anchor);
+	// and return it.
+	return anchor;
+}
+
+Rooted<AnnotationEntity> AnnotationEntity::buildEntity(
+    Handle<Document> parent, std::vector<Handle<Domain>> domains,
+    const std::string &className, Handle<AnnotationEntity::Anchor> start,
+    Handle<AnnotationEntity::Anchor> end, Variant attributes, std::string name)
+{
+	// If the parent is not set, we can not build the AnnotationEntity.
+	if (parent == nullptr) {
+		return {nullptr};
+	}
+	// If we can not find the correct descriptor, we can not build the entity
+	// either.
+	Rooted<StructuredClass> descriptor = resolveDescriptor(domains, className);
+	if (descriptor == nullptr) {
+		return {nullptr};
+	}
+	// Then construct the AnnotationEntity itself
+	Rooted<AnnotationEntity> anno{
+	    new AnnotationEntity(parent->getManager(), parent, descriptor,
+	                         attributes, start, end, name)};
+	// append the new entity to the document
+	parent->getAnnotations().push_back(anno);
+	// and return it.
+	return anno;
 }
 
 /* Type registrations */

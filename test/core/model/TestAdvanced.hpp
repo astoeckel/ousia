@@ -109,6 +109,25 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 	return domain;
 }
 
+/**
+ * This constructs the "emphasis" domain.
+ */
+static Rooted<Domain> constructEmphasisDomain(Manager &mgr,
+                                              Handle<SystemTypesystem> sys,
+                                              Logger &logger)
+{
+	// set up domain node.
+	Rooted<Domain> domain{new Domain(mgr, sys, "emphasis")};
+	// create AnnotationClasses
+	Rooted<AnnotationClass> em{
+	    new AnnotationClass(mgr, "emphasized", domain, {nullptr})};
+	domain->getAnnotationClasses().push_back(em);
+	Rooted<AnnotationClass> strong{
+	    new AnnotationClass(mgr, "strong", domain, {nullptr})};
+	domain->getAnnotationClasses().push_back(strong);
+	return domain;
+}
+
 static bool addText(Handle<StructuredEntity> parent,
                     std::vector<Handle<Domain>> &doms,
                     const std::string &content)
@@ -147,6 +166,34 @@ static bool addHeading(Handle<StructuredEntity> parent,
 	return true;
 }
 
+static int annoIdx = 1;
+
+// Only works for non-overlapping annotations!
+static bool addAnnotation(Handle<Document> doc, Handle<StructuredEntity> parent,
+                          std::vector<Handle<Domain>> &doms,
+                          const std::string &text, const std::string &annoClass)
+{
+	Rooted<AnnotationEntity::Anchor> start =
+	    AnnotationEntity::buildAnchor(parent, std::to_string(annoIdx++));
+	if (start.isNull()) {
+		return false;
+	}
+	if (!addText(parent, doms, text)) {
+		return false;
+	}
+	Rooted<AnnotationEntity::Anchor> end =
+	    AnnotationEntity::buildAnchor(parent, std::to_string(annoIdx++));
+	if (end.isNull()) {
+		return false;
+	}
+	Rooted<AnnotationEntity> anno =
+	    AnnotationEntity::buildEntity(doc, doms, annoClass, start, end);
+	if (anno.isNull()) {
+		return false;
+	}
+	return true;
+}
+
 /**
  * This constructs a more advanced book document using not only the book
  * domain but also headings, emphasis and lists.
@@ -170,10 +217,19 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr,
 	}
 
 	// Add the heading.
-	// TODO: use em here.
-	if (!addHeading(book, doms,
-	                "Beantwortung der Frage: <em>Was ist Aufklärung?</em>")) {
-		return {nullptr};
+	{
+		Rooted<StructuredEntity> heading = StructuredEntity::buildEntity(
+		    book, doms, "heading", "heading", {}, "");
+		if (heading.isNull()) {
+			return {nullptr};
+		}
+		if (!addText(heading, doms, "Beantwortung der Frage: ")) {
+			return {nullptr};
+		}
+		if (!addAnnotation(doc, heading, doms, "Was ist Aufklärung?",
+		                   "emphasized")) {
+			return {nullptr};
+		}
 	}
 
 	// Add the main section.
@@ -196,20 +252,43 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr,
 			return {nullptr};
 		}
 		// Add its text.
-		// TODO: Use em and strong here
-		if (!addText(p, doms,
-		             "  <strong>Aufklärung ist der Ausgang des Menschen aus "
-		             "seiner selbstverschuldeten Unmündigkeit</strong>. "
-		             "<em>Unmündigkeit</em> ist das Unvermögen, sich seines "
-		             "Verstandes ohne Leitung eines anderen zu bedienen. "
-		             "<em>Selbstverschuldet</em> ist diese Unmündigkeit, wenn "
-		             "die Ursache derselben nicht am Mangel des Verstandes, "
-		             "sondern der Entschließung und des Mutes liegt, sich "
-		             "seiner ohne Leitung eines andern zu bedienen. <em>Sapere "
-		             "aude! Habe Mut, dich deines eigenen Verstandes zu "
-		             "bedienen!</em> ist also der Wahlspruch der "
-		             "Aufklärung.")) {
-			return {nullptr};
+		{
+			if (!addAnnotation(doc, p, doms,
+			                   "Aufklärung ist der Ausgang des Menschen aus "
+			                   "seiner selbstverschuldeten Unmündigkeit",
+			                   "strong")) {
+				return {nullptr};
+			}
+			if (!addAnnotation(doc, p, doms, "Unmündigkeit",
+			                   "emphasized")) {
+				return {nullptr};
+			}
+			if (!addText(p, doms,
+			             "ist das Unvermögen, sich seines Verstandes ohne "
+			             "Leitung eines anderen zu bedienen. ")) {
+				return {nullptr};
+			}
+			if (!addAnnotation(doc, p, doms, "Selbstverschuldet",
+			                   "emphasized")) {
+				return {nullptr};
+			}
+			if (!addText(p, doms,
+			             " ist diese Unmündigkeit, wenn die Ursache derselben "
+			             "nicht am Mangel des Verstandes, sondern der "
+			             "Entschließung und des Mutes liegt, sich seiner ohne "
+			             "Leitung eines andern zu bedienen.")) {
+				return {nullptr};
+			}
+			if (!addAnnotation(doc, p, doms,
+			                   "Sapere aude! Habe Mut, dich deines eigenen "
+			                   "Verstandes zu bedienen!",
+			                   "emphasized")) {
+				return {nullptr};
+			}
+			if (!addText(p, doms,
+			             " ist also der Wahlspruch der Aufklärung.")) {
+				return {nullptr};
+			}
 		}
 	}
 
@@ -225,7 +304,7 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr,
 	}
 	// Add list with citations
 	{
-		//TODO: We need to restrict this to the list domain. Otherwise
+		// TODO: We need to restrict this to the list domain. Otherwise
 		// this leads to resolve errors for some reason.
 		Rooted<StructuredEntity> ul =
 		    StructuredEntity::buildEntity(lesarten, {listDom}, "ul");
