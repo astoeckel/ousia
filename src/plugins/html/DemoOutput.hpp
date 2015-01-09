@@ -49,21 +49,24 @@ private:
 	 * children of the default field the respective transform function is
 	 * called recursively.
 	 */
-	Rooted<xml::Element> transformSection(Handle<model::StructuredEntity> sec,
-	                                       AnnoMap& startMap,  AnnoMap& endMap);
+	Rooted<xml::Element> transformSection(Handle<xml::Element> parent,
+	                                      Handle<model::StructuredEntity> sec,
+	                                      AnnoMap &startMap, AnnoMap &endMap);
 	/**
 	 * This transforms a list entity, namely ul and ol to an XHTML element.
 	 * For each item, the transformParagraph function is called.
 	 */
-	Rooted<xml::Element> transformList(Handle<model::StructuredEntity> list,
-	                                    AnnoMap& startMap, AnnoMap& endMap);
+	Rooted<xml::Element> transformList(Handle<xml::Element> parent,
+	                                   Handle<model::StructuredEntity> list,
+	                                   AnnoMap &startMap, AnnoMap &endMap);
 	/**
 	 * This transforms a paragraph-like entity, namely heading, item and
 	 * paragraph, to an XHTML element including the text and the anchors
 	 * contained. For anchor handling we require the AnnoMaps.
 	 */
-	Rooted<xml::Element> transformParagraph(Handle<model::StructuredEntity> par,
-	                                        AnnoMap& startMap, AnnoMap& endMap);
+	Rooted<xml::Element> transformParagraph(Handle<xml::Element> parent,
+	                                        Handle<model::StructuredEntity> par,
+	                                        AnnoMap &startMap, AnnoMap &endMap);
 
 public:
 	/**
