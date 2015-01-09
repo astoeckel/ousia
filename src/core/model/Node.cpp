@@ -213,6 +213,13 @@ public:
 	size_t resultCount() { return shared.result.size(); }
 };
 
+/* Class ResolutionResult */
+
+std::vector<std::string> ResolutionResult::path() const
+{
+	return node->path(resolutionRoot);
+}
+
 /* Class Node */
 
 void Node::setName(std::string name)
@@ -223,18 +230,20 @@ void Node::setName(std::string name)
 	this->name = std::move(name);
 }
 
-void Node::path(std::vector<std::string> &p) const
+void Node::path(std::vector<std::string> &p, Handle<Node> root) const
 {
 	if (!isRoot()) {
-		parent->path(p);
+		parent->path(p, root);
 	}
-	p.push_back(name);
+	if (this != root) {
+		p.push_back(name);
+	}
 }
 
-std::vector<std::string> Node::path() const
+std::vector<std::string> Node::path(Handle<Node> root) const
 {
 	std::vector<std::string> res;
-	path(res);
+	path(res, root);
 	return res;
 }
 

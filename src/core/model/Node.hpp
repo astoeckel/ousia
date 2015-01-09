@@ -67,6 +67,14 @@ struct ResolutionResult {
 	    : node(node), resolutionRoot(resolutionRoot)
 	{
 	}
+
+	/**
+	 * Returns a canonical path leading to the node. The path is relative to the
+	 * resolutionRoot (the root node of the subgraph the node was defined in).
+	 *
+	 * @return a canonical path leading to the node.
+	 */
+	std::vector<std::string> path() const;
 };
 
 // Forward declaration
@@ -99,7 +107,7 @@ private:
 	 *
 	 * @param p is the list the path should be constructed in.
 	 */
-	void path(std::vector<std::string> &p) const;
+	void path(std::vector<std::string> &p, Handle<Node> root) const;
 
 	/**
 	 * Returns true if the resolution process is just at the beginning (no part
@@ -325,10 +333,12 @@ public:
 	 * Returns the vector containing the complete path to this node (including
 	 * the name of the parent nodes).
 	 *
+	 * @param root is the node up to which the path should be returned. Ignored
+	 * if set to nullptr.
 	 * @return a vector containing the path (starting with the root node) to
 	 * this node as a list of names.
 	 */
-	std::vector<std::string> path() const;
+	std::vector<std::string> path(Handle<Node> root = nullptr) const;
 
 	/**
 	 * Function which resolves a name path to a list of possible nodes starting
