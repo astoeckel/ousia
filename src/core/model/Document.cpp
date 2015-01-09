@@ -93,18 +93,9 @@ NodeVector<StructuredEntity> &DocumentEntity::getField(
 
 void Document::continueResolve(ResolutionState &state)
 {
-	// Try to resolve annotations and other document nodes first
-	bool hasResult =
-	    continueResolveComposita(annotations, annotations.getIndex(), state);
-	if (root != nullptr) {
-		hasResult = hasResult | continueResolveCompositum(root, state);
-	}
-
-	// If no direct child has been found, continue resolving the referenced
-	// domains
-	if (!hasResult) {
-		continueResolveReferences(domains, state);
-	}
+	continueResolveComposita(annotations, annotations.getIndex(), state);
+	continueResolveCompositum(root, state);
+	continueResolveReferences(domains, state);
 }
 }
 

@@ -16,8 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
-
 #include <functional>
 #include <unordered_set>
 
@@ -254,13 +252,9 @@ bool Node::resolve(ResolutionState &state)
 {
 	// Try to mark this note as visited, do nothing if already has been visited
 	if (state.markVisited(this)) {
-		std::cout << "visiting " << name << " (" << state.idx << ")"
-		          << std::endl;
-
 		// Add this node to the result if it matches the current description
 		if (state.atEndOfPath()) {
 			if (state.typeMatches(type())) {
-				std::cout << "found match!" << std::endl;
 				state.addToResult(this);
 				return true;
 			}
@@ -318,7 +312,6 @@ bool Node::continueResolveReference(Handle<Node> h, ResolutionState &state)
 	// if the node the reference points to is known to contain the type that is
 	// currently asked for in the resolution process
 	if (canFollowReferences(state) && state.canContainType(h->type())) {
-		std::cout << "following reference to " << h->getName() << std::endl;
 		ResolutionState forkedState = state.fork(this);
 		return continueResolveCompositum(h, forkedState);
 	}
@@ -333,13 +326,6 @@ std::vector<ResolutionResult> Node::resolve(
 	ResolutionState state(sharedState, this);
 
 	// Kickstart the resolution process by treating this very node as compositum
-	std::cout << "------------" << std::endl;
-	std::cout << "resolving: ";
-	for (auto s : path) {
-		std::cout << s << " ";
-	}
-	std::cout << " of type " << type.name << std::endl;
-
 	if (path.size() > 0) {
 		continueResolveCompositum(this, state);
 	}
