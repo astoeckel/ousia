@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stack>
+
+
 #include <core/common/Exceptions.hpp>
 #include <core/common/Rtti.hpp>
 #include <core/common/Variant.hpp>
@@ -30,10 +33,18 @@ void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
 {
 	Manager &mgr = doc->getManager();
 	// Create an XML object tree for the document first.
-	Rooted<xml::Element> html{new xml::Element{mgr, "html"}};
+	Rooted<xml::Element> html{new xml::Element{
+	    mgr, "html", {{"xlmns", "http://www.w3.org/1999/xhtml"}}}};
 	// add the head Element
 	Rooted<xml::Element> head{new xml::Element{mgr, "head"}};
 	html->children.push_back(head);
+	// add the meta element.
+	Rooted<xml::Element> meta{
+	    new xml::Element{mgr,
+	                     "meta",
+	                     {{"http-equiv", "Content-Type"},
+	                      {"content", "text/html; charset=utf-8"}}}};
+	head->children.push_back(meta);
 	// add the title Element with Text
 	Rooted<xml::Element> title{new xml::Element{mgr, "title"}};
 	head->children.push_back(title);
@@ -45,31 +56,42 @@ void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
 
 	// So far was the "preamble". No we have to get to the document content.
 
+	// build the start and end map for annotation processing.
+	AnnoMap startMap;
+	AnnoMap endMap;
+	for (auto &a : doc->getAnnotations()) {
+		// we assume uniquely IDed annotations, which should be checked in the
+		// validation process.
+		startMap.emplace(a->getStart()->getName(), a);
+		endMap.emplace(a->getEnd()->getName(), a);
+	}
+
 	// extract the book root node.
 	Rooted<model::StructuredEntity> root = doc->getRoot();
 	if (root->getDescriptor()->getName() != "book") {
 		throw OusiaException("The given documents root is no book node!");
 	}
 	// transform the book node.
-	Rooted<xml::Element> book = transformSection(root);
+	Rooted<xml::Element> book = transformSection(root, startMap, endMap);
 	// add it as child to the body node.
 	body->children.push_back(book);
 
 	// After the content has been transformed, we serialize it.
-	html->serialize(out);
+	html->serialize(
+	    out,
+	    "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n"
+	    "\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">");
 }
 
 /**
  * This is just for easier internal handling.
  */
-enum class SectionType { BOOK, CHAPTER, SECTION, SUBSECTION, NONE };
+enum class SectionType { BOOK, SECTION, SUBSECTION, NONE };
 
 SectionType getSectionType(const std::string &name)
 {
 	if (name == "book") {
 		return SectionType::BOOK;
-	} else if (name == "chapter") {
-		return SectionType::CHAPTER;
 	} else if (name == "section") {
 		return SectionType::SECTION;
 	} else if (name == "subsection") {
@@ -79,7 +101,8 @@ SectionType getSectionType(const std::string &name)
 	}
 }
 
-Rooted<xml::Element> DemoHTMLTransformer::transformSection(Handle<model::StructuredEntity> section)
+Rooted<xml::Element> DemoHTMLTransformer::transformSection(
+    Handle<model::StructuredEntity> section, AnnoMap &startMap, AnnoMap &endMap)
 {
 	Manager &mgr = section->getManager();
 	// check the section type.
@@ -93,7 +116,8 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(Handle<model::Structu
 	Rooted<xml::Element> sec{
 	    new xml::Element{mgr, "div", {{"class", secclass}}}};
 	// check if we have a heading.
-	if (section->hasField("heading")) {
+	if (section->hasField("heading") &&
+	    section->getField("heading").size() > 0) {
 		Rooted<model::StructuredEntity> heading =
 		    section->getField("heading")[0];
 		std::string headingclass;
@@ -101,14 +125,11 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(Handle<model::Structu
 			case SectionType::BOOK:
 				headingclass = "h1";
 				break;
-			case SectionType::CHAPTER:
+			case SectionType::SECTION:
 				headingclass = "h2";
 				break;
-			case SectionType::SECTION:
-				headingclass = "h3";
-				break;
 			case SectionType::SUBSECTION:
-				headingclass = "h4";
+				headingclass = "h3";
 				break;
 			case SectionType::NONE:
 				// this can not happen;
@@ -117,7 +138,8 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(Handle<model::Structu
 		Rooted<xml::Element> h{new xml::Element{mgr, headingclass}};
 		sec->children.push_back(h);
 		// extract the heading text, enveloped in a paragraph Element.
-		Rooted<xml::Element> h_content = transformParagraph(heading);
+		Rooted<xml::Element> h_content =
+		    transformParagraph(heading, startMap, endMap);
 		// We omit the paragraph Element and add the children directly to the
 		// heading Element
 		for (auto &n : h_content->children) {
@@ -138,12 +160,11 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(Handle<model::Structu
 		const std::string childDescriptorName = n->getDescriptor()->getName();
 		Rooted<xml::Element> child;
 		if (childDescriptorName == "paragraph") {
-			child = transformParagraph(n);
-			// TODO: Implement
-			//		} else if(childDescriptorName == "ul"){
-			//			writeList(n, out);
+			child = transformParagraph(n, startMap, endMap);
+		} else if (childDescriptorName == "ul" || childDescriptorName == "ol") {
+			child = transformList(n, startMap, endMap);
 		} else {
-			child = transformSection(n);
+			child = transformSection(n, startMap, endMap);
 		}
 		if (!child.isNull()) {
 			sec->children.push_back(child);
@@ -152,29 +173,90 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(Handle<model::Structu
 	return sec;
 }
 
-Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(Handle<model::StructuredEntity> par)
+Rooted<xml::Element> DemoHTMLTransformer::transformList(
+    Handle<model::StructuredEntity> list, AnnoMap &startMap, AnnoMap &endMap)
+{
+	Manager &mgr = list->getManager();
+	// create the list Element, which is either ul or ol (depends on descriptor)
+	std::string listclass = list->getDescriptor()->getName();
+	Rooted<xml::Element> l{new xml::Element{mgr, listclass}};
+	// iterate through list items.
+	for (auto &item : list->getField()) {
+		std::string itDescrName = item->getDescriptor()->getName();
+		if (itDescrName == "item") {
+			// create the list item.
+			Rooted<xml::Element> li{new xml::Element{mgr, "li"}};
+			l->children.push_back(li);
+			// extract the item text, enveloped in a paragraph Element.
+			Rooted<xml::Element> li_content =
+			    transformParagraph(item, startMap, endMap);
+			// We omit the paragraph Element and add the children directly to
+			// the list item
+			for (auto &n : li_content->children) {
+				li->children.push_back(n);
+			}
+		}
+	}
+	return l;
+}
+
+typedef model::AnnotationEntity::Anchor Anchor;
+typedef std::stack<Rooted<model::AnnotationEntity>> AnnoStack;
+
+Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
+    Handle<model::StructuredEntity> par, AnnoMap &startMap, AnnoMap &endMap)
 {
 	Manager &mgr = par->getManager();
-	// create the p xml::Element
+	// create the p Element
 	Rooted<xml::Element> p{new xml::Element{mgr, "p"}};
 
 	// check if we have a heading.
-	if (par->hasField("heading")) {
+	if (par->hasField("heading") && par->getField("heading").size() > 0) {
 		Rooted<model::StructuredEntity> heading = par->getField("heading")[0];
 		// put the heading in a strong xml::Element.
 		Rooted<xml::Element> strong{new xml::Element{mgr, "strong"}};
 		p->children.push_back(strong);
 		// extract the heading text, enveloped in a paragraph Element.
-		Rooted<xml::Element> h_content = transformParagraph(heading);
+		Rooted<xml::Element> h_content =
+		    transformParagraph(heading, startMap, endMap);
 		// We omit the paragraph Element and add the children directly to the
 		// heading Element
 		for (auto &n : h_content->children) {
 			strong->children.push_back(n);
 		}
 	}
-	
+
 	// transform paragraph children to XML as well
 	for (auto &n : par->getField()) {
+		if (n->isa(typeOf<Anchor>())) {
+			//TODO: This needs some more brain work.
+//			// check if this is a start Anchor.
+//			auto it = startMap.find(n->getName());
+//			if(it != startMap.end()){
+//				// if we have a start Anchor, we put another AnnotationEntity
+//				// on top the stack.
+//				opened.push(it->second);
+//				// and we create an open tag.
+//				
+//				continue;
+//			}
+//			// check if this is an end Anchor.
+//			auto it = endMap.find(n->getName());
+//			if(it != endMap.end()){
+//				/*
+//				 * Now it gets somewhat interesting: We have to close all
+//				 * tags that started after the one that is closed now and
+//				 * re-open them afterwards. So we create a lokal stack to
+//				 * temporarily store all AnnotationEntities that need to
+//				 * be re-opened.
+//				 */
+//				 AnnoStack tmp;
+//				 Rooted<
+//				 while(!opened.empty() && )
+//			}
+//			
+			continue;
+		}
 		std::string childDescriptorName = n->getDescriptor()->getName();
 		if (childDescriptorName == "text") {
 			Handle<model::DocumentPrimitive> primitive =
@@ -185,7 +267,6 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(Handle<model::Struc
 			p->children.push_back(
 			    new xml::Text(mgr, primitive->getContent().asString()));
 		}
-		// TODO: Handle non-text content
 	}
 	return p;
 }

@@ -25,6 +25,7 @@
 #include <core/model/Document.hpp>
 #include <core/model/Domain.hpp>
 
+#include <core/model/TestAdvanced.hpp>
 #include <core/model/TestDocument.hpp>
 #include <core/model/TestDomain.hpp>
 
@@ -37,17 +38,25 @@ TEST(DemoHTMLTransformer, writeHTML)
 	Logger logger;
 	Manager mgr{1};
 	Rooted<model::SystemTypesystem> sys{new model::SystemTypesystem(mgr)};
-	// Get the domain.
-	Rooted<model::Domain> domain = constructBookDomain(mgr, sys, logger);
+	// Get the domains.
+	Rooted<model::Domain> bookDom =
+	    model::constructBookDomain(mgr, sys, logger);
+	Rooted<model::Domain> headingDom =
+	    model::constructHeadingDomain(mgr, sys, bookDom, logger);
+	Rooted<model::Domain> listDom =
+	    model::constructListDomain(mgr, sys, bookDom, logger);
+	Rooted<model::Domain> emDom =
+	    model::constructEmphasisDomain(mgr, sys, logger);
 	// Construct the document.
-	Rooted<model::Document> doc = model::constructBookDocument(mgr, domain);
+	Rooted<model::Document> doc =
+	    model::constructAdvancedDocument(mgr, bookDom, headingDom, listDom);
 
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	// dump the manager state
 	mgr.exportGraphviz("bookDocument.dot");
 #endif
 
-	// print it
+	// TODO: change this. Don't use printouts
 	DemoHTMLTransformer transformer;
 	transformer.writeHTML(doc, std::cout);
 }

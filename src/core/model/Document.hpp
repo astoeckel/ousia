@@ -207,20 +207,14 @@ public:
  * information please refer to the header documentation above.
  */
 class StructuredEntity : public DocumentEntity {
-private:
-	NodeVector<AnnotationEntity> annotations;
-
 public:
 	StructuredEntity(Manager &mgr, Handle<Node> parent,
 	                 Handle<StructuredClass> descriptor, Variant attributes,
 	                 std::string name = "")
 	    : DocumentEntity(mgr, parent, descriptor, std::move(attributes),
-	                     std::move(name)),
-	      annotations(this)
+	                     std::move(name))
 	{
 	}
-
-	NodeVector<AnnotationEntity> &getAnnotations() { return annotations; }
 
 	/**
 	 * This builds the root StructuredEntity for the given document. It
@@ -343,12 +337,11 @@ public:
 	public:
 		/**
 		 * @param mgr    is the Manager instance.
-		 * @param name   is the Anchor id.
 		 * @param parent is the parent of this Anchor in the Structure Tree (!),
 		 *               not the AnnotationEntity that references this Anchor.
+		 * @param name   is the Anchor id.
 		 */
-		Anchor(Manager &mgr, Handle<StructuredEntity> parent,
-		       std::string name = "")
+		Anchor(Manager &mgr, Handle<DocumentEntity> parent, std::string name)
 		    : StructuredEntity(mgr, parent, nullptr, Variant(), std::move(name))
 		{
 		}
@@ -372,6 +365,45 @@ public:
 	Rooted<Anchor> getStart() { return start; }
 
 	Rooted<Anchor> getEnd() { return end; }
+
+	/**
+	 * This builds an Anchor as child of the given DocumentEntity. It
+	 * automatically appends the newly build Anchor to its parent.
+	 *
+	 * @param parent     is the parent DocumentEntity. The newly constructed
+	 *                   Anchor will automatically be appended to it.
+	 * @param id         is the id of this Anchor.
+	 * @param fieldName  is the name of the field where the newly constructed
+	 *                   Anchor shall be appended.
+	 *
+	 * @return           the newly created Anchor or a nullptr if some
+	 *                   input handle was empty.
+	 */
+	static Rooted<Anchor> buildAnchor(Handle<DocumentEntity> parent,
+	                                  std::string id,
+	                                  const std::string &fieldName = "");
+	/**
+	 * This builds an AnnotationEntity as child of the given DocumentEntity. It
+	 * automatically appends the newly build entity to its parent.
+	 *
+	 * @param parent     is the document the newly constructed AnnotationEntity
+	 *                   will be appended to.
+	 * @param domains    are the domains that are used to find the
+	 *                   AnnotationClass for the new node. The domains will be
+	 *                   searched in the given order.
+	 * @param className  is the name of the AnnotationClass.
+	 * @param attributes are the attributes of the new node in terms of a Struct
+	 *                   variant (empty per default).
+	 * @param name       is the name of this AnnotationEntity (empty per
+	 *                   default).
+	 * @return           the newly created AnnotationEntity or a nullptr if some
+	 *                   input handle was empty or the given domains did not
+	 *                   contain a AnnotationClass with the given name.
+	 */
+	static Rooted<AnnotationEntity> buildEntity(Handle<Document> parent, std::vector<Handle<Domain>> domains,
+	    const std::string &className,
+	    Handle<Anchor> start, Handle<Anchor> end,
+	    Variant attributes = Variant(), std::string name = "");
 };
 
 /**
@@ -382,17 +414,21 @@ class Document : public Node {
 private:
 	// TODO: Might there be several roots? E.g. metadata?
 	Owned<StructuredEntity> root;
+	NodeVector<AnnotationEntity> annotations;
 
 public:
 	Document(Manager &mgr, std::string name)
 	    // TODO: Can a document have a parent?
-	    : Node(mgr, std::move(name), nullptr)
+	    : Node(mgr, std::move(name), nullptr),
+	      annotations(this)
 	{
 	}
 
 	void setRoot(Handle<StructuredEntity> root) { this->root = acquire(root); };
 
 	Rooted<StructuredEntity> getRoot() const { return root; }
+
+	NodeVector<AnnotationEntity> getAnnotations() { return annotations; }
 };
 }
 

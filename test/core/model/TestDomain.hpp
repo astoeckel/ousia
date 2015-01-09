@@ -69,6 +69,18 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	    new FieldDescriptor(mgr, paragraph)};
 	paragraph->getFieldDescriptors().push_back(paragraph_field);
 
+	// We append "subsection" to section.
+	Rooted<StructuredClass> subsection{
+	    new StructuredClass(mgr, "subsection", domain, any)};
+	section_field->getChildren().push_back(subsection);
+	domain->getStructureClasses().push_back(subsection);
+	// And the field of it.
+	Rooted<FieldDescriptor> subsection_field{
+	    new FieldDescriptor(mgr, subsection)};
+	subsection->getFieldDescriptors().push_back(subsection_field);
+	// and we add the paragraph to subsections fields
+	subsection_field->getChildren().push_back(paragraph);
+
 	// Finally we add the "text" node, which is transparent as well.
 	Rooted<StructuredClass> text{new StructuredClass(
 	    mgr, "text", domain, any, {nullptr}, {nullptr}, true)};
