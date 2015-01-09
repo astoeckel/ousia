@@ -19,8 +19,9 @@
 #ifndef _OUSIA_PARSER_SCOPE_H_
 #define _OUSIA_PARSER_SCOPE_H_
 
-#include <deque>
+#include <vector>
 
+#include <core/common/Logger.hpp>
 #include <core/model/Node.hpp>
 
 /**
@@ -96,7 +97,7 @@ public:
  */
 class Scope {
 private:
-	std::deque<Rooted<Node>> nodes;
+	std::vector<Rooted<Node>> nodes;
 
 public:
 	/**
@@ -139,6 +140,20 @@ public:
 	 * @return a reference at the leaf node.
 	 */
 	Rooted<Node> getLeaf() { return nodes.back(); }
+
+	/**
+	 * Tries to resolve a node for the given type and path for all nodes that
+	 * are currently in the stack, starting with the topmost node on the stack.
+	 *
+	 * @param path is the path for which a node should be resolved.
+	 * @param type is the type of the node that should be resolved.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @return a reference at a resolved node or nullptr if no node could be
+	 * found.
+	 */
+	Rooted<Node> resolve(const std::vector<std::string> &path,
+	                                      const RttiBase &type, Logger &logger);
 };
 
 /* Class ScopedScope -- inline declaration of some methods */
