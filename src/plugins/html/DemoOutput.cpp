@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sstream>
 #include <stack>
 
 #include <core/common/Exceptions.hpp>
@@ -205,21 +206,50 @@ Rooted<xml::Element> DemoHTMLTransformer::transformList(
 typedef model::AnnotationEntity::Anchor Anchor;
 typedef std::stack<Rooted<model::AnnotationEntity>> AnnoStack;
 
-static Rooted<xml::Element> openAnnotation(Manager& mgr, AnnoStack &opened, Handle<model::AnnotationEntity> entity, Handle<xml::Element> current){
+static Rooted<xml::Element> openAnnotation(
+    Manager &mgr, AnnoStack &opened, Handle<model::AnnotationEntity> entity,
+    Handle<xml::Element> current)
+{
 	// we push the newly opened entity on top of the stack.
 	opened.push(entity);
-				// get the elment name
-				std::string elemName = entity->getDescriptor()->getName();
-				// emphasized has to be shortened
-				if (elemName == "emphasized") {
-					elemName = "em";
-				}
-				// create the new XML element representing the annotation
-				Rooted<xml::Element> tmp{
-				    new xml::Element{mgr, current, elemName}};
-				current->children.push_back(tmp);
-				// and return it.
-				return tmp;
+	// get the elment name
+	std::string elemName = entity->getDescriptor()->getName();
+	// emphasized has to be shortened
+	if (elemName == "emphasized") {
+		elemName = "em";
+	}
+	// create the new XML element representing the annotation
+	Rooted<xml::Element> tmp{new xml::Element{mgr, current, elemName}};
+	current->children.push_back(tmp);
+	// and return it.
+	return tmp;
+}
+
+static std::string escapePredefinedEntities(const std::string &input)
+{
+	std::stringstream ss;
+	for (const char &c : input) {
+		switch (c) {
+			case '<':
+				ss << "&lt;";
+				break;
+			case '>':
+				ss << "&gt;";
+				break;
+			case '&':
+				ss << "&amp;";
+				break;
+			case '\'':
+				ss << "&apos;";
+				break;
+			case '\"':
+				ss << "&quot;";
+				break;
+			default:
+				ss << c;
+		}
+	}
+	return std::move(ss.str());
 }
 
 Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
@@ -280,24 +310,24 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 				AnnoStack tmp;
 				Rooted<model::AnnotationEntity> closed = opened.top();
 				opened.pop();
-				while (closed->getEnd()->getName() != n->getName()){
+				while (closed->getEnd()->getName() != n->getName()) {
 					/*
 					 * We implicitly do close tags by climbing up the XML tree
 					 * until we are at the right element.
 					 */
-					 current = current->getParent();
-					 tmp.push(closed);
-					 if(opened.empty()){
-					 	// if we have no opened entities left, that is a
-					 	// malformed document.
-					 	throw OusiaException("An unopened entity was closed!");
-					 }
-					 closed = opened.top();
-					 opened.top();
+					current = current->getParent();
+					tmp.push(closed);
+					if (opened.empty()) {
+						// if we have no opened entities left, that is a
+						// malformed document.
+						throw OusiaException("An unopened entity was closed!");
+					}
+					closed = opened.top();
+					opened.top();
 				}
 				// At this point we have closed all necessary entities. Now we
 				// need to re-open some of them.
-				while(!tmp.empty()){
+				while (!tmp.empty()) {
 					closed = tmp.top();
 					tmp.pop();
 					current = openAnnotation(mgr, opened, closed, current);
@@ -313,8 +343,10 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 			if (primitive.isNull()) {
 				throw OusiaException("Text field is not primitive!");
 			}
-			current->children.push_back(new xml::Text(
-			    mgr, current, primitive->getContent().asString()));
+			// here we need to do some escaping with the string content.
+			std::string escaped =
+			    escapePredefinedEntities(primitive->getContent().asString());
+			current->children.push_back(new xml::Text(mgr, current, escaped));
 		}
 	}
 	return p;
