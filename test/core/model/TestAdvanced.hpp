@@ -30,12 +30,10 @@ static Rooted<StructuredClass> resolveDescriptor(Handle<Domain> domain,
                                                  const std::string &className)
 {
 	// use the actual resolve method.
-	std::vector<Rooted<Managed>> resolved = domain->resolve(className);
+	std::vector<ResolutionResult> resolved = domain->resolve(className, typeOf<StructuredClass>());
 	// take the first valid result.
 	for (auto &r : resolved) {
-		if (r->isa(typeOf<StructuredClass>())) {
-			return r.cast<StructuredClass>();
-		}
+		return r.node.cast<StructuredClass>();
 	}
 	// if no valid result exists, return nullptr.
 	return {nullptr};

@@ -29,9 +29,11 @@ namespace model {
 
 void Descriptor::continueResolve(ResolutionState &state)
 {
-	const NodeVector<Attribute> &attributes =
-	    attributesDescriptor->getAttributes();
-	continueResolveComposita(attributes, attributes.getIndex(), state);
+	if (attributesDescriptor != nullptr) {
+		const NodeVector<Attribute> &attributes =
+			attributesDescriptor->getAttributes();
+		continueResolveComposita(attributes, attributes.getIndex(), state);
+	}
 	continueResolveComposita(fieldDescriptors, fieldDescriptors.getIndex(),
 	                         state);
 }
