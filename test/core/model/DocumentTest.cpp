@@ -18,6 +18,8 @@
 
 #include <gtest/gtest.h>
 
+#include <iostream>
+
 #include <core/model/Document.hpp>
 #include <core/model/Domain.hpp>
 
@@ -30,13 +32,13 @@ namespace model {
 TEST(Document, testDocumentConstruction)
 {
 	// Construct Manager
-	Logger logger;
+	TerminalLogger logger {std::cerr, true};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Get the domain.
 	Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
 	// Construct the document.
-	Rooted<Document> doc = constructBookDocument(mgr, domain);
+	Rooted<Document> doc = constructBookDocument(mgr, logger, domain);
 
 	// Check the document content.
 	ASSERT_FALSE(doc.isNull());

@@ -215,57 +215,6 @@ public:
 	                     std::move(name))
 	{
 	}
-
-	/**
-	 * This builds the root StructuredEntity for the given document. It
-	 * automatically appends the newly build entity to the given document.
-	 *
-	 * @param document   is the document this entity shall be build for. The
-	 *                   resulting entity will automatically be appended to that
-	 *                   document. Also the manager of that document will be
-	 *                   used to register the new node.
-	 * @param domains    are the domains that are used to find the
-	 *                   StructuredClass for the new node. The domains will be
-	 *                   searched in the given order.
-	 * @param className  is the name of the StructuredClass.
-	 * @param attributes are the attributes of the new node in terms of a Struct
-	 *                   variant (empty per default).
-	 * @param name       is the name of this StructuredEntity (empty per
-	 *                   default).
-	 * @return           the newly created StructuredEntity or a nullptr if some
-	 *                   input handle was empty or the given domains did not
-	 *                   contain a StructuredClass with the given name.
-	 */
-	static Rooted<StructuredEntity> buildRootEntity(
-	    Handle<Document> document, std::vector<Handle<Domain>> domains,
-	    const std::string &className, Variant attributes = Variant(),
-	    std::string name = "");
-
-	/**
-	 * This builds a StructuredEntity as child of the given DocumentEntity. It
-	 * automatically appends the newly build entity to its parent.
-	 *
-	 * @param parent     is the parent DocumentEntity. The newly constructed
-	 *                   StructuredEntity will automatically be appended to it.
-	 * @param domains    are the domains that are used to find the
-	 *                   StructuredClass for the new node. The domains will be
-	 *                   searched in the given order.
-	 * @param className  is the name of the StructuredClass.
-	 * @param fieldName  is the name of the field where the newly constructed
-	 *                   StructuredEntity shall be appended.
-	 * @param attributes are the attributes of the new node in terms of a Struct
-	 *                   variant (empty per default).
-	 * @param name       is the name of this StructuredEntity (empty per
-	 *                   default).
-	 *
-	 * @return           the newly created StructuredEntity or a nullptr if some
-	 *                   input handle was empty or the given domains did not
-	 *                   contain a StructuredClass with the given name.
-	 */
-	static Rooted<StructuredEntity> buildEntity(
-	    Handle<DocumentEntity> parent, std::vector<Handle<Domain>> domains,
-	    const std::string &className, const std::string &fieldName = "",
-	    Variant attributes = Variant(), std::string name = "");
 };
 
 /**
@@ -284,25 +233,6 @@ public:
 	Variant getContent() const { return getAttributes(); }
 
 	// TODO: Override such methods like "getField" to disable them?
-
-	/**
-	 * This builds a DocumentPrimitive as child of the given DocumentEntity. It
-	 * automatically appends the newly build entity to its parent.
-	 *
-	 * @param parent     is the parent DocumentEntity. The newly constructed
-	 *                   DocumentPrimitive will automatically be appended to it.
-	 * @param content    is the primitive content of the new node in terms of a
-	 *                   Struct variant.
-	 * @param fieldName  is the name of the field where the newly constructed
-	 *                   StructuredEntity shall be appended.
-	 *
-	 * @return           the newly created StructuredEntity or a nullptr if some
-	 *                   input handle was empty or the given domains did not
-	 *                   contain a StructuredClass with the given name.
-	 */
-	static Rooted<DocumentPrimitive> buildEntity(
-	    Handle<DocumentEntity> parent, Variant content,
-	    const std::string &fieldName = "");
 };
 
 /**
@@ -365,45 +295,6 @@ public:
 	Rooted<Anchor> getStart() { return start; }
 
 	Rooted<Anchor> getEnd() { return end; }
-
-	/**
-	 * This builds an Anchor as child of the given DocumentEntity. It
-	 * automatically appends the newly build Anchor to its parent.
-	 *
-	 * @param parent     is the parent DocumentEntity. The newly constructed
-	 *                   Anchor will automatically be appended to it.
-	 * @param id         is the id of this Anchor.
-	 * @param fieldName  is the name of the field where the newly constructed
-	 *                   Anchor shall be appended.
-	 *
-	 * @return           the newly created Anchor or a nullptr if some
-	 *                   input handle was empty.
-	 */
-	static Rooted<Anchor> buildAnchor(Handle<DocumentEntity> parent,
-	                                  std::string id,
-	                                  const std::string &fieldName = "");
-	/**
-	 * This builds an AnnotationEntity as child of the given DocumentEntity. It
-	 * automatically appends the newly build entity to its parent.
-	 *
-	 * @param parent     is the document the newly constructed AnnotationEntity
-	 *                   will be appended to.
-	 * @param domains    are the domains that are used to find the
-	 *                   AnnotationClass for the new node. The domains will be
-	 *                   searched in the given order.
-	 * @param className  is the name of the AnnotationClass.
-	 * @param attributes are the attributes of the new node in terms of a Struct
-	 *                   variant (empty per default).
-	 * @param name       is the name of this AnnotationEntity (empty per
-	 *                   default).
-	 * @return           the newly created AnnotationEntity or a nullptr if some
-	 *                   input handle was empty or the given domains did not
-	 *                   contain a AnnotationClass with the given name.
-	 */
-	static Rooted<AnnotationEntity> buildEntity(Handle<Document> parent, std::vector<Handle<Domain>> domains,
-	    const std::string &className,
-	    Handle<Anchor> start, Handle<Anchor> end,
-	    Variant attributes = Variant(), std::string name = "");
 };
 
 /**

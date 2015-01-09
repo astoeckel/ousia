@@ -16,12 +16,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _MODEL_TEST_DOCUMENT_HPP_
-#define _MODEL_TEST_DOCUMENT_HPP_
+#ifndef _MODEL_TEST_ADVANCED_HPP_
+#define _MODEL_TEST_ADVANCED_HPP_
 
 #include <core/model/Document.hpp>
 #include <core/model/Domain.hpp>
 #include <core/model/Typesystem.hpp>
+
+#include "TestDocumentBuilder.hpp"
 
 namespace ousia {
 namespace model {
@@ -30,7 +32,8 @@ static Rooted<StructuredClass> resolveDescriptor(Handle<Domain> domain,
                                                  const std::string &className)
 {
 	// use the actual resolve method.
-	std::vector<ResolutionResult> resolved = domain->resolve(className, typeOf<StructuredClass>());
+	std::vector<ResolutionResult> resolved =
+	    domain->resolve(className, typeOf<StructuredClass>());
 	// take the first valid result.
 	for (auto &r : resolved) {
 		return r.node.cast<StructuredClass>();
@@ -126,20 +129,19 @@ static Rooted<Domain> constructEmphasisDomain(Manager &mgr,
 	return domain;
 }
 
-static bool addText(Handle<StructuredEntity> parent,
-                    std::vector<Handle<Domain>> &doms,
-                    const std::string &content)
+static bool addText(Logger &logger, Handle<Document> doc,
+                    Handle<StructuredEntity> parent, const std::string &content)
 {
-	// Add its text.
+	// Add the text.
 	Rooted<StructuredEntity> text =
-	    StructuredEntity::buildEntity(parent, doms, "text");
+	    buildStructuredEntity(doc, logger, parent, {"text"});
 	if (text.isNull()) {
 		return false;
 	}
-	// And its primitive content
+	// And the primitive content
 	Variant content_var{content.c_str()};
 	Rooted<DocumentPrimitive> primitive =
-	    DocumentPrimitive::buildEntity(text, content_var, "content");
+	    buildPrimitiveEntity(logger, text, content_var, "content");
 	if (primitive.isNull()) {
 		return false;
 	}
@@ -147,18 +149,17 @@ static bool addText(Handle<StructuredEntity> parent,
 	return true;
 }
 
-static bool addHeading(Handle<StructuredEntity> parent,
-                       std::vector<Handle<Domain>> &doms,
-                       const std::string &text)
+static bool addHeading(Logger &logger, Handle<Document> doc,
+                       Handle<StructuredEntity> parent, const std::string &text)
 {
 	// Add the heading.
-	Rooted<StructuredEntity> heading = StructuredEntity::buildEntity(
-	    parent, doms, "heading", "heading", {}, "");
+	Rooted<StructuredEntity> heading = buildStructuredEntity(
+	    doc, logger, parent, {"heading"}, "heading", {}, "");
 	if (heading.isNull()) {
 		return false;
 	}
 	// Add its text.
-	if (!addText(heading, doms, text)) {
+	if (!addText(logger, doc, heading, text)) {
 		return false;
 	}
 	return true;
@@ -167,25 +168,25 @@ static bool addHeading(Handle<StructuredEntity> parent,
 static int annoIdx = 1;
 
 // Only works for non-overlapping annotations!
-static bool addAnnotation(Handle<Document> doc, Handle<StructuredEntity> parent,
-                          std::vector<Handle<Domain>> &doms,
+static bool addAnnotation(Logger &logger, Handle<Document> doc,
+                          Handle<StructuredEntity> parent,
                           const std::string &text, const std::string &annoClass)
 {
 	Rooted<AnnotationEntity::Anchor> start =
-	    AnnotationEntity::buildAnchor(parent, std::to_string(annoIdx++));
+	    buildAnchor(logger, parent, std::to_string(annoIdx++));
 	if (start.isNull()) {
 		return false;
 	}
-	if (!addText(parent, doms, text)) {
+	if (!addText(logger, doc, parent, text)) {
 		return false;
 	}
 	Rooted<AnnotationEntity::Anchor> end =
-	    AnnotationEntity::buildAnchor(parent, std::to_string(annoIdx++));
+	    buildAnchor(logger, parent, std::to_string(annoIdx++));
 	if (end.isNull()) {
 		return false;
 	}
 	Rooted<AnnotationEntity> anno =
-	    AnnotationEntity::buildEntity(doc, doms, annoClass, start, end);
+	    buildAnnotationEntity(doc, logger, {annoClass}, start, end);
 	if (anno.isNull()) {
 		return false;
 	}
@@ -197,34 +198,34 @@ static bool addAnnotation(Handle<Document> doc, Handle<StructuredEntity> parent,
  * domain but also headings, emphasis and lists.
  * TODO: insert emphasis and lists.
  */
-static Rooted<Document> constructAdvancedDocument(Manager &mgr,
+static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
                                                   Handle<Domain> bookDom,
                                                   Handle<Domain> headingDom,
-                                                  Handle<Domain> listDom)
+                                                  Handle<Domain> listDom,
+                                                  Handle<Domain> emphasisDom)
 {
-	std::vector<Handle<Domain>> doms{bookDom, headingDom, listDom};
-
 	// Start with the (empty) document.
 	Rooted<Document> doc{new Document(mgr, "kant_was_ist_aufklaerung.oxd")};
+	doc->addDomains({bookDom, headingDom, listDom, emphasisDom});
 
 	// Add the root.
 	Rooted<StructuredEntity> book =
-	    StructuredEntity::buildRootEntity(doc, doms, "book");
+	    buildRootStructuredEntity(doc, logger, {"book"});
 	if (book.isNull()) {
 		return {nullptr};
 	}
 
 	// Add the heading.
 	{
-		Rooted<StructuredEntity> heading = StructuredEntity::buildEntity(
-		    book, doms, "heading", "heading", {}, "");
+		Rooted<StructuredEntity> heading = buildStructuredEntity(
+		    doc, logger, book, {"heading"}, "heading", {}, "");
 		if (heading.isNull()) {
 			return {nullptr};
 		}
-		if (!addText(heading, doms, "Beantwortung der Frage: ")) {
+		if (!addText(logger, doc, heading, "Beantwortung der Frage: ")) {
 			return {nullptr};
 		}
-		if (!addAnnotation(doc, heading, doms, "Was ist Aufklärung?",
+		if (!addAnnotation(logger, doc, heading, "Was ist Aufklärung?",
 		                   "emphasized")) {
 			return {nullptr};
 		}
@@ -232,58 +233,57 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr,
 
 	// Add the main section.
 	Rooted<StructuredEntity> sec =
-	    StructuredEntity::buildEntity(book, doms, "section");
+	    buildStructuredEntity(doc, logger, book, {"section"});
 	if (sec.isNull()) {
 		return {nullptr};
 	}
 
 	// Add the heading.
-	if (!addHeading(sec, doms, "Was ist Aufklärung?")) {
+	if (!addHeading(logger, doc, sec, "Was ist Aufklärung?")) {
 		return {nullptr};
 	}
 
 	// Add paragraph with main text.
 	{
 		Rooted<StructuredEntity> p =
-		    StructuredEntity::buildEntity(sec, doms, "paragraph");
+		    buildStructuredEntity(doc, logger, sec, {"paragraph"});
 		if (p.isNull()) {
 			return {nullptr};
 		}
 		// Add its text.
 		{
-			if (!addAnnotation(doc, p, doms,
+			if (!addAnnotation(logger, doc, p,
 			                   "Aufklärung ist der Ausgang des Menschen aus "
 			                   "seiner selbstverschuldeten Unmündigkeit",
 			                   "strong")) {
 				return {nullptr};
 			}
-			if (!addAnnotation(doc, p, doms, "Unmündigkeit",
-			                   "emphasized")) {
+			if (!addAnnotation(logger, doc, p, "Unmündigkeit", "emphasized")) {
 				return {nullptr};
 			}
-			if (!addText(p, doms,
+			if (!addText(logger, doc, p,
 			             "ist das Unvermögen, sich seines Verstandes ohne "
 			             "Leitung eines anderen zu bedienen. ")) {
 				return {nullptr};
 			}
-			if (!addAnnotation(doc, p, doms, "Selbstverschuldet",
+			if (!addAnnotation(logger, doc, p, "Selbstverschuldet",
 			                   "emphasized")) {
 				return {nullptr};
 			}
-			if (!addText(p, doms,
+			if (!addText(logger, doc, p,
 			             " ist diese Unmündigkeit, wenn die Ursache derselben "
 			             "nicht am Mangel des Verstandes, sondern der "
 			             "Entschließung und des Mutes liegt, sich seiner ohne "
 			             "Leitung eines andern zu bedienen.")) {
 				return {nullptr};
 			}
-			if (!addAnnotation(doc, p, doms,
+			if (!addAnnotation(logger, doc, p,
 			                   "Sapere aude! Habe Mut, dich deines eigenen "
 			                   "Verstandes zu bedienen!",
 			                   "emphasized")) {
 				return {nullptr};
 			}
-			if (!addText(p, doms,
+			if (!addText(logger, doc, p,
 			             " ist also der Wahlspruch der Aufklärung.")) {
 				return {nullptr};
 			}
@@ -292,20 +292,18 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr,
 
 	// Add the "Lesarten" section
 	Rooted<StructuredEntity> lesarten =
-	    StructuredEntity::buildEntity(book, doms, "section");
+	    buildStructuredEntity(doc, logger, book, {"section"});
 	if (lesarten.isNull()) {
 		return {nullptr};
 	}
 	// Add the heading.
-	if (!addHeading(lesarten, doms, "Lesarten")) {
+	if (!addHeading(logger, doc, lesarten, "Lesarten")) {
 		return {nullptr};
 	}
 	// Add list with citations
 	{
-		// TODO: We need to restrict this to the list domain. Otherwise
-		// this leads to resolve errors for some reason.
 		Rooted<StructuredEntity> ul =
-		    StructuredEntity::buildEntity(lesarten, {listDom}, "ul");
+		    buildStructuredEntity(doc, logger, lesarten, {"ul"});
 		if (ul.isNull()) {
 			return {nullptr};
 		}
@@ -323,13 +321,12 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr,
 		    "von F. Ch. Starke. 2 Bände. Leipzig 1833 und Quedlinburg 1838. "
 		    "Bd. I, S. 75–84."};
 		for (auto &cit : citations) {
-			// TODO: This needs to be restricted as well.
 			Rooted<StructuredEntity> item =
-			    StructuredEntity::buildEntity(ul, {listDom}, "item");
+			    buildStructuredEntity(doc, logger, ul, {"item"});
 			if (item.isNull()) {
 				return {nullptr};
 			}
-			if (!addText(item, doms, cit)) {
+			if (!addText(logger, doc, item, cit)) {
 				return {nullptr};
 			}
 		}

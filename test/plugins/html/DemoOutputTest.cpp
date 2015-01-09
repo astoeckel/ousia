@@ -26,7 +26,6 @@
 #include <core/model/Domain.hpp>
 
 #include <core/model/TestAdvanced.hpp>
-#include <core/model/TestDocument.hpp>
 #include <core/model/TestDomain.hpp>
 
 namespace ousia {
@@ -35,7 +34,7 @@ namespace html {
 TEST(DemoHTMLTransformer, writeHTML)
 {
 	// Construct Manager
-	Logger logger;
+	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
 	Rooted<model::SystemTypesystem> sys{new model::SystemTypesystem(mgr)};
 	// Get the domains.
@@ -48,8 +47,8 @@ TEST(DemoHTMLTransformer, writeHTML)
 	Rooted<model::Domain> emDom =
 	    model::constructEmphasisDomain(mgr, sys, logger);
 	// Construct the document.
-	Rooted<model::Document> doc =
-	    model::constructAdvancedDocument(mgr, bookDom, headingDom, listDom);
+	Rooted<model::Document> doc = model::constructAdvancedDocument(
+	    mgr, logger, bookDom, headingDom, listDom, emDom);
 
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	// dump the manager state
