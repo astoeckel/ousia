@@ -552,11 +552,11 @@ public:
 	/* Insert and delete operations */
 
 	template <class InputIterator>
-	iterator insert(const_iterator position, InputIterator first,
+	iterator insert(iterator position, InputIterator first,
 	                InputIterator last)
 	{
 		bool atStart = true;
-		const_iterator pos = position;
+		iterator pos = position;
 		for (InputIterator it = first; it != last; it++) {
 			if (atStart) {
 				atStart = false;
