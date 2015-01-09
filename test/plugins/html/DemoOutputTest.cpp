@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
+#include <sstream>
 
 #include <plugins/html/DemoOutput.hpp>
 
@@ -56,9 +57,17 @@ TEST(DemoHTMLTransformer, writeHTML)
 	mgr.exportGraphviz("bookDocument.dot");
 #endif
 
-	// TODO: change this. Don't use printouts
+	// we can only do a rough check here.
 	DemoHTMLTransformer transformer;
-	transformer.writeHTML(doc, std::cout);
+	std::stringstream out;
+	transformer.writeHTML(doc, out);
+	const std::string res = out.str();
+	ASSERT_FALSE(res == "");
+	ASSERT_TRUE(res.find("Was ist Aufklärung?") != std::string::npos);
+	ASSERT_TRUE(res.find(
+	                "Aufklärung ist der Ausgang des Menschen aus seiner "
+	                "selbstverschuldeten Unmündigkeit!") != std::string::npos);
+	ASSERT_TRUE(res.find("Sapere aude!") != std::string::npos);
 }
 
 TEST(DemoHTMLTransformer, AnnotationProcessing)
@@ -100,9 +109,15 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	buildAnnotationEntity(doc, logger, {"emphasized"}, em_start, em_end);
 	buildAnnotationEntity(doc, logger, {"strong"}, strong_start, strong_end);
 
-	// TODO: change this. Don't use printouts
+	// Check serialization.
 	DemoHTMLTransformer transformer;
-	transformer.writeHTML(doc, std::cout);
+	std::stringstream out;
+	transformer.writeHTML(doc, out, false);
+	const std::string res = out.str();
+	// In HTML the overlapping structure must be serialized as follows:
+	ASSERT_TRUE(
+	    res.find("<em>bla<strong>blub</strong></em><strong>bla</strong>") !=
+	    std::string::npos);
 }
 }
 }

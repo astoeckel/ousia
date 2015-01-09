@@ -83,11 +83,14 @@ public:
 	 * Therefore this is not an adequate model of our algorithms but only a
 	 * Demo.
 	 *
-	 * @param doc is a Document using concepts of the book, headings, emphasis
-	 *            and lists domains but no other.
-	 * @param out is the output stream the data shall be written to.
+	 * @param doc    is a Document using concepts of the book, headings,
+	 *               emphasis and lists domains but no other.
+	 * @param out    is the output stream the data shall be written to.
+	 * @param pretty is a flag that manipulates whether newlines and tabs are
+	 *               used.
 	 */
-	void writeHTML(Handle<model::Document> doc, std::ostream &out);
+	void writeHTML(Handle<model::Document> doc, std::ostream &out,
+	               bool pretty = true);
 };
 }
 }

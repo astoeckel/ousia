@@ -29,12 +29,12 @@ namespace ousia {
 namespace html {
 
 void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
-                                    std::ostream &out)
+                                    std::ostream &out, bool pretty)
 {
 	Manager &mgr = doc->getManager();
 	// Create an XML object tree for the document first.
 	Rooted<xml::Element> html{new xml::Element{
-	    mgr, {nullptr}, "html", {{"xlmns", "http://www.w3.org/1999/xhtml"}}}};
+	    mgr, {nullptr}, "html"}};
 	// add the head Element
 	Rooted<xml::Element> head{new xml::Element{mgr, html, "head"}};
 	html->addChild(head);
@@ -78,7 +78,7 @@ void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
 	body->addChild(book);
 
 	// After the content has been transformed, we serialize it.
-	html->serialize(out, "<!DOCTYPE html>");
+	html->serialize(out, "<!DOCTYPE html>", pretty);
 }
 
 /**

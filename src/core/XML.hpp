@@ -73,9 +73,12 @@ public:
 	 * @param out     is the output stream the serialized data shall be
 	 *                written to.
 	 * @param doctype enables you to add a prefix specifying the doctype.
+	 * @param pretty is a flag that manipulates whether newlines and tabs are
+	 *               used.
 	 */
 	void serialize(std::ostream &out,
-	               const std::string &doctype = "<?xml version=\"1.0\"?>");
+	               const std::string &doctype = "<?xml version=\"1.0\"?>",
+	               bool pretty = true);
 	/**
 	 * This method just writes the XML representation of this node to the
 	 * output stream.
@@ -83,8 +86,11 @@ public:
 	 * @param out      the output stream the serialized data shall be written
 	 *                 to.
 	 * @param tabdepth the current tabdepth for prettier output.
+	 * @param pretty is a flag that manipulates whether newlines and tabs are
+	 *               used.
 	 */
-	virtual void doSerialize(std::ostream &out, unsigned int tabdepth) = 0;
+	virtual void doSerialize(std::ostream &out, unsigned int tabdepth,
+	                         bool pretty) = 0;
 
 	/**
 	 * @return the parent XML element of this node.
@@ -130,7 +136,8 @@ public:
 	 * * The end tag of this element.
 	 *
 	 */
-	void doSerialize(std::ostream &out, unsigned int tabdepth) override;
+	void doSerialize(std::ostream &out, unsigned int tabdepth,
+	                 bool pretty) override;
 
 	const ManagedVector<Node> &getChildren() const { return children; }
 
@@ -155,7 +162,8 @@ public:
 	 * This just writes the text to the output.
 	 *
 	 */
-	void doSerialize(std::ostream &out, unsigned int tabdepth) override;
+	void doSerialize(std::ostream &out, unsigned int tabdepth,
+	                 bool pretty) override;
 };
 }
 

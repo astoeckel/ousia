@@ -4,18 +4,23 @@
 namespace ousia {
 namespace xml {
 
-void Node::serialize(std::ostream &out, const std::string &doctype)
+void Node::serialize(std::ostream &out, const std::string &doctype, bool pretty)
 {
 	if (doctype != "") {
-		out << doctype << "\n";
+		out << doctype;
+		if (pretty) {
+			out << '\n';
+		}
 	}
-	doSerialize(out, 0);
+	doSerialize(out, 0, pretty);
 }
 
-void Element::doSerialize(std::ostream &out, unsigned int tabdepth)
+void Element::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 {
-	for (unsigned int t = 0; t < tabdepth; t++) {
-		out << '\t';
+	if (pretty) {
+		for (unsigned int t = 0; t < tabdepth; t++) {
+			out << '\t';
+		}
 	}
 	out << '<' << name;
 	for (auto &a : attributes) {
@@ -23,25 +28,41 @@ void Element::doSerialize(std::ostream &out, unsigned int tabdepth)
 	}
 	// if we have no children, we close the tag immediately.
 	if (children.size() == 0) {
-		out << "/>\n";
+		out << "/>";
+		if (pretty) {
+			out << '\n';
+		}
 	} else {
-		out << ">\n";
+		out << ">";
+		if (pretty) {
+			out << '\n';
+		}
 		for (auto &n : children) {
-			n->doSerialize(out, tabdepth + 1);
+			n->doSerialize(out, tabdepth + 1, pretty);
 		}
-		for (unsigned int t = 0; t < tabdepth; t++) {
-			out << '\t';
+		if (pretty) {
+			for (unsigned int t = 0; t < tabdepth; t++) {
+				out << '\t';
+			}
 		}
-		out << "</" << name << ">\n";
+		out << "</" << name << ">";
+		if (pretty) {
+			out << '\n';
+		}
 	}
 }
 
-void Text::doSerialize(std::ostream &out, unsigned int tabdepth)
+void Text::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 {
-	for (unsigned int t = 0; t < tabdepth; t++) {
-		out << '\t';
+	if (pretty) {
+		for (unsigned int t = 0; t < tabdepth; t++) {
+			out << '\t';
+		}
 	}
-	out << text << '\n';
+	out << text;
+	if (pretty) {
+		out << '\n';
+	}
 }
 }
 

@@ -254,7 +254,7 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
 		{
 			if (!addAnnotation(logger, doc, p,
 			                   "Aufklärung ist der Ausgang des Menschen aus "
-			                   "seiner selbstverschuldeten Unmündigkeit",
+			                   "seiner selbstverschuldeten Unmündigkeit!",
 			                   "strong")) {
 				return {nullptr};
 			}
