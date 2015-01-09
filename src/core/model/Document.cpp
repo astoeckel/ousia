@@ -93,18 +93,14 @@ static Rooted<StructuredClass> resolveDescriptor(
 	// iterate over all domains.
 	for (auto &d : domains) {
 		// use the actual resolve method.
-		std::vector<Rooted<Managed>> resolved = d->resolve(className);
+		std::vector<ResolutionResult> resolved = d->resolve(className, typeOf<StructuredClass>());
 		// if we don't find anything, continue.
 		if (resolved.size() == 0) {
 			continue;
 		}
 		// Otherwise take the first valid result.
 		for (auto &r : resolved) {
-			Managed *m = &(*r);
-			StructuredClass *c = dynamic_cast<StructuredClass *>(m);
-			if (c != nullptr) {
-				return Rooted<StructuredClass>(c);
-			}
+			return r.node.cast<StructuredClass>();
 		}
 	}
 	return {nullptr};

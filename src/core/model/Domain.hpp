@@ -254,12 +254,6 @@ private:
 	FieldType fieldType;
 	Owned<Type> primitiveType;
 
-protected:
-	void doResolve(std::vector<Rooted<Managed>> &res,
-	               const std::vector<std::string> &path, Filter filter,
-	               void *filterData, unsigned idx,
-	               VisitorSet &visited) override;
-
 public:
 	const bool optional;
 
@@ -310,7 +304,6 @@ public:
 	    : Node(mgr, std::move(name), parent),
 	      children(this),
 	      fieldType(fieldType),
-	      // TODO: What would be a wise initialization of the primitiveType?
 	      optional(optional)
 	{
 	}
@@ -360,10 +353,7 @@ private:
 	NodeVector<FieldDescriptor> fieldDescriptors;
 
 protected:
-	void doResolve(std::vector<Rooted<Managed>> &res,
-	               const std::vector<std::string> &path, Filter filter,
-	               void *filterData, unsigned idx,
-	               VisitorSet &visited) override;
+	void continueResolve(ResolutionState &state) override;
 
 public:
 	Descriptor(Manager &mgr, std::string name, Handle<Domain> domain,
@@ -467,12 +457,6 @@ private:
 	Owned<StructuredClass> isa;
 	NodeVector<FieldDescriptor> parents;
 
-protected:
-	void doResolve(std::vector<Rooted<Managed>> &res,
-	               const std::vector<std::string> &path, Filter filter,
-	               void *filterData, unsigned idx,
-	               VisitorSet &visited) override;
-
 public:
 	const bool transparent;
 	// TODO: Is it possible to have root=true and cardinality other than 1?
@@ -553,10 +537,7 @@ private:
 	NodeVector<Typesystem> typesystems;
 
 protected:
-	void doResolve(std::vector<Rooted<Managed>> &res,
-	               const std::vector<std::string> &path, Filter filter,
-	               void *filterData, unsigned idx,
-	               VisitorSet &visited) override;
+	void continueResolve(ResolutionState &state) override;
 
 public:
 	Domain(Manager &mgr, Handle<SystemTypesystem> sys, std::string name)

@@ -432,7 +432,7 @@ private:
 	 * Reference to the parent structure type (or nullptr if the struct type is
 	 * not derived from any other struct type).
 	 */
-	const Owned<StructType> parent;
+	const Owned<StructType> parentStructure;
 
 	/**
 	 * Vector containing references to all attribute descriptors.
@@ -530,15 +530,16 @@ private:
 	 * @param name is the name of the EnumType instance. Should be a valid
 	 * identifier.
 	 * @param system is a reference to the parent Typesystem instance.
-	 * @param parent is a reference to the StructType this type is derived from,
-	 * may be nullptr.
+	 * @param parentStructure is a reference to the StructType this type is
+	 * derived from, may be nullptr.
 	 * @param attributes is a vector containing the struct type attributes.
 	 */
 	StructType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	           Handle<StructType> parent, NodeVector<Attribute> attributes,
+	           Handle<StructType> parentStructure,
+	           NodeVector<Attribute> attributes,
 	           std::map<std::string, size_t> attributeNames)
 	    : Type(mgr, std::move(name), system, false),
-	      parent(acquire(parent)),
+	      parentStructure(acquire(parentStructure)),
 	      attributes(this, std::move(attributes)),
 	      attributeNames(std::move(attributeNames))
 	{
@@ -569,18 +570,17 @@ public:
 	 * @param name is the name of the EnumType instance. Should be a valid
 	 * identifier.
 	 * @param system is a reference to the parent Typesystem instance.
-	 * @param parent is a reference to the StructType this type is derived from,
-	 * may be nullptr.
+	 * @param parentStructure is a reference to the StructType this type is
+	 * derived from, may be nullptr.
 	 * @param attributes is a vector containing the struct type attributes.
 	 * The attributes are checked for validity (their names must be a valid
 	 * identifiers) and uniqueness (each value must exist exactly once).
 	 * @param logger is the Logger instance into which errors should be written.
 	 */
-	static Rooted<StructType> createValidated(Manager &mgr, std::string name,
-	                                          Handle<Typesystem> system,
-	                                          Handle<StructType> parent,
-	                                          NodeVector<Attribute> attributes,
-	                                          Logger &logger);
+	static Rooted<StructType> createValidated(
+	    Manager &mgr, std::string name, Handle<Typesystem> system,
+	    Handle<StructType> parentStructure, NodeVector<Attribute> attributes,
+	    Logger &logger);
 
 	/**
 	 * Creates a Variant containing a valid representation of a data instance of
@@ -618,7 +618,14 @@ public:
 	 * @return a rooted handle pointing at the parent type or nullptr, if this
 	 * struct type has no parent.
 	 */
-	Rooted<StructType> getParent() const { return parent; }
+	Rooted<StructType> getParentStructure() const { return parentStructure; }
+
+	/**
+	 * Returns a reference at the list containing all attributes.
+	 *
+	 * @return a const reference pointing at the attribute list.
+	 */
+	const NodeVector<Attribute> &getAttributes() const { return attributes; }
 
 	/**
 	 * Returns the index of the given attribute in a data array representing
@@ -973,7 +980,6 @@ extern const Rtti<model::Typesystem> Typesystem;
  * Type information for the SystemTypesystem class.
  */
 extern const Rtti<model::SystemTypesystem> SystemTypesystem;
-
 }
 }
 

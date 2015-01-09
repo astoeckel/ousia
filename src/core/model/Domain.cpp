@@ -23,59 +23,28 @@
 namespace ousia {
 namespace model {
 
-void FieldDescriptor::doResolve(std::vector<Rooted<Managed>> &res,
-                                const std::vector<std::string> &path,
-                                Filter filter, void *filterData, unsigned idx,
-                                VisitorSet &visited)
+/* Class FieldDescriptor */
+
+/* Class Descriptor */
+
+void Descriptor::continueResolve(ResolutionState &state)
 {
-	// We call resolve for the children, but give them the field name as
-	// alias.
-	for (auto &c : children) {
-		c->resolve(res, path, filter, filterData, idx, visited, &getNameRef());
-	}
+	const NodeVector<Attribute> &attributes =
+	    attributesDescriptor->getAttributes();
+	continueResolveComposita(attributes, attributes.getIndex(), state);
+	continueResolveComposita(fieldDescriptors, fieldDescriptors.getIndex(),
+	                         state);
 }
 
-// TODO: better alias?
-static std::string DESCRIPTOR_ATTRIBUTES_ALIAS{"attributes"};
+/* Class Domain */
 
-void Descriptor::doResolve(std::vector<Rooted<Managed>> &res,
-                           const std::vector<std::string> &path, Filter filter,
-                           void *filterData, unsigned idx, VisitorSet &visited)
+void Domain::continueResolve(ResolutionState &state)
 {
-	// TODO: This could be a problem, because the name of the field might be
-	// needed in the path.
-	for (auto &fd : fieldDescriptors) {
-		fd->resolve(res, path, filter, filterData, idx, visited, nullptr);
-	}
-	// TODO: This throws a SEGFAULT for some reason.
-	//	attributesDescriptor->resolve(res, path, filter, filterData, idx,
-	// visited,
-	//	                              &DESCRIPTOR_ATTRIBUTES_ALIAS);
-}
-
-void StructuredClass::doResolve(std::vector<Rooted<Managed>> &res,
-                                const std::vector<std::string> &path,
-                                Filter filter, void *filterData, unsigned idx,
-                                VisitorSet &visited)
-{
-	Descriptor::doResolve(res, path, filter, filterData, idx, visited);
-	if (!isa.isNull()) {
-		isa->doResolve(res, path, filter, filterData, idx, visited);
-	}
-}
-
-void Domain::doResolve(std::vector<Rooted<Managed>> &res,
-                       const std::vector<std::string> &path, Filter filter,
-                       void *filterData, unsigned idx, VisitorSet &visited)
-{
-	for (auto &s : structureClasses) {
-		s->resolve(res, path, filter, filterData, idx, visited, nullptr);
-	}
-	for (auto &a : annotationClasses) {
-		a->resolve(res, path, filter, filterData, idx, visited, nullptr);
-	}
-	for (auto &t : typesystems) {
-		t->resolve(res, path, filter, filterData, idx, visited, nullptr);
+	if (!continueResolveComposita(structureClasses, structureClasses.getIndex(),
+	                              state) |
+	    continueResolveComposita(annotationClasses,
+	                             annotationClasses.getIndex(), state)) {
+		continueResolveReferences(typesystems, state);
 	}
 }
 }

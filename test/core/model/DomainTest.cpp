@@ -28,19 +28,14 @@
 namespace ousia {
 namespace model {
 
-void assert_path(std::vector<Rooted<Managed>> &result, size_t idx,
-                 const RttiBase &expected_type,
+void assert_path(const ResolutionResult &res, const RttiBase &expected_type,
                  std::vector<std::string> expected_path)
 {
-	ASSERT_TRUE(result.size() > idx);
-	// check class/type
-	ASSERT_TRUE(result[idx]->isa(expected_type));
-	// cast to node
-	Rooted<Node> n = result[idx].cast<Node>();
-	// extract actual path
-	std::vector<std::string> actual_path = n->path();
-	// check path
-	ASSERT_EQ(expected_path, actual_path);
+	// Check class/type
+	ASSERT_TRUE(res.node->isa(expected_type));
+
+	// Check path
+	ASSERT_EQ(expected_path, res.node->path());
 }
 
 TEST(Domain, testDomainResolving)
@@ -52,43 +47,38 @@ TEST(Domain, testDomainResolving)
 	// Get the domain.
 	Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
 
-	/*
-	 * Start with the "book" search keyword. This should resolve to the domain
-	 * itself (because it is called "book"), as well as the structure "book"
-	 * node.
-	 */
-	std::vector<Rooted<Managed>> res =
-	    domain->resolve(std::vector<std::string>{"book"});
+	std::vector<ResolutionResult> res;
 
-	// First we expect the book domain.
-	assert_path(res, 0, typeOf<Domain>(), {"book"});
-	// Then the book structure.
-	assert_path(res, 1, typeOf<StructuredClass>(), {"book", "book"});
-	ASSERT_EQ(2, res.size());
+	// There is one domain called "book"
+	res = domain->resolve("book", typeOf<Domain>());
+	ASSERT_EQ(1U, res.size());
+	assert_path(res[0], typeOf<Domain>(), {"book"});
+
+	// There is one domain called "book"
+	res = domain->resolve("book", typeOf<StructuredClass>());
+	ASSERT_EQ(1U, res.size());
+	assert_path(res[0], typeOf<StructuredClass>(), {"book", "book"});
 
 	// If we explicitly ask for the "book, book" path, then only the
 	// StructuredClass should be returned.
-	res = domain->resolve(std::vector<std::string>{"book", "book"});
-	assert_path(res, 0, typeOf<StructuredClass>(), {"book", "book"});
-	ASSERT_EQ(1, res.size());
+	res = domain->resolve(std::vector<std::string>{"book", "book"},
+	                      typeOf<Domain>());
+	ASSERT_EQ(0U, res.size());
+
+	res = domain->resolve(std::vector<std::string>{"book", "book"},
+	                      typeOf<StructuredClass>());
+	ASSERT_EQ(1U, res.size());
 
 	// If we ask for "section" the result should be unique as well.
-	res = domain->resolve(std::vector<std::string>{"section"});
-	// TODO: Is that the path result we want?
-	assert_path(res, 0, typeOf<StructuredClass>(), {"book", "section"});
-	ASSERT_EQ(1, res.size());
+	res = domain->resolve("section", typeOf<StructuredClass>());
+	ASSERT_EQ(1U, res.size());
+	assert_path(res[0], typeOf<StructuredClass>(), {"book", "section"});
 
-	// If we ask for the path "book", "book", "" we reference the
-	// FieldDescriptor of the StructuredClass "book".
-	res = domain->resolve(std::vector<std::string>{"book", "book", ""});
-	assert_path(res, 0, typeOf<FieldDescriptor>(), {"book", "book", ""});
-	ASSERT_EQ(1, res.size());
-
-	// If we ask for "paragraph" it is references two times in the Domain graph,
+	// If we ask for "paragraph" it is referenced two times in the Domain graph,
 	// but should be returned only once.
-	res = domain->resolve("paragraph");
-	assert_path(res, 0, typeOf<StructuredClass>(), {"book", "paragraph"});
-	ASSERT_EQ(1, res.size());
+	res = domain->resolve("paragraph", typeOf<StructuredClass>());
+	ASSERT_EQ(1U, res.size());
+	assert_path(res[0], typeOf<StructuredClass>(), {"book", "paragraph"});
 }
 }
 }

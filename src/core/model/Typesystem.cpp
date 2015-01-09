@@ -318,20 +318,19 @@ bool StructType::doBuild(Variant &data, Logger &logger) const
 	return buildFromArrayOrMap(data, logger, false);
 }
 
-Rooted<StructType> StructType::createValidated(Manager &mgr, std::string name,
-                                               Handle<Typesystem> system,
-                                               Handle<StructType> parent,
-                                               NodeVector<Attribute> attributes,
-                                               Logger &logger)
+Rooted<StructType> StructType::createValidated(
+    Manager &mgr, std::string name, Handle<Typesystem> system,
+    Handle<StructType> parentStructure, NodeVector<Attribute> attributes,
+    Logger &logger)
 {
 	// Check the attributes for validity and uniqueness
 	std::map<std::string, size_t> attributeNames;
 	NodeVector<Attribute> collectedAttributes;
 
 	// Copy the attributes from the parent structure
-	if (parent != nullptr) {
-		attributeNames = parent->attributeNames;
-		collectedAttributes = parent->attributes;
+	if (parentStructure != nullptr) {
+		attributeNames = parentStructure->attributeNames;
+		collectedAttributes = parentStructure->attributes;
 	}
 
 	// Check the attributes for validity and uniqueness
@@ -348,10 +347,11 @@ Rooted<StructType> StructType::createValidated(Manager &mgr, std::string name,
 		if (!res.second) {
 			logger.error(std::string("Attribute with name \"") + attrName +
 			             std::string("\" defined multiple times"));
-			if (parent != nullptr && parent->indexOf(attrName) >= 0) {
+			if (parentStructure != nullptr &&
+			    parentStructure->indexOf(attrName) >= 0) {
 				logger.note(std::string("Attribute \"") + attrName +
 				            std::string("\" was defined in parent class \"") +
-				            parent->getName() + std::string("\""));
+				            parentStructure->getName() + std::string("\""));
 			}
 		}
 
@@ -360,8 +360,8 @@ Rooted<StructType> StructType::createValidated(Manager &mgr, std::string name,
 	}
 
 	// Call the private constructor
-	return new StructType(mgr, name, system, parent, collectedAttributes,
-	                      attributeNames);
+	return new StructType(mgr, name, system, parentStructure,
+	                      collectedAttributes, attributeNames);
 }
 
 Variant StructType::create() const
@@ -383,8 +383,8 @@ bool StructType::derivedFrom(Handle<StructType> other) const
 	if (other == this) {
 		return true;
 	}
-	if (parent != nullptr) {
-		return parent->derivedFrom(other);
+	if (parentStructure != nullptr) {
+		return parentStructure->derivedFrom(other);
 	}
 	return false;
 }
