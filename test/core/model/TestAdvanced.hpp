@@ -198,9 +198,9 @@ static bool addAnnotation(Handle<Document> doc, Handle<StructuredEntity> parent,
  * TODO: insert emphasis and lists.
  */
 static Rooted<Document> constructAdvancedDocument(Manager &mgr,
-                                                  Rooted<Domain> bookDom,
-                                                  Rooted<Domain> headingDom,
-                                                  Rooted<Domain> listDom)
+                                                  Handle<Domain> bookDom,
+                                                  Handle<Domain> headingDom,
+                                                  Handle<Domain> listDom)
 {
 	std::vector<Handle<Domain>> doms{bookDom, headingDom, listDom};
 
