@@ -106,8 +106,20 @@ private:
 	 * of the path has been matched yet).
 	 *
 	 * @param state is used internally to manage the resolution process.
+	 * @return true if the resolution is at the beginning, false otherwise.
 	 */
-	static bool resolutionAtBeginning(ResolutionState &state);
+	static bool canFollowComposita(ResolutionState &state);
+
+	/**
+	 * Returns true if following references is currently allowed in the
+	 * resolution process. This is the case if the resolution is currently at
+	 * the beginning (no part of the path has been matched yet) and this node
+	 * is the current resolution root node.
+	 *
+	 * @param state is used internally to manage the resolution process.
+	 * @return true if references can be followed, false otherwise.
+	 */
+	static bool canFollowReferences(ResolutionState &state);
 
 	/**
 	 * Method used internally for resolving nodes with a certain name and type
@@ -199,7 +211,8 @@ protected:
 	{
 		if (continueResolveIndex(index, state)) {
 			return true;
-		} else if (resolutionAtBeginning(state)) {
+		}
+		if (canFollowComposita(state)) {
 			return continueResolveComposita(container, state);
 		}
 		return false;
@@ -228,7 +241,7 @@ protected:
 	template <class T>
 	bool continueResolveReferences(T &container, ResolutionState &state)
 	{
-		if (resolutionAtBeginning(state)) {
+		if (canFollowReferences(state)) {
 			bool res = false;
 			for (auto elem : container) {
 				res = continueResolveReference(elem, state) | res;
