@@ -102,45 +102,12 @@ public:
  * resolving Node instances by name.
  */
 class ResolutionState {
-private:
-	/**
-	 * Constructor of the ResolutionState class.
-	 *
-	 * @param shared is the shared, path independent state.
-	 * @param resolutionRoot is the current resolution root node.
-	 */
-	ResolutionState(SharedResolutionState &shared, int idx,
-	                Node *resolutionRoot)
-	    : shared(shared), idx(idx), resolutionRoot(resolutionRoot)
-	{
-	}
-
 public:
-	/**
-	 * Constructor of the ResolutionState class.
-	 *
-	 * @param shared is the shared, path independent state.
-	 * @param resolutionRoot is the current resolution root node.
-	 */
-	ResolutionState(SharedResolutionState &shared,
-	                Node *resolutionRoot = nullptr, bool atStartNode = true)
-	    : shared(shared),
-	      idx(0),
-	      resolutionRoot(resolutionRoot),
-	      atStartNode(atStartNode)
-	{
-	}
-
 	/**
 	 * Reference at the resolution state that is shared between the various
 	 * resolution paths.
 	 */
 	SharedResolutionState &shared;
-
-	/**
-	 * Current index within the given path.
-	 */
-	int idx;
 
 	/**
 	 * Current resolution root node or nullptr if no resolution root node has
@@ -149,10 +116,38 @@ public:
 	Node *resolutionRoot;
 
 	/**
-	 * Set to true if the resolution currently is at the node at which the
-	 * resolution process was started.
+	 * Current index within the given path.
 	 */
-	bool atStartNode;
+	int idx;
+
+	/**
+	 * Set to true if the resolution currently is in the subtree in which the
+	 * node resolution process was started (no reference boundary has been
+	 * passed yet).
+	 */
+	bool inStartTree;
+
+	/**
+	 * Set to true, once a compositum has been found.
+	 */
+	bool foundCompositum;
+
+	/**
+	 * Constructor of the ResolutionState class.
+	 *
+	 * @param shared is the shared, path independent state.
+	 * @param resolutionRoot is the current resolution root node.
+	 */
+	ResolutionState(SharedResolutionState &shared,
+	                Node *resolutionRoot = nullptr, int idx = 0,
+	                bool inStartTree = true)
+	    : shared(shared),
+	      resolutionRoot(resolutionRoot),
+	      idx(idx),
+	      inStartTree(inStartTree),
+	      foundCompositum(false)
+	{
+	}
 
 	/**
 	 * Adds a node to the result.
@@ -193,21 +188,31 @@ public:
 	 */
 	bool typeMatches(const RttiBase &type) { return type.isa(shared.type); }
 
+	bool canContainType(const RttiBase &type)
+	{
+		return type.composedOf(shared.type);
+	}
+
 	const std::string &currentName() { return shared.path[idx]; }
 
 	ResolutionState advance()
 	{
-		return ResolutionState{shared, idx + 1, resolutionRoot};
+		return ResolutionState{shared, resolutionRoot, idx + 1, false};
 	}
 
 	ResolutionState fork(Node *newResolutionRoot)
 	{
-		return ResolutionState{shared, newResolutionRoot, false};
+		return ResolutionState{shared, newResolutionRoot, 0, false};
 	}
 
-	bool canFollowReferences() { return idx == 0 && atStartNode; }
+	bool canFollowReferences()
+	{
+		return idx == 0 && inStartTree && !foundCompositum;
+	}
 
 	bool canFollowComposita() { return idx == 0; }
+
+	size_t resultCount() { return shared.result.size(); }
 };
 
 /* Class Node */
@@ -249,7 +254,8 @@ bool Node::resolve(ResolutionState &state)
 {
 	// Try to mark this note as visited, do nothing if already has been visited
 	if (state.markVisited(this)) {
-		std::cout << "visiting " << name << std::endl;
+		std::cout << "visiting " << name << " (" << state.idx << ")"
+		          << std::endl;
 
 		// Add this node to the result if it matches the current description
 		if (state.atEndOfPath()) {
@@ -259,7 +265,9 @@ bool Node::resolve(ResolutionState &state)
 				return true;
 			}
 		} else {
+			size_t resCount = state.resultCount();
 			continueResolve(state);
+			return state.resultCount() > resCount;
 		}
 	}
 	return false;
@@ -275,7 +283,10 @@ bool Node::continueResolveIndex(const Index &index, ResolutionState &state)
 	Rooted<Node> h = index.resolve(state.currentName());
 	if (h != nullptr) {
 		ResolutionState advancedState = state.advance();
-		return h->resolve(advancedState);
+		if (h->resolve(advancedState)) {
+			state.foundCompositum = true;
+			return true;
+		}
 	}
 	return false;
 }
@@ -287,6 +298,7 @@ bool Node::continueResolveCompositum(Handle<Node> h, ResolutionState &state)
 	if (h->getName() == state.currentName()) {
 		ResolutionState advancedState = state.advance();
 		if (h->resolve(advancedState)) {
+			state.foundCompositum = true;
 			return true;
 		}
 	}
@@ -302,8 +314,10 @@ bool Node::continueResolveCompositum(Handle<Node> h, ResolutionState &state)
 bool Node::continueResolveReference(Handle<Node> h, ResolutionState &state)
 {
 	// We can only follow references if we currently are at the beginning of the
-	// path and this node is the root node
-	if (canFollowReferences(state)) {
+	// path and this node is the root node. Additionally only follow a reference
+	// if the node the reference points to is known to contain the type that is
+	// currently asked for in the resolution process
+	if (canFollowReferences(state) && state.canContainType(h->type())) {
 		std::cout << "following reference to " << h->getName() << std::endl;
 		ResolutionState forkedState = state.fork(this);
 		return continueResolveCompositum(h, forkedState);
@@ -321,7 +335,7 @@ std::vector<ResolutionResult> Node::resolve(
 	// Kickstart the resolution process by treating this very node as compositum
 	std::cout << "------------" << std::endl;
 	std::cout << "resolving: ";
-	for (auto s: path) {
+	for (auto s : path) {
 		std::cout << s << " ";
 	}
 	std::cout << " of type " << type.name << std::endl;
