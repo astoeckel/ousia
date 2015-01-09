@@ -78,10 +78,7 @@ void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
 	body->addChild(book);
 
 	// After the content has been transformed, we serialize it.
-	html->serialize(
-	    out,
-	    "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n"
-	    "\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">");
+	html->serialize(out, "<!DOCTYPE html>");
 }
 
 /**

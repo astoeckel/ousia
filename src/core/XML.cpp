@@ -6,7 +6,6 @@ namespace xml {
 
 void Node::serialize(std::ostream &out, const std::string &doctype)
 {
-	out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 	if (doctype != "") {
 		out << doctype << "\n";
 	}
