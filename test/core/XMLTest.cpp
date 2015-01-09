@@ -27,26 +27,25 @@ namespace xml {
 
 TEST(XMLNode, testSerialize)
 {
-	Manager mgr;
-
+	Manager mgr{1};
 	Rooted<Element> html{new Element{mgr, {nullptr}, "html"}};
 	Rooted<Element> head{new Element{mgr, html, "head"}};
-	html->children.push_back(head);
+	html->addChild(head);
 	Rooted<Element> title{new Element{mgr, head, "title"}};
-	head->children.push_back(title);
-	title->children.push_back(new Text(mgr, title, "my title"));
+	head->addChild(title);
+	title->addChild(new Text(mgr, title, "my title"));
 	Rooted<Element> body{new Element{mgr, html, "body"}};
-	html->children.push_back(body);
+	html->addChild(body);
 	// This div element contains our text.
 	Rooted<Element> div{
 	    new Element{mgr, body, "div", {{"class", "content"}, {"id", "1"}}}};
-	body->children.push_back(div);
+	body->addChild(div);
 	Rooted<Element> p{new Element{mgr, div, "p"}};
-	div->children.push_back(p);
-	p->children.push_back(new Text(mgr, p, "my text"));
+	div->addChild(p);
+	p->addChild(new Text(mgr, p, "my text"));
 	Rooted<Element> p2{new Element{mgr, div, "p"}};
-	div->children.push_back(p2);
-	p2->children.push_back(new Text(mgr, p2, "my text"));
+	div->addChild(p2);
+	p2->addChild(new Text(mgr, p2, "my text"));
 
 	// Now this is what we expect to see:
 	std::string expected{
