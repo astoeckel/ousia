@@ -16,23 +16,171 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <functional>
+#include <unordered_set>
+
 #include <core/common/Exceptions.hpp>
 
 #include "Node.hpp"
 
 namespace ousia {
 
+/* Class SharedResolutionState */
+
+/**
+ * The SharedResolutionState structure represents the state that is shared
+ * between all resolution paths. A reference to a per-resolution-global
+ * SharedResolutionState instance is stored in the ResolutionState class.
+ */
+class SharedResolutionState {
+
+public:
+	/**
+	 * Actual path (name pattern) that was requested for resolution.
+	 */
+	const std::vector<std::string> &path;
+
+	/**
+	 * Type of the node that was requested for resolution.
+	 */
+	const RttiBase &type;
+
+	/**
+	 * Tracks all nodes that have already been visited.
+	 */
+	std::unordered_set<Node *> visited;
+
+	/**
+	 * Current resolution result.
+	 */
+	std::vector<ResolutionResult> result;
+
+	static std::vector<int> buildPrefixTable(
+	    const std::vector<std::string> &path);
+
+	/**
+	 * Constructor of the SharedResolutionState class.
+	 *
+	 * @param path is a const reference to the actual path that should be
+	 * resolved.
+	 * @param type is the type of the node that should be resolved.
+	 */
+	SharedResolutionState(const std::vector<std::string> &path,
+	                      const RttiBase &type)
+	    : path(path), type(type)
+	{
+	}
+};
+
+/* Class ResolutionState */
+
+/**
+ * The ResolutionState class represents a single resolution path used when
+ * resolving Node instances by name.
+ */
+class ResolutionState {
+
+private:
+	/**
+	 * Constructor of the ResolutionState class.
+	 *
+	 * @param shared is the shared, path independent state.
+	 * @param resolutionRoot is the current resolution root node.
+	 */
+	ResolutionState(SharedResolutionState &shared,
+					int idx,
+	                Node *resolutionRoot)
+	    : shared(shared), idx(idx), resolutionRoot(resolutionRoot)
+	{
+	}
+
+public:
+	/**
+	 * Constructor of the ResolutionState class.
+	 *
+	 * @param shared is the shared, path independent state.
+	 * @param resolutionRoot is the current resolution root node.
+	 */
+	ResolutionState(SharedResolutionState &shared, Node *resolutionRoot = nullptr)
+	    : shared(shared), idx(0), resolutionRoot(resolutionRoot)
+	{
+	}
+
+	/**
+	 * Reference at the resolution state that is shared between the various
+	 * resolution paths.
+	 */
+	SharedResolutionState &shared;
+
+	/**
+	 * Current index within the given path.
+	 */
+	int idx;
+
+	/**
+	 * Current resolution root node or nullptr if no resolution root node has
+	 * been set yet.
+	 */
+	Node *resolutionRoot;
+
+	/**
+	 * Adds a node to the result.
+	 *
+	 * @param node is the node that has been found.
+	 */
+	void addToResult(Node *node)
+	{
+		shared.result.emplace_back(ResolutionResult{node, resolutionRoot});
+	}
+
+	/**
+	 * Marks the given node as visited. Returns false if the given node has
+	 * already been visited.
+	 *
+	 * @param node is the node that should be marked as visited.
+	 */
+	bool markVisited(Node *node)
+	{
+		if (shared.visited.count(node) > 0) {
+			return false;
+		}
+		shared.visited.insert(node);
+		return true;
+	}
+
+	/**
+	 * Returns true if the current node matches the search criteria.
+	 *
+	 * @param type is the type of the current node.
+	 * @return true if the state indicates that the path has been completely
+	 * matched and that the given type matches the queried type.
+	 */
+	bool matches(const RttiBase &type)
+	{
+		return idx == static_cast<int>(shared.path.size()) &&
+		       type.isa(shared.type);
+	}
+
+	const std::string &currentName() {
+		return shared.path[idx];
+	}
+
+	ResolutionState advance() {
+		return ResolutionState{shared, idx + 1, resolutionRoot};
+	}
+
+	ResolutionState fork(Node *newResolutionRoot) {
+		return ResolutionState{shared, newResolutionRoot};
+	}
+};
+
 /* Class Node */
 
 void Node::setName(std::string name)
 {
-	// Call the name change event
-	{
-		NameChangeEvent ev{this->name, name};
-		triggerEvent(ev);
-	}
-
-	// Set the new name
+	// Call the name change event and (afterwards!) set the new name
+	NameChangeEvent ev{this->name, name};
+	triggerEvent(ev);
 	this->name = std::move(name);
 }
 
@@ -51,57 +199,90 @@ std::vector<std::string> Node::path() const
 	return res;
 }
 
-void Node::doResolve(std::vector<Rooted<Managed>> &res,
-                     const std::vector<std::string> &path, Filter filter,
-                     void *filterData, unsigned idx, VisitorSet &visited)
+bool Node::resolutionAtBeginning(ResolutionState &state)
+{
+	return state.idx == 0;
+}
+
+bool Node::resolve(ResolutionState &state)
+{
+	// Try to mark this note as visited, do nothing if already has been visited
+	if (state.markVisited(this)) {
+		// Add this node to the result if it matches the current description
+		if (state.matches(type())) {
+			state.addToResult(this);
+			return true;
+		} else {
+			continueResolve(state);
+		}
+	}
+	return false;
+}
+
+void Node::continueResolve(ResolutionState &state)
 {
 	// Do nothing in the default implementation
 }
 
-int Node::resolve(std::vector<Rooted<Managed>> &res,
-                  const std::vector<std::string> &path, Filter filter,
-                  void *filterData, unsigned idx, VisitorSet &visited,
-                  const std::string *alias)
-{
-	// Abort if this node was already visited for this path index
-	std::pair<const Node *, int> recKey = std::make_pair(this, idx);
-	if (visited.find(recKey) != visited.end()) {
-		return res.size();
+bool Node::continueResolveIndex(const Index &index, ResolutionState &state) {
+	Rooted<Node> h = index.resolve(state.currentName());
+	if (h != nullptr) {
+		ResolutionState advancedState = state.advance();
+		return h->resolve(advancedState);
 	}
-	visited.insert(recKey);
-
-	// Check whether the we can continue the path
-	if (path[idx] == name || (alias && *alias == name)) {
-		// If we have reached the end of the path and the node is successfully
-		// tested by the filter function, add it to the result. Otherwise
-		// continue searching along the path
-		if (idx + 1 == path.size()) {
-			if (!filter || filter(this, filterData)) {
-				res.push_back(this);
-			}
-		} else {
-			doResolve(res, path, filter, filterData, idx + 1, visited);
-		}
-	}
-
-	// Restart the search from here in order to find all possible nodes that can
-	// be matched to the given path
-	doResolve(res, path, filter, filterData, 0, visited);
-
-	return res.size();
+	return false;
 }
 
-std::vector<Rooted<Managed>> Node::resolve(const std::vector<std::string> &path,
-                                           Filter filter = nullptr,
-                                           void *filterData = nullptr)
+bool Node::continueResolveCompositum(Handle<Node> h, ResolutionState &state)
 {
-	std::vector<Rooted<Managed>> res;
-	VisitorSet visited;
-	resolve(res, path, filter, filterData, 0, visited, nullptr);
-	return res;
+	if (h->getName() == state.currentName()) {
+		ResolutionState advancedState = state.advance();
+		return h->resolve(advancedState);
+	} else if (resolutionAtBeginning(state)) {
+		return h->resolve(state);
+	}
+	return false;
+}
+
+bool Node::continueResolveReference(Handle<Node> h, ResolutionState &state)
+{
+	if (resolutionAtBeginning(state)) {
+		ResolutionState forkedState = state.fork(this);
+		if (h->getName() == state.currentName()) {
+			ResolutionState advancedState = forkedState.advance();
+			return h->resolve(advancedState);
+		}
+		return h->resolve(forkedState);
+	}
+	return false;
+}
+
+std::vector<ResolutionResult> Node::resolve(
+    const std::vector<std::string> &path, const RttiBase &type)
+{
+	// Create the state variables
+	SharedResolutionState sharedState(path, type);
+	ResolutionState state(sharedState, this);
+
+	// Call the internal resolve function, make sure the length of the given
+	// path is valid
+	if (path.size() > 0) {
+		continueResolveCompositum(this, state);
+	}
+
+	// Return the results
+	return sharedState.result;
+}
+
+std::vector<ResolutionResult> Node::resolve(const std::string &name,
+                                            const RttiBase &type)
+{
+	// Place the name in a vector and call the corresponding resolve function
+	return resolve(std::vector<std::string>{name}, type);
 }
 
 /* RTTI type registrations */
 
 const Rtti<Node> RttiTypes::Node{"Node"};
 }
+

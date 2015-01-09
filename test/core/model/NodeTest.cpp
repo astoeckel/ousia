@@ -22,20 +22,15 @@
 #include <core/model/Node.hpp>
 
 namespace ousia {
-namespace dom {
 
 class TestNode : public Node {
 private:
 	std::vector<Owned<Node>> children;
 
 protected:
-	void doResolve(std::vector<Rooted<Managed>> &res,
-	               const std::vector<std::string> &path, Filter filter,
-	               void *filterData, unsigned idx, VisitorSet &visited) override
+	void continueResolve(ResolutionState &state) override
 	{
-		for (auto &n : children) {
-			n->resolve(res, path, filter, filterData, idx, visited, nullptr);
-		}
+		continueResolveComposita(children, state);
 	}
 
 public:
@@ -48,6 +43,11 @@ public:
 		return nd;
 	}
 };
+
+namespace RttiTypes {
+const Rtti<ousia::TestNode> TestNode =
+    RttiBuilder("TestNode").parent(RttiTypes::Node).composedOf(&TestNode);
+}
 
 TEST(Node, isRoot)
 {
@@ -72,19 +72,21 @@ TEST(Node, simpleResolve)
 	Rooted<TestNode> child1 = root->addChild(new TestNode(mgr, "child1"));
 	Rooted<TestNode> child11 = child1->addChild(new TestNode(mgr, "child11"));
 
-	std::vector<Rooted<Managed>> res;
-	res = root->resolve(std::vector<std::string>{"root", "child1", "child11"});
-	ASSERT_EQ(1, res.size());
-	ASSERT_TRUE(child11 == *(res.begin()));
+	std::vector<ResolutionResult> res;
+	res = root->resolve(std::vector<std::string>{"root", "child1", "child11"},
+	                    RttiTypes::TestNode);
+	ASSERT_EQ(1U, res.size());
+	ASSERT_TRUE(child11 == res[0].node);
 
-	res = root->resolve(std::vector<std::string>{"child1", "child11"});
-	ASSERT_EQ(1, res.size());
-	ASSERT_TRUE(child11 == *(res.begin()));
+	res = root->resolve(std::vector<std::string>{"child1", "child11"},
+	                    RttiTypes::TestNode);
+	ASSERT_EQ(1U, res.size());
+	ASSERT_TRUE(child11 == res[0].node);
 
-	res = root->resolve(std::vector<std::string>{"child11"});
-	ASSERT_EQ(1, res.size());
-	ASSERT_TRUE(child11 == *(res.begin()));
+	res =
+	    root->resolve(std::vector<std::string>{"child11"}, RttiTypes::TestNode);
+	ASSERT_EQ(1U, res.size());
+	ASSERT_TRUE(child11 == res[0].node);
 }
 
-}
 }
