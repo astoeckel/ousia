@@ -45,12 +45,14 @@ public:
 	{
 	}
 
-	Rooted<TestNode> addCompositum(Handle<TestNode> n) {
+	Rooted<TestNode> addCompositum(Handle<TestNode> n)
+	{
 		composita.push_back(n);
 		return n;
 	}
 
-	Rooted<TestNode> addReference(Handle<TestNode> n) {
+	Rooted<TestNode> addReference(Handle<TestNode> n)
+	{
 		references.push_back(n);
 		return n;
 	}
@@ -82,7 +84,8 @@ TEST(Node, resolveCompositaSimple)
 	Manager mgr{1};
 	Rooted<TestNode> root{new TestNode(mgr, "root")};
 	Rooted<TestNode> child1 = root->addCompositum(new TestNode(mgr, "child1"));
-	Rooted<TestNode> child11 = child1->addCompositum(new TestNode(mgr, "child11"));
+	Rooted<TestNode> child11 =
+	    child1->addCompositum(new TestNode(mgr, "child11"));
 
 	std::vector<ResolutionResult> res;
 	res = root->resolve(std::vector<std::string>{"root", "child1", "child11"},
@@ -107,7 +110,8 @@ TEST(Node, resolveCompositaDouble)
 	Rooted<TestNode> root{new TestNode(mgr, "root")};
 	Rooted<TestNode> root2 = root->addCompositum(new TestNode(mgr, "root"));
 	Rooted<TestNode> child1 = root2->addCompositum(new TestNode(mgr, "child1"));
-	Rooted<TestNode> child11 = child1->addCompositum(new TestNode(mgr, "child11"));
+	Rooted<TestNode> child11 =
+	    child1->addCompositum(new TestNode(mgr, "child11"));
 
 	std::vector<ResolutionResult> res;
 	res = root->resolve(std::vector<std::string>{"root", "child1", "child11"},
@@ -133,9 +137,11 @@ TEST(Node, resolveAmbigousComposita)
 	Rooted<TestNode> a = root->addCompositum(new TestNode(mgr, "a"));
 	Rooted<TestNode> b = root->addCompositum(new TestNode(mgr, "b"));
 	Rooted<TestNode> child1 = a->addCompositum(new TestNode(mgr, "child1"));
-	Rooted<TestNode> child11 = child1->addCompositum(new TestNode(mgr, "child11"));
+	Rooted<TestNode> child11 =
+	    child1->addCompositum(new TestNode(mgr, "child11"));
 	Rooted<TestNode> child12 = b->addCompositum(new TestNode(mgr, "child1"));
-	Rooted<TestNode> child112 = child12->addCompositum(new TestNode(mgr, "child11"));
+	Rooted<TestNode> child112 =
+	    child12->addCompositum(new TestNode(mgr, "child11"));
 
 	std::vector<ResolutionResult> res;
 	res = root->resolve(std::vector<std::string>{"child1", "child11"},
@@ -158,9 +164,11 @@ TEST(Node, resolveReferences)
 	Rooted<TestNode> a = root->addReference(new TestNode(mgr, "a"));
 	Rooted<TestNode> b = root->addReference(new TestNode(mgr, "b"));
 	Rooted<TestNode> child1 = a->addCompositum(new TestNode(mgr, "child1"));
-	Rooted<TestNode> child11 = child1->addCompositum(new TestNode(mgr, "child11"));
+	Rooted<TestNode> child11 =
+	    child1->addCompositum(new TestNode(mgr, "child11"));
 	Rooted<TestNode> child12 = b->addCompositum(new TestNode(mgr, "child1"));
-	Rooted<TestNode> child112 = child12->addCompositum(new TestNode(mgr, "child11"));
+	Rooted<TestNode> child112 =
+	    child12->addCompositum(new TestNode(mgr, "child11"));
 
 	std::vector<ResolutionResult> res;
 	res = root->resolve(std::vector<std::string>{"a", "child1", "child11"},
@@ -199,9 +207,11 @@ TEST(Node, resolveReferencesAndComposita)
 	Rooted<TestNode> a = root->addReference(new TestNode(mgr, "a"));
 	Rooted<TestNode> b = root->addReference(new TestNode(mgr, "b"));
 	Rooted<TestNode> child1 = a->addCompositum(new TestNode(mgr, "child1"));
-	Rooted<TestNode> child11 = child1->addCompositum(new TestNode(mgr, "child11"));
+	Rooted<TestNode> child11 =
+	    child1->addCompositum(new TestNode(mgr, "child11"));
 	Rooted<TestNode> child12 = b->addCompositum(new TestNode(mgr, "child1"));
-	Rooted<TestNode> child112 = child12->addCompositum(new TestNode(mgr, "child11"));
+	Rooted<TestNode> child112 =
+	    child12->addCompositum(new TestNode(mgr, "child11"));
 	Rooted<TestNode> child13 = root->addCompositum(new TestNode(mgr, "child1"));
 
 	std::vector<ResolutionResult> res;
@@ -233,5 +243,4 @@ TEST(Node, resolveReferencesAndComposita)
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child13 == res[0].node);
 }
-
 }
