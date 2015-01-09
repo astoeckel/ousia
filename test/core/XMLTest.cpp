@@ -29,24 +29,24 @@ TEST(Node, testSerialize)
 {
 	Manager mgr;
 
-	Rooted<Element> html{new Element{mgr, "html"}};
-	Rooted<Element> head{new Element{mgr, "head"}};
+	Rooted<Element> html{new Element{mgr, {nullptr}, "html"}};
+	Rooted<Element> head{new Element{mgr, html, "head"}};
 	html->children.push_back(head);
-	Rooted<Element> title{new Element{mgr, "title"}};
+	Rooted<Element> title{new Element{mgr, head, "title"}};
 	head->children.push_back(title);
-	title->children.push_back(new Text(mgr, "my title"));
-	Rooted<Element> body{new Element{mgr, "body"}};
+	title->children.push_back(new Text(mgr, title, "my title"));
+	Rooted<Element> body{new Element{mgr, html, "body"}};
 	html->children.push_back(body);
 	// This div element contains our text.
 	Rooted<Element> div{
-	    new Element{mgr, "div", {{"class", "content"}, {"id", "1"}}}};
+	    new Element{mgr, body, "div", {{"class", "content"}, {"id", "1"}}}};
 	body->children.push_back(div);
-	Rooted<Element> p{new Element{mgr, "p"}};
+	Rooted<Element> p{new Element{mgr, div, "p"}};
 	div->children.push_back(p);
-	p->children.push_back(new Text(mgr, "my text"));
-	Rooted<Element> p2{new Element{mgr, "p"}};
+	p->children.push_back(new Text(mgr, p, "my text"));
+	Rooted<Element> p2{new Element{mgr, div, "p"}};
 	div->children.push_back(p2);
-	p2->children.push_back(new Text(mgr, "my text"));
+	p2->children.push_back(new Text(mgr, p2, "my text"));
 
 	// Now this is what we expect to see:
 	std::string expected{

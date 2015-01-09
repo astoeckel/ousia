@@ -51,15 +51,20 @@
 namespace ousia {
 namespace xml {
 
+class Element;
+
 /**
  * Node is the common super-class of actual elements (tag-bounded) and text.
  * It specifies the pure virtual serialize() function that the subclasses
  * implement.
  */
 class Node : public Managed {
+private:
+	Owned<Element> parent;
 
 public:
-	Node(Manager &mgr) : Managed(mgr){};
+	Node(Manager &mgr, Handle<Element> parent)
+	    : Managed(mgr), parent(acquire(parent)){};
 
 	/**
 	 * This method writes an XML prolog and the XML representing the current
@@ -69,7 +74,7 @@ public:
 	 * @param doctype enables you to add a prefix after the XML prolog
 	 *                specifying the doctype.
 	 */
-	void serialize(std::ostream &out, const std::string & doctype = "");
+	void serialize(std::ostream &out, const std::string &doctype = "");
 	/**
 	 * This method just writes the XML representation of this node to the
 	 * output stream, without the XML prolog.
@@ -79,6 +84,11 @@ public:
 	 * @param tabdepth the current tabdepth for prettier output.
 	 */
 	virtual void doSerialize(std::ostream &out, unsigned int tabdepth) = 0;
+
+	/**
+	 * @return the parent XML element of this node.
+	 */
+	Rooted<Element> getParent() const { return parent; }
 };
 
 /**
@@ -96,13 +106,16 @@ public:
 	std::map<std::string, std::string> attributes;
 	ManagedVector<Node> children;
 
-	Element(Manager &mgr, std::string name) : Node(mgr), name(std::move(name))
+	Element(Manager &mgr, Handle<Element> parent, std::string name)
+	    : Node(mgr, parent), name(std::move(name))
 	{
 	}
 
-	Element(Manager &mgr, std::string name,
+	Element(Manager &mgr, Handle<Element> parent, std::string name,
 	        std::map<std::string, std::string> attributes)
-	    : Node(mgr), name(std::move(name)), attributes(std::move(attributes))
+	    : Node(mgr, parent),
+	      name(std::move(name)),
+	      attributes(std::move(attributes))
 	{
 	}
 
@@ -120,7 +133,10 @@ class Text : public Node {
 public:
 	const std::string text;
 
-	Text(Manager &mgr, std::string text) : Node(mgr), text(std::move(text)) {}
+	Text(Manager &mgr, Handle<Element> parent, std::string text)
+	    : Node(mgr, parent), text(std::move(text))
+	{
+	}
 
 	/**
 	 * This just writes the text to the output.
