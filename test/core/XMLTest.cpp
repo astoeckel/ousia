@@ -25,7 +25,7 @@
 namespace ousia {
 namespace xml {
 
-TEST(Node, testSerialize)
+TEST(XMLNode, testSerialize)
 {
 	Manager mgr;
 
