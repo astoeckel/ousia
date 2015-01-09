@@ -94,7 +94,9 @@ NodeVector<StructuredEntity> &DocumentEntity::getField(
 void Document::continueResolve(ResolutionState &state)
 {
 	continueResolveComposita(annotations, annotations.getIndex(), state);
-	continueResolveCompositum(root, state);
+	if (root != nullptr) {
+		continueResolveCompositum(root, state);
+	}
 	continueResolveReferences(domains, state);
 }
 }
