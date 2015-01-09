@@ -353,7 +353,7 @@ private:
 
 public:
 	AnnotationEntity(Manager &mgr, Handle<Node> parent,
-	                 Handle<StructuredClass> descriptor, Variant attributes,
+	                 Handle<AnnotationClass> descriptor, Variant attributes,
 	                 Handle<Anchor> start, Handle<Anchor> end,
 	                 std::string name = "")
 	    : DocumentEntity(mgr, parent, descriptor, attributes, std::move(name)),
@@ -415,6 +415,9 @@ private:
 	// TODO: Might there be several roots? E.g. metadata?
 	Owned<StructuredEntity> root;
 	NodeVector<AnnotationEntity> annotations;
+	NodeVector<Domain> domains;
+
+	void continueResolve(ResolutionState &state) override;
 
 public:
 	Document(Manager &mgr, std::string name)
@@ -428,7 +431,16 @@ public:
 
 	Rooted<StructuredEntity> getRoot() const { return root; }
 
-	NodeVector<AnnotationEntity> getAnnotations() { return annotations; }
+	NodeVector<AnnotationEntity> &getAnnotations() { return annotations; }
+
+	const NodeVector<Domain> &getDomains() const { return domains; }
+
+	void addDomain(Handle<Domain> d) { domains.push_back(d); }
+
+	void addDomains(const std::vector<Handle<Domain>> d)
+	{
+		domains.insert(domains.end(), d.begin(), d.end());
+	}
 };
 }
 

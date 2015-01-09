@@ -24,6 +24,8 @@
 namespace ousia {
 namespace model {
 
+/* Class DocumentEntity */
+
 int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName)
 {
 	const NodeVector<FieldDescriptor> &fds = descriptor->getFieldDescriptors();
@@ -87,20 +89,23 @@ NodeVector<StructuredEntity> &DocumentEntity::getField(
 	    "node.");
 }
 
-static Rooted<StructuredClass> resolveDescriptor(
-    std::vector<Handle<Domain>> domains, const std::string &className)
+/* Class StructuredEntity */
+
+static Rooted<Descriptor> resolveDescriptor(std::vector<Handle<Domain>> domains,
+                                            const std::string &className,
+                                            const RttiBase &type)
 {
 	// iterate over all domains.
 	for (auto &d : domains) {
 		// use the actual resolve method.
-		std::vector<ResolutionResult> resolved = d->resolve(className, typeOf<StructuredClass>());
+		std::vector<ResolutionResult> resolved = d->resolve(className, type);
 		// if we don't find anything, continue.
 		if (resolved.size() == 0) {
 			continue;
 		}
 		// Otherwise take the first valid result.
 		for (auto &r : resolved) {
-			return r.node.cast<StructuredClass>();
+			return r.node.cast<Descriptor>();
 		}
 	}
 	return {nullptr};
@@ -116,14 +121,15 @@ Rooted<StructuredEntity> StructuredEntity::buildRootEntity(
 	}
 	// If we can not find the correct descriptor, we can not build the entity
 	// either.
-	Rooted<StructuredClass> descriptor = resolveDescriptor(domains, className);
+	Rooted<Descriptor> descriptor =
+	    resolveDescriptor(domains, className, RttiTypes::StructuredClass);
 	if (descriptor == nullptr) {
 		return {nullptr};
 	}
 	// Then construct the StructuredEntity itself.
-	Rooted<StructuredEntity> root{
-	    new StructuredEntity(document->getManager(), document, descriptor,
-	                         attributes, std::move(name))};
+	Rooted<StructuredEntity> root{new StructuredEntity(
+	    document->getManager(), document, descriptor.cast<StructuredClass>(),
+	    attributes, std::move(name))};
 	// append it to the document.
 	document->setRoot(root);
 	// and return it.
@@ -141,13 +147,15 @@ Rooted<StructuredEntity> StructuredEntity::buildEntity(
 	}
 	// If we can not find the correct descriptor, we can not build the entity
 	// either.
-	Rooted<StructuredClass> descriptor = resolveDescriptor(domains, className);
+	Rooted<Descriptor> descriptor =
+	    resolveDescriptor(domains, className, RttiTypes::StructuredClass);
 	if (descriptor == nullptr) {
 		return {nullptr};
 	}
 	// Then construct the StructuredEntity itself.
 	Rooted<StructuredEntity> entity{new StructuredEntity(
-	    parent->getManager(), parent, descriptor, attributes, std::move(name))};
+	    parent->getManager(), parent, descriptor.cast<StructuredClass>(),
+	    attributes, std::move(name))};
 	// if the field does not exist, return null handle as well.
 	if (!parent->hasField(fieldName)) {
 		return {nullptr};
@@ -162,6 +170,8 @@ Rooted<StructuredEntity> StructuredEntity::buildEntity(
 	// and return it.
 	return entity;
 }
+
+/* Class DocumentPrimitive */
 
 Rooted<DocumentPrimitive> DocumentPrimitive::buildEntity(
     Handle<DocumentEntity> parent, Variant content,
@@ -187,6 +197,8 @@ Rooted<DocumentPrimitive> DocumentPrimitive::buildEntity(
 	// and return it.
 	return entity;
 }
+
+/* Class AnnotationEntity */
 
 Rooted<AnnotationEntity::Anchor> AnnotationEntity::buildAnchor(
     Handle<DocumentEntity> parent, std::string id, const std::string &fieldName)
@@ -219,23 +231,41 @@ Rooted<AnnotationEntity> AnnotationEntity::buildEntity(
 	}
 	// If we can not find the correct descriptor, we can not build the entity
 	// either.
-	Rooted<StructuredClass> descriptor = resolveDescriptor(domains, className);
+	Rooted<Descriptor> descriptor =
+	    resolveDescriptor(domains, className, RttiTypes::AnnotationClass);
 	if (descriptor == nullptr) {
 		return {nullptr};
 	}
 	// Then construct the AnnotationEntity itself
-	Rooted<AnnotationEntity> anno{
-	    new AnnotationEntity(parent->getManager(), parent, descriptor,
-	                         attributes, start, end, name)};
+	Rooted<AnnotationEntity> anno{new AnnotationEntity(
+	    parent->getManager(), parent, descriptor.cast<AnnotationClass>(),
+	    attributes, start, end, name)};
 	// append the new entity to the document
 	parent->getAnnotations().push_back(anno);
 	// and return it.
 	return anno;
 }
 
-/* Type registrations */
+/* Class Document */
+
+void Document::continueResolve(ResolutionState &state)
+{
+	// Try to resolve annotations and other document nodes first
+	bool hasResult =
+	    continueResolveComposita(annotations, annotations.getIndex(), state);
+	if (root != nullptr) {
+		hasResult = hasResult | continueResolveCompositum(root, state);
+	}
+
+	// If no direct child has been found, continue resolving the referenced
+	// domains
+	if (!hasResult) {
+		continueResolveReferences(domains, state);
+	}
+}
 }
 
+/* Type registrations */
 namespace RttiTypes {
 const Rtti<model::DocumentEntity> DocumentEntity =
     RttiBuilder("DocumentEntity").parent(&Node);
