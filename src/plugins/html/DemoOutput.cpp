@@ -37,7 +37,7 @@ void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
 	    mgr, {nullptr}, "html", {{"xlmns", "http://www.w3.org/1999/xhtml"}}}};
 	// add the head Element
 	Rooted<xml::Element> head{new xml::Element{mgr, html, "head"}};
-	html->children.push_back(head);
+	html->addChild(head);
 	// add the meta element.
 	Rooted<xml::Element> meta{
 	    new xml::Element{mgr,
@@ -45,15 +45,15 @@ void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
 	                     "meta",
 	                     {{"http-equiv", "Content-Type"},
 	                      {"content", "text/html; charset=utf-8"}}}};
-	head->children.push_back(meta);
+	head->addChild(meta);
 	// add the title Element with Text
 	Rooted<xml::Element> title{new xml::Element{mgr, head, "title"}};
-	head->children.push_back(title);
-	title->children.push_back(
+	head->addChild(title);
+	title->addChild(
 	    new xml::Text(mgr, title, "Test HTML Output for " + doc->getName()));
 	// add the body Element
 	Rooted<xml::Element> body{new xml::Element{mgr, html, "body"}};
-	html->children.push_back(body);
+	html->addChild(body);
 
 	// So far was the "preamble". No we have to get to the document content.
 
@@ -75,7 +75,7 @@ void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
 	// transform the book node.
 	Rooted<xml::Element> book = transformSection(body, root, startMap, endMap);
 	// add it as child to the body node.
-	body->children.push_back(book);
+	body->addChild(book);
 
 	// After the content has been transformed, we serialize it.
 	html->serialize(
@@ -138,14 +138,14 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 				break;
 		}
 		Rooted<xml::Element> h{new xml::Element{mgr, sec, headingclass}};
-		sec->children.push_back(h);
+		sec->addChild(h);
 		// extract the heading text, enveloped in a paragraph Element.
 		Rooted<xml::Element> h_content =
 		    transformParagraph(h, heading, startMap, endMap);
 		// We omit the paragraph Element and add the children directly to the
 		// heading Element
-		for (auto &n : h_content->children) {
-			h->children.push_back(n);
+		for (auto &n : h_content->getChildren()) {
+			h->addChild(n);
 		}
 	}
 
@@ -169,7 +169,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 			child = transformSection(sec, n, startMap, endMap);
 		}
 		if (!child.isNull()) {
-			sec->children.push_back(child);
+			sec->addChild(child);
 		}
 	}
 	return sec;
@@ -189,14 +189,14 @@ Rooted<xml::Element> DemoHTMLTransformer::transformList(
 		if (itDescrName == "item") {
 			// create the list item.
 			Rooted<xml::Element> li{new xml::Element{mgr, l, "li"}};
-			l->children.push_back(li);
+			l->addChild(li);
 			// extract the item text, enveloped in a paragraph Element.
 			Rooted<xml::Element> li_content =
 			    transformParagraph(li, item, startMap, endMap);
 			// We omit the paragraph Element and add the children directly to
 			// the list item
-			for (auto &n : li_content->children) {
-				li->children.push_back(n);
+			for (auto &n : li_content->getChildren()) {
+				li->addChild(n);
 			}
 		}
 	}
@@ -220,7 +220,7 @@ static Rooted<xml::Element> openAnnotation(
 	}
 	// create the new XML element representing the annotation
 	Rooted<xml::Element> tmp{new xml::Element{mgr, current, elemName}};
-	current->children.push_back(tmp);
+	current->addChild(tmp);
 	// and return it.
 	return tmp;
 }
@@ -265,14 +265,14 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 		Rooted<model::StructuredEntity> heading = par->getField("heading")[0];
 		// put the heading in a strong xml::Element.
 		Rooted<xml::Element> strong{new xml::Element{mgr, p, "strong"}};
-		p->children.push_back(strong);
+		p->addChild(strong);
 		// extract the heading text, enveloped in a paragraph Element.
 		Rooted<xml::Element> h_content =
 		    transformParagraph(strong, heading, startMap, endMap);
 		// We omit the paragraph Element and add the children directly to the
 		// heading Element
-		for (auto &n : h_content->children) {
-			strong->children.push_back(n);
+		for (auto &n : h_content->getChildren()) {
+			strong->addChild(n);
 		}
 	}
 
@@ -346,7 +346,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 			// here we need to do some escaping with the string content.
 			std::string escaped =
 			    escapePredefinedEntities(primitive->getContent().asString());
-			current->children.push_back(new xml::Text(mgr, current, escaped));
+			current->addChild(new xml::Text(mgr, current, escaped));
 		}
 	}
 	return p;
