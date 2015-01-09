@@ -45,6 +45,7 @@
 #include <ostream>
 #include <vector>
 
+#include <core/common/Rtti.hpp>
 #include <core/managed/Managed.hpp>
 #include <core/managed/ManagedContainer.hpp>
 
@@ -101,19 +102,22 @@ public:
  * Additionally it might have other Nodes as children.
  */
 class Element : public Node {
+private:
+	ManagedVector<Node> children;
+
 public:
 	const std::string name;
 	std::map<std::string, std::string> attributes;
-	ManagedVector<Node> children;
 
 	Element(Manager &mgr, Handle<Element> parent, std::string name)
-	    : Node(mgr, parent), name(std::move(name))
+	    : Node(mgr, parent), children(this), name(std::move(name))
 	{
 	}
 
 	Element(Manager &mgr, Handle<Element> parent, std::string name,
 	        std::map<std::string, std::string> attributes)
 	    : Node(mgr, parent),
+	      children(this),
 	      name(std::move(name)),
 	      attributes(std::move(attributes))
 	{
@@ -127,6 +131,15 @@ public:
 	 *
 	 */
 	void doSerialize(std::ostream &out, unsigned int tabdepth) override;
+
+	const ManagedVector<Node> &getChildren() const { return children; }
+
+	void addChild(Handle<Node> child) { children.push_back(child); }
+
+	void addChildren(std::vector<Handle<Node>> c)
+	{
+		children.insert(children.end(), c.begin(), c.end());
+	}
 };
 
 class Text : public Node {
@@ -144,6 +157,12 @@ public:
 	 */
 	void doSerialize(std::ostream &out, unsigned int tabdepth) override;
 };
+}
+
+namespace RttiTypes {
+extern const Rtti<xml::Node> XMLNode;
+extern const Rtti<xml::Element> XMLElement;
+extern const Rtti<xml::Text> XMLText;
 }
 }
 #endif

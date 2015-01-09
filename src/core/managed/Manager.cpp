@@ -26,8 +26,9 @@
 #if defined(MANAGER_DEBUG_PRINT) || defined(MANAGER_GRAPHVIZ_EXPORT)
 #include <iostream>
 #include <fstream>
-#include "core/common/Rtti.hpp"
-#include "core/model/Node.hpp"
+#include <core/common/Rtti.hpp>
+#include <core/model/Node.hpp>
+#include <core/XML.hpp>
 #endif
 
 namespace ousia {
@@ -597,6 +598,9 @@ void Manager::exportGraphviz(const char *filename)
 		std::string name = "";
 		if (type.isa(RttiTypes::Node)) {
 			name = dynamic_cast<const Node *>(objectPtr)->getName();
+		}
+		if (type.isa(RttiTypes::XMLElement)) {
+			name = dynamic_cast<const xml::Element *>(objectPtr)->name;
 		}
 
 		// Print the node
