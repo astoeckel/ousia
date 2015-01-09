@@ -306,6 +306,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 				 */
 				AnnoStack tmp;
 				Rooted<model::AnnotationEntity> closed = opened.top();
+				current = current->getParent();
 				opened.pop();
 				while (closed->getEnd()->getName() != n->getName()) {
 					/*
@@ -320,7 +321,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 						throw OusiaException("An unopened entity was closed!");
 					}
 					closed = opened.top();
-					opened.top();
+					opened.pop();
 				}
 				// At this point we have closed all necessary entities. Now we
 				// need to re-open some of them.
