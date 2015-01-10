@@ -23,21 +23,22 @@
 
 #include <utf8.h>
 
+#include "Number.hpp"
 #include "VariantReader.hpp"
 #include "Utils.hpp"
 
 namespace ousia {
 
-// TODO: Use custom return value instead of std::pair
-
 /* Error Messages */
+
+// TODO: Invent common system for error messages which allows localization
+// TODO: Possibly adapt the clang error logging system
 
 static const char *ERR_UNEXPECTED_CHAR = "Unexpected character";
 static const char *ERR_UNEXPECTED_END = "Unexpected end of literal";
 static const char *ERR_UNTERMINATED = "Unterminated literal";
 static const char *ERR_INVALID_ESCAPE = "Invalid escape sequence";
 static const char *ERR_INVALID_INTEGER = "Invalid integer value";
-static const char *ERR_TOO_LARGE = "Value too large to represent";
 
 template <class T>
 static std::pair<bool, T> error(CharReader &reader, Logger &logger,
@@ -69,290 +70,6 @@ static std::pair<bool, T> unexpected(CharReader &reader, Logger &logger,
                                      T res)
 {
 	return error(reader, logger, unexpectedMsg(expected, got), res);
-}
-
-/* Class Number */
-
-/**
- * Class used internally to represent a number (integer or double). The number
- * is represented by its components (base value a, nominator n, denominator d,
- * exponent e, sign s and exponent sign sE).
- */
-class Number {
-private:
-	/**
-	 * State used in the parser state machine
-	 */
-	enum class State {
-		INIT,
-		HAS_MINUS,
-		LEADING_ZERO,
-		LEADING_POINT,
-		INT,
-		HEX,
-		POINT,
-		EXP_INIT,
-		EXP_HAS_MINUS,
-		EXP
-	};
-
-	/**
-	 * Returns the numeric value of the given ASCII character (returns 0 for
-	 * '0', 1 for '1', 10 for 'A' and so on).
-	 *
-	 * @param c is the character for which the numeric value should be returned.
-	 * @return the numeric value the character represents.
-	 */
-	static int charValue(char c)
-	{
-		if (c >= '0' && c <= '9') {
-			return c & 0x0F;
-		}
-		if ((c >= 'A' && c <= 'O') || (c >= 'a' && c <= 'o')) {
-			return (c & 0x0F) + 9;
-		}
-		return -1;
-	}
-
-public:
-	/**
-	 * Reprsents the part of the number: Base value a, nominator n, exponent e.
-	 */
-	enum class Part { A, N, E };
-
-	/**
-	 * Sign and exponent sign.
-	 */
-	int8_t s, sE;
-
-	/**
-	 * Exponent
-	 */
-	int16_t e;
-
-	/**
-	 * Base value, nominator, denominator
-	 */
-	int64_t a, n, d;
-
-	/**
-	 * Constructor of the number class.
-	 */
-	Number() : s(1), sE(1), e(0), a(0), n(0), d(1) {}
-
-	/**
-	 * Returns the represented double value.
-	 */
-	double doubleValue()
-	{
-		return s * (a + ((double)n / (double)d)) * pow(10.0, (double)(sE * e));
-	}
-
-	/**
-	 * Returns the represented integer value. Only a lossless operation, if the
-	 * number is an integer (as can be checked via the isInt method), otherwise
-	 * the exponent and the fractional value will be truncated.
-	 */
-	int64_t intValue() { return s * a; }
-
-	/**
-	 * Returns true, if the number is an integer (has no fractional or
-	 * exponential part).
-	 */
-	bool isInt() { return (n == 0) && (d == 1) && (e == 0); }
-
-	/**
-	 * Appends the value of the character c to the internal number
-	 * representation and reports any errors that might occur.
-	 */
-	bool appendChar(char c, int base, Part p, CharReader &reader,
-	                Logger &logger)
-	{
-		// Check whether the given character is valid
-		int v = charValue(c);
-		if (v < 0 || v >= base) {
-			logger.error(unexpectedMsg("digit", c), reader);
-			return false;
-		}
-
-		// Append the number to the specified part
-		switch (p) {
-			case Part::A:
-				a = a * base + v;
-				break;
-			case Part::N:
-				n = n * base + v;
-				d = d * base;
-				break;
-			case Part::E:
-				e = e * base + v;
-				break;
-		}
-
-		// Check for any overflows
-		if (a < 0 || n < 0 || d < 0 || e < 0) {
-			logger.error(ERR_TOO_LARGE, reader);
-			return false;
-		}
-		return true;
-	}
-
-	/**
-	 * Tries to parse the number from the given stream and loggs any errors to
-	 * the given logger instance. Numbers are terminated by one of the given
-	 * delimiters.
-	 */
-	bool parse(CharReader &reader, Logger &logger,
-	           const std::unordered_set<char> &delims);
-
-	bool parseFixedLenInt(CharReader &reader, Logger &logger, int base,
-	                      int len);
-};
-
-bool Number::parse(CharReader &reader, Logger &logger,
-                   const std::unordered_set<char> &delims)
-{
-	State state = State::INIT;
-	char c;
-
-	// Consume the first whitespace characters
-	reader.consumeWhitespace();
-
-	// Iterate over the FSM to extract numbers
-	while (reader.peek(c)) {
-		// Abort, once a delimiter or whitespace is reached
-		if (Utils::isWhitespace(c) || delims.count(c)) {
-			reader.resetPeek();
-			break;
-		}
-
-		// The character is not a whitespace character and not a delimiter
-		switch (state) {
-			case State::INIT:
-			case State::HAS_MINUS:
-				switch (c) {
-					case '-':
-						// Do not allow multiple minus signs
-						if (state == State::HAS_MINUS) {
-							logger.error(unexpectedMsg("digit", c), reader);
-							return false;
-						}
-						state = State::HAS_MINUS;
-						s = -1;
-						break;
-					case '0':
-						// Remember a leading zero for the detection of "0x"
-						state = State::LEADING_ZERO;
-						break;
-					case '.':
-						// Remember a leading point as ".eXXX" is invalid
-						state = State::LEADING_POINT;
-						break;
-					default:
-						state = State::INT;
-						if (!appendChar(c, 10, Part::A, reader, logger)) {
-							return false;
-						}
-						break;
-				}
-				break;
-			case State::LEADING_ZERO:
-				if (c == 'x' || c == 'X') {
-					state = State::HEX;
-					break;
-				}
-			// fallthrough
-			case State::INT:
-				switch (c) {
-					case '.':
-						state = State::POINT;
-						break;
-					case 'e':
-					case 'E':
-						state = State::EXP_INIT;
-						break;
-					default:
-						state = State::INT;
-						if (!appendChar(c, 10, Part::A, reader, logger)) {
-							return false;
-						}
-						break;
-				}
-				break;
-			case State::HEX:
-				if (!appendChar(c, 16, Part::A, reader, logger)) {
-					return false;
-				}
-				break;
-			case State::LEADING_POINT:
-			case State::POINT:
-				switch (c) {
-					case 'e':
-					case 'E':
-						if (state == State::LEADING_POINT) {
-							logger.error(unexpectedMsg("digit", c), reader);
-							return false;
-						}
-						state = State::EXP_INIT;
-						break;
-					default:
-						state = State::POINT;
-						if (!appendChar(c, 10, Part::N, reader, logger)) {
-							return false;
-						}
-						break;
-				}
-				break;
-			case State::EXP_HAS_MINUS:
-			case State::EXP_INIT:
-				if (c == '-') {
-					if (state == State::EXP_HAS_MINUS) {
-						logger.error(unexpectedMsg("digit", c), reader);
-						return false;
-					}
-					state = State::EXP_HAS_MINUS;
-					sE = -1;
-				} else {
-					state = State::EXP;
-					if (!appendChar(c, 10, Part::E, reader, logger)) {
-						return false;
-					}
-				}
-				break;
-			case State::EXP:
-				if (!appendChar(c, 10, Part::E, reader, logger)) {
-					return false;
-				}
-				break;
-		}
-		reader.consumePeek();
-	}
-
-	// States in which ending is valid. Log an error in other states
-	if (state == State::LEADING_ZERO || state == State::HEX ||
-	    state == State::INT || state == State::POINT || state == State::EXP) {
-		return true;
-	}
-	logger.error(ERR_UNEXPECTED_END, reader);
-	return false;
-}
-
-bool Number::parseFixedLenInt(CharReader &reader, Logger &logger, int base,
-                              int len)
-{
-	char c;
-	reader.consumePeek();
-	for (int i = 0; i < len; i++) {
-		if (!reader.peek(c)) {
-			logger.error("Unexpected end of escape sequence", reader);
-			return false;
-		}
-		if (!appendChar(c, base, Number::Part::A, reader, logger)) {
-			return false;
-		}
-		reader.consumePeek();
-	}
-	return true;
 }
 
 /* State machine states */
@@ -658,7 +375,7 @@ std::pair<bool, std::string> VariantReader::parseString(
 						// Parse Latin-1 sequence \xXX
 						Number n;
 						hadError =
-						    !(n.parseFixedLenInt(reader, logger, 16, 2) &&
+						    !(n.parseFixedLenInt(reader, 2, 16, logger) &&
 						      encodeUtf8(res, reader, logger, n.intValue(),
 						                 true)) ||
 						    hadError;
@@ -668,7 +385,7 @@ std::pair<bool, std::string> VariantReader::parseString(
 						// Parse Unicode sequence \uXXXX
 						Number n;
 						hadError =
-						    !(n.parseFixedLenInt(reader, logger, 16, 4) &&
+						    !(n.parseFixedLenInt(reader, 4, 16, logger) &&
 						      encodeUtf8(res, reader, logger, n.intValue(),
 						                 false)) ||
 						    hadError;
@@ -680,7 +397,7 @@ std::pair<bool, std::string> VariantReader::parseString(
 							reader.resetPeek();
 							Number n;
 							hadError =
-							    !(n.parseFixedLenInt(reader, logger, 8, 3) &&
+							    !(n.parseFixedLenInt(reader, 3, 8, logger) &&
 							      encodeUtf8(res, reader, logger, n.intValue(),
 							                 true)) ||
 							    hadError;
