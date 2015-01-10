@@ -657,6 +657,25 @@ public:
 	}
 };
 
+/**
+ * Logger instance which throws each encountered error as LoggableException.
+ */
+class ExceptionLogger : public Logger {
+protected:
+	/**
+	 * Throws errors and fatal errors as exception.
+	 *
+	 * @param msg is the message that should be thrown as exception.
+	 */
+	void processMessage(const Message &msg) override
+	{
+		if (msg.severity == Severity::ERROR ||
+		    msg.severity == Severity::FATAL_ERROR) {
+			throw LoggableException(msg.msg);
+		}
+	}
+};
+
 #ifdef NDEBUG
 constexpr Severity DEFAULT_MIN_SEVERITY = Severity::NOTE;
 #else
