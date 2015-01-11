@@ -8,3 +8,9 @@ FILE_PATTERNS          = *.hpp \
 RECURSIVE              = YES
 JAVADOC_AUTOBRIEF      = YES
 
+GENERATE_HTML          = YES
+
+GENERATE_LATEX         = YES
+USE_PDFLATEX           = YES
+PDF_HYPERLINKS         = YES
+
