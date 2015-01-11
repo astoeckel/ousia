@@ -197,6 +197,7 @@ IF(TEST)
 		test/core/ResourceLocatorTest
 		test/core/TokenizerTest
 		test/core/XMLTest
+		test/core/common/ArgumentTest
 		test/core/common/CharReaderTest
 		test/core/common/FunctionTest
 		test/core/common/LoggerTest

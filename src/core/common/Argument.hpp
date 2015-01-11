@@ -199,10 +199,33 @@ public:
 	static Argument String(std::string name,
 	                       const Variant::stringType &defaultValue);
 
+	/**
+	 * Named constructor for an object argument with no default value. Object
+	 * arguments always point at an instance of the Managed class. The concrete
+	 * Object type must be specified in the "type" argument.
+	 *
+	 * @param name is the name of the argument as used for error messages and in
+	 * case the arguments are given as a map.
+	 * @param type is the RttiType of acceptable objects. All objects where the
+	 * "isa" function returns true for the given type are be accepted.
+	 * @return a new Argument instance.
+	 */
 	static Argument Object(std::string name, const RttiType &type);
 
+	/**
+	 * Named constructor for an object argument with default value. The default
+	 * value can only be nullptr. Object arguments always point at an instance
+	 * of the Managed class. The concrete Object type must be specified in the
+	 * "type" argument.
+	 *
+	 * @param name is the name of the argument as used for error messages and in
+	 * case the arguments are given as a map.
+	 * @param type is the RttiType of acceptable objects. All objects where the
+	 * "isa" function returns true for the given type are be accepted.
+	 * @return a new Argument instance.
+	 */
 	static Argument Object(std::string name, const RttiType &type,
-	                       std::nullptr_t);
+	                       std::nullptr_t defaultValue);
 
 	/**
 	 * Named constructor for a function argument with no default value.
@@ -292,8 +315,7 @@ public:
 	 * @param name is the name of the argument as used for error messages and in
 	 * case the arguments are given as a map.
 	 * @param defaultValue is the default value to be used in case this argument
-	 *is
-	 * not supplied.
+	 * is not supplied.
 	 * @return a new Argument instance.
 	 */
 	static Argument Map(std::string name, const Variant::mapType &defaultValue);
@@ -319,8 +341,7 @@ public:
 	 * @param innerType is the inner type of the map. All map entries are forced
 	 * to be of this type.
 	 * @param defaultValue is the default value to be used in case this argument
-	 *is
-	 * not supplied.
+	 * is not supplied.
 	 * @return a new Argument instance.
 	 */
 	static Argument Map(std::string name, const RttiType &innerType,
