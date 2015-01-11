@@ -32,6 +32,7 @@
  * in turn might contain two FieldDescriptors, one for the meta data of ones
  * book and one for the actual structure. Consider the following XML:
  *
+ * \code{.xml}
  * <domain name="book">
  * 	<structs>
  * 		<struct name="book" cardinality="1" isRoot="true">
@@ -89,6 +90,7 @@
  * 		</struct>
  * 	</structs>
  * </domain>
+ * \endcode
  *
  * Note that we define one field as the TREE (meaning the main or default
  * document structure) and one mearly as SUBTREE, relating to supporting
@@ -101,6 +103,7 @@
  *
  * The translation to context free grammars is as follows:
  *
+ * \code{.txt}
  * BOOK              := <book> BOOK_TREE </book>
  * BOOK_TREE         := CHAPTER BOOK_TREE | PARAGRAPH BOOK_TREE | epsilon
  * CHAPTER           := <chapter> CHAPTER_TREE </chapter>
@@ -112,6 +115,7 @@
  * SUBSECTION_TREE   := PARAGRAPH SUBSECTION_TREE | epsilon
  * PARAGRAPH         := <paragraph> PARAGRAPH_CONTENT </paragraph>
  * PARAGRAPH_CONTENT := string
+ * \endcode
  *
  * Note that this translation recurs to further nonterminals like SECTION but
  * necessarily produces one "book" terminal. Also note that, in principle,
@@ -122,6 +126,7 @@
  * It is possible to add further fields, like we would in the "headings" domain
  * to add titles to our structure.
  *
+ * \code{.xml}
  * <domain name="headings">
  * 	<head>
  * 		<import rel="domain" src="book.oxm"/>
@@ -139,11 +144,14 @@
  * 			</fields>
  * 	</structs>
  * </domain>
+ * \endcode
  *
  * This would change the context free grammar as follows:
  *
+ * \code{.txt}
  * BOOK              := <book> HEADING BOOK_TREE </book>
  * HEADING           := <heading> PARAGRAPH </heading>
+ * \endcode
  *
  * AnnotationClasses on the other hand do not specify a context free grammar.
  * They merely specify what kinds of Annotations are allowed within this domain
@@ -151,6 +159,7 @@
  * to define structured children that manifest e.g. meta information of that
  * Annotation. An example for that would be the "comment" domain:
  *
+ * \code{.xml}
  * <domain name="comments">
  * 	<head>
  * 		<import rel="domain" src="book.oxm"/>
@@ -183,6 +192,7 @@
  * 		</struct>
  * 	</structs>
  * </domain>
+ * \endcode
  *
  * Here we have comment annotations, which have a reply tree as sub structure.
  *

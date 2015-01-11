@@ -34,6 +34,7 @@
  *
  * Consider this XML representation of a document using the "book" domain:
  *
+ * \code{.xml}
  * <doc>
  * 	<head>
  * 		<import rel="domain" src="book_domain.oxm"/>
@@ -59,6 +60,7 @@
  * 		</chapter>
  * 	</book>
  * </doc>
+ * \endcode
  *
  * As can be seen the StructureEntities inherently follow a tree structure that
  * is restricted by the implicit context free grammar of the "book" Domain
@@ -70,12 +72,16 @@
  * overlapping annotations and provides a more intuitive (and semantically
  * sound) handling of such span-like concepts. So the
  *
+ * \code{.xml}
  * <em>content</em>
+ * \endcode
  *
  * is implicitly expanded to:
  *
+ * \code{.xml}
  * <a id="1"/>content<a id="2"/>
  * <emphasized start="1" end="2"/>
+ * \endcode
  *
  * Note that the place of an AnnotationEntity within the XML above is not
  * strictly defined. It might as well be placed as a child of the "book" node.
@@ -88,11 +94,13 @@
  *
  * is implicitly expanded using transparency to:
  *
+ * \code{.xml}
  * <paragraph>
  * 	<text>
  * 		Here we might find the actual section content.
  * 	</text>
  * </paragraph>
+ * \endcode
  *
  * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
  */
