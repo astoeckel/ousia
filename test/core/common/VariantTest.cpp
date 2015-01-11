@@ -20,6 +20,7 @@
 
 #include <gtest/gtest.h>
 
+#include <core/common/Rtti.hpp>
 #include <core/common/Variant.hpp>
 
 namespace ousia {
@@ -37,6 +38,9 @@ TEST(Variant, nullValue)
 
 	Variant v2{nullptr};
 	ASSERT_TRUE(v.isNull());
+
+	ASSERT_EQ(VariantType::NULLPTR, v.getType());
+	ASSERT_EQ(&RttiTypes::Nullptr, &v.getRttiType());
 }
 
 TEST(Variant, booleanValue)
@@ -52,6 +56,8 @@ TEST(Variant, booleanValue)
 	v.setBool(true);
 	ASSERT_TRUE(v.isBool());
 	ASSERT_TRUE(v.asBool());
+	ASSERT_EQ(VariantType::BOOL, v.getType());
+	ASSERT_EQ(&RttiTypes::Bool, &v.getRttiType());
 
 	v = nullptr;
 	ASSERT_FALSE(v.isBool());
@@ -66,6 +72,8 @@ TEST(Variant, intValue)
 	v = 43;
 	ASSERT_TRUE(v.isInt());
 	ASSERT_EQ(43, v.asInt());
+	ASSERT_EQ(VariantType::INT, v.getType());
+	ASSERT_EQ(&RttiTypes::Int, &v.getRttiType());
 
 	v = false;
 	ASSERT_FALSE(v.isInt());
@@ -83,6 +91,8 @@ TEST(Variant, doubleValue)
 	v = 43.5;
 	ASSERT_TRUE(v.isDouble());
 	ASSERT_EQ(43.5, v.asDouble());
+	ASSERT_EQ(VariantType::DOUBLE, v.getType());
+	ASSERT_EQ(&RttiTypes::Double, &v.getRttiType());
 }
 
 TEST(Variant, stringValue)
@@ -91,12 +101,27 @@ TEST(Variant, stringValue)
 	ASSERT_TRUE(v.isString());
 	ASSERT_EQ("Hello World", v.asString());
 
-	v = "Goodbye World";
+	v = "Goodbye Cruel World";
 	ASSERT_TRUE(v.isString());
-	ASSERT_EQ("Goodbye World", v.asString());
+	ASSERT_EQ("Goodbye Cruel World", v.asString());
+	ASSERT_EQ(VariantType::STRING, v.getType());
+	ASSERT_EQ(&RttiTypes::String, &v.getRttiType());
 
 	v = 42;
 	ASSERT_FALSE(v.isString());
+}
+
+TEST(Variant, stringValueConversion)
+{
+	Variant v;
+
+	// Conversion from string to numbers
+	v = "42";
+	ASSERT_EQ(42, v.toInt());
+	v = "0xA3af";
+	ASSERT_EQ(0xA3AF, v.toInt());
+	v = "42.5";
+	ASSERT_EQ(42.5, v.toDouble());
 }
 
 TEST(Variant, arrayValue)
@@ -105,6 +130,10 @@ TEST(Variant, arrayValue)
 	ASSERT_EQ(2U, v.asArray().size());
 	ASSERT_EQ("test1", v.asArray()[0].asString());
 	ASSERT_EQ(42, v.asArray()[1].asInt());
+
+	ASSERT_TRUE(v.isArray());
+	ASSERT_EQ(VariantType::ARRAY, v.getType());
+	ASSERT_EQ(&RttiTypes::Array, &v.getRttiType());
 }
 
 TEST(Variant, mapValue)
@@ -119,23 +148,27 @@ TEST(Variant, mapValue)
 
 	const Variant v2{{{"key1", Variant::arrayType{1, 2}}, {"key2", "entry2"}}};
 	ASSERT_EQ(2, v2.asMap().find("key1")->second.asArray()[1].asInt());
+
+	ASSERT_TRUE(v.isMap());
+	ASSERT_EQ(VariantType::MAP, v.getType());
+	ASSERT_EQ(&RttiTypes::Map, &v.getRttiType());
 }
 
-TEST(Variant, relationalOperators){
+TEST(Variant, relationalOperators)
+{
 	Variant a{4};
 	Variant b{4};
-	
-	ASSERT_EQ(a,b);
-	
+
+	ASSERT_EQ(a, b);
+
 	b.setInt(5);
 	ASSERT_TRUE(a < b);
-	
+
 	b.setDouble(4);
 	ASSERT_FALSE(a == b);
-	
-	a.setDouble(4);
-	ASSERT_EQ(a,b);
-}
 
+	a.setDouble(4);
+	ASSERT_EQ(a, b);
+}
 }
 
