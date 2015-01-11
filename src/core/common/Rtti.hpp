@@ -425,11 +425,40 @@ inline const RttiBase &typeOf(const T &obj)
 }
 
 namespace RttiTypes {
-
 /**
  * Type of no particular type.
  */
 extern const RttiBase None;
+
+/**
+ * Bool type for use by the Variant::rttiType method.
+ */
+extern const RttiBase Bool;
+
+/**
+ * Integer type for use by the Variant::rttiType method.
+ */
+extern const RttiBase Int;
+
+/**
+ * Double type for use by the Variant::rttiType method.
+ */
+extern const RttiBase Double;
+
+/**
+ * String type for use by the Variant::rttiType method.
+ */
+extern const RttiBase String;
+
+/**
+ * Array type for use by the Variant::rttiType method.
+ */
+extern const RttiBase Array;
+
+/**
+ * Function type for use by the Variant::rttiType method.
+ */
+extern const RttiBase Function;
 }
 }
 
