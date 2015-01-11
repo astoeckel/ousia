@@ -99,6 +99,16 @@ bool RttiType::composedOf(const RttiType &other) const
 
 /* Constant initialization */
 
-const RttiType RttiTypes::None;
+namespace RttiTypes {
+const RttiType None{"unknown"};
+const RttiType Nullptr{"nullptr"};
+const RttiType Bool{"bool"};
+const RttiType Int{"int"};
+const RttiType Double{"double"};
+const RttiType String{"string"};
+const RttiType Array{"array"};
+const RttiType Map{"map"};
+const RttiType Function{"function"};
+}
 }
 

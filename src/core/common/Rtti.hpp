@@ -296,6 +296,11 @@ public:
 	RttiType() : name("unknown") {}
 
 	/**
+	 * Constructor for an empty RttiType with the given name.
+	 */
+	RttiType(std::string name) : name(std::move(name)) {}
+
+	/**
 	 * Creates a new RttiType instance and registers it in the global type
 	 * table. Use the Rtti and the RttiBuilder class for more convenient
 	 * registration of type information.
@@ -431,32 +436,42 @@ namespace RttiTypes {
 extern const RttiType None;
 
 /**
- * Bool type for use by the Variant::rttiType method.
+ * Nullptr type for use by the Variant::getRttiType method.
+ */
+extern const RttiType Nullptr;
+
+/**
+ * Bool type for use by the Variant::getRttiType method.
  */
 extern const RttiType Bool;
 
 /**
- * Integer type for use by the Variant::rttiType method.
+ * Integer type for use by the Variant::getRttiType method.
  */
 extern const RttiType Int;
 
 /**
- * Double type for use by the Variant::rttiType method.
+ * Double type for use by the Variant::getRttiType method.
  */
 extern const RttiType Double;
 
 /**
- * String type for use by the Variant::rttiType method.
+ * String type for use by the Variant::getRttiType method.
  */
 extern const RttiType String;
 
 /**
- * Array type for use by the Variant::rttiType method.
+ * Array type for use by the Variant::getRttiType method.
  */
 extern const RttiType Array;
 
 /**
- * Function type for use by the Variant::rttiType method.
+ * Map type for use by the Variant::getRttiType method.
+ */
+extern const RttiType Map;
+
+/**
+ * Function type for use by the Variant::getRttiType method.
  */
 extern const RttiType Function;
 }
