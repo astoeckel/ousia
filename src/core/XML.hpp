@@ -45,11 +45,16 @@
 #include <ostream>
 #include <vector>
 
-#include <core/common/Rtti.hpp>
 #include <core/managed/Managed.hpp>
 #include <core/managed/ManagedContainer.hpp>
 
 namespace ousia {
+
+// Forward declarations
+class RttiType;
+template<class T>
+class Rtti;
+
 namespace xml {
 
 class Element;

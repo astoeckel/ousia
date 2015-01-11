@@ -192,7 +192,6 @@
 #ifndef _OUSIA_MODEL_DOMAIN_HPP_
 #define _OUSIA_MODEL_DOMAIN_HPP_
 
-#include <core/common/Rtti.hpp>
 #include <core/managed/ManagedContainer.hpp>
 #include <core/RangeSet.hpp>
 
@@ -200,8 +199,15 @@
 #include "Typesystem.hpp"
 
 namespace ousia {
+
+// Forward declarations
+class RttiType;
+template<class T>
+class Rtti;
+
 namespace model {
 
+// Forward declarations
 class Descriptor;
 class StructuredClass;
 class Domain;

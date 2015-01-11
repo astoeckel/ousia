@@ -20,6 +20,7 @@
 #include <unordered_set>
 
 #include <core/common/Exceptions.hpp>
+#include <core/common/Rtti.hpp>
 
 #include "Node.hpp"
 

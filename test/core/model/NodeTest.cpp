@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include <core/common/Rtti.hpp>
 #include <core/managed/Managed.hpp>
 #include <core/model/Node.hpp>
 

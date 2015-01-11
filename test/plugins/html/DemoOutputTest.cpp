@@ -23,6 +23,8 @@
 
 #include <plugins/html/DemoOutput.hpp>
 
+#include <core/common/Rtti.hpp>
+
 #include <core/model/Document.hpp>
 #include <core/model/Domain.hpp>
 

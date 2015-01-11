@@ -32,13 +32,17 @@
 #include <string>
 #include <vector>
 
-#include <core/common/Rtti.hpp>
 #include <core/managed/Managed.hpp>
 #include <core/managed/ManagedContainer.hpp>
 
 #include "Index.hpp"
 
 namespace ousia {
+
+// Forward declarations
+class RttiType;
+template<class T>
+class Rtti;
 
 /**
  * Structure describing a single result obtained from the resolution function.

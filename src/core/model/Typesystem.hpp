@@ -34,14 +34,20 @@
 
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
-#include <core/common/Rtti.hpp>
 #include <core/common/Variant.hpp>
 
 #include "Node.hpp"
 
 namespace ousia {
+
+// Forward declarations
+class RttiType;
+template<class T>
+class Rtti;
+
 namespace model {
 
+// Forward declarations
 class Typesystem;
 
 /**

@@ -48,10 +48,10 @@ TEST(CSSParser, testParseSelectors)
 	Rooted<SelectorNode> root = instance.parse(data, ctx).cast<SelectorNode>();
 
 	// we expect three children of the root node overall.
-	ASSERT_EQ(3, root->getEdges().size());
+	ASSERT_EQ(3U, root->getEdges().size());
 	// get all "A" children, which should be two.
 	std::vector<Rooted<SelectorNode>> children = root->getChildren("A");
-	ASSERT_EQ(2, children.size());
+	ASSERT_EQ(2U, children.size());
 	// assert A
 	Rooted<SelectorNode> A = children[0];
 	ASSERT_EQ("A", A->getName());
@@ -59,75 +59,75 @@ TEST(CSSParser, testParseSelectors)
 		PseudoSelector select{"true", false};
 		ASSERT_EQ(select, A->getPseudoSelector());
 	}
-	ASSERT_EQ(2, A->getEdges().size());
+	ASSERT_EQ(2U, A->getEdges().size());
 	ASSERT_FALSE(A->isAccepting());
-	ASSERT_EQ(0, A->getRuleSet()->getRules().size());
+	ASSERT_EQ(0U, A->getRuleSet()->getRules().size());
 	{
 		// assert A > B
 		std::vector<Rooted<SelectorNode>> Achildren =
 		    A->getChildren(SelectionOperator::DIRECT_DESCENDANT, "B");
-		ASSERT_EQ(1, Achildren.size());
+		ASSERT_EQ(1U, Achildren.size());
 		Rooted<SelectorNode> B = Achildren[0];
 		ASSERT_EQ("B", B->getName());
 		{
 			PseudoSelector select{"true", false};
 			ASSERT_EQ(select, B->getPseudoSelector());
 		}
-		ASSERT_EQ(0, B->getEdges().size());
+		ASSERT_EQ(0U, B->getEdges().size());
 		ASSERT_TRUE(B->isAccepting());
-		ASSERT_EQ(0, B->getRuleSet()->getRules().size());
+		ASSERT_EQ(0U, B->getRuleSet()->getRules().size());
 		// assert A B:r
 		Achildren = A->getChildren(SelectionOperator::DESCENDANT, "B");
-		ASSERT_EQ(1, Achildren.size());
+		ASSERT_EQ(1U, Achildren.size());
 		Rooted<SelectorNode> Br = Achildren[0];
 		ASSERT_EQ("B", Br->getName());
 		{
 			PseudoSelector select{"r", false};
 			ASSERT_EQ(select, Br->getPseudoSelector());
 		}
-		ASSERT_EQ(0, Br->getEdges().size());
+		ASSERT_EQ(0U, Br->getEdges().size());
 		ASSERT_TRUE(Br->isAccepting());
-		ASSERT_EQ(0, Br->getRuleSet()->getRules().size());
+		ASSERT_EQ(0U, Br->getRuleSet()->getRules().size());
 	}
 	// assert C#a
 	children = root->getChildren("C");
-	ASSERT_EQ(1, children.size());
+	ASSERT_EQ(1U, children.size());
 	Rooted<SelectorNode> C = children[0];
 	ASSERT_EQ("C", C->getName());
 	{
 		PseudoSelector select{"has_id", {"a"}, false};
 		ASSERT_EQ(select, C->getPseudoSelector());
 	}
-	ASSERT_EQ(1, C->getEdges().size());
+	ASSERT_EQ(1U, C->getEdges().size());
 	ASSERT_FALSE(C->isAccepting());
-	ASSERT_EQ(0, C->getRuleSet()->getRules().size());
+	ASSERT_EQ(0U, C->getRuleSet()->getRules().size());
 	{
 		// assert C#a A[bla=\"blub\"]
 		std::vector<Rooted<SelectorNode>> Cchildren =
 		    C->getChildren(SelectionOperator::DESCENDANT, "A");
-		ASSERT_EQ(1, Cchildren.size());
+		ASSERT_EQ(1U, Cchildren.size());
 		Rooted<SelectorNode> A = Cchildren[0];
 		ASSERT_EQ("A", A->getName());
 		{
 			PseudoSelector select{"has_value", {"bla", "blub"}, false};
 			ASSERT_EQ(select, A->getPseudoSelector());
 		}
-		ASSERT_EQ(0, A->getEdges().size());
+		ASSERT_EQ(0U, A->getEdges().size());
 		ASSERT_TRUE(A->isAccepting());
-		ASSERT_EQ(0, A->getRuleSet()->getRules().size());
+		ASSERT_EQ(0U, A->getRuleSet()->getRules().size());
 	}
 	// assert A::g(4,2,3)
 	children = root->getChildren("A");
-	ASSERT_EQ(2, children.size());
+	ASSERT_EQ(2U, children.size());
 	Rooted<SelectorNode> Ag = children[1];
 	ASSERT_EQ("A", Ag->getName());
 	{
 		PseudoSelector select{"g", {Variant(4), Variant(2), Variant(3)}, true};
 		ASSERT_EQ(select, Ag->getPseudoSelector());
 	}
-	ASSERT_EQ(0, Ag->getEdges().size());
+	ASSERT_EQ(0U, Ag->getEdges().size());
 	ASSERT_TRUE(Ag->isAccepting());
-	ASSERT_EQ(0, Ag->getRuleSet()->getRules().size());
+	ASSERT_EQ(0U, Ag->getRuleSet()->getRules().size());
 }
 
 TEST(CSSParser, testParseCSS)
@@ -159,10 +159,10 @@ TEST(CSSParser, testParseCSS)
 	    instance.parse(reader, ctx).cast<SelectorNode>();
 
 	// we expect three children of the root node overall.
-	ASSERT_EQ(3, root->getEdges().size());
+	ASSERT_EQ(3U, root->getEdges().size());
 	// get all "A" children, which should be two.
 	std::vector<Rooted<SelectorNode>> children = root->getChildren("A");
-	ASSERT_EQ(2, children.size());
+	ASSERT_EQ(2U, children.size());
 	// assert A
 	/*
 	 * A {
@@ -184,11 +184,11 @@ TEST(CSSParser, testParseCSS)
 		PseudoSelector select{"true", false};
 		ASSERT_EQ(select, A->getPseudoSelector());
 	}
-	ASSERT_EQ(0, A->getEdges().size());
+	ASSERT_EQ(0U, A->getEdges().size());
 	ASSERT_TRUE(A->isAccepting());
 	{
 		Rooted<RuleSet> ruleSet = A->getRuleSet();
-		ASSERT_EQ(2, ruleSet->getRules().size());
+		ASSERT_EQ(2U, ruleSet->getRules().size());
 		Variant v = ruleSet->getRules()["ident1"];
 		ASSERT_TRUE(v.isString());
 		ASSERT_EQ("val4", v.asString());
@@ -209,11 +209,11 @@ TEST(CSSParser, testParseCSS)
 		PseudoSelector select{"select", {"a", "b"}, false};
 		ASSERT_EQ(select, Aselect->getPseudoSelector());
 	}
-	ASSERT_EQ(0, Aselect->getEdges().size());
+	ASSERT_EQ(0U, Aselect->getEdges().size());
 	ASSERT_TRUE(Aselect->isAccepting());
 	{
 		Rooted<RuleSet> ruleSet = Aselect->getRuleSet();
-		ASSERT_EQ(1, ruleSet->getRules().size());
+		ASSERT_EQ(1U, ruleSet->getRules().size());
 		Variant v = ruleSet->getRules()["ident3"];
 		ASSERT_TRUE(v.isString());
 		ASSERT_EQ("val3", v.asString());
@@ -227,7 +227,7 @@ TEST(CSSParser, testParseCSS)
 	 * }
 	 */
 	children = root->getChildren("B");
-	ASSERT_EQ(1, children.size());
+	ASSERT_EQ(1U, children.size());
 
 	Rooted<SelectorNode> B = children[0];
 	ASSERT_EQ("B", B->getName());
@@ -235,12 +235,12 @@ TEST(CSSParser, testParseCSS)
 		PseudoSelector select{"true", false};
 		ASSERT_EQ(select, B->getPseudoSelector());
 	}
-	ASSERT_EQ(1, B->getEdges().size());
+	ASSERT_EQ(1U, B->getEdges().size());
 	ASSERT_FALSE(B->isAccepting());
-	ASSERT_EQ(0, B->getRuleSet()->getRules().size());
+	ASSERT_EQ(0U, B->getRuleSet()->getRules().size());
 
 	children = B->getChildren("A");
-	ASSERT_EQ(1, children.size());
+	ASSERT_EQ(1U, children.size());
 
 	Rooted<SelectorNode> BA = children[0];
 	ASSERT_EQ("A", BA->getName());
@@ -248,11 +248,11 @@ TEST(CSSParser, testParseCSS)
 		PseudoSelector select{"true", false};
 		ASSERT_EQ(select, BA->getPseudoSelector());
 	}
-	ASSERT_EQ(0, BA->getEdges().size());
+	ASSERT_EQ(0U, BA->getEdges().size());
 	ASSERT_TRUE(BA->isAccepting());
 	{
 		Rooted<RuleSet> ruleSet = BA->getRuleSet();
-		ASSERT_EQ(2, ruleSet->getRules().size());
+		ASSERT_EQ(2U, ruleSet->getRules().size());
 		Variant v = ruleSet->getRules()["ident1"];
 		ASSERT_TRUE(v.isString());
 		ASSERT_EQ("val1", v.asString());

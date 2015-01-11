@@ -20,6 +20,8 @@
 
 #include <iostream>
 
+#include <core/common/Rtti.hpp>
+
 #include <core/model/Document.hpp>
 #include <core/model/Domain.hpp>
 
@@ -47,7 +49,7 @@ TEST(Document, testDocumentConstruction)
 	ASSERT_FALSE(root.isNull());
 	ASSERT_EQ("book", root->getDescriptor()->getName());
 	ASSERT_TRUE(root->hasField());
-	ASSERT_EQ(2, root->getField().size());
+	ASSERT_EQ(2U, root->getField().size());
 	// get foreword (paragraph)
 	{
 		Rooted<StructuredEntity> foreword = root->getField()[0];
@@ -55,7 +57,7 @@ TEST(Document, testDocumentConstruction)
 		ASSERT_EQ("paragraph", foreword->getDescriptor()->getName());
 		// it should contain one text node
 		ASSERT_TRUE(foreword->hasField());
-		ASSERT_EQ(1, foreword->getField().size());
+		ASSERT_EQ(1U, foreword->getField().size());
 		// which in turn should have a primitive content field containing the
 		// right text.
 		{
@@ -63,7 +65,7 @@ TEST(Document, testDocumentConstruction)
 			ASSERT_FALSE(text.isNull());
 			ASSERT_EQ("text", text->getDescriptor()->getName());
 			ASSERT_TRUE(text->hasField());
-			ASSERT_EQ(1, text->getField().size());
+			ASSERT_EQ(1U, text->getField().size());
 			ASSERT_TRUE(text->getField()[0]->isa(typeOf<DocumentPrimitive>()));
 			Variant content =
 			    text->getField()[0].cast<DocumentPrimitive>()->getContent();
@@ -77,14 +79,14 @@ TEST(Document, testDocumentConstruction)
 		ASSERT_EQ("section", section->getDescriptor()->getName());
 		// it should contain one paragraph
 		ASSERT_TRUE(section->hasField());
-		ASSERT_EQ(1, section->getField().size());
+		ASSERT_EQ(1U, section->getField().size());
 		{
 			Rooted<StructuredEntity> par = section->getField()[0];
 			ASSERT_FALSE(par.isNull());
 			ASSERT_EQ("paragraph", par->getDescriptor()->getName());
 			// it should contain one text node
 			ASSERT_TRUE(par->hasField());
-			ASSERT_EQ(1, par->getField().size());
+			ASSERT_EQ(1U, par->getField().size());
 			// which in turn should have a primitive content field containing
 			// the
 			// right text.
@@ -93,7 +95,7 @@ TEST(Document, testDocumentConstruction)
 				ASSERT_FALSE(text.isNull());
 				ASSERT_EQ("text", text->getDescriptor()->getName());
 				ASSERT_TRUE(text->hasField());
-				ASSERT_EQ(1, text->getField().size());
+				ASSERT_EQ(1U, text->getField().size());
 				ASSERT_TRUE(
 				    text->getField()[0]->isa(typeOf<DocumentPrimitive>()));
 				Variant content =
