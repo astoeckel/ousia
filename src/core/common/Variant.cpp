@@ -25,6 +25,7 @@
 #include "Variant.hpp"
 #include "VariantConverter.hpp"
 #include "VariantWriter.hpp"
+#include "Rtti.hpp"
 
 namespace ousia {
 
@@ -69,6 +70,8 @@ const char *Variant::getTypeName(VariantType type)
 	return "unknown";
 }
 
+/* Conversion functions */
+
 Variant::boolType Variant::toBool() const
 {
 	ExceptionLogger logger;
@@ -99,6 +102,34 @@ Variant::stringType Variant::toString(bool escape) const
 	Variant res{*this};
 	VariantConverter::toString(res, logger, VariantConverter::Mode::ALL);
 	return res.asString();
+}
+
+/* Type management */
+
+const RttiType& Variant::getRttiType() const
+{
+	switch (type) {
+		case VariantType::NULLPTR:
+			return RttiTypes::Nullptr;
+		case VariantType::BOOL:
+			return RttiTypes::Bool;
+		case VariantType::INT:
+			return RttiTypes::Int;
+		case VariantType::DOUBLE:
+			return RttiTypes::Double;
+		case VariantType::STRING:
+		case VariantType::MAGIC:
+			return RttiTypes::String;
+		case VariantType::ARRAY:
+			return RttiTypes::Array;
+		case VariantType::MAP:
+			return RttiTypes::Map;
+		case VariantType::FUNCTION:
+			return RttiTypes::Function;
+		case VariantType::OBJECT:
+			return asObject()->type();
+	}
+	return RttiTypes::None;
 }
 
 /* Output stream operators */

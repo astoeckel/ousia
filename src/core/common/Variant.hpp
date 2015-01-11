@@ -859,8 +859,11 @@ public:
 	 * Returns the current Rtti type descriptor of the Variant.
 	 *
 	 * @return the Rtti type descriptor. Either one of RttiTypes::Int,
-	 * RttiTypes::Bool, RttiTypes::Double, RttiTypes::
+	 * RttiTypes::Bool, RttiTypes::Double, RttiTypes::String, RttiTypes::Array
+	 * or RttiTypes::Function or -- in case an object is stored inside the
+	 * variant -- the RttiType of that object.
 	 */
+	const RttiType& getRttiType() const;
 
 	/**
 	 * Returns the name of the given variant type as C-style string.
