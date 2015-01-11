@@ -45,22 +45,6 @@ class Logger;
 class Number {
 private:
 	/**
-	 * State used in the parser state machine
-	 */
-	enum class State {
-		INIT,
-		HAS_MINUS,
-		LEADING_ZERO,
-		LEADING_POINT,
-		INT,
-		HEX,
-		POINT,
-		EXP_INIT,
-		EXP_HAS_MINUS,
-		EXP
-	};
-
-	/**
 	 * Reprsents the part of the number: Base value a, nominator n, exponent e.
 	 */
 	enum class Part { A, N, E };
@@ -155,7 +139,7 @@ public:
 	bool parse(const std::string &str, Logger &logger);
 
 	/**
-	 * Parses a number with a fixed length and the given base.
+	 * Parses an integer with a fixed length and the given base.
 	 *
 	 * @param reader is a reference at the char reader from which the number
 	 * should be read.
@@ -163,8 +147,9 @@ public:
 	 * @param base is the base of the number.
 	 * @param logger is the logger instance to which error messages should be
 	 * written.
+	 * @return true if parsing was successful, false otherwise.
 	 */
-	bool parseFixedLenInt(CharReader &reader, int len, int base,
+	bool parseFixedLengthInteger(CharReader &reader, int len, int base,
 	                      Logger &logger);
 };
 }

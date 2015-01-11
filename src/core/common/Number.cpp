@@ -69,7 +69,7 @@ double Number::doubleValue()
 int64_t Number::intValue() { return s * a; }
 
 bool Number::appendChar(char c, int base, Part p, CharReader &reader,
-                Logger &logger)
+                        Logger &logger)
 {
 	// Check whether the given character is valid
 	int v = charValue(c);
@@ -99,6 +99,22 @@ bool Number::appendChar(char c, int base, Part p, CharReader &reader,
 	}
 	return true;
 }
+
+/**
+ * State used in the parser state machine
+ */
+enum class State {
+	INIT,
+	HAS_MINUS,
+	LEADING_ZERO,
+	LEADING_POINT,
+	INT,
+	HEX,
+	POINT,
+	EXP_INIT,
+	EXP_HAS_MINUS,
+	EXP
+};
 
 bool Number::parse(CharReader &reader, Logger &logger,
                    const std::unordered_set<char> &delims)
@@ -238,7 +254,8 @@ bool Number::parse(const std::string &str, Logger &logger)
 	return parse(reader, logger);
 }
 
-bool Number::parseFixedLenInt(CharReader &reader, int len, int base, Logger &logger)
+bool Number::parseFixedLengthInteger(CharReader &reader, int len, int base,
+                                  Logger &logger)
 {
 	char c;
 	reader.consumePeek();
@@ -254,6 +271,5 @@ bool Number::parseFixedLenInt(CharReader &reader, int len, int base, Logger &log
 	}
 	return true;
 }
-
 }
 

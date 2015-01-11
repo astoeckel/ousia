@@ -374,21 +374,21 @@ std::pair<bool, std::string> VariantReader::parseString(
 					case 'x': {
 						// Parse Latin-1 sequence \xXX
 						Number n;
-						hadError =
-						    !(n.parseFixedLenInt(reader, 2, 16, logger) &&
-						      encodeUtf8(res, reader, logger, n.intValue(),
-						                 true)) ||
-						    hadError;
+						hadError = !(n.parseFixedLengthInteger(reader, 2, 16,
+						                                       logger) &&
+						             encodeUtf8(res, reader, logger,
+						                        n.intValue(), true)) ||
+						           hadError;
 						break;
 					}
 					case 'u': {
 						// Parse Unicode sequence \uXXXX
 						Number n;
-						hadError =
-						    !(n.parseFixedLenInt(reader, 4, 16, logger) &&
-						      encodeUtf8(res, reader, logger, n.intValue(),
-						                 false)) ||
-						    hadError;
+						hadError = !(n.parseFixedLengthInteger(reader, 4, 16,
+						                                       logger) &&
+						             encodeUtf8(res, reader, logger,
+						                        n.intValue(), false)) ||
+						           hadError;
 						break;
 					}
 					default:
@@ -396,11 +396,11 @@ std::pair<bool, std::string> VariantReader::parseString(
 							// Parse Latin-1 sequence \000
 							reader.resetPeek();
 							Number n;
-							hadError =
-							    !(n.parseFixedLenInt(reader, 3, 8, logger) &&
-							      encodeUtf8(res, reader, logger, n.intValue(),
-							                 true)) ||
-							    hadError;
+							hadError = !(n.parseFixedLengthInteger(reader, 3, 8,
+							                                       logger) &&
+							             encodeUtf8(res, reader, logger,
+							                        n.intValue(), true)) ||
+							           hadError;
 						} else {
 							logger.error(ERR_INVALID_ESCAPE, reader);
 							hadError = true;
