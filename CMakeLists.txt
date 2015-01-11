@@ -111,6 +111,7 @@ ADD_LIBRARY(ousia_core
 	src/core/ResourceLocator
 	src/core/Tokenizer
 	src/core/XML
+	src/core/common/Argument
 	src/core/common/CharReader
 	src/core/common/Exceptions
 	src/core/common/Function
@@ -134,10 +135,7 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/Parser
 	src/core/parser/ParserStack
 	src/core/parser/Scope
-#	src/core/script/Function
-#	src/core/script/Object
 #	src/core/script/ScriptEngine
-#	src/core/script/Variant
 )
 
 ADD_LIBRARY(ousia_boost
