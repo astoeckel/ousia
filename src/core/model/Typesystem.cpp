@@ -20,6 +20,7 @@
 
 #include <core/common/Rtti.hpp>
 #include <core/common/Utils.hpp>
+#include <core/common/VariantConverter.hpp>
 
 namespace ousia {
 namespace model {
@@ -38,57 +39,32 @@ bool Type::build(Variant &data, Logger &logger) const
 	}
 }
 
-/* Class StringType */
+/* Class BoolType */
 
-bool StringType::doBuild(Variant &data, Logger &logger) const
+bool BoolType::doBuild(Variant &data, Logger &logger) const
 {
-	// Cannot convert non-primitive values to strings
-	if (!data.isPrimitive()) {
-		throw LoggableException{"Expected string or primitive input."};
-	}
-
-	// Perform an implicit type conversion
-	if (!data.isString()) {
-		// Convert the variant value to a string and set it
-		const char *oldName = data.getTypeName();
-		data = data.toString().c_str();
-
-		// Log conversions as these may be potentially unwanted
-		logger.note(std::string("Implicit conversion from ") + oldName +
-		            " to string.");
-	}
-	return true;
+	return VariantConverter::toBool(data, logger);
 }
 
 /* Class IntType */
 
 bool IntType::doBuild(Variant &data, Logger &logger) const
 {
-	if (!data.isInt()) {
-		throw LoggableException{"Expected integer value."};
-	}
-	return true;
+	return VariantConverter::toInt(data, logger);
 }
 
 /* Class DoubleType */
 
 bool DoubleType::doBuild(Variant &data, Logger &logger) const
 {
-	if (!data.isInt() && !data.isDouble()) {
-		throw LoggableException{"Expected double value."};
-	}
-	data = Variant{data.toDouble()};
-	return true;
+	return VariantConverter::toDouble(data, logger);
 }
 
-/* Class BoolType */
+/* Class StringType */
 
-bool BoolType::doBuild(Variant &data, Logger &logger) const
+bool StringType::doBuild(Variant &data, Logger &logger) const
 {
-	if (!data.isBool()) {
-		throw LoggableException("Expected boolean value!");
-	}
-	return true;
+	return VariantConverter::toString(data, logger);
 }
 
 /* Class EnumType */

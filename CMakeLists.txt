@@ -120,7 +120,9 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Terminal
 	src/core/common/Utils
 	src/core/common/Variant
+	src/core/common/VariantConverter
 	src/core/common/VariantReader
+	src/core/common/VariantWriter
 	src/core/managed/Events
 	src/core/managed/Managed
 	src/core/managed/Manager
@@ -202,6 +204,7 @@ IF(TEST)
 		test/core/common/LoggerTest
 		test/core/common/RttiTest
 		test/core/common/VariantReaderTest
+		test/core/common/VariantWriterTest
 		test/core/common/VariantTest
 		test/core/common/UtilsTest
 		test/core/managed/ManagedContainerTest

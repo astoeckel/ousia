@@ -20,8 +20,11 @@
 
 #include <core/managed/Managed.hpp>
 
+#include "Logger.hpp"
 #include "Utils.hpp"
 #include "Variant.hpp"
+#include "VariantConverter.hpp"
+#include "VariantWriter.hpp"
 
 namespace ousia {
 
@@ -68,115 +71,124 @@ const char *Variant::getTypeName(Type type)
 
 Variant::boolType Variant::toBool() const
 {
-	switch (getType()) {
-		case Type::NULLPTR:
-			return false;
-		case Type::BOOL:
-			return asBool();
-		case Type::INT:
-			return asInt() != 0;
-		case Type::DOUBLE:
-			return asDouble() != 0.0;
-		default:
-			return true;
-	}
-	return false;
+	ExceptionLogger logger;
+	Variant res{*this};
+	VariantConverter::toBool(res, logger, VariantConverter::Mode::ALL);
+	return res.asBool();
 }
 
 Variant::intType Variant::toInt() const
 {
-	switch (getType()) {
-		case Type::NULLPTR:
-			return 0;
-		case Type::BOOL:
-			return asBool() ? 1 : 0;
-		case Type::INT:
-			return asInt();
-		case Type::DOUBLE:
-			return asDouble();
-		case Type::STRING:
-		case Type::MAGIC:
-			return 0;  // TODO: Parse string as int
-		case Type::ARRAY: {
-			// JavaScript behaviour when converting arrays to ints
-			const arrayType &a = asArray();
-			return (a.size() == 1) ? a[0].toInt() : 0;
-		}
-		default:
-			return 0;
-	}
-	return false;
+	ExceptionLogger logger;
+	Variant res{*this};
+	VariantConverter::toInt(res, logger, VariantConverter::Mode::ALL);
+	return res.asInt();
 }
 
 Variant::doubleType Variant::toDouble() const
 {
-	switch (getType()) {
-		case Type::NULLPTR:
-			return 0.0;
-		case Type::BOOL:
-			return asBool() ? 1.0 : 0.0;
-		case Type::INT:
-			return asInt();
-		case Type::DOUBLE:
-			return asDouble();
-		case Type::STRING:
-		case Type::MAGIC:
-			return 0.0;  // TODO: Parse string as double
-		case Type::ARRAY: {
-			// JavaScript behaviour when converting array to doubles
-			const arrayType &a = asArray();
-			return (a.size() == 1) ? a[0].toDouble() : 0;
-		}
-		default:
-			return 0.0;
-	}
-	return false;
+	ExceptionLogger logger;
+	Variant res{*this};
+	VariantConverter::toDouble(res, logger, VariantConverter::Mode::ALL);
+	return res.asDouble();
 }
 
 Variant::stringType Variant::toString(bool escape) const
 {
-	switch (getType()) {
-		case Type::NULLPTR:
-			return "null";
-		case Type::BOOL:
-			return asBool() ? "true" : "false";
-		case Type::INT: {
-			std::stringstream ss;
-			ss << asInt();
-			return ss.str();
-		}
-		case Type::DOUBLE: {
-			std::stringstream ss;
-			ss << asDouble();
-			return ss.str();
-		}
-		case Type::STRING: {
-		case Type::MAGIC:
-			// TODO: Use proper serialization function
-			if (escape) {
-				std::stringstream ss;
-				ss << "\"" << asString() << "\"";
-				return ss.str();
-			} else {
-				return asString();
-			}
-		}
-		case Type::ARRAY:
-			return Utils::join(asArray(), ", ", "[", "]");
-		case Type::MAP:
-			return Utils::join(asMap(), ", ", "{", "}");
-		case Type::OBJECT: {
-			std::stringstream ss;
-			ss << "<object " << ptrVal << ">";
-			return ss.str();
-		}
-		case Type::FUNCTION: {
-			std::stringstream ss;
-			ss << "<function " << static_cast<functionType*>(ptrVal)->get() << ">";
-			return ss.str();
-		}
-	}
-	return "";
+	ExceptionLogger logger;
+	Variant res{*this};
+	VariantConverter::toString(res, logger, VariantConverter::Mode::ALL);
+	return res.asString();
 }
+
+/* Output stream operators */
+
+std::ostream &operator<<(std::ostream &os, const Variant &v)
+{
+	VariantWriter::writeJson(v, os, true);
+	return os;
+}
+
+/* Comparison operators */
+
+bool operator<(const Variant &lhs, const Variant &rhs)
+{
+	// If the types do not match, we can not do a meaningful comparison.
+	if (lhs.getType() != rhs.getType()) {
+		throw Variant::TypeException(lhs.getType(), rhs.getType());
+	}
+	switch (lhs.getType()) {
+		case Variant::Type::NULLPTR:
+			return false;
+		case Variant::Type::BOOL:
+			return lhs.boolVal < rhs.boolVal;
+		case Variant::Type::INT:
+			return lhs.intVal < rhs.intVal;
+		case Variant::Type::DOUBLE:
+			return lhs.doubleVal < rhs.doubleVal;
+		case Variant::Type::MAGIC:
+		case Variant::Type::STRING:
+			return lhs.asString() < rhs.asString();
+		case Variant::Type::ARRAY:
+			return lhs.asArray() < rhs.asArray();
+		case Variant::Type::MAP:
+			return lhs.asMap() < rhs.asMap();
+		case Variant::Type::OBJECT:
+			return lhs.asObject().get() < rhs.asObject().get();
+		case Variant::Type::FUNCTION:
+			return lhs.asFunction() < rhs.asFunction();
+	}
+	throw OusiaException("Internal Error! Unknown type!");
+}
+
+bool operator>(const Variant &lhs, const Variant &rhs)
+{
+	return rhs < lhs;
+}
+
+bool operator<=(const Variant &lhs, const Variant &rhs)
+{
+	return !(lhs > rhs);
+}
+
+bool operator>=(const Variant &lhs, const Variant &rhs)
+{
+	return !(lhs < rhs);
+}
+
+bool operator==(const Variant &lhs, const Variant &rhs)
+{
+	if (lhs.getType() != rhs.getType()) {
+		return false;
+	}
+	switch (lhs.getType()) {
+		case Variant::Type::NULLPTR:
+			return true;
+		case Variant::Type::BOOL:
+			return lhs.boolVal == rhs.boolVal;
+		case Variant::Type::INT:
+			return lhs.intVal == rhs.intVal;
+		case Variant::Type::DOUBLE:
+			return lhs.doubleVal == rhs.doubleVal;
+		case Variant::Type::STRING:
+		case Variant::Type::MAGIC:
+			return lhs.asString() == rhs.asString();
+		case Variant::Type::ARRAY:
+			return lhs.asArray() == rhs.asArray();
+		case Variant::Type::MAP:
+			return lhs.asMap() == rhs.asMap();
+		case Variant::Type::OBJECT:
+			return lhs.asObject() == rhs.asObject();
+		case Variant::Type::FUNCTION:
+			return lhs.asFunction() == rhs.asFunction();
+	}
+	throw OusiaException("Internal Error! Unknown type!");
+}
+
+bool operator!=(const Variant &lhs, const Variant &rhs)
+{
+	return !(lhs == rhs);
+}
+
 }
 

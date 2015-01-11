@@ -864,23 +864,17 @@ public:
 	 */
 	const char *getTypeName() { return Variant::getTypeName(getType()); }
 
-	/**
-	 * Prints the Variant to the output stream.
+	/*
+	 * Output stream operator.
 	 */
-	friend std::ostream &operator<<(std::ostream &os, const Variant &v)
-	{
-		return os << v.toString(true);
-	}
 
 	/**
-	 * Prints a key value pair to the output stream.
+	 * Prints the Variant to the output stream as JSON data.
+	 *
+	 * @param os is the output stream the variant should be written to.
+	 * @param v is the variant that should be written to the output stream.
 	 */
-	friend std::ostream &operator<<(std::ostream &os,
-	                                const mapType::value_type &v)
-	{
-		// TODO: Use proper serialization function
-		return os << "\"" << v.first << "\": " << v.second.toString(true);
-	}
+	friend std::ostream &operator<<(std::ostream &os, const Variant &v);
 
 	/*
 	 * Comprison operators.
@@ -895,35 +889,7 @@ public:
 	 * @param rhs is the right hand side of the comparison.
 	 * @return true if lhs is smaller than rhs.
 	 */
-	friend bool operator<(const Variant &lhs, const Variant &rhs)
-	{
-		// If the types do not match, we can not do a meaningful comparison.
-		if (lhs.getType() != rhs.getType()) {
-			throw TypeException(lhs.getType(), rhs.getType());
-		}
-		switch (lhs.getType()) {
-			case Type::NULLPTR:
-				return false;
-			case Type::BOOL:
-				return lhs.boolVal < rhs.boolVal;
-			case Type::INT:
-				return lhs.intVal < rhs.intVal;
-			case Type::DOUBLE:
-				return lhs.doubleVal < rhs.doubleVal;
-			case Type::MAGIC:
-			case Type::STRING:
-				return lhs.asString() < rhs.asString();
-			case Type::ARRAY:
-				return lhs.asArray() < rhs.asArray();
-			case Type::MAP:
-				return lhs.asMap() < rhs.asMap();
-			case Type::OBJECT:
-				return lhs.asObject().get() < rhs.asObject().get();
-			case Type::FUNCTION:
-				return lhs.asFunction() < rhs.asFunction();
-		}
-		throw OusiaException("Internal Error! Unknown type!");
-	}
+	friend bool operator<(const Variant &lhs, const Variant &rhs);
 
 	/**
 	 * Returns true if the given left hand side is larger than the right hand
@@ -934,10 +900,7 @@ public:
 	 * @param rhs is the right hand side of the comparison.
 	 * @return true if lhs is larger than rhs.
 	 */
-	friend bool operator>(const Variant &lhs, const Variant &rhs)
-	{
-		return rhs < lhs;
-	}
+	friend bool operator>(const Variant &lhs, const Variant &rhs);
 
 	/**
 	 * Returns true if the given left hand side is smaller or equal to the
@@ -948,10 +911,7 @@ public:
 	 * @param rhs is the right hand side of the comparison.
 	 * @return true if lhs is smaller than or equal to rhs.
 	 */
-	friend bool operator<=(const Variant &lhs, const Variant &rhs)
-	{
-		return !(lhs > rhs);
-	}
+	friend bool operator<=(const Variant &lhs, const Variant &rhs);
 
 	/**
 	 * Returns true if the given left hand side is larger or equal to the
@@ -962,10 +922,7 @@ public:
 	 * @param rhs is the right hand side of the comparison.
 	 * @return true if lhs is larger than or equal to rhs.
 	 */
-	friend bool operator>=(const Variant &lhs, const Variant &rhs)
-	{
-		return !(lhs < rhs);
-	}
+	friend bool operator>=(const Variant &lhs, const Variant &rhs);
 
 	/**
 	 * Returns true if the given left hand side and right hand side are equal.
@@ -976,34 +933,7 @@ public:
 	 * @param rhs is the right hand side of the comparison.
 	 * @return true if lhs equals rhs.
 	 */
-	friend bool operator==(const Variant &lhs, const Variant &rhs)
-	{
-		if (lhs.getType() != rhs.getType()) {
-			return false;
-		}
-		switch (lhs.getType()) {
-			case Type::NULLPTR:
-				return true;
-			case Type::BOOL:
-				return lhs.boolVal == rhs.boolVal;
-			case Type::INT:
-				return lhs.intVal == rhs.intVal;
-			case Type::DOUBLE:
-				return lhs.doubleVal == rhs.doubleVal;
-			case Type::STRING:
-			case Type::MAGIC:
-				return lhs.asString() == rhs.asString();
-			case Type::ARRAY:
-				return lhs.asArray() == rhs.asArray();
-			case Type::MAP:
-				return lhs.asMap() == rhs.asMap();
-			case Type::OBJECT:
-				return lhs.asObject() == rhs.asObject();
-			case Type::FUNCTION:
-				return lhs.asFunction() == rhs.asFunction();
-		}
-		throw OusiaException("Internal Error! Unknown type!");
-	}
+	friend bool operator==(const Variant &lhs, const Variant &rhs);
 
 	/**
 	 * Returns true if the given left hand side are equal. Uses the comparison
@@ -1014,10 +944,7 @@ public:
 	 * @param rhs is the right hand side of the comparison.
 	 * @return true if lhs is not equal to rhs.
 	 */
-	friend bool operator!=(const Variant &lhs, const Variant &rhs)
-	{
-		return !(lhs == rhs);
-	}
+	friend bool operator!=(const Variant &lhs, const Variant &rhs);
 };
 }
 
