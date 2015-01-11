@@ -50,13 +50,13 @@ const Rtti<RttiTestClass2> Type2("Type2");
 const Rtti<RttiTestClass3> Type3("Type3", {&Type1});
 const Rtti<RttiTestClass4> Type4("Type4", {&Type3, &Type2});
 const Rtti<RttiTestClass5> Type5("Type5",
-                                 std::unordered_set<const RttiBase *>{},
+                                 std::unordered_set<const RttiType *>{},
                                  {&Type6, &Type7});
 const Rtti<RttiTestClass6> Type6("Type6",
-                                 std::unordered_set<const RttiBase *>{},
+                                 std::unordered_set<const RttiType *>{},
                                  {&Type1});
 const Rtti<RttiTestClass7> Type7("Type7", {&Type6},
-                                 std::unordered_set<const RttiBase *>{});
+                                 std::unordered_set<const RttiType *>{});
 
 TEST(Rtti, isa)
 {
@@ -83,7 +83,7 @@ TEST(Rtti, isa)
 
 TEST(Rtti, composedOf)
 {
-	std::vector<const RttiBase *> types{&Type1, &Type2, &Type3, &Type4};
+	std::vector<const RttiType *> types{&Type1, &Type2, &Type3, &Type4};
 	for (auto t : types) {
 		ASSERT_FALSE(t->composedOf(Type1));
 		ASSERT_FALSE(t->composedOf(Type2));

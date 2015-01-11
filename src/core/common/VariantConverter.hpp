@@ -23,7 +23,7 @@ namespace ousia {
 
 // Forward declaration
 class Logger;
-class RttiBase;
+class RttiType;
 class Variant;
 enum class VariantType : int16_t;
 
@@ -111,7 +111,7 @@ public:
 	static bool toString(Variant &var, Logger &logger, Mode mode = Mode::SAFE);
 
 	static bool convert(Variant &var, VariantType requestedType,
-	                    const RttiBase &rttiType, Logger &logger,
+	                    const RttiType &rttiType, Logger &logger,
 	                    Mode mode = Mode::SAFE);
 
 	static bool convert(Variant &var, VariantType requestedType,

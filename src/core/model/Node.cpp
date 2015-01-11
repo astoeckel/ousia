@@ -64,7 +64,7 @@ public:
 	/**
 	 * Type of the node that was requested for resolution.
 	 */
-	const RttiBase &type;
+	const RttiType &type;
 
 	/**
 	 * Tracks all nodes that have already been visited.
@@ -87,7 +87,7 @@ public:
 	 * @param type is the type of the node that should be resolved.
 	 */
 	SharedResolutionState(const std::vector<std::string> &path,
-	                      const RttiBase &type)
+	                      const RttiType &type)
 	    : path(path), type(type)
 	{
 	}
@@ -184,9 +184,9 @@ public:
 	 *
 	 * @return true if the type matches, false otherwise.
 	 */
-	bool typeMatches(const RttiBase &type) { return type.isa(shared.type); }
+	bool typeMatches(const RttiType &type) { return type.isa(shared.type); }
 
-	bool canContainType(const RttiBase &type)
+	bool canContainType(const RttiType &type)
 	{
 		return type.composedOf(shared.type);
 	}
@@ -328,7 +328,7 @@ bool Node::continueResolveReference(Handle<Node> h, ResolutionState &state)
 }
 
 std::vector<ResolutionResult> Node::resolve(
-    const std::vector<std::string> &path, const RttiBase &type)
+    const std::vector<std::string> &path, const RttiType &type)
 {
 	// Create the state variables
 	SharedResolutionState sharedState(path, type);
@@ -344,7 +344,7 @@ std::vector<ResolutionResult> Node::resolve(
 }
 
 std::vector<ResolutionResult> Node::resolve(const std::string &name,
-                                            const RttiBase &type)
+                                            const RttiType &type)
 {
 	// Place the name in a vector and call the corresponding resolve function
 	return resolve(std::vector<std::string>{name}, type);

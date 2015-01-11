@@ -22,18 +22,18 @@ namespace ousia {
 
 /* Class RttiStore */
 
-std::unordered_map<std::type_index, const RttiBase *> &RttiStore::table()
+std::unordered_map<std::type_index, const RttiType *> &RttiStore::table()
 {
-	static std::unordered_map<std::type_index, const RttiBase *> table;
+	static std::unordered_map<std::type_index, const RttiType *> table;
 	return table;
 }
 
-void RttiStore::store(const std::type_info &native, const RttiBase *rtti)
+void RttiStore::store(const std::type_info &native, const RttiType *rtti)
 {
 	table().emplace(std::type_index{native}, rtti);
 }
 
-const RttiBase &RttiStore::lookup(const std::type_info &native)
+const RttiType &RttiStore::lookup(const std::type_info &native)
 {
 	const auto &tbl = table();
 	auto it = tbl.find(std::type_index{native});
@@ -44,9 +44,9 @@ const RttiBase &RttiStore::lookup(const std::type_info &native)
 	}
 }
 
-/* Class RttiBase */
+/* Class RttiType */
 
-void RttiBase::initialize() const
+void RttiType::initialize() const
 {
 	// Only run this function exactly once -- directly set the initialized flag
 	// to prevent unwanted recursion
@@ -56,12 +56,12 @@ void RttiBase::initialize() const
 		// Insert the parent types of the parent types and the composite types
 		// of the parents
 		{
-			std::unordered_set<const RttiBase *> origParents = parents;
-			for (const RttiBase *parent : origParents) {
+			std::unordered_set<const RttiType *> origParents = parents;
+			for (const RttiType *parent : origParents) {
 				parent->initialize();
 				parents.insert(parent->parents.begin(), parent->parents.end());
 			}
-			for (const RttiBase *parent : parents) {
+			for (const RttiType *parent : parents) {
 				parent->initialize();
 				compositeTypes.insert(parent->compositeTypes.begin(),
 				                       parent->compositeTypes.end());
@@ -72,9 +72,9 @@ void RttiBase::initialize() const
 		// Insert the composite types of the composite types and the parents
 		// of each composite type
 		{
-			std::unordered_set<const RttiBase *> origCompositeTypes =
+			std::unordered_set<const RttiType *> origCompositeTypes =
 			    compositeTypes;
-			for (const RttiBase *compositeType : origCompositeTypes) {
+			for (const RttiType *compositeType : origCompositeTypes) {
 				compositeType->initialize();
 				compositeTypes.insert(compositeType->compositeTypes.begin(),
 				                       compositeType->compositeTypes.end());
@@ -85,13 +85,13 @@ void RttiBase::initialize() const
 	}
 }
 
-bool RttiBase::isa(const RttiBase &other) const
+bool RttiType::isa(const RttiType &other) const
 {
 	initialize();
 	return parents.count(&other) > 0;
 }
 
-bool RttiBase::composedOf(const RttiBase &other) const
+bool RttiType::composedOf(const RttiType &other) const
 {
 	initialize();
 	return compositeTypes.count(&other) > 0;
@@ -99,6 +99,6 @@ bool RttiBase::composedOf(const RttiBase &other) const
 
 /* Constant initialization */
 
-const RttiBase RttiTypes::None;
+const RttiType RttiTypes::None;
 }
 

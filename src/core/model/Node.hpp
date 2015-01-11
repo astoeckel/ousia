@@ -351,7 +351,7 @@ public:
 	 * the resolved elements.
 	 */
 	std::vector<ResolutionResult> resolve(const std::vector<std::string> &path,
-	                                      const RttiBase &type);
+	                                      const RttiType &type);
 
 	/**
 	 * Function which resolves a single name to a list of possible nodes
@@ -363,7 +363,7 @@ public:
 	 * the resolved elements.
 	 */
 	std::vector<ResolutionResult> resolve(const std::string &name,
-	                                      const RttiBase &type);
+	                                      const RttiType &type);
 };
 
 /**

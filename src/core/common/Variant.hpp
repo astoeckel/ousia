@@ -48,7 +48,7 @@ namespace ousia {
 
 // Forward declarations
 class Function;
-class RttiBase;
+class RttiType;
 
 /**
  * Enum containing the possible types a variant may have.
@@ -854,6 +854,13 @@ public:
 		}
 		return type;
 	}
+
+	/**
+	 * Returns the current Rtti type descriptor of the Variant.
+	 *
+	 * @return the Rtti type descriptor. Either one of RttiTypes::Int,
+	 * RttiTypes::Bool, RttiTypes::Double, RttiTypes::
+	 */
 
 	/**
 	 * Returns the name of the given variant type as C-style string.

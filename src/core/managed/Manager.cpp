@@ -593,7 +593,7 @@ void Manager::exportGraphviz(const char *filename)
 		                                : std::vector<EventHandlerDescriptor>{};
 
 		// Read type information and Node name (if available)
-		const RttiBase &type = objectPtr->type();
+		const RttiType &type = objectPtr->type();
 		const std::string &typeName = type.name;
 		std::string name = "";
 		if (type.isa(RttiTypes::Node)) {
@@ -661,7 +661,7 @@ void Manager::exportGraphviz(const char *filename)
 			while (edgeCount > 0) {
 				// Get the type of the target element
 				uintptr_t pTar = reinterpret_cast<uintptr_t>(e.first);
-				const RttiBase &typeTar = e.first->type();
+				const RttiType &typeTar = e.first->type();
 
 				// Get some information about the edge
 				std::string port = "";

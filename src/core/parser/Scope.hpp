@@ -153,7 +153,7 @@ public:
 	 * found.
 	 */
 	Rooted<Node> resolve(const std::vector<std::string> &path,
-	                                      const RttiBase &type, Logger &logger);
+	                                      const RttiType &type, Logger &logger);
 };
 
 /* Class ScopedScope -- inline declaration of some methods */

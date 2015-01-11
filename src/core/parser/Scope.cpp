@@ -24,7 +24,7 @@ namespace ousia {
 namespace parser {
 
 Rooted<Node> Scope::resolve(const std::vector<std::string> &path,
-                            const RttiBase &type, Logger &logger)
+                            const RttiType &type, Logger &logger)
 {
 	// Go up the stack and try to resolve the
 	for (auto it = nodes.rbegin(); it != nodes.rend(); it++) {

@@ -72,7 +72,7 @@
 
 namespace ousia {
 
-class RttiBase;
+class RttiType;
 
 /**
  * Helper class used to globally store and access the runtime type information.
@@ -83,11 +83,11 @@ private:
 	 * Function used internally to access the static map storing all registered
 	 * native types and their corresponding type information.
 	 */
-	static std::unordered_map<std::type_index, const RttiBase *> &table();
+	static std::unordered_map<std::type_index, const RttiType *> &table();
 
 public:
 	/**
-	 * Registers the given pointer to the RttiBase class in the RTTI table. Does
+	 * Registers the given pointer to the RttiType class in the RTTI table. Does
 	 * not override information for already registered types.
 	 *
 	 * @param native is a reference at the native type information provided
@@ -95,27 +95,27 @@ public:
 	 * @param rtti is a pointer pointing at the type information that should be
 	 * stored for this type.
 	 */
-	static void store(const std::type_info &native, const RttiBase *rtti);
+	static void store(const std::type_info &native, const RttiType *rtti);
 
 	/**
 	 * Looks up the type information stored for the given native type
 	 * information.
 	 */
-	static const RttiBase &lookup(const std::type_info &native);
+	static const RttiType &lookup(const std::type_info &native);
 };
 
 /**
  * The RttiBuilder class is used to conveniently build new instances of the Rtti
- * or the RttiBase class. It follows the "Builder" pattern and allows to create
- * the properties of the RttiBase class by chaining method calls. The RttiBase
+ * or the RttiType class. It follows the "Builder" pattern and allows to create
+ * the properties of the RttiType class by chaining method calls. The RttiType
  * and Rtti class can be constructed from the RttiBuilder instance.
  */
 class RttiBuilder {
 public:
 	/**
-	 * Type describing a set of RttiBase pointers.
+	 * Type describing a set of RttiType pointers.
 	 */
-	using RttiBaseSet = std::unordered_set<const RttiBase *>;
+	using RttiTypeSet = std::unordered_set<const RttiType *>;
 
 	/**
 	 * Contains the human readable name of the type for which the type
@@ -126,22 +126,22 @@ public:
 	/**
 	 * Set containing references to all parent types.
 	 */
-	RttiBaseSet parentTypes;
+	RttiTypeSet parentTypes;
 
 	/**
 	 * Set containing references to all composite types.
 	 */
-	RttiBaseSet compositeTypes;
+	RttiTypeSet compositeTypes;
 
 	/**
 	 * Default constructor, initializes the name of the type described by the
-	 * RttiBaseSet with "unknown".
+	 * RttiTypeSet with "unknown".
 	 */
 	RttiBuilder() : currentName("unknown"){};
 
 	/**
 	 * Default constructor, initializes the name of the type described by the
-	 * RttiBaseSet with the given name.
+	 * RttiTypeSet with the given name.
 	 *
 	 * @param name is the initial name of the type described by the type
 	 * builder.
@@ -170,7 +170,7 @@ public:
 	 * @return a reference to the current RttiBuilder reference to allow method
 	 * chaining.
 	 */
-	RttiBuilder &parent(const RttiBase *p)
+	RttiBuilder &parent(const RttiType *p)
 	{
 		parentTypes.insert(p);
 		return *this;
@@ -184,7 +184,7 @@ public:
 	 * @return a reference to the current RttiBuilder reference to allow method
 	 * chaining.
 	 */
-	RttiBuilder &parent(const RttiBase &p)
+	RttiBuilder &parent(const RttiType &p)
 	{
 		parentTypes.insert(&p);
 		return *this;
@@ -198,7 +198,7 @@ public:
 	 * @return a reference to the current RttiBuilder reference to allow method
 	 * chaining.
 	 */
-	RttiBuilder &parent(const RttiBaseSet &p)
+	RttiBuilder &parent(const RttiTypeSet &p)
 	{
 		parentTypes.insert(p.begin(), p.end());
 		return *this;
@@ -213,7 +213,7 @@ public:
 	 * @return a reference to the current RttiBuilder reference to allow method
 	 * chaining.
 	 */
-	RttiBuilder &composedOf(const RttiBase *p)
+	RttiBuilder &composedOf(const RttiType *p)
 	{
 		compositeTypes.insert(p);
 		return *this;
@@ -228,7 +228,7 @@ public:
 	 * @return a reference to the current RttiBuilder reference to allow method
 	 * chaining.
 	 */
-	RttiBuilder &composedOf(const RttiBase &p)
+	RttiBuilder &composedOf(const RttiType &p)
 	{
 		compositeTypes.insert(&p);
 		return *this;
@@ -243,7 +243,7 @@ public:
 	 * @return a reference to the current RttiBuilder reference to allow method
 	 * chaining.
 	 */
-	RttiBuilder &composedOf(const RttiBaseSet &p)
+	RttiBuilder &composedOf(const RttiTypeSet &p)
 	{
 		compositeTypes.insert(p.begin(), p.end());
 		return *this;
@@ -251,13 +251,13 @@ public:
 };
 
 /**
- * The Rtti class allows for attaching data to native types that can be accessed
- * at runtime. This type information can e.g. be retrieved using the "type"
- * method of the Managed class. This system is used for attaching human readable
- * names, parent types and script engine functionality. Use the Rtti class for
- * convenient registration of type information.
+ * The RttiType class allows for attaching data to native types that can be
+ * accessed at runtime. This type information can e.g. be retrieved using the
+ * "type" method of the Managed class. This system is used for attaching human
+ * readable names, parent types and script engine functionality. Use the
+ * RttiType class for convenient registration of type information.
  */
-class RttiBase {
+class RttiType {
 private:
 	/**
 	 * Set to true if once the parents and the composite types list have been
@@ -269,13 +269,13 @@ private:
 	/**
 	 * Set containing references to all parent types, including their parents.
 	 */
-	mutable std::unordered_set<const RttiBase *> parents;
+	mutable std::unordered_set<const RttiType *> parents;
 
 	/**
 	 * Set containing references to all types this type is a composition of,
 	 * including all composite types of the original composite types.
 	 */
-	mutable std::unordered_set<const RttiBase *> compositeTypes;
+	mutable std::unordered_set<const RttiType *> compositeTypes;
 
 	/**
 	 * Adds the parent types of the original parents and the composite types of
@@ -293,10 +293,10 @@ public:
 	 * Default constructor. Creates a Rtti instance with name "unknown"
 	 * and no parents.
 	 */
-	RttiBase() : name("unknown") {}
+	RttiType() : name("unknown") {}
 
 	/**
-	 * Creates a new RttiBase instance and registers it in the global type
+	 * Creates a new RttiType instance and registers it in the global type
 	 * table. Use the Rtti and the RttiBuilder class for more convenient
 	 * registration of type information.
 	 *
@@ -307,11 +307,11 @@ public:
 	 * @param compositeTypes is a list of types of which instances of this type
 	 * are composited (consist of).
 	 */
-	RttiBase(std::string name, const std::type_info &native,
-	         std::unordered_set<const RttiBase *> parents =
-	             std::unordered_set<const RttiBase *>{},
-	         std::unordered_set<const RttiBase *> compositeTypes =
-	             std::unordered_set<const RttiBase *>{})
+	RttiType(std::string name, const std::type_info &native,
+	         std::unordered_set<const RttiType *> parents =
+	             std::unordered_set<const RttiType *>{},
+	         std::unordered_set<const RttiType *> compositeTypes =
+	             std::unordered_set<const RttiType *>{})
 	    : initialized(false),
 	      parents(std::move(parents)),
 	      compositeTypes(compositeTypes),
@@ -321,13 +321,13 @@ public:
 	}
 
 	/**
-	 * Creates a new RttiBase instance and registers it in the global type
+	 * Creates a new RttiType instance and registers it in the global type
 	 * table. Use the Rtti class for more convenient registration of type
 	 * information.
 	 *
 	 * @param builder is the builder instance containing the Rtti data.
 	 */
-	RttiBase(const std::type_info &native, const RttiBuilder &builder)
+	RttiType(const std::type_info &native, const RttiBuilder &builder)
 	    : initialized(false),
 	      parents(builder.parentTypes),
 	      compositeTypes(builder.compositeTypes),
@@ -343,7 +343,7 @@ public:
 	 * @param other is the other type for which the relation to this type
 	 * should be checked.
 	 */
-	bool isa(const RttiBase &other) const;
+	bool isa(const RttiType &other) const;
 
 	/**
 	 * Returns true if an instance of this type may have references to the other
@@ -353,7 +353,7 @@ public:
 	 * @param other is the other type for which should be checked whether this
 	 * type is directly or indirectly composed of it.
 	 */
-	bool composedOf(const RttiBase &other) const;
+	bool composedOf(const RttiType &other) const;
 };
 
 /**
@@ -365,7 +365,7 @@ public:
  * @tparam T is the class for which the type information should be registered.
  */
 template <class T>
-class Rtti : public RttiBase {
+class Rtti : public RttiType {
 public:
 	/**
 	 * Creates a new Rtti instance and registers it in the global type table.
@@ -375,11 +375,11 @@ public:
 	 * @param compositeTypes is a list of types of which instances of this type
 	 * are composited (consist of).
 	 */
-	Rtti(std::string name, const std::unordered_set<const RttiBase *> &parents =
-	                           std::unordered_set<const RttiBase *>{},
-	     std::unordered_set<const RttiBase *> compositeTypes =
-	         std::unordered_set<const RttiBase *>{})
-	    : RttiBase(name, typeid(T), std::move(parents),
+	Rtti(std::string name, const std::unordered_set<const RttiType *> &parents =
+	                           std::unordered_set<const RttiType *>{},
+	     std::unordered_set<const RttiType *> compositeTypes =
+	         std::unordered_set<const RttiType *>{})
+	    : RttiType(name, typeid(T), std::move(parents),
 	               std::move(compositeTypes))
 	{
 	}
@@ -391,7 +391,7 @@ public:
 	 * @param builder is the RttiBuilder instance containing the data from which
 	 * the Rtti information should be copied.
 	 */
-	Rtti(const RttiBuilder &builder) : RttiBase(typeid(T), builder){};
+	Rtti(const RttiBuilder &builder) : RttiType(typeid(T), builder){};
 };
 
 /**
@@ -403,7 +403,7 @@ public:
  * @tparam T is the C++ type for which the type information should be returned.
  */
 template <typename T>
-inline const RttiBase &typeOf()
+inline const RttiType &typeOf()
 {
 	return RttiStore::lookup(typeid(T));
 }
@@ -419,7 +419,7 @@ inline const RttiBase &typeOf()
  * returned.
  */
 template <typename T>
-inline const RttiBase &typeOf(const T &obj)
+inline const RttiType &typeOf(const T &obj)
 {
 	return RttiStore::lookup(typeid(obj));
 }
@@ -428,37 +428,37 @@ namespace RttiTypes {
 /**
  * Type of no particular type.
  */
-extern const RttiBase None;
+extern const RttiType None;
 
 /**
  * Bool type for use by the Variant::rttiType method.
  */
-extern const RttiBase Bool;
+extern const RttiType Bool;
 
 /**
  * Integer type for use by the Variant::rttiType method.
  */
-extern const RttiBase Int;
+extern const RttiType Int;
 
 /**
  * Double type for use by the Variant::rttiType method.
  */
-extern const RttiBase Double;
+extern const RttiType Double;
 
 /**
  * String type for use by the Variant::rttiType method.
  */
-extern const RttiBase String;
+extern const RttiType String;
 
 /**
  * Array type for use by the Variant::rttiType method.
  */
-extern const RttiBase Array;
+extern const RttiType Array;
 
 /**
  * Function type for use by the Variant::rttiType method.
  */
-extern const RttiBase Function;
+extern const RttiType Function;
 }
 }
 
