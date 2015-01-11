@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sstream>
+
 #include "Variant.hpp"
 #include "VariantWriter.hpp"
 
@@ -161,5 +163,14 @@ void VariantWriter::writeJson(const Variant &var, std::ostream &stream,
 {
 	writeJsonInternal(var, stream, pretty, 0);
 }
+
+std::string VariantWriter::writeJsonToString(const Variant &var, bool pretty)
+{
+	std::stringstream ss;
+	writeJson(var, ss, pretty);
+	return ss.str();
+}
+
+
 }
 

@@ -28,6 +28,7 @@
 #ifndef _OUSIA_VARIANT_WRITER_HPP_
 #define _OUSIA_VARIANT_WRITER_HPP_
 
+#include <string>
 #include <ostream>
 
 namespace ousia {
@@ -42,7 +43,8 @@ class Variant;
 class VariantWriter {
 public:
 	/**
-	 * Dumps the Variant as JSON data.
+	 * Dumps the Variant as JSON data. Note that the resulting JSON data is
+	 * invalid if the Variant consists of function or object references.
 	 *
 	 * @param var is the variant that should be serialized.
 	 * @param stream is the stream the result should be written to.
@@ -50,6 +52,15 @@ public:
 	 */
 	static void writeJson(const Variant &var, std::ostream &stream,
 	                      bool pretty = true);
+
+	/**
+	 * Dumps the Variant as JSON data to a string.
+	 *
+	 * @param var is the variant that should be serialized.
+	 * @param pretty if true, the resulting value is properly indented.
+	 */
+	static std::string writeJsonToString(const Variant &var, bool pretty = true);
+
 };
 }
 

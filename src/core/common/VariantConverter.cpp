@@ -31,18 +31,20 @@
 
 namespace ousia {
 
-static std::string msgUnexpectedType(VariantType actualType,
+static std::string msgUnexpectedType(const Variant &v,
                                      VariantType requestedType)
 {
-	return std::string("Cannot convert ") + Variant::getTypeName(actualType) +
-	       std::string(" to ") + Variant::getTypeName(requestedType);
+	return std::string("Cannot convert ") + v.getTypeName() + std::string(" ") +
+	       VariantWriter::writeJsonToString(v, false) + std::string(" to ") +
+	       Variant::getTypeName(requestedType);
 }
 
 static std::string msgImplicitConversion(VariantType actualType,
-                                     VariantType requestedType)
+                                         VariantType requestedType)
 {
-	return std::string("Implicit conversion from ") + Variant::getTypeName(actualType) +
-	       std::string(" to ") + Variant::getTypeName(requestedType);
+	return std::string("Implicit conversion from ") +
+	       Variant::getTypeName(actualType) + std::string(" to ") +
+	       Variant::getTypeName(requestedType);
 }
 
 bool VariantConverter::toBool(Variant &var, Logger &logger, Mode mode)
@@ -76,7 +78,7 @@ bool VariantConverter::toBool(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var.getType(), VariantType::BOOL));
+	logger.error(msgUnexpectedType(var, VariantType::BOOL));
 	var = false;
 	return false;
 }
@@ -132,7 +134,7 @@ bool VariantConverter::toInt(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var.getType(), VariantType::INT));
+	logger.error(msgUnexpectedType(var, VariantType::INT));
 	var = 0;
 	return false;
 }
@@ -186,7 +188,7 @@ bool VariantConverter::toDouble(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var.getType(), VariantType::DOUBLE));
+	logger.error(msgUnexpectedType(var, VariantType::DOUBLE));
 	var = 0.0;
 	return false;
 }
@@ -260,7 +262,7 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var.getType(), VariantType::STRING));
+	logger.error(msgUnexpectedType(var, VariantType::STRING));
 	var = "";
 	return false;
 }
@@ -296,7 +298,7 @@ bool VariantConverter::toArray(Variant &var, const RttiType &innerType,
 	}
 
 	// No conversion possible, assign the default value and log an error
-	logger.error(msgUnexpectedType(var.getType(), VariantType::ARRAY));
+	logger.error(msgUnexpectedType(var, VariantType::ARRAY));
 	var.setArray(Variant::arrayType{});
 	return false;
 }
@@ -327,7 +329,7 @@ bool VariantConverter::toMap(Variant &var, const RttiType &innerType,
 	}
 
 	// No conversion possible, assign the default value and log an error
-	logger.error(msgUnexpectedType(var.getType(), VariantType::MAP));
+	logger.error(msgUnexpectedType(var, VariantType::MAP));
 	var.setMap(Variant::mapType{});
 	return false;
 }
@@ -339,7 +341,7 @@ bool VariantConverter::toFunction(Variant &var, Logger &logger)
 	}
 
 	// No conversion possible, assign the default value and log an error
-	logger.error(msgUnexpectedType(var.getType(), VariantType::MAP));
+	logger.error(msgUnexpectedType(var, VariantType::MAP));
 	var.setFunction(std::shared_ptr<Function>{new Method<void>([](
 	    const Variant::arrayType &args, void *thisRef) { return Variant{}; })});
 	return false;
@@ -356,8 +358,7 @@ bool VariantConverter::convert(Variant &var, const RttiType &type,
 	} else if (&type == &RttiTypes::Nullptr) {
 		// Make sure the variant is set to null
 		if (!var.isNull()) {
-			logger.error(
-			    msgUnexpectedType(var.getType(), VariantType::NULLPTR));
+			logger.error(msgUnexpectedType(var, VariantType::NULLPTR));
 			var.setNull();
 			return false;
 		}
@@ -381,7 +382,7 @@ bool VariantConverter::convert(Variant &var, const RttiType &type,
 	// If none of the above primitive types is requested, we were
 	// obviously asked for a managed object.
 	if (!var.isObject()) {
-		logger.error(msgUnexpectedType(var.getType(), VariantType::OBJECT));
+		logger.error(msgUnexpectedType(var, VariantType::OBJECT));
 		var.setNull();
 		return false;
 	}
