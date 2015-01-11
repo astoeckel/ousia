@@ -28,8 +28,8 @@
 
 namespace ousia {
 
-static std::string msgUnexpectedType(Variant::Type actualType,
-                                     Variant::Type requestedType)
+static std::string msgUnexpectedType(VariantType actualType,
+                                     VariantType requestedType)
 {
 	return std::string("Cannot convert ") + Variant::getTypeName(actualType) +
 	       std::string(" to ") + Variant::getTypeName(requestedType);
@@ -38,9 +38,9 @@ static std::string msgUnexpectedType(Variant::Type actualType,
 bool VariantConverter::toBool(Variant &var, Logger &logger, Mode mode)
 {
 	// Perform safe conversions
-	const Variant::Type type = var.getType();
+	const VariantType type = var.getType();
 	switch (type) {
-		case Variant::Type::BOOL:
+		case VariantType::BOOL:
 			// No conversion needed if "var" already is a boolean
 			return true;
 		default:
@@ -50,13 +50,13 @@ bool VariantConverter::toBool(Variant &var, Logger &logger, Mode mode)
 	// Perform potentially dangerous conversions in the "ALL" mode
 	if (mode == Mode::ALL) {
 		switch (var.getType()) {
-			case Variant::Type::NULLPTR:
+			case VariantType::NULLPTR:
 				var = false;
 				return true;
-			case Variant::Type::INT:
+			case VariantType::INT:
 				var = var.asInt() != 0;
 				return true;
-			case Variant::Type::DOUBLE:
+			case VariantType::DOUBLE:
 				var = var.asDouble() != 0.0;
 				return true;
 			default:
@@ -66,7 +66,7 @@ bool VariantConverter::toBool(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var.getType(), Variant::Type::BOOL));
+	logger.error(msgUnexpectedType(var.getType(), VariantType::BOOL));
 	var = false;
 	return false;
 }
@@ -74,9 +74,9 @@ bool VariantConverter::toBool(Variant &var, Logger &logger, Mode mode)
 bool VariantConverter::toInt(Variant &var, Logger &logger, Mode mode)
 {
 	// Perform safe conversions
-	const Variant::Type type = var.getType();
+	const VariantType type = var.getType();
 	switch (type) {
-		case Variant::Type::INT:
+		case VariantType::INT:
 			// No conversion needed if "var" already is an integer
 			return true;
 		default:
@@ -86,17 +86,17 @@ bool VariantConverter::toInt(Variant &var, Logger &logger, Mode mode)
 	// Perform all potentially dangerous conversions in the "ALL" mode
 	if (mode == Mode::ALL) {
 		switch (type) {
-			case Variant::Type::NULLPTR:
+			case VariantType::NULLPTR:
 				var = 0;
 				return true;
-			case Variant::Type::BOOL:
+			case VariantType::BOOL:
 				var = var.asBool() ? 1 : 0;
 				return true;
-			case Variant::Type::DOUBLE:
+			case VariantType::DOUBLE:
 				var = (Variant::intType)var.asDouble();
 				return true;
-			case Variant::Type::STRING:
-			case Variant::Type::MAGIC: {
+			case VariantType::STRING:
+			case VariantType::MAGIC: {
 				Number n;
 				n.parse(var.asString(), logger);
 				if (n.isInt()) {
@@ -106,7 +106,7 @@ bool VariantConverter::toInt(Variant &var, Logger &logger, Mode mode)
 				}
 				return true;
 			}
-			case Variant::Type::ARRAY: {
+			case VariantType::ARRAY: {
 				try {
 					// JavaScript behaviour when converting arrays to doubles
 					const Variant::arrayType &a = var.asArray();
@@ -123,7 +123,7 @@ bool VariantConverter::toInt(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var.getType(), Variant::Type::INT));
+	logger.error(msgUnexpectedType(var.getType(), VariantType::INT));
 	var = 0;
 	return false;
 }
@@ -131,12 +131,12 @@ bool VariantConverter::toInt(Variant &var, Logger &logger, Mode mode)
 bool VariantConverter::toDouble(Variant &var, Logger &logger, Mode mode)
 {
 	// Perform safe conversions
-	const Variant::Type type = var.getType();
+	const VariantType type = var.getType();
 	switch (type) {
-		case Variant::Type::DOUBLE:
+		case VariantType::DOUBLE:
 			// No conversion needed if "var" already is a double
 			return true;
-		case Variant::Type::INT:
+		case VariantType::INT:
 			// Converting integers to doubles is safe
 			var = (Variant::doubleType)var.asInt();
 			return true;
@@ -147,20 +147,20 @@ bool VariantConverter::toDouble(Variant &var, Logger &logger, Mode mode)
 	// Perform all potentially dangerous conversions in the "ALL" mode
 	if (mode == Mode::ALL) {
 		switch (type) {
-			case Variant::Type::NULLPTR:
+			case VariantType::NULLPTR:
 				var = 0.0;
 				return true;
-			case Variant::Type::BOOL:
+			case VariantType::BOOL:
 				var = var.asBool() ? 1.0 : 0.0;
 				return true;
-			case Variant::Type::STRING:
-			case Variant::Type::MAGIC: {
+			case VariantType::STRING:
+			case VariantType::MAGIC: {
 				Number n;
 				n.parse(var.asString(), logger);
 				var = (Variant::doubleType)n.doubleValue();
 				return true;
 			}
-			case Variant::Type::ARRAY: {
+			case VariantType::ARRAY: {
 				try {
 					// JavaScript behaviour when converting arrays to doubles
 					const Variant::arrayType &a = var.asArray();
@@ -177,7 +177,7 @@ bool VariantConverter::toDouble(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var.getType(), Variant::Type::DOUBLE));
+	logger.error(msgUnexpectedType(var.getType(), VariantType::DOUBLE));
 	var = 0.0;
 	return false;
 }
@@ -185,28 +185,28 @@ bool VariantConverter::toDouble(Variant &var, Logger &logger, Mode mode)
 bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 {
 	// Perform safe conversions (all these operations are considered "lossless")
-	const Variant::Type type = var.getType();
+	const VariantType type = var.getType();
 	switch (type) {
-		case Variant::Type::NULLPTR:
+		case VariantType::NULLPTR:
 			var = "null";
 			return true;
-		case Variant::Type::BOOL:
+		case VariantType::BOOL:
 			var = var.asBool() ? "true" : "false";
 			return true;
-		case Variant::Type::INT: {
+		case VariantType::INT: {
 			std::stringstream ss;
 			ss << var.asInt();
 			var = ss.str().c_str();
 			return true;
 		}
-		case Variant::Type::DOUBLE: {
+		case VariantType::DOUBLE: {
 			std::stringstream ss;
 			ss << var.asDouble();
 			var = ss.str().c_str();
 			return true;
 		}
-		case Variant::Type::MAGIC:
-		case Variant::Type::STRING:
+		case VariantType::MAGIC:
+		case VariantType::STRING:
 			// No conversion needed if "var" already is a string (or a magic
 			// string value)
 			return true;
@@ -217,14 +217,14 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 	// Perform lossy conversions
 	if (mode == Mode::ALL) {
 		switch (type) {
-			case Variant::Type::ARRAY:
-			case Variant::Type::MAP: {
+			case VariantType::ARRAY:
+			case VariantType::MAP: {
 				std::stringstream ss;
 				VariantWriter::writeJson(var, ss, false);
 				var = ss.str().c_str();
 				return true;
 			}
-			case Variant::Type::OBJECT: {
+			case VariantType::OBJECT: {
 				// Print object address and type
 				Variant::objectType obj = var.asObject();
 				std::stringstream ss;
@@ -233,7 +233,7 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 				var = ss.str().c_str();
 				return true;
 			}
-			case Variant::Type::FUNCTION: {
+			case VariantType::FUNCTION: {
 				// Print function pointer address
 				Variant::functionType obj = var.asFunction();
 				std::stringstream ss;
@@ -247,7 +247,7 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var.getType(), Variant::Type::STRING));
+	logger.error(msgUnexpectedType(var.getType(), VariantType::STRING));
 	var = "";
 	return false;
 }

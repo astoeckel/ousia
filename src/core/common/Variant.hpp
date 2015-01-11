@@ -46,8 +46,25 @@
 
 namespace ousia {
 
-/* Forward declaration of the Function class */
+// Forward declarations
 class Function;
+class RttiBase;
+
+/**
+ * Enum containing the possible types a variant may have.
+ */
+enum class VariantType : int16_t {
+	NULLPTR,
+	BOOL,
+	INT,
+	DOUBLE,
+	STRING,
+	MAGIC,
+	ARRAY,
+	MAP,
+	OBJECT,
+	FUNCTION
+};
 
 /**
  * Instances of the Variant class represent any kind of data that is exchanged
@@ -55,22 +72,6 @@ class Function;
  */
 class Variant {
 public:
-	/**
-	 * Enum containing the possible types a variant may have.
-	 */
-	enum class Type : int16_t {
-		NULLPTR,
-		BOOL,
-		INT,
-		DOUBLE,
-		STRING,
-		MAGIC,
-		ARRAY,
-		MAP,
-		OBJECT,
-		FUNCTION
-	};
-
 	/**
 	 * Exception thrown whenever a variant is accessed via a getter function
 	 * that is not supported for the current variant type.
@@ -86,12 +87,12 @@ public:
 		/**
 		 * Contains the actual type of the variant.
 		 */
-		const Type actualType;
+		const VariantType actualType;
 
 		/**
 		 * Contains the requested type of the variant.
 		 */
-		const Type requestedType;
+		const VariantType requestedType;
 
 		/**
 		 * Constructor of the TypeException.
@@ -100,7 +101,7 @@ public:
 		 * @param requestedType describes the type in which the variant was
 		 * requested.
 		 */
-		TypeException(Type actualType, Type requestedType);
+		TypeException(VariantType actualType, VariantType requestedType);
 	};
 
 	using boolType = bool;
@@ -116,28 +117,28 @@ private:
 	/**
 	 * Used to store the actual type of the variant.
 	 */
-	Type type = Type::NULLPTR;
+	VariantType type = VariantType::NULLPTR;
 
 	/**
 	 * Anonymous union containing the possible value of the variant.
 	 */
 	union {
 		/**
-		 * The boolean value. Only valid if type is Type::BOOL.
+		 * The boolean value. Only valid if type is VariantType::BOOL.
 		 */
 		boolType boolVal;
 		/**
-		 * The integer value. Only valid if type is Type::INT.
+		 * The integer value. Only valid if type is VariantType::INT.
 		 */
 		intType intVal;
 		/**
-		 * The number value. Only valid if type is Type::DOUBLE.
+		 * The number value. Only valid if type is VariantType::DOUBLE.
 		 */
 		doubleType doubleVal;
 		/**
 		 * Pointer to the more complex data structures on the free store. Only
-		 * valid if type is one of Type::STRING, Type::ARRAY,
-		 * Type::MAP.
+		 * valid if type is one of VariantType::STRING, VariantType::ARRAY,
+		 * VariantType::MAP.
 		 */
 		void *ptrVal;
 	};
@@ -147,9 +148,9 @@ private:
 	 * the specified type.
 	 */
 	template <typename T>
-	T &asObj(Type requestedType) const
+	T &asObj(VariantType requestedType) const
 	{
-		const Type actualType = getType();
+		const VariantType actualType = getType();
 		if (actualType == requestedType) {
 			return *(static_cast<T *>(ptrVal));
 		}
@@ -167,31 +168,31 @@ private:
 		destroy();
 		type = v.type;
 		switch (type) {
-			case Type::NULLPTR:
+			case VariantType::NULLPTR:
 				break;
-			case Type::BOOL:
+			case VariantType::BOOL:
 				boolVal = v.boolVal;
 				break;
-			case Type::INT:
+			case VariantType::INT:
 				intVal = v.intVal;
 				break;
-			case Type::DOUBLE:
+			case VariantType::DOUBLE:
 				doubleVal = v.doubleVal;
 				break;
-			case Type::STRING:
-			case Type::MAGIC:
+			case VariantType::STRING:
+			case VariantType::MAGIC:
 				ptrVal = new stringType(v.asString());
 				break;
-			case Type::ARRAY:
+			case VariantType::ARRAY:
 				ptrVal = new arrayType(v.asArray());
 				break;
-			case Type::MAP:
+			case VariantType::MAP:
 				ptrVal = new mapType(v.asMap());
 				break;
-			case Type::OBJECT:
+			case VariantType::OBJECT:
 				ptrVal = new objectType(v.asObject());
 				break;
-			case Type::FUNCTION:
+			case VariantType::FUNCTION:
 				ptrVal = new functionType(v.asFunction());
 				break;
 		}
@@ -208,28 +209,28 @@ private:
 		destroy();
 		type = v.type;
 		switch (type) {
-			case Type::NULLPTR:
+			case VariantType::NULLPTR:
 				break;
-			case Type::BOOL:
+			case VariantType::BOOL:
 				boolVal = v.boolVal;
 				break;
-			case Type::INT:
+			case VariantType::INT:
 				intVal = v.intVal;
 				break;
-			case Type::DOUBLE:
+			case VariantType::DOUBLE:
 				doubleVal = v.doubleVal;
 				break;
-			case Type::STRING:
-			case Type::MAGIC:
-			case Type::ARRAY:
-			case Type::MAP:
-			case Type::OBJECT:
-			case Type::FUNCTION:
+			case VariantType::STRING:
+			case VariantType::MAGIC:
+			case VariantType::ARRAY:
+			case VariantType::MAP:
+			case VariantType::OBJECT:
+			case VariantType::FUNCTION:
 				ptrVal = v.ptrVal;
 				v.ptrVal = nullptr;
 				break;
 		}
-		v.type = Type::NULLPTR;
+		v.type = VariantType::NULLPTR;
 	}
 
 	/**
@@ -239,20 +240,20 @@ private:
 	{
 		if (ptrVal) {
 			switch (type) {
-				case Type::STRING:
-				case Type::MAGIC:
+				case VariantType::STRING:
+				case VariantType::MAGIC:
 					delete static_cast<stringType *>(ptrVal);
 					break;
-				case Type::ARRAY:
+				case VariantType::ARRAY:
 					delete static_cast<arrayType *>(ptrVal);
 					break;
-				case Type::MAP:
+				case VariantType::MAP:
 					delete static_cast<mapType *>(ptrVal);
 					break;
-				case Type::OBJECT:
+				case VariantType::OBJECT:
 					delete static_cast<objectType *>(ptrVal);
 					break;
-				case Type::FUNCTION:
+				case VariantType::FUNCTION:
 					delete static_cast<functionType *>(ptrVal);
 					break;
 				default:
@@ -281,7 +282,7 @@ public:
 	Variant(Variant &&v) : ptrVal(nullptr) { move(std::move(v)); }
 
 	/**
-	 * Default constructor. Type is set to Type:null.
+	 * Default constructor. VariantType is set to VariantType:NULLPTR.
 	 */
 	Variant() : ptrVal(nullptr) { setNull(); }
 
@@ -433,28 +434,28 @@ public:
 	 * @return true if the Variant instance represents the nullptr, false
 	 * otherwise.
 	 */
-	bool isNull() const { return type == Type::NULLPTR; }
+	bool isNull() const { return type == VariantType::NULLPTR; }
 
 	/**
 	 * Checks whether this Variant instance is a boolean.
 	 *
 	 * @return true if the Variant instance is a boolean, false otherwise.
 	 */
-	bool isBool() const { return type == Type::BOOL; }
+	bool isBool() const { return type == VariantType::BOOL; }
 
 	/**
 	 * Checks whether this Variant instance is an integer.
 	 *
 	 * @return true if the Variant instance is an integer, false otherwise.
 	 */
-	bool isInt() const { return type == Type::INT; }
+	bool isInt() const { return type == VariantType::INT; }
 
 	/**
 	 * Checks whether this Variant instance is a double.
 	 *
 	 * @return true if the Variant instance is a double, false otherwise.
 	 */
-	bool isDouble() const { return type == Type::DOUBLE; }
+	bool isDouble() const { return type == VariantType::DOUBLE; }
 
 	/**
 	 * Checks whether this Variant instance is a string or a magic string.
@@ -463,7 +464,7 @@ public:
 	 */
 	bool isString() const
 	{
-		return type == Type::STRING || type == Type::MAGIC;
+		return type == VariantType::STRING || type == VariantType::MAGIC;
 	}
 
 	/**
@@ -473,35 +474,35 @@ public:
 	 *
 	 * @return true if the Variant instance is a string, false otherwise.
 	 */
-	bool isMagic() const { return type == Type::MAGIC; }
+	bool isMagic() const { return type == VariantType::MAGIC; }
 
 	/**
 	 * Checks whether this Variant instance is an array.
 	 *
 	 * @return true if the Variant instance is an array, false otherwise.
 	 */
-	bool isArray() const { return type == Type::ARRAY; }
+	bool isArray() const { return type == VariantType::ARRAY; }
 
 	/**
 	 * Checks whether this Variant instance is a map.
 	 *
 	 * @return true if the Variant instance is a map, false otherwise.
 	 */
-	bool isMap() const { return type == Type::MAP; }
+	bool isMap() const { return type == VariantType::MAP; }
 
 	/**
 	 * Checks whether this Variant instance is an object.
 	 *
 	 * @return true if the Variant instance is an object, false otherwise.
 	 */
-	bool isObject() const { return type == Type::OBJECT; }
+	bool isObject() const { return type == VariantType::OBJECT; }
 
 	/**
 	 * Checks whether this Variant instance is a function.
 	 *
 	 * @return true if the Variant instance is a function, false otherwise.
 	 */
-	bool isFunction() const { return type == Type::FUNCTION; }
+	bool isFunction() const { return type == VariantType::FUNCTION; }
 
 	/**
 	 * Checks whether this Variant instance is a primitive type.
@@ -511,11 +512,11 @@ public:
 	bool isPrimitive() const
 	{
 		switch (type) {
-			case Type::NULLPTR:
-			case Type::BOOL:
-			case Type::INT:
-			case Type::DOUBLE:
-			case Type::STRING:
+			case VariantType::NULLPTR:
+			case VariantType::BOOL:
+			case VariantType::INT:
+			case VariantType::DOUBLE:
+			case VariantType::STRING:
 				return true;
 			default:
 				return false;
@@ -533,7 +534,7 @@ public:
 		if (isBool()) {
 			return boolVal;
 		}
-		throw TypeException{getType(), Type::BOOL};
+		throw TypeException{getType(), VariantType::BOOL};
 	}
 
 	/**
@@ -547,7 +548,7 @@ public:
 		if (isInt()) {
 			return intVal;
 		}
-		throw TypeException{getType(), Type::INT};
+		throw TypeException{getType(), VariantType::INT};
 	}
 
 	/**
@@ -561,7 +562,7 @@ public:
 		if (isDouble()) {
 			return doubleVal;
 		}
-		throw TypeException{getType(), Type::DOUBLE};
+		throw TypeException{getType(), VariantType::DOUBLE};
 	}
 
 	/**
@@ -572,7 +573,7 @@ public:
 	 */
 	const stringType &asString() const
 	{
-		return asObj<stringType>(Type::STRING);
+		return asObj<stringType>(VariantType::STRING);
 	}
 
 	/**
@@ -581,7 +582,7 @@ public:
 	 *
 	 * @return the string value as reference.
 	 */
-	stringType &asString() { return asObj<stringType>(Type::STRING); }
+	stringType &asString() { return asObj<stringType>(VariantType::STRING); }
 
 	/**
 	 * Returns a const reference to the magic string value. Performs no type
@@ -592,10 +593,10 @@ public:
 	 */
 	const stringType &asMagic() const
 	{
-		if (type == Type::MAGIC) {
-			return asObj<stringType>(Type::STRING);
+		if (type == VariantType::MAGIC) {
+			return asObj<stringType>(VariantType::STRING);
 		}
-		throw TypeException{getType(), Type::MAGIC};
+		throw TypeException{getType(), VariantType::MAGIC};
 	}
 
 	/**
@@ -607,10 +608,10 @@ public:
 	 */
 	stringType &asMagic()
 	{
-		if (type == Type::MAGIC) {
-			return asObj<stringType>(Type::STRING);
+		if (type == VariantType::MAGIC) {
+			return asObj<stringType>(VariantType::STRING);
 		}
-		throw TypeException{getType(), Type::MAGIC};
+		throw TypeException{getType(), VariantType::MAGIC};
 	}
 
 	/**
@@ -619,7 +620,7 @@ public:
 	 *
 	 * @return the array value as const reference.
 	 */
-	const arrayType &asArray() const { return asObj<arrayType>(Type::ARRAY); }
+	const arrayType &asArray() const { return asObj<arrayType>(VariantType::ARRAY); }
 
 	/**
 	 * Returns a const reference to the array value. Performs no type
@@ -627,7 +628,7 @@ public:
 	 *
 	 * @return the array value as reference.
 	 */
-	arrayType &asArray() { return asObj<arrayType>(Type::ARRAY); }
+	arrayType &asArray() { return asObj<arrayType>(VariantType::ARRAY); }
 
 	/**
 	 * Returns a const reference to the map value. Performs no type
@@ -635,7 +636,7 @@ public:
 	 *
 	 * @return the map value as const reference.
 	 */
-	const mapType &asMap() const { return asObj<mapType>(Type::MAP); }
+	const mapType &asMap() const { return asObj<mapType>(VariantType::MAP); }
 
 	/**
 	 * Returns a pointer pointing at the stored managed object. Performs no type
@@ -644,7 +645,7 @@ public:
 	 *
 	 * @return pointer at the stored managed object.
 	 */
-	objectType asObject() { return asObj<objectType>(Type::OBJECT); }
+	objectType asObject() { return asObj<objectType>(VariantType::OBJECT); }
 
 	/**
 	 * Returns a pointer pointing at the stored managed object. Performs no type
@@ -655,7 +656,7 @@ public:
 	 */
 	const objectType asObject() const
 	{
-		return asObj<objectType>(Type::OBJECT);
+		return asObj<objectType>(VariantType::OBJECT);
 	}
 
 	/**
@@ -664,7 +665,7 @@ public:
 	 *
 	 * @return the map value as reference.
 	 */
-	mapType &asMap() { return asObj<mapType>(Type::MAP); }
+	mapType &asMap() { return asObj<mapType>(VariantType::MAP); }
 
 	/**
 	 * Returns a shared pointer pointing at the stored function object. Performs
@@ -673,7 +674,7 @@ public:
 	 *
 	 * @return pointer at the stored managed object.
 	 */
-	functionType &asFunction() { return asObj<functionType>(Type::FUNCTION); }
+	functionType &asFunction() { return asObj<functionType>(VariantType::FUNCTION); }
 
 	/**
 	 * Returns a shared pointer pointing at the stored function object. Performs
@@ -684,7 +685,7 @@ public:
 	 */
 	const functionType &asFunction() const
 	{
-		return asObj<functionType>(Type::FUNCTION);
+		return asObj<functionType>(VariantType::FUNCTION);
 	}
 
 	/**
@@ -723,7 +724,7 @@ public:
 	void setNull()
 	{
 		destroy();
-		type = Type::NULLPTR;
+		type = VariantType::NULLPTR;
 		ptrVal = nullptr;
 	}
 
@@ -735,7 +736,7 @@ public:
 	void setBool(boolType b)
 	{
 		destroy();
-		type = Type::BOOL;
+		type = VariantType::BOOL;
 		boolVal = b;
 	}
 
@@ -747,7 +748,7 @@ public:
 	void setInt(intType i)
 	{
 		destroy();
-		type = Type::INT;
+		type = VariantType::INT;
 		intVal = i;
 	}
 
@@ -759,7 +760,7 @@ public:
 	void setDouble(doubleType d)
 	{
 		destroy();
-		type = Type::DOUBLE;
+		type = VariantType::DOUBLE;
 		doubleVal = d;
 	}
 
@@ -771,11 +772,11 @@ public:
 	void setString(const char *s)
 	{
 		if (isString()) {
-			type = Type::STRING;
+			type = VariantType::STRING;
 			asString().assign(s);
 		} else {
 			destroy();
-			type = Type::STRING;
+			type = VariantType::STRING;
 			ptrVal = new stringType(s);
 		}
 	}
@@ -788,11 +789,11 @@ public:
 	void setMagic(const char *s)
 	{
 		if (isString()) {
-			type = Type::MAGIC;
+			type = VariantType::MAGIC;
 			asString().assign(s);
 		} else {
 			destroy();
-			type = Type::MAGIC;
+			type = VariantType::MAGIC;
 			ptrVal = new stringType(s);
 		}
 	}
@@ -808,7 +809,7 @@ public:
 			asArray().swap(a);
 		} else {
 			destroy();
-			type = Type::ARRAY;
+			type = VariantType::ARRAY;
 			ptrVal = new arrayType(std::move(a));
 		}
 	}
@@ -824,7 +825,7 @@ public:
 			asMap().swap(m);
 		} else {
 			destroy();
-			type = Type::MAP;
+			type = VariantType::MAP;
 			ptrVal = new mapType(std::move(m));
 		}
 	}
@@ -837,7 +838,7 @@ public:
 	void setObject(Handle<T> o)
 	{
 		destroy();
-		type = Type::OBJECT;
+		type = VariantType::OBJECT;
 		ptrVal = new objectType(o);
 	}
 
@@ -846,10 +847,10 @@ public:
 	 *
 	 * @return the current type of the Variant.
 	 */
-	Type getType() const
+	VariantType getType() const
 	{
 		if (isMagic()) {
-			return Type::STRING;
+			return VariantType::STRING;
 		}
 		return type;
 	}
@@ -857,7 +858,7 @@ public:
 	/**
 	 * Returns the name of the given variant type as C-style string.
 	 */
-	static const char *getTypeName(Type type);
+	static const char *getTypeName(VariantType type);
 
 	/**
 	 * Returns the name of the type of this variant instance.

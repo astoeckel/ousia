@@ -106,19 +106,19 @@ static void writeJsonInternal(const Variant &var, std::ostream &stream,
                               bool pretty, int level)
 {
 	switch (var.getType()) {
-		case Variant::Type::NULLPTR:
-		case Variant::Type::BOOL:
-		case Variant::Type::INT:
-		case Variant::Type::DOUBLE:
-		case Variant::Type::FUNCTION:
-		case Variant::Type::OBJECT:
+		case VariantType::NULLPTR:
+		case VariantType::BOOL:
+		case VariantType::INT:
+		case VariantType::DOUBLE:
+		case VariantType::FUNCTION:
+		case VariantType::OBJECT:
 			stream << var.toString();
 			return;
-		case Variant::Type::STRING:
-		case Variant::Type::MAGIC:
+		case VariantType::STRING:
+		case VariantType::MAGIC:
 			writeJsonString(var.toString(), stream);
 			return;
-		case Variant::Type::ARRAY: {
+		case VariantType::ARRAY: {
 			stream << "[";
 			writeLinebreak(stream, pretty);
 			const Variant::arrayType &arr = var.asArray();
@@ -134,7 +134,7 @@ static void writeJsonInternal(const Variant &var, std::ostream &stream,
 			stream << "]";
 			return;
 		}
-		case Variant::Type::MAP: {
+		case VariantType::MAP: {
 			writeIndentation(stream, pretty, level);
 			stream << "{";
 			writeLinebreak(stream, pretty);

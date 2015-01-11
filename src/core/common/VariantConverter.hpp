@@ -22,8 +22,10 @@
 namespace ousia {
 
 // Forward declaration
-class Variant;
 class Logger;
+class RttiBase;
+class Variant;
+enum class VariantType : int16_t;
 
 /**
  * The VariantConverter class is used to convert a variant to a certain
@@ -31,21 +33,18 @@ class Logger;
  * type, even if the conversion fails.
  */
 class VariantConverter {
-
 public:
 	/**
 	 * Enumeration used to define the mode of conversion -- either only safe
 	 * conversions (without any data loss) are performed, or all possible
 	 * conversions are tried (with possible data loss).
 	 */
-	enum class Mode {
-		SAFE, ALL
-	};
+	enum class Mode { SAFE, ALL };
 
 	/**
-	 * Makes sure the given variant is a boolean. If the "mode" parameter is
-	 * set to Mode::SAFE, only booleans can be converted to booleans. For all
-	 * other types the conversion fails. If "mode" is set to Mode::ALL, nullptr
+	 * Converts the given variant to a boolean. If the "mode" parameter is set
+	 * to Mode::SAFE, only booleans can be converted to booleans. For all other
+	 * types the conversion fails. If "mode" is set to Mode::ALL, nullptr
 	 * values and zero numeric values are treated as "false", all other values
 	 * are treated as "true".
 	 *
@@ -58,14 +57,66 @@ public:
 	 */
 	static bool toBool(Variant &var, Logger &logger, Mode mode = Mode::SAFE);
 
+	/**
+	 * Converts the given variant to an integer. If the "mode" parameter is set
+	 * to Mode::SAFE, only integers can be converted to integers. For all other
+	 * types the conversion fails. If "mode" is set to Mode::ALL, booleans are
+	 * converted to 0, 1, nullptr is converted to 0, doubles are truncated,
+	 * strings are parsed and truncated, arrays with one element are converted
+	 * to an integer. Conversion fails for objects, functions, maps and arrays
+	 * with zero or more than one entry.
+	 *
+	 * @param var is instance of the Variant class that should be converted to
+	 * the requested type.
+	 * @param logger is a reference to the logger instance into which messages
+	 * should be logged.
+	 * @param mode is the conversion mode. See method description for the exact
+	 * effect.
+	 */
 	static bool toInt(Variant &var, Logger &logger, Mode mode = Mode::SAFE);
 
+	/**
+	 * Converts the given variant to a double. If the "mode" parameter is set
+	 * to Mode::SAFE, only integers and doubles can be converted to doubles. For
+	 * all other types the conversion fails. If "mode" is set to Mode::ALL,
+	 * booleans are converted to 0.0, 1.0, nullptr is converted to 0.0, strings
+	 * are parsed, arrays with one element are converted to a double.
+	 * Conversion fails for objects, functions, maps and arrays with zero or
+	 * more than one entry.
+	 *
+	 * @param var is instance of the Variant class that should be converted to
+	 * the requested type.
+	 * @param logger is a reference to the logger instance into which messages
+	 * should be logged.
+	 * @param mode is the conversion mode. See method description for the exact
+	 * effect.
+	 */
 	static bool toDouble(Variant &var, Logger &logger, Mode mode = Mode::SAFE);
 
+	/**
+	 * Converts the given variant to a double. If the "mode" parameter is set
+	 * to Mode::SAFE, all primitive types can be converted to strings. For
+	 * all other types the conversion fails. If "mode" is set to Mode::ALL,
+	 * maps and arrays are converted to a JSON representation, objects and
+	 * functions are converted to an informative string containing their pointer
+	 * and type.
+	 *
+	 * @param var is instance of the Variant class that should be converted to
+	 * the requested type.
+	 * @param logger is a reference to the logger instance into which messages
+	 * should be logged.
+	 * @param mode is the conversion mode. See method description for the exact
+	 * effect.
+	 */
 	static bool toString(Variant &var, Logger &logger, Mode mode = Mode::SAFE);
 
-};
+	static bool convert(Variant &var, VariantType requestedType,
+	                    const RttiBase &rttiType, Logger &logger,
+	                    Mode mode = Mode::SAFE);
 
+	static bool convert(Variant &var, VariantType requestedType,
+	                    Logger &logger, Mode mode = Mode::SAFE);
+};
 }
 
 #endif /* _OUSIA_VARIANT_CONVERTER_HPP_ */

@@ -30,7 +30,7 @@ namespace ousia {
 
 /* Class Variant::TypeException */
 
-Variant::TypeException::TypeException(Type actualType, Type requestedType)
+Variant::TypeException::TypeException(VariantType actualType, VariantType requestedType)
     : OusiaException(std::string("Variant: Requested \"") +
                      Variant::getTypeName(requestedType) +
                      std::string("\" but is \"") +
@@ -42,28 +42,28 @@ Variant::TypeException::TypeException(Type actualType, Type requestedType)
 
 /* Class Variant */
 
-const char *Variant::getTypeName(Type type)
+const char *Variant::getTypeName(VariantType type)
 {
 	switch (type) {
-		case Type::NULLPTR:
+		case VariantType::NULLPTR:
 			return "null";
-		case Type::BOOL:
+		case VariantType::BOOL:
 			return "boolean";
-		case Type::INT:
+		case VariantType::INT:
 			return "integer";
-		case Type::DOUBLE:
+		case VariantType::DOUBLE:
 			return "double";
-		case Type::STRING:
+		case VariantType::STRING:
 			return "string";
-		case Type::MAGIC:
+		case VariantType::MAGIC:
 			return "magic";
-		case Type::ARRAY:
+		case VariantType::ARRAY:
 			return "array";
-		case Type::MAP:
+		case VariantType::MAP:
 			return "map";
-		case Type::OBJECT:
+		case VariantType::OBJECT:
 			return "object";
-		case Type::FUNCTION:
+		case VariantType::FUNCTION:
 			return "function";
 	}
 	return "unknown";
@@ -118,24 +118,24 @@ bool operator<(const Variant &lhs, const Variant &rhs)
 		throw Variant::TypeException(lhs.getType(), rhs.getType());
 	}
 	switch (lhs.getType()) {
-		case Variant::Type::NULLPTR:
+		case VariantType::NULLPTR:
 			return false;
-		case Variant::Type::BOOL:
+		case VariantType::BOOL:
 			return lhs.boolVal < rhs.boolVal;
-		case Variant::Type::INT:
+		case VariantType::INT:
 			return lhs.intVal < rhs.intVal;
-		case Variant::Type::DOUBLE:
+		case VariantType::DOUBLE:
 			return lhs.doubleVal < rhs.doubleVal;
-		case Variant::Type::MAGIC:
-		case Variant::Type::STRING:
+		case VariantType::MAGIC:
+		case VariantType::STRING:
 			return lhs.asString() < rhs.asString();
-		case Variant::Type::ARRAY:
+		case VariantType::ARRAY:
 			return lhs.asArray() < rhs.asArray();
-		case Variant::Type::MAP:
+		case VariantType::MAP:
 			return lhs.asMap() < rhs.asMap();
-		case Variant::Type::OBJECT:
+		case VariantType::OBJECT:
 			return lhs.asObject().get() < rhs.asObject().get();
-		case Variant::Type::FUNCTION:
+		case VariantType::FUNCTION:
 			return lhs.asFunction() < rhs.asFunction();
 	}
 	throw OusiaException("Internal Error! Unknown type!");
@@ -162,24 +162,24 @@ bool operator==(const Variant &lhs, const Variant &rhs)
 		return false;
 	}
 	switch (lhs.getType()) {
-		case Variant::Type::NULLPTR:
+		case VariantType::NULLPTR:
 			return true;
-		case Variant::Type::BOOL:
+		case VariantType::BOOL:
 			return lhs.boolVal == rhs.boolVal;
-		case Variant::Type::INT:
+		case VariantType::INT:
 			return lhs.intVal == rhs.intVal;
-		case Variant::Type::DOUBLE:
+		case VariantType::DOUBLE:
 			return lhs.doubleVal == rhs.doubleVal;
-		case Variant::Type::STRING:
-		case Variant::Type::MAGIC:
+		case VariantType::STRING:
+		case VariantType::MAGIC:
 			return lhs.asString() == rhs.asString();
-		case Variant::Type::ARRAY:
+		case VariantType::ARRAY:
 			return lhs.asArray() == rhs.asArray();
-		case Variant::Type::MAP:
+		case VariantType::MAP:
 			return lhs.asMap() == rhs.asMap();
-		case Variant::Type::OBJECT:
+		case VariantType::OBJECT:
 			return lhs.asObject() == rhs.asObject();
-		case Variant::Type::FUNCTION:
+		case VariantType::FUNCTION:
 			return lhs.asFunction() == rhs.asFunction();
 	}
 	throw OusiaException("Internal Error! Unknown type!");
