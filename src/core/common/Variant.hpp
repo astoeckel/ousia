@@ -951,7 +951,7 @@ public:
 	/**
 	 * Returns the name of the type of this variant instance.
 	 */
-	const char *getTypeName() { return Variant::getTypeName(getType()); }
+	const char *getTypeName() const { return Variant::getTypeName(getType()); }
 
 	/*
 	 * Output stream operator.
