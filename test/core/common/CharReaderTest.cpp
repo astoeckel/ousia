@@ -455,7 +455,7 @@ TEST(CharReader, simpleRead)
 
 	// We must now be at line 1, column 15
 	ASSERT_EQ(1, reader.getLine());
-	ASSERT_EQ(testStr.size() + 1, reader.getColumn());
+	ASSERT_EQ((int)(testStr.size() + 1), reader.getColumn());
 
 	// If we call either read or peek, false is returned
 	ASSERT_FALSE(reader.read(c));
@@ -491,7 +491,7 @@ TEST(CharReader, simplePeek)
 	// at the end of the stream
 	reader.consumePeek();
 	ASSERT_EQ(1, reader.getLine());
-	ASSERT_EQ(testStr.size() + 1, reader.getColumn());
+	ASSERT_EQ((int)(testStr.size() + 1), reader.getColumn());
 	ASSERT_TRUE(reader.atEnd());
 
 	// If we call either read or peek, false is returned
@@ -662,7 +662,7 @@ TEST(CharReaderTest, context)
 		CharReader reader{testStr};
 		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("first line", ctx.text);
-		ASSERT_EQ(0U, ctx.relPos);
+		ASSERT_EQ(0, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
@@ -677,7 +677,7 @@ TEST(CharReaderTest, context)
 			reader.read(c);
 
 		ASSERT_EQ("first line", ctx.text);
-		ASSERT_EQ(0U, ctx.relPos);
+		ASSERT_EQ(0, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
@@ -692,7 +692,7 @@ TEST(CharReaderTest, context)
 
 		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("first line", ctx.text);
-		ASSERT_EQ(10U, ctx.relPos);
+		ASSERT_EQ(10, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
@@ -707,7 +707,7 @@ TEST(CharReaderTest, context)
 
 		SourceContext ctx = reader.getContext(3);
 		ASSERT_EQ("t l", ctx.text);
-		ASSERT_EQ(1U, ctx.relPos);
+		ASSERT_EQ(1, ctx.relPos);
 		ASSERT_TRUE(ctx.truncatedStart);
 		ASSERT_TRUE(ctx.truncatedEnd);
 	}
@@ -722,7 +722,7 @@ TEST(CharReaderTest, context)
 
 		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("second line", ctx.text);
-		ASSERT_EQ(0U, ctx.relPos);
+		ASSERT_EQ(0, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
@@ -737,7 +737,7 @@ TEST(CharReaderTest, context)
 
 		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("second line", ctx.text);
-		ASSERT_EQ(11U, ctx.relPos);
+		ASSERT_EQ(11, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
@@ -752,7 +752,7 @@ TEST(CharReaderTest, context)
 
 		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("last line", ctx.text);
-		ASSERT_EQ(0U, ctx.relPos);
+		ASSERT_EQ(0, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
@@ -767,7 +767,7 @@ TEST(CharReaderTest, context)
 
 		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("last line", ctx.text);
-		ASSERT_EQ(4U, ctx.relPos);
+		ASSERT_EQ(4, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
@@ -782,7 +782,7 @@ TEST(CharReaderTest, context)
 
 		SourceContext ctx = reader.getContext(3);
 		ASSERT_EQ("t l", ctx.text);
-		ASSERT_EQ(1U, ctx.relPos);
+		ASSERT_EQ(1, ctx.relPos);
 		ASSERT_TRUE(ctx.truncatedStart);
 		ASSERT_TRUE(ctx.truncatedEnd);
 	}
@@ -797,7 +797,7 @@ TEST(CharReaderTest, context)
 
 		SourceContext ctx = reader.getContext(80);
 		ASSERT_EQ("last line", ctx.text);
-		ASSERT_EQ(9U, ctx.relPos);
+		ASSERT_EQ(9, ctx.relPos);
 		ASSERT_FALSE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
@@ -812,7 +812,7 @@ TEST(CharReaderTest, context)
 
 		SourceContext ctx = reader.getContext(4);
 		ASSERT_EQ("line", ctx.text);
-		ASSERT_EQ(4U, ctx.relPos);
+		ASSERT_EQ(4, ctx.relPos);
 		ASSERT_TRUE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
