@@ -238,7 +238,7 @@ bool StructType::buildFromMap(Variant &data, Logger &logger, bool trim) const
 	Variant::arrayType arr;
 	std::vector<bool> set;
 
-	// Fetch the size of the input map n and the number of attributes N
+	// Fetch the number of attributes N
 	const size_t N = attributes.size();
 	arr.resize(N);
 	set.resize(N);
