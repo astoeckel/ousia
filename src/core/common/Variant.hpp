@@ -342,6 +342,30 @@ public:
 	Variant(mapType m) : ptrVal(nullptr) { setMap(std::move(m)); }
 
 	/**
+	 * Named constructor for function values.
+	 *
+	 * @param f is a shared pointer pointing at the Function instance.
+	 */
+	static Variant fromFunction(const functionType &f)
+	{
+		Variant res;
+		res.setFunction(f);
+		return res;
+	}
+
+	/**
+	 * Named constructor for strings values.
+	 *
+	 * @param s is the std::string from which the variant should be constructed.
+	 */
+	static Variant fromString(const stringType &s)
+	{
+		Variant res;
+		res.setString(s.c_str());
+		return res;
+	}
+
+	/**
 	 * Constructor for storing managed objects. The reference at the managed
 	 * object is stored as a Rooted object.
 	 *
@@ -620,7 +644,10 @@ public:
 	 *
 	 * @return the array value as const reference.
 	 */
-	const arrayType &asArray() const { return asObj<arrayType>(VariantType::ARRAY); }
+	const arrayType &asArray() const
+	{
+		return asObj<arrayType>(VariantType::ARRAY);
+	}
 
 	/**
 	 * Returns a const reference to the array value. Performs no type
@@ -674,7 +701,10 @@ public:
 	 *
 	 * @return pointer at the stored managed object.
 	 */
-	functionType &asFunction() { return asObj<functionType>(VariantType::FUNCTION); }
+	functionType &asFunction()
+	{
+		return asObj<functionType>(VariantType::FUNCTION);
+	}
 
 	/**
 	 * Returns a shared pointer pointing at the stored function object. Performs
@@ -713,10 +743,45 @@ public:
 	 * Returns the value of the Variant as string, performs type conversion.
 	 *
 	 * @return the value of the variant as string.
-	 * @param escape if set to true, adds double quotes to strings and escapes
-	 * them properly (resulting in a more or less JSONesque output).
 	 */
-	stringType toString(bool escape = false) const;
+	stringType toString() const;
+
+	/**
+	 * Returns the value of the Variant as array, performs type conversion. If
+	 * the variant is not an array yet, the current value is inserted into a
+	 * one-element array.
+	 *
+	 * @return the value of the variant as array.
+	 */
+	arrayType toArray() const;
+
+	/**
+	 * Returns the value of the Variant as array, performs type conversion. If
+	 * the variant is not an array yet, the current value is inserted into a
+	 * one-element array.
+	 *
+	 * @param innerType is the inner type the array entries should be converted
+	 * to.
+	 * @return the value of the variant as array.
+	 */
+	arrayType toArray(const RttiType &innerType) const;
+
+	/**
+	 * Returns the value of the Variant as map.
+	 *
+	 * @return the value of the variant as map.
+	 */
+	mapType toMap() const;
+
+	/**
+	 * Returns the value of the Variant as map, performs type conversion of the
+	 * map entries to the given inner type.
+	 *
+	 * @param innerType is the inner type the map entries should be converted
+	 * to.
+	 * @return the value of the variant as map.
+	 */
+	mapType toMap(const RttiType &innerType) const;
 
 	/**
 	 * Sets the variant to null.
@@ -843,6 +908,19 @@ public:
 	}
 
 	/**
+	 * Sets the variant to the given function.
+	 *
+	 * @param f is a std::shared_ptr pointing at a instance of the Function
+	 * class the Variant should be set to.
+	 */
+	void setFunction(functionType f)
+	{
+		destroy();
+		type = VariantType::FUNCTION;
+		ptrVal = new functionType(f);
+	}
+
+	/**
 	 * Returns the current type of the Variant.
 	 *
 	 * @return the current type of the Variant.
@@ -863,7 +941,7 @@ public:
 	 * or RttiTypes::Function or -- in case an object is stored inside the
 	 * variant -- the RttiType of that object.
 	 */
-	const RttiType& getRttiType() const;
+	const RttiType &getRttiType() const;
 
 	/**
 	 * Returns the name of the given variant type as C-style string.

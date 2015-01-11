@@ -16,9 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <sstream>
 
+#include "Function.hpp"
 #include "Logger.hpp"
 #include "Number.hpp"
 #include "Rtti.hpp"
@@ -32,6 +35,13 @@ static std::string msgUnexpectedType(VariantType actualType,
                                      VariantType requestedType)
 {
 	return std::string("Cannot convert ") + Variant::getTypeName(actualType) +
+	       std::string(" to ") + Variant::getTypeName(requestedType);
+}
+
+static std::string msgImplicitConversion(VariantType actualType,
+                                     VariantType requestedType)
+{
+	return std::string("Implicit conversion from ") + Variant::getTypeName(actualType) +
 	       std::string(" to ") + Variant::getTypeName(requestedType);
 }
 
@@ -101,10 +111,9 @@ bool VariantConverter::toInt(Variant &var, Logger &logger, Mode mode)
 				n.parse(var.asString(), logger);
 				if (n.isInt()) {
 					var = (Variant::intType)n.intValue();
-				} else {
-					var = (Variant::doubleType)n.doubleValue();
+					return true;
 				}
-				return true;
+				break;
 			}
 			case VariantType::ARRAY: {
 				try {
@@ -188,18 +197,22 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 	const VariantType type = var.getType();
 	switch (type) {
 		case VariantType::NULLPTR:
+			logger.warning(msgImplicitConversion(type, VariantType::STRING));
 			var = "null";
 			return true;
 		case VariantType::BOOL:
+			logger.warning(msgImplicitConversion(type, VariantType::STRING));
 			var = var.asBool() ? "true" : "false";
 			return true;
 		case VariantType::INT: {
+			logger.warning(msgImplicitConversion(type, VariantType::STRING));
 			std::stringstream ss;
 			ss << var.asInt();
 			var = ss.str().c_str();
 			return true;
 		}
 		case VariantType::DOUBLE: {
+			logger.warning(msgImplicitConversion(type, VariantType::STRING));
 			std::stringstream ss;
 			ss << var.asDouble();
 			var = ss.str().c_str();
@@ -250,6 +263,143 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 	logger.error(msgUnexpectedType(var.getType(), VariantType::STRING));
 	var = "";
 	return false;
+}
+
+bool VariantConverter::toArray(Variant &var, const RttiType &innerType,
+                               Logger &logger, Mode mode)
+{
+	// If unsafe conversions are allowed, encapsulate the given variant in an
+	// array if it is not an array now.
+	if (!var.isArray() && mode == Mode::ALL) {
+		var.setArray(Variant::arrayType{var});
+	}
+
+	// Make sure the variant is an array
+	if (var.isArray()) {
+		// If no specific inner type is given, conversion is successful at this
+		// point
+		if (&innerType == &RttiTypes::None) {
+			return true;
+		}
+
+		// Convert all entries of the array to the specified inner type, log all
+		// failures to do so
+		bool res = true;
+		for (Variant &v : var.asArray()) {
+			res = convert(v, innerType, RttiTypes::None, logger, mode) & res;
+		}
+
+		// Return on successful conversion, otherwise output the default value
+		if (res) {
+			return true;
+		}
+	}
+
+	// No conversion possible, assign the default value and log an error
+	logger.error(msgUnexpectedType(var.getType(), VariantType::ARRAY));
+	var.setArray(Variant::arrayType{});
+	return false;
+}
+
+bool VariantConverter::toMap(Variant &var, const RttiType &innerType,
+                             Logger &logger, Mode mode)
+{
+	// Make sure the variant is a map
+	if (var.isMap()) {
+		// If no specific inner type is given, conversion is successful at this
+		// point
+		if (&innerType == &RttiTypes::None) {
+			return true;
+		}
+
+		// Convert the inner type of the map to the specified inner type, log
+		// all failures to do so
+		bool res = true;
+		for (auto &e : var.asMap()) {
+			res = convert(e.second, innerType, RttiTypes::None, logger, mode) &
+			      res;
+		}
+
+		// Return on successful conversion, otherwise output the default value
+		if (res) {
+			return true;
+		}
+	}
+
+	// No conversion possible, assign the default value and log an error
+	logger.error(msgUnexpectedType(var.getType(), VariantType::MAP));
+	var.setMap(Variant::mapType{});
+	return false;
+}
+
+bool VariantConverter::toFunction(Variant &var, Logger &logger)
+{
+	if (var.isFunction()) {
+		return true;
+	}
+
+	// No conversion possible, assign the default value and log an error
+	logger.error(msgUnexpectedType(var.getType(), VariantType::MAP));
+	var.setFunction(std::shared_ptr<Function>{new Method<void>([](
+	    const Variant::arrayType &args, void *thisRef) { return Variant{}; })});
+	return false;
+}
+
+bool VariantConverter::convert(Variant &var, const RttiType &type,
+                               const RttiType &innerType, Logger &logger,
+                               Mode mode)
+{
+	// Check for simple Variant types
+	if (&type == &RttiTypes::None) {
+		return true;  // Everything is fine if no specific type was
+		              // requested
+	} else if (&type == &RttiTypes::Nullptr) {
+		// Make sure the variant is set to null
+		if (!var.isNull()) {
+			logger.error(
+			    msgUnexpectedType(var.getType(), VariantType::NULLPTR));
+			var.setNull();
+			return false;
+		}
+		return true;
+	} else if (&type == &RttiTypes::Bool) {
+		return toBool(var, logger, mode);
+	} else if (&type == &RttiTypes::Int) {
+		return toInt(var, logger, mode);
+	} else if (&type == &RttiTypes::Double) {
+		return toDouble(var, logger, mode);
+	} else if (&type == &RttiTypes::String) {
+		return toString(var, logger, mode);
+	} else if (&type == &RttiTypes::Array) {
+		return toArray(var, innerType, logger, mode);
+	} else if (&type == &RttiTypes::Map) {
+		return toMap(var, innerType, logger, mode);
+	} else if (&type == &RttiTypes::Function) {
+		return toFunction(var, logger);
+	}
+
+	// If none of the above primitive types is requested, we were
+	// obviously asked for a managed object.
+	if (!var.isObject()) {
+		logger.error(msgUnexpectedType(var.getType(), VariantType::OBJECT));
+		var.setNull();
+		return false;
+	}
+
+	// Make sure the object type is correct
+	if (!var.getRttiType().isa(type)) {
+		logger.error(std::string("Expected object of type ") + type.name +
+		             " but got object of type " + var.getRttiType().name);
+		var.setNull();
+		return false;
+	}
+	return true;
+}
+
+bool VariantConverter::convert(Variant &var, const RttiType &type,
+                               Logger &logger, Mode mode)
+{
+	return convert(var, type, RttiTypes::None, logger, mode);
 }
 }
 

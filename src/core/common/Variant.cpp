@@ -96,12 +96,44 @@ Variant::doubleType Variant::toDouble() const
 	return res.asDouble();
 }
 
-Variant::stringType Variant::toString(bool escape) const
+Variant::stringType Variant::toString() const
 {
 	ExceptionLogger logger;
 	Variant res{*this};
 	VariantConverter::toString(res, logger, VariantConverter::Mode::ALL);
 	return res.asString();
+}
+
+Variant::arrayType Variant::toArray() const
+{
+	ExceptionLogger logger;
+	Variant res{*this};
+	VariantConverter::toArray(res, RttiTypes::None, logger, VariantConverter::Mode::ALL);
+	return res.asArray();
+}
+
+Variant::arrayType Variant::toArray(const RttiType &innerType) const
+{
+	ExceptionLogger logger;
+	Variant res{*this};
+	VariantConverter::toArray(res, innerType, logger, VariantConverter::Mode::ALL);
+	return res.asArray();
+}
+
+Variant::mapType Variant::toMap() const
+{
+	ExceptionLogger logger;
+	Variant res{*this};
+	VariantConverter::toMap(res, RttiTypes::None, logger, VariantConverter::Mode::ALL);
+	return res.asMap();
+}
+
+Variant::mapType Variant::toMap(const RttiType &innerType) const
+{
+	ExceptionLogger logger;
+	Variant res{*this};
+	VariantConverter::toMap(res, innerType, logger, VariantConverter::Mode::ALL);
+	return res.asMap();
 }
 
 /* Type management */
