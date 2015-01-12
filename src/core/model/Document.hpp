@@ -179,8 +179,6 @@ public:
 		}
 	}
 
-	virtual ~DocumentEntity(){};
-
 	/**
 	 * Returns the Descriptor for this DocumentEntity.
 	 *
