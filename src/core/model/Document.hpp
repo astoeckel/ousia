@@ -138,7 +138,7 @@ class StructureNode;
  * name.
  *
  */
-class DocumentEntity : public virtual Node {
+class DocumentEntity {
 private:
 	Owned<Descriptor> descriptor;
 	const Variant attributes;
@@ -151,11 +151,22 @@ private:
 	                            bool enforce) const;
 
 public:
-	DocumentEntity(Manager &mgr, Handle<Node> parent,
-	               Handle<Descriptor> descriptor, Variant attributes = {},
-	               std::string name = "")
-	    : Node(mgr, std::move(name), parent),
-	      descriptor(acquire(descriptor)),
+	/**
+	 * The constructor for a DocumentEntity. Node that this does not inherit
+	 * from Node. Therefore we need to have a handle to the child Node instance
+	 * to create NodeVectors and Owned references.
+	 *
+	 * @param owner      is a handle to the child instance
+	 *                   (e.g. StructuredEntity), such that the fields vectors
+	 *                   and the descriptor reference can be obtained.
+	 * @param descriptor is the Descriptor for this DocumentEntity, which will
+	 *                   transformed to an Owned reference of the given owner.
+	 * @param attributes is a Map Variant adhering to the attribute StructType
+	 *                   in the given descriptor.
+	 */
+	DocumentEntity(Handle<Node> owner, Handle<Descriptor> descriptor,
+	               Variant attributes = {})
+	    : descriptor(owner->acquire(descriptor)),
 	      attributes(std::move(attributes))
 	{
 		// TODO: Validation at construction time?
@@ -163,15 +174,27 @@ public:
 		if (!descriptor.isNull()) {
 			for (size_t f = 0; f < descriptor->getFieldDescriptors().size();
 			     f++) {
-				fields.push_back(NodeVector<StructureNode>(this));
+				fields.push_back(NodeVector<StructureNode>(owner));
 			}
 		}
 	}
-	//TODO: Is this necessary?
-    virtual ~DocumentEntity() {};
 
+	virtual ~DocumentEntity(){};
+
+	/**
+	 * Returns the Descriptor for this DocumentEntity.
+	 *
+	 * @return the Descriptor for this DocumentEntity.
+	 */
 	Rooted<Descriptor> getDescriptor() const { return descriptor; }
 
+	/**
+	 * Returns a Map Variant adhering to the attribute StructType in the given
+	 * descriptor.
+	 *
+	 * @return a Map Variant adhering to the attribute StructType in the given
+	 * descriptor.
+	 */
 	Variant getAttributes() const { return attributes; }
 
 	/**
@@ -305,29 +328,27 @@ public:
  * A StructureNode is a Node of the StructureTree of the document. This is a
  * common superclass for StructuredEntity, Anchor and DocumentPrimitive.
  */
-class StructureNode : public virtual Node {
+class StructureNode : public Node {
 public:
 	StructureNode(Manager &mgr, std::string name, Handle<Node> parent)
 	    : Node(mgr, std::move(name), parent)
 	{
 	}
-	//TODO: Is this necessary?
-    virtual ~StructureNode(){};
+
+	virtual ~StructureNode(){};
 };
 
 /**
  * A StructuredEntity is an instance of a StructuredClass. For more
  * information please refer to the header documentation above.
  */
-class StructuredEntity : public DocumentEntity, public StructureNode {
+class StructuredEntity : public StructureNode, public DocumentEntity {
 public:
 	StructuredEntity(Manager &mgr, Handle<Node> parent,
 	                 Handle<StructuredClass> descriptor, Variant attributes,
 	                 std::string name = "")
-	    : Node(mgr, std::move(name), parent),
-	      DocumentEntity(mgr, parent, descriptor, std::move(attributes),
-	                     std::move(name)),
-	      StructureNode(mgr, std::move(name), parent)
+	    : StructureNode(mgr, std::move(name), parent),
+	      DocumentEntity(this, descriptor, std::move(attributes))
 	{
 	}
 };
@@ -342,17 +363,17 @@ private:
 	Variant content;
 
 public:
-	DocumentPrimitive(Manager &mgr, Handle<DocumentEntity> parent,
-	                  Variant content = {})
-	    : Node(mgr, parent),
-	      StructureNode(mgr, "", parent),
-	      content(content)
+	DocumentPrimitive(Manager &mgr, Handle<Node> parent, Variant content = {})
+	    : StructureNode(mgr, "", parent), content(content)
 	{
 	}
 
+	/**
+	 * Returns the content of this DocumentPrimitive.
+	 *
+	 * @return the content of this DocumentPrimitive.
+	 */
 	Variant getContent() const { return content; }
-
-	// TODO: Override such methods like "getField" to disable them?
 };
 
 /**
@@ -375,7 +396,7 @@ public:
  * the two text exerpts "emphasized" and "and" separately.
  *
  */
-class AnnotationEntity : public DocumentEntity {
+class AnnotationEntity : public Node, public DocumentEntity {
 public:
 	/**
 	 * An Anchor is an elementary StructuredEntity without any children that
@@ -391,9 +412,8 @@ public:
 		 *               not the AnnotationEntity that references this Anchor.
 		 * @param name   is the Anchor id.
 		 */
-		Anchor(Manager &mgr, std::string name, Handle<DocumentEntity> parent)
-		    : Node(mgr, std::move(name), parent),
-		      StructureNode(mgr, std::move(name), parent)
+		Anchor(Manager &mgr, std::string name, Handle<Node> parent)
+		    : StructureNode(mgr, std::move(name), parent)
 		{
 		}
 	};
@@ -423,7 +443,7 @@ public:
 	                 Handle<Anchor> end, Variant attributes = {},
 	                 std::string name = "")
 	    : Node(mgr, std::move(name), parent),
-	      DocumentEntity(mgr, parent, descriptor, attributes, std::move(name)),
+	      DocumentEntity(this, descriptor, attributes),
 	      start(acquire(start)),
 	      end(acquire(end))
 	{
