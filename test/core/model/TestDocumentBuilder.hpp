@@ -155,6 +155,10 @@ Rooted<StructuredEntity> buildStructuredEntity(
 	if (descriptor == nullptr) {
 		return {nullptr};
 	}
+	if(!descriptor->isa(RttiTypes::StructuredClass)){
+		return {nullptr};
+		logger.error("The descriptor was not an AnnotationClass!");
+	}
 	// Then construct the StructuredEntity itself.
 	Rooted<StructuredEntity> entity{new StructuredEntity(
 	    parent->getManager(), parent, descriptor.cast<StructuredClass>(),
@@ -282,6 +286,10 @@ Rooted<AnnotationEntity> buildAnnotationEntity(
 	    resolveDescriptor(document, logger, path, RttiTypes::AnnotationClass);
 	if (descriptor == nullptr) {
 		return {nullptr};
+	}
+	if(!descriptor->isa(RttiTypes::AnnotationClass)){
+		return {nullptr};
+		logger.error("The descriptor was not an AnnotationClass!");
 	}
 	// Then construct the AnnotationEntity itself
 	Rooted<AnnotationEntity> anno{new AnnotationEntity(

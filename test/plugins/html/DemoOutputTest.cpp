@@ -111,6 +111,13 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	buildAnnotationEntity(doc, logger, {"emphasized"}, em_start, em_end);
 	buildAnnotationEntity(doc, logger, {"strong"}, strong_start, strong_end);
 
+
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+	// dump the manager state
+	mgr.exportGraphviz("build/annotationDocument.dot");
+#endif
+
+
 	// Check serialization.
 	DemoHTMLTransformer transformer;
 	std::stringstream out;
