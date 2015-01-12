@@ -29,7 +29,7 @@
 
 namespace ousia {
 
-//static Logger logger;
+// static Logger logger;
 static TerminalLogger logger(std::cerr, true);
 
 namespace {
@@ -536,12 +536,12 @@ TEST(Argument, validateArrayInner)
 	}
 
 	{
-		Variant::arrayType arr{1, "a", Variant::fromObject(nullptr)};
+		Variant::arrayType arr{1, Variant::fromObject(nullptr), "a"};
 		Variant v{arr};
 
 		ASSERT_FALSE(a.validate(v, logger));
 		ASSERT_TRUE(v.isArray());
-		ASSERT_EQ(Variant::arrayType({"1", "a", ""}), v.asArray());
+		ASSERT_EQ(Variant::arrayType({"1", "", "a"}), v.asArray());
 	}
 
 	{
@@ -569,6 +569,15 @@ TEST(Argument, validateArrayInnerDefault)
 		ASSERT_TRUE(a.validate(v, logger));
 		ASSERT_TRUE(v.isArray());
 		ASSERT_EQ(Variant::arrayType({"test1", "42.5"}), v.asArray());
+	}
+
+	{
+		Variant::arrayType arr{"test1", 42.5, Variant::fromObject(nullptr)};
+		Variant v{arr};
+
+		ASSERT_FALSE(a.validate(v, logger));
+		ASSERT_TRUE(v.isArray());
+		ASSERT_EQ(arrDefault, v.asArray());
 	}
 
 	{
@@ -601,6 +610,110 @@ TEST(Argument, validateMap)
 		ASSERT_FALSE(a.validate(v, logger));
 		ASSERT_TRUE(v.isMap());
 		ASSERT_EQ(Variant::mapType{}, v.asMap());
+	}
+}
+
+TEST(Argument, validateMapDefault)
+{
+	Variant::mapType mapDefault{{"key1", 1}, {"key2", "a"}, {"key3", nullptr}};
+	Argument a = Argument::Map("a", mapDefault);
+
+	ASSERT_TRUE(a.hasDefault);
+	ASSERT_TRUE(a.defaultValue.isMap());
+	ASSERT_EQ(mapDefault, a.defaultValue.asMap());
+
+	{
+		Variant::mapType map{{"a", true}, {"b", "a"}};
+		Variant v{map};
+
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isMap());
+		ASSERT_EQ(map, v.asMap());
+	}
+
+	{
+		Variant v{"foo"};
+
+		ASSERT_FALSE(a.validate(v, logger));
+		ASSERT_TRUE(v.isMap());
+		ASSERT_EQ(mapDefault, v.asMap());
+	}
+}
+
+TEST(Argument, validateMapInnerType)
+{
+	Argument a = Argument::Map("a", RttiTypes::String);
+
+	ASSERT_FALSE(a.hasDefault);
+
+	{
+		Variant::mapType map{{"key1", 1}, {"key2", "a"}, {"key3", nullptr}};
+		Variant v{map};
+
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isMap());
+		ASSERT_EQ(
+		    Variant::mapType({{"key1", "1"}, {"key2", "a"}, {"key3", "null"}}),
+		    v.asMap());
+	}
+
+	{
+		Variant::mapType map{
+		    {"key1", 1}, {"key2", Variant::fromObject(nullptr)}, {"key3", "a"}};
+		Variant v{map};
+
+		ASSERT_FALSE(a.validate(v, logger));
+		ASSERT_TRUE(v.isMap());
+		ASSERT_EQ(
+		    Variant::mapType({{"key1", "1"}, {"key2", ""}, {"key3", "a"}}),
+		    v.asMap());
+	}
+
+	{
+		Variant v{"foo"};
+
+		ASSERT_FALSE(a.validate(v, logger));
+		ASSERT_TRUE(v.isMap());
+		ASSERT_EQ(Variant::mapType{}, v.asMap());
+	}
+}
+
+TEST(Argument, validateMapInnerTypeDefault)
+{
+	Variant::mapType mapDefault{{"key1", "1"}};
+	Argument a = Argument::Map("a", RttiTypes::String, mapDefault);
+
+	ASSERT_TRUE(a.hasDefault);
+	ASSERT_TRUE(a.defaultValue.isMap());
+	ASSERT_EQ(mapDefault, a.defaultValue.asMap());
+
+	{
+		Variant::mapType map{{"key1", 1}, {"key2", "a"}, {"key3", nullptr}};
+		Variant v{map};
+
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isMap());
+		ASSERT_EQ(
+		    Variant::mapType({{"key1", "1"}, {"key2", "a"}, {"key3", "null"}}),
+		    v.asMap());
+	}
+
+	{
+		Variant::mapType map{
+		    {"key1", 1}, {"key2", Variant::fromObject(nullptr)}, {"key3", "a"}};
+		Variant v{map};
+
+		ASSERT_FALSE(a.validate(v, logger));
+		ASSERT_TRUE(v.isMap());
+		ASSERT_EQ(mapDefault, v.asMap());
+	}
+
+	{
+		Variant v{"foo"};
+
+		ASSERT_FALSE(a.validate(v, logger));
+		ASSERT_TRUE(v.isMap());
+		ASSERT_EQ(mapDefault, v.asMap());
 	}
 }
 }
