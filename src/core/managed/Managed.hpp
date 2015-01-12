@@ -357,7 +357,7 @@ public:
 	 * Statically casts the handle to a handle of the given type.
 	 */
 	template <class T2>
-	Handle<T2> cast()
+	Handle<T2> cast() const
 	{
 		return Handle<T2>(static_cast<T2 *>(ptr));
 	}

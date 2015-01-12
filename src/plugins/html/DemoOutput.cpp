@@ -33,8 +33,7 @@ void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
 {
 	Manager &mgr = doc->getManager();
 	// Create an XML object tree for the document first.
-	Rooted<xml::Element> html{new xml::Element{
-	    mgr, {nullptr}, "html"}};
+	Rooted<xml::Element> html{new xml::Element{mgr, {nullptr}, "html"}};
 	// add the head Element
 	Rooted<xml::Element> head{new xml::Element{mgr, html, "head"}};
 	html->addChild(head);
@@ -117,8 +116,8 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 	// check if we have a heading.
 	if (section->hasField("heading") &&
 	    section->getField("heading").size() > 0) {
-		Rooted<model::StructuredEntity> heading =
-		    section->getField("heading")[0];
+		Handle<model::StructuredEntity> heading =
+		    section->getField("heading")[0].cast<model::StructuredEntity>();
 		std::string headingclass;
 		switch (type) {
 			case SectionType::BOOK:
@@ -147,8 +146,11 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 	}
 
 	// Then we get all the children.
-	NodeVector<model::StructuredEntity> mainField = section->getField();
-	for (auto &n : mainField) {
+	for (auto &n : section->getField()) {
+		if (!n->isa(RttiTypes::StructuredEntity)) {
+			continue;
+		}
+		Handle<model::StructuredEntity> s = n.cast<model::StructuredEntity>();
 		/*
 		 * Strictly speaking this is the wrong mechanism, because we would have
 		 * to make an "isa" call here because we can not rely on our knowledge
@@ -156,14 +158,14 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 		 * to be a listener structure of transformations that check if they can
 		 * transform this specific node.
 		 */
-		const std::string childDescriptorName = n->getDescriptor()->getName();
+		const std::string childDescriptorName = s->getDescriptor()->getName();
 		Rooted<xml::Element> child;
 		if (childDescriptorName == "paragraph") {
-			child = transformParagraph(sec, n, startMap, endMap);
+			child = transformParagraph(sec, s, startMap, endMap);
 		} else if (childDescriptorName == "ul" || childDescriptorName == "ol") {
-			child = transformList(sec, n, startMap, endMap);
+			child = transformList(sec, s, startMap, endMap);
 		} else {
-			child = transformSection(sec, n, startMap, endMap);
+			child = transformSection(sec, s, startMap, endMap);
 		}
 		if (!child.isNull()) {
 			sec->addChild(child);
@@ -181,7 +183,9 @@ Rooted<xml::Element> DemoHTMLTransformer::transformList(
 	std::string listclass = list->getDescriptor()->getName();
 	Rooted<xml::Element> l{new xml::Element{mgr, parent, listclass}};
 	// iterate through list items.
-	for (auto &item : list->getField()) {
+	for (auto &it : list->getField()) {
+		Handle<model::StructuredEntity> item =
+		    it.cast<model::StructuredEntity>();
 		std::string itDescrName = item->getDescriptor()->getName();
 		if (itDescrName == "item") {
 			// create the list item.
@@ -259,7 +263,8 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 
 	// check if we have a heading.
 	if (par->hasField("heading") && par->getField("heading").size() > 0) {
-		Rooted<model::StructuredEntity> heading = par->getField("heading")[0];
+		Handle<model::StructuredEntity> heading =
+		    par->getField("heading")[0].cast<model::StructuredEntity>();
 		// put the heading in a strong xml::Element.
 		Rooted<xml::Element> strong{new xml::Element{mgr, p, "strong"}};
 		p->addChild(strong);
@@ -334,10 +339,15 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 			continue;
 		}
 		// if this is not an anchor, we can only handle text.
-		std::string childDescriptorName = n->getDescriptor()->getName();
+		if(!n->isa(RttiTypes::StructuredEntity)){
+			continue;
+		}
+		Handle<model::StructuredEntity> t = n.cast<model::StructuredEntity>();
+
+		std::string childDescriptorName = t->getDescriptor()->getName();
 		if (childDescriptorName == "text") {
 			Handle<model::DocumentPrimitive> primitive =
-			    n->getField()[0].cast<model::DocumentPrimitive>();
+			    t->getField()[0].cast<model::DocumentPrimitive>();
 			if (primitive.isNull()) {
 				throw OusiaException("Text field is not primitive!");
 			}

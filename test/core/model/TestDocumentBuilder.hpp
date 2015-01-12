@@ -235,7 +235,7 @@ Rooted<AnnotationEntity::Anchor> buildAnchor(Logger &logger,
 	}
 	// Then construct the Anchor itself
 	Rooted<AnnotationEntity::Anchor> anchor{
-	    new AnnotationEntity::Anchor(parent->getManager(), parent, id)};
+	    new AnnotationEntity::Anchor(parent->getManager(), id, parent)};
 	// append the new entity to the right field.
 	if (!parent->hasField(fieldName)) {
 		logger.error(std::string("The parent has no field of the name ") +

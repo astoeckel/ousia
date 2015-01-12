@@ -124,9 +124,8 @@ class Rtti;
 
 namespace model {
 
-class StructuredEntity;
-class AnnotationEntity;
 class Document;
+class StructureNode;
 
 /**
  * A DocumentEntity is the common superclass for StructuredEntities and
@@ -139,11 +138,11 @@ class Document;
  * name.
  *
  */
-class DocumentEntity : public Node {
+class DocumentEntity : public virtual Node {
 private:
 	Owned<Descriptor> descriptor;
 	const Variant attributes;
-	std::vector<NodeVector<StructuredEntity>> fields;
+	std::vector<NodeVector<StructureNode>> fields;
 
 	int getFieldDescriptorIndex(const std::string &fieldName,
 	                            bool enforce) const;
@@ -164,10 +163,12 @@ public:
 		if (!descriptor.isNull()) {
 			for (size_t f = 0; f < descriptor->getFieldDescriptors().size();
 			     f++) {
-				fields.push_back(NodeVector<StructuredEntity>(this));
+				fields.push_back(NodeVector<StructureNode>(this));
 			}
 		}
 	}
+	//TODO: Is this necessary?
+    virtual ~DocumentEntity() {};
 
 	Rooted<Descriptor> getDescriptor() const { return descriptor; }
 
@@ -203,7 +204,7 @@ public:
 	 *                  FieldDescriptor in the Domain description.
 	 * @return a NodeVector of all StructuredEntities in that field.
 	 */
-	const NodeVector<StructuredEntity> &getField(
+	const NodeVector<StructureNode> &getField(
 	    const std::string &fieldName = "") const
 	{
 		return fields[getFieldDescriptorIndex(fieldName, true)];
@@ -220,7 +221,7 @@ public:
 	 *                        this DocumentEntity.
 	 * @return a NodeVector of all StructuredEntities in that field.
 	 */
-	const NodeVector<StructuredEntity> &getField(
+	const NodeVector<StructureNode> &getField(
 	    Handle<FieldDescriptor> fieldDescriptor) const
 	{
 		return fields[getFieldDescriptorIndex(fieldDescriptor, true)];
@@ -238,7 +239,7 @@ public:
 	 * @param fieldName is the name of a field as specified in the
 	 *                  FieldDescriptor in the Domain description.
 	 */
-	void addStructuredEntity(Handle<StructuredEntity> s,
+	void addStructuredEntity(Handle<StructureNode> s,
 	                         const std::string &fieldName = "")
 	{
 		fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
@@ -256,10 +257,10 @@ public:
 	 * @param fieldName is the name of a field as specified in the
 	 *                  FieldDescriptor in the Domain description.
 	 */
-	void addStructuredEntities(const std::vector<Handle<StructuredEntity>> &ss,
+	void addStructuredEntities(const std::vector<Handle<StructureNode>> &ss,
 	                           const std::string &fieldName = "")
 	{
-		NodeVector<StructuredEntity> &field =
+		NodeVector<StructureNode> &field =
 		    fields[getFieldDescriptorIndex(fieldName, true)];
 		field.insert(field.end(), ss.begin(), ss.end());
 	}
@@ -274,7 +275,7 @@ public:
 	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
 	 *                        this DocumentEntity.
 	 */
-	void addStructuredEntity(Handle<StructuredEntity> s,
+	void addStructuredEntity(Handle<StructureNode> s,
 	                         Handle<FieldDescriptor> fieldDescriptor)
 	{
 		fields[getFieldDescriptorIndex(fieldDescriptor, true)].push_back(s);
@@ -291,26 +292,42 @@ public:
 	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
 	 *                        this DocumentEntity.
 	 */
-	void addStructuredEntities(const std::vector<Handle<StructuredEntity>> &ss,
+	void addStructuredEntities(const std::vector<Handle<StructureNode>> &ss,
 	                           Handle<FieldDescriptor> fieldDescriptor)
 	{
-		NodeVector<StructuredEntity> &field =
+		NodeVector<StructureNode> &field =
 		    fields[getFieldDescriptorIndex(fieldDescriptor, true)];
 		field.insert(field.end(), ss.begin(), ss.end());
 	}
 };
 
 /**
- * A StructuredEntity is a node in the Structure Tree of a document. For more
+ * A StructureNode is a Node of the StructureTree of the document. This is a
+ * common superclass for StructuredEntity, Anchor and DocumentPrimitive.
+ */
+class StructureNode : public virtual Node {
+public:
+	StructureNode(Manager &mgr, std::string name, Handle<Node> parent)
+	    : Node(mgr, std::move(name), parent)
+	{
+	}
+	//TODO: Is this necessary?
+    virtual ~StructureNode(){};
+};
+
+/**
+ * A StructuredEntity is an instance of a StructuredClass. For more
  * information please refer to the header documentation above.
  */
-class StructuredEntity : public DocumentEntity {
+class StructuredEntity : public DocumentEntity, public StructureNode {
 public:
 	StructuredEntity(Manager &mgr, Handle<Node> parent,
 	                 Handle<StructuredClass> descriptor, Variant attributes,
 	                 std::string name = "")
-	    : DocumentEntity(mgr, parent, descriptor, std::move(attributes),
-	                     std::move(name))
+	    : Node(mgr, std::move(name), parent),
+	      DocumentEntity(mgr, parent, descriptor, std::move(attributes),
+	                     std::move(name)),
+	      StructureNode(mgr, std::move(name), parent)
 	{
 	}
 };
@@ -320,15 +337,20 @@ public:
  * The most straightforward example for this is the actual document text, e.g.
  * inside a paragraph. In that case this would represent a mere string.
  */
-class DocumentPrimitive : public StructuredEntity {
+class DocumentPrimitive : public StructureNode {
+private:
+	Variant content;
+
 public:
 	DocumentPrimitive(Manager &mgr, Handle<DocumentEntity> parent,
 	                  Variant content = {})
-	    : StructuredEntity(mgr, parent, nullptr, std::move(content))
+	    : Node(mgr, parent),
+	      StructureNode(mgr, "", parent),
+	      content(content)
 	{
 	}
 
-	Variant getContent() const { return getAttributes(); }
+	Variant getContent() const { return content; }
 
 	// TODO: Override such methods like "getField" to disable them?
 };
@@ -361,7 +383,7 @@ public:
 	 * referenced by an AnnotationEntity as it start and end point.
 	 * Please refer to the AnnotationEntity documentation for more information.
 	 */
-	class Anchor : public StructuredEntity {
+	class Anchor : public StructureNode {
 	public:
 		/**
 		 * @param mgr    is the Manager instance.
@@ -369,8 +391,9 @@ public:
 		 *               not the AnnotationEntity that references this Anchor.
 		 * @param name   is the Anchor id.
 		 */
-		Anchor(Manager &mgr, Handle<DocumentEntity> parent, std::string name)
-		    : StructuredEntity(mgr, parent, nullptr, Variant(), std::move(name))
+		Anchor(Manager &mgr, std::string name, Handle<DocumentEntity> parent)
+		    : Node(mgr, std::move(name), parent),
+		      StructureNode(mgr, std::move(name), parent)
 		{
 		}
 	};
@@ -399,7 +422,8 @@ public:
 	                 Handle<AnnotationClass> descriptor, Handle<Anchor> start,
 	                 Handle<Anchor> end, Variant attributes = {},
 	                 std::string name = "")
-	    : DocumentEntity(mgr, parent, descriptor, attributes, std::move(name)),
+	    : Node(mgr, std::move(name), parent),
+	      DocumentEntity(mgr, parent, descriptor, attributes, std::move(name)),
 	      start(acquire(start)),
 	      end(acquire(end))
 	{
@@ -509,6 +533,7 @@ namespace RttiTypes {
 extern const Rtti<model::Document> Document;
 extern const Rtti<model::DocumentEntity> DocumentEntity;
 extern const Rtti<model::AnnotationEntity> AnnotationEntity;
+extern const Rtti<model::StructureNode> StructureNode;
 extern const Rtti<model::StructuredEntity> StructuredEntity;
 extern const Rtti<model::DocumentPrimitive> DocumentPrimitive;
 extern const Rtti<model::AnnotationEntity::Anchor> Anchor;

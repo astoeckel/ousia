@@ -56,7 +56,7 @@ TEST(DemoHTMLTransformer, writeHTML)
 
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	// dump the manager state
-	mgr.exportGraphviz("bookDocument.dot");
+	mgr.exportGraphviz("build/bookDocument.dot");
 #endif
 
 	// we can only do a rough check here.

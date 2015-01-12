@@ -34,7 +34,7 @@ namespace model {
 TEST(Document, testDocumentConstruction)
 {
 	// Construct Manager
-	TerminalLogger logger {std::cerr, true};
+	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Get the domain.
@@ -52,7 +52,8 @@ TEST(Document, testDocumentConstruction)
 	ASSERT_EQ(2U, root->getField().size());
 	// get foreword (paragraph)
 	{
-		Rooted<StructuredEntity> foreword = root->getField()[0];
+		Rooted<StructuredEntity> foreword =
+		    root->getField()[0].cast<StructuredEntity>();
 		ASSERT_FALSE(foreword.isNull());
 		ASSERT_EQ("paragraph", foreword->getDescriptor()->getName());
 		// it should contain one text node
@@ -61,7 +62,8 @@ TEST(Document, testDocumentConstruction)
 		// which in turn should have a primitive content field containing the
 		// right text.
 		{
-			Rooted<StructuredEntity> text = foreword->getField()[0];
+			Rooted<StructuredEntity> text =
+			    foreword->getField()[0].cast<StructuredEntity>();
 			ASSERT_FALSE(text.isNull());
 			ASSERT_EQ("text", text->getDescriptor()->getName());
 			ASSERT_TRUE(text->hasField());
@@ -74,24 +76,26 @@ TEST(Document, testDocumentConstruction)
 	}
 	// get section
 	{
-		Rooted<StructuredEntity> section = root->getField()[1];
+		Rooted<StructuredEntity> section =
+		    root->getField()[1].cast<StructuredEntity>();
 		ASSERT_FALSE(section.isNull());
 		ASSERT_EQ("section", section->getDescriptor()->getName());
 		// it should contain one paragraph
 		ASSERT_TRUE(section->hasField());
 		ASSERT_EQ(1U, section->getField().size());
 		{
-			Rooted<StructuredEntity> par = section->getField()[0];
+			Rooted<StructuredEntity> par =
+			    section->getField()[0].cast<StructuredEntity>();
 			ASSERT_FALSE(par.isNull());
 			ASSERT_EQ("paragraph", par->getDescriptor()->getName());
 			// it should contain one text node
 			ASSERT_TRUE(par->hasField());
 			ASSERT_EQ(1U, par->getField().size());
 			// which in turn should have a primitive content field containing
-			// the
-			// right text.
+			// the right text.
 			{
-				Rooted<StructuredEntity> text = par->getField()[0];
+				Rooted<StructuredEntity> text =
+				    par->getField()[0].cast<StructuredEntity>();
 				ASSERT_FALSE(text.isNull());
 				ASSERT_EQ("text", text->getDescriptor()->getName());
 				ASSERT_TRUE(text->hasField());

@@ -111,13 +111,15 @@ const Rtti<model::Document> Document =
 const Rtti<model::AnnotationEntity> AnnotationEntity =
     RttiBuilder("AnnotationEntity").parent(&DocumentEntity).composedOf(
         &StructuredEntity);
+const Rtti<model::StructureNode> StructureNode =
+    RttiBuilder("StructureNode").parent(&Node);
 const Rtti<model::StructuredEntity> StructuredEntity =
-    RttiBuilder("StructuredEntity").parent(&DocumentEntity).composedOf(
+    RttiBuilder("StructuredEntity").parent(&DocumentEntity).parent(&StructureNode).composedOf(
         {&StructuredEntity, &Anchor, &DocumentPrimitive});
 const Rtti<model::DocumentPrimitive> DocumentPrimitive =
-    RttiBuilder("DocumentPrimitive").parent(&StructuredEntity);
+    RttiBuilder("DocumentPrimitive").parent(&StructureNode);
 const Rtti<model::AnnotationEntity::Anchor> Anchor =
-    RttiBuilder("Anchor").parent(&StructuredEntity);
+    RttiBuilder("Anchor").parent(&StructureNode);
 }
 }
 
