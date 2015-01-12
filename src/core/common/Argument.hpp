@@ -119,6 +119,26 @@ public:
 	const bool hasDefault;
 
 	/**
+	 * Named constructor for an argument with any type.
+	 *
+	 * @param name is the name of the argument as used for error messages and in
+	 * case the arguments are given as a map.
+	 * @return a new Argument instance.
+	 */
+	static Argument Any(std::string name);
+
+	/**
+	 * Named constructor for an argument with any type.
+	 *
+	 * @param name is the name of the argument as used for error messages and in
+	 * case the arguments are given as a map.
+	 * @param defaultValue is the default value to be used in case this argument
+	 * is not supplied.
+	 * @return a new Argument instance.
+	 */
+	static Argument Any(std::string name, Variant defaultValue);
+
+	/**
 	 * Named constructor for a boolean argument with no default value.
 	 *
 	 * @param name is the name of the argument as used for error messages and in

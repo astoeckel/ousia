@@ -52,6 +52,63 @@ static const Rtti<ousia::TestManaged2> TestManaged2 =
     RttiBuilder("TestManaged2").parent(&TestManaged1);
 }
 
+TEST(Argument, validateAny)
+{
+	Argument a = Argument::Any("a");
+
+	ASSERT_FALSE(a.hasDefault);
+
+	{
+		Variant v{true};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isBool());
+		ASSERT_TRUE(v.asBool());
+	}
+
+	{
+		Variant v{"test"};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isString());
+		ASSERT_EQ("test", v.asString());
+	}
+
+	{
+		Variant v{{1, 2, 3, 4}};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isArray());
+		ASSERT_EQ(Variant::arrayType({1, 2, 3, 4}), v.asArray());
+	}
+}
+
+TEST(Argument, validateAnyDefault)
+{
+	Argument a = Argument::Any("a", true);
+
+	ASSERT_TRUE(a.hasDefault);
+	ASSERT_TRUE(a.defaultValue.asBool());
+
+	{
+		Variant v{true};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isBool());
+		ASSERT_TRUE(v.asBool());
+	}
+
+	{
+		Variant v{"test"};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isString());
+		ASSERT_EQ("test", v.asString());
+	}
+
+	{
+		Variant v{{1, 2, 3, 4}};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isArray());
+		ASSERT_EQ(Variant::arrayType({1, 2, 3, 4}), v.asArray());
+	}
+}
+
 TEST(Argument, validateBool)
 {
 	Argument a = Argument::Bool("a");

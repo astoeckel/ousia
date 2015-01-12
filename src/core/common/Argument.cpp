@@ -48,6 +48,17 @@ Argument::Argument(std::string name, const RttiType &type)
 {
 }
 
+
+Argument Argument::Any(std::string name)
+{
+	return Argument{name, RttiTypes::None, RttiTypes::None, nullptr, false};
+}
+
+Argument Argument::Any(std::string name, Variant defaultValue)
+{
+	return Argument{name, RttiTypes::None, RttiTypes::None, defaultValue, true};
+}
+
 Argument Argument::Bool(std::string name)
 {
 	return Argument{name, RttiTypes::Bool};
