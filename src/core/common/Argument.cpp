@@ -192,12 +192,12 @@ static std::unordered_map<std::string, size_t> buildArgumentNames(
 	for (const Argument &arg : arguments) {
 		if (!Utils::isIdentifier(arg.name)) {
 			throw OusiaException{std::string("Argument name ") + arg.name +
-			                     std::string(" is not a valid identifier!")};
+			                     std::string(" is not a valid identifier")};
 		}
 		if (!res.emplace(arg.name, i++).second) {
 			throw OusiaException{
 			    std::string("Argument names must be unique (") + arg.name +
-			    std::string(")!")};
+			    std::string(")")};
 		}
 	}
 	return res;
@@ -210,6 +210,8 @@ Arguments::Arguments(std::initializer_list<Argument> arguments)
 
 bool Arguments::validateArray(Variant::arrayType &arr, Logger &logger)
 {
+	Logger nullLogger;
+
 	// Fetch the number of arguments N and the initial array size n
 	const size_t n = arr.size();
 	const size_t N = arguments.size();
@@ -235,9 +237,11 @@ bool Arguments::validateArray(Variant::arrayType &arr, Logger &logger)
 			if (arguments[a].hasDefault) {
 				arr[a] = arguments[a].defaultValue;
 			} else {
+				// Call "validate" to inject a standard value
+				arguments[a].validate(arr[a], nullLogger);
 				logger.error(std::string("Missing argument ") +
-				             std::to_string(a + 1) + std::string("(") +
-				             arguments[a].name + std::string(")!"));
+				             std::to_string(a + 1) + std::string(" \"") +
+				             arguments[a].name + std::string("\""));
 				ok = false;
 			}
 		}
@@ -249,6 +253,8 @@ bool Arguments::validateArray(Variant::arrayType &arr, Logger &logger)
 bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
                             bool ignoreUnknown)
 {
+	Logger nullLogger;
+
 	// Fetch the number of arguments N
 	const size_t N = arguments.size();
 	std::vector<bool> set(N);
@@ -265,10 +271,10 @@ bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
 			ok = ok && set[idx];
 		} else {
 			if (ignoreUnknown) {
-				logger.note(std::string("Ignoring argument ") + e.first);
+				logger.note(std::string("Ignoring argument \"") + e.first + std::string("\""));
 			} else {
-				logger.error(std::string("Unknown argument ") + e.first +
-				             std::string("!"));
+				logger.error(std::string("Unknown argument \"") + e.first +
+				             std::string("\""));
 				ok = false;
 			}
 		}
@@ -280,8 +286,11 @@ bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
 			if (arguments[a].hasDefault) {
 				map[arguments[a].name] = arguments[a].defaultValue;
 			} else {
-				logger.error(std::string("Missing argument ") +
-				             arguments[a].name);
+				// Call "validate" to inject a standard value
+				map[arguments[a].name] = Variant{};
+				arguments[a].validate(map[arguments[a].name], nullLogger);
+				logger.error(std::string("Missing argument \"") +
+				             arguments[a].name + std::string("\""));
 				ok = false;
 			}
 		}

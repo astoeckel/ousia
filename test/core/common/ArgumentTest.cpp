@@ -52,6 +52,63 @@ static const Rtti<ousia::TestManaged2> TestManaged2 =
     RttiBuilder("TestManaged2").parent(&TestManaged1);
 }
 
+TEST(Argument, validateAny)
+{
+	Argument a = Argument::Any("a");
+
+	ASSERT_FALSE(a.hasDefault);
+
+	{
+		Variant v{true};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isBool());
+		ASSERT_TRUE(v.asBool());
+	}
+
+	{
+		Variant v{"test"};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isString());
+		ASSERT_EQ("test", v.asString());
+	}
+
+	{
+		Variant v{{1, 2, 3, 4}};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isArray());
+		ASSERT_EQ(Variant::arrayType({1, 2, 3, 4}), v.asArray());
+	}
+}
+
+TEST(Argument, validateAnyDefault)
+{
+	Argument a = Argument::Any("a", true);
+
+	ASSERT_TRUE(a.hasDefault);
+	ASSERT_TRUE(a.defaultValue.asBool());
+
+	{
+		Variant v{true};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isBool());
+		ASSERT_TRUE(v.asBool());
+	}
+
+	{
+		Variant v{"test"};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isString());
+		ASSERT_EQ("test", v.asString());
+	}
+
+	{
+		Variant v{{1, 2, 3, 4}};
+		ASSERT_TRUE(a.validate(v, logger));
+		ASSERT_TRUE(v.isArray());
+		ASSERT_EQ(Variant::arrayType({1, 2, 3, 4}), v.asArray());
+	}
+}
+
 TEST(Argument, validateBool)
 {
 	Argument a = Argument::Bool("a");
@@ -714,6 +771,95 @@ TEST(Argument, validateMapInnerTypeDefault)
 		ASSERT_FALSE(a.validate(v, logger));
 		ASSERT_TRUE(v.isMap());
 		ASSERT_EQ(mapDefault, v.asMap());
+	}
+}
+
+TEST(Arguments, construction)
+{
+	// This should work without exception
+	Arguments{Argument::Int("a"), Argument::Any("b")};
+
+	// This should throw an exception
+	ASSERT_THROW(Arguments({Argument::Int("a"), Argument::Any("a")}),
+	             OusiaException);
+	ASSERT_THROW(Arguments({Argument::Int("test test")}), OusiaException);
+}
+
+TEST(Arguments, validateArray)
+{
+	Arguments args{Argument::Int("a"), Argument::String("b", "test"),
+	               Argument::Bool("c", true)};
+
+	{
+		Variant::arrayType arr{1, 5, false};
+		ASSERT_TRUE(args.validateArray(arr, logger));
+		ASSERT_EQ(Variant::arrayType({1, "5", false}), arr);
+	}
+
+	{
+		Variant::arrayType arr{1, 5};
+		ASSERT_TRUE(args.validateArray(arr, logger));
+		ASSERT_EQ(Variant::arrayType({1, "5", true}), arr);
+	}
+
+	{
+		Variant::arrayType arr{1};
+		ASSERT_TRUE(args.validateArray(arr, logger));
+		ASSERT_EQ(Variant::arrayType({1, "test", true}), arr);
+	}
+
+	{
+		Variant::arrayType arr{};
+		ASSERT_FALSE(args.validateArray(arr, logger));
+		ASSERT_EQ(Variant::arrayType({0, "test", true}), arr);
+	}
+
+	{
+		Variant::arrayType arr{1, "bla", false, 42};
+		ASSERT_FALSE(args.validateArray(arr, logger));
+		ASSERT_EQ(Variant::arrayType({1, "bla", false}), arr);
+	}
+}
+
+TEST(Arguments, validateMap)
+{
+	Arguments args{Argument::Int("a"), Argument::String("b", "test"),
+	               Argument::Bool("c", true)};
+
+	{
+		Variant::mapType map{{"a", 2}, {"b", 5}, {"c", true}};
+		ASSERT_TRUE(args.validateMap(map, logger, false));
+		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "5"}, {"c", true}}), map);
+	}
+
+	{
+		Variant::mapType map{{"a", 2}, {"c", false}};
+		ASSERT_TRUE(args.validateMap(map, logger, false));
+		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "test"}, {"c", false}}), map);
+	}
+
+	{
+		Variant::mapType map{{"a", 2}};
+		ASSERT_TRUE(args.validateMap(map, logger, false));
+		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "test"}, {"c", true}}), map);
+	}
+
+	{
+		Variant::mapType map{};
+		ASSERT_FALSE(args.validateMap(map, logger, false));
+		ASSERT_EQ(Variant::mapType({{"a", 0}, {"b", "test"}, {"c", true}}), map);
+	}
+
+	{
+		Variant::mapType map{{"a", 2}, {"d", nullptr}};
+		ASSERT_FALSE(args.validateMap(map, logger, false));
+		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "test"}, {"c", true}, {"d", nullptr}}), map);
+	}
+
+	{
+		Variant::mapType map{{"a", 2}, {"d", nullptr}};
+		ASSERT_TRUE(args.validateMap(map, logger, true));
+		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "test"}, {"c", true}, {"d", nullptr}}), map);
 	}
 }
 }
