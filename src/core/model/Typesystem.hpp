@@ -42,7 +42,7 @@ namespace ousia {
 
 // Forward declarations
 class RttiType;
-template<class T>
+template <class T>
 class Rtti;
 
 namespace model {
@@ -829,11 +829,27 @@ public:
 	void addType(Handle<Type> type) { types.push_back(type); }
 
 	/**
+	 * Adds the given types to the type list.
+	 */
+	void addTypes(const std::vector<Handle<Type>> &ts)
+	{
+		types.insert(types.end(), ts.begin(), ts.end());
+	}
+
+	/**
 	 * Adds the given constant to the constant list.
 	 */
 	void addConstant(Handle<Constant> constant)
 	{
 		constants.push_back(constant);
+	}
+
+	/**
+	 * Adds the given constants to the constant list.
+	 */
+	void addConstants(const std::vector<Handle<Constant>> &cs)
+	{
+		constants.insert(constants.end(), cs.begin(), cs.end());
 	}
 
 	/**

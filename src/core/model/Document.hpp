@@ -119,7 +119,7 @@ namespace ousia {
 
 // Forward declarations
 class RttiType;
-template<class T>
+template <class T>
 class Rtti;
 
 namespace model {
@@ -145,11 +145,15 @@ private:
 	const Variant attributes;
 	std::vector<NodeVector<StructuredEntity>> fields;
 
-	int getFieldDescriptorIndex(const std::string &fieldName);
+	int getFieldDescriptorIndex(const std::string &fieldName,
+	                            bool enforce) const;
+
+	int getFieldDescriptorIndex(Handle<FieldDescriptor> fieldDescriptor,
+	                            bool enforce) const;
 
 public:
 	DocumentEntity(Manager &mgr, Handle<Node> parent,
-	               Handle<Descriptor> descriptor, Variant attributes,
+	               Handle<Descriptor> descriptor, Variant attributes = {},
 	               std::string name = "")
 	    : Node(mgr, std::move(name), parent),
 	      descriptor(acquire(descriptor)),
@@ -181,9 +185,9 @@ public:
 	 *                  FieldDescriptor in the Domain description.
 	 * @return true if this FieldDescriptor exists.
 	 */
-	bool hasField(const std::string &fieldName = "")
+	bool hasField(const std::string &fieldName = "") const
 	{
-		return getFieldDescriptorIndex(fieldName) != -1;
+		return getFieldDescriptorIndex(fieldName, false) != -1;
 	}
 
 	/**
@@ -199,7 +203,11 @@ public:
 	 *                  FieldDescriptor in the Domain description.
 	 * @return a NodeVector of all StructuredEntities in that field.
 	 */
-	NodeVector<StructuredEntity> &getField(const std::string &fieldName = "");
+	const NodeVector<StructuredEntity> &getField(
+	    const std::string &fieldName = "") const
+	{
+		return fields[getFieldDescriptorIndex(fieldName, true)];
+	}
 
 	/**
 	 * This returns the vector of entities containing all members of the field
@@ -212,8 +220,84 @@ public:
 	 *                        this DocumentEntity.
 	 * @return a NodeVector of all StructuredEntities in that field.
 	 */
-	NodeVector<StructuredEntity> &getField(
-	    Handle<FieldDescriptor> fieldDescriptor);
+	const NodeVector<StructuredEntity> &getField(
+	    Handle<FieldDescriptor> fieldDescriptor) const
+	{
+		return fields[getFieldDescriptorIndex(fieldDescriptor, true)];
+	}
+	/**
+	 * This adds a StructuredEntity to the field with the given name. If an
+	 * empty name is given it is assumed that the 'default' FieldDescriptor is
+	 * referenced, where 'default' means either:
+	 * 1.) The only TREE typed FieldDescriptor (if present) or
+	 * 2.) the only FieldDescriptor (if only one is specified).
+	 *
+	 * If the name is unknown an exception is thrown.
+	 *
+	 * @param s         is the StructuredEntity that shall be added.
+	 * @param fieldName is the name of a field as specified in the
+	 *                  FieldDescriptor in the Domain description.
+	 */
+	void addStructuredEntity(Handle<StructuredEntity> s,
+	                         const std::string &fieldName = "")
+	{
+		fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
+	}
+	/**
+	 * This adds multiple StructuredEntities to the field with the given name.
+	 * If an empty name is given it is assumed that the 'default'
+	 * FieldDescriptor is referenced, where 'default' means either:
+	 * 1.) The only TREE typed FieldDescriptor (if present) or
+	 * 2.) the only FieldDescriptor (if only one is specified).
+	 *
+	 * If the name is unknown an exception is thrown.
+	 *
+	 * @param ss        are the StructuredEntities that shall be added.
+	 * @param fieldName is the name of a field as specified in the
+	 *                  FieldDescriptor in the Domain description.
+	 */
+	void addStructuredEntities(const std::vector<Handle<StructuredEntity>> &ss,
+	                           const std::string &fieldName = "")
+	{
+		NodeVector<StructuredEntity> &field =
+		    fields[getFieldDescriptorIndex(fieldName, true)];
+		field.insert(field.end(), ss.begin(), ss.end());
+	}
+
+	/**
+	 * This adds a StructuredEntity to the field with the given FieldDescriptor.
+	 *
+	 * If the FieldDescriptor does not belong to the Descriptor of this node
+	 * an exception is thrown.
+	 *
+	 * @param s               is the StructuredEntity that shall be added.
+	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
+	 *                        this DocumentEntity.
+	 */
+	void addStructuredEntity(Handle<StructuredEntity> s,
+	                         Handle<FieldDescriptor> fieldDescriptor)
+	{
+		fields[getFieldDescriptorIndex(fieldDescriptor, true)].push_back(s);
+	}
+
+	/**
+	 * This adds multiple StructuredEntities to the field with the given
+	 * FieldDescriptor.
+	 *
+	 * If the FieldDescriptor does not belong to the Descriptor of this node
+	 * an exception is thrown.
+	 *
+	 * @param ss              are the StructuredEntities that shall be added.
+	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
+	 *                        this DocumentEntity.
+	 */
+	void addStructuredEntities(const std::vector<Handle<StructuredEntity>> &ss,
+	                           Handle<FieldDescriptor> fieldDescriptor)
+	{
+		NodeVector<StructuredEntity> &field =
+		    fields[getFieldDescriptorIndex(fieldDescriptor, true)];
+		field.insert(field.end(), ss.begin(), ss.end());
+	}
 };
 
 /**
@@ -239,7 +323,7 @@ public:
 class DocumentPrimitive : public StructuredEntity {
 public:
 	DocumentPrimitive(Manager &mgr, Handle<DocumentEntity> parent,
-	                  Variant content)
+	                  Variant content = {})
 	    : StructuredEntity(mgr, parent, nullptr, std::move(content))
 	{
 	}
@@ -296,9 +380,24 @@ private:
 	Owned<Anchor> end;
 
 public:
-	AnnotationEntity(Manager &mgr, Handle<Node> parent,
-	                 Handle<AnnotationClass> descriptor, Variant attributes,
-	                 Handle<Anchor> start, Handle<Anchor> end,
+	/**
+	 * The constructor for an AnnotationEntity.
+	 *
+	 * @param mgr        is the Manager instance.
+	 * @param parent     is the Document this AnnotationEntity is part of.
+	 * @param descriptor is the AnnotationClass of this AnnotationEntity.
+	 * @param start      is the start Anchor of this AnnotationEntity. It has to
+	 *                   be part of the Document given as parent.
+	 * @param end        is the end Anchor of this Annotationentity. It has to
+	 *                   be part of the Document given as parent.
+	 * @param attributes is a Map Variant containing attribute fillings for this
+	 *                   AnnotationEntity. It is empty per default.
+	 * @param name       is some name for this AnnotationEntity that might be
+	 *                   used for references later on. It is empty per default.
+	 */
+	AnnotationEntity(Manager &mgr, Handle<Document> parent,
+	                 Handle<AnnotationClass> descriptor, Handle<Anchor> start,
+	                 Handle<Anchor> end, Variant attributes = {},
 	                 std::string name = "")
 	    : DocumentEntity(mgr, parent, descriptor, attributes, std::move(name)),
 	      start(acquire(start)),
@@ -306,14 +405,25 @@ public:
 	{
 	}
 
-	Rooted<Anchor> getStart() { return start; }
+	/**
+	 * Returns the start Anchor of this AnnotationEntity.
+	 *
+	 * @return the start Anchor of this AnnotationEntity.
+	 */
+	Rooted<Anchor> getStart() const { return start; }
 
-	Rooted<Anchor> getEnd() { return end; }
+	/**
+	 * Returns the end Anchor of this AnnotationEntity.
+	 *
+	 * @return the end Anchor of this AnnotationEntity.
+	 */
+	Rooted<Anchor> getEnd() const { return end; }
 };
 
 /**
  * A Document is mainly a wrapper for the Root structure node of the Document
- * Graph.
+ * Graph. It also references the domains that have been used within this
+ * document and the AnnotationEntities that span over Anchors in this Document.
  */
 class Document : public Node {
 private:
@@ -332,17 +442,63 @@ public:
 	{
 	}
 
+	/**
+	 * Sets the root StructuredEntity of this Document.
+	 */
 	void setRoot(Handle<StructuredEntity> root) { this->root = acquire(root); };
 
+	/**
+	 * Returns the root StructuredEntity of this Document.
+	 *
+	 * @return the root StructuredEntity of this Document.
+	 */
 	Rooted<StructuredEntity> getRoot() const { return root; }
 
-	NodeVector<AnnotationEntity> &getAnnotations() { return annotations; }
+	/**
+	 * Returns a const reference to the NodeVector of AnnotationEntities that
+	 * span over Anchors in this Documents structure.
+	 *
+	 * @return a const reference to the NodeVector of AnnotationEntities that
+	 *         span over Anchors in this Documents structure.
+	 */
+	const NodeVector<AnnotationEntity> &getAnnotations() const
+	{
+		return annotations;
+	}
 
+	/**
+	 * Adds an AnnotationEntity to this document. The Anchors used as start and
+	 * end of this AnnotationEntity have to be part of this document.
+	 */
+	void addAnnotation(Handle<AnnotationEntity> a) { annotations.push_back(a); }
+	/**
+	 * Adds multiple AnnotationEntities to this document. The Anchors used as
+	 * start and end of these AnnotationEntities have to be part of this
+	 * document.
+	 */
+	void addAnnotations(const std::vector<Handle<AnnotationEntity>> &as)
+	{
+		annotations.insert(annotations.end(), as.begin(), as.end());
+	}
+
+	/**
+	 * Returns a const reference to the NodeVector of Domains that are used
+	 * within this Document.
+	 *
+	 * @return a const reference to the NodeVector of Domains that are used
+	 * within this Document.
+	 */
 	const NodeVector<Domain> &getDomains() const { return domains; }
 
+	/**
+	 * Adds a Domain reference to this Document.
+	 */
 	void addDomain(Handle<Domain> d) { domains.push_back(d); }
 
-	void addDomains(const std::vector<Handle<Domain>> d)
+	/**
+	 * Adds multiple Domain references to this Document.
+	 */
+	void addDomains(const std::vector<Handle<Domain>> &d)
 	{
 		domains.insert(domains.end(), d.begin(), d.end());
 	}

@@ -31,7 +31,7 @@ void Descriptor::continueResolve(ResolutionState &state)
 {
 	if (attributesDescriptor != nullptr) {
 		const NodeVector<Attribute> &attributes =
-			attributesDescriptor->getAttributes();
+		    attributesDescriptor->getAttributes();
 		continueResolveComposita(attributes, attributes.getIndex(), state);
 	}
 	continueResolveComposita(fieldDescriptors, fieldDescriptors.getIndex(),
@@ -42,8 +42,8 @@ void Descriptor::continueResolve(ResolutionState &state)
 
 void Domain::continueResolve(ResolutionState &state)
 {
-	if (!continueResolveComposita(structureClasses, structureClasses.getIndex(),
-	                              state) |
+	if (!continueResolveComposita(structuredClasses,
+	                              structuredClasses.getIndex(), state) |
 	    continueResolveComposita(annotationClasses,
 	                             annotationClasses.getIndex(), state)) {
 		continueResolveReferences(typesystems, state);

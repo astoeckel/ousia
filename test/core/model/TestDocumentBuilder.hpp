@@ -165,8 +165,7 @@ Rooted<StructuredEntity> buildStructuredEntity(
 		             fieldName + "!");
 		return {nullptr};
 	}
-	NodeVector<StructuredEntity> &field = parent->getField(fieldName);
-	field.push_back(entity);
+	parent->addStructuredEntity(entity, fieldName);
 
 	// and return it.
 	return entity;
@@ -205,8 +204,7 @@ Rooted<DocumentPrimitive> buildPrimitiveEntity(
 		             fieldName + "!");
 		return {nullptr};
 	}
-	NodeVector<StructuredEntity> &field = parent->getField(fieldName);
-	field.push_back(entity);
+	parent->addStructuredEntity(entity, fieldName);
 	// and return it.
 	return entity;
 }
@@ -244,8 +242,7 @@ Rooted<AnnotationEntity::Anchor> buildAnchor(Logger &logger,
 		             fieldName + "!");
 		return {nullptr};
 	}
-	NodeVector<StructuredEntity> &field = parent->getField(fieldName);
-	field.push_back(anchor);
+	parent->addStructuredEntity(anchor, fieldName);
 	// and return it.
 	return anchor;
 }
@@ -289,9 +286,9 @@ Rooted<AnnotationEntity> buildAnnotationEntity(
 	// Then construct the AnnotationEntity itself
 	Rooted<AnnotationEntity> anno{new AnnotationEntity(
 	    document->getManager(), document, descriptor.cast<AnnotationClass>(),
-	    attributes, start, end, name)};
+	    start, end, attributes, name)};
 	// append the new entity to the document
-	document->getAnnotations().push_back(anno);
+	document->addAnnotation(anno);
 	// and return it.
 	return anno;
 }

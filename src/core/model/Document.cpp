@@ -26,7 +26,8 @@ namespace model {
 
 /* Class DocumentEntity */
 
-int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName)
+int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName,
+                                            bool enforce) const
 {
 	const NodeVector<FieldDescriptor> &fds = descriptor->getFieldDescriptors();
 	unsigned int f = 0;
@@ -56,21 +57,15 @@ int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName)
 			f++;
 		}
 	}
-	return -1;
-}
-
-NodeVector<StructuredEntity> &DocumentEntity::getField(
-    const std::string &fieldName)
-{
-	int f = getFieldDescriptorIndex(fieldName);
-	if (f < 0) {
+	if (enforce) {
 		throw OusiaException("No field for the given name exists!");
+	} else {
+		return -1;
 	}
-	return fields[f];
 }
 
-NodeVector<StructuredEntity> &DocumentEntity::getField(
-    Handle<FieldDescriptor> fieldDescriptor)
+int DocumentEntity::getFieldDescriptorIndex(
+    Handle<FieldDescriptor> fieldDescriptor, bool enforce) const
 {
 	if (fieldDescriptor.isNull()) {
 		throw OusiaException("The given FieldDescriptor handle is null!");
@@ -80,13 +75,18 @@ NodeVector<StructuredEntity> &DocumentEntity::getField(
 	for (auto &fd : fds) {
 		if (fd->getName() == fieldDescriptor->getName() &&
 		    fd->getFieldType() == fieldDescriptor->getFieldType()) {
-			return fields[f];
+			return f;
 		}
 		f++;
 	}
-	throw OusiaException(
-	    "The given FieldDescriptor is not specified in the Descriptor of this "
-	    "node.");
+	if (enforce) {
+		throw OusiaException(
+		    "The given FieldDescriptor is not specified in the Descriptor of "
+		    "this "
+		    "node.");
+	} else {
+		return -1;
+	}
 }
 
 /* Class Document */

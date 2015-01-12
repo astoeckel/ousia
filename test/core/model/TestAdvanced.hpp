@@ -60,9 +60,9 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 	    mgr, "heading", domain, card, {nullptr}, {nullptr}, true)};
 	// as field we actually want to refer to the field of paragraph.
 	Rooted<StructuredClass> p = resolveDescriptor(bookDomain, "paragraph");
-	heading->getFieldDescriptors().push_back(p->getFieldDescriptors()[0]);
+	heading->addFieldDescriptor(p->getFieldDescriptors()[0]);
 	// add the class to the domain.
-	domain->getStructureClasses().push_back(heading);
+	domain->addStructuredClass(heading);
 	// create a new field for headings in each section type.
 	std::vector<std::string> secclasses{"book", "section", "subsection",
 	                                    "paragraph"};
@@ -70,8 +70,8 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 		Rooted<StructuredClass> desc = resolveDescriptor(bookDomain, s);
 		Rooted<FieldDescriptor> heading_field{new FieldDescriptor(
 		    mgr, desc, FieldDescriptor::FieldType::SUBTREE, "heading")};
-		heading_field->getChildren().push_back(heading);
-		desc->getFieldDescriptors().push_back(heading_field);
+		heading_field->addChild(heading);
+		desc->addFieldDescriptor(heading_field);
 	}
 	return domain;
 }
@@ -94,18 +94,18 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 	// set up item StructuredClass;
 	Rooted<StructuredClass> item{new StructuredClass(
 	    mgr, "item", domain, any, {nullptr}, {nullptr}, false)};
-	domain->getStructureClasses().push_back(item);
+	domain->addStructuredClass(item);
 	// as field we actually want to refer to the field of paragraph.
-	item->getFieldDescriptors().push_back(p->getFieldDescriptors()[0]);
+	item->addFieldDescriptor(p->getFieldDescriptors()[0]);
 	// set up list StructuredClasses.
 	std::vector<std::string> listTypes{"ol", "ul"};
 	for (auto &listType : listTypes) {
 		Rooted<StructuredClass> list{new StructuredClass(
 		    mgr, listType, domain, any, {nullptr}, p, false)};
 		Rooted<FieldDescriptor> list_field{new FieldDescriptor(mgr, list)};
-		list_field->getChildren().push_back(item);
-		list->getFieldDescriptors().push_back(list_field);
-		domain->getStructureClasses().push_back(list);
+		list_field->addChild(item);
+		list->addFieldDescriptor(list_field);
+		domain->addStructuredClass(list);
 	}
 	return domain;
 }
@@ -122,10 +122,10 @@ static Rooted<Domain> constructEmphasisDomain(Manager &mgr,
 	// create AnnotationClasses
 	Rooted<AnnotationClass> em{
 	    new AnnotationClass(mgr, "emphasized", domain, {nullptr})};
-	domain->getAnnotationClasses().push_back(em);
+	domain->addAnnotationClass(em);
 	Rooted<AnnotationClass> strong{
 	    new AnnotationClass(mgr, "strong", domain, {nullptr})};
-	domain->getAnnotationClasses().push_back(strong);
+	domain->addAnnotationClass(strong);
 	return domain;
 }
 

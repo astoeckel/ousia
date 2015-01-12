@@ -212,7 +212,7 @@ namespace ousia {
 
 // Forward declarations
 class RttiType;
-template<class T>
+template <class T>
 class Rtti;
 
 namespace model {
@@ -324,10 +324,29 @@ public:
 	{
 	}
 
-	// TODO: Is returning a NodeVector alright?
-	NodeVector<StructuredClass> &getChildren() { return children; }
-
+	/**
+	 * Returns a const reference to the NodeVector of StructuredClasses whose
+	 * instances are allowed as children in the StructureTree of instances of
+	 * this field.
+	 *
+	 * @return a const reference to the NodeVector of StructuredClasses whose
+	 * instances are allowed as children in the StructureTree of instances of
+	 * this field.
+	 */
 	const NodeVector<StructuredClass> &getChildren() const { return children; }
+	
+	/**
+	 * Adds a StructuredClass whose instances shall be allowed as children in
+	 * the StructureTree of instances of this field.
+	 */
+	void addChild(Handle<StructuredClass> c){ children.push_back(c);}
+	
+	
+	/**
+	 * Adds multiple StructuredClasses whose instances shall be allowed as
+	 * children in the StructureTree of instances of this field.
+	 */
+	void addChildren(const std::vector<Handle<StructuredClass>> &cs){ children.insert(children.end(), cs.begin(), cs.end());}
 
 	FieldType getFieldType() const { return fieldType; }
 
@@ -381,20 +400,43 @@ public:
 	{
 	}
 
+	/**
+	 * Returns a reference to the StructType that specifies the attribute keys
+	 * as well as value domains for this Descriptor.
+	 *
+	 * @return a reference to the StructType that specifies the attribute keys
+	 *         as well as value domains for this Descriptor.
+	 */
 	Rooted<StructType> getAttributesDescriptor() const
 	{
 		return attributesDescriptor;
 	}
-
-	// TODO: Is returning a NodeVector alright?
-	NodeVector<FieldDescriptor> &getFieldDescriptors()
+	/**
+	 * Returns a const reference to the NodeVector of all FieldDescriptors of
+	 * this Descriptor.
+	 *
+	 * @return a const reference to the NodeVector of all FieldDescriptors of
+	 * this Descriptor.
+	 */
+	const NodeVector<FieldDescriptor> &getFieldDescriptors() const
 	{
 		return fieldDescriptors;
 	}
 
-	const NodeVector<FieldDescriptor> &getFieldDescriptors() const
+	/**
+	 * Adds a FieldDescriptor to this Descriptor.
+	 */
+	void addFieldDescriptor(Handle<FieldDescriptor> fd)
 	{
-		return fieldDescriptors;
+		fieldDescriptors.push_back(fd);
+	}
+
+	/**
+	 * Adds multiple FieldDescriptors to this Descriptor.
+	 */
+	void addFieldDescriptors(const std::vector<Handle<FieldDescriptor>>& fds)
+	{
+		fieldDescriptors.insert(fieldDescriptors.end(), fds.begin(), fds.end());
 	}
 };
 
@@ -491,11 +533,9 @@ public:
 	 *                             may occur at a specific point in the
 	 *                             StructureTree. For example: A document should
 	 *                             have at least one author.
-	 * @param attributesDescriptor references a StructType that in turn
-	 *                             specifies which key-value pairs are permitted
-	 *                             as attributes for this StructuredClass. The
-	 *                             default value is a null-reference, meaning
-	 *                             that no attributes are permitted.
+	 * @param attributesDescriptor is a StructType that specifies the attribute
+	 *                             keys as well as value domains for this
+	 *                             Descriptor.
 	 * @param isa                  references a parent StructuredClass. Please
 	 *                             look for more information on inheritance in
 	 *                             the class documentation above. The default is
@@ -520,14 +560,48 @@ public:
 	{
 	}
 
+	/**
+	 * Returns the Cardinality of this StructuredClass (as a RangeSet).
+	 *
+	 * @return the Cardinality of this StructuredClass (as a RangeSet).
+	 */
 	const Cardinality &getCardinality() const { return cardinality; }
 
+	/**
+	 * Returns the parent of this StructuredClass in the class inheritance
+	 * hierarchy (!). This is not the same as the parents in the Structure Tree!
+	 *
+	 * @return the parent of this StructuredClass in the class inheritance
+	 * hierarchy (!).
+	 */
 	Rooted<StructuredClass> getIsA() const { return isa; }
 
-	// TODO: Is returning a NodeVector alright?
-	NodeVector<FieldDescriptor> &getParents() { return parents; }
-
+	/**
+	 * Returns a const reference to the NodeVector of FieldDescriptors that
+	 * should allow an instance of this StructuredClass as child in the
+	 * Structure Tree. This enables you to "invade" other domains as described
+	 * in the StructuredClass documentation.
+	 *
+	 * @return a const reference to the NodeVector of FieldDescriptors that
+	 * should allow an instance of this StructuredClass as child in the
+	 * Structure Tree.
+	 */
 	const NodeVector<FieldDescriptor> &getParents() const { return parents; }
+
+	/**
+	 * Adds a FieldDescriptor that should allow an instance of this
+	 * StructuredClass as a child in the Structure Tree.
+	 */
+	void addParent(Handle<FieldDescriptor> p) { parents.push_back(p); }
+
+	/**
+	 * Adds multiple FieldDescriptors that should allow an instance of this
+	 * StructuredClass as a child in the Structure Tree.
+	 */
+	void addParents(const std::vector<Handle<FieldDescriptor>>& ps)
+	{
+		parents.insert(parents.end(), ps.begin(), ps.end());
+	}
 };
 
 /**
@@ -538,6 +612,19 @@ public:
  */
 class AnnotationClass : public Descriptor {
 public:
+	/**
+	 * The constructor for a new AnnotationClass. Note that you have to add
+	 * the FieldDescriptors to it later on.
+	 *
+	 * @param mgr                  is the Manager instance.
+	 * @param name                 is a name for this AnnotationClass that will
+	 *                             be used for later references to this
+	 *                             AnnotationClass.
+	 * @param domain               is the Domain this AnnotationClass belongs to.
+	 * @param attributesDescriptor is a StructType that specifies the attribute
+	 *                             keys as well as value domains for this
+	 *                             Descriptor.
+	 */
 	AnnotationClass(Manager &mgr, std::string name, Handle<Domain> domain,
 	                // TODO: What would be a wise default value for attributes?
 	                Handle<StructType> attributesDescriptor)
@@ -553,7 +640,7 @@ public:
  */
 class Domain : public Node {
 private:
-	NodeVector<StructuredClass> structureClasses;
+	NodeVector<StructuredClass> structuredClasses;
 	NodeVector<AnnotationClass> annotationClasses;
 	// TODO: Is it wise to attach the type systems here? If not: What would be
 	// a good alternative.
@@ -563,39 +650,101 @@ protected:
 	void continueResolve(ResolutionState &state) override;
 
 public:
+	/**
+	 * The constructor for a new domain. Note that this is an empty Domain and
+	 * still has to be filled with StructuredClasses and AnnotationClasses.
+	 *
+	 * @param mgr  is the Manager instance.
+	 * @param sys  is the SystemTypesystem instance.
+	 * @param name is a name for this domain which will be used for later
+	 *             references to this Domain.
+	 */
 	Domain(Manager &mgr, Handle<SystemTypesystem> sys, std::string name)
 	    // TODO: Can a domain have a parent?
 	    : Node(mgr, std::move(name), nullptr),
-	      structureClasses(this),
+	      structuredClasses(this),
 	      annotationClasses(this),
 	      typesystems(this, std::vector<Handle<Typesystem>>{sys})
 	{
 	}
 
-	// TODO: Is returning a NodeVector alright?
-	NodeVector<StructuredClass> &getStructureClasses()
-	{
-		return structureClasses;
-	}
-
+	/**
+	 * Returns a const reference to the NodeVector of StructuredClasses that are
+	 * part of this Domain.
+	 *
+	 * @return a const reference to the NodeVector of StructuredClasses that are
+	 * part of this Domain.
+	 */
 	const NodeVector<StructuredClass> &getStructureClasses() const
 	{
-		return structureClasses;
+		return structuredClasses;
 	}
 
-	NodeVector<AnnotationClass> &getAnnotationClasses()
+	/**
+	 * Adds a StructuredClass to this Domain.
+	 */
+	void addStructuredClass(Handle<StructuredClass> s)
 	{
-		return annotationClasses;
+		structuredClasses.push_back(s);
 	}
 
+	/**
+	 * Adds multiple StructuredClasses to this Domain.
+	 */
+	void addStructuredClasses(const std::vector<Handle<StructuredClass>> &ss)
+	{
+		structuredClasses.insert(structuredClasses.end(), ss.begin(), ss.end());
+	}
+
+	/**
+	 * Returns a const reference to the NodeVector of AnnotationClasses that are
+	 * part of this Domain.
+	 *
+	 * @return a const reference to the NodeVector of AnnotationClasses that are
+	 * part of this Domain.
+	 */
 	const NodeVector<AnnotationClass> &getAnnotationClasses() const
 	{
 		return annotationClasses;
 	}
 
-	NodeVector<Typesystem> &getTypesystems() { return typesystems; }
+	/**
+	 * Adds an AnnotationClass to this Domain.
+	 */
+	void addAnnotationClass(Handle<AnnotationClass> a)
+	{
+		annotationClasses.push_back(a);
+	}
 
+	/**
+	 * Adds multiple AnnotationClasses to this Domain.
+	 */
+	void addAnnotationClasses(const std::vector<Handle<AnnotationClass>> &as)
+	{
+		annotationClasses.insert(annotationClasses.end(), as.begin(), as.end());
+	}
+
+	/**
+	 * Returns a const reference to the NodeVector of TypeSystems that are
+	 * references in this Domain.
+	 *
+	 * @return a const reference to the NodeVector of TypeSystems that are
+	 * references in this Domain.
+	 */
 	const NodeVector<Typesystem> &getTypesystems() const { return typesystems; }
+
+	/**
+	 * Adds a Typesystem reference to this Domain.
+	 */
+	void addTypesystem(Handle<Typesystem> t) { typesystems.push_back(t); }
+
+	/**
+	 * Adds multiple Typesystem references to this Domain.
+	 */
+	void addTypesystems(const std::vector<Handle<Typesystem>> &ts)
+	{
+		typesystems.insert(typesystems.end(), ts.begin(), ts.end());
+	}
 };
 }
 
