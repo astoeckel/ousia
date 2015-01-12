@@ -167,8 +167,6 @@ public:
 			}
 		}
 	}
-	//TODO: Is this necessary?
-    virtual ~DocumentEntity() {};
 
 	Rooted<Descriptor> getDescriptor() const { return descriptor; }
 
@@ -311,8 +309,6 @@ public:
 	    : Node(mgr, std::move(name), parent)
 	{
 	}
-	//TODO: Is this necessary?
-    virtual ~StructureNode(){};
 };
 
 /**
