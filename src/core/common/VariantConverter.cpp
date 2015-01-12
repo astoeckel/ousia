@@ -34,8 +34,8 @@ namespace ousia {
 static std::string msgUnexpectedType(const Variant &v,
                                      VariantType requestedType)
 {
-	return std::string("Cannot convert ") + v.getTypeName() + std::string(" ") +
-	       VariantWriter::writeJsonToString(v, false) + std::string(" to ") +
+	return std::string("Cannot convert ") + v.getTypeName() + std::string(" (") +
+	       VariantWriter::writeJsonToString(v, false) + std::string(") to ") +
 	       Variant::getTypeName(requestedType);
 }
 
