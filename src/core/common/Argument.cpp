@@ -91,13 +91,13 @@ Argument Argument::String(std::string name,
 
 Argument Argument::Object(std::string name, const RttiType &type)
 {
-	return Argument(std::move(name), type, RttiTypes::None, nullptr, false);
+	return Argument(std::move(name), type, RttiTypes::None, Variant::fromObject(nullptr), false);
 }
 
 Argument Argument::Object(std::string name, const RttiType &type,
                           std::nullptr_t)
 {
-	return Argument(std::move(name), type, RttiTypes::None, nullptr, true);
+	return Argument(std::move(name), type, RttiTypes::None, Variant::fromObject(nullptr), true);
 }
 
 Argument Argument::Function(std::string name)

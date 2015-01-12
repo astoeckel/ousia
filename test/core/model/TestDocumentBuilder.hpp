@@ -135,7 +135,7 @@ Rooted<StructuredEntity> buildRootStructuredEntity(Handle<Document> document,
  *                   contain a StructuredClass with the given name.
  */
 Rooted<StructuredEntity> buildStructuredEntity(
-    Handle<Document> document, Logger &logger, Handle<DocumentEntity> parent,
+    Handle<Document> document, Logger &logger, Handle<StructuredEntity> parent,
     Path path, const std::string &fieldName = "", Variant attributes = {},
     std::string name = "")
 {
@@ -191,7 +191,7 @@ Rooted<StructuredEntity> buildStructuredEntity(
  *                   input handle was empty.
  */
 Rooted<DocumentPrimitive> buildPrimitiveEntity(
-    Logger &logger, Handle<DocumentEntity> parent, Variant content = {},
+    Logger &logger, Handle<StructuredEntity> parent, Variant content = {},
     const std::string &fieldName = "")
 {
 	// If the input handles are not set, we can not build the entity.
@@ -228,7 +228,7 @@ Rooted<DocumentPrimitive> buildPrimitiveEntity(
  *                   input handle was empty.
  */
 Rooted<AnnotationEntity::Anchor> buildAnchor(Logger &logger,
-                                             Handle<DocumentEntity> parent,
+                                             Handle<StructuredEntity> parent,
                                              std::string id,
                                              const std::string &fieldName = "")
 {

@@ -42,7 +42,7 @@ namespace ousia {
  */
 class Function {
 protected:
-	Function() {};
+	Function(){};
 
 public:
 	Function(const Function &) = delete;
@@ -59,6 +59,23 @@ public:
 	 */
 	virtual Variant call(const Variant::arrayType &args = Variant::arrayType{},
 	                     void *thisRef = nullptr) const = 0;
+};
+
+/**
+ * Function doing nothing. Instances of this class are used as default values
+ * for instances of the Function class.
+ */
+class FunctionStub : public Function {
+public:
+	/**
+	 * Constructor of the FunctionStub class.
+	 */
+	FunctionStub() {}
+
+	Variant call(const Variant::arrayType &, void *) const override
+	{
+		return nullptr;
+	}
 };
 
 /**
@@ -93,7 +110,7 @@ public:
 	 *
 	 * @param method is a pointer at the C++ function that should be called.
 	 */
-	Method(Callback method) : method(method) {};
+	Method(Callback method) : method(method){};
 
 	/**
 	 * Calls the underlying method.
@@ -106,7 +123,7 @@ public:
 	             void *thisRef = nullptr) const override
 	{
 		// Call the method
-		return method(args,  static_cast<T*>(thisRef));
+		return method(args, static_cast<T *>(thisRef));
 	}
 };
 }

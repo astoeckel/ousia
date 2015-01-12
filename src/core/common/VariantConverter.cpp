@@ -243,8 +243,11 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 				// Print object address and type
 				Variant::objectType obj = var.asObject();
 				std::stringstream ss;
-				ss << "<object " << obj.get() << " (" << obj->type().name << ")"
-				   << ">";
+				ss << "<object " << obj.get();
+				if (obj.get() != nullptr) {
+					ss << " (" << obj->type().name << ")";
+				}
+				ss << ">";
 				var = ss.str().c_str();
 				return true;
 			}
@@ -290,11 +293,7 @@ bool VariantConverter::toArray(Variant &var, const RttiType &innerType,
 		for (Variant &v : var.asArray()) {
 			res = convert(v, innerType, RttiTypes::None, logger, mode) & res;
 		}
-
-		// Return on successful conversion, otherwise output the default value
-		if (res) {
-			return true;
-		}
+		return res;
 	}
 
 	// No conversion possible, assign the default value and log an error
@@ -321,11 +320,7 @@ bool VariantConverter::toMap(Variant &var, const RttiType &innerType,
 			res = convert(e.second, innerType, RttiTypes::None, logger, mode) &
 			      res;
 		}
-
-		// Return on successful conversion, otherwise output the default value
-		if (res) {
-			return true;
-		}
+		return res;
 	}
 
 	// No conversion possible, assign the default value and log an error
@@ -341,9 +336,8 @@ bool VariantConverter::toFunction(Variant &var, Logger &logger)
 	}
 
 	// No conversion possible, assign the default value and log an error
-	logger.error(msgUnexpectedType(var, VariantType::MAP));
-	var.setFunction(std::shared_ptr<Function>{new Method<void>([](
-	    const Variant::arrayType &args, void *thisRef) { return Variant{}; })});
+	logger.error(msgUnexpectedType(var, VariantType::FUNCTION));
+	var.setFunction(std::shared_ptr<Function>{new FunctionStub()});
 	return false;
 }
 
@@ -383,7 +377,7 @@ bool VariantConverter::convert(Variant &var, const RttiType &type,
 	// obviously asked for a managed object.
 	if (!var.isObject()) {
 		logger.error(msgUnexpectedType(var, VariantType::OBJECT));
-		var.setNull();
+		var.setObject(nullptr);
 		return false;
 	}
 
@@ -391,7 +385,7 @@ bool VariantConverter::convert(Variant &var, const RttiType &type,
 	if (!var.getRttiType().isa(type)) {
 		logger.error(std::string("Expected object of type ") + type.name +
 		             " but got object of type " + var.getRttiType().name);
-		var.setNull();
+		var.setObject(nullptr);
 		return false;
 	}
 	return true;

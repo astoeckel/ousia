@@ -342,6 +342,19 @@ public:
 	Variant(mapType m) : ptrVal(nullptr) { setMap(std::move(m)); }
 
 	/**
+	 * Named constructor for object values.
+	 *
+	 * @param o is an object that can be converted to a Rooted handle.
+	 */
+	template<class T>
+	static Variant fromObject(T o)
+	{
+		Variant res;
+		res.setObject(o);
+		return res;
+	}
+
+	/**
 	 * Named constructor for function values.
 	 *
 	 * @param f is a shared pointer pointing at the Function instance.
@@ -900,7 +913,7 @@ public:
 	 * to a Rooted handle.
 	 */
 	template <class T>
-	void setObject(Handle<T> o)
+	void setObject(T o)
 	{
 		destroy();
 		type = VariantType::OBJECT;

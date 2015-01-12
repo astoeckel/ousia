@@ -103,19 +103,17 @@ void Document::continueResolve(ResolutionState &state)
 
 /* Type registrations */
 namespace RttiTypes {
-const Rtti<model::DocumentEntity> DocumentEntity =
-    RttiBuilder("DocumentEntity").parent(&Node);
 const Rtti<model::Document> Document =
     RttiBuilder("Document").parent(&Node).composedOf(
         {&AnnotationEntity, &StructuredEntity});
-const Rtti<model::AnnotationEntity> AnnotationEntity =
-    RttiBuilder("AnnotationEntity").parent(&DocumentEntity).composedOf(
-        &StructuredEntity);
 const Rtti<model::StructureNode> StructureNode =
     RttiBuilder("StructureNode").parent(&Node);
+const Rtti<model::AnnotationEntity> AnnotationEntity =
+    RttiBuilder("AnnotationEntity").parent(&Node).composedOf(
+        &StructureNode);
 const Rtti<model::StructuredEntity> StructuredEntity =
-    RttiBuilder("StructuredEntity").parent(&DocumentEntity).parent(&StructureNode).composedOf(
-        {&StructuredEntity, &Anchor, &DocumentPrimitive});
+    RttiBuilder("StructuredEntity").parent(&StructureNode).composedOf(
+        {&StructureNode});
 const Rtti<model::DocumentPrimitive> DocumentPrimitive =
     RttiBuilder("DocumentPrimitive").parent(&StructureNode);
 const Rtti<model::AnnotationEntity::Anchor> Anchor =

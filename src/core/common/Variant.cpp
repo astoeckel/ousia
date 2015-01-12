@@ -158,8 +158,10 @@ const RttiType& Variant::getRttiType() const
 			return RttiTypes::Map;
 		case VariantType::FUNCTION:
 			return RttiTypes::Function;
-		case VariantType::OBJECT:
-			return asObject()->type();
+		case VariantType::OBJECT: {
+			Variant::objectType o = asObject();
+			return (o == nullptr) ? RttiTypes::Nullptr : o->type();
+		}
 	}
 	return RttiTypes::None;
 }
