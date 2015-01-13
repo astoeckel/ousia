@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sstream>
+
 #include <core/common/Rtti.hpp>
 
 #include "XML.hpp"
@@ -71,6 +73,33 @@ void Element::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 	}
 }
 
+static std::string escapePredefinedEntities(const std::string &input)
+{
+	std::stringstream ss;
+	for (const char &c : input) {
+		switch (c) {
+			case '<':
+				ss << "&lt;";
+				break;
+			case '>':
+				ss << "&gt;";
+				break;
+			case '&':
+				ss << "&amp;";
+				break;
+			case '\'':
+				ss << "&apos;";
+				break;
+			case '\"':
+				ss << "&quot;";
+				break;
+			default:
+				ss << c;
+		}
+	}
+	return std::move(ss.str());
+}
+
 void Text::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 {
 	if (pretty) {
@@ -78,7 +107,7 @@ void Text::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 			out << '\t';
 		}
 	}
-	out << text;
+	out << escapePredefinedEntities(text);
 	if (pretty) {
 		out << '\n';
 	}

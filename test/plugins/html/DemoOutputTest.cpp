@@ -56,7 +56,7 @@ TEST(DemoHTMLTransformer, writeHTML)
 
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	// dump the manager state
-	mgr.exportGraphviz("bookDocument.dot");
+// 	mgr.exportGraphviz("bookDocument.dot");
 #endif
 
 	// we can only do a rough check here.
@@ -114,7 +114,7 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	// dump the manager state
-	mgr.exportGraphviz("annotationDocument.dot");
+// 	mgr.exportGraphviz("annotationDocument.dot");
 #endif
 
 

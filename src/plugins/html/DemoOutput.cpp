@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sstream>
 #include <stack>
 
 #include <core/common/Exceptions.hpp>
@@ -110,9 +109,9 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 		// if the input node is no section, we ignore it.
 		return {nullptr};
 	}
-	// create a div tag containing the sections content.
+	// create a section tag containing the sections content.
 	Rooted<xml::Element> sec{
-	    new xml::Element{mgr, parent, "div", {{"class", secclass}}}};
+	    new xml::Element{mgr, parent, "section", {{"class", secclass}}}};
 	// check if we have a heading.
 	if (section->hasField("heading") &&
 	    section->getField("heading").size() > 0) {
@@ -226,33 +225,6 @@ static Rooted<xml::Element> openAnnotation(
 	return tmp;
 }
 
-static std::string escapePredefinedEntities(const std::string &input)
-{
-	std::stringstream ss;
-	for (const char &c : input) {
-		switch (c) {
-			case '<':
-				ss << "&lt;";
-				break;
-			case '>':
-				ss << "&gt;";
-				break;
-			case '&':
-				ss << "&amp;";
-				break;
-			case '\'':
-				ss << "&apos;";
-				break;
-			case '\"':
-				ss << "&quot;";
-				break;
-			default:
-				ss << c;
-		}
-	}
-	return std::move(ss.str());
-}
-
 Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
     Handle<xml::Element> parent, Handle<model::StructuredEntity> par,
     AnnoMap &startMap, AnnoMap &endMap)
@@ -339,7 +311,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 			continue;
 		}
 		// if this is not an anchor, we can only handle text.
-		if(!n->isa(RttiTypes::StructuredEntity)){
+		if (!n->isa(RttiTypes::StructuredEntity)) {
 			continue;
 		}
 		Handle<model::StructuredEntity> t = n.cast<model::StructuredEntity>();
@@ -351,10 +323,8 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 			if (primitive.isNull()) {
 				throw OusiaException("Text field is not primitive!");
 			}
-			// here we need to do some escaping with the string content.
-			std::string escaped =
-			    escapePredefinedEntities(primitive->getContent().asString());
-			current->addChild(new xml::Text(mgr, current, escaped));
+			current->addChild(new xml::Text(
+			    mgr, current, primitive->getContent().asString()));
 		}
 	}
 	return p;
