@@ -471,11 +471,11 @@ TEST(Argument, validateObjectDefault)
 	}
 }
 
-static std::shared_ptr<Function> helloWorldFun{new Method<void>{[](
-    const Variant::arrayType &arr, void *) { return Variant{"Hello World"}; }}};
+static std::shared_ptr<Function> helloWorldFun{new Method<void>{
+    [](Variant::arrayType &arr, void *) { return Variant{"Hello World"}; }}};
 
 static std::shared_ptr<Function> goodbyeWorldFun{
-    new Method<void>{[](const Variant::arrayType &arr,
+    new Method<void>{[](Variant::arrayType &arr,
                         void *) { return Variant{"Goodbye Cruel World"}; }}};
 
 TEST(Argument, validateFunction)
@@ -835,31 +835,38 @@ TEST(Arguments, validateMap)
 	{
 		Variant::mapType map{{"a", 2}, {"c", false}};
 		ASSERT_TRUE(args.validateMap(map, logger, false));
-		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "test"}, {"c", false}}), map);
+		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "test"}, {"c", false}}),
+		          map);
 	}
 
 	{
 		Variant::mapType map{{"a", 2}};
 		ASSERT_TRUE(args.validateMap(map, logger, false));
-		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "test"}, {"c", true}}), map);
+		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "test"}, {"c", true}}),
+		          map);
 	}
 
 	{
 		Variant::mapType map{};
 		ASSERT_FALSE(args.validateMap(map, logger, false));
-		ASSERT_EQ(Variant::mapType({{"a", 0}, {"b", "test"}, {"c", true}}), map);
+		ASSERT_EQ(Variant::mapType({{"a", 0}, {"b", "test"}, {"c", true}}),
+		          map);
 	}
 
 	{
 		Variant::mapType map{{"a", 2}, {"d", nullptr}};
 		ASSERT_FALSE(args.validateMap(map, logger, false));
-		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "test"}, {"c", true}, {"d", nullptr}}), map);
+		ASSERT_EQ(Variant::mapType(
+		              {{"a", 2}, {"b", "test"}, {"c", true}, {"d", nullptr}}),
+		          map);
 	}
 
 	{
 		Variant::mapType map{{"a", 2}, {"d", nullptr}};
 		ASSERT_TRUE(args.validateMap(map, logger, true));
-		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "test"}, {"c", true}, {"d", nullptr}}), map);
+		ASSERT_EQ(Variant::mapType(
+		              {{"a", 2}, {"b", "test"}, {"c", true}, {"d", nullptr}}),
+		          map);
 	}
 }
 }

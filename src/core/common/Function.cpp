@@ -17,9 +17,19 @@
 */
 
 #include "Function.hpp"
+#include "Logger.hpp"
 
 namespace ousia {
 
-
+Variant::arrayType &ValidatingFunction::validate(Variant::arrayType &args) const
+{
+	// If an argument descriptor was given, use it to validate the arguments.
+	// Throw any violation as exception.
+	if (checkArguments) {
+		ExceptionLogger logger;
+		arguments.validateArray(args, logger);
+	}
+	return args;
+}
 }
 

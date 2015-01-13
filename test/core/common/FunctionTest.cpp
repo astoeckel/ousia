@@ -29,16 +29,29 @@ public:
 	void visit() { visited = true; }
 };
 
-TEST(Method, simpleTest)
+TEST(Method, simple)
 {
 	Method<MethodTestClass> m{
-	    [](const Variant::arrayType &args, MethodTestClass *thisRef) {
+	    [](Variant::arrayType &args, MethodTestClass *thisRef) {
 		    thisRef->visit();
 		    return Variant{};
 		}};
 
 	MethodTestClass inst;
 	m.call({}, &inst);
+}
+
+TEST(Method, validation)
+{
+	Method<void> m{{Argument::Int("a"), Argument::Int("b")},
+	               [](Variant::arrayType &args, void *thisRef) {
+		return Variant{args[0].asInt() + args[1].asInt()};
+	}};
+
+	MethodTestClass inst;
+	ASSERT_EQ(3, m.call({1, 2}, &inst).asInt());
+	ASSERT_THROW(m.call({1}, &inst), LoggableException);
+	ASSERT_THROW(m.call({1, "bla"}, &inst), LoggableException);
 }
 }
 
