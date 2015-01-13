@@ -80,5 +80,47 @@ TEST(Domain, testDomainResolving)
 	ASSERT_EQ(1U, res.size());
 	assert_path(res[0], typeOf<StructuredClass>(), {"book", "paragraph"});
 }
+
+Rooted<StructuredClass> getClass(const std::string name, Handle<Domain> dom)
+{
+	std::vector<ResolutionResult> res =
+	    dom->resolve(name, RttiTypes::StructuredClass);
+	return res[0].node.cast<StructuredClass>();
+}
+
+TEST(Descriptor, pathTo)
+{
+	// Start with some easy examples from the book domain.
+	Logger logger;
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// Get the domain.
+	Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
+
+	// get the book node and the section node.
+	Rooted<StructuredClass> book = getClass("book", domain);
+	Rooted<StructuredClass> section = getClass("section", domain);
+	// get the path in between.
+	std::vector<Rooted<Node>> path = book->pathTo(section);
+	ASSERT_EQ(1, path.size());
+	ASSERT_TRUE(path[0]->isa(RttiTypes::FieldDescriptor));
+	
+	// get the text node.
+	Rooted<StructuredClass> text = getClass("text", domain);
+	// get the path between book and text via paragraph.
+	path = book->pathTo(text);
+	ASSERT_EQ(3, path.size());
+	ASSERT_TRUE(path[0]->isa(RttiTypes::FieldDescriptor));
+	ASSERT_TRUE(path[1]->isa(RttiTypes::StructuredClass));
+	ASSERT_EQ("paragraph", path[1]->getName());
+	ASSERT_TRUE(path[2]->isa(RttiTypes::FieldDescriptor));
+	
+	// get the subsection node.
+	Rooted<StructuredClass> subsection = getClass("subsection", domain);
+	// try to get the path between book and subsection.
+	path = book->pathTo(subsection);
+	// this should be impossible.
+	ASSERT_EQ(0, path.size());
+}
 }
 }
