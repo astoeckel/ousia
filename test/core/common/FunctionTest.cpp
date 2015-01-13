@@ -52,6 +52,7 @@ TEST(Method, validation)
 	ASSERT_EQ(3, m.call({1, 2}, &inst).asInt());
 	ASSERT_THROW(m.call({1}, &inst), LoggableException);
 	ASSERT_THROW(m.call({1, "bla"}, &inst), LoggableException);
+	ASSERT_THROW(m.call({1, 2, true}, &inst), LoggableException);
 }
 }
 

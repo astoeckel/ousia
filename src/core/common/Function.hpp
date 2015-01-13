@@ -62,11 +62,6 @@ protected:
 	virtual Variant doCall(Variant::arrayType &args, void *thisRef) const = 0;
 
 public:
-	// No copy constructor
-	Function(const Function &) = delete;
-
-	// No move constructor
-	Function(Function &&) = delete;
 
 	/**
 	 * Virtual destructor of the Function class.

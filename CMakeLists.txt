@@ -117,6 +117,7 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Function
 	src/core/common/Logger
 	src/core/common/Number
+	src/core/common/Property
 	src/core/common/Rtti
 	src/core/common/Terminal
 	src/core/common/Utils
@@ -201,6 +202,7 @@ IF(TEST)
 		test/core/common/CharReaderTest
 		test/core/common/FunctionTest
 		test/core/common/LoggerTest
+		test/core/common/PropertyTest
 		test/core/common/RttiTest
 		test/core/common/VariantReaderTest
 		test/core/common/VariantWriterTest

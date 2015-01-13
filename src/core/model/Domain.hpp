@@ -234,15 +234,15 @@ class Domain;
  * the actual text content. Here is the according XML:
  *
  * \code{.xml}
- * 		<struct name="paragraph" transparent="true" role="paragraph">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.text"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
+ * <struct name="paragraph" transparent="true" role="paragraph">
+ * 	<fields>
+ * 		<field>
+ * 			<children>
+ * 				<child name="book.text"/>
+ * 			</children>
+ * 		</field>
+ * 	</fields>
+ * </struct>
  * \endcode
  *
  * Accordingly the primitiveType field of a FieldDescriptor may only be

@@ -242,6 +242,8 @@ public:
 	 * case the arguments are given as a map.
 	 * @param type is the RttiType of acceptable objects. All objects where the
 	 * "isa" function returns true for the given type are be accepted.
+	 * @param defaultValue must be set to nullptr. Default object instances
+	 * cannot be stored.
 	 * @return a new Argument instance.
 	 */
 	static Argument Object(std::string name, const RttiType &type,

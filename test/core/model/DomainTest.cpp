@@ -138,7 +138,7 @@ TEST(Descriptor, pathToAdvanced)
 	// Our root class A
 	Rooted<StructuredClass> A{new StructuredClass(
 	    mgr, "A", domain, any, {nullptr}, {nullptr}, false, true)};
-	domain->addStructuredClass(book);
+	domain->addStructuredClass(A);
 	// We also create a field for it.
 	Rooted<FieldDescriptor> A_field{new FieldDescriptor(mgr, A)};
 	A->addFieldDescriptor(A_field);
