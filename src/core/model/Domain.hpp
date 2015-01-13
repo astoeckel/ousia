@@ -558,7 +558,6 @@ class StructuredClass : public Descriptor {
 private:
 	const Cardinality cardinality;
 	Owned<StructuredClass> isa;
-	NodeVector<FieldDescriptor> parents;
 
 public:
 	const bool transparent;
@@ -599,7 +598,6 @@ public:
 	    : Descriptor(mgr, std::move(name), domain, attributesDescriptor),
 	      cardinality(cardinality),
 	      isa(acquire(isa)),
-	      parents(this),
 	      transparent(transparent),
 	      root(root)
 	{
@@ -620,33 +618,6 @@ public:
 	 * hierarchy (!).
 	 */
 	Rooted<StructuredClass> getIsA() const { return isa; }
-
-	/**
-	 * Returns a const reference to the NodeVector of FieldDescriptors that
-	 * should allow an instance of this StructuredClass as child in the
-	 * Structure Tree. This enables you to "invade" other domains as described
-	 * in the StructuredClass documentation.
-	 *
-	 * @return a const reference to the NodeVector of FieldDescriptors that
-	 * should allow an instance of this StructuredClass as child in the
-	 * Structure Tree.
-	 */
-	const NodeVector<FieldDescriptor> &getParents() const { return parents; }
-
-	/**
-	 * Adds a FieldDescriptor that should allow an instance of this
-	 * StructuredClass as a child in the Structure Tree.
-	 */
-	void addParent(Handle<FieldDescriptor> p) { parents.push_back(p); }
-
-	/**
-	 * Adds multiple FieldDescriptors that should allow an instance of this
-	 * StructuredClass as a child in the Structure Tree.
-	 */
-	void addParents(const std::vector<Handle<FieldDescriptor>> &ps)
-	{
-		parents.insert(parents.end(), ps.begin(), ps.end());
-	}
 };
 
 /**

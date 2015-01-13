@@ -47,7 +47,7 @@ std::vector<Rooted<Node>> Descriptor::pathTo(
 	return path;
 }
 
-static bool pathEquals(const Descriptor& a, const Descriptor& b)
+static bool pathEquals(const Descriptor &a, const Descriptor &b)
 {
 	// We assume that two Descriptors are equal if their names and domain names
 	// are equal.
@@ -59,57 +59,68 @@ static bool pathEquals(const Descriptor& a, const Descriptor& b)
 	return aDom->getName() == bDom->getName();
 }
 
-//TODO: isa-handling.
 bool Descriptor::continuePath(Handle<StructuredClass> target,
                               std::vector<Rooted<Node>> &path) const
 {
-	// look if our current node is reachable using the parent references
-	for (auto &pfd : target->getParents()) {
-		Handle<Descriptor> p = pfd->getParent().cast<Descriptor>();
-		if (pathEquals(*this, *p)) {
-			// if we have made the connection, stop the search.
-			path.push_back(pfd);
-			return true;
-		}
-		// look for transparent intermediate nodes.
-		if (!p->isa(RttiTypes::StructuredClass)) {
-			continue;
-		}
-		Handle<StructuredClass> pc = p.cast<StructuredClass>();
-		if (pc->transparent) {
-			// recursion
-			std::vector<Rooted<Node>> cPath = path;
-			if (continuePath(pc, cPath)) {
-				path = std::move(cPath);
-				path.push_back(pc);
-				path.push_back(pfd);
-				return true;
-			}
-		}
-	}
+	bool found = false;
 	// use recursive depth-first search from the top to reach the given child
-	for (auto &fd : fieldDescriptors) {
-		for (auto &c : fd->getChildren()) {
-			if (pathEquals(*c, *target)) {
-				// if we have made the connection, stop the search.
-				path.push_back(fd);
-				return true;
+	if (fieldDescriptors.size() > 0) {
+		for (auto &fd : fieldDescriptors) {
+			for (auto &c : fd->getChildren()) {
+				if (pathEquals(*c, *target)) {
+					// if we have made the connection, stop the search.
+					path.push_back(fd);
+					return true;
+				}
+				// look for transparent intermediate nodes.
+				if (c->transparent) {
+					// copy the path.
+					std::vector<Rooted<Node>> cPath = path;
+					cPath.push_back(fd);
+					cPath.push_back(c);
+					// recursion.
+					if (c->continuePath(target, cPath) &&
+					    (!found || path.size() > cPath.size())) {
+						// look if this path is better than the current optimum.
+						path = std::move(cPath);
+						found = true;
+					}
+				}
 			}
-			// look for transparent intermediate nodes.
-			if (c->transparent) {
+		}
+	} else {
+		// if this is a StructuredClass and if it did not formulate own
+		// fieldDescriptors (overriding the parent), we can also use the
+		// (inheritance-wise) parent
+		if (isa(RttiTypes::StructuredClass)) {
+			const StructuredClass *tis =
+			    static_cast<const StructuredClass *>(this);
+			if (!tis->getIsA().isNull()) {
 				// copy the path.
 				std::vector<Rooted<Node>> cPath = path;
-				cPath.push_back(fd);
-				cPath.push_back(c);
-				// recursion.
-				if (c->continuePath(target, cPath)) {
+				if (tis->getIsA()->continuePath(target, cPath) &&
+				    (found || path.size() > cPath.size())) {
+					// look if this path is better than the current optimum.
 					path = std::move(cPath);
-					return true;
+					found = true;
 				}
 			}
 		}
 	}
-	return false;
+	// either way we can try to find the targets parent (inheritance-wise)
+	// instead of the target itself.
+	if (!target->getIsA().isNull()) {
+		// copy the path.
+		std::vector<Rooted<Node>> cPath = path;
+		if (continuePath(target->getIsA(), cPath) &&
+		    (!found || path.size() > cPath.size())) {
+			// look if this path is better than the current optimum.
+			path = std::move(cPath);
+			found = true;
+		}
+	}
+	// return if we found something.
+	return found;
 }
 
 /* Class Domain */
