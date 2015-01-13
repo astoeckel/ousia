@@ -36,43 +36,6 @@ void Node::serialize(std::ostream &out, const std::string &doctype, bool pretty)
 	doSerialize(out, 0, pretty);
 }
 
-void Element::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
-{
-	if (pretty) {
-		for (unsigned int t = 0; t < tabdepth; t++) {
-			out << '\t';
-		}
-	}
-	out << '<' << name;
-	for (auto &a : attributes) {
-		out << ' ' << a.first << "=\"" << a.second << '\"';
-	}
-	// if we have no children, we close the tag immediately.
-	if (children.size() == 0) {
-		out << "/>";
-		if (pretty) {
-			out << '\n';
-		}
-	} else {
-		out << ">";
-		if (pretty) {
-			out << '\n';
-		}
-		for (auto &n : children) {
-			n->doSerialize(out, tabdepth + 1, pretty);
-		}
-		if (pretty) {
-			for (unsigned int t = 0; t < tabdepth; t++) {
-				out << '\t';
-			}
-		}
-		out << "</" << name << ">";
-		if (pretty) {
-			out << '\n';
-		}
-	}
-}
-
 static std::string escapePredefinedEntities(const std::string &input)
 {
 	std::stringstream ss;
@@ -98,6 +61,44 @@ static std::string escapePredefinedEntities(const std::string &input)
 		}
 	}
 	return std::move(ss.str());
+}
+
+void Element::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
+{
+	if (pretty) {
+		for (unsigned int t = 0; t < tabdepth; t++) {
+			out << '\t';
+		}
+	}
+	out << '<' << name;
+	for (auto &a : attributes) {
+		out << ' ' << a.first << "=\"" << escapePredefinedEntities(a.second)
+		    << '\"';
+	}
+	// if we have no children, we close the tag immediately.
+	if (children.size() == 0) {
+		out << "/>";
+		if (pretty) {
+			out << '\n';
+		}
+	} else {
+		out << ">";
+		if (pretty) {
+			out << '\n';
+		}
+		for (auto &n : children) {
+			n->doSerialize(out, tabdepth + 1, pretty);
+		}
+		if (pretty) {
+			for (unsigned int t = 0; t < tabdepth; t++) {
+				out << '\t';
+			}
+		}
+		out << "</" << name << ">";
+		if (pretty) {
+			out << '\n';
+		}
+	}
 }
 
 void Text::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
