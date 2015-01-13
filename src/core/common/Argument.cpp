@@ -48,7 +48,6 @@ Argument::Argument(std::string name, const RttiType &type)
 {
 }
 
-
 Argument Argument::Any(std::string name)
 {
 	return Argument{name, RttiTypes::None, RttiTypes::None, nullptr, false};
@@ -102,13 +101,15 @@ Argument Argument::String(std::string name,
 
 Argument Argument::Object(std::string name, const RttiType &type)
 {
-	return Argument(std::move(name), type, RttiTypes::None, Variant::fromObject(nullptr), false);
+	return Argument(std::move(name), type, RttiTypes::None,
+	                Variant::fromObject(nullptr), false);
 }
 
 Argument Argument::Object(std::string name, const RttiType &type,
                           std::nullptr_t)
 {
-	return Argument(std::move(name), type, RttiTypes::None, Variant::fromObject(nullptr), true);
+	return Argument(std::move(name), type, RttiTypes::None,
+	                Variant::fromObject(nullptr), true);
 }
 
 Argument Argument::Function(std::string name)
@@ -169,7 +170,7 @@ Argument Argument::Map(std::string name, const RttiType &innerType,
 	                true);
 }
 
-bool Argument::validate(Variant &var, Logger &logger)
+bool Argument::validate(Variant &var, Logger &logger) const
 {
 	if (!VariantConverter::convert(var, type, innerType, logger,
 	                               VariantConverter::Mode::SAFE)) {
@@ -208,7 +209,7 @@ Arguments::Arguments(std::initializer_list<Argument> arguments)
 {
 }
 
-bool Arguments::validateArray(Variant::arrayType &arr, Logger &logger)
+bool Arguments::validateArray(Variant::arrayType &arr, Logger &logger) const
 {
 	Logger nullLogger;
 
@@ -251,7 +252,7 @@ bool Arguments::validateArray(Variant::arrayType &arr, Logger &logger)
 }
 
 bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
-                            bool ignoreUnknown)
+                            bool ignoreUnknown) const
 {
 	Logger nullLogger;
 
@@ -271,7 +272,8 @@ bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
 			ok = ok && set[idx];
 		} else {
 			if (ignoreUnknown) {
-				logger.note(std::string("Ignoring argument \"") + e.first + std::string("\""));
+				logger.note(std::string("Ignoring argument \"") + e.first +
+				            std::string("\""));
 			} else {
 				logger.error(std::string("Unknown argument \"") + e.first +
 				             std::string("\""));

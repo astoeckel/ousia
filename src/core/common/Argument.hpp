@@ -380,7 +380,7 @@ public:
 	 * @param logger is the logger instance to which errors should be written.
 	 * @return true if the given variant was valid, false otherwise.
 	 */
-	bool validate(Variant &var, Logger &logger);
+	bool validate(Variant &var, Logger &logger) const;
 };
 
 /**
@@ -401,6 +401,12 @@ private:
 	std::unordered_map<std::string, size_t> names;
 
 public:
+
+	/**
+	 * Default constructor. Provides no arguments.
+	 */
+	Arguments() {};
+
 	/**
 	 * Constructor of the Arguments class from a list of Argument instances.
 	 *
@@ -422,7 +428,7 @@ public:
 	 * will be written.
 	 * @return true if the operation was successful, false if an error occured.
 	 */
-	bool validateArray(Variant::arrayType &arr, Logger &logger);
+	bool validateArray(Variant::arrayType &arr, Logger &logger) const;
 
 	/**
 	 * Checks whether the content of the given variant map matches the
@@ -441,7 +447,7 @@ public:
 	 * @return true if the operation was successful, false if an error occured.
 	 */
 	bool validateMap(Variant::mapType &map, Logger &logger,
-	                 bool ignoreUnknown = false);
+	                 bool ignoreUnknown = false) const;
 };
 }
 
