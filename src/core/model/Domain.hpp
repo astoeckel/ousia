@@ -334,19 +334,21 @@ public:
 	 * this field.
 	 */
 	const NodeVector<StructuredClass> &getChildren() const { return children; }
-	
+
 	/**
 	 * Adds a StructuredClass whose instances shall be allowed as children in
 	 * the StructureTree of instances of this field.
 	 */
-	void addChild(Handle<StructuredClass> c){ children.push_back(c);}
-	
-	
+	void addChild(Handle<StructuredClass> c) { children.push_back(c); }
+
 	/**
 	 * Adds multiple StructuredClasses whose instances shall be allowed as
 	 * children in the StructureTree of instances of this field.
 	 */
-	void addChildren(const std::vector<Handle<StructuredClass>> &cs){ children.insert(children.end(), cs.begin(), cs.end());}
+	void addChildren(const std::vector<Handle<StructuredClass>> &cs)
+	{
+		children.insert(children.end(), cs.begin(), cs.end());
+	}
 
 	FieldType getFieldType() const { return fieldType; }
 
@@ -386,6 +388,9 @@ class Descriptor : public Node {
 private:
 	Owned<StructType> attributesDescriptor;
 	NodeVector<FieldDescriptor> fieldDescriptors;
+
+	bool continuePath(Handle<StructuredClass> target,
+	                  std::vector<Rooted<Node>> &path) const;
 
 protected:
 	void continueResolve(ResolutionState &state) override;
@@ -434,10 +439,40 @@ public:
 	/**
 	 * Adds multiple FieldDescriptors to this Descriptor.
 	 */
-	void addFieldDescriptors(const std::vector<Handle<FieldDescriptor>>& fds)
+	void addFieldDescriptors(const std::vector<Handle<FieldDescriptor>> &fds)
 	{
 		fieldDescriptors.insert(fieldDescriptors.end(), fds.begin(), fds.end());
 	}
+
+	/**
+	 * This tries to construct the shortest possible path of this Descriptor
+	 * to the given child Descriptor. As an example consider the book domain
+	 * from above.
+	 *
+	 * First consider the call book->pathTo(chapter). This is an easy example:
+	 * Our path just contains a reference to the default field of book, because
+	 * a chapter may be directly added to the main field of book.
+	 *
+	 * Second consider the call book->pathTo(text). This is somewhat more
+	 * complicated, but it is still a valid request, because we can construct
+	 * the path: {book_main_field, paragraph, paragraph_main_field}.
+	 * This is only valid because paragraph is transparent.
+	 *
+	 * What about the call book->pathTo(section)? This will lead to an empty
+	 * return path (= invalid). We could, of course, in principle construct
+	 * a path between book and section (via chapter), but chapter is not
+	 * transparent. Therefore that path is not allowed.
+	 *
+	 * @param childDescriptor is a supposedly valid child Descriptor of this
+	 *                        Descriptor.
+	 * @return                either a path of FieldDescriptors and
+	 *                        StructuredClasses between this Descriptor and
+	 *                        the input StructuredClass or an empty vector if
+	 *                        no such path can be constructed.
+	 *
+	 */
+	std::vector<Rooted<Node>> pathTo(
+	    Handle<StructuredClass> childDescriptor) const;
 };
 
 typedef RangeSet<size_t> Cardinality;
@@ -598,7 +633,7 @@ public:
 	 * Adds multiple FieldDescriptors that should allow an instance of this
 	 * StructuredClass as a child in the Structure Tree.
 	 */
-	void addParents(const std::vector<Handle<FieldDescriptor>>& ps)
+	void addParents(const std::vector<Handle<FieldDescriptor>> &ps)
 	{
 		parents.insert(parents.end(), ps.begin(), ps.end());
 	}
@@ -620,7 +655,8 @@ public:
 	 * @param name                 is a name for this AnnotationClass that will
 	 *                             be used for later references to this
 	 *                             AnnotationClass.
-	 * @param domain               is the Domain this AnnotationClass belongs to.
+	 * @param domain               is the Domain this AnnotationClass belongs
+	 *to.
 	 * @param attributesDescriptor is a StructType that specifies the attribute
 	 *                             keys as well as value domains for this
 	 *                             Descriptor.
