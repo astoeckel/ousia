@@ -233,15 +233,17 @@ class Domain;
  * As an example consider the "paragraph" StructuredClass, which might allow
  * the actual text content. Here is the according XML:
  *
- * 		<struct name="paragraph" transparent="true" role="paragraph">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.text"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
+ * \code{*.xml}
+ * <struct name="paragraph" transparent="true" role="paragraph">
+ * 	<fields>
+ * 		<field>
+ * 			<children>
+ * 				<child name="book.text"/>
+ * 			</children>
+ * 		</field>
+ * 	</fields>
+ * </struct>
+ * \endcode
  *
  * Accordingly the primitiveType field of a FieldDescriptor may only be
  * defined if the type is set to "PRIMITIVE". If the type is something else
@@ -372,9 +374,11 @@ public:
  * explained as the difference between node attributes and node children.
  * Consider the XML
  *
+ * \code{*.xml}
  * <A key="value">
  *   <key>value</key>
  * </A>
+ * \endcode
  *
  * key="value" inside the A-node would be an attribute, while <key>value</key>
  * would be a primitive field. While equivalent in XML the semantics are
@@ -451,6 +455,7 @@ typedef RangeSet<size_t> Cardinality;
  * defining itself as a viable child in one existing field. Consider the
  * example of the "heading" domain from the header documentation again:
  *
+ * \code{*.xml}
  * <domain name="headings">
  * 	<head>
  * 		<import rel="domain" src="book.oxm"/>
@@ -468,6 +473,7 @@ typedef RangeSet<size_t> Cardinality;
  * 			</fields>
  * 	</structs>
  * </domain>
+ * \endcode
  *
  * The "parent" construct allows to "invade" another domain.
  *
@@ -481,19 +487,23 @@ typedef RangeSet<size_t> Cardinality;
  * If we go back to our example a user would (without transparency) have to
  * explicitly declare:
  *
+ * \code{*.xml}
  * <book>
  *   <section>
  *     <paragraph>Text.</paragraph>
  *   </section>
  * </book>
+ * \endcode
  *
  * But in our mind the document
-
+ *
+ * \code{*.xml}
  * <book>
  *   <section>
  *     Text.
  *   </section>
  * </book>
+ * \endcode
  *
  * Is already sufficiently specific. We can infer that a paragraph should be
  * wrapped around "Text.". Therefore we set the 'transparent' flag of the
