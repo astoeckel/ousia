@@ -435,6 +435,23 @@ public:
 	 */
 	std::shared_ptr<PropertyDescriptor> getProperty(const std::string &name) const;
 
+	/**
+	 * Returns true if a method with the given name is registered for this type.
+	 *
+	 * @param name is the name of the method that should be looked up.
+	 * @return true if a method with this name exists, false otherwise.
+	 */
+	bool hasMethod(const std::string &name) const;
+
+	/**
+	 * Returns true if a property with the given name is registered for this
+	 * type.
+	 *
+	 * @param name is the name of the property that should be looked up.
+	 * @return true if a property with this name exists, false otherwise.
+	 */
+	bool hasProperty(const std::string &name) const;
+
 };
 
 /**

@@ -161,6 +161,16 @@ std::shared_ptr<PropertyDescriptor> RttiType::getProperty(const std::string &nam
 	return it->second;
 }
 
+bool RttiType::hasMethod(const std::string &name) const
+{
+	return methods.count(name) > 0;
+}
+
+bool RttiType::hasProperty(const std::string &name) const
+{
+	return properties.count(name) > 0;
+}
+
 /* Constant initialization */
 
 namespace RttiTypes {
