@@ -21,6 +21,7 @@
 
 #include <core/common/Exceptions.hpp>
 #include <core/common/Rtti.hpp>
+#include <core/common/TypedRttiBuilder.hpp>
 
 #include "Node.hpp"
 
@@ -351,8 +352,29 @@ std::vector<ResolutionResult> Node::resolve(const std::string &name,
 	return resolve(std::vector<std::string>{name}, type);
 }
 
-/* RTTI type registrations */
+/* Reflection Methods */
 
-const Rtti<Node> RttiTypes::Node{"Node"};
+static Variant getNodeName(const Node *obj)
+{
+	return Variant::fromString(obj->getName());
+}
+
+static void setNodeName(const Variant &value, Node *obj)
+{
+	obj->setName(value.asString());
+}
+
+static Variant getNodeParent(const Node *obj)
+{
+	return Variant::fromObject(obj->getParent());
+}
+
+/* RTTI type registrations */
+namespace RttiTypes {
+const Rtti<ousia::Node> Node =
+    TypedRttiBuilder<ousia::Node>("Node")
+        .property("name", {RttiTypes::String, getNodeName, setNodeName})
+        .property("parent", {Node, getNodeParent});
+}
 }
 
