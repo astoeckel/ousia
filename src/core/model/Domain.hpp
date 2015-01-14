@@ -394,7 +394,10 @@ private:
 	NodeVector<FieldDescriptor> fieldDescriptors;
 
 	bool continuePath(Handle<StructuredClass> target,
-	                  std::vector<Rooted<Node>> &path) const;
+	                  std::vector<Rooted<Node>> &path,
+	                  std::set<std::string> ignoredFields = {},
+	                  bool exploreSuperclass = true,
+	                  bool exploreSubclasses = true) const;
 
 protected:
 	void continueResolve(ResolutionState &state) override;
@@ -558,6 +561,7 @@ class StructuredClass : public Descriptor {
 private:
 	const Cardinality cardinality;
 	Owned<StructuredClass> isa;
+	NodeVector<StructuredClass> subclasses;
 
 public:
 	const bool transparent;
@@ -583,7 +587,9 @@ public:
 	 * @param isa                  references a parent StructuredClass. Please
 	 *                             look for more information on inheritance in
 	 *                             the class documentation above. The default is
-	 *                             a null reference, meaning no parent class.
+	 *                             a null reference, meaning no super class.
+	 *                             The constructor automatically registers this
+	 *                             class as a subclass at the super class.
 	 * @param transparent          specifies whether this StructuredClass is
 	 *                             transparent. For more information on
 	 *                             transparency please refer to the class
@@ -598,9 +604,13 @@ public:
 	    : Descriptor(mgr, std::move(name), domain, attributesDescriptor),
 	      cardinality(cardinality),
 	      isa(acquire(isa)),
+	      subclasses(this),
 	      transparent(transparent),
 	      root(root)
 	{
+		if (!isa.isNull()) {
+			isa->subclasses.push_back(this);
+		}
 	}
 
 	/**
@@ -618,6 +628,24 @@ public:
 	 * hierarchy (!).
 	 */
 	Rooted<StructuredClass> getIsA() const { return isa; }
+
+	/**
+	 * Returns the StructuredClasses that are subclasses of this class. This
+	 * is the inverted version of isa, meaning: each class c that has a isa
+	 * relationship to this class is part of the returned vector.
+	 *
+	 * Note that the order of subclasses is not strictly defined.
+	 *
+	 * You are not allowed to add subclasses directly to the vector. When you
+	 * construct a new StructuredClass with a non-empty isa-handle it will
+	 * automatically register as subclass at the super class.
+	 *
+	 * @return the StructuredClasses that are subclasses of this class.
+	 */
+	const NodeVector<StructuredClass> &getSubclasses() const
+	{
+		return subclasses;
+	}
 };
 
 /**
@@ -637,7 +665,7 @@ public:
 	 *                             be used for later references to this
 	 *                             AnnotationClass.
 	 * @param domain               is the Domain this AnnotationClass belongs
-	 *to.
+	 *                             to.
 	 * @param attributesDescriptor is a StructType that specifies the attribute
 	 *                             keys as well as value domains for this
 	 *                             Descriptor.

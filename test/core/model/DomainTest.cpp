@@ -104,7 +104,7 @@ TEST(Descriptor, pathTo)
 	std::vector<Rooted<Node>> path = book->pathTo(section);
 	ASSERT_EQ(1U, path.size());
 	ASSERT_TRUE(path[0]->isa(RttiTypes::FieldDescriptor));
-	
+
 	// get the text node.
 	Rooted<StructuredClass> text = getClass("text", domain);
 	// get the path between book and text via paragraph.
@@ -114,7 +114,7 @@ TEST(Descriptor, pathTo)
 	ASSERT_TRUE(path[1]->isa(RttiTypes::StructuredClass));
 	ASSERT_EQ("paragraph", path[1]->getName());
 	ASSERT_TRUE(path[2]->isa(RttiTypes::FieldDescriptor));
-	
+
 	// get the subsection node.
 	Rooted<StructuredClass> subsection = getClass("subsection", domain);
 	// try to get the path between book and subsection.
@@ -125,31 +125,98 @@ TEST(Descriptor, pathTo)
 
 TEST(Descriptor, pathToAdvanced)
 {
-	// Now we build a really nasty domain with lots of transparency
-	// and inheritance
+	/*
+	 * Now we build a really nasty domain with lots of transparency
+	 * and inheritance. The basic idea is to have three paths from start to
+	 * finish, where one is blocked by overriding fields and the longer valid
+	 * one is found first such that it has to be replaced by the shorter one
+	 * during the search.
+	 *
+	 * To achieve that we have the following structure:
+	 * 1.) The start class inherits from A.
+	 * 2.) A has the target as child in the default field, but the default
+	 *     field is overridden in the start class.
+	 * 3.) A has B as child in another field.
+	 * 4.) B is transparent and has no children (but C as subclass)
+	 * 5.) C is a subclass of B, transparent and has
+	 *     the target as child (shortest path).
+	 * 6.) start has D as child in the default field.
+	 * 7.) D is transparent has E as child in the default field.
+	 * 8.) E is transparent and has target as child in the default field
+	 *     (longer path)
+	 *
+	 * So the path start_field , E , E_field should be returned.
+	 */
 	Logger logger;
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Get the domain.
-	Rooted<Domain> domain {new Domain(mgr, sys, "nasty")};
+	// Construct the domain
+	Rooted<Domain> domain{new Domain(mgr, sys, "nasty")};
 	Cardinality any;
 	any.merge(Range<size_t>::typeRangeFrom(0));
-	
-	// Our root class A
+
+	// Let's create the classes that we need first
 	Rooted<StructuredClass> A{new StructuredClass(
 	    mgr, "A", domain, any, {nullptr}, {nullptr}, false, true)};
 	domain->addStructuredClass(A);
-	// We also create a field for it.
+	Rooted<StructuredClass> start{new StructuredClass(
+	    mgr, "start", domain, any, {nullptr}, A, false, false)};
+	domain->addStructuredClass(start);
+	Rooted<StructuredClass> B{new StructuredClass(
+	    mgr, "B", domain, any, {nullptr}, {nullptr}, true, false)};
+	domain->addStructuredClass(B);
+	Rooted<StructuredClass> C{
+	    new StructuredClass(mgr, "C", domain, any, {nullptr}, B, true, false)};
+	domain->addStructuredClass(C);
+	Rooted<StructuredClass> D{new StructuredClass(
+	    mgr, "D", domain, any, {nullptr}, {nullptr}, true, false)};
+	domain->addStructuredClass(D);
+	Rooted<StructuredClass> E{new StructuredClass(
+	    mgr, "E", domain, any, {nullptr}, {nullptr}, true, false)};
+	domain->addStructuredClass(E);
+	Rooted<StructuredClass> target{
+	    new StructuredClass(mgr, "target", domain, any)};
+	domain->addStructuredClass(target);
+	// We create two fields for A
 	Rooted<FieldDescriptor> A_field{new FieldDescriptor(mgr, A)};
 	A->addFieldDescriptor(A_field);
+	A_field->addChild(target);
+	Rooted<FieldDescriptor> A_field2{new FieldDescriptor(
+	    mgr, A, FieldDescriptor::FieldType::SUBTREE, "second")};
+	A->addFieldDescriptor(A_field2);
+	A_field2->addChild(B);
+	// We create no field for B
+	// One for C
+	Rooted<FieldDescriptor> C_field{new FieldDescriptor(mgr, C)};
+	C->addFieldDescriptor(C_field);
+	C_field->addChild(target);
+	// one for start
+	Rooted<FieldDescriptor> start_field{new FieldDescriptor(mgr, start)};
+	start->addFieldDescriptor(start_field);
+	start_field->addChild(D);
+	// One for D
+	Rooted<FieldDescriptor> D_field{new FieldDescriptor(mgr, D)};
+	D->addFieldDescriptor(D_field);
+	D_field->addChild(E);
+	// One for E
+	Rooted<FieldDescriptor> E_field{new FieldDescriptor(mgr, E)};
+	E->addFieldDescriptor(E_field);
+	E_field->addChild(target);
 	
-	// our first transparent child B
-	Rooted<StructuredClass> B{new StructuredClass(
-	    mgr, "B", domain, any, {nullptr}, {nullptr}, true)};
-	A_field->addChild(B);
-	
-	//TODO: Continue
-}
+	#ifdef MANAGER_GRAPHVIZ_EXPORT
+		// dump the manager state
+		mgr.exportGraphviz("nastyDomain.dot");
+	#endif
 
+	// and now we should be able to find the shortest path as suggested
+	std::vector<Rooted<Node>> path = start->pathTo(target);
+	ASSERT_EQ(3U, path.size());
+	ASSERT_TRUE(path[0]->isa(RttiTypes::FieldDescriptor));
+	ASSERT_EQ("second", path[0]->getName());
+	ASSERT_TRUE(path[1]->isa(RttiTypes::StructuredClass));
+	ASSERT_EQ("B", path[1]->getName());
+	ASSERT_TRUE(path[2]->isa(RttiTypes::FieldDescriptor));
+	ASSERT_EQ("", path[2]->getName());
+}
 }
 }

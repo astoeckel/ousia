@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <set>
+
 #include <core/common/Rtti.hpp>
 #include <core/common/Exceptions.hpp>
 
@@ -60,65 +62,88 @@ static bool pathEquals(const Descriptor &a, const Descriptor &b)
 }
 
 bool Descriptor::continuePath(Handle<StructuredClass> target,
-                              std::vector<Rooted<Node>> &path) const
+                              std::vector<Rooted<Node>> &currentPath,
+                              std::set<std::string> ignoredFields,
+                              bool exploreSuperclass,
+                              bool exploreSubclasses) const
 {
+	// TODO: REMOVE
+	std::string targetName = target->getName();
+	std::string thisName = getName();
+	std::string currentPathName;
+	for (auto &n : currentPath) {
+		currentPathName += ".";
+		currentPathName += n->getName();
+	}
+	// a variable to determine if we already found a solution
 	bool found = false;
+	// the currently optimal path.
+	std::vector<Rooted<Node>> optimum;
 	// use recursive depth-first search from the top to reach the given child
-	if (fieldDescriptors.size() > 0) {
-		for (auto &fd : fieldDescriptors) {
-			for (auto &c : fd->getChildren()) {
-				if (pathEquals(*c, *target)) {
-					// if we have made the connection, stop the search.
-					path.push_back(fd);
-					return true;
-				}
-				// look for transparent intermediate nodes.
-				if (c->transparent) {
-					// copy the path.
-					std::vector<Rooted<Node>> cPath = path;
-					cPath.push_back(fd);
-					cPath.push_back(c);
-					// recursion.
-					if (c->continuePath(target, cPath) &&
-					    (!found || path.size() > cPath.size())) {
-						// look if this path is better than the current optimum.
-						path = std::move(cPath);
-						found = true;
-					}
-				}
-			}
+	for (auto &fd : fieldDescriptors) {
+		if (!(ignoredFields.insert(fd->getName()).second)) {
+			// if we want to ignore that field, we continue.
+			continue;
 		}
-	} else {
-		// if this is a StructuredClass and if it did not formulate own
-		// fieldDescriptors (overriding the parent), we can also use the
-		// (inheritance-wise) parent
-		if (isa(RttiTypes::StructuredClass)) {
-			const StructuredClass *tis =
-			    static_cast<const StructuredClass *>(this);
-			if (!tis->getIsA().isNull()) {
+		for (auto &c : fd->getChildren()) {
+			if (pathEquals(*c, *target)) {
+				// if we have made the connection, stop the search.
+				currentPath.push_back(fd);
+				return true;
+			}
+			// look for transparent intermediate nodes.
+			if (c->transparent) {
 				// copy the path.
-				std::vector<Rooted<Node>> cPath = path;
-				if (tis->getIsA()->continuePath(target, cPath) &&
-				    (found || path.size() > cPath.size())) {
+				std::vector<Rooted<Node>> cPath = currentPath;
+				cPath.push_back(fd);
+				cPath.push_back(c);
+				// recursion.
+				if (c->continuePath(target, cPath) &&
+				    (!found || optimum.size() > cPath.size())) {
 					// look if this path is better than the current optimum.
-					path = std::move(cPath);
+					optimum = std::move(cPath);
 					found = true;
 				}
 			}
 		}
 	}
-	// either way we can try to find the targets parent (inheritance-wise)
-	// instead of the target itself.
-	if (!target->getIsA().isNull()) {
-		// copy the path.
-		std::vector<Rooted<Node>> cPath = path;
-		if (continuePath(target->getIsA(), cPath) &&
-		    (!found || path.size() > cPath.size())) {
-			// look if this path is better than the current optimum.
-			path = std::move(cPath);
-			found = true;
+
+	if (isa(RttiTypes::StructuredClass)) {
+		const StructuredClass *tis = static_cast<const StructuredClass *>(this);
+		/*
+		 * if this is a StructuredClass, we can also use the super class (at
+		 * least for fields that are not overridden)
+		 */
+		if (exploreSuperclass && !tis->getIsA().isNull()) {
+			// copy the path.
+			std::vector<Rooted<Node>> cPath = currentPath;
+			if (tis->getIsA()->continuePath(target, cPath, ignoredFields, true,
+			                                false) &&
+			    (!found || optimum.size() > cPath.size())) {
+				// look if this path is better than the current optimum.
+				optimum = std::move(cPath);
+				found = true;
+			}
+		}
+
+		// we also can call the subclasses.
+		if (exploreSubclasses) {
+			for (auto &c : tis->getSubclasses()) {
+				// copy the path.
+				std::vector<Rooted<Node>> cPath = currentPath;
+				if (c->continuePath(target, cPath, {}, false) &&
+				    (!found || optimum.size() > cPath.size())) {
+					// look if this path is better than the current optimum.
+					optimum = std::move(cPath);
+					found = true;
+				}
+			}
 		}
 	}
+
+	// put the optimum in the given path reference.
+	currentPath = std::move(optimum);
+
 	// return if we found something.
 	return found;
 }
