@@ -39,7 +39,7 @@
 
 #include <core/common/Variant.hpp>
 #include <core/common/Logger.hpp>
-#include <core/model/Typesystem.hpp>
+#include <core/common/Argument.hpp>
 
 #include "Parser.hpp"
 
@@ -128,7 +128,7 @@ public:
 	 *
 	 * @param args is a map from strings to variants (argument name and value).
 	 */
-	virtual void start(const Variant &args) = 0;
+	virtual void start(const Variant::mapType &args) = 0;
 
 	/**
 	 * Called whenever the command for which this handler is defined ends.
@@ -212,10 +212,10 @@ struct HandlerDescriptor {
 	const bool arbitraryChildren;
 
 	/**
-	 * Pointer pointing at a StructType describing the layout of the given when
-	 * a new Handler instance is instantiated.
+	 * Reference at an argument descriptor that should be used for validating
+	 * the incomming arguments.
 	 */
-	const Rooted<model::StructType> argsType;
+	const Arguments arguments;
 
 	/**
 	 * Constructor of the HandlerDescriptor class.
@@ -228,17 +228,17 @@ struct HandlerDescriptor {
 	 * instantiating an in instance of the described Handler instances.
 	 * @param arbitraryChildren allows the Handler instance to handle any child
 	 * node.
-	 * @param argsType is a struct type describing the arguments that can be
-	 * passed to the Handler or nullptr if no check should be performed.
+	 * @param arguments is an optional argument descriptor used for validating
+	 * the arguments that are passed to the instantiation of a handler function.
 	 */
 	HandlerDescriptor(std::set<State> parentStates, HandlerConstructor ctor,
 	                  State targetState, bool arbitraryChildren = false,
-	                  Handle<model::StructType> argsType = nullptr)
+	                  Arguments arguments = Arguments::None)
 	    : parentStates(std::move(parentStates)),
 	      ctor(ctor),
 	      targetState(targetState),
 	      arbitraryChildren(arbitraryChildren),
-	      argsType(argsType)
+	      arguments(std::move(arguments))
 	{
 	}
 
@@ -248,7 +248,7 @@ struct HandlerDescriptor {
 	 */
 	HandlerInstance create(const ParserContext &ctx, std::string name,
 	                       State parentState, bool isChild,
-	                       const Variant &args) const;
+	                       Variant::mapType &args) const;
 };
 
 /**
@@ -338,7 +338,15 @@ public:
 	 * @param name is the name of the command.
 	 * @param args is a map from strings to variants (argument name and value).
 	 */
-	void start(std::string name, const Variant &args);
+	void start(std::string name, Variant::mapType &args);
+
+	/**
+	 * Function that should be called whenever a new command starts.
+	 *
+	 * @param name is the name of the command.
+	 * @param args is a map from strings to variants (argument name and value).
+	 */
+	void start(std::string name, const Variant::mapType &args);
 
 	/**
 	 * Function called whenever a command ends.

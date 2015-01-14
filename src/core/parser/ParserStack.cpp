@@ -47,17 +47,14 @@ void Handler::child(std::shared_ptr<Handler> handler)
 HandlerInstance HandlerDescriptor::create(const ParserContext &ctx,
                                           std::string name, State parentState,
                                           bool isChild,
-                                          const Variant &args) const
+                                          Variant::mapType &args) const
 {
 	Handler *h = ctor(ctx, name, targetState, parentState, isChild);
 
 	// Canonicalize the arguments
-	Variant arguments = args;
-	if (argsType != nullptr) {
-		argsType->build(arguments, ctx.logger);
-	}
+	arguments.validateMap(args, ctx.logger, true);
 
-	h->start(arguments);
+	h->start(args);
 	return HandlerInstance(h, this);
 }
 
@@ -95,7 +92,7 @@ std::set<std::string> ParserStack::expectedCommands(State state)
 	return res;
 }
 
-void ParserStack::start(std::string name, const Variant &args)
+void ParserStack::start(std::string name, Variant::mapType &args)
 {
 	// Fetch the current handler and the current state
 	const HandlerInstance *h = stack.empty() ? nullptr : &stack.top();
@@ -124,6 +121,12 @@ void ParserStack::start(std::string name, const Variant &args)
 
 	// Instantiate the handler and call its start function
 	stack.emplace(descr->create(ctx, name, curState, isChild, args));
+}
+
+void ParserStack::start(std::string name, const Variant::mapType &args)
+{
+	Variant::mapType argsCopy(args);
+	start(name, argsCopy);
 }
 
 void ParserStack::end()

@@ -36,44 +36,35 @@ static int dataCount = 0;
 static int childCount = 0;
 
 class TestHandler : public Handler {
-
 public:
 	using Handler::Handler;
 
-	void start(const Variant &args) override
-	{
-		startCount++;
-	}
+	void start(const Variant::mapType &args) override { startCount++; }
 
-	void end() override
-	{
-		endCount++;
-	}
+	void end() override { endCount++; }
 
-	void data(const std::string &data, int field) override 
-	{
-		dataCount++;
-	}
+	void data(const std::string &data, int field) override { dataCount++; }
 
-	void child(std::shared_ptr<Handler> handler) override
-	{
-		childCount++;
-	}
-
+	void child(std::shared_ptr<Handler> handler) override { childCount++; }
 };
 
-static Handler* createTestHandler(const ParserContext &ctx,
-                                        std::string name, State state,
-                                        State parentState, bool isChild)
+static Handler *createTestHandler(const ParserContext &ctx, std::string name,
+                                  State state, State parentState, bool isChild)
 {
 	return new TestHandler(ctx, name, state, parentState, isChild);
 }
 
 static const std::multimap<std::string, HandlerDescriptor> TEST_HANDLERS{
-	{"document", {{STATE_NONE}, createTestHandler, STATE_DOCUMENT}},
-	{"body", {{STATE_DOCUMENT}, createTestHandler, STATE_BODY, true}},
-	{"empty", {{STATE_DOCUMENT}, createTestHandler, STATE_EMPTY}},
-	{"special", {{STATE_ALL}, createTestHandler, STATE_EMPTY}},
+    {"document", {{STATE_NONE}, createTestHandler, STATE_DOCUMENT}},
+    {"body", {{STATE_DOCUMENT}, createTestHandler, STATE_BODY, true}},
+    {"empty", {{STATE_DOCUMENT}, createTestHandler, STATE_EMPTY}},
+    {"special", {{STATE_ALL}, createTestHandler, STATE_EMPTY}},
+    {"arguments",
+     {{STATE_NONE},
+      createTestHandler,
+      STATE_EMPTY,
+      false,
+      {Argument::Int("a"), Argument::String("b")}}},
 };
 
 TEST(ParserStack, simpleTest)
@@ -89,7 +80,7 @@ TEST(ParserStack, simpleTest)
 	ASSERT_EQ("", s.currentName());
 	ASSERT_EQ(STATE_NONE, s.currentState());
 
-	s.start("document", nullptr);
+	s.start("document", {});
 	s.data("test1");
 
 	ASSERT_EQ("document", s.currentName());
@@ -97,14 +88,14 @@ TEST(ParserStack, simpleTest)
 	ASSERT_EQ(1, startCount);
 	ASSERT_EQ(1, dataCount);
 
-	s.start("body", nullptr);
+	s.start("body", {});
 	s.data("test2");
 	ASSERT_EQ("body", s.currentName());
 	ASSERT_EQ(STATE_BODY, s.currentState());
 	ASSERT_EQ(2, startCount);
 	ASSERT_EQ(2, dataCount);
 
-	s.start("inner", nullptr);
+	s.start("inner", {});
 	ASSERT_EQ("inner", s.currentName());
 	ASSERT_EQ(STATE_BODY, s.currentState());
 	s.end();
@@ -119,7 +110,7 @@ TEST(ParserStack, simpleTest)
 	ASSERT_EQ("document", s.currentName());
 	ASSERT_EQ(STATE_DOCUMENT, s.currentState());
 
-	s.start("body", nullptr);
+	s.start("body", {});
 	s.data("test3");
 	ASSERT_EQ("body", s.currentName());
 	ASSERT_EQ(STATE_BODY, s.currentState());
@@ -144,18 +135,39 @@ TEST(ParserStack, errorHandling)
 	StandaloneParserContext ctx;
 	ParserStack s{ctx, TEST_HANDLERS};
 
-	ASSERT_THROW(s.start("body", nullptr), OusiaException);
-	s.start("document", nullptr);
-	ASSERT_THROW(s.start("document", nullptr), OusiaException);
-	s.start("empty", nullptr);
-	ASSERT_THROW(s.start("body", nullptr), OusiaException);
-	s.start("special", nullptr);
+	ASSERT_THROW(s.start("body", {}), OusiaException);
+	s.start("document", {});
+	ASSERT_THROW(s.start("document", {}), OusiaException);
+	s.start("empty", {});
+	ASSERT_THROW(s.start("body", {}), OusiaException);
+	s.start("special", {});
 	s.end();
 	s.end();
 	s.end();
 	ASSERT_EQ(STATE_NONE, s.currentState());
 	ASSERT_THROW(s.end(), OusiaException);
 	ASSERT_THROW(s.data("test", 1), OusiaException);
+}
+
+TEST(ParserStack, validation)
+{
+	ConcreteLogger logger;
+	StandaloneParserContext ctx(logger);
+	ParserStack s{ctx, TEST_HANDLERS};
+
+	s.start("arguments", {});
+	ASSERT_TRUE(logger.hasError());
+	logger.reset();
+	s.end();
+
+	s.start("arguments", {{"a", 5}});
+	ASSERT_TRUE(logger.hasError());
+	logger.reset();
+	s.end();
+
+	s.start("arguments", {{"a", 5}, {"b", "test"}});
+	ASSERT_FALSE(logger.hasError());
+	s.end();
 }
 
 }
