@@ -27,8 +27,7 @@
 #include <iostream>
 #include <fstream>
 #include <core/common/Rtti.hpp>
-#include <core/model/Node.hpp>
-#include <core/XML.hpp>
+#include <core/common/Property.hpp>
 #endif
 
 namespace ousia {
@@ -595,12 +594,11 @@ void Manager::exportGraphviz(const char *filename)
 		// Read type information and Node name (if available)
 		const RttiType &type = objectPtr->type();
 		const std::string &typeName = type.name;
-		std::string name = "";
-		if (type.isa(RttiTypes::Node)) {
-			name = dynamic_cast<const Node *>(objectPtr)->getName();
-		}
-		if (type.isa(RttiTypes::XMLElement)) {
-			name = dynamic_cast<const xml::Element *>(objectPtr)->name;
+
+		// Fetch the name of the object if the object has a "name" property
+		std::string name;
+		if (type.hasProperty("name")) {
+			name = type.getProperty("name")->get(objectPtr).toString();
 		}
 
 		// Print the node
