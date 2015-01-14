@@ -73,11 +73,6 @@ TEST(Node, isRoot)
 	ASSERT_TRUE(n1->isRoot());
 	ASSERT_TRUE(n2->isRoot());
 	ASSERT_FALSE(n3->isRoot());
-
-	n2->setParent(n1);
-	ASSERT_TRUE(n1->isRoot());
-	ASSERT_FALSE(n2->isRoot());
-	ASSERT_FALSE(n3->isRoot());
 }
 
 TEST(Node, resolveCompositaSimple)

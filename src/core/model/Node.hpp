@@ -311,13 +311,6 @@ public:
 	bool hasName() const { return !name.empty(); }
 
 	/**
-	 * Sets the parent node.
-	 *
-	 * @param parent is a Handle to the parent node.
-	 */
-	void setParent(Handle<Node> parent) { this->parent = acquire(parent); }
-
-	/**
 	 * Returns a handle to the parent node of the Node instance.
 	 *
 	 * @return a handle to the root node.
