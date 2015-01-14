@@ -379,14 +379,18 @@ public:
  * the markups "emphasized" and "strong". In HTML like markup languages these
  * concepts are handeled as structure elements, like this:
  *
+ * \code{.xml}
  * <em>emphasized</em> <em><strong>and</strong></em> <strong>strong</strong>
+ * \endcode
  *
  * which is neither intuitive nor semantically sound. Therefore we take the
  * approach of anchoring the Annotation entities in the text like this:
  *
+ * \code{.xml}
  * <Anchor id=1/>emphasized <Anchor id=2/>and<Anchor id=3/> strong<Anchor id=4/>
  * <AnnotationEntity class="emphasized" start=1 end=3/>
  * <AnnotationEntity class="strong" start=2 end=4/>
+ * \endcode
  *
  * Which signifies that indeed the text "emphasized and" is emphasized, not
  * the two text exerpts "emphasized" and "and" separately.

@@ -122,5 +122,34 @@ TEST(Descriptor, pathTo)
 	// this should be impossible.
 	ASSERT_EQ(0U, path.size());
 }
+
+TEST(Descriptor, pathToAdvanced)
+{
+	// Now we build a really nasty domain with lots of transparency
+	// and inheritance
+	Logger logger;
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// Get the domain.
+	Rooted<Domain> domain {new Domain(mgr, sys, "nasty")};
+	Cardinality any;
+	any.merge(Range<size_t>::typeRangeFrom(0));
+	
+	// Our root class A
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, any, {nullptr}, {nullptr}, false, true)};
+	domain->addStructuredClass(A);
+	// We also create a field for it.
+	Rooted<FieldDescriptor> A_field{new FieldDescriptor(mgr, A)};
+	A->addFieldDescriptor(A_field);
+	
+	// our first transparent child B
+	Rooted<StructuredClass> B{new StructuredClass(
+	    mgr, "B", domain, any, {nullptr}, {nullptr}, true)};
+	A_field->addChild(B);
+	
+	//TODO: Continue
+}
+
 }
 }

@@ -233,7 +233,7 @@ class Domain;
  * As an example consider the "paragraph" StructuredClass, which might allow
  * the actual text content. Here is the according XML:
  *
- * \code{*.xml}
+ * \code{.xml}
  * <struct name="paragraph" transparent="true" role="paragraph">
  * 	<fields>
  * 		<field>
@@ -376,7 +376,7 @@ public:
  * explained as the difference between node attributes and node children.
  * Consider the XML
  *
- * \code{*.xml}
+ * \code{.xml}
  * <A key="value">
  *   <key>value</key>
  * </A>
@@ -490,7 +490,7 @@ typedef RangeSet<size_t> Cardinality;
  * defining itself as a viable child in one existing field. Consider the
  * example of the "heading" domain from the header documentation again:
  *
- * \code{*.xml}
+ * \code{.xml}
  * <domain name="headings">
  * 	<head>
  * 		<import rel="domain" src="book.oxm"/>
@@ -522,7 +522,7 @@ typedef RangeSet<size_t> Cardinality;
  * If we go back to our example a user would (without transparency) have to
  * explicitly declare:
  *
- * \code{*.xml}
+ * \code{.xml}
  * <book>
  *   <section>
  *     <paragraph>Text.</paragraph>
@@ -532,7 +532,7 @@ typedef RangeSet<size_t> Cardinality;
  *
  * But in our mind the document
  *
- * \code{*.xml}
+ * \code{.xml}
  * <book>
  *   <section>
  *     Text.
@@ -558,7 +558,6 @@ class StructuredClass : public Descriptor {
 private:
 	const Cardinality cardinality;
 	Owned<StructuredClass> isa;
-	NodeVector<FieldDescriptor> parents;
 
 public:
 	const bool transparent;
@@ -599,7 +598,6 @@ public:
 	    : Descriptor(mgr, std::move(name), domain, attributesDescriptor),
 	      cardinality(cardinality),
 	      isa(acquire(isa)),
-	      parents(this),
 	      transparent(transparent),
 	      root(root)
 	{
@@ -620,33 +618,6 @@ public:
 	 * hierarchy (!).
 	 */
 	Rooted<StructuredClass> getIsA() const { return isa; }
-
-	/**
-	 * Returns a const reference to the NodeVector of FieldDescriptors that
-	 * should allow an instance of this StructuredClass as child in the
-	 * Structure Tree. This enables you to "invade" other domains as described
-	 * in the StructuredClass documentation.
-	 *
-	 * @return a const reference to the NodeVector of FieldDescriptors that
-	 * should allow an instance of this StructuredClass as child in the
-	 * Structure Tree.
-	 */
-	const NodeVector<FieldDescriptor> &getParents() const { return parents; }
-
-	/**
-	 * Adds a FieldDescriptor that should allow an instance of this
-	 * StructuredClass as a child in the Structure Tree.
-	 */
-	void addParent(Handle<FieldDescriptor> p) { parents.push_back(p); }
-
-	/**
-	 * Adds multiple FieldDescriptors that should allow an instance of this
-	 * StructuredClass as a child in the Structure Tree.
-	 */
-	void addParents(const std::vector<Handle<FieldDescriptor>> &ps)
-	{
-		parents.insert(parents.end(), ps.begin(), ps.end());
-	}
 };
 
 /**
