@@ -61,7 +61,7 @@ public:
 
 namespace RttiTypes {
 const Rtti<ousia::TestNode> TestNode =
-    RttiBuilder("TestNode").parent(RttiTypes::Node).composedOf(&TestNode);
+    RttiBuilder("TestNode").parent(&RttiTypes::Node).composedOf(&TestNode);
 }
 
 TEST(Node, isRoot)
