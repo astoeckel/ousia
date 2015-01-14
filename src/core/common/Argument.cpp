@@ -184,6 +184,9 @@ bool Argument::validate(Variant &var, Logger &logger) const
 
 /* Class Arguments */
 
+// Instantiations of the "None" arguments
+const Arguments Arguments::None;
+
 static std::unordered_map<std::string, size_t> buildArgumentNames(
     std::initializer_list<Argument> arguments)
 {
@@ -205,12 +208,17 @@ static std::unordered_map<std::string, size_t> buildArgumentNames(
 }
 
 Arguments::Arguments(std::initializer_list<Argument> arguments)
-    : arguments(arguments), names(buildArgumentNames(arguments))
+    : arguments(arguments), names(buildArgumentNames(arguments)), valid(true)
 {
 }
 
 bool Arguments::validateArray(Variant::arrayType &arr, Logger &logger) const
 {
+	// Abort if no arguments were explicitly given -- everything is valid
+	if (!valid) {
+		return true;
+	}
+
 	Logger nullLogger;
 
 	// Fetch the number of arguments N and the initial array size n
@@ -254,6 +262,11 @@ bool Arguments::validateArray(Variant::arrayType &arr, Logger &logger) const
 bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
                             bool ignoreUnknown) const
 {
+	// Abort if no arguments were explicitly given -- everything is valid
+	if (!valid) {
+		return true;
+	}
+
 	Logger nullLogger;
 
 	// Fetch the number of arguments N

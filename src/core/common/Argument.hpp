@@ -402,12 +402,23 @@ private:
 	 */
 	std::unordered_map<std::string, size_t> names;
 
+	/**
+	 * Set to true if arguments were explicitly given in the constructor,
+	 * false otherwise.
+	 */
+	bool valid;
+
 public:
+
+	/**
+	 * Static Arguments instance with no explicit arguments set.
+	 */
+	static const Arguments None;
 
 	/**
 	 * Default constructor. Provides no arguments.
 	 */
-	Arguments() {};
+	Arguments() : valid(false) {};
 
 	/**
 	 * Constructor of the Arguments class from a list of Argument instances.

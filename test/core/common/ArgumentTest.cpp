@@ -785,6 +785,18 @@ TEST(Arguments, construction)
 	ASSERT_THROW(Arguments({Argument::Int("test test")}), OusiaException);
 }
 
+TEST(Arguments, invalid)
+{
+	Arguments argsInvalid{};
+
+	Arguments argsValid{{}};
+
+	Variant::arrayType arr{1};
+
+	ASSERT_TRUE(argsInvalid.validateArray(arr, logger)); // No error message
+	ASSERT_FALSE(argsValid.validateArray(arr, logger)); // Too many arguments
+}
+
 TEST(Arguments, validateArray)
 {
 	Arguments args{Argument::Int("a"), Argument::String("b", "test"),
