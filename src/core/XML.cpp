@@ -19,6 +19,7 @@
 #include <sstream>
 
 #include <core/common/Rtti.hpp>
+#include <core/common/TypedRttiBuilder.hpp>
 
 #include "XML.hpp"
 
@@ -115,10 +116,18 @@ void Text::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 }
 }
 
+static Variant getXmlElementName(const xml::Element *obj)
+{
+	return Variant::fromString(obj->name);
+}
+
 namespace RttiTypes {
 const Rtti<xml::Node> XMLNode = RttiBuilder("XMLNode");
 const Rtti<xml::Element> XMLElement =
-    RttiBuilder("XMLElement").parent(&XMLNode).composedOf(&XMLNode);
+    TypedRttiBuilder<xml::Element>("XMLElement")
+        .parent(&XMLNode)
+        .composedOf(&XMLNode)
+        .property("name", {RttiTypes::String, getXmlElementName});
 const Rtti<xml::Text> XMLText = RttiBuilder("XMLText").parent(&XMLNode);
 }
 }
