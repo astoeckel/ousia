@@ -128,23 +128,17 @@ private:
 	 */
 	Arguments arguments;
 
-	/**
-	 * Set to true if any arguments for checking were given in the constructor.
-	 * If set to false, no argument checks are performed.
-	 */
-	bool checkArguments;
-
 protected:
 	/**
 	 * Default constructor. Disables validation, all arguments are allowed.
 	 */
-	ValidatingFunction() : checkArguments(false){};
+	ValidatingFunction() : arguments(Arguments::None){};
 
 	/**
 	 * Default constructor. Disables validation, all arguments are allowed.
 	 */
 	ValidatingFunction(Arguments arguments)
-	    : arguments(std::move(arguments)), checkArguments(true){};
+	    : arguments(std::move(arguments)) {};
 
 	/**
 	 * Function which cares about validating a set of arguments.
