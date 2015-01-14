@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "Exceptions.hpp"
 #include "Rtti.hpp"
 
 namespace ousia {
@@ -44,6 +45,30 @@ const RttiType &RttiStore::lookup(const std::type_info &native)
 	}
 }
 
+/* Class RttiBuilder */
+
+RttiBuilder &RttiBuilder::genericMethod(const std::string name,
+                                        std::shared_ptr<Function> function)
+{
+	if (!methods.emplace(name, function).second) {
+		throw OusiaException(std::string("Method with name \"") + name +
+		                     std::string("\" for type \"") + currentName +
+		                     std::string("\" already registered!"));
+	}
+	return *this;
+}
+
+RttiBuilder &RttiBuilder::genericProperty(
+    const std::string name, std::shared_ptr<PropertyDescriptor> property)
+{
+	if (!properties.emplace(name, property).second) {
+		throw OusiaException(std::string("Property with name \"") + name +
+		                     std::string("\" for type \"") + currentName +
+		                     std::string("\" already registered!"));
+	}
+	return *this;
+}
+
 /* Class RttiType */
 
 void RttiType::initialize() const
@@ -52,6 +77,15 @@ void RttiType::initialize() const
 	// to prevent unwanted recursion
 	if (!initialized) {
 		initialized = true;
+
+		// Register the parent properties and methods
+		{
+			for (const RttiType *parent: parents) {
+				parent->initialize();
+				methods.insert(parent->methods.begin(), parent->methods.end());
+				properties.insert(parent->properties.begin(), parent->properties.end());
+			}
+		}
 
 		// Insert the parent types of the parent types and the composite types
 		// of the parents
@@ -64,7 +98,7 @@ void RttiType::initialize() const
 			for (const RttiType *parent : parents) {
 				parent->initialize();
 				compositeTypes.insert(parent->compositeTypes.begin(),
-				                       parent->compositeTypes.end());
+				                      parent->compositeTypes.end());
 			}
 			parents.insert(this);
 		}
@@ -77,9 +111,9 @@ void RttiType::initialize() const
 			for (const RttiType *compositeType : origCompositeTypes) {
 				compositeType->initialize();
 				compositeTypes.insert(compositeType->compositeTypes.begin(),
-				                       compositeType->compositeTypes.end());
+				                      compositeType->compositeTypes.end());
 				compositeTypes.insert(compositeType->parents.begin(),
-				                       compositeType->parents.end());
+				                      compositeType->parents.end());
 			}
 		}
 	}
@@ -95,6 +129,36 @@ bool RttiType::composedOf(const RttiType &other) const
 {
 	initialize();
 	return compositeTypes.count(&other) > 0;
+}
+
+const RttiMethodMap &RttiType::getMethods() const {
+	initialize();
+	return methods;
+}
+
+const RttiPropertyMap &RttiType::getProperties() const {
+	initialize();
+	return properties;
+}
+
+std::shared_ptr<Function> RttiType::getMethod(const std::string &name) const
+{
+	initialize();
+	auto it = methods.find(name);
+	if (it == methods.end()) {
+		return nullptr;
+	}
+	return it->second;
+}
+
+std::shared_ptr<PropertyDescriptor> RttiType::getProperty(const std::string &name) const
+{
+	initialize();
+	auto it = properties.find(name);
+	if (it == properties.end()) {
+		return nullptr;
+	}
+	return it->second;
 }
 
 /* Constant initialization */

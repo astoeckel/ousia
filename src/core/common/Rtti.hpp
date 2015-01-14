@@ -64,6 +64,7 @@
 #ifndef _OUSIA_RTTI_HPP_
 #define _OUSIA_RTTI_HPP_
 
+#include <memory>
 #include <typeinfo>
 #include <typeindex>
 #include <unordered_map>
@@ -73,6 +74,25 @@
 namespace ousia {
 
 class RttiType;
+class Function;
+class PropertyDescriptor;
+
+/**
+ * Type describing a set of RttiType pointers.
+ */
+using RttiTypeSet = std::unordered_set<const RttiType *>;
+
+/**
+ * Type describing a map containing methods and their name.
+ */
+using RttiMethodMap =
+    std::unordered_map<std::string, std::shared_ptr<Function>>;
+
+/**
+ * Type describing a map containing properties and their name.
+ */
+using RttiPropertyMap =
+    std::unordered_map<std::string, std::shared_ptr<PropertyDescriptor>>;
 
 /**
  * Helper class used to globally store and access the runtime type information.
@@ -113,11 +133,6 @@ public:
 class RttiBuilder {
 public:
 	/**
-	 * Type describing a set of RttiType pointers.
-	 */
-	using RttiTypeSet = std::unordered_set<const RttiType *>;
-
-	/**
 	 * Contains the human readable name of the type for which the type
 	 * information is being built.
 	 */
@@ -132,6 +147,16 @@ public:
 	 * Set containing references to all composite types.
 	 */
 	RttiTypeSet compositeTypes;
+
+	/**
+	 * Map containing all methods.
+	 */
+	RttiMethodMap methods;
+
+	/**
+	 * Map containing all properties.
+	 */
+	RttiPropertyMap properties;
 
 	/**
 	 * Default constructor, initializes the name of the type described by the
@@ -177,20 +202,6 @@ public:
 	}
 
 	/**
-	 * Adds the given type descriptor as "parent" of the type information that
-	 * is being built by this RttiBuilder instance.
-	 *
-	 * @param p is the pointer to the type descriptor that should be added.
-	 * @return a reference to the current RttiBuilder reference to allow method
-	 * chaining.
-	 */
-	RttiBuilder &parent(const RttiType &p)
-	{
-		parentTypes.insert(&p);
-		return *this;
-	}
-
-	/**
 	 * Adds the given type descriptors as "parent" of the type information that
 	 * is being built by this RttiBuilder instance.
 	 *
@@ -221,21 +232,6 @@ public:
 
 	/**
 	 * Marks the current type being built by this RttiBuilder instance as being
-	 * a composition of the given other type.
-	 *
-	 * @param p is the pointer to the type descriptor that should be added as
-	 * composition type.
-	 * @return a reference to the current RttiBuilder reference to allow method
-	 * chaining.
-	 */
-	RttiBuilder &composedOf(const RttiType &p)
-	{
-		compositeTypes.insert(&p);
-		return *this;
-	}
-
-	/**
-	 * Marks the current type being built by this RttiBuilder instance as being
 	 * a composition of the given other types.
 	 *
 	 * @param p is the pointer to the type descriptor that should be added as
@@ -248,6 +244,32 @@ public:
 		compositeTypes.insert(p.begin(), p.end());
 		return *this;
 	}
+
+	/**
+	 * Registers a generic (no particular C++ type given) method for this RTTI
+	 * type descriptor.
+	 *
+	 * @param name is the name of the method. Names must be unique for one
+	 * RttiType instance. If the name is not unique, an exception is thrown.
+	 * @param function is the function that should be registered.
+	 * @return a reference to the current RttiBuilder reference to allow method
+	 * chaining.
+	 */
+	RttiBuilder &genericMethod(const std::string name,
+	                           std::shared_ptr<Function> function);
+
+	/**
+	 * Registers a generic (no particular C++ type given) property descriptor
+	 * for this RTTI type descriptor.
+	 *
+	 * @param name is the name of the property. Names must be unique for one
+	 * RttiType instance. If the property is not unique, an exception is thrown.
+	 * @param property is the property that should be registered.
+	 * @return a reference to the current RttiBuilder reference to allow method
+	 * chaining.
+	 */
+	RttiBuilder &genericProperty(const std::string name,
+	                             std::shared_ptr<PropertyDescriptor> property);
 };
 
 /**
@@ -269,19 +291,75 @@ private:
 	/**
 	 * Set containing references to all parent types, including their parents.
 	 */
-	mutable std::unordered_set<const RttiType *> parents;
+	mutable RttiTypeSet parents;
 
 	/**
 	 * Set containing references to all types this type is a composition of,
 	 * including all composite types of the original composite types.
 	 */
-	mutable std::unordered_set<const RttiType *> compositeTypes;
+	mutable RttiTypeSet compositeTypes;
+
+	/**
+	 * Map used for storing all registered methods.
+	 */
+	mutable RttiMethodMap methods;
+
+	/**
+	 * Map used for storing all registered properties.
+	 */
+	mutable RttiPropertyMap properties;
 
 	/**
 	 * Adds the parent types of the original parents and the composite types of
 	 * the original composite types to the internal sets for faster lookup.
 	 */
 	void initialize() const;
+
+protected:
+	/**
+	 * Creates a new RttiType instance and registers it in the global type
+	 * table. Use the Rtti and the RttiBuilder class for more convenient
+	 * registration of type information.
+	 *
+	 * @param name is the name of the type.
+	 * @param native is a reference at the native type information provided by
+	 * the compiler.
+	 * @param parents is a list of parent types.
+	 * @param compositeTypes is a list of types of which instances of this type
+	 * are composited (consist of).
+	 */
+	RttiType(std::string name, const std::type_info &native,
+	         RttiTypeSet parents = RttiTypeSet{},
+	         RttiTypeSet compositeTypes = RttiTypeSet{},
+	         RttiMethodMap methods = RttiMethodMap{},
+	         RttiPropertyMap properties = RttiPropertyMap{})
+	    : initialized(false),
+	      parents(std::move(parents)),
+	      compositeTypes(compositeTypes),
+	      methods(std::move(methods)),
+	      properties(std::move(properties)),
+	      name(std::move(name))
+	{
+		RttiStore::store(native, this);
+	}
+
+	/**
+	 * Creates a new RttiType instance and registers it in the global type
+	 * table. Use the Rtti class for more convenient registration of type
+	 * information.
+	 *
+	 * @param builder is the builder instance containing the Rtti data.
+	 */
+	RttiType(const std::type_info &native, const RttiBuilder &builder)
+	    : initialized(false),
+	      parents(std::move(builder.parentTypes)),
+	      compositeTypes(std::move(builder.compositeTypes)),
+	      methods(std::move(builder.methods)),
+	      properties(std::move(builder.properties)),
+	      name(std::move(builder.currentName))
+	{
+		RttiStore::store(native, this);
+	}
 
 public:
 	/**
@@ -301,47 +379,6 @@ public:
 	RttiType(std::string name) : name(std::move(name)) {}
 
 	/**
-	 * Creates a new RttiType instance and registers it in the global type
-	 * table. Use the Rtti and the RttiBuilder class for more convenient
-	 * registration of type information.
-	 *
-	 * @param name is the name of the type.
-	 * @param native is a reference at the native type information provided by
-	 * the compiler.
-	 * @param parents is a list of parent types.
-	 * @param compositeTypes is a list of types of which instances of this type
-	 * are composited (consist of).
-	 */
-	RttiType(std::string name, const std::type_info &native,
-	         std::unordered_set<const RttiType *> parents =
-	             std::unordered_set<const RttiType *>{},
-	         std::unordered_set<const RttiType *> compositeTypes =
-	             std::unordered_set<const RttiType *>{})
-	    : initialized(false),
-	      parents(std::move(parents)),
-	      compositeTypes(compositeTypes),
-	      name(std::move(name))
-	{
-		RttiStore::store(native, this);
-	}
-
-	/**
-	 * Creates a new RttiType instance and registers it in the global type
-	 * table. Use the Rtti class for more convenient registration of type
-	 * information.
-	 *
-	 * @param builder is the builder instance containing the Rtti data.
-	 */
-	RttiType(const std::type_info &native, const RttiBuilder &builder)
-	    : initialized(false),
-	      parents(builder.parentTypes),
-	      compositeTypes(builder.compositeTypes),
-	      name(builder.currentName)
-	{
-		RttiStore::store(native, this);
-	}
-
-	/**
 	 * Returns true if this Rtti instance is the given type or has the
 	 * given type as one of its parents.
 	 *
@@ -359,6 +396,45 @@ public:
 	 * type is directly or indirectly composed of it.
 	 */
 	bool composedOf(const RttiType &other) const;
+
+	/**
+	 * Returns all methods that are registered for this type (and the parent
+	 * types, where methods with the same name as those in the parent type
+	 * shadow the parent name methods).
+	 *
+	 * @return a mapping between method name and shared pointers of the
+	 * registered function.
+	 */
+	const RttiMethodMap& getMethods() const;
+
+	/**
+	 * Returns all properties that are registered for this type (and the parent
+	 * types, where properties with the same name as those in the parent type
+	 * shadow the parent name properties).
+	 *
+	 * @return a mapping between property name and the shared pointers of the
+	 * registered properties.
+	 */
+	const RttiPropertyMap& getProperties() const;
+
+	/**
+	 * Searches for a method with the given name. Returns a shared pointer to
+	 * that method if found or nullptr otherwise.
+	 *
+	 * @param name is the name of the method that should be looked up.
+	 * @return a shared pointer pointing at the method with the given name
+	 */
+	std::shared_ptr<Function> getMethod(const std::string &name) const;
+
+	/**
+	 * Searches for a property with the given name. Returns a shared pointer to
+	 * that property if found or nullptr otherwise.
+	 *
+	 * @param name is the name of the property that should be looked up.
+	 * @return a shared pointer pointing at the property with the given name
+	 */
+	std::shared_ptr<PropertyDescriptor> getProperty(const std::string &name) const;
+
 };
 
 /**
@@ -376,18 +452,8 @@ public:
 	 * Creates a new Rtti instance and registers it in the global type table.
 	 *
 	 * @param name is the name of the type.
-	 * @param parents is a list of parent types.
-	 * @param compositeTypes is a list of types of which instances of this type
-	 * are composited (consist of).
 	 */
-	Rtti(std::string name, const std::unordered_set<const RttiType *> &parents =
-	                           std::unordered_set<const RttiType *>{},
-	     std::unordered_set<const RttiType *> compositeTypes =
-	         std::unordered_set<const RttiType *>{})
-	    : RttiType(name, typeid(T), std::move(parents),
-	               std::move(compositeTypes))
-	{
-	}
+	Rtti(std::string name) : RttiType(name, typeid(T)) {}
 
 	/**
 	 * Creates a new Rtti instance from the data stored in the given builder

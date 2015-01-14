@@ -129,13 +129,13 @@ protected:
 	 * @param valid specifies whether a callback function was given or not.
 	 */
 	PropertyFunction(bool valid)
-	    : valid(valid), propertyType(&PropertyType::None){};
+	    : valid(valid), propertyType(nullptr){};
 
 public:
 	/**
 	 * Returns the type associated with the property function.
 	 */
-	PropertyType const *propertyType;
+	std::shared_ptr<PropertyType> propertyType;
 
 	/**
 	 * Returns true if a callback function was given, false otherwise.
@@ -354,18 +354,18 @@ private:
 	 * Description of the type of the property, consisting of an inner and an
 	 * outer type.
 	 */
-	const PropertyType type;
+	std::shared_ptr<PropertyType> type;
 
 	/**
 	 * Object used to read the value of the property.
 	 */
-	std::unique_ptr<GetterFunction> getter;
+	std::shared_ptr<GetterFunction> getter;
 
 	/**
 	 * Object used to write values of the property. The setter may be invalid
 	 * in which case the property is read only.
 	 */
-	std::unique_ptr<SetterFunction> setter;
+	std::shared_ptr<SetterFunction> setter;
 
 protected:
 	/**
@@ -379,8 +379,8 @@ protected:
 	 * setter function may be invalid, in which case the property is readonly.
 	 */
 	PropertyDescriptor(const PropertyType &type,
-	                   std::unique_ptr<GetterFunction> getter,
-	                   std::unique_ptr<SetterFunction> setter);
+	                   std::shared_ptr<GetterFunction> getter,
+	                   std::shared_ptr<SetterFunction> setter);
 
 public:
 	/**
@@ -396,7 +396,7 @@ public:
 	 *
 	 * @return the PropertyType instance describing the type of this property.
 	 */
-	const PropertyType &getType() const { return type; }
+	const PropertyType &getType() const { return *type; }
 
 	/**
 	 * Returns the value of the property for the given object.
@@ -438,8 +438,8 @@ public:
 	Property(const Getter<T> &getter, const Setter<T> &setter = Setter<T>{})
 	    : PropertyDescriptor(
 	          PropertyType{},
-	          std::unique_ptr<GetterFunction>{new Getter<T>{getter}},
-	          std::unique_ptr<SetterFunction>{new Setter<T>{setter}})
+	          std::make_shared<Getter<T>>(getter),
+	          std::make_shared<Setter<T>>(setter))
 	{
 	}
 
@@ -458,8 +458,8 @@ public:
 	         const Setter<T> &setter = Setter<T>{})
 	    : PropertyDescriptor(
 	          PropertyType{type},
-	          std::unique_ptr<GetterFunction>{new Getter<T>{getter}},
-	          std::unique_ptr<SetterFunction>{new Setter<T>{setter}})
+	          std::make_shared<Getter<T>>(getter),
+	          std::make_shared<Setter<T>>(setter))
 	{
 	}
 
@@ -481,8 +481,8 @@ public:
 	         const Getter<T> &getter, const Setter<T> &setter = Setter<T>{})
 	    : PropertyDescriptor(
 	          PropertyType{type, innerType},
-	          std::unique_ptr<GetterFunction>{new Getter<T>{getter}},
-	          std::unique_ptr<SetterFunction>{new Setter<T>{setter}})
+	          std::make_shared<Getter<T>>(getter),
+	          std::make_shared<Setter<T>>(setter))
 	{
 	}
 

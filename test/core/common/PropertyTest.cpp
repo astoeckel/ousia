@@ -61,7 +61,8 @@ TEST(Getter, construction)
 
 TEST(Getter, validation)
 {
-	const PropertyType type{RttiTypes::Int};
+	std::shared_ptr<PropertyType> type =
+	    std::make_shared<PropertyType>(RttiTypes::Int);
 	TestObject obj{123};
 
 	{
@@ -73,7 +74,7 @@ TEST(Getter, validation)
 	{
 		// Int type set, returning strings is an exception
 		Getter<TestObject> getter{getString};
-		getter.propertyType = &type;
+		getter.propertyType = type;
 		ASSERT_THROW(getter.get(&obj), LoggableException);
 	}
 
@@ -109,7 +110,8 @@ TEST(Setter, construction)
 
 TEST(Setter, validation)
 {
-	const PropertyType type{RttiTypes::Int};
+	std::shared_ptr<PropertyType> type =
+	    std::make_shared<PropertyType>(RttiTypes::Int);
 	TestObject obj{123};
 
 	Setter<TestObject> setter{TestObject::setA};
@@ -128,7 +130,7 @@ TEST(Setter, validation)
 	setter.set("foo", &obj);
 	ASSERT_EQ(42, obj.a);
 
-	setter.propertyType = &type;
+	setter.propertyType = type;
 	ASSERT_THROW(setter.set("foo", &obj), LoggableException);
 
 	setter.set(123, &obj);

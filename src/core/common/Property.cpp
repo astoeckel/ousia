@@ -41,8 +41,10 @@ void GetterFunction::validateArguments(Variant::arrayType &args) const
 void GetterFunction::validateResult(Variant &res) const
 {
 	ExceptionLogger logger;
-	VariantConverter::convert(res, propertyType->type, propertyType->innerType,
-	                          logger);
+	if (propertyType != nullptr) {
+		VariantConverter::convert(res, propertyType->type,
+		                          propertyType->innerType, logger);
+	}
 }
 
 Variant GetterFunction::get(void *obj)
@@ -66,8 +68,10 @@ void SetterFunction::validateArguments(Variant::arrayType &args) const
 	// Convert the one argument to the requested type, throw an exception if
 	// this fails.
 	ExceptionLogger logger;
-	VariantConverter::convert(args[0], propertyType->type,
-	                          propertyType->innerType, logger);
+	if (propertyType != nullptr) {
+		VariantConverter::convert(args[0], propertyType->type,
+		                          propertyType->innerType, logger);
+	}
 }
 
 void SetterFunction::set(const Variant &value, void *obj)
@@ -78,9 +82,9 @@ void SetterFunction::set(const Variant &value, void *obj)
 /* Class PropertyDescriptor */
 
 PropertyDescriptor::PropertyDescriptor(const PropertyType &type,
-                                       std::unique_ptr<GetterFunction> getter,
-                                       std::unique_ptr<SetterFunction> setter)
-    : type(type), getter(std::move(getter)), setter(std::move(setter))
+                                       std::shared_ptr<GetterFunction> getter,
+                                       std::shared_ptr<SetterFunction> setter)
+    : type(std::make_shared<PropertyType>(type)), getter(getter), setter(setter)
 {
 	if (!this->getter->isValid()) {
 		throw PropertyException(
@@ -89,8 +93,8 @@ PropertyDescriptor::PropertyDescriptor(const PropertyType &type,
 	}
 
 	// Assign the property type reference to the getter and setter
-	this->getter->propertyType = &this->type;
-	this->setter->propertyType = &this->type;
+	this->getter->propertyType = this->type;
+	this->setter->propertyType = this->type;
 }
 }
 
