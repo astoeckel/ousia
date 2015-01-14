@@ -102,14 +102,14 @@ TEST(Descriptor, pathTo)
 	Rooted<StructuredClass> section = getClass("section", domain);
 	// get the path in between.
 	std::vector<Rooted<Node>> path = book->pathTo(section);
-	ASSERT_EQ(1, path.size());
+	ASSERT_EQ(1U, path.size());
 	ASSERT_TRUE(path[0]->isa(RttiTypes::FieldDescriptor));
 	
 	// get the text node.
 	Rooted<StructuredClass> text = getClass("text", domain);
 	// get the path between book and text via paragraph.
 	path = book->pathTo(text);
-	ASSERT_EQ(3, path.size());
+	ASSERT_EQ(3U, path.size());
 	ASSERT_TRUE(path[0]->isa(RttiTypes::FieldDescriptor));
 	ASSERT_TRUE(path[1]->isa(RttiTypes::StructuredClass));
 	ASSERT_EQ("paragraph", path[1]->getName());
@@ -120,7 +120,7 @@ TEST(Descriptor, pathTo)
 	// try to get the path between book and subsection.
 	path = book->pathTo(subsection);
 	// this should be impossible.
-	ASSERT_EQ(0, path.size());
+	ASSERT_EQ(0U, path.size());
 }
 }
 }
