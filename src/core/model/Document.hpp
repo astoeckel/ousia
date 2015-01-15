@@ -153,10 +153,10 @@ private:
 public:
 	/**
 	 * The constructor for a DocumentEntity. Node that this does not inherit
-	 * from Node. Therefore we need to have a handle to the child Node instance
-	 * to create NodeVectors and Owned references.
+	 * from Node. Therefore we need to have a handle to the subclass Node
+	 * instance to create NodeVectors and Owned references.
 	 *
-	 * @param owner      is a handle to the child instance
+	 * @param owner      is a handle to the subclass instance
 	 *                   (e.g. StructuredEntity), such that the fields vectors
 	 *                   and the descriptor reference can be obtained.
 	 * @param descriptor is the Descriptor for this DocumentEntity, which will
@@ -248,7 +248,7 @@ public:
 		return fields[getFieldDescriptorIndex(fieldDescriptor, true)];
 	}
 	/**
-	 * This adds a StructuredEntity to the field with the given name. If an
+	 * This adds a StructureNode to the field with the given name. If an
 	 * empty name is given it is assumed that the 'default' FieldDescriptor is
 	 * referenced, where 'default' means either:
 	 * 1.) The only TREE typed FieldDescriptor (if present) or
@@ -256,17 +256,17 @@ public:
 	 *
 	 * If the name is unknown an exception is thrown.
 	 *
-	 * @param s         is the StructuredEntity that shall be added.
+	 * @param s         is the StructureNode that shall be added.
 	 * @param fieldName is the name of a field as specified in the
 	 *                  FieldDescriptor in the Domain description.
 	 */
-	void addStructuredEntity(Handle<StructureNode> s,
+	void addStructureNode(Handle<StructureNode> s,
 	                         const std::string &fieldName = "")
 	{
 		fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
 	}
 	/**
-	 * This adds multiple StructuredEntities to the field with the given name.
+	 * This adds multiple StructureNodes to the field with the given name.
 	 * If an empty name is given it is assumed that the 'default'
 	 * FieldDescriptor is referenced, where 'default' means either:
 	 * 1.) The only TREE typed FieldDescriptor (if present) or
@@ -274,11 +274,11 @@ public:
 	 *
 	 * If the name is unknown an exception is thrown.
 	 *
-	 * @param ss        are the StructuredEntities that shall be added.
+	 * @param ss        are the StructureNodes that shall be added.
 	 * @param fieldName is the name of a field as specified in the
 	 *                  FieldDescriptor in the Domain description.
 	 */
-	void addStructuredEntities(const std::vector<Handle<StructureNode>> &ss,
+	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
 	                           const std::string &fieldName = "")
 	{
 		NodeVector<StructureNode> &field =
@@ -287,33 +287,33 @@ public:
 	}
 
 	/**
-	 * This adds a StructuredEntity to the field with the given FieldDescriptor.
+	 * This adds a StructureNode to the field with the given FieldDescriptor.
 	 *
 	 * If the FieldDescriptor does not belong to the Descriptor of this node
 	 * an exception is thrown.
 	 *
-	 * @param s               is the StructuredEntity that shall be added.
+	 * @param s               is the StructureNode that shall be added.
 	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
 	 *                        this DocumentEntity.
 	 */
-	void addStructuredEntity(Handle<StructureNode> s,
+	void addStructureNode(Handle<StructureNode> s,
 	                         Handle<FieldDescriptor> fieldDescriptor)
 	{
 		fields[getFieldDescriptorIndex(fieldDescriptor, true)].push_back(s);
 	}
 
 	/**
-	 * This adds multiple StructuredEntities to the field with the given
+	 * This adds multiple StructureNodes to the field with the given
 	 * FieldDescriptor.
 	 *
 	 * If the FieldDescriptor does not belong to the Descriptor of this node
 	 * an exception is thrown.
 	 *
-	 * @param ss              are the StructuredEntities that shall be added.
+	 * @param ss              are the StructureNodes that shall be added.
 	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
 	 *                        this DocumentEntity.
 	 */
-	void addStructuredEntities(const std::vector<Handle<StructureNode>> &ss,
+	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
 	                           Handle<FieldDescriptor> fieldDescriptor)
 	{
 		NodeVector<StructureNode> &field =

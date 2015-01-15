@@ -169,7 +169,7 @@ Rooted<StructuredEntity> buildStructuredEntity(
 		             fieldName + "!");
 		return {nullptr};
 	}
-	parent->addStructuredEntity(entity, fieldName);
+	parent->addStructureNode(entity, fieldName);
 
 	// and return it.
 	return entity;
@@ -208,7 +208,7 @@ Rooted<DocumentPrimitive> buildPrimitiveEntity(
 		             fieldName + "!");
 		return {nullptr};
 	}
-	parent->addStructuredEntity(entity, fieldName);
+	parent->addStructureNode(entity, fieldName);
 	// and return it.
 	return entity;
 }
@@ -246,7 +246,7 @@ Rooted<AnnotationEntity::Anchor> buildAnchor(Logger &logger,
 		             fieldName + "!");
 		return {nullptr};
 	}
-	parent->addStructuredEntity(anchor, fieldName);
+	parent->addStructureNode(anchor, fieldName);
 	// and return it.
 	return anchor;
 }
