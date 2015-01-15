@@ -55,5 +55,24 @@ bool Utils::isIdentifier(const std::string &name)
 	}
 	return true;
 }
+
+std::vector<std::string> Utils::split(const std::string &s, char delim)
+{
+	std::vector<std::string> res;
+	const size_t totalLen = s.size();
+	size_t start = 0;
+	size_t len = 0;
+	for (size_t i = 0; i <= totalLen; i++) {
+		if (i == totalLen || s[i] == delim) {
+			res.push_back(s.substr(start, len));
+			start = i + 1;
+			len = 0;
+		} else {
+			len++;
+		}
+	}
+	return res;
+}
+
 }
 

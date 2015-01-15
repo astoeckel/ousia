@@ -21,6 +21,7 @@
 
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace ousia {
 
@@ -103,6 +104,16 @@ public:
 		res << end;
 		return res.str();
 	}
+
+	/**
+	 * Splits the given string at the delimiter and returns an array of
+	 * substrings without the delimiter.
+	 *
+	 * @param s is the string that should be splitted.
+	 * @param delim is the delimiter at which the string should be splitted.
+	 * @return a vector of strings containing the splitted sub-strings.
+	 */
+	static std::vector<std::string> split(const std::string &s, char delim);
 };
 }
 
