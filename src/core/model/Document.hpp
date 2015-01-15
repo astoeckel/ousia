@@ -427,7 +427,9 @@ public:
 	 * The constructor for an AnnotationEntity.
 	 *
 	 * @param mgr        is the Manager instance.
-	 * @param parent     is the Document this AnnotationEntity is part of.
+	 * @param parent     is the Document this AnnotationEntity is part of. The
+	 *                   constructor will automatically register this
+	 *                   AnnotationEntity at that document.
 	 * @param descriptor is the AnnotationClass of this AnnotationEntity.
 	 * @param start      is the start Anchor of this AnnotationEntity. It has to
 	 *                   be part of the Document given as parent.
@@ -441,13 +443,7 @@ public:
 	AnnotationEntity(Manager &mgr, Handle<Document> parent,
 	                 Handle<AnnotationClass> descriptor, Handle<Anchor> start,
 	                 Handle<Anchor> end, Variant attributes = {},
-	                 std::string name = "")
-	    : Node(mgr, std::move(name), parent),
-	      DocumentEntity(this, descriptor, attributes),
-	      start(acquire(start)),
-	      end(acquire(end))
-	{
-	}
+	                 std::string name = "");
 
 	/**
 	 * Returns the start Anchor of this AnnotationEntity.
@@ -470,6 +466,9 @@ public:
  * document and the AnnotationEntities that span over Anchors in this Document.
  */
 class Document : public Node {
+
+friend AnnotationEntity;
+
 private:
 	// TODO: Might there be several roots? E.g. metadata?
 	Owned<StructuredEntity> root;
@@ -508,21 +507,6 @@ public:
 	const NodeVector<AnnotationEntity> &getAnnotations() const
 	{
 		return annotations;
-	}
-
-	/**
-	 * Adds an AnnotationEntity to this document. The Anchors used as start and
-	 * end of this AnnotationEntity have to be part of this document.
-	 */
-	void addAnnotation(Handle<AnnotationEntity> a) { annotations.push_back(a); }
-	/**
-	 * Adds multiple AnnotationEntities to this document. The Anchors used as
-	 * start and end of these AnnotationEntities have to be part of this
-	 * document.
-	 */
-	void addAnnotations(const std::vector<Handle<AnnotationEntity>> &as)
-	{
-		annotations.insert(annotations.end(), as.begin(), as.end());
 	}
 
 	/**

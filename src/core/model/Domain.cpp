@@ -26,7 +26,47 @@
 namespace ousia {
 namespace model {
 
+template <class T>
+static void checkUniqueName(Handle<Node> parent, NodeVector<T> vec,
+                            Handle<T> child,
+                            const std::string &parentClassName,
+                            const std::string &childClassName)
+{
+	std::set<std::string> childNames;
+	for (auto &c : vec) {
+		childNames.insert(c->getName());
+	}
+	if (childNames.find(child->getName()) != childNames.end()) {
+		throw OusiaException(std::string("The ") + parentClassName + " " +
+		                     parent->getName() + " already has a " +
+		                     childClassName + " with name " + child->getName());
+	}
+}
+
 /* Class FieldDescriptor */
+
+FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
+                                 Handle<Type> primitiveType, std::string name,
+                                 bool optional)
+    : Node(mgr, std::move(name), parent),
+      children(this),
+      fieldType(FieldType::PRIMITIVE),
+      primitiveType(acquire(primitiveType)),
+      optional(optional)
+{
+	parent->addFieldDescriptor(this);
+}
+
+FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
+                                 FieldType fieldType, std::string name,
+                                 bool optional)
+    : Node(mgr, std::move(name), parent),
+      children(this),
+      fieldType(fieldType),
+      optional(optional)
+{
+	parent->addFieldDescriptor(this);
+}
 
 /* Class Descriptor */
 
@@ -39,6 +79,13 @@ void Descriptor::continueResolve(ResolutionState &state)
 	}
 	continueResolveComposita(fieldDescriptors, fieldDescriptors.getIndex(),
 	                         state);
+}
+
+void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd)
+{
+	checkUniqueName(this, fieldDescriptors, fd, "Descriptor",
+	                "FieldDescriptor");
+	fieldDescriptors.push_back(fd);
 }
 
 std::vector<Rooted<Node>> Descriptor::pathTo(
@@ -111,8 +158,8 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 	if (isa(RttiTypes::StructuredClass)) {
 		const StructuredClass *tis = static_cast<const StructuredClass *>(this);
 		/*
-		 * if this is a StructuredClass, we can also use the super class (at
-		 * least for fields that are not overridden)
+		 * if this is a StructuredClass, we can also use the super class
+		 * (at least for fields that are not overridden)
 		 */
 		if (exploreSuperclass && !tis->getIsA().isNull()) {
 			// copy the path.
@@ -148,6 +195,60 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 	return found;
 }
 
+void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd)
+{
+	if (fd->getFieldType() == FieldDescriptor::FieldType::PRIMITIVE) {
+		/*
+		 *To call the "new" operation is enough here, because the
+		 * constructor will add the newly constructed FieldDescriptor to this
+		 * Descriptor automatically.
+		 */
+		new FieldDescriptor(getManager(), this,
+		                                       fd->getPrimitiveType(),
+		                                       fd->getName(), fd->optional);
+	} else {
+		new FieldDescriptor(getManager(), this,
+		                                       fd->getFieldType(),
+		                                       fd->getName(), fd->optional);
+	}
+}
+
+/* Class StructuredClass */
+
+StructuredClass::StructuredClass(Manager &mgr, std::string name,
+                                 Handle<Domain> domain,
+                                 const Cardinality &cardinality,
+                                 Handle<StructType> attributesDescriptor,
+                                 Handle<StructuredClass> isa, bool transparent,
+                                 bool root)
+    : Descriptor(mgr, std::move(name), domain, attributesDescriptor),
+      cardinality(cardinality),
+      isa(acquire(isa)),
+      subclasses(this),
+      transparent(transparent),
+      root(root)
+{
+	if (!isa.isNull()) {
+		isa->subclasses.push_back(this);
+	}
+	if (!domain.isNull()) {
+		domain->addStructuredClass(this);
+	}
+}
+
+/* Class AnnotationClass */
+
+AnnotationClass::AnnotationClass(
+    Manager &mgr, std::string name, Handle<Domain> domain,
+    // TODO: What would be a wise default value for attributes?
+    Handle<StructType> attributesDescriptor)
+    : Descriptor(mgr, std::move(name), domain, attributesDescriptor)
+{
+	if (!domain.isNull()) {
+		domain->addAnnotationClass(this);
+	}
+}
+
 /* Class Domain */
 
 void Domain::continueResolve(ResolutionState &state)
@@ -158,6 +259,18 @@ void Domain::continueResolve(ResolutionState &state)
 	                             annotationClasses.getIndex(), state)) {
 		continueResolveReferences(typesystems, state);
 	}
+}
+
+void Domain::addStructuredClass(Handle<StructuredClass> s)
+{
+	checkUniqueName(this, structuredClasses, s, "Domain", "StructuredClass");
+	structuredClasses.push_back(s);
+}
+
+void Domain::addAnnotationClass(Handle<AnnotationClass> a)
+{
+	checkUniqueName(this, annotationClasses, a, "Domain", "AnnotationClass");
+	annotationClasses.push_back(a);
 }
 }
 /* Type registrations */

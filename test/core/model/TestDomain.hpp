@@ -44,40 +44,37 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	// Set up the "book" node.
 	Rooted<StructuredClass> book{new StructuredClass(
 	    mgr, "book", domain, single, {nullptr}, {nullptr}, false, true)};
-	domain->addStructuredClass(book);
+
 	// The structure field of it.
 	Rooted<FieldDescriptor> book_field{new FieldDescriptor(mgr, book)};
-	book->addFieldDescriptor(book_field);
 
 	// From there on the "section".
 	Rooted<StructuredClass> section{
 	    new StructuredClass(mgr, "section", domain, any)};
 	book_field->addChild(section);
-	domain->addStructuredClass(section);
+
 	// And the field of it.
 	Rooted<FieldDescriptor> section_field{new FieldDescriptor(mgr, section)};
-	section->addFieldDescriptor(section_field);
 
 	// We also add the "paragraph", which is transparent.
 	Rooted<StructuredClass> paragraph{new StructuredClass(
 	    mgr, "paragraph", domain, any, {nullptr}, {nullptr}, true)};
 	section_field->addChild(paragraph);
 	book_field->addChild(paragraph);
-	domain->addStructuredClass(paragraph);
+
 	// And the field of it.
 	Rooted<FieldDescriptor> paragraph_field{
 	    new FieldDescriptor(mgr, paragraph)};
-	paragraph->addFieldDescriptor(paragraph_field);
 
 	// We append "subsection" to section.
 	Rooted<StructuredClass> subsection{
 	    new StructuredClass(mgr, "subsection", domain, any)};
 	section_field->addChild(subsection);
-	domain->addStructuredClass(subsection);
+
 	// And the field of it.
 	Rooted<FieldDescriptor> subsection_field{
 	    new FieldDescriptor(mgr, subsection)};
-	subsection->addFieldDescriptor(subsection_field);
+
 	// and we add the paragraph to subsections fields
 	subsection_field->addChild(paragraph);
 
@@ -85,12 +82,11 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	Rooted<StructuredClass> text{new StructuredClass(
 	    mgr, "text", domain, any, {nullptr}, {nullptr}, true)};
 	paragraph_field->addChild(text);
-	domain->addStructuredClass(text);
+
 	// ... and has a primitive field.
 	Rooted<FieldDescriptor> text_field{new FieldDescriptor(
 	    mgr, text, domain->getTypesystems()[0]->getTypes()[0], "content",
 	    false)};
-	text->addFieldDescriptor(text_field);
 
 	return domain;
 }
@@ -98,4 +94,3 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 }
 
 #endif /* _TEST_DOMAIN_HPP_ */
-

@@ -58,7 +58,8 @@ int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName,
 		}
 	}
 	if (enforce) {
-		throw OusiaException("No field for the given name exists!");
+		throw OusiaException(descriptor->getName() +
+		                     " has no field with name " + fieldName);
 	} else {
 		return -1;
 	}
@@ -80,13 +81,25 @@ int DocumentEntity::getFieldDescriptorIndex(
 		f++;
 	}
 	if (enforce) {
-		throw OusiaException(
-		    "The given FieldDescriptor is not specified in the Descriptor of "
-		    "this "
-		    "node.");
+		throw OusiaException(descriptor->getName() +
+		                     " has no field with name " +
+		                     fieldDescriptor->getName());
 	} else {
 		return -1;
 	}
+}
+
+/* Class AnnotationEntity */
+
+AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
+                 Handle<AnnotationClass> descriptor, Handle<Anchor> start,
+                 Handle<Anchor> end, Variant attributes, std::string name)
+    : Node(mgr, std::move(name), parent),
+      DocumentEntity(this, descriptor, attributes),
+      start(acquire(start)),
+      end(acquire(end))
+{
+	parent->annotations.push_back(this);
 }
 
 /* Class Document */
@@ -109,8 +122,7 @@ const Rtti<model::Document> Document =
 const Rtti<model::StructureNode> StructureNode =
     RttiBuilder("StructureNode").parent(&Node);
 const Rtti<model::AnnotationEntity> AnnotationEntity =
-    RttiBuilder("AnnotationEntity").parent(&Node).composedOf(
-        &StructureNode);
+    RttiBuilder("AnnotationEntity").parent(&Node).composedOf(&StructureNode);
 const Rtti<model::StructuredEntity> StructuredEntity =
     RttiBuilder("StructuredEntity").parent(&StructureNode).composedOf(
         {&StructureNode});

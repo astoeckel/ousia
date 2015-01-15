@@ -292,14 +292,7 @@ public:
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
 	                Handle<Type> primitiveType, std::string name = "",
-	                bool optional = false)
-	    : Node(mgr, std::move(name), parent),
-	      children(this),
-	      fieldType(FieldType::PRIMITIVE),
-	      primitiveType(acquire(primitiveType)),
-	      optional(optional)
-	{
-	}
+	                bool optional = false);
 
 	/**
 	 * This is the constructor for non-primitive fields. You have to provide
@@ -318,13 +311,7 @@ public:
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
 	                FieldType fieldType = FieldType::TREE,
-	                std::string name = "", bool optional = false)
-	    : Node(mgr, std::move(name), parent),
-	      children(this),
-	      fieldType(fieldType),
-	      optional(optional)
-	{
-	}
+	                std::string name = "", bool optional = false);
 
 	/**
 	 * Returns a const reference to the NodeVector of StructuredClasses whose
@@ -389,6 +376,9 @@ public:
  *
  */
 class Descriptor : public Node {
+
+friend FieldDescriptor;
+
 private:
 	Owned<StructType> attributesDescriptor;
 	NodeVector<FieldDescriptor> fieldDescriptors;
@@ -401,6 +391,11 @@ private:
 
 protected:
 	void continueResolve(ResolutionState &state) override;
+	
+	/**
+	 * Adds a FieldDescriptor and checks for name uniqueness.
+	 */
+	void addFieldDescriptor(Handle<FieldDescriptor> fd);
 
 public:
 	Descriptor(Manager &mgr, std::string name, Handle<Domain> domain,
@@ -436,20 +431,11 @@ public:
 	}
 
 	/**
-	 * Adds a FieldDescriptor to this Descriptor.
+	 * Copies a FieldDescriptor that belongs to another Descriptor to this
+	 * Descriptor. This will throw an exception if a FieldDescriptor with the
+	 * given name already exists.
 	 */
-	void addFieldDescriptor(Handle<FieldDescriptor> fd)
-	{
-		fieldDescriptors.push_back(fd);
-	}
-
-	/**
-	 * Adds multiple FieldDescriptors to this Descriptor.
-	 */
-	void addFieldDescriptors(const std::vector<Handle<FieldDescriptor>> &fds)
-	{
-		fieldDescriptors.insert(fieldDescriptors.end(), fds.begin(), fds.end());
-	}
+	void copyFieldDescriptor(Handle<FieldDescriptor> fd);
 
 	/**
 	 * This tries to construct the shortest possible path of this Descriptor
@@ -600,18 +586,7 @@ public:
 	                Handle<StructType> attributesDescriptor = nullptr,
 	                // TODO: What would be a wise default value for isa?
 	                Handle<StructuredClass> isa = nullptr,
-	                bool transparent = false, bool root = false)
-	    : Descriptor(mgr, std::move(name), domain, attributesDescriptor),
-	      cardinality(cardinality),
-	      isa(acquire(isa)),
-	      subclasses(this),
-	      transparent(transparent),
-	      root(root)
-	{
-		if (!isa.isNull()) {
-			isa->subclasses.push_back(this);
-		}
-	}
+	                bool transparent = false, bool root = false);
 
 	/**
 	 * Returns the Cardinality of this StructuredClass (as a RangeSet).
@@ -672,10 +647,7 @@ public:
 	 */
 	AnnotationClass(Manager &mgr, std::string name, Handle<Domain> domain,
 	                // TODO: What would be a wise default value for attributes?
-	                Handle<StructType> attributesDescriptor)
-	    : Descriptor(mgr, std::move(name), domain, attributesDescriptor)
-	{
-	}
+	                Handle<StructType> attributesDescriptor = nullptr);
 };
 
 /**
@@ -684,6 +656,10 @@ public:
  * to certain Structures?
  */
 class Domain : public Node {
+
+friend StructuredClass;
+friend AnnotationClass;
+
 private:
 	NodeVector<StructuredClass> structuredClasses;
 	NodeVector<AnnotationClass> annotationClasses;
@@ -693,6 +669,9 @@ private:
 
 protected:
 	void continueResolve(ResolutionState &state) override;
+
+	void addStructuredClass(Handle<StructuredClass> s);
+	void addAnnotationClass(Handle<AnnotationClass> a);
 
 public:
 	/**
@@ -726,22 +705,6 @@ public:
 	}
 
 	/**
-	 * Adds a StructuredClass to this Domain.
-	 */
-	void addStructuredClass(Handle<StructuredClass> s)
-	{
-		structuredClasses.push_back(s);
-	}
-
-	/**
-	 * Adds multiple StructuredClasses to this Domain.
-	 */
-	void addStructuredClasses(const std::vector<Handle<StructuredClass>> &ss)
-	{
-		structuredClasses.insert(structuredClasses.end(), ss.begin(), ss.end());
-	}
-
-	/**
 	 * Returns a const reference to the NodeVector of AnnotationClasses that are
 	 * part of this Domain.
 	 *
@@ -751,22 +714,6 @@ public:
 	const NodeVector<AnnotationClass> &getAnnotationClasses() const
 	{
 		return annotationClasses;
-	}
-
-	/**
-	 * Adds an AnnotationClass to this Domain.
-	 */
-	void addAnnotationClass(Handle<AnnotationClass> a)
-	{
-		annotationClasses.push_back(a);
-	}
-
-	/**
-	 * Adds multiple AnnotationClasses to this Domain.
-	 */
-	void addAnnotationClasses(const std::vector<Handle<AnnotationClass>> &as)
-	{
-		annotationClasses.insert(annotationClasses.end(), as.begin(), as.end());
 	}
 
 	/**

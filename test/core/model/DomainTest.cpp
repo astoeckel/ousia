@@ -158,55 +158,55 @@ TEST(Descriptor, pathToAdvanced)
 	// Let's create the classes that we need first
 	Rooted<StructuredClass> A{new StructuredClass(
 	    mgr, "A", domain, any, {nullptr}, {nullptr}, false, true)};
-	domain->addStructuredClass(A);
+
 	Rooted<StructuredClass> start{new StructuredClass(
 	    mgr, "start", domain, any, {nullptr}, A, false, false)};
-	domain->addStructuredClass(start);
+
 	Rooted<StructuredClass> B{new StructuredClass(
 	    mgr, "B", domain, any, {nullptr}, {nullptr}, true, false)};
-	domain->addStructuredClass(B);
+
 	Rooted<StructuredClass> C{
 	    new StructuredClass(mgr, "C", domain, any, {nullptr}, B, true, false)};
-	domain->addStructuredClass(C);
+
 	Rooted<StructuredClass> D{new StructuredClass(
 	    mgr, "D", domain, any, {nullptr}, {nullptr}, true, false)};
-	domain->addStructuredClass(D);
+
 	Rooted<StructuredClass> E{new StructuredClass(
 	    mgr, "E", domain, any, {nullptr}, {nullptr}, true, false)};
-	domain->addStructuredClass(E);
+
 	Rooted<StructuredClass> target{
 	    new StructuredClass(mgr, "target", domain, any)};
-	domain->addStructuredClass(target);
+
 	// We create two fields for A
 	Rooted<FieldDescriptor> A_field{new FieldDescriptor(mgr, A)};
-	A->addFieldDescriptor(A_field);
+
 	A_field->addChild(target);
 	Rooted<FieldDescriptor> A_field2{new FieldDescriptor(
 	    mgr, A, FieldDescriptor::FieldType::SUBTREE, "second")};
-	A->addFieldDescriptor(A_field2);
+
 	A_field2->addChild(B);
 	// We create no field for B
 	// One for C
 	Rooted<FieldDescriptor> C_field{new FieldDescriptor(mgr, C)};
-	C->addFieldDescriptor(C_field);
+
 	C_field->addChild(target);
 	// one for start
 	Rooted<FieldDescriptor> start_field{new FieldDescriptor(mgr, start)};
-	start->addFieldDescriptor(start_field);
+
 	start_field->addChild(D);
 	// One for D
 	Rooted<FieldDescriptor> D_field{new FieldDescriptor(mgr, D)};
-	D->addFieldDescriptor(D_field);
+
 	D_field->addChild(E);
 	// One for E
 	Rooted<FieldDescriptor> E_field{new FieldDescriptor(mgr, E)};
-	E->addFieldDescriptor(E_field);
+
 	E_field->addChild(target);
-	
-	#ifdef MANAGER_GRAPHVIZ_EXPORT
-		// dump the manager state
-		mgr.exportGraphviz("nastyDomain.dot");
-	#endif
+
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+	// dump the manager state
+	mgr.exportGraphviz("nastyDomain.dot");
+#endif
 
 	// and now we should be able to find the shortest path as suggested
 	std::vector<Rooted<Node>> path = start->pathTo(target);

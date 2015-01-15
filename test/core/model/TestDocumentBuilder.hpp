@@ -295,8 +295,6 @@ Rooted<AnnotationEntity> buildAnnotationEntity(
 	Rooted<AnnotationEntity> anno{new AnnotationEntity(
 	    document->getManager(), document, descriptor.cast<AnnotationClass>(),
 	    start, end, attributes, name)};
-	// append the new entity to the document
-	document->addAnnotation(anno);
 	// and return it.
 	return anno;
 }

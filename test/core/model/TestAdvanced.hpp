@@ -58,11 +58,9 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 	// set up heading StructuredClass.
 	Rooted<StructuredClass> heading{new StructuredClass(
 	    mgr, "heading", domain, card, {nullptr}, {nullptr}, true)};
-	// as field we actually want to refer to the field of paragraph.
+	// as field want to copy the field of paragraph.
 	Rooted<StructuredClass> p = resolveDescriptor(bookDomain, "paragraph");
-	heading->addFieldDescriptor(p->getFieldDescriptors()[0]);
-	// add the class to the domain.
-	domain->addStructuredClass(heading);
+	heading->copyFieldDescriptor(p->getFieldDescriptors()[0]);
 	// create a new field for headings in each section type.
 	std::vector<std::string> secclasses{"book", "section", "subsection",
 	                                    "paragraph"};
@@ -71,7 +69,6 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 		Rooted<FieldDescriptor> heading_field{new FieldDescriptor(
 		    mgr, desc, FieldDescriptor::FieldType::SUBTREE, "heading")};
 		heading_field->addChild(heading);
-		desc->addFieldDescriptor(heading_field);
 	}
 	return domain;
 }
@@ -94,9 +91,9 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 	// set up item StructuredClass;
 	Rooted<StructuredClass> item{new StructuredClass(
 	    mgr, "item", domain, any, {nullptr}, {nullptr}, false)};
-	domain->addStructuredClass(item);
-	// as field we actually want to refer to the field of paragraph.
-	item->addFieldDescriptor(p->getFieldDescriptors()[0]);
+
+	// as field we want to copy the field of paragraph.
+	item->copyFieldDescriptor(p->getFieldDescriptors()[0]);
 	// set up list StructuredClasses.
 	std::vector<std::string> listTypes{"ol", "ul"};
 	for (auto &listType : listTypes) {
@@ -104,8 +101,6 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 		    mgr, listType, domain, any, {nullptr}, p, false)};
 		Rooted<FieldDescriptor> list_field{new FieldDescriptor(mgr, list)};
 		list_field->addChild(item);
-		list->addFieldDescriptor(list_field);
-		domain->addStructuredClass(list);
 	}
 	return domain;
 }
@@ -121,11 +116,11 @@ static Rooted<Domain> constructEmphasisDomain(Manager &mgr,
 	Rooted<Domain> domain{new Domain(mgr, sys, "emphasis")};
 	// create AnnotationClasses
 	Rooted<AnnotationClass> em{
-	    new AnnotationClass(mgr, "emphasized", domain, {nullptr})};
-	domain->addAnnotationClass(em);
+	    new AnnotationClass(mgr, "emphasized", domain)};
+
 	Rooted<AnnotationClass> strong{
-	    new AnnotationClass(mgr, "strong", domain, {nullptr})};
-	domain->addAnnotationClass(strong);
+	    new AnnotationClass(mgr, "strong", domain)};
+
 	return domain;
 }
 
@@ -338,4 +333,3 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
 }
 
 #endif /* _TEST_DOCUMENT_HPP_ */
-
