@@ -881,5 +881,23 @@ TEST(Arguments, validateMap)
 		          map);
 	}
 }
+
+TEST(Arguments, validateMissing)
+{
+	Arguments args{Argument::String("a")};
+
+	{
+		Variant::mapType map{};
+		ASSERT_FALSE(args.validateMap(map, logger, false));
+		ASSERT_EQ(Variant::mapType({{"a", ""}}), map);
+	}
+
+	{
+		Variant::arrayType arr{};
+		ASSERT_FALSE(args.validateArray(arr, logger));
+		ASSERT_EQ(Variant::arrayType({""}), arr);
+	}
+}
+
 }
 

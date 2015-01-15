@@ -247,6 +247,7 @@ bool Arguments::validateArray(Variant::arrayType &arr, Logger &logger) const
 				arr[a] = arguments[a].defaultValue;
 			} else {
 				// Call "validate" to inject a standard value
+				arr[a] = Variant::fromObject(nullptr);
 				arguments[a].validate(arr[a], nullLogger);
 				logger.error(std::string("Missing argument ") +
 				             std::to_string(a + 1) + std::string(" \"") +
@@ -302,7 +303,7 @@ bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
 				map[arguments[a].name] = arguments[a].defaultValue;
 			} else {
 				// Call "validate" to inject a standard value
-				map[arguments[a].name] = Variant{};
+				map[arguments[a].name] = Variant::fromObject(nullptr);
 				arguments[a].validate(map[arguments[a].name], nullLogger);
 				logger.error(std::string("Missing argument \"") +
 				             arguments[a].name + std::string("\""));
