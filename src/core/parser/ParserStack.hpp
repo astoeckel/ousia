@@ -260,7 +260,7 @@ private:
 	/**
 	 * Reference at the parser context.
 	 */
-	const ParserContext &ctx;
+	ParserContext &ctx;
 
 	/**
 	 * User specified data that will be passed to all handlers.
@@ -293,10 +293,11 @@ public:
 	/**
 	 * Creates a new instance of the ParserStack class.
 	 *
+	 * @param ctx is the parser context the parser stack is working on.
 	 * @param handlers is a map containing the command names and the
 	 * corresponding HandlerDescriptor instances.
 	 */
-	ParserStack(const ParserContext &ctx,
+	ParserStack(ParserContext &ctx,
 	            const std::multimap<std::string, HandlerDescriptor> &handlers)
 	    : ctx(ctx), handlers(handlers){};
 
@@ -362,6 +363,14 @@ public:
 	 * depends on the format that is being parsed).
 	 */
 	void data(const std::string &data, int field = 0);
+
+	/**
+	 * Returns a reference to the parser context the parser stack is currently
+	 * working on.
+	 *
+	 * @return a reference to the parser context.
+	 */
+	ParserContext& getContext() {return ctx;}
 };
 }
 }
