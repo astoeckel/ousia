@@ -352,29 +352,20 @@ std::vector<ResolutionResult> Node::resolve(const std::string &name,
 	return resolve(std::vector<std::string>{name}, type);
 }
 
-/* Reflection Methods */
-
-static Variant getNodeName(const Node *obj)
-{
-	return Variant::fromString(obj->getName());
-}
-
-static void setNodeName(const Variant &value, Node *obj)
-{
-	obj->setName(value.asString());
-}
-
-static Variant getNodeParent(const Node *obj)
-{
-	return Variant::fromObject(obj->getParent());
-}
-
 /* RTTI type registrations */
 namespace RttiTypes {
 const Rtti<ousia::Node> Node =
     TypedRttiBuilder<ousia::Node>("Node")
-        .property("name", {RttiTypes::String, getNodeName, setNodeName})
-        .property("parent", {Node, getNodeParent});
+        .property("name", {RttiTypes::String,
+                           {[](const ousia::Node *obj) {
+	                           return Variant::fromString(obj->getName());
+	                       }},
+                           {[](const Variant &value, ousia::Node *obj) {
+	                           obj->setName(value.asString());
+	                       }}})
+        .property("parent", {Node, {[](const ousia::Node *obj) {
+	                            return Variant::fromObject(obj->getParent());
+	                        }}});
 }
 }
 
