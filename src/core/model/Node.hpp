@@ -41,7 +41,7 @@ namespace ousia {
 
 // Forward declarations
 class RttiType;
-template<class T>
+template <class T>
 class Rtti;
 
 /**
@@ -82,7 +82,7 @@ struct ResolutionResult {
 };
 
 // Forward declaration
-struct ResolutionState;
+class ResolutionState;
 
 /**
  * The Node class builds the base class for any Node within the DOM graph. A
@@ -219,7 +219,7 @@ protected:
 	 */
 	template <class T>
 	bool continueResolveComposita(T &container, const Index &index,
-			ResolutionState &state)
+	                              ResolutionState &state)
 	{
 		if (continueResolveIndex(index, state)) {
 			return true;
@@ -232,7 +232,7 @@ protected:
 
 	/**
 	 * Tries to search for the requested node in another subtree to which a
-	 * reference exists from this node. 
+	 * reference exists from this node.
 	 *
 	 * @param h is a handle pointing at the node in the subtree.
 	 * @param state is used internally to manage the resolution process.
@@ -243,7 +243,7 @@ protected:
 
 	/**
 	 * Tries to search for the requested node in another subtree to which a
-	 * reference exists from this node. 
+	 * reference exists from this node.
 	 *
 	 * @param h is a handle pointing at the node in the subtree.
 	 * @param state is used internally to manage the resolution process.
@@ -378,9 +378,8 @@ class NodeVector
     : public ManagedGenericList<T, std::vector<Handle<T>>,
                                 ListAccessor<Handle<T>>, Listener> {
 public:
-	using Base = ManagedGenericList<T, std::vector<Handle<T>>,
-	                                ListAccessor<Handle<T>>, Listener>;
-	using Base::ManagedGenericList;
+	using ManagedGenericList<T, std::vector<Handle<T>>, ListAccessor<Handle<T>>,
+	                         Listener>::ManagedGenericList;
 
 	/**
 	 * Returns the reference to the internal index.
@@ -391,7 +390,6 @@ public:
 	 * Returns the reference to the internal index.
 	 */
 	Index &getIndex() { return this->listener; }
-
 };
 
 /**
@@ -410,10 +408,9 @@ class NodeMap
     : public ManagedGenericMap<K, T, std::map<K, Handle<T>>,
                                MapAccessor<std::pair<K, Handle<T>>>, Listener> {
 public:
-	using Base =
-	    ManagedGenericMap<K, T, std::map<K, Handle<T>>,
-	                      MapAccessor<std::pair<K, Handle<T>>>, Listener>;
-	using Base::ManagedGenericMap;
+	using ManagedGenericMap<K, T, std::map<K, Handle<T>>,
+	                        MapAccessor<std::pair<K, Handle<T>>>,
+	                        Listener>::ManagedGenericMap;
 
 	/**
 	 * Returns the reference to the internal index.

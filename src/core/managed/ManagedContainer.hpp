@@ -552,8 +552,7 @@ public:
 	/* Insert and delete operations */
 
 	template <class InputIterator>
-	iterator insert(iterator position, InputIterator first,
-	                InputIterator last)
+	iterator insert(iterator position, InputIterator first, InputIterator last)
 	{
 		bool atStart = true;
 		iterator pos = position;
@@ -680,9 +679,8 @@ class ManagedVector
     : public ManagedGenericList<T, std::vector<Handle<T>>,
                                 ListAccessor<Handle<T>>, Listener> {
 public:
-	using Base = ManagedGenericList<T, std::vector<Handle<T>>,
-	                                ListAccessor<Handle<T>>, Listener>;
-	using Base::ManagedGenericList;
+	using ManagedGenericList<T, std::vector<Handle<T>>, ListAccessor<Handle<T>>,
+	                         Listener>::ManagedGenericList;
 };
 
 /**
@@ -694,10 +692,9 @@ class ManagedMap
     : public ManagedGenericMap<K, T, std::map<K, Handle<T>>,
                                MapAccessor<std::pair<K, Handle<T>>>, Listener> {
 public:
-	using Base =
-	    ManagedGenericMap<K, T, std::map<K, Handle<T>>,
-	                      MapAccessor<std::pair<K, Handle<T>>>, Listener>;
-	using Base::ManagedGenericMap;
+	using ManagedGenericMap<K, T, std::map<K, Handle<T>>,
+	                        MapAccessor<std::pair<K, Handle<T>>>,
+	                        Listener>::ManagedGenericMap;
 };
 }
 

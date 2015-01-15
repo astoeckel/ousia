@@ -318,7 +318,7 @@ void Manager::sweep()
 
 			// Perform a breadth-first search starting from the current Managed
 			bool isReachable = false;
-			std::unordered_set<Managed *> visited{{curManaged}};
+			std::unordered_set<Managed *> visited{curManaged};
 			std::queue<Managed *> queue{{curManaged}};
 			while (!queue.empty() && !isReachable) {
 				// Pop the next element from the queue, remove the element from

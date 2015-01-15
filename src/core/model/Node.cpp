@@ -36,8 +36,8 @@ namespace ousia {
 struct VisitorHash {
 	size_t operator()(const std::pair<const Node *, int> &p) const
 	{
-		const std::hash<const Node *> nodeHash;
-		const std::hash<int> intHash;
+		std::hash<const Node *> nodeHash;
+		std::hash<int> intHash;
 		return nodeHash(p.first) + 37 * intHash(p.second);
 	}
 };

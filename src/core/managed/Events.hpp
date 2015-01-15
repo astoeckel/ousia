@@ -84,7 +84,8 @@ using EventHandler = void (*)(const Event &event, Managed *owner, void *data);
  * The Event class and its child classes are responsible for containing the
  * actual event data which further describes the event to the event handlers.
  */
-struct Event {
+class Event {
+public:
 	/**
 	 * Actual event type.
 	 */
