@@ -203,7 +203,6 @@ Rooted<xml::Element> DemoHTMLTransformer::transformList(
 	return l;
 }
 
-typedef model::AnnotationEntity::Anchor Anchor;
 typedef std::stack<Rooted<model::AnnotationEntity>> AnnoStack;
 
 static Rooted<xml::Element> openAnnotation(
@@ -262,7 +261,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 	// this is a handle for our current XML element for annotation handling.
 	Rooted<xml::Element> current = p;
 	for (auto &n : par->getField()) {
-		if (n->isa(typeOf<Anchor>())) {
+		if (n->isa(RttiTypes::Anchor)) {
 			// check if this is a start Anchor.
 			// here we assume, again, that the ids/names of anchors are unique.
 			auto it = startMap.find(n->getName());

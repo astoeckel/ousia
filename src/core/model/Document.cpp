@@ -89,11 +89,38 @@ int DocumentEntity::getFieldDescriptorIndex(
 	}
 }
 
+/* Class StructureNode */
+
+StructureNode::StructureNode(Manager &mgr, std::string name,
+                             Handle<Node> parent, const std::string &fieldName)
+    : Node(mgr, std::move(name), parent)
+{
+	if(parent->isa(RttiTypes::StructuredEntity)){
+		parent.cast<StructuredEntity>()->addStructureNode(this, fieldName);
+	} else if(parent->isa(RttiTypes::AnnotationEntity)){
+		parent.cast<AnnotationEntity>()->addStructureNode(this, fieldName);
+	} else{
+		throw OusiaException("The proposed parent was no DocumentEntity!");
+	}
+}
+
+/* Class StructuredEntity */
+
+StructuredEntity::StructuredEntity(Manager &mgr, Handle<Document> doc,
+                                   Handle<StructuredClass> descriptor,
+                                   Variant attributes, std::string name)
+    : StructureNode(mgr, std::move(name), doc),
+      DocumentEntity(this, descriptor, std::move(attributes))
+{
+	doc->setRoot(this);
+}
+
 /* Class AnnotationEntity */
 
 AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
-                 Handle<AnnotationClass> descriptor, Handle<Anchor> start,
-                 Handle<Anchor> end, Variant attributes, std::string name)
+                                   Handle<AnnotationClass> descriptor,
+                                   Handle<Anchor> start, Handle<Anchor> end,
+                                   Variant attributes, std::string name)
     : Node(mgr, std::move(name), parent),
       DocumentEntity(this, descriptor, attributes),
       start(acquire(start)),
@@ -121,15 +148,15 @@ const Rtti<model::Document> Document =
         {&AnnotationEntity, &StructuredEntity});
 const Rtti<model::StructureNode> StructureNode =
     RttiBuilder("StructureNode").parent(&Node);
-const Rtti<model::AnnotationEntity> AnnotationEntity =
-    RttiBuilder("AnnotationEntity").parent(&Node).composedOf(&StructureNode);
 const Rtti<model::StructuredEntity> StructuredEntity =
     RttiBuilder("StructuredEntity").parent(&StructureNode).composedOf(
-        {&StructureNode});
+        {&StructuredEntity, &DocumentPrimitive, &Anchor});
 const Rtti<model::DocumentPrimitive> DocumentPrimitive =
     RttiBuilder("DocumentPrimitive").parent(&StructureNode);
-const Rtti<model::AnnotationEntity::Anchor> Anchor =
-    RttiBuilder("Anchor").parent(&StructureNode);
+const Rtti<model::Anchor> Anchor = RttiBuilder("Anchor").parent(&StructureNode);
+const Rtti<model::AnnotationEntity> AnnotationEntity =
+    RttiBuilder("AnnotationEntity").parent(&Node).composedOf(
+        {&StructuredEntity, &DocumentPrimitive, &Anchor});
 }
 }
 

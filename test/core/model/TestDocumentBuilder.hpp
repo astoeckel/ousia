@@ -107,8 +107,6 @@ Rooted<StructuredEntity> buildRootStructuredEntity(Handle<Document> document,
 	Rooted<StructuredEntity> root{new StructuredEntity(
 	    document->getManager(), document, descriptor.cast<StructuredClass>(),
 	    attributes, std::move(name))};
-	// append it to the document.
-	document->setRoot(root);
 	// and return it.
 	return root;
 }
@@ -162,94 +160,12 @@ Rooted<StructuredEntity> buildStructuredEntity(
 	// Then construct the StructuredEntity itself.
 	Rooted<StructuredEntity> entity{new StructuredEntity(
 	    parent->getManager(), parent, descriptor.cast<StructuredClass>(),
-	    attributes, std::move(name))};
-	// if the field does not exist, return null handle as well.
-	if (!parent->hasField(fieldName)) {
-		logger.error(std::string("The parent has no field of the name ") +
-		             fieldName + "!");
-		return {nullptr};
-	}
-	parent->addStructureNode(entity, fieldName);
+	    attributes, fieldName, std::move(name))};
 
 	// and return it.
 	return entity;
 }
 
-/**
- * This builds a DocumentPrimitive as child of the given DocumentEntity. It
- * automatically appends the newly build entity to its parent.
- *
- * @param logger     is the current logger.
- * @param parent     is the parent DocumentEntity. The newly constructed
- *                   DocumentPrimitive will automatically be appended to it.
- * @param content    is the primitive content of the new node in terms of a
- *                   Struct variant.
- * @param fieldName  is the name of the field where the newly constructed
- *                   StructuredEntity shall be appended.
- *
- * @return           the newly created DocumentPrimitive or a nullptr if some
- *                   input handle was empty.
- */
-Rooted<DocumentPrimitive> buildPrimitiveEntity(
-    Logger &logger, Handle<StructuredEntity> parent, Variant content = {},
-    const std::string &fieldName = "")
-{
-	// If the input handles are not set, we can not build the entity.
-	if (parent == nullptr) {
-		logger.error("The input parent handle was null!");
-		return {nullptr};
-	}
-	// Then construct the StructuredEntity itself.
-	Rooted<DocumentPrimitive> entity{
-	    new DocumentPrimitive(parent->getManager(), parent, content)};
-	// if the field does not exist, return null handle as well.
-	if (!parent->hasField(fieldName)) {
-		logger.error(std::string("The parent has no field of the name ") +
-		             fieldName + "!");
-		return {nullptr};
-	}
-	parent->addStructureNode(entity, fieldName);
-	// and return it.
-	return entity;
-}
-
-/**
- * This builds an Anchor as child of the given DocumentEntity. It
- * automatically appends the newly build Anchor to its parent.
- *
- * @param logger     is the current logger.
- * @param parent     is the parent DocumentEntity. The newly constructed
- *                   Anchor will automatically be appended to it.
- * @param id         is the id of this Anchor.
- * @param fieldName  is the name of the field where the newly constructed
- *                   Anchor shall be appended.
- *
- * @return           the newly created Anchor or a nullptr if some
- *                   input handle was empty.
- */
-Rooted<AnnotationEntity::Anchor> buildAnchor(Logger &logger,
-                                             Handle<StructuredEntity> parent,
-                                             std::string id,
-                                             const std::string &fieldName = "")
-{
-	// If the parent is not set, we can not build the anchor.
-	if (parent == nullptr) {
-		logger.error("The input parent handle was null!");
-		return {nullptr};
-	}
-	// Then construct the Anchor itself
-	Rooted<AnnotationEntity::Anchor> anchor{
-	    new AnnotationEntity::Anchor(parent->getManager(), id, parent)};
-	// append the new entity to the right field.
-	if (!parent->hasField(fieldName)) {
-		logger.error(std::string("The parent has no field of the name ") +
-		             fieldName + "!");
-		return {nullptr};
-	}
-	parent->addStructureNode(anchor, fieldName);
-	// and return it.
-	return anchor;
-}
 /**
  * This builds an AnnotationEntity as child of the given Document. It
  * automatically appends the newly build entity to its parent.
@@ -271,8 +187,8 @@ Rooted<AnnotationEntity::Anchor> buildAnchor(Logger &logger,
  */
 Rooted<AnnotationEntity> buildAnnotationEntity(
     Handle<Document> document, Logger &logger, const Path &path,
-    Handle<AnnotationEntity::Anchor> start,
-    Handle<AnnotationEntity::Anchor> end, Variant attributes = {},
+    Handle<Anchor> start,
+    Handle<Anchor> end, Variant attributes = {},
     std::string name = "")
 {
 	// If the input handles are not set, we can not build the entity.

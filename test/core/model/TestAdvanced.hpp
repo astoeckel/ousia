@@ -115,11 +115,9 @@ static Rooted<Domain> constructEmphasisDomain(Manager &mgr,
 	// set up domain node.
 	Rooted<Domain> domain{new Domain(mgr, sys, "emphasis")};
 	// create AnnotationClasses
-	Rooted<AnnotationClass> em{
-	    new AnnotationClass(mgr, "emphasized", domain)};
+	Rooted<AnnotationClass> em{new AnnotationClass(mgr, "emphasized", domain)};
 
-	Rooted<AnnotationClass> strong{
-	    new AnnotationClass(mgr, "strong", domain)};
+	Rooted<AnnotationClass> strong{new AnnotationClass(mgr, "strong", domain)};
 
 	return domain;
 }
@@ -135,12 +133,8 @@ static bool addText(Logger &logger, Handle<Document> doc,
 	}
 	// And the primitive content
 	Variant content_var{content.c_str()};
-	Rooted<DocumentPrimitive> primitive =
-	    buildPrimitiveEntity(logger, text, content_var, "content");
-	if (primitive.isNull()) {
-		return false;
-	}
-
+	Rooted<DocumentPrimitive> primitive{new DocumentPrimitive(
+	    parent->getManager(), text, content_var, "content")};
 	return true;
 }
 
@@ -167,19 +161,12 @@ static bool addAnnotation(Logger &logger, Handle<Document> doc,
                           Handle<StructuredEntity> parent,
                           const std::string &text, const std::string &annoClass)
 {
-	Rooted<AnnotationEntity::Anchor> start =
-	    buildAnchor(logger, parent, std::to_string(annoIdx++));
-	if (start.isNull()) {
-		return false;
-	}
+	Manager& mgr = parent->getManager();
+	Rooted<Anchor> start{new Anchor(mgr, std::to_string(annoIdx++), parent)};
 	if (!addText(logger, doc, parent, text)) {
 		return false;
 	}
-	Rooted<AnnotationEntity::Anchor> end =
-	    buildAnchor(logger, parent, std::to_string(annoIdx++));
-	if (end.isNull()) {
-		return false;
-	}
+	Rooted<Anchor> end{new Anchor(mgr, std::to_string(annoIdx++), parent)};
 	Rooted<AnnotationEntity> anno =
 	    buildAnnotationEntity(doc, logger, {annoClass}, start, end);
 	if (anno.isNull()) {
@@ -191,7 +178,6 @@ static bool addAnnotation(Logger &logger, Handle<Document> doc,
 /**
  * This constructs a more advanced book document using not only the book
  * domain but also headings, emphasis and lists.
- * TODO: insert emphasis and lists.
  */
 static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
                                                   Handle<Domain> bookDom,

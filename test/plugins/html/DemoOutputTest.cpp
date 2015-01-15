@@ -55,7 +55,7 @@ TEST(DemoHTMLTransformer, writeHTML)
 	ASSERT_TRUE(doc != nullptr);
 
 #ifdef MANAGER_GRAPHVIZ_EXPORT
-	// dump the manager state
+// dump the manager state
 // 	mgr.exportGraphviz("bookDocument.dot");
 #endif
 
@@ -93,30 +93,20 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	Rooted<model::StructuredEntity> p =
 	    buildStructuredEntity(doc, logger, book, {"paragraph"});
 	ASSERT_TRUE(p != nullptr);
-	Rooted<model::AnnotationEntity::Anchor> em_start =
-	    buildAnchor(logger, p, "1");
-	ASSERT_TRUE(em_start != nullptr);
+	Rooted<model::Anchor> em_start{new model::Anchor(mgr, "1", p)};
 	ASSERT_TRUE(addText(logger, doc, p, "bla"));
-	Rooted<model::AnnotationEntity::Anchor> strong_start =
-	    buildAnchor(logger, p, "2");
-	ASSERT_TRUE(strong_start != nullptr);
+	Rooted<model::Anchor> strong_start{new model::Anchor(mgr, "2", p)};
 	ASSERT_TRUE(addText(logger, doc, p, "blub"));
-	Rooted<model::AnnotationEntity::Anchor> em_end =
-	    buildAnchor(logger, p, "3");
-	ASSERT_TRUE(em_end != nullptr);
+	Rooted<model::Anchor> em_end{new model::Anchor(mgr, "3", p)};
 	ASSERT_TRUE(addText(logger, doc, p, "bla"));
-	Rooted<model::AnnotationEntity::Anchor> strong_end =
-	    buildAnchor(logger, p, "4");
-	ASSERT_TRUE(strong_end != nullptr);
+	Rooted<model::Anchor> strong_end{new model::Anchor(mgr, "4", p)};
 	buildAnnotationEntity(doc, logger, {"emphasized"}, em_start, em_end);
 	buildAnnotationEntity(doc, logger, {"strong"}, strong_start, strong_end);
 
-
 #ifdef MANAGER_GRAPHVIZ_EXPORT
-	// dump the manager state
+// dump the manager state
 // 	mgr.exportGraphviz("annotationDocument.dot");
 #endif
-
 
 	// Check serialization.
 	DemoHTMLTransformer transformer;
