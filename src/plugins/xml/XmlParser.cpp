@@ -24,6 +24,7 @@
 #include <core/common/CharReader.hpp>
 #include <core/common/Utils.hpp>
 #include <core/parser/ParserStack.hpp>
+#include <core/model/Typesystem.hpp>
 
 #include "XmlParser.hpp"
 
@@ -48,68 +49,123 @@ static const State STATE_CONSTANTS = 202;
 static const State STATE_CONSTANT = 203;
 static const State STATE_ENUM = 204;
 static const State STATE_STRUCT = 205;
-
-class TestHandler : public Handler {
-public:
-	using Handler::Handler;
-
-	void start(const Variant::mapType &args) override
-	{
-		std::cout << this->name << ": start (isChild: " << (this->isChild)
-		          << ", args: " << Variant(args) << ")" << std::endl;
-	}
-
-	void end() override
-	{
-		// TODO
-	}
-
-	void data(const std::string &data, int field) override
-	{
-		std::cout << this->name << ": data \"" << data << "\"" << std::endl;
-	}
-
-	void child(std::shared_ptr<Handler> handler) override
-	{
-		// TODO
-	}
-};
+static const State STATE_FIELD = 206;
 
 class TypesystemHandler : public Handler {
 public:
 	using Handler::Handler;
+
+	void start(Variant::mapType &args) override
+	{
+		scope().push(new model::Typesystem(manager(), args["name"].asString()));
+	}
+
+	void end() override { scope().pop(); }
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new TypesystemHandler{handlerData};
+	}
 };
 
-static Handler *createTestHandler(const ParserContext &ctx, std::string name,
-                                  State state, State parentState, bool isChild)
-{
-	return new TestHandler{ctx, name, state, parentState, isChild};
-}
+class StructHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	std::string name;
+	std::string parent;
+
+	NodeVector<model::Attribute> attributes;
+
+	void start(Variant::mapType &args) override
+	{
+		this->name = args["name"].asString();
+		this->parent = args["parent"].asString();
+	}
+
+	void end() override
+	{
+		// Try to resolve the specified parent structure
+		Rooted<model::StructType> parentStructure;
+		if (!parent.empty()) {
+			// TODO: What about (temporarily) unresolved nodes
+			// Idea: Provide constructor for empty node, store unresolved nodes
+			// in the scope, resolve later
+			parentStructure =
+			    scope()
+			        .resolve(Utils::split(parent, '.'),
+			                 (const RttiType &)RttiTypes::StructType, logger())
+			        .cast<model::StructType>();
+		}
+
+		Rooted<model::Typesystem> typesystem =
+		    scope().getLeaf().cast<model::Typesystem>();
+	}
+
+	void child(std::shared_ptr<Handler> handler)
+	{
+/*		std::shared_ptr<StructFieldHandler> structFieldHandler =
+		    dynamic_cast<StructFieldHandler>(handler);*/
+
+		// Try to resolve
+	}
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new StructHandler{handlerData};
+	}
+};
+
+class StructFieldHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	Rooted<model::Attribute> attribute;
+
+	void start(Variant::mapType &args) override
+	{
+/*		this->name = args["name"].asString();
+		this->type = args["parent"].asString();*/
+	}
+
+	void end() override {}
+};
 
 static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
-    /* Documents */
-    {"document", {{STATE_NONE}, createTestHandler, STATE_DOCUMENT}},
-    {"head", {{STATE_DOCUMENT}, createTestHandler, STATE_HEAD}},
-    {"body", {{STATE_DOCUMENT}, createTestHandler, STATE_BODY, true}},
+    /* Document tags */
+    {"document", {{STATE_NONE}, nullptr, STATE_DOCUMENT}},
+    {"head", {{STATE_DOCUMENT}, nullptr, STATE_HEAD}},
+    {"body", {{STATE_DOCUMENT}, nullptr, STATE_BODY, true}},
 
     /* Special commands */
-    {"use", {{STATE_HEAD}, createTestHandler, STATE_USE}},
-    {"include", {{STATE_ALL}, createTestHandler, STATE_INCLUDE}},
-    {"inline", {{STATE_ALL}, createTestHandler, STATE_INLINE}},
+    {"use", {{STATE_HEAD}, nullptr, STATE_USE}},
+    {"include", {{STATE_ALL}, nullptr, STATE_INCLUDE}},
+    {"inline", {{STATE_ALL}, nullptr, STATE_INLINE}},
 
-    /* Typesystem definitions */
+    /* Typesystem */
     {"typesystem",
      {{STATE_NONE, STATE_HEAD},
-      createTestHandler,
+      TypesystemHandler::create,
       STATE_TYPESYSTEM,
       false,
       {Argument::String("name")}}},
-
-    {"types", {{STATE_TYPESYSTEM}, createTestHandler, STATE_TYPES}},
-    {"constants", {{STATE_TYPESYSTEM}, createTestHandler, STATE_CONSTANTS}},
-    {"enum", {{STATE_TYPES}, createTestHandler, STATE_ENUM}},
-    {"struct", {{STATE_TYPES}, createTestHandler, STATE_STRUCT}},
-    {"constant", {{STATE_CONSTANTS}, createTestHandler, STATE_CONSTANT}}};
+    {"types", {{STATE_TYPESYSTEM}, nullptr, STATE_TYPES}},
+    {"enum", {{STATE_TYPES}, nullptr, STATE_ENUM}},
+    {"struct",
+     {{STATE_TYPES},
+      StructHandler::create,
+      STATE_STRUCT,
+      false,
+      {Argument::String("name"), Argument::String("parent", "")}}},
+    {"field",
+     {{{STATE_STRUCT}},
+      nullptr,
+      STATE_FIELD,
+      false,
+      {Argument::String("name"), Argument::String("type"),
+       Argument::Any("default", Variant::fromObject(nullptr))}}},
+    {"constants", {{STATE_TYPESYSTEM}, nullptr, STATE_CONSTANTS}},
+    {"constant", {{STATE_CONSTANTS}, nullptr, STATE_CONSTANT}}};
 
 /**
  * Wrapper class around the XML_Parser pointer which safely frees it whenever

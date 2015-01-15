@@ -26,13 +26,30 @@
 namespace ousia {
 namespace parser {
 
+/* A default handler */
+
+class DefaultHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	void start(Variant::mapType &args) override {}
+
+	void end() override {}
+};
+
+static Handler *createDefaultHandler(const HandlerData &handlerData)
+{
+	return new DefaultHandler{handlerData};
+}
+
 /* Class Handler */
 
 void Handler::data(const std::string &data, int field)
 {
 	for (auto &c : data) {
 		if (!Utils::isWhitespace(c)) {
-			throw LoggableException{"No data allowed here."};
+			logger().error("Expected command but found character data.");
+			return;
 		}
 	}
 }
@@ -49,7 +66,13 @@ HandlerInstance HandlerDescriptor::create(const ParserContext &ctx,
                                           bool isChild,
                                           Variant::mapType &args) const
 {
-	Handler *h = ctor(ctx, name, targetState, parentState, isChild);
+	Handler *h;
+	HandlerData data{ctx, name, targetState, parentState, isChild};
+	if (ctor) {
+		h = ctor(data);
+	} else {
+		h = createDefaultHandler(data);
+	}
 
 	// Canonicalize the arguments
 	arguments.validateMap(args, ctx.logger, true);
@@ -120,7 +143,8 @@ void ParserStack::start(std::string name, Variant::mapType &args)
 	}
 
 	// Instantiate the handler and call its start function
-	stack.emplace(descr->create(ctx, name, curState, isChild, args));
+	stack.emplace(
+	    descr->create(ctx, name, curState, isChild, args));
 }
 
 void ParserStack::start(std::string name, const Variant::mapType &args)

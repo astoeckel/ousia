@@ -51,7 +51,7 @@ const char *TEST_DATA =
     "<?xml version=\"1.0\" standalone=\"yes\"?>\n"
     "<document a:bc=\"b\">\n"
     "	<head>\n"
-    "		<typesystem>\n"
+    "		<typesystem name=\"color\">\n"
     "			<types>\n"
     "				<struct name=\"color\">\n"
     "				</struct>\n"

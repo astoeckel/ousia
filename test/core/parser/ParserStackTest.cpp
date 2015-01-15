@@ -39,7 +39,7 @@ class TestHandler : public Handler {
 public:
 	using Handler::Handler;
 
-	void start(const Variant::mapType &args) override { startCount++; }
+	void start(Variant::mapType &args) override { startCount++; }
 
 	void end() override { endCount++; }
 
@@ -48,10 +48,9 @@ public:
 	void child(std::shared_ptr<Handler> handler) override { childCount++; }
 };
 
-static Handler *createTestHandler(const ParserContext &ctx, std::string name,
-                                  State state, State parentState, bool isChild)
+static Handler *createTestHandler(const HandlerData &data)
 {
-	return new TestHandler(ctx, name, state, parentState, isChild);
+	return new TestHandler(data);
 }
 
 static const std::multimap<std::string, HandlerDescriptor> TEST_HANDLERS{

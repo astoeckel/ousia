@@ -55,15 +55,9 @@ static const State STATE_ALL = -2;
 static const State STATE_NONE = -1;
 
 /**
- * The handler class provides a context for handling an XML tag. It has to be
- * overridden and registered in the StateStack class to form handlers for
- * concrete XML tags.
+ * Struct collecting all the data that is being passed to a Handler instance.
  */
-class Handler {
-private:
-	Rooted<Node> node;
-
-public:
+struct HandlerData {
 	/**
 	 * Reference to the ParserContext instance that should be used to resolve
 	 * references to nodes in the Graph.
@@ -92,7 +86,7 @@ public:
 	const bool isChild;
 
 	/**
-	 * Constructor of the Handler class.
+	 * Constructor of the HandlerData class.
 	 *
 	 * @param ctx is the parser context the handler should be executed in.
 	 * @param name is the name of the string.
@@ -101,26 +95,57 @@ public:
 	 * @param isChild specifies whether this handler was called not for the
 	 * command that was specified in the state machine but a child command.
 	 */
-	Handler(const ParserContext &ctx, std::string name, State state,
-	        State parentState, bool isChild)
+	HandlerData(const ParserContext &ctx, std::string name, State state,
+	            State parentState, bool isChild)
 	    : ctx(ctx),
 	      name(std::move(name)),
 	      state(state),
 	      parentState(parentState),
 	      isChild(isChild){};
+};
+
+/**
+ * The handler class provides a context for handling an XML tag. It has to be
+ * overridden and registered in the StateStack class to form handlers for
+ * concrete XML tags.
+ */
+class Handler {
+private:
+	/**
+	 * Structure containing the internal handler data.
+	 */
+	const HandlerData handlerData;
+
+public:
+	/**
+	 * Constructor of the Handler class.
+	 *
+	 * @param data is a structure containing all data being passed to the
+	 * handler.
+	 */
+	Handler(const HandlerData &handlerData) : handlerData(handlerData) {};
 
 	/**
 	 * Virtual destructor.
 	 */
 	virtual ~Handler(){};
 
-	/**
-	 * Returns the node instance that was created by the handler.
-	 *
-	 * @return the Node instance created by the handler. May be nullptr if no
-	 * Node was created.
-	 */
-	Rooted<Node> getNode() { return node; }
+	
+	const std::string& name() {return handlerData.name;}
+
+	Scope &scope() {return handlerData.ctx.scope;}
+
+	Registry &registry() {return handlerData.ctx.registry;}
+
+	Manager &manager() { return handlerData.ctx.manager; }
+
+	Logger &logger() { return handlerData.ctx.logger; }
+
+	State state() {return handlerData.state; }
+
+	State parentState() { return handlerData.parentState; }
+
+	bool isChild() { return handlerData.isChild; }
 
 	/**
 	 * Called when the command that was specified in the constructor is
@@ -128,7 +153,7 @@ public:
 	 *
 	 * @param args is a map from strings to variants (argument name and value).
 	 */
-	virtual void start(const Variant::mapType &args) = 0;
+	virtual void start(Variant::mapType &args) = 0;
 
 	/**
 	 * Called whenever the command for which this handler is defined ends.
@@ -158,10 +183,12 @@ public:
 /**
  * HandlerConstructor is a function pointer type used to create concrete
  * instances of the Handler class.
+ *
+ * @param handlerData is the data that should be passed to the new handler
+ * instance.
+ * @return a newly created handler instance.
  */
-using HandlerConstructor = Handler *(*)(const ParserContext &ctx,
-                                        std::string name, State state,
-                                        State parentState, bool isChild);
+using HandlerConstructor = Handler *(*)(const HandlerData &handlerData);
 
 struct HandlerDescriptor;
 
@@ -177,6 +204,10 @@ struct HandlerInstance {
 	 */
 	std::shared_ptr<Handler> handler;
 
+	/**
+	 * Pointer pointing at the descriptor from which the handler instance was
+	 * derived.
+	 */
 	const HandlerDescriptor *descr;
 
 	HandlerInstance(Handler *handler, const HandlerDescriptor *descr)
@@ -309,7 +340,7 @@ public:
 	 */
 	State currentState()
 	{
-		return stack.empty() ? STATE_NONE : stack.top().handler->state;
+		return stack.empty() ? STATE_NONE : stack.top().handler->state();
 	}
 
 	/**
@@ -320,7 +351,7 @@ public:
 	 */
 	std::string currentName()
 	{
-		return stack.empty() ? std::string{} : stack.top().handler->name;
+		return stack.empty() ? std::string{} : stack.top().handler->name();
 	}
 
 	/**
@@ -370,7 +401,7 @@ public:
 	 *
 	 * @return a reference to the parser context.
 	 */
-	ParserContext& getContext() {return ctx;}
+	ParserContext &getContext() { return ctx; }
 };
 }
 }

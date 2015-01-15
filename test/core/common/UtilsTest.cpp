@@ -40,5 +40,19 @@ TEST(Utils, trim)
 	ASSERT_EQ("hello world", Utils::trim("hello world"));
 }
 
+TEST(Utils, split)
+{
+	ASSERT_EQ(std::vector<std::string>({"ab"}), Utils::split("ab", '.'));
+	ASSERT_EQ(std::vector<std::string>({"a", ""}), Utils::split("a.", '.'));
+	ASSERT_EQ(std::vector<std::string>({"", ""}), Utils::split(".", '.'));
+	ASSERT_EQ(std::vector<std::string>({"a", "b"}), Utils::split("a.b", '.'));
+	ASSERT_EQ(std::vector<std::string>({"a", "b"}), Utils::split("a.b", '.'));
+	ASSERT_EQ(std::vector<std::string>({"a", "b", "c"}),
+	          Utils::split("a.b.c", '.'));
+	ASSERT_EQ(std::vector<std::string>({"", "a", "b", "c"}),
+	          Utils::split(".a.b.c", '.'));
+	ASSERT_EQ(std::vector<std::string>({"", "a", "be", "c", ""}),
+	          Utils::split(".a.be.c.", '.'));
+}
 }
 
