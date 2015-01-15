@@ -53,10 +53,10 @@ class TestHandler : public Handler {
 public:
 	using Handler::Handler;
 
-	void start(const Variant &args) override
+	void start(const Variant::mapType &args) override
 	{
 		std::cout << this->name << ": start (isChild: " << (this->isChild)
-		          << ", args: " << args << ")" << std::endl;
+		          << ", args: " << Variant(args) << ")" << std::endl;
 	}
 
 	void end() override
@@ -73,6 +73,11 @@ public:
 	{
 		// TODO
 	}
+};
+
+class TypesystemHandler : public Handler {
+public:
+	using Handler::Handler;
 };
 
 static Handler *createTestHandler(const ParserContext &ctx, std::string name,
@@ -94,7 +99,12 @@ static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
 
     /* Typesystem definitions */
     {"typesystem",
-     {{STATE_NONE, STATE_HEAD}, createTestHandler, STATE_TYPESYSTEM}},
+     {{STATE_NONE, STATE_HEAD},
+      createTestHandler,
+      STATE_TYPESYSTEM,
+      false,
+      {Argument::String("name")}}},
+
     {"types", {{STATE_TYPESYSTEM}, createTestHandler, STATE_TYPES}},
     {"constants", {{STATE_TYPESYSTEM}, createTestHandler, STATE_CONSTANTS}},
     {"enum", {{STATE_TYPES}, createTestHandler, STATE_ENUM}},
@@ -149,29 +159,54 @@ public:
 
 /* Adapter Expat -> ParserStack */
 
-static void xmlStartElementHandler(void *userData, const XML_Char *name,
+static void syncLoggerPosition(XML_Parser p)
+{
+	// Fetch the current location in the XML file
+	int line = XML_GetCurrentLineNumber(p);
+	int column = XML_GetCurrentColumnNumber(p);
+	size_t offs = XML_GetCurrentByteIndex(p);
+
+	// Update the default location of the current logger instance
+	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(p));
+	stack->getContext().logger.setDefaultLocation(
+	    SourceLocation{line, column, offs});
+}
+
+static void xmlStartElementHandler(void *p, const XML_Char *name,
                                    const XML_Char **attrs)
 {
+	XML_Parser parser = static_cast<XML_Parser>(p);
+	syncLoggerPosition(parser);
+
+	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(parser));
+
 	Variant::mapType args;
 	const XML_Char **attr = attrs;
 	while (*attr) {
 		const std::string key{*(attr++)};
 		args.emplace(std::make_pair(key, Variant{*(attr++)}));
 	}
-	(static_cast<ParserStack *>(userData))->start(std::string(name), args);
+	stack->start(std::string(name), args);
 }
 
-static void xmlEndElementHandler(void *userData, const XML_Char *name)
+static void xmlEndElementHandler(void *p, const XML_Char *name)
 {
-	(static_cast<ParserStack *>(userData))->end();
+	XML_Parser parser = static_cast<XML_Parser>(p);
+	syncLoggerPosition(parser);
+
+	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(parser));
+	stack->end();
 }
 
-static void xmlCharacterDataHandler(void *userData, const XML_Char *s, int len)
+static void xmlCharacterDataHandler(void *p, const XML_Char *s, int len)
 {
+	XML_Parser parser = static_cast<XML_Parser>(p);
+	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(parser));
+
 	const std::string data =
 	    Utils::trim(std::string{s, static_cast<size_t>(len)});
 	if (!data.empty()) {
-		(static_cast<ParserStack *>(userData))->data(data);
+		stack->data(data);
 	}
 }
 
@@ -191,6 +226,7 @@ Rooted<Node> XmlParser::parse(CharReader &reader, ParserContext &ctx)
 	// machine descriptor
 	ParserStack stack{ctx, XML_HANDLERS};
 	XML_SetUserData(&p, &stack);
+	XML_UseParserAsHandlerArg(&p);
 
 	// Set the callback functions
 	XML_SetStartElementHandler(&p, xmlStartElementHandler);
@@ -203,7 +239,8 @@ Rooted<Node> XmlParser::parse(CharReader &reader, ParserContext &ctx)
 		// Fetch a buffer from expat for the input data
 		char *buf = static_cast<char *>(XML_GetBuffer(&p, BUFFER_SIZE));
 		if (!buf) {
-			throw LoggableException{"Internal error: XML parser out of memory!"};
+			throw LoggableException{
+			    "Internal error: XML parser out of memory!"};
 		}
 
 		// Read into the buffer
@@ -219,8 +256,7 @@ Rooted<Node> XmlParser::parse(CharReader &reader, ParserContext &ctx)
 			// Throw a corresponding exception
 			XML_Error code = XML_GetErrorCode(&p);
 			std::string msg = std::string{XML_ErrorString(code)};
-			throw LoggableException{"XML: " + msg, line, column,
-			                      offs};
+			throw LoggableException{"XML: " + msg, line, column, offs};
 		}
 
 		// Abort once there are no more bytes in the stream
