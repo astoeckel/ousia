@@ -147,7 +147,6 @@ TEST(Descriptor, pathToAdvanced)
 	 *
 	 * So the path start_field , E , E_field should be returned.
 	 */
-	Logger logger;
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Construct the domain
@@ -217,6 +216,73 @@ TEST(Descriptor, pathToAdvanced)
 	ASSERT_EQ("B", path[1]->getName());
 	ASSERT_TRUE(path[2]->isa(RttiTypes::FieldDescriptor));
 	ASSERT_EQ("", path[2]->getName());
+}
+
+TEST(StructuredClass, isSubclassOf)
+{
+	// create an inheritance hierarchy.
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	Rooted<Domain> domain{new Domain(mgr, sys, "inheritance")};
+	Cardinality any;
+	any.merge(Range<size_t>::typeRangeFrom(0));
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, any, {nullptr}, {nullptr}, false, true)};
+	// first branch
+	Rooted<StructuredClass> B{
+	    new StructuredClass(mgr, "B", domain, any, {nullptr}, A)};
+	Rooted<StructuredClass> C{
+	    new StructuredClass(mgr, "C", domain, any, {nullptr}, B)};
+	// second branch
+	Rooted<StructuredClass> D{
+	    new StructuredClass(mgr, "D", domain, any, {nullptr}, A)};
+	Rooted<StructuredClass> E{
+	    new StructuredClass(mgr, "E", domain, any, {nullptr}, D)};
+	Rooted<StructuredClass> F{
+	    new StructuredClass(mgr, "F", domain, any, {nullptr}, D)};
+
+	// check function results
+	ASSERT_FALSE(A->isSubclassOf(A));
+	ASSERT_FALSE(A->isSubclassOf(B));
+	ASSERT_FALSE(A->isSubclassOf(C));
+	ASSERT_FALSE(A->isSubclassOf(D));
+	ASSERT_FALSE(A->isSubclassOf(E));
+	ASSERT_FALSE(A->isSubclassOf(F));
+
+	ASSERT_TRUE(B->isSubclassOf(A));
+	ASSERT_FALSE(B->isSubclassOf(B));
+	ASSERT_FALSE(B->isSubclassOf(C));
+	ASSERT_FALSE(B->isSubclassOf(D));
+	ASSERT_FALSE(B->isSubclassOf(E));
+	ASSERT_FALSE(B->isSubclassOf(F));
+
+	ASSERT_TRUE(C->isSubclassOf(A));
+	ASSERT_TRUE(C->isSubclassOf(B));
+	ASSERT_FALSE(C->isSubclassOf(C));
+	ASSERT_FALSE(C->isSubclassOf(D));
+	ASSERT_FALSE(C->isSubclassOf(E));
+	ASSERT_FALSE(C->isSubclassOf(F));
+
+	ASSERT_TRUE(D->isSubclassOf(A));
+	ASSERT_FALSE(D->isSubclassOf(B));
+	ASSERT_FALSE(D->isSubclassOf(C));
+	ASSERT_FALSE(D->isSubclassOf(D));
+	ASSERT_FALSE(D->isSubclassOf(E));
+	ASSERT_FALSE(D->isSubclassOf(F));
+
+	ASSERT_TRUE(E->isSubclassOf(A));
+	ASSERT_FALSE(E->isSubclassOf(B));
+	ASSERT_FALSE(E->isSubclassOf(C));
+	ASSERT_TRUE(E->isSubclassOf(D));
+	ASSERT_FALSE(E->isSubclassOf(E));
+	ASSERT_FALSE(E->isSubclassOf(F));
+
+	ASSERT_TRUE(F->isSubclassOf(A));
+	ASSERT_FALSE(F->isSubclassOf(B));
+	ASSERT_FALSE(F->isSubclassOf(C));
+	ASSERT_TRUE(F->isSubclassOf(D));
+	ASSERT_FALSE(F->isSubclassOf(E));
+	ASSERT_FALSE(F->isSubclassOf(F));
 }
 }
 }

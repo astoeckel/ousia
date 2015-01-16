@@ -94,6 +94,24 @@ public:
 	Manager &getManager() { return mgr; }
 
 	/**
+	 * Returns the unique identifier (UID) of this object. Valid UIDs are
+	 * positive non-zero values.
+	 *
+	 * @return the unique id of the object.
+	 */
+	ManagedUid getUid() const
+	{
+		/*
+		 * Dear Bjarne Stroustroup, dear gods of C++, please excuse this
+		 * const_cast, for I did try other means but was not able to apply them
+		 * and in my despair turned to this folly, this ugliness, this heresy!
+		 * I pledge my life to better programming and promise that this cast
+		 * will do no harm to anyone.
+		 */
+		return mgr.getUid(const_cast<Managed *>(this));
+	}
+
+	/**
 	 * Acquires a reference to the object wraped in the given handle -- creates
 	 * a new Owned handle instance with this Managed instance as owner and the
 	 * given object handle as the referenced object.
@@ -151,8 +169,7 @@ public:
 	 * object. The event id must be used when unregistering event handlers.
 	 */
 	EventId registerEvent(EventType type, EventHandler handler,
-	                      Handle<Managed> owner,
-	                      void *data = nullptr);
+	                      Handle<Managed> owner, void *data = nullptr);
 
 	/**
 	 * Unregisters the event handler with the given signature.

@@ -324,6 +324,10 @@ public:
 	 */
 	const NodeVector<StructuredClass> &getChildren() const { return children; }
 
+	/*
+	 *TODO: This should check whether another class is permitted that is a
+	 * superclass of this one.
+	 */
 	/**
 	 * Adds a StructuredClass whose instances shall be allowed as children in
 	 * the StructureTree of instances of this field.
@@ -546,7 +550,7 @@ typedef RangeSet<size_t> Cardinality;
 class StructuredClass : public Descriptor {
 private:
 	const Cardinality cardinality;
-	Owned<StructuredClass> isa;
+	Owned<StructuredClass> superclass;
 	NodeVector<StructuredClass> subclasses;
 
 public:
@@ -570,7 +574,7 @@ public:
 	 * @param attributesDescriptor is a StructType that specifies the attribute
 	 *                             keys as well as value domains for this
 	 *                             Descriptor.
-	 * @param isa                  references a parent StructuredClass. Please
+	 * @param superclass           references a parent StructuredClass. Please
 	 *                             look for more information on inheritance in
 	 *                             the class documentation above. The default is
 	 *                             a null reference, meaning no super class.
@@ -585,7 +589,7 @@ public:
 	                const Cardinality &cardinality,
 	                Handle<StructType> attributesDescriptor = nullptr,
 	                // TODO: What would be a wise default value for isa?
-	                Handle<StructuredClass> isa = nullptr,
+	                Handle<StructuredClass> superclass = nullptr,
 	                bool transparent = false, bool root = false);
 
 	/**
@@ -596,13 +600,23 @@ public:
 	const Cardinality &getCardinality() const { return cardinality; }
 
 	/**
-	 * Returns the parent of this StructuredClass in the class inheritance
-	 * hierarchy (!). This is not the same as the parents in the Structure Tree!
+	 * Returns the superclass of this StructuredClass. This is not the same as
+	 * the parents in the Structure Tree!
 	 *
-	 * @return the parent of this StructuredClass in the class inheritance
-	 * hierarchy (!).
+	 * @return the superclass of this StructuredClass.
 	 */
-	Rooted<StructuredClass> getIsA() const { return isa; }
+	Rooted<StructuredClass> getSuperclass() const { return superclass; }
+	
+	/**
+	 * Returns true if this class is a subclass of the given class. It does not
+	 * return true if the other class is equal to the given class.
+	 *
+	 * @param c is another class that might or might not be a superclass of this
+	 *          one
+	 * @return  true if this class is a subclass of the given class.
+	 *
+	 */
+	bool isSubclassOf(Handle<StructuredClass> c) const;
 
 	/**
 	 * Returns the StructuredClasses that are subclasses of this class. This

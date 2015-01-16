@@ -205,7 +205,7 @@ protected:
 	 * end of the list if no such element was found.
 	 */
 	typename std::set<Range<T>, RangeComp<T>>::iterator firstOverlapping(
-	    const Range<T> &r, const bool allowNeighbours)
+	    const Range<T> &r, const bool allowNeighbours) const
 	{
 		// Find the element with the next larger start value compared to the
 		// start value given in r.
@@ -265,11 +265,28 @@ public:
 	 * @param r is the range for which the containment should be checked.
 	 * @return true if the above condition is met, false otherwise.
 	 */
-	bool contains(const Range<T> &r)
+	bool contains(const Range<T> &r) const
 	{
 		auto it = firstOverlapping(r, false);
 		if (it != ranges.end()) {
 			return (*it).covers(r);
+		}
+		return false;
+	}
+
+	/**
+	 * Checks whether this range Set S contains a given value v, which is
+	 * the case if at least one contained range R contains v.
+	 *
+	 * @param v is some value.
+	 * @return  true if at least one Range r returns true for r.inRange(v)
+	 */
+	bool contains(const T &v) const
+	{
+		for (auto &r : ranges) {
+			if (r.inRange(v)) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -280,13 +297,36 @@ public:
 	 * @param s is the range for which the containment should be checked.
 	 * @return true if the above condition is met, false otherwise.
 	 */
-	bool contains(const RangeSet<T> &s)
+	bool contains(const RangeSet<T> &s) const
 	{
 		bool res = true;
 		for (Range<T> &r : s.ranges) {
 			res = res && contains(r);
 		}
 		return res;
+	}
+
+	/**
+	 * Returns the minimum value that is still covered by this RangeSet.
+	 *
+	 * @return the minimum value that is still covered by this RangeSet.
+	 */
+	T min() const { return ranges.begin()->start; }
+
+	/**
+	 * Returns the maximum value that is still covered by this RangeSet.
+	 *
+	 * @return the maximum value that is still covered by this RangeSet.
+	 */
+	T max() const
+	{
+		T max = ranges.begin()->end;
+		for (Range<T> &r : ranges) {
+			if (r.end > max) {
+				max = r.end;
+			}
+		}
+		return std::move(max);
 	}
 
 	/**
@@ -297,7 +337,10 @@ public:
 	/**
 	 * Returns the current list of ranges as a const reference.
 	 */
-	const std::set<Range<T>, RangeComp<T>> &getRanges() { return this->ranges; }
+	const std::set<Range<T>, RangeComp<T>> &getRanges() const
+	{
+		return this->ranges;
+	}
 };
 }
 
