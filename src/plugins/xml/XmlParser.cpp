@@ -60,7 +60,11 @@ public:
 		scope().push(new model::Typesystem(manager(), args["name"].asString()));
 	}
 
-	void end() override { scope().pop(); }
+	void end() override
+	{
+		scope().performDeferredResolution(logger());
+		scope().pop();
+	}
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -83,13 +87,11 @@ public:
 		this->parent = args["parent"].asString();
 	}
 
-	void end() override
-	{
+	void end() override {
+		
 	}
 
-	void child(std::shared_ptr<Handler> handler)
-	{
-	}
+	void child(std::shared_ptr<Handler> handler) {}
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -105,8 +107,8 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
-/*		this->name = args["name"].asString();
-		this->type = args["parent"].asString();*/
+		/*		this->name = args["name"].asString();
+		        this->type = args["parent"].asString();*/
 	}
 
 	void end() override {}

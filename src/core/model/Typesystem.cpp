@@ -340,6 +340,17 @@ Rooted<StructType> StructType::createValidated(
 	                      collectedAttributes, attributeNames);
 }
 
+Rooted<StructType> StructType::getParentStructure() const
+{
+	return parentStructure;
+}
+
+void StructType::setParentStructure(Handle<StructType> parentStructure)
+{
+	invalidate();
+	this->parentStructure = acquire(parentStructure);
+}
+
 Variant StructType::create() const
 {
 	Variant::arrayType arr;

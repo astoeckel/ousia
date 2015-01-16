@@ -438,17 +438,17 @@ private:
 	 * Reference to the parent structure type (or nullptr if the struct type is
 	 * not derived from any other struct type).
 	 */
-	const Owned<StructType> parentStructure;
+	Owned<StructType> parentStructure;
 
 	/**
 	 * Vector containing references to all attribute descriptors.
 	 */
-	const NodeVector<Attribute> attributes;
+	NodeVector<Attribute> attributes;
 
 	/**
 	 * Map storing the attribute names.
 	 */
-	const std::map<std::string, size_t> attributeNames;
+	std::map<std::string, size_t> attributeNames;
 
 	/**
 	 * Resolves an attribute key string of the form "#idx" to the corresponding
@@ -528,29 +528,6 @@ private:
 	 */
 	bool buildFromArrayOrMap(Variant &data, Logger &logger, bool trim) const;
 
-	/**
-	 * Private constructor of the StructType class, creates a new instance
-	 * without performing any validity checks.
-	 *
-	 * @param mgr is the underlying Manager instance.
-	 * @param name is the name of the EnumType instance. Should be a valid
-	 * identifier.
-	 * @param system is a reference to the parent Typesystem instance.
-	 * @param parentStructure is a reference to the StructType this type is
-	 * derived from, may be nullptr.
-	 * @param attributes is a vector containing the struct type attributes.
-	 */
-	StructType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	           Handle<StructType> parentStructure,
-	           NodeVector<Attribute> attributes,
-	           std::map<std::string, size_t> attributeNames)
-	    : Type(mgr, std::move(name), system, false),
-	      parentStructure(acquire(parentStructure)),
-	      attributes(this, std::move(attributes)),
-	      attributeNames(std::move(attributeNames))
-	{
-	}
-
 protected:
 	/**
 	 * Converts the given variant to the representation of the structure type.
@@ -567,26 +544,60 @@ protected:
 	 */
 	bool doBuild(Variant &data, Logger &logger) const override;
 
+	/**
+	 * Checks the struct descriptor for being valid.
+	 *
+	 * @param logger is a reference to the logger to which error messages should
+	 * be logged.
+	 * @param visited is used internally for recursion avoidance.
+	 */
+	bool doValidate(Logger &logger, std::set<ManagedUid> &visited) const override;
+
 public:
 	/**
-	 * Creates a new instance of the StructType class and checks the given
-	 * parameters for validity.
+	 * Private constructor of the StructType class, creates a new instance
+	 * without performing any validity checks.
 	 *
 	 * @param mgr is the underlying Manager instance.
 	 * @param name is the name of the EnumType instance. Should be a valid
 	 * identifier.
 	 * @param system is a reference to the parent Typesystem instance.
-	 * @param parentStructure is a reference to the StructType this type is
-	 * derived from, may be nullptr.
-	 * @param attributes is a vector containing the struct type attributes.
-	 * The attributes are checked for validity (their names must be a valid
-	 * identifiers) and uniqueness (each value must exist exactly once).
-	 * @param logger is the Logger instance into which errors should be written.
 	 */
-	static Rooted<StructType> createValidated(
-	    Manager &mgr, std::string name, Handle<Typesystem> system,
-	    Handle<StructType> parentStructure, NodeVector<Attribute> attributes,
-	    Logger &logger);
+	StructType(Manager &mgr, std::string name, Handle<Typesystem> system)
+	    : Type(mgr, std::move(name), system, false), attributes(this)
+	{
+	}
+
+	/**
+	 * Returns a handle pointing at the parent type.
+	 *
+	 * @return a rooted handle pointing at the parent type or nullptr, if this
+	 * struct type has no parent.
+	 */
+	Rooted<StructType> getParentStructure() const;
+
+	/**
+	 * Sets the parent structure (the structure this once derives from).
+	 *
+	 * @param parentStructure is the new parent structure.
+	 */
+	void setParentStructure(Handle<StructType> parentStructure);
+
+	/**
+	 * Adds an attribute. Throws an exception if the name of the attribute is
+	 * not unique.
+	 *
+	 * @param attribute is the attribute descriptor that should be added to the
+	 * internal attribute list.
+	 */
+	void addAttribute(Handle<Attribute> attribute);
+
+	/**
+	 * Adds a complete list of attributes to the typesystem.
+	 *
+	 * @param attributes is the list with typesystems that should be added.
+	 */
+	void addAttributes(const NodeVector<Attribute> &attributes);
 
 	/**
 	 * Creates a Variant containing a valid representation of a data instance of
@@ -617,14 +628,6 @@ public:
 	 * @return true if the operation is successful, false otherwise.
 	 */
 	bool cast(Variant &data, Logger &logger) const;
-
-	/**
-	 * Returns a handle pointing at the parent type.
-	 *
-	 * @return a rooted handle pointing at the parent type or nullptr, if this
-	 * struct type has no parent.
-	 */
-	Rooted<StructType> getParentStructure() const { return parentStructure; }
 
 	/**
 	 * Returns a reference at the list containing all attributes.
