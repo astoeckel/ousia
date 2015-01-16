@@ -256,6 +256,8 @@ public:
 		return fields[getFieldDescriptorIndex(fieldDescriptor, true)];
 	}
 
+	bool validate(Logger& logger) const;
+
 	// TODO: Change this to move methods.
 	//	/**
 	//	 * This adds a StructureNode to the field with the given name. If an

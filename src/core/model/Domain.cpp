@@ -36,6 +36,7 @@ static void checkUniqueName(Handle<Node> parent, NodeVector<T> vec,
 		childNames.insert(c->getName());
 	}
 	if (childNames.find(child->getName()) != childNames.end()) {
+		//TODO: Do we really want to have an exception here?
 		throw OusiaException(std::string("The ") + parentClassName + " " +
 		                     parent->getName() + " already has a " +
 		                     childClassName + " with name " + child->getName());
@@ -216,6 +217,16 @@ StructuredClass::StructuredClass(Manager &mgr, std::string name,
 	if (!domain.isNull()) {
 		domain->addStructuredClass(this);
 	}
+}
+
+bool StructuredClass::isSubclassOf(Handle<StructuredClass> c) const{
+	if(c == nullptr || superclass == nullptr){
+		return false;
+	}
+	if(c == superclass){
+		return true;
+	}
+	return superclass->isSubclassOf(c);
 }
 
 /* Class AnnotationClass */

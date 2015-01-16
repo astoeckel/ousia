@@ -324,6 +324,10 @@ public:
 	 */
 	const NodeVector<StructuredClass> &getChildren() const { return children; }
 
+	/*
+	 *TODO: This should check whether another class is permitted that is a
+	 * superclass of this one.
+	 */
 	/**
 	 * Adds a StructuredClass whose instances shall be allowed as children in
 	 * the StructureTree of instances of this field.
@@ -602,6 +606,17 @@ public:
 	 * @return the superclass of this StructuredClass.
 	 */
 	Rooted<StructuredClass> getSuperclass() const { return superclass; }
+	
+	/**
+	 * Returns true if this class is a subclass of the given class. It does not
+	 * return true if the other class is equal to the given class.
+	 *
+	 * @param c is another class that might or might not be a superclass of this
+	 *          one
+	 * @return  true if this class is a subclass of the given class.
+	 *
+	 */
+	bool isSubclassOf(Handle<StructuredClass> c) const;
 
 	/**
 	 * Returns the StructuredClasses that are subclasses of this class. This
