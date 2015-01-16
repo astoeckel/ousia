@@ -99,7 +99,17 @@ public:
 	 *
 	 * @return the unique id of the object.
 	 */
-	ManagedUid getUid() { return mgr.getUid(this); }
+	ManagedUid getUid() const
+	{
+		/*
+		 * Dear Bjarne Stroustroup, dear gods of C++, please excuse this
+		 * const_cast, for I did try other means but was not able to apply them
+		 * and in my despair turned to this folly, this ugliness, this heresy!
+		 * I pledge my life to better programming and promise that this cast
+		 * will do no harm to anyone.
+		 */
+		return mgr.getUid(const_cast<Managed *>(this));
+	}
 
 	/**
 	 * Acquires a reference to the object wraped in the given handle -- creates
