@@ -100,7 +100,9 @@ public:
 	using reference = typename Collection::reference;
 	using const_reference = typename Collection::const_reference;
 	using iterator = typename Collection::iterator;
+	using reverse_iterator = typename Collection::reverse_iterator;
 	using const_iterator = typename Collection::const_iterator;
+	using const_reverse_iterator = typename Collection::const_reverse_iterator;
 	using size_type = typename Collection::size_type;
 
 private:
@@ -456,8 +458,8 @@ public:
 	iterator begin() { return c.begin(); }
 	iterator end() { return c.end(); }
 
-	iterator rbegin() { return c.rbegin(); }
-	iterator rend() { return c.rend(); }
+	reverse_iterator rbegin() { return c.rbegin(); }
+	reverse_iterator rend() { return c.rend(); }
 
 	const_iterator begin() const { return c.cbegin(); }
 	const_iterator end() const { return c.cend(); }
@@ -465,11 +467,11 @@ public:
 	const_iterator cbegin() const { return c.cbegin(); }
 	const_iterator cend() const { return c.cend(); }
 
-	const_iterator rbegin() const { return c.crbegin(); }
-	const_iterator rend() const { return c.crend(); }
+	const_reverse_iterator rbegin() const { return c.crbegin(); }
+	const_reverse_iterator rend() const { return c.crend(); }
 
-	const_iterator crbegin() const { return c.crbegin(); }
-	const_iterator crend() const { return c.crend(); }
+	const_reverse_iterator crbegin() const { return c.crbegin(); }
+	const_reverse_iterator crend() const { return c.crend(); }
 
 	/**
 	 * Removes all elements from the container.
