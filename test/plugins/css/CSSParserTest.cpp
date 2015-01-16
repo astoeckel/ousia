@@ -269,7 +269,7 @@ void assertException(std::string css)
 	{
 		ScopedLogger sl(logger, "test.css", SourceLocation{},
 		                CharReader::contextCallback, &reader);
-		Scope scope(nullptr);
+		Scope scope;
 		Registry registry(logger);
 		Manager manager;
 		ParserContext ctx{scope, registry, logger, manager};

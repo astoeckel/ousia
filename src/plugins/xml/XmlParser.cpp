@@ -85,29 +85,10 @@ public:
 
 	void end() override
 	{
-		// Try to resolve the specified parent structure
-		Rooted<model::StructType> parentStructure;
-		if (!parent.empty()) {
-			// TODO: What about (temporarily) unresolved nodes
-			// Idea: Provide constructor for empty node, store unresolved nodes
-			// in the scope, resolve later
-			parentStructure =
-			    scope()
-			        .resolve(Utils::split(parent, '.'),
-			                 (const RttiType &)RttiTypes::StructType, logger())
-			        .cast<model::StructType>();
-		}
-
-		Rooted<model::Typesystem> typesystem =
-		    scope().getLeaf().cast<model::Typesystem>();
 	}
 
 	void child(std::shared_ptr<Handler> handler)
 	{
-/*		std::shared_ptr<StructFieldHandler> structFieldHandler =
-		    dynamic_cast<StructFieldHandler>(handler);*/
-
-		// Try to resolve
 	}
 
 	static Handler *create(const HandlerData &handlerData)

@@ -19,9 +19,12 @@
 #ifndef _OUSIA_PARSER_SCOPE_H_
 #define _OUSIA_PARSER_SCOPE_H_
 
+#include <functional>
+#include <list>
 #include <vector>
 
 #include <core/common/Logger.hpp>
+#include <core/common/Rtti.hpp>
 #include <core/model/Node.hpp>
 
 /**
@@ -36,15 +39,16 @@
 namespace ousia {
 namespace parser {
 
+// Forward declaration
 class Scope;
 
 /**
- * The ScopedScope class takes care of pushing a Node instance into the
+ * The GuardedScope class takes care of pushing a Node instance into the
  * name resolution stack of a Scope instance and poping this node once the
  * ScopedScope instance is deletes. This way you cannot forget to pop a Node
  * from a Scope instance as this operation is performed automatically.
  */
-class ScopedScope {
+class GuardedScope {
 private:
 	/**
 	 * Reference at the backing scope instance.
@@ -59,23 +63,21 @@ public:
 	 * @param node is the Node instance that should be pushed onto the stack of
 	 * the Scope instance.
 	 */
-	ScopedScope(Scope *scope, Handle<Node> node);
+	GuardedScope(Scope *scope, Handle<Node> node);
 
 	/**
 	 * Pops the Node given in the constructor form the stack of the Scope
 	 * instance.
 	 */
-	~ScopedScope();
-
-	/**
-	 * Copying a ScopedScope is invalid.
-	 */
-	ScopedScope(const ScopedScope &) = delete;
+	~GuardedScope();
 
 	/**
 	 * Move constructor of the ScopedScope class.
 	 */
-	ScopedScope(ScopedScope &&);
+	GuardedScope(GuardedScope &&);
+
+	// No copy construction
+	GuardedScope(const GuardedScope &) = delete;
 
 	/**
 	 * Provides access at the underlying Scope instance.
@@ -89,57 +91,30 @@ public:
 };
 
 /**
- * Provides an interface for document parsers to resolve references based on the
- * current position in the created document tree. The Scope class itself is
- * represented as a chain of Scope objects where each element has a reference to
- * a Node object attached to it. The descend method can be used to add a new
- * scope element to the chain.
+ * Base class for the
  */
-class Scope {
-private:
-	std::vector<Rooted<Node>> nodes;
+class ScopeBase {
+protected:
+	/**
+	 * List containing all nodes currently on the scope, with the newest nodes
+	 * being pushed to the back of the list.
+	 */
+	NodeVector<Node> nodes;
 
 public:
 	/**
-	 * Constructor of the Scope class.
+	 * Default constructor, creates an empty Scope instance.
+	 */
+	ScopeBase() {}
+
+	/**
+	 * Creates a new instance of the ScopeBase class, copying the the given
+	 * nodes as initial start value of the node stack. This could for example
+	 * be initialized with the path of a node.
 	 *
-	 * @param rootNode is the top-most Node from which elements can be looked
-	 * up.
+	 * @param nodes is a node vector containing the current node stack.
 	 */
-	Scope(Handle<Node> rootNode) { nodes.push_back(rootNode); }
-
-	/**
-	 * Pushes a new node onto the scope.
-	 *
-	 * @param node is the node that should be used for local lookup.
-	 */
-	void push(Handle<Node> node) { nodes.push_back(node); }
-
-	/**
-	 * Removes the last pushed node from the scope.
-	 */
-	void pop() { nodes.pop_back(); }
-
-	/**
-	 * Returns a ScopedScope instance, which automatically pushes the given node
-	 * into the Scope stack and pops it once the ScopedScope is destroyed.
-	 */
-	ScopedScope descend(Handle<Node> node) { return ScopedScope{this, node}; }
-
-	/**
-	 * Returns the top-most Node instance in the Scope hirarchy.
-	 *
-	 * @return a reference at the root node.
-	 */
-	Rooted<Node> getRoot() { return nodes.front(); }
-
-	/**
-	 * Returns the bottom-most Node instance in the Scope hirarchy, e.g. the
-	 * node that was pushed last onto the stack.
-	 *
-	 * @return a reference at the leaf node.
-	 */
-	Rooted<Node> getLeaf() { return nodes.back(); }
+	ScopeBase(const NodeVector<Node> &nodes) : nodes(nodes) {}
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes that
@@ -153,28 +128,255 @@ public:
 	 * found.
 	 */
 	Rooted<Node> resolve(const std::vector<std::string> &path,
-	                                      const RttiType &type, Logger &logger);
+	                     const RttiType &type, Logger &logger);
 };
 
-/* Class ScopedScope -- inline declaration of some methods */
+/**
+ * Class used for representing a deferred resolution. A deferred resolution is
+ * triggered whenever an object cannot be resolved, but there may be a chance
+ * that it can be resolved in the future. This happens e.g. if a document is
+ * just being parsed and the object that is being refered to has not been
+ * reached yet.
+ */
+class DeferredResolution {
+private:
+	/**
+	 * Copy of the scope at the time when the resolution was first triggered.
+	 */
+	ScopeBase scope;
 
-inline ScopedScope::ScopedScope(Scope *scope, Handle<Node> node) : scope(scope)
-{
-	scope->push(node);
-}
+	/**
+	 * Callback function to be called when an element is successfully resolved.
+	 */
+	std::function<void(Handle<Node>)> resultCallback;
 
-inline ScopedScope::~ScopedScope()
-{
-	if (scope) {
-		scope->pop();
+public:
+	/**
+	 * Path queried for the resolution.
+	 */
+	std::vector<std::string> path;
+
+	/**
+	 * Reference at the type of the object that should be resolved.
+	 */
+	const RttiType &type;
+
+	/**
+	 * Constructor of the DeferredResolutionScope class. Copies the given
+	 * arguments.
+	 *
+	 * @param nodes is a reference at the current internal node stack of the
+	 * Scope class.
+	 * @param path is the path that was queried when the resolution failed the
+	 * first time.
+	 * @param type is the RttiType of the element that should be queried.
+	 * @param resultCallback is the callback function that should be called if
+	 * the desired element has indeed been found.
+	 */
+	DeferredResolution(const NodeVector<Node> &nodes,
+	                   const std::vector<std::string> &path,
+	                   const RttiType &type,
+	                   std::function<void(Handle<Node>)> resultCallback);
+
+	/**
+	 * Performs the actual deferred resolution and calls the resultCallback
+	 * callback function in case the resolution is sucessful. In this case
+	 * returns true, false otherwise.
+	 *
+	 * @param logger is the logger instance to which error messages should be
+	 * logged.
+	 * @return true if the resolution was successful, false otherwise.
+	 */
+	bool resolve(Logger &logger);
+};
+
+/**
+ * Provides an interface for document parsers to resolve references based on the
+ * current position in the created document tree. The Scope class itself is
+ * represented as a chain of Scope objects where each element has a reference to
+ * a Node object attached to it. The descend method can be used to add a new
+ * scope element to the chain.
+ */
+class Scope : public ScopeBase {
+private:
+	/**
+	 * List containing all deferred resolution descriptors.
+	 */
+	std::list<DeferredResolution> deferred;
+
+public:
+	/**
+	 * Default constructor of the Scope class, creates an empty Scope with no
+	 * element on the internal stack.
+	 */
+	Scope() {}
+
+	/**
+	 * Pushes a new node onto the scope.
+	 *
+	 * @param node is the node that should be used for local lookup.
+	 */
+	void push(Handle<Node> node);
+
+	/**
+	 * Removes the last pushed node from the scope.
+	 */
+	void pop();
+
+	/**
+	 * Returns a ScopedScope instance, which automatically pushes the given node
+	 * into the Scope stack and pops it once the ScopedScope is destroyed.
+	 */
+	GuardedScope descend(Handle<Node> node);
+
+	/**
+	 * Returns the top-most Node instance in the Scope hirarchy.
+	 *
+	 * @return a reference at the root node.
+	 */
+	Rooted<Node> getRoot() const;
+
+	/**
+	 * Returns the bottom-most Node instance in the Scope hirarchy, e.g. the
+	 * node that was pushed last onto the stack.
+	 *
+	 * @return a reference at the leaf node.
+	 */
+	Rooted<Node> getLeaf();
+
+	/**
+	 * Tries to resolve a node for the given type and path for all nodes
+	 * currently on the stack, starting with the topmost node on the stack.
+	 * Calls the "imposterCallback" function for obtaining a temporary result if
+	 * a node cannot be resolved right now. The "resultCallback" is at most
+	 * called twice: Once when this method is called (probably with the
+	 * temporary) and another time if the resolution turned out to be successful
+	 * at a later point in time.
+	 *
+	 * @param path is the path for which a node should be resolved.
+	 * @param type is the type of the node that should be resolved.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param imposterCallback is the callback function that is called if
+	 * the node cannot be resolved at this moment. It gives the caller the
+	 * possibility to create an imposter (a temporary object) that may be used
+	 * later in the resolution process.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called at least once
+	 * either with the imposter (if the resolution was not successful) or the
+	 * resolved object directly when this function is called. If the resolution
+	 * was not successful the first time, it may be called another time later
+	 * in the context of the "performDeferredResolution" function.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolve(const std::vector<std::string> &path, const RttiType &type,
+	             Logger &logger, std::function<Rooted<Node>()> imposterCallback,
+	             std::function<void(Handle<Node>)> resultCallback);
+
+	/**
+	 * Tries to resolve a node for the given type and path for all nodes
+	 * currently on the stack, starting with the topmost node on the stack.
+	 * The "successCallback" is called when the resolution was successful, which
+	 * may be at a later point in time.
+	 *
+	 * @param path is the path for which a node should be resolved.
+	 * @param type is the type of the node that should be resolved.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param successCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolve(const std::vector<std::string> &path, const RttiType &type,
+	             Logger &logger,
+	             std::function<void(Handle<Node>)> successCallback);
+
+	/**
+	 * Tries to resolve a node for the given type and path for all nodes
+	 * currently on the stack, starting with the topmost node on the stack.
+	 * Calls the "imposterCallback" function for obtaining a temporary result if
+	 * a node cannot be resolved right now. The "resultCallback" is at most
+	 * called twice: Once when this method is called (probably with the
+	 * temporary) and another time if the resolution turned out to because
+	 * successful at a later point in time.
+	 *
+	 * @tparam is the type of the node that should be resolved.
+	 * @param path is the path for which a node should be resolved.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param imposterCallback is the callback function that is called if
+	 * the node cannot be resolved at this moment. It gives the caller the
+	 * possibility to create an imposter (a temporary object) that may be used
+	 * later in the resolution process.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called at least once
+	 * either with the imposter (if the resolution was not successful) or the
+	 * resolved object directly when this function is called. If the resolution
+	 * was not successful the first time, it may be called another time later
+	 * in the context of the "performDeferredResolution" function.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	template <class T>
+	bool resolve(const std::vector<std::string> &path, Logger &logger,
+	             std::function<Rooted<T>()> imposterCallback,
+	             std::function<void(Handle<T>)> successCallback)
+	{
+		return resolve(
+		    path, typeOf<T>(), logger,
+		    [imposterCallback]() -> Rooted<Node> { return imposterCallback(); },
+		    [successCallback](Handle<Node> node) {
+			    successCallback(node.cast<T>());
+			});
 	}
-}
 
-inline ScopedScope::ScopedScope(ScopedScope &&s)
-{
-	scope = s.scope;
-	s.scope = nullptr;
-}
+	/**
+	 * Tries to resolve a node for the given type and path for all nodes
+	 * currently on the stack, starting with the topmost node on the stack.
+	 * The "successCallback" is called when the resolution was successful, which
+	 * may be at a later point in time.
+	 *
+	 * @tparam is the type of the node that should be resolved.
+	 * @param path is the path for which a node should be resolved.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param successCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	template <class T>
+	bool resolve(const std::vector<std::string> &path, Logger &logger,
+	             std::function<void(Handle<T>)> resultCallback)
+	{
+		return resolve(path, typeOf<T>(), logger,
+		               [resultCallback](Handle<Node> node) {
+			resultCallback(node.cast<T>());
+		});
+	}
+
+	/**
+	 * Tries to resolve all currently deferred resolution steps.
+	 *
+	 * @param logger is the logger instance into which errors should be logged.
+	 */
+	bool performDeferredResolution(Logger &logger);
+
+	/**
+	 * Clears the list of currently deferred resolutions. This function may be
+	 * used to gracefully continue parsing, even after the resolution has
+	 * failed.
+	 */
+	void purgeDeferredResolutions();
+};
 }
 }
 

@@ -34,12 +34,10 @@ private:
 public:
 	StandaloneParserContext()
 	    : ParserContext(scope, registry, logger, manager),
-	      scope(nullptr),
 	      registry(logger){};
 
 	StandaloneParserContext(Logger &externalLogger)
 	    : ParserContext(scope, registry, externalLogger, manager),
-	      scope(nullptr),
 	      registry(externalLogger){};
 };
 
