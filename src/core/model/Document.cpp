@@ -95,11 +95,11 @@ StructureNode::StructureNode(Manager &mgr, std::string name,
                              Handle<Node> parent, const std::string &fieldName)
     : Node(mgr, std::move(name), parent)
 {
-	if(parent->isa(RttiTypes::StructuredEntity)){
+	if (parent->isa(RttiTypes::StructuredEntity)) {
 		parent.cast<StructuredEntity>()->addStructureNode(this, fieldName);
-	} else if(parent->isa(RttiTypes::AnnotationEntity)){
+	} else if (parent->isa(RttiTypes::AnnotationEntity)) {
 		parent.cast<AnnotationEntity>()->addStructureNode(this, fieldName);
-	} else{
+	} else {
 		throw OusiaException("The proposed parent was no DocumentEntity!");
 	}
 }

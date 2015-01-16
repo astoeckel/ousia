@@ -28,8 +28,7 @@ namespace model {
 
 template <class T>
 static void checkUniqueName(Handle<Node> parent, NodeVector<T> vec,
-                            Handle<T> child,
-                            const std::string &parentClassName,
+                            Handle<T> child, const std::string &parentClassName,
                             const std::string &childClassName)
 {
 	std::set<std::string> childNames;
@@ -96,31 +95,15 @@ std::vector<Rooted<Node>> Descriptor::pathTo(
 	return path;
 }
 
-static bool pathEquals(const Descriptor &a, const Descriptor &b)
-{
-	// We assume that two Descriptors are equal if their names and domain names
-	// are equal.
-	if (a.getName() != b.getName()) {
-		return false;
-	}
-	Handle<Domain> aDom = a.getParent().cast<Domain>();
-	Handle<Domain> bDom = b.getParent().cast<Domain>();
-	return aDom->getName() == bDom->getName();
-}
-
 bool Descriptor::continuePath(Handle<StructuredClass> target,
                               std::vector<Rooted<Node>> &currentPath,
                               std::set<std::string> ignoredFields,
                               bool exploreSuperclass,
                               bool exploreSubclasses) const
 {
-	// TODO: REMOVE
-	std::string targetName = target->getName();
-	std::string thisName = getName();
-	std::string currentPathName;
-	for (auto &n : currentPath) {
-		currentPathName += ".";
-		currentPathName += n->getName();
+	// check if we are at the target already
+	if (this == target) {
+		return true;
 	}
 	// a variable to determine if we already found a solution
 	bool found = false;
@@ -133,7 +116,8 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 			continue;
 		}
 		for (auto &c : fd->getChildren()) {
-			if (pathEquals(*c, *target)) {
+			// check if a child is the target node.
+			if (c == target) {
 				// if we have made the connection, stop the search.
 				currentPath.push_back(fd);
 				return true;
@@ -161,11 +145,11 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 		 * if this is a StructuredClass, we can also use the super class
 		 * (at least for fields that are not overridden)
 		 */
-		if (exploreSuperclass && !tis->getIsA().isNull()) {
+		if (exploreSuperclass && tis->getSuperclass() != nullptr) {
 			// copy the path.
 			std::vector<Rooted<Node>> cPath = currentPath;
-			if (tis->getIsA()->continuePath(target, cPath, ignoredFields, true,
-			                                false) &&
+			if (tis->getSuperclass()->continuePath(target, cPath, ignoredFields,
+			                                       true, false) &&
 			    (!found || optimum.size() > cPath.size())) {
 				// look if this path is better than the current optimum.
 				optimum = std::move(cPath);
@@ -203,13 +187,11 @@ void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd)
 		 * constructor will add the newly constructed FieldDescriptor to this
 		 * Descriptor automatically.
 		 */
-		new FieldDescriptor(getManager(), this,
-		                                       fd->getPrimitiveType(),
-		                                       fd->getName(), fd->optional);
+		new FieldDescriptor(getManager(), this, fd->getPrimitiveType(),
+		                    fd->getName(), fd->optional);
 	} else {
-		new FieldDescriptor(getManager(), this,
-		                                       fd->getFieldType(),
-		                                       fd->getName(), fd->optional);
+		new FieldDescriptor(getManager(), this, fd->getFieldType(),
+		                    fd->getName(), fd->optional);
 	}
 }
 
@@ -219,17 +201,17 @@ StructuredClass::StructuredClass(Manager &mgr, std::string name,
                                  Handle<Domain> domain,
                                  const Cardinality &cardinality,
                                  Handle<StructType> attributesDescriptor,
-                                 Handle<StructuredClass> isa, bool transparent,
-                                 bool root)
+                                 Handle<StructuredClass> superclass,
+                                 bool transparent, bool root)
     : Descriptor(mgr, std::move(name), domain, attributesDescriptor),
       cardinality(cardinality),
-      isa(acquire(isa)),
+      superclass(acquire(superclass)),
       subclasses(this),
       transparent(transparent),
       root(root)
 {
-	if (!isa.isNull()) {
-		isa->subclasses.push_back(this);
+	if (superclass != nullptr) {
+		superclass->subclasses.push_back(this);
 	}
 	if (!domain.isNull()) {
 		domain->addStructuredClass(this);
