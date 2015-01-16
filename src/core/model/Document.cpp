@@ -92,7 +92,8 @@ int DocumentEntity::getFieldDescriptorIndex(
 	}
 }
 
-bool DocumentEntity::validate(Logger &logger) const
+bool DocumentEntity::doValidate(Logger &logger,
+                                std::set<ManagedUid> &visited) const
 {
 	// TODO: check the validated form of Attributes
 	// iterate over every field
@@ -134,9 +135,16 @@ bool DocumentEntity::validate(Logger &logger) const
 
 		// iterate over every actual child of this DocumentEntity
 		for (auto &rc : fields[f]) {
-			if (!rc->isa(RttiTypes::StructuredEntity)) {
+			if (!rc->isa(RttiTypes::Anchor)) {
+				// Anchors are uninteresting and can be ignored.
 				continue;
 			}
+			if (!rc->isa(RttiTypes::DocumentPrimitive)) {
+				// For DocumentPrimitives we have to check the content type.
+				// TODO: Do that!
+				continue;
+			}
+			// otherwise this is a StructuredEntity
 			Handle<StructuredEntity> c = rc.cast<StructuredEntity>();
 
 			ManagedUid id = c->getDescriptor()->getUid();
@@ -193,6 +201,23 @@ bool DocumentEntity::validate(Logger &logger) const
 			}
 		}
 	}
+
+	// go into recursion.
+	for (auto &f : fields) {
+		for (auto &n : f) {
+			if (!visited.insert(n->getUid()).second) {
+				logger.error("The given document contains a cycle!");
+				return false;
+			}
+			if (n->isValidated()) {
+				continue;
+			}
+			if (!n->validate(logger, visited)) {
+				return false;
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -222,6 +247,17 @@ StructuredEntity::StructuredEntity(Manager &mgr, Handle<Document> doc,
 	doc->setRoot(this);
 }
 
+bool StructuredEntity::doValidate(Logger &logger,
+                                  std::set<ManagedUid> &visited) const
+{
+	// check if the parent is set.
+	if (getParent() == nullptr) {
+		return false;
+	}
+	// check the validity as a DocumentEntity.
+	return DocumentEntity::doValidate(logger, visited);
+}
+
 /* Class AnnotationEntity */
 
 AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
@@ -234,6 +270,34 @@ AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
       end(acquire(end))
 {
 	parent->annotations.push_back(this);
+}
+
+bool AnnotationEntity::doValidate(Logger &logger,
+                                  std::set<ManagedUid> &visited) const
+{
+	// check if this AnnotationEntity is correctly registered at its document.
+	if (getParent() == nullptr || !getParent()->isa(RttiTypes::Document)) {
+		return false;
+	}
+	Handle<Document> doc = getParent().cast<Document>();
+	bool found = false;
+	for (auto &a : doc->getAnnotations()) {
+		if (a == this) {
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		logger.error("This annotation was not registered at the document.");
+		return false;
+	}
+
+	// check the validity as a DocumentEntity.
+	if (!DocumentEntity::doValidate(logger, visited)) {
+		return false;
+	}
+	// TODO: then check if the anchors are in the correct document.
+	return true;
 }
 
 /* Class Document */

@@ -29,6 +29,7 @@
 #define _OUSIA_NODE_HPP_
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -40,6 +41,7 @@
 namespace ousia {
 
 // Forward declarations
+class Logger;
 class RttiType;
 template <class T>
 class Rtti;
@@ -103,6 +105,11 @@ private:
 	 * Reference to a parent node instace.
 	 */
 	Owned<Node> parent;
+	/**
+	 * A "dirty" flag that signifies if this Node has been validated already
+	 * or not.
+	 */
+	mutable bool validated = false;
 
 	/**
 	 * Private version of the "path" function used to construct the path. Calls
@@ -263,6 +270,59 @@ protected:
 		return false;
 	}
 
+	/**
+	 * This method should be called if the internal state of this Node is
+	 * changed such that a new validation run has to be made.
+	 */
+	void invalidate() const { validated = false; }
+
+	/**
+	 * The convention for this function is as follows:
+	 * 1.) The child should validate itself and return false, if constraints are
+	 *     not met. Errors should be logged if and only if false is returned.
+	 * 3.) It should call validate on all children.
+	 *     If some child returns false this method should return false as well.
+	 * 4.) If all children could be validated this method should return true.
+	 *
+	 * Note that this implementation does not have to touch the visited set.
+	 * You can use it for validation purposes, however (e.g. to detect cycles
+	 * in the graph).
+	 *
+	 * The default and trivial behaviour of this function is to return true.
+	 *
+	 * @param logger  is a logger for error messages if false is returned.
+	 * @param visited is a set containing the ManagedUids of all children
+	 *                that already have been visited.
+	 * @return        true if this is a valid node and false if it is not.
+	 */
+	virtual bool doValidate(Logger &logger, std::set<ManagedUid> &visited) const
+	{
+		return true;
+	}
+	
+	/**
+	 * A wrapper for doValidate that takes care of not visiting children twice,
+	 * and handling the validated flag.
+	 */
+	bool validate(Logger &logger, std::set<ManagedUid> &visited) const {
+		if (!visited.insert(getUid()).second) {
+			// if we have visited this Node already within this run, return
+			// the validated flag.
+			return validated;
+		}
+		if(validated){
+			// if this is validated, return true.
+			return true;
+		}
+		if(!doValidate(logger, visited)){
+			// if this can not be validated, return false.
+			return false;
+		}
+		// if it could be validated, set the validated flag.
+		validated = true;
+		return true;
+	}
+
 public:
 	/**
 	 * Initializes the node with empty name and parent.
@@ -361,6 +421,31 @@ public:
 	 */
 	std::vector<ResolutionResult> resolve(const std::string &name,
 	                                      const RttiType &type);
+
+	/**
+	 * Returns true if this node has been validated. Note that a 'false' return
+	 * value does _not_ imply that this Node is invalid. It merely says that
+	 * validity of this node is uncertain. The opposite is true, however: If
+	 * this node is invalid, the validated flag will be false.
+	 */
+	bool isValidated() const { return validated; }
+
+	/**
+	 * Checks whether this node is valid and returns true if it is and false
+	 * if it is not. If the node is invalid further information will be appended
+	 * to the logger. If this is valid this will also set the "validated" flag
+	 * to "true".
+	 *
+	 * @param logger    is a logger where errors will be logged if this
+	 *                  Node is invalid.
+	 *
+	 * @return          true if this Node is valid.
+	 */
+	bool validate(Logger &logger)
+	{
+		std::set<ManagedUid> visited;
+		return validate(logger, visited);
+	}
 };
 
 /**
