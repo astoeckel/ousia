@@ -108,6 +108,8 @@
 #ifndef _OUSIA_MODEL_DOCUMENT_HPP_
 #define _OUSIA_MODEL_DOCUMENT_HPP_
 
+#include <set>
+
 #include <core/managed/ManagedContainer.hpp>
 #include <core/common/Variant.hpp>
 
@@ -158,6 +160,8 @@ protected:
 	{
 		fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
 	}
+
+	bool doValidate(Logger &logger, std::set<ManagedUid> &visited) const;
 
 public:
 	/**
@@ -256,8 +260,6 @@ public:
 		return fields[getFieldDescriptorIndex(fieldDescriptor, true)];
 	}
 
-	bool validate(Logger& logger) const;
-
 	// TODO: Change this to move methods.
 	//	/**
 	//	 * This adds a StructureNode to the field with the given name. If an
@@ -343,6 +345,8 @@ public:
  * common superclass for StructuredEntity, Anchor and DocumentPrimitive.
  */
 class StructureNode : public Node {
+	friend DocumentEntity;
+
 public:
 	/**
 	 * Constructor for a StructureNode at the root.
@@ -364,6 +368,10 @@ public:
  * information please refer to the header documentation above.
  */
 class StructuredEntity : public StructureNode, public DocumentEntity {
+protected:
+	bool doValidate(Logger &logger,
+	                std::set<ManagedUid> &visited) const override;
+
 public:
 	/**
 	 * Constructor for a StructuredEntity in the Structure Tree.
@@ -505,6 +513,9 @@ class AnnotationEntity : public Node, public DocumentEntity {
 private:
 	Owned<Anchor> start;
 	Owned<Anchor> end;
+protected:
+	bool doValidate(Logger &logger,
+	                std::set<ManagedUid> &visited) const override;
 
 public:
 	/**
