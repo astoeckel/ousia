@@ -116,18 +116,17 @@ void Text::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 }
 }
 
-static Variant getXmlElementName(const xml::Element *obj)
+namespace RttiTypes
 {
-	return Variant::fromString(obj->name);
-}
-
-namespace RttiTypes {
-const Rtti<xml::Node> XMLNode = RttiBuilder("XMLNode");
-const Rtti<xml::Element> XMLElement =
-    TypedRttiBuilder<xml::Element>("XMLElement")
-        .parent(&XMLNode)
-        .composedOf(&XMLNode)
-        .property("name", {RttiTypes::String, getXmlElementName});
-const Rtti<xml::Text> XMLText = RttiBuilder("XMLText").parent(&XMLNode);
+	const Rtti<xml::Node> XMLNode = RttiBuilder("XMLNode");
+	const Rtti<xml::Element> XMLElement =
+	    TypedRttiBuilder<xml::Element>("XMLElement")
+	        .parent(&XMLNode)
+	        .composedOf(&XMLNode)
+	        .property("name", {RttiTypes::String,
+	                           {[](const xml::Element *obj) {
+		                           return Variant::fromString(obj->name);
+		                       }}});
+	const Rtti<xml::Text> XMLText = RttiBuilder("XMLText").parent(&XMLNode);
 }
 }
