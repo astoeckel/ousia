@@ -306,7 +306,7 @@ public:
 	/**
 	 * Returns the unique identifier (UID) of the given object. Valid UIDs are
 	 * positive non-zero values. A value of zero indicates that the given object
-	 * does no longer exists or was not registered in the manager instance.
+	 * does no longer exist or was not registered in the manager instance.
 	 *
 	 * @param o is a pointer to the managed object for which the UID should be
 	 * returned.
