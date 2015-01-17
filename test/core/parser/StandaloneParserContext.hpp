@@ -26,10 +26,10 @@ namespace parser {
 
 struct StandaloneParserContext : public ParserContext {
 private:
+	Manager manager;
 	Logger logger;
 	Scope scope;
 	Registry registry;
-	Manager manager;
 
 public:
 	StandaloneParserContext()
