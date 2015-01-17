@@ -161,7 +161,7 @@ protected:
 		fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
 	}
 
-	bool doValidate(Logger &logger, std::set<ManagedUid> &visited) const;
+	bool validate(Logger &logger) const;
 
 public:
 	/**
@@ -369,8 +369,7 @@ public:
  */
 class StructuredEntity : public StructureNode, public DocumentEntity {
 protected:
-	bool doValidate(Logger &logger,
-	                std::set<ManagedUid> &visited) const override;
+	bool doValidate(Logger &logger) const override;
 
 public:
 	/**
@@ -514,8 +513,7 @@ private:
 	Owned<Anchor> start;
 	Owned<Anchor> end;
 protected:
-	bool doValidate(Logger &logger,
-	                std::set<ManagedUid> &visited) const override;
+	bool doValidate(Logger &logger) const override;
 
 public:
 	/**

@@ -92,8 +92,7 @@ int DocumentEntity::getFieldDescriptorIndex(
 	}
 }
 
-bool DocumentEntity::doValidate(Logger &logger,
-                                std::set<ManagedUid> &visited) const
+bool DocumentEntity::validate(Logger &logger) const
 {
 	// TODO: check the validated form of Attributes
 	// iterate over every field
@@ -205,14 +204,7 @@ bool DocumentEntity::doValidate(Logger &logger,
 	// go into recursion.
 	for (auto &f : fields) {
 		for (auto &n : f) {
-			if (!visited.insert(n->getUid()).second) {
-				logger.error("The given document contains a cycle!");
-				return false;
-			}
-			if (n->isValidated()) {
-				continue;
-			}
-			if (!n->validate(logger, visited)) {
+			if (!n->validate(logger)) {
 				return false;
 			}
 		}
@@ -247,15 +239,14 @@ StructuredEntity::StructuredEntity(Manager &mgr, Handle<Document> doc,
 	doc->setRoot(this);
 }
 
-bool StructuredEntity::doValidate(Logger &logger,
-                                  std::set<ManagedUid> &visited) const
+bool StructuredEntity::doValidate(Logger &logger) const
 {
 	// check if the parent is set.
 	if (getParent() == nullptr) {
 		return false;
 	}
 	// check the validity as a DocumentEntity.
-	return DocumentEntity::doValidate(logger, visited);
+	return DocumentEntity::validate(logger);
 }
 
 /* Class AnnotationEntity */
@@ -272,8 +263,7 @@ AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
 	parent->annotations.push_back(this);
 }
 
-bool AnnotationEntity::doValidate(Logger &logger,
-                                  std::set<ManagedUid> &visited) const
+bool AnnotationEntity::doValidate(Logger &logger) const
 {
 	// check if this AnnotationEntity is correctly registered at its document.
 	if (getParent() == nullptr || !getParent()->isa(RttiTypes::Document)) {
@@ -293,7 +283,7 @@ bool AnnotationEntity::doValidate(Logger &logger,
 	}
 
 	// check the validity as a DocumentEntity.
-	if (!DocumentEntity::doValidate(logger, visited)) {
+	if (!DocumentEntity::validate(logger)) {
 		return false;
 	}
 	// TODO: then check if the anchors are in the correct document.

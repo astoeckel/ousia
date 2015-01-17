@@ -20,6 +20,7 @@
 #include <unordered_set>
 
 #include <core/common/Exceptions.hpp>
+#include <core/common/Logger.hpp>
 #include <core/common/Rtti.hpp>
 #include <core/common/TypedRttiBuilder.hpp>
 
@@ -352,6 +353,63 @@ std::vector<ResolutionResult> Node::resolve(const std::string &name,
 	return resolve(std::vector<std::string>{name}, type);
 }
 
+bool Node::doValidate(Logger &logger) const { return true; }
+
+void Node::invalidate()
+{
+	// Only perform the invalidation if necessary
+	if (validationState != ValidationState::UNKNOWN) {
+		validationState = ValidationState::UNKNOWN;
+		if (parent != nullptr) {
+			parent->invalidate();
+		}
+	}
+}
+
+void Node::markInvalid()
+{
+	// Do not override the validationState if we're currently in the validation
+	// procedure, try to mark the parent node as invalid
+	if (validationState != ValidationState::VALIDATING &&
+	    validationState != ValidationState::INVALID) {
+		validationState = ValidationState::INVALID;
+		if (parent != nullptr) {
+			parent->markInvalid();
+		}
+	}
+}
+
+bool Node::validate(Logger &logger) const
+{
+	switch (validationState) {
+		case ValidationState::UNKNOWN:
+			validationState = ValidationState::VALIDATING;
+			try {
+				if (doValidate(logger)) {
+					validationState = ValidationState::VALID;
+					return true;
+				}
+			}
+			catch (OusiaException ex) {
+				// Make sure the validation state does not stay in the
+				// "VALIDATING" state
+				validationState = ValidationState::INVALID;
+				throw;
+			}
+			return false;
+		case ValidationState::VALID:
+			return true;
+		case ValidationState::INVALID:
+			return false;
+		case ValidationState::VALIDATING:
+			// We've run into recursion -- a circular structure cannot be
+			// properly validated, so return false
+			logger.error("The given document is cyclic.");
+			return false;
+	}
+	return false;
+}
+
 /* RTTI type registrations */
 namespace RttiTypes {
 const Rtti<ousia::Node> Node =
@@ -363,9 +421,10 @@ const Rtti<ousia::Node> Node =
                            {[](const Variant &value, ousia::Node *obj) {
 	                           obj->setName(value.asString());
 	                       }}})
-        .property("parent", {Node, {[](const ousia::Node *obj) {
-	                            return Variant::fromObject(obj->getParent());
-	                        }}});
+        .property("parent", {Node,
+                             {[](const ousia::Node *obj) {
+	                             return Variant::fromObject(obj->getParent());
+	                         }}});
 }
 }
 
