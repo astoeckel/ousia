@@ -23,6 +23,7 @@
 #include <core/common/Logger.hpp>
 #include <core/common/Rtti.hpp>
 #include <core/common/TypedRttiBuilder.hpp>
+#include <core/common/Utils.hpp>
 
 #include "Node.hpp"
 
@@ -353,7 +354,30 @@ std::vector<ResolutionResult> Node::resolve(const std::string &name,
 	return resolve(std::vector<std::string>{name}, type);
 }
 
+bool Node::checkDuplicate(Handle<Node> elem,
+                          std::unordered_set<std::string> &names,
+                          Logger &logger) const
+{
+	const std::string &name = elem->getName();
+	if (!names.emplace(name).second) {
+		logger.error(std::string("Element with name \"") + name +
+		             std::string("\" defined multiple times."));
+		return false;
+	}
+	return true;
+}
+
 bool Node::doValidate(Logger &logger) const { return true; }
+
+bool Node::validateName(Logger &logger) const
+{
+	if (!Utils::isIdentifier(name)) {
+		logger.error(type().name + std::string(" name \"") + name +
+		             std::string("\" is not a valid identifier"));
+		return false;
+	}
+	return true;
+}
 
 void Node::invalidate()
 {
