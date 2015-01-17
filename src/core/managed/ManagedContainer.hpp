@@ -222,7 +222,7 @@ public:
 	ManagedContainer(std::initializer_list<value_type> l) : owner(nullptr), c(l)
 	{
 		initialize();
-	};
+	}
 
 	/**
 	 * Constructor of the ManagedContainer class.
@@ -322,7 +322,7 @@ public:
 	ManagedContainer(own_type &&other)
 	    : owner(other.owner), c(std::move(other.c))
 	{
-		other.owner = nullptr;
+		//other.owner = nullptr;
 	}
 
 	/**
@@ -338,7 +338,7 @@ public:
 	{
 		initialize();
 		other.finalize(c);
-		other.owner = nullptr;
+		//other.owner = nullptr;
 	}
 
 	/**
@@ -356,7 +356,7 @@ public:
 	{
 		initialize();
 		other.finalize(c);
-		other.owner = nullptr;
+		//other.owner = nullptr;
 	}
 
 	/**
@@ -413,8 +413,20 @@ public:
 		finalize();
 		owner = other.owner;
 		c = std::move(other.c);
-		other.owner = nullptr;
+		//other.owner = nullptr;
 		return *this;
+	}
+
+	/**
+	 * Copy assignment while keeping the owner.
+	 *
+	 * @param other is the collection instance that should be copied.
+	 */
+	void assign(const own_type &other)
+	{
+		finalize();
+		c = other.c;
+		initialize();
 	}
 
 	/**

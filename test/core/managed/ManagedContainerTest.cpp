@@ -106,7 +106,8 @@ TEST(ManagedVector, moveAssignment)
 			}
 
 			v1 = std::move(v2);
-			ASSERT_EQ(nullptr, v2.getOwner());
+			ASSERT_EQ(root, v2.getOwner());
+			ASSERT_TRUE(v2.empty());
 		}
 		for (bool v : a) {
 			ASSERT_TRUE(v);
@@ -172,7 +173,8 @@ TEST(ManagedVector, copyWithNewOwner)
 
 			ManagedVector<TestManaged> v3{root, v2};
 			v1 = std::move(v3);
-			ASSERT_EQ(nullptr, v3.getOwner());
+			ASSERT_EQ(root, v3.getOwner());
+			ASSERT_TRUE(v3.empty());
 			ASSERT_TRUE(v1 != v2);
 		}
 		for (bool v : a) {
@@ -207,8 +209,10 @@ TEST(ManagedVector, moveWithNewOwner)
 
 			ManagedVector<TestManaged> v3{root, std::move(v2)};
 			v1 = std::move(v3);
-			ASSERT_EQ(nullptr, v2.getOwner());
-			ASSERT_EQ(nullptr, v3.getOwner());
+			ASSERT_EQ(root2, v2.getOwner());
+			ASSERT_TRUE(v2.empty());
+			ASSERT_EQ(root, v3.getOwner());
+			ASSERT_TRUE(v3.empty());
 		}
 		for (bool v : a) {
 			ASSERT_TRUE(v);
