@@ -567,7 +567,7 @@ private:
 	NodeVector<AnnotationEntity> annotations;
 	NodeVector<Domain> domains;
 
-	void continueResolve(ResolutionState &state) override;
+	void doResolve(ResolutionState &state) override;
 
 public:
 	Document(Manager &mgr, std::string name)

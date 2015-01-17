@@ -272,14 +272,14 @@ bool Node::resolve(ResolutionState &state)
 			}
 		} else {
 			size_t resCount = state.resultCount();
-			continueResolve(state);
+			doResolve(state);
 			return state.resultCount() > resCount;
 		}
 	}
 	return false;
 }
 
-void Node::continueResolve(ResolutionState &state)
+void Node::doResolve(ResolutionState &state)
 {
 	// Do nothing in the default implementation
 }

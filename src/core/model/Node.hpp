@@ -207,7 +207,7 @@ protected:
 	 *
 	 * @param state is used internally to manage the resolution process.
 	 */
-	virtual void continueResolve(ResolutionState &state);
+	virtual void doResolve(ResolutionState &state);
 
 	/**
 	 * Tries to advance the resolution process with the compositum pointed at
