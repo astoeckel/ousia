@@ -147,6 +147,18 @@ EnumType::Ordinal EnumType::valueOf(const std::string &name) const
 	throw LoggableException(std::string("Unknown enum constant: ") + name);
 }
 
+/* Class Attribute */
+
+bool Attribute::doValidate(Logger &logger) const
+{
+	if (!Utils::isIdentifier(getName())) {
+		logger.error("Attribute name \"" + getName() +
+		             "\" is not a valid identifier.");
+		return false;
+	}
+	return true;
+}
+
 /* Class StructType */
 
 bool StructType::resolveIndexKey(const std::string &key, size_t &idx) const
@@ -289,9 +301,53 @@ bool StructType::buildFromArrayOrMap(Variant &data, Logger &logger,
 	    data.getTypeName());
 }
 
+void StructType::initialize(Logger &logger)
+{
+	// Copy the location in the attributes list at which the attributes started
+	size_t oldAttributeStart = attributeStart;
+	NodeVector<Attribute> oldAttributes{std::move(attributes)};
+
+	// Clear the attributes and attributeNames containers
+	attributes.clear();
+	attributeNames.clear();
+
+	// Assemble a new attributes list, add the attributes of the parent
+	// structure first
+	if (parentStructure != nullptr) {
+		attributes.assign(parentStructure->attributes);
+		attributeNames = parentStructure->attributeNames;
+	}
+	attributeStart = attributes.size();
+
+	// Add the own attributes from the old attribute list
+	for (size_t i = oldAttributeStart; i < oldAttributes.size(); i++) {
+		addAttribute(oldAttributes[i], logger, true);
+	}
+}
+
 bool StructType::doBuild(Variant &data, Logger &logger) const
 {
 	return buildFromArrayOrMap(data, logger, false);
+}
+
+bool StructType::doValidate(Logger &logger) const
+{
+	// Check whether all attributes are valid and unique
+	std::unordered_set<std::string> names;
+	bool res = true;
+	for (Handle<Attribute> a : attributes) {
+		res = a->validate(logger) && res;
+		const std::string &name = a->getName();
+		if (!names.emplace(name).second) {
+			logger.error(
+			    std::string("Attribute with name \"") + name +
+			    std::string("\" defined multiple times in structure \"") +
+			    Utils::join(path(), ".") + std::string("\""));
+			res = false;
+		}
+	}
+
+	return res;
 }
 
 Rooted<StructType> StructType::createValidated(
@@ -299,45 +355,10 @@ Rooted<StructType> StructType::createValidated(
     Handle<StructType> parentStructure, NodeVector<Attribute> attributes,
     Logger &logger)
 {
-	// Check the attributes for validity and uniqueness
-	std::map<std::string, size_t> attributeNames;
-	NodeVector<Attribute> collectedAttributes;
-
-	// Copy the attributes from the parent structure
-	if (parentStructure != nullptr) {
-		attributeNames = parentStructure->attributeNames;
-		collectedAttributes = parentStructure->attributes;
-	}
-
-	// Check the attributes for validity and uniqueness
-	for (size_t idx = 0; idx < attributes.size(); idx++) {
-		// Check for valid attribute names
-		const std::string &attrName = attributes[idx]->getName();
-		if (!Utils::isIdentifier(attrName)) {
-			logger.error(std::string("Invalid attribute name \"") + attrName +
-			             std::string("\""));
-		}
-
-		// Check for uniqueness
-		auto res = attributeNames.emplace(attrName, idx);
-		if (!res.second) {
-			logger.error(std::string("Attribute with name \"") + attrName +
-			             std::string("\" defined multiple times"));
-			if (parentStructure != nullptr &&
-			    parentStructure->indexOf(attrName) >= 0) {
-				logger.note(std::string("Attribute \"") + attrName +
-				            std::string("\" was defined in parent class \"") +
-				            parentStructure->getName() + std::string("\""));
-			}
-		}
-
-		// Store the attribute in the complete attribute list
-		collectedAttributes.push_back(attributes[idx]);
-	}
-
-	// Call the private constructor
-	return new StructType(mgr, name, system, parentStructure,
-	                      collectedAttributes, attributeNames);
+	Rooted<StructType> structType{new StructType(mgr, name, system)};
+	structType->setParentStructure(parentStructure, logger);
+	structType->addAttributes(attributes, logger);
+	return structType;
 }
 
 Rooted<StructType> StructType::getParentStructure() const
@@ -345,10 +366,50 @@ Rooted<StructType> StructType::getParentStructure() const
 	return parentStructure;
 }
 
-void StructType::setParentStructure(Handle<StructType> parentStructure)
+void StructType::setParentStructure(Handle<StructType> parentStructure,
+                                    Logger &logger)
 {
 	invalidate();
 	this->parentStructure = acquire(parentStructure);
+	initialize(logger);
+}
+
+void StructType::addAttribute(Handle<Attribute> attribute, Logger &logger,
+                              bool fromInitialize)
+{
+	// Make sure an attribute with the given name does not already exist
+	const std::string &attrName = attribute->getName();
+	attributes.push_back(attribute);
+	if (!hasAttribute(attrName)) {
+		attributeNames[attrName] = attributes.size() - 1;
+		return;
+	}
+
+	// Check whether the attribute was defined in the parent structure, adapt
+	// error message accordingly
+	if (parentStructure != nullptr && parentStructure->hasAttribute(attrName)) {
+		logger.error("Field with name \"" + attrName +
+		             "\" hides field defined by parent structure \"" +
+		             parentStructure->getName() + "\".");
+	} else {
+		logger.error("Field with name \"" + attrName + "\" already exists.");
+	}
+	markInvalid();
+}
+
+void StructType::addAttribute(Handle<Attribute> attribute, Logger &logger)
+{
+	invalidate();
+	addAttribute(attribute, logger, false);
+}
+
+void StructType::addAttributes(const NodeVector<Attribute> &attributes,
+                               Logger &logger)
+{
+	invalidate();
+	for (Handle<Attribute> a : attributes) {
+		addAttribute(a, logger, false);
+	}
 }
 
 Variant StructType::create() const
@@ -388,6 +449,11 @@ ssize_t StructType::indexOf(const std::string &name) const
 		return res;
 	}
 	return -1;
+}
+
+bool StructType::hasAttribute(const std::string &name) const
+{
+	return indexOf(name) >= 0;
 }
 
 /* Class ArrayType */

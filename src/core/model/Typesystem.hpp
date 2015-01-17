@@ -373,6 +373,15 @@ private:
 	 */
 	const Owned<Type> type;
 
+protected:
+	/**
+	 * Returns true if the name of the Attribute is a valid identifier.
+	 *
+	 * @param logger is the logger instance to which validation errors are
+	 * logged.
+	 */
+	bool doValidate(Logger &logger) const override;
+
 public:
 	/**
 	 * Default value of the attribute.
@@ -441,7 +450,14 @@ private:
 	Owned<StructType> parentStructure;
 
 	/**
-	 * Vector containing references to all attribute descriptors.
+	 * Contains the index at which the attributes declared by this StructType
+	 * start.
+	 */
+	size_t attributeStart;
+
+	/**
+	 * Vector containing references to all attribute descriptors, including the
+	 * attributes of the parent structure.
 	 */
 	NodeVector<Attribute> attributes;
 
@@ -528,6 +544,22 @@ private:
 	 */
 	bool buildFromArrayOrMap(Variant &data, Logger &logger, bool trim) const;
 
+	/**
+	 * Rebuilds the internal index and attribute list depending on the parent
+	 * structure.
+	 */
+	void initialize(Logger &logger);
+
+	/**
+	 * Function used internally to add and index attributes while logging
+	 * exceptions.
+	 *
+	 * @param attribute is the attribute that should be added.
+	 * @param logger is the logger instance to which
+	 */
+	void addAttribute(Handle<Attribute> attribute, Logger &logger,
+	                  bool fromInitialize);
+
 protected:
 	/**
 	 * Converts the given variant to the representation of the structure type.
@@ -549,9 +581,8 @@ protected:
 	 *
 	 * @param logger is a reference to the logger to which error messages should
 	 * be logged.
-	 * @param visited is used internally for recursion avoidance.
 	 */
-	bool doValidate(Logger &logger, std::set<ManagedUid> &visited) const override;
+	bool doValidate(Logger &logger) const override;
 
 public:
 	/**
@@ -564,9 +595,16 @@ public:
 	 * @param system is a reference to the parent Typesystem instance.
 	 */
 	StructType(Manager &mgr, std::string name, Handle<Typesystem> system)
-	    : Type(mgr, std::move(name), system, false), attributes(this)
+	    : Type(mgr, std::move(name), system, false),
+	      attributeStart(0),
+	      attributes(this)
 	{
 	}
+
+	static Rooted<StructType> createValidated(
+	    Manager &mgr, std::string name, Handle<Typesystem> system,
+	    Handle<StructType> parentStructure, NodeVector<Attribute> attributes,
+	    Logger &logger);
 
 	/**
 	 * Returns a handle pointing at the parent type.
@@ -581,7 +619,7 @@ public:
 	 *
 	 * @param parentStructure is the new parent structure.
 	 */
-	void setParentStructure(Handle<StructType> parentStructure);
+	void setParentStructure(Handle<StructType> parentStructure, Logger &logger);
 
 	/**
 	 * Adds an attribute. Throws an exception if the name of the attribute is
@@ -590,14 +628,14 @@ public:
 	 * @param attribute is the attribute descriptor that should be added to the
 	 * internal attribute list.
 	 */
-	void addAttribute(Handle<Attribute> attribute);
+	void addAttribute(Handle<Attribute> attribute, Logger &logger);
 
 	/**
 	 * Adds a complete list of attributes to the typesystem.
 	 *
 	 * @param attributes is the list with typesystems that should be added.
 	 */
-	void addAttributes(const NodeVector<Attribute> &attributes);
+	void addAttributes(const NodeVector<Attribute> &attributes, Logger &logger);
 
 	/**
 	 * Creates a Variant containing a valid representation of a data instance of
@@ -630,11 +668,12 @@ public:
 	bool cast(Variant &data, Logger &logger) const;
 
 	/**
-	 * Returns a reference at the list containing all attributes.
+	 * Returns a reference at the list containing all attributes, including the
+	 * attributes of the parent structure.
 	 *
 	 * @return a const reference pointing at the attribute list.
 	 */
-	const NodeVector<Attribute> &getAttributes() const { return attributes; }
+	const NodeVector<Attribute> &getAttributes() const { return attributes; };
 
 	/**
 	 * Returns the index of the given attribute in a data array representing
@@ -645,6 +684,15 @@ public:
 	 * @return the index or -1 if the attribute does not exist.
 	 */
 	ssize_t indexOf(const std::string &name) const;
+
+	/**
+	 * Returns true if an attribute with the given name exists.
+	 *
+	 * @param name is the name of the attribute for which the index is
+	 * requested.
+	 * @return true if the requested attribute name exists, false otherwise.
+	 */
+	bool hasAttribute(const std::string &name) const;
 };
 
 /**
@@ -833,14 +881,18 @@ public:
 
 	/**
 	 * Adds the given types to the type list.
+	 *
+	 * @param ts is the list of types that should be added to the typesystem.
 	 */
-	void addTypes(const std::vector<Handle<Type>> &ts)
+	void addTypes(const NodeVector<Type> &ts)
 	{
 		types.insert(types.end(), ts.begin(), ts.end());
 	}
 
 	/**
 	 * Adds the given constant to the constant list.
+	 *
+	 * @param constant is the constant that should be added to the typesystem.
 	 */
 	void addConstant(Handle<Constant> constant)
 	{
@@ -849,8 +901,11 @@ public:
 
 	/**
 	 * Adds the given constants to the constant list.
+	 *
+	 * @param cs is the list of constants that should be added to the
+	 * typesystem.
 	 */
-	void addConstants(const std::vector<Handle<Constant>> &cs)
+	void addConstants(const NodeVector<Constant> &cs)
 	{
 		constants.insert(constants.end(), cs.begin(), cs.end());
 	}
@@ -868,8 +923,6 @@ public:
 	 * @return NodeVector containing all registered constants.
 	 */
 	const NodeVector<Constant> &getConstants() const { return constants; }
-
-	static Rooted<Typesystem> createSystemTypesystem(Manager &mgr);
 };
 
 /**

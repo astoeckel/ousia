@@ -578,23 +578,21 @@ TEST(StructType, createValidated)
 			    new Attribute{mgr, "c", intType, 3},
 			    new Attribute{mgr, "a", intType}},
 			logger)};
+		ASSERT_TRUE(structType->validate(logger));
 		ASSERT_EQ(Severity::DEBUG, logger.getMaxEncounteredSeverity());
 	}
 
 	{
 		logger.reset();
-		try {
-			Rooted<StructType> structType{StructType::createValidated(
-				mgr, "struct", nullptr, nullptr,
-				NodeVector<Attribute>{
-					new Attribute{mgr, "d", stringType, "attr1default"},
-					new Attribute{mgr, "b", stringType},
-					new Attribute{mgr, "a", intType, 3},
-					new Attribute{mgr, "a", intType}},
-				logger)};
-		} catch (LoggableException ex) {
-			logger.log(ex);
-		}
+		Rooted<StructType> structType{StructType::createValidated(
+			mgr, "struct", nullptr, nullptr,
+			NodeVector<Attribute>{
+				new Attribute{mgr, "d", stringType, "attr1default"},
+				new Attribute{mgr, "b", stringType},
+				new Attribute{mgr, "a", intType, 3},
+				new Attribute{mgr, "a", intType}},
+			logger)};
+		ASSERT_FALSE(structType->validate(logger));
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
 
@@ -608,6 +606,7 @@ TEST(StructType, createValidated)
 			    new Attribute{mgr, "a", intType, 3},
 			    new Attribute{mgr, "a a", intType}},
 			logger)};
+		ASSERT_FALSE(structType->validate(logger));
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
 }
