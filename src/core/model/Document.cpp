@@ -157,6 +157,32 @@ bool DocumentEntity::doValidate(Logger &logger) const
 	}
 	// iterate over every field
 	for (unsigned int f = 0; f < fields.size(); f++) {
+		// we have a special check for primitive fields.
+		if (fieldDescs[f]->getFieldType() ==
+		    FieldDescriptor::FieldType::PRIMITIVE) {
+			switch (fields[f].size()) {
+				case 0:
+					if (!fieldDescs[f]->optional) {
+						logger.error(std::string("Primitive Field \"") +
+						             fieldDescs[f]->getName() +
+						             "\" had no content!");
+						valid = false;
+					}
+					continue;
+				case 1:
+					break;
+				default:
+					logger.error(std::string("Primitive Field \"") +
+					             fieldDescs[f]->getName() +
+					             "\" had more than one child!");
+					valid = false;
+					continue;
+			}
+			// if we are here we know that exactly one child exists.
+			// TODO: Check the primitive type of the child.
+			continue;
+		}
+
 		// we can do a faster check if this field is empty.
 		if (fields[f].size() == 0) {
 			// if this field is optional, an empty field is valid anyways.
@@ -197,8 +223,10 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				continue;
 			}
 			if (rc->isa(RttiTypes::DocumentPrimitive)) {
-				// For DocumentPrimitives we have to check the content type.
-				// TODO: Do that!
+				logger.error(std::string("Non-primitive Field \"") +
+				             fieldDescs[f]->getName() +
+				             "\" had primitive content!");
+				valid = false;
 				continue;
 			}
 			// otherwise this is a StructuredEntity
@@ -322,6 +350,7 @@ AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
       end(acquire(end))
 {
 	parent->annotations.push_back(this);
+	parent->invalidate();
 }
 
 bool AnnotationEntity::doValidate(Logger &logger) const
@@ -352,12 +381,18 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 		valid = valid & validateName(logger);
 	}
 	// check if the Anchors are part of the right document.
-	if (!doc->hasChild(start)) {
+	if (start == nullptr) {
+		logger.error("This annotation has no start Anchor!");
+		valid = false;
+	} else if (!doc->hasChild(start)) {
 		logger.error(
 		    "This annotations start anchor was not part of the same document!");
 		valid = false;
 	}
-	if (!doc->hasChild(end)) {
+	if (end == nullptr) {
+		logger.error("This annotation has no end Anchor!");
+		valid = false;
+	} else if (!doc->hasChild(end)) {
 		logger.error(
 		    "This annotations end anchor was not part of the same document!");
 		valid = false;

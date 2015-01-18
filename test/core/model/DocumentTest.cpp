@@ -134,6 +134,14 @@ TEST(Document, validate)
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		ASSERT_TRUE(doc->validate(logger));
 	}
+	{
+		// A root with an invalid name, however, should make it invalid
+		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
+		doc->addDomain(domain);
+		Rooted<StructuredEntity> root = buildRootStructuredEntity(
+		    doc, logger, {"root"}, {}, "my invalid root");
+		ASSERT_FALSE(doc->validate(logger));
+	}
 
 	// now let's extend the rootClass with a default field.
 	Rooted<FieldDescriptor> rootField{new FieldDescriptor(mgr, rootClass)};
@@ -192,8 +200,78 @@ TEST(Document, validate)
 		buildStructuredEntity(doc, logger, root, {"childSub"});
 		ASSERT_FALSE(doc->validate(logger));
 	}
-	// TODO: Override child field in childSub such that an empty childSub is
-	// valid.
+	/*
+	 * Override the default field in childSubClass.
+	 */
+	Rooted<FieldDescriptor> childSubField{
+	    new FieldDescriptor(mgr, childSubClass)};
+	{
+		/*
+		 * Now a document with one instance of the Child subclass should be
+		 * valid, because of the override.
+		 */
+		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
+		doc->addDomain(domain);
+		Rooted<StructuredEntity> root =
+		    buildRootStructuredEntity(doc, logger, {"root"});
+		buildStructuredEntity(doc, logger, root, {"childSub"});
+		ASSERT_TRUE(doc->validate(logger));
+	}
+	// add a primitive field to the subclass with integer content.
+	Rooted<FieldDescriptor> primitive_field{new FieldDescriptor(
+	    mgr, childSubClass, sys->getIntType(), "int", false)};
+	{
+		/*
+		 * Now a document with one instance of the Child subclass should be
+		 * invalid again, because we are missing the primitive content.
+		 */
+		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
+		doc->addDomain(domain);
+		Rooted<StructuredEntity> root =
+		    buildRootStructuredEntity(doc, logger, {"root"});
+		buildStructuredEntity(doc, logger, root, {"childSub"});
+		ASSERT_FALSE(doc->validate(logger));
+	}
+	// TODO: Check wrongly typed primitive content.
+
+	// Now add an Annotation class to the domain.
+	Rooted<AnnotationClass> annoClass{new AnnotationClass(mgr, "anno", domain)};
+	{
+		/*
+		 * Create a valid document in itself.
+		 */
+		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
+		doc->addDomain(domain);
+		Rooted<StructuredEntity> root =
+		    buildRootStructuredEntity(doc, logger, {"root"});
+		Rooted<StructuredEntity> child =
+		    buildStructuredEntity(doc, logger, root, {"childSub"});
+		Rooted<DocumentPrimitive> primitive{
+		    new DocumentPrimitive(mgr, child, {2}, "int")};
+		ASSERT_TRUE(doc->validate(logger));
+		// then add an AnnotationEntity without Anchors.
+		buildAnnotationEntity(doc, logger, {"anno"}, nullptr, nullptr);
+		ASSERT_FALSE(doc->validate(logger));
+	}
+	{
+		/*
+		 * Do the same again, but with a valid AnnotationEntity now.
+		 */
+		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
+		doc->addDomain(domain);
+		Rooted<StructuredEntity> root =
+		    buildRootStructuredEntity(doc, logger, {"root"});
+		Rooted<Anchor> start{new Anchor(mgr, "start", root)};
+		Rooted<StructuredEntity> child =
+		    buildStructuredEntity(doc, logger, root, {"childSub"});
+		Rooted<DocumentPrimitive> primitive{
+		    new DocumentPrimitive(mgr, child, {2}, "int")};
+		Rooted<Anchor> end{new Anchor(mgr, "end", root)};
+		ASSERT_TRUE(doc->validate(logger));
+		// then add an AnnotationEntity without Anchors.
+		buildAnnotationEntity(doc, logger, {"anno"}, start, end);
+		ASSERT_TRUE(doc->validate(logger));
+	}
 }
 }
 }
