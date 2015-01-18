@@ -36,7 +36,7 @@ static void checkUniqueName(Handle<Node> parent, NodeVector<T> vec,
 		childNames.insert(c->getName());
 	}
 	if (childNames.find(child->getName()) != childNames.end()) {
-		//TODO: Do we really want to have an exception here?
+		// TODO: Do we really want to have an exception here?
 		throw OusiaException(std::string("The ") + parentClassName + " " +
 		                     parent->getName() + " already has a " +
 		                     childClassName + " with name " + child->getName());
@@ -97,10 +97,7 @@ std::vector<Rooted<Node>> Descriptor::pathTo(
 }
 
 bool Descriptor::continuePath(Handle<StructuredClass> target,
-                              std::vector<Rooted<Node>> &currentPath,
-                              std::set<std::string> ignoredFields,
-                              bool exploreSuperclass,
-                              bool exploreSubclasses) const
+                              std::vector<Rooted<Node>> &currentPath) const
 {
 	// check if we are at the target already
 	if (this == target) {
@@ -111,11 +108,16 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 	// the currently optimal path.
 	std::vector<Rooted<Node>> optimum;
 	// use recursive depth-first search from the top to reach the given child
-	for (auto &fd : fieldDescriptors) {
-		if (!(ignoredFields.insert(fd->getName()).second)) {
-			// if we want to ignore that field, we continue.
-			continue;
-		}
+	// get the list of effective FieldDescriptors.
+	NodeVector<FieldDescriptor> fields;
+	if (isa(RttiTypes::StructuredClass)) {
+		const StructuredClass *tis = static_cast<const StructuredClass *>(this);
+		fields = tis->getEffectiveFieldDescriptors();
+	} else {
+		fields = getFieldDescriptors();
+	}
+
+	for (auto &fd : fields) {
 		for (auto &c : fd->getChildren()) {
 			// check if a child is the target node.
 			if (c == target) {
@@ -142,33 +144,15 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 
 	if (isa(RttiTypes::StructuredClass)) {
 		const StructuredClass *tis = static_cast<const StructuredClass *>(this);
-		/*
-		 * if this is a StructuredClass, we can also use the super class
-		 * (at least for fields that are not overridden)
-		 */
-		if (exploreSuperclass && tis->getSuperclass() != nullptr) {
+		// if this is a StructuredClass we also can call the subclasses.
+		for (auto &c : tis->getSubclasses()) {
 			// copy the path.
 			std::vector<Rooted<Node>> cPath = currentPath;
-			if (tis->getSuperclass()->continuePath(target, cPath, ignoredFields,
-			                                       true, false) &&
+			if (c->continuePath(target, cPath) &&
 			    (!found || optimum.size() > cPath.size())) {
 				// look if this path is better than the current optimum.
 				optimum = std::move(cPath);
 				found = true;
-			}
-		}
-
-		// we also can call the subclasses.
-		if (exploreSubclasses) {
-			for (auto &c : tis->getSubclasses()) {
-				// copy the path.
-				std::vector<Rooted<Node>> cPath = currentPath;
-				if (c->continuePath(target, cPath, {}, false) &&
-				    (!found || optimum.size() > cPath.size())) {
-					// look if this path is better than the current optimum.
-					optimum = std::move(cPath);
-					found = true;
-				}
 			}
 		}
 	}
@@ -219,14 +203,40 @@ StructuredClass::StructuredClass(Manager &mgr, std::string name,
 	}
 }
 
-bool StructuredClass::isSubclassOf(Handle<StructuredClass> c) const{
-	if(c == nullptr || superclass == nullptr){
+bool StructuredClass::isSubclassOf(Handle<StructuredClass> c) const
+{
+	if (c == nullptr || superclass == nullptr) {
 		return false;
 	}
-	if(c == superclass){
+	if (c == superclass) {
 		return true;
 	}
 	return superclass->isSubclassOf(c);
+}
+
+const void StructuredClass::gatherFieldDescriptors(
+    NodeVector<FieldDescriptor> &current,
+    std::set<std::string> &overriddenFields) const
+{
+	// append all FieldDescriptors that are not overridden.
+	for (auto &f : Descriptor::getFieldDescriptors()) {
+		if (overriddenFields.insert(f->getName()).second) {
+			current.push_back(f);
+		}
+	}
+	if (superclass != nullptr) {
+		superclass->gatherFieldDescriptors(current, overriddenFields);
+	}
+}
+
+NodeVector<FieldDescriptor> StructuredClass::getEffectiveFieldDescriptors()
+    const
+{
+	// in this case we return a NodeVector of Rooted entries without owner.
+	NodeVector<FieldDescriptor> vec;
+	std::set<std::string> overriddenFields;
+	gatherFieldDescriptors(vec, overriddenFields);
+	return std::move(vec);
 }
 
 /* Class AnnotationClass */

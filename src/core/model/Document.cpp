@@ -92,7 +92,7 @@ int DocumentEntity::getFieldDescriptorIndex(
 	}
 }
 
-bool DocumentEntity::validate(Logger &logger) const
+bool DocumentEntity::doValidate(Logger &logger) const
 {
 	// TODO: check the validated form of Attributes
 	// iterate over every field
@@ -246,7 +246,7 @@ bool StructuredEntity::doValidate(Logger &logger) const
 		return false;
 	}
 	// check the validity as a DocumentEntity.
-	return DocumentEntity::validate(logger);
+	return DocumentEntity::doValidate(logger);
 }
 
 /* Class AnnotationEntity */
@@ -281,12 +281,17 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 		logger.error("This annotation was not registered at the document.");
 		return false;
 	}
-
-	// check the validity as a DocumentEntity.
-	if (!DocumentEntity::validate(logger)) {
+	// check if the Anchors are part of the right document.
+	if (!doc->hasChild(start)) {
 		return false;
 	}
-	// TODO: then check if the anchors are in the correct document.
+	if (!doc->hasChild(end)) {
+		return false;
+	}
+	// check the validity as a DocumentEntity.
+	if (!DocumentEntity::doValidate(logger)) {
+		return false;
+	}
 	return true;
 }
 
@@ -299,6 +304,44 @@ void Document::doResolve(ResolutionState &state)
 		continueResolveCompositum(root, state);
 	}
 	continueResolveReferences(domains, state);
+}
+
+bool Document::doValidate(Logger &logger) const
+{
+	if (root != nullptr) {
+		// check if the root is allowed to be a root.
+		if (!root->getDescriptor().cast<StructuredClass>()->root) {
+			logger.error(std::string("A node of type ") +
+			             root->getDescriptor()->getName() +
+			             " is not allowed to be the Document root!");
+			return false;
+		}
+		// then call validate on the root
+		if (!root->validate(logger)) {
+			return false;
+		}
+	}
+	// call validate on the AnnotationEntities
+	for (auto &a : annotations) {
+		if (!a->validate(logger)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool Document::hasChild(Handle<StructureNode> s) const
+{
+	Rooted<Managed> parent = s->getParent();
+	if (parent->isa(RttiTypes::StructureNode)) {
+		return hasChild(parent.cast<StructureNode>());
+	} else if (parent->isa(RttiTypes::AnnotationEntity)) {
+		Handle<AnnotationEntity> a = parent.cast<AnnotationEntity>();
+		return this == a->getParent();
+	} else if (parent->isa(RttiTypes::Document)) {
+		return this == parent;
+	}
+	return false;
 }
 }
 
