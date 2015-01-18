@@ -380,22 +380,18 @@ public:
  *
  */
 class Descriptor : public Node {
-
-friend FieldDescriptor;
+	friend FieldDescriptor;
 
 private:
 	Owned<StructType> attributesDescriptor;
 	NodeVector<FieldDescriptor> fieldDescriptors;
 
 	bool continuePath(Handle<StructuredClass> target,
-	                  std::vector<Rooted<Node>> &path,
-	                  std::set<std::string> ignoredFields = {},
-	                  bool exploreSuperclass = true,
-	                  bool exploreSubclasses = true) const;
+	                  std::vector<Rooted<Node>> &path) const;
 
 protected:
 	void continueResolve(ResolutionState &state) override;
-	
+
 	/**
 	 * Adds a FieldDescriptor and checks for name uniqueness.
 	 */
@@ -553,6 +549,13 @@ private:
 	Owned<StructuredClass> superclass;
 	NodeVector<StructuredClass> subclasses;
 
+	/**
+	 * Helper method for getFieldDescriptors.
+	 */
+	const void gatherFieldDescriptors(
+	    NodeVector<FieldDescriptor> &current,
+	    std::set<std::string> &overriddenFields) const;
+
 public:
 	const bool transparent;
 	// TODO: Is it possible to have root=true and cardinality other than 1?
@@ -606,7 +609,7 @@ public:
 	 * @return the superclass of this StructuredClass.
 	 */
 	Rooted<StructuredClass> getSuperclass() const { return superclass; }
-	
+
 	/**
 	 * Returns true if this class is a subclass of the given class. It does not
 	 * return true if the other class is equal to the given class.
@@ -635,6 +638,17 @@ public:
 	{
 		return subclasses;
 	}
+
+	/**
+	 * Returns a const reference to the NodeVector of all FieldDescriptors of
+	 * this StructuredClass. This does more than the getter for FieldDescriptor,
+	 * because in this method we gather the FieldDescriptors of all superclasses
+	 * as well that have not been overridden in child classes.
+	 *
+	 * @return a const reference to the NodeVector of all FieldDescriptors of
+	 * this StructuredClass.
+	 */
+	NodeVector<FieldDescriptor> getEffectiveFieldDescriptors() const;
 };
 
 /**
@@ -670,9 +684,8 @@ public:
  * to certain Structures?
  */
 class Domain : public Node {
-
-friend StructuredClass;
-friend AnnotationClass;
+	friend StructuredClass;
+	friend AnnotationClass;
 
 private:
 	NodeVector<StructuredClass> structuredClasses;
