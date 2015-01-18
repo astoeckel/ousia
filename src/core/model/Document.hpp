@@ -178,18 +178,7 @@ public:
 	 *                   in the given descriptor.
 	 */
 	DocumentEntity(Handle<Node> owner, Handle<Descriptor> descriptor,
-	               Variant attributes = {})
-	    : descriptor(owner->acquire(descriptor)),
-	      attributes(std::move(attributes))
-	{
-		// insert empty vectors for each field.
-		if (!descriptor.isNull()) {
-			for (size_t f = 0; f < descriptor->getFieldDescriptors().size();
-			     f++) {
-				fields.push_back(NodeVector<StructureNode>(owner));
-			}
-		}
-	}
+	               Variant attributes = {});
 
 	/**
 	 * Returns the Descriptor for this DocumentEntity.

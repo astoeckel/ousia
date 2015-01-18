@@ -92,23 +92,61 @@ int DocumentEntity::getFieldDescriptorIndex(
 	}
 }
 
+DocumentEntity::DocumentEntity(Handle<Node> owner,
+                               Handle<Descriptor> descriptor,
+                               Variant attributes)
+    : descriptor(owner->acquire(descriptor)), attributes(std::move(attributes))
+{
+	// insert empty vectors for each field.
+	if (!descriptor.isNull()) {
+		NodeVector<FieldDescriptor> fieldDescs;
+		if (descriptor->isa(RttiTypes::StructuredClass)) {
+			fieldDescs = descriptor.cast<StructuredClass>()
+			                 ->getEffectiveFieldDescriptors();
+		} else {
+			fieldDescs = descriptor->getFieldDescriptors();
+		}
+		for (size_t f = 0; f < fieldDescs.size(); f++) {
+			fields.push_back(NodeVector<StructureNode>(owner));
+		}
+	}
+}
+
 bool DocumentEntity::doValidate(Logger &logger) const
 {
+	// if we have no descriptor, this is invalid.
+	if (descriptor == nullptr) {
+		logger.error("This DocumentEntity has no descriptor!");
+		return false;
+	}
 	// TODO: check the validated form of Attributes
+
+	/*
+	 * generate the set of effective fields. This is trivial for
+	 * AnnotationEntities, but in the case of StructuredEntities we have to
+	 * gather all fields of superclasses as well, that have not been
+	 * overridden in the subclasses.
+	 */
+	NodeVector<FieldDescriptor> fieldDescs;
+	if (descriptor->isa(RttiTypes::StructuredClass)) {
+		fieldDescs =
+		    descriptor.cast<StructuredClass>()->getEffectiveFieldDescriptors();
+	} else {
+		fieldDescs = descriptor->getFieldDescriptors();
+	}
 	// iterate over every field
 	for (unsigned int f = 0; f < fields.size(); f++) {
 		// we can do a faster check if this field is empty.
 		if (fields[f].size() == 0) {
 			// if this field is optional, an empty field is valid anyways.
-			if (descriptor->getFieldDescriptors()[f]->optional) {
+			if (fieldDescs[f]->optional) {
 				continue;
 			}
 			/*
-			 * if it is not optional we have to chack if zero is a valid
+			 * if it is not optional we have to check if zero is a valid
 			 * cardinality.
 			 */
-			for (auto &ac :
-			     descriptor->getFieldDescriptors()[f]->getChildren()) {
+			for (auto &ac : fieldDescs[f]->getChildren()) {
 				const size_t min = ac->getCardinality().min();
 				if (min > 0) {
 					logger.error(
@@ -126,7 +164,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 
 		// create a set of allowed classes identified by their unique id.
 		std::set<ManagedUid> accs;
-		for (auto &ac : descriptor->getFieldDescriptors()[f]->getChildren()) {
+		for (auto &ac : fieldDescs[f]->getChildren()) {
 			accs.insert(ac->getUid());
 		}
 		// store the actual numbers of children for each child class in a map
@@ -154,8 +192,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			 * child of a permitted class.
 			 */
 			if (!allowed) {
-				for (auto &ac :
-				     descriptor->getFieldDescriptors()[f]->getChildren()) {
+				for (auto &ac : fieldDescs[f]->getChildren()) {
 					if (c->getDescriptor()
 					        .cast<StructuredClass>()
 					        ->isSubclassOf(ac)) {
@@ -169,7 +206,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				             c->getDescriptor()->getName() +
 				             " is not allowed as child of an instance of " +
 				             descriptor->getName() + " in field " +
-				             descriptor->getFieldDescriptors()[f]->getName());
+				             fieldDescs[f]->getName());
 				return false;
 			}
 			// note the number of occurences.
@@ -182,7 +219,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		}
 
 		// now check if the cardinalities are right.
-		for (auto &ac : descriptor->getFieldDescriptors()[f]->getChildren()) {
+		for (auto &ac : fieldDescs[f]->getChildren()) {
 			const auto &n = nums.find(ac->getUid());
 			unsigned int num = 0;
 			if (n != nums.end()) {
@@ -190,8 +227,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			}
 			if (!ac->getCardinality().contains(num)) {
 				logger.error(
-				    std::string("Field ") +
-				    descriptor->getFieldDescriptors()[f]->getName() + " had " +
+				    std::string("Field ") + fieldDescs[f]->getName() + " had " +
 				    std::to_string(num) + " elements of class " +
 				    ac->getName() +
 				    ", which is invalid according to the definition of " +
