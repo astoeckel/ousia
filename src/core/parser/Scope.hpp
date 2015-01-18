@@ -43,6 +43,18 @@ namespace parser {
 class Scope;
 
 /**
+ * Callback function type used for creating a dummy object while no correct
+ * object is available for resolution.
+ */
+using ResolutionImposterCallback = std::function<Rooted<Node>()>;
+
+/**
+ * Callback function type called whenever the result of a resolution is
+ * available.
+ */
+using ResolutionResultCallback = std::function<void(Handle<Node>, Logger &logger)>;
+
+/**
  * The GuardedScope class takes care of pushing a Node instance into the
  * name resolution stack of a Scope instance and poping this node once the
  * ScopedScope instance is deletes. This way you cannot forget to pop a Node
@@ -148,7 +160,7 @@ private:
 	/**
 	 * Callback function to be called when an element is successfully resolved.
 	 */
-	std::function<void(Handle<Node>)> resultCallback;
+	ResolutionResultCallback resultCallback;
 
 public:
 	/**
@@ -162,6 +174,11 @@ public:
 	const RttiType &type;
 
 	/**
+	 * Position at which the resolution was triggered.
+	 */
+	const SourceLocation location;
+
+	/**
 	 * Constructor of the DeferredResolutionScope class. Copies the given
 	 * arguments.
 	 *
@@ -172,11 +189,13 @@ public:
 	 * @param type is the RttiType of the element that should be queried.
 	 * @param resultCallback is the callback function that should be called if
 	 * the desired element has indeed been found.
+	 * @param location is the location at which the resolution was triggered.
 	 */
 	DeferredResolution(const NodeVector<Node> &nodes,
 	                   const std::vector<std::string> &path,
 	                   const RttiType &type,
-	                   std::function<void(Handle<Node>)> resultCallback);
+	                   ResolutionResultCallback resultCallback,
+	                   const SourceLocation &location = SourceLocation{});
 
 	/**
 	 * Performs the actual deferred resolution and calls the resultCallback
@@ -267,34 +286,39 @@ public:
 	 * resolved object directly when this function is called. If the resolution
 	 * was not successful the first time, it may be called another time later
 	 * in the context of the "performDeferredResolution" function.
+	 * @param location is the location in the current source file in which the
+	 * resolution was triggered.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
 	bool resolve(const std::vector<std::string> &path, const RttiType &type,
-	             Logger &logger, std::function<Rooted<Node>()> imposterCallback,
-	             std::function<void(Handle<Node>)> resultCallback);
+	             Logger &logger, ResolutionImposterCallback imposterCallback,
+	             ResolutionResultCallback resultCallback,
+	             const SourceLocation &location = SourceLocation{});
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes
 	 * currently on the stack, starting with the topmost node on the stack.
-	 * The "successCallback" is called when the resolution was successful, which
+	 * The "resultCallback" is called when the resolution was successful, which
 	 * may be at a later point in time.
 	 *
 	 * @param path is the path for which a node should be resolved.
 	 * @param type is the type of the node that should be resolved.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
-	 * @param successCallback is the callback function to which the result of
+	 * @param resultCallback is the callback function to which the result of
 	 * the resolution process is passed. This function is called once the
 	 * resolution was successful.
+	 * @param location is the location in the current source file in which the
+	 * resolution was triggered.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
 	bool resolve(const std::vector<std::string> &path, const RttiType &type,
-	             Logger &logger,
-	             std::function<void(Handle<Node>)> successCallback);
+	             Logger &logger, ResolutionResultCallback resultCallback,
+	             const SourceLocation &location = SourceLocation{});
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes
@@ -319,6 +343,8 @@ public:
 	 * resolved object directly when this function is called. If the resolution
 	 * was not successful the first time, it may be called another time later
 	 * in the context of the "performDeferredResolution" function.
+	 * @param location is the location in the current source file in which the
+	 * resolution was triggered.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
@@ -326,41 +352,45 @@ public:
 	template <class T>
 	bool resolve(const std::vector<std::string> &path, Logger &logger,
 	             std::function<Rooted<T>()> imposterCallback,
-	             std::function<void(Handle<T>)> successCallback)
+	             std::function<void(Handle<T>, Logger&)> resultCallback,
+	             const SourceLocation &location = SourceLocation{})
 	{
 		return resolve(
 		    path, typeOf<T>(), logger,
 		    [imposterCallback]() -> Rooted<Node> { return imposterCallback(); },
-		    [successCallback](Handle<Node> node) {
-			    successCallback(node.cast<T>());
-			});
+		    [resultCallback](Handle<Node> node, Logger &logger) {
+			    resultCallback(node.cast<T>(), logger);
+			}, location);
 	}
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes
 	 * currently on the stack, starting with the topmost node on the stack.
-	 * The "successCallback" is called when the resolution was successful, which
+	 * The "resultCallback" is called when the resolution was successful, which
 	 * may be at a later point in time.
 	 *
 	 * @tparam is the type of the node that should be resolved.
 	 * @param path is the path for which a node should be resolved.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
-	 * @param successCallback is the callback function to which the result of
+	 * @param resultCallback is the callback function to which the result of
 	 * the resolution process is passed. This function is called once the
 	 * resolution was successful.
+	 * @param location is the location in the current source file in which the
+	 * resolution was triggered.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
 	template <class T>
 	bool resolve(const std::vector<std::string> &path, Logger &logger,
-	             std::function<void(Handle<T>)> resultCallback)
+	             std::function<void(Handle<T>, Logger&)> resultCallback,
+	             const SourceLocation &location = SourceLocation{})
 	{
 		return resolve(path, typeOf<T>(), logger,
-		               [resultCallback](Handle<Node> node) {
-			resultCallback(node.cast<T>());
-		});
+		               [resultCallback](Handle<Node> node, Logger &logger) {
+			resultCallback(node.cast<T>(), logger);
+		}, location);
 	}
 
 	/**

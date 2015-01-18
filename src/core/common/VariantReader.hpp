@@ -229,6 +229,26 @@ public:
 	    CharReader &reader, Logger &logger,
 	    const std::unordered_set<char> &delims,
 	    bool extractUnescapedStrings = false);
+
+	/**
+	 * Tries to parse the most specific item from the given string. The
+	 * resulting variant represents the value that has been read. If the end of
+	 * the string was not reached while parsing an element, the result is
+	 * returned as string.
+	 *
+	 * @param str is the string from which the value should be read.
+	 * @param logger is the logger instance to which errors or warnings will be
+	 * written.
+	 * @return a pair indicating whether the operation was successful and the
+	 * extracted variant value. Note that the variant value most times contains
+	 * some meaningful data that can be worked with even if the operation was
+	 * not successful (e.g. if a syntax error is encountered while reading an
+	 * array, the successfully read elements will still be in the returned
+	 * variant.) Information on why the operation has failed is passed to the
+	 * logger.
+	 */
+	static std::pair<bool, Variant> parseGenericString(
+	    const std::string &str, Logger &logger);
 };
 }
 

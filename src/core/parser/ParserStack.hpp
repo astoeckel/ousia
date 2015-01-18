@@ -86,6 +86,11 @@ struct HandlerData {
 	const bool isChild;
 
 	/**
+	 * Current source code location.
+	 */
+	const SourceLocation location;
+
+	/**
 	 * Constructor of the HandlerData class.
 	 *
 	 * @param ctx is the parser context the handler should be executed in.
@@ -94,14 +99,16 @@ struct HandlerData {
 	 * @param parentState is the state of the parent command.
 	 * @param isChild specifies whether this handler was called not for the
 	 * command that was specified in the state machine but a child command.
+	 * @param location is the location at which the handler is created.
 	 */
 	HandlerData(const ParserContext &ctx, std::string name, State state,
-	            State parentState, bool isChild)
+	            State parentState, bool isChild, const SourceLocation location)
 	    : ctx(ctx),
 	      name(std::move(name)),
 	      state(state),
 	      parentState(parentState),
-	      isChild(isChild){};
+	      isChild(isChild),
+	      location(location){};
 };
 
 /**
@@ -123,27 +130,28 @@ public:
 	 * @param data is a structure containing all data being passed to the
 	 * handler.
 	 */
-	Handler(const HandlerData &handlerData) : handlerData(handlerData) {};
+	Handler(const HandlerData &handlerData) : handlerData(handlerData){};
 
 	/**
 	 * Virtual destructor.
 	 */
 	virtual ~Handler(){};
 
-	
-	const std::string& name() {return handlerData.name;}
+	const std::string &name() { return handlerData.name; }
 
-	Scope &scope() {return handlerData.ctx.scope;}
+	Scope &scope() { return handlerData.ctx.scope; }
 
-	Registry &registry() {return handlerData.ctx.registry;}
+	Registry &registry() { return handlerData.ctx.registry; }
 
 	Manager &manager() { return handlerData.ctx.manager; }
 
 	Logger &logger() { return handlerData.ctx.logger; }
 
-	State state() {return handlerData.state; }
+	State state() { return handlerData.state; }
 
 	State parentState() { return handlerData.parentState; }
+
+	SourceLocation location() { return handlerData.location; }
 
 	bool isChild() { return handlerData.isChild; }
 
@@ -279,7 +287,8 @@ struct HandlerDescriptor {
 	 */
 	HandlerInstance create(const ParserContext &ctx, std::string name,
 	                       State parentState, bool isChild,
-	                       Variant::mapType &args) const;
+	                       Variant::mapType &args,
+	                       const SourceLocation &location) const;
 };
 
 /**
@@ -294,9 +303,9 @@ private:
 	ParserContext &ctx;
 
 	/**
-	 * User specified data that will be passed to all handlers.
+	 * Current location in the source code.
 	 */
-	void *userData;
+	SourceLocation location;
 
 	/**
 	 * Map containing all registered command names and the corresponding
@@ -369,16 +378,22 @@ public:
 	 *
 	 * @param name is the name of the command.
 	 * @param args is a map from strings to variants (argument name and value).
+	 * @param location is the location in the source file at which the command
+	 * starts.
 	 */
-	void start(std::string name, Variant::mapType &args);
+	void start(std::string name, Variant::mapType &args,
+	           const SourceLocation &location = SourceLocation{});
 
 	/**
 	 * Function that should be called whenever a new command starts.
 	 *
 	 * @param name is the name of the command.
 	 * @param args is a map from strings to variants (argument name and value).
+	 * @param location is the location in the source file at which the command
+	 * starts.
 	 */
-	void start(std::string name, const Variant::mapType &args);
+	void start(std::string name, const Variant::mapType &args,
+	           const SourceLocation &location = SourceLocation{});
 
 	/**
 	 * Function called whenever a command ends.

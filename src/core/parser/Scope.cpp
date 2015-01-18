@@ -59,11 +59,11 @@ Rooted<Node> ScopeBase::resolve(const std::vector<std::string> &path,
 
 		// Log an error if the object is not unique
 		if (res.size() > 1) {
-			logger.error(std::string("The reference ") +
-			             Utils::join(path, ".") + (" is ambigous!"));
+			logger.error(std::string("The reference \"") +
+			             Utils::join(path, ".") + ("\" is ambigous!"));
 			logger.note("Referenced objects are:");
 			for (const ResolutionResult &r : res) {
-				logger.note(std::string("\t") + Utils::join(r.path(), "."));
+				logger.note(Utils::join(r.path(), "."));
 			}
 		}
 		return res[0].node;
@@ -73,10 +73,16 @@ Rooted<Node> ScopeBase::resolve(const std::vector<std::string> &path,
 
 /* Class DeferredResolution */
 
-DeferredResolution::DeferredResolution(
-    const NodeVector<Node> &nodes, const std::vector<std::string> &path,
-    const RttiType &type, std::function<void(Handle<Node>)> resultCallback)
-    : scope(nodes), resultCallback(resultCallback), path(path), type(type)
+DeferredResolution::DeferredResolution(const NodeVector<Node> &nodes,
+                                       const std::vector<std::string> &path,
+                                       const RttiType &type,
+                                       ResolutionResultCallback resultCallback,
+                                       const SourceLocation &location)
+    : scope(nodes),
+      resultCallback(resultCallback),
+      path(path),
+      type(type),
+      location(location)
 {
 }
 
@@ -84,7 +90,12 @@ bool DeferredResolution::resolve(Logger &logger)
 {
 	Rooted<Node> res = scope.resolve(path, type, logger);
 	if (res != nullptr) {
-		resultCallback(res);
+		try {
+			resultCallback(res, logger);
+		}
+		catch (LoggableException ex) {
+			logger.log(ex);
+		}
 		return true;
 	}
 	return false;
@@ -106,30 +117,32 @@ Rooted<Node> Scope::getRoot() const { return nodes.front(); }
 Rooted<Node> Scope::getLeaf() { return nodes.back(); }
 
 bool Scope::resolve(const std::vector<std::string> &path, const RttiType &type,
-                    Logger &logger,
-                    std::function<Rooted<Node>()> imposterCallback,
-                    std::function<void(Handle<Node>)> resultCallback)
+                    Logger &logger, ResolutionImposterCallback imposterCallback,
+                    ResolutionResultCallback resultCallback,
+	             const SourceLocation &location)
 {
-	Rooted<Node> res = ScopeBase::resolve(path, type, logger);
-	if (res != nullptr) {
-		resultCallback(res);
-		return true;
+	if (!resolve(path, type, logger, resultCallback, location)) {
+		resultCallback(imposterCallback(), logger);
+		return false;
 	}
-	resultCallback(imposterCallback());
-	deferred.emplace_back(nodes, path, type, resultCallback);
-	return false;
+	return true;
 }
 
 bool Scope::resolve(const std::vector<std::string> &path, const RttiType &type,
-                    Logger &logger,
-                    std::function<void(Handle<Node>)> successCallback)
+                    Logger &logger, ResolutionResultCallback resultCallback,
+                    const SourceLocation &location)
 {
 	Rooted<Node> res = ScopeBase::resolve(path, type, logger);
 	if (res != nullptr) {
-		successCallback(res);
+		try {
+			resultCallback(res, logger);
+		}
+		catch (LoggableException ex) {
+			logger.log(ex, location);
+		}
 		return true;
 	}
-	deferred.emplace_back(nodes, path, type, successCallback);
+	deferred.emplace_back(nodes, path, type, resultCallback, location);
 	return false;
 }
 
@@ -157,14 +170,13 @@ bool Scope::performDeferredResolution(Logger &logger)
 
 	// Output an error message if there are still deferred elements left that
 	// could not be resolved
-	// TODO: Log this at the position at which the resolution was originally
-	// triggered
 	if (!deferred.empty()) {
 		for (const auto &failed : deferred) {
 			logger.error(
-			    std::string("Could not resolve \"") +
-			    Utils::join(failed.path, ".") +
-			    std::string("\" of internal type " + failed.type.name));
+			    std::string("Could not resolve a reference to \"") +
+			        Utils::join(failed.path, ".") +
+			        std::string("\" of type " + failed.type.name),
+			    failed.location);
 		}
 	}
 

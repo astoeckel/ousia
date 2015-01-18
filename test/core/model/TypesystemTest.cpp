@@ -611,6 +611,51 @@ TEST(StructType, createValidated)
 	}
 }
 
+TEST(StructType, setParentStructure)
+{
+	Manager mgr;
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	Rooted<StructType> sa{new StructType(mgr, "a", sys)};
+	Rooted<StructType> sb{new StructType(mgr, "b", sys)};
+	Rooted<StructType> sc{new StructType(mgr, "c", sys)};
+
+	sa->addAttribute(new Attribute{mgr, "a", sys->getBoolType()}, logger);
+	sb->addAttribute(new Attribute{mgr, "b", sys->getStringType()}, logger);
+	sc->addAttribute(new Attribute{mgr, "a", sys->getIntType()}, logger);
+	sc->addAttribute(new Attribute{mgr, "b", sys->getIntType()}, logger);
+
+	ASSERT_TRUE(sa->validate(logger));
+	ASSERT_TRUE(sb->validate(logger));
+	ASSERT_TRUE(sc->validate(logger));
+
+	logger.reset();
+	sb->setParentStructure(sa, logger);
+	ASSERT_EQ(2U, sb->getAttributes().size());
+	ASSERT_EQ("a", sb->getAttributes()[0]->getName());
+	ASSERT_EQ("b", sb->getAttributes()[1]->getName());
+	ASSERT_EQ(sys->getBoolType(), sb->getAttributes()[0]->getType());
+	ASSERT_EQ(sys->getStringType(), sb->getAttributes()[1]->getType());
+	ASSERT_FALSE(logger.hasError());
+
+	logger.reset();
+	sc->setParentStructure(sb, logger);
+	ASSERT_EQ(4U, sc->getAttributes().size());
+	ASSERT_EQ("a", sc->getAttributes()[0]->getName());
+	ASSERT_EQ("b", sc->getAttributes()[1]->getName());
+	ASSERT_EQ(sys->getBoolType(), sc->getAttributes()[0]->getType());
+	ASSERT_EQ(sys->getStringType(), sc->getAttributes()[1]->getType());
+	ASSERT_TRUE(logger.hasError());
+
+	logger.reset();
+	sc->setParentStructure(nullptr, logger);
+	ASSERT_EQ(2U, sc->getAttributes().size());
+	ASSERT_EQ("a", sc->getAttributes()[0]->getName());
+	ASSERT_EQ("b", sc->getAttributes()[1]->getName());
+	ASSERT_EQ(sys->getIntType(), sc->getAttributes()[0]->getType());
+	ASSERT_EQ(sys->getIntType(), sc->getAttributes()[1]->getType());
+	ASSERT_FALSE(logger.hasError());
+}
+
 TEST(StructType, cast)
 {
 	Manager mgr;

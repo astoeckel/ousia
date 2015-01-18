@@ -243,6 +243,16 @@ public:
 	}
 
 	/**
+	 * Logs the given loggable exception at the given location.
+	 *
+	 * @param ex is the exception that should be logged.
+	 */
+	void log(const LoggableException &ex, const SourceLocation &loc)
+	{
+		log(Severity::ERROR, ex.msg, loc.valid() ? loc : ex.getLocation());
+	}
+
+	/**
 	 * Logs the given message. The file name is set to the topmost file name on
 	 * the file name stack.
 	 *

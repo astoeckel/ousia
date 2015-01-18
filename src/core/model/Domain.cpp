@@ -70,7 +70,7 @@ FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
 
 /* Class Descriptor */
 
-void Descriptor::continueResolve(ResolutionState &state)
+void Descriptor::doResolve(ResolutionState &state)
 {
 	if (attributesDescriptor != nullptr) {
 		const NodeVector<Attribute> &attributes =
@@ -254,7 +254,7 @@ AnnotationClass::AnnotationClass(
 
 /* Class Domain */
 
-void Domain::continueResolve(ResolutionState &state)
+void Domain::doResolve(ResolutionState &state)
 {
 	if (!continueResolveComposita(structuredClasses,
 	                              structuredClasses.getIndex(), state) |

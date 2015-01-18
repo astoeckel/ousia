@@ -333,7 +333,7 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 
 /* Class Document */
 
-void Document::continueResolve(ResolutionState &state)
+void Document::doResolve(ResolutionState &state)
 {
 	continueResolveComposita(annotations, annotations.getIndex(), state);
 	if (root != nullptr) {

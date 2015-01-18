@@ -26,7 +26,7 @@ namespace ousia {
 
 class TestNode : public Node {
 protected:
-	void continueResolve(ResolutionState &state) override
+	void doResolve(ResolutionState &state) override
 	{
 		continueResolveComposita(composita, composita.getIndex(), state);
 		continueResolveReferences(references, state);

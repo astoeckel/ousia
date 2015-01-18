@@ -390,7 +390,7 @@ private:
 	                  std::vector<Rooted<Node>> &path) const;
 
 protected:
-	void continueResolve(ResolutionState &state) override;
+	void doResolve(ResolutionState &state) override;
 
 	/**
 	 * Adds a FieldDescriptor and checks for name uniqueness.
@@ -695,7 +695,7 @@ private:
 	NodeVector<Typesystem> typesystems;
 
 protected:
-	void continueResolve(ResolutionState &state) override;
+	void doResolve(ResolutionState &state) override;
 
 	void addStructuredClass(Handle<StructuredClass> s);
 	void addAnnotationClass(Handle<AnnotationClass> a);

@@ -31,6 +31,7 @@
 #include <cstdint>
 #include <map>
 #include <set>
+#include <unordered_set>
 #include <string>
 #include <vector>
 
@@ -196,6 +197,19 @@ private:
 	 */
 	bool continueResolveIndex(const Index &index, ResolutionState &state);
 
+	/**
+	 * Checks whether the name of the given node is already stored in the given
+	 * set, if yes, logs a corresponding error message.
+	 *
+	 * @param node is the node of which the name should be checked.
+	 * @param names is a set in which all encountered names are stored.
+	 * @param logger is the logger instance to which error messages are written.
+	 * @return true if the given node has a unique name, false otherwise.
+	 */
+	bool checkDuplicate(Handle<Node> node,
+	                    std::unordered_set<std::string> &names,
+	                    Logger &logger) const;
+
 protected:
 	/**
 	 * Function which should be overwritten by derived classes in order to
@@ -207,7 +221,7 @@ protected:
 	 *
 	 * @param state is used internally to manage the resolution process.
 	 */
-	virtual void continueResolve(ResolutionState &state);
+	virtual void doResolve(ResolutionState &state);
 
 	/**
 	 * Tries to advance the resolution process with the compositum pointed at
@@ -328,6 +342,56 @@ protected:
 	 * @return true if this is a valid node and false if it is not.
 	 */
 	virtual bool doValidate(Logger &logger) const;
+
+	/**
+	 * Makes sure the name of this node is a valid identifier and loggs a
+	 * corresponding error message.
+	 *
+	 * @param logger is the logger to which the error message is logged.
+	 * @return true if the name is valid, false otherwise.
+	 */
+	bool validateName(Logger &logger) const;
+
+	/**
+	 * Helper function that can be used to forward the validation process to
+	 * child nodes.
+	 *
+	 * @tparam T is the type of the list that should be handled.
+	 * @param list is a list of arbitrary kind. The "validate" function is
+	 * called for all elementsd of the list.
+	 * @param logger is the logger to which any errors should be reported.
+	 */
+	template <class T>
+	bool continueValidation(const T &list, Logger &logger) const
+	{
+		bool res = true;
+		for (auto elem : list) {
+			res = elem->validate(logger) & res;
+		}
+		return res;
+	}
+
+	/**
+	 * Helper function that can be used to forward the validation process to
+	 * child nodes while at the same time checking that the children have no
+	 * duplicated names.
+	 *
+	 * @tparam T is the type of the list that should be handled.
+	 * @param list is a list of arbitrary kind. The "validate" function is
+	 * called for all elementsd of the list.
+	 * @param logger is the logger to which any errors should be reported.
+	 */
+	template <class T>
+	bool continueValidationCheckDuplicates(const T &list, Logger &logger) const
+	{
+		bool res = true;
+		std::unordered_set<std::string> names;
+		for (auto elem : list) {
+			res = elem->validate(logger) & checkDuplicate(elem, names, logger) &
+			      res;
+		}
+		return res;
+	}
 
 public:
 	/**
@@ -460,8 +524,9 @@ class NodeVector
     : public ManagedGenericList<T, std::vector<Handle<T>>,
                                 ListAccessor<Handle<T>>, Listener> {
 public:
-	using ManagedGenericList<T, std::vector<Handle<T>>, ListAccessor<Handle<T>>,
-	                         Listener>::ManagedGenericList;
+	using Base = ManagedGenericList<T, std::vector<Handle<T>>, ListAccessor<Handle<T>>,
+	                         Listener>;
+	using Base::Base;
 
 	/**
 	 * Returns the reference to the internal index.
@@ -490,9 +555,10 @@ class NodeMap
     : public ManagedGenericMap<K, T, std::map<K, Handle<T>>,
                                MapAccessor<std::pair<K, Handle<T>>>, Listener> {
 public:
-	using ManagedGenericMap<K, T, std::map<K, Handle<T>>,
+	using Base = ManagedGenericMap<K, T, std::map<K, Handle<T>>,
 	                        MapAccessor<std::pair<K, Handle<T>>>,
-	                        Listener>::ManagedGenericMap;
+	                        Listener>;
+	using Base::Base;
 
 	/**
 	 * Returns the reference to the internal index.

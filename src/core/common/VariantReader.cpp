@@ -583,6 +583,7 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 				return std::make_pair(true, n.doubleValue());
 			}
 		}
+		reader.resetPeek();
 	}
 
 	// Try to parse an object
@@ -618,8 +619,22 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 		v.setMagic(res.second.c_str());
 		return std::make_pair(res.first, v);
 	} else {
-		return std::make_pair(res.first, Variant{res.second.c_str()});
+		return std::make_pair(res.first, Variant::fromString(res.second));
 	}
+}
+
+std::pair<bool, Variant> VariantReader::parseGenericString(
+    const std::string &str, Logger &logger)
+{
+	CharReader reader{str};
+	LoggerFork loggerFork = logger.fork();
+	std::pair<bool, Variant> res =
+	    parseGenericToken(reader, loggerFork, std::unordered_set<char>{}, true);
+	if (reader.atEnd()) {
+		loggerFork.commit();
+		return res;
+	}
+	return std::make_pair(true, Variant::fromString(str));
 }
 }
 

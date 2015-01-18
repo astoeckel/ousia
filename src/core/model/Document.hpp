@@ -501,6 +501,7 @@ class AnnotationEntity : public Node, public DocumentEntity {
 private:
 	Owned<Anchor> start;
 	Owned<Anchor> end;
+
 protected:
 	bool doValidate(Logger &logger) const override;
 
@@ -556,7 +557,7 @@ private:
 	NodeVector<AnnotationEntity> annotations;
 	NodeVector<Domain> domains;
 
-	void continueResolve(ResolutionState &state) override;
+	void doResolve(ResolutionState &state) override;
 
 protected:
 	bool doValidate(Logger &logger) const override;
@@ -614,7 +615,7 @@ public:
 	{
 		domains.insert(domains.end(), d.begin(), d.end());
 	}
-	
+
 	/**
 	 * Returns true if and only if the given StructureNode is part of this
 	 * document, meaning that there is a path of parent references in the
