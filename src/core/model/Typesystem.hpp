@@ -1097,67 +1097,67 @@ namespace RttiTypes {
 /**
  * Type information for the Type class.
  */
-extern const Rtti<model::Type> Type;
+extern const RttiType Type;
 
 /**
  * Type information for the StringType class.
  */
-extern const Rtti<model::StringType> StringType;
+extern const RttiType StringType;
 
 /**
  * Type information for the IntType class.
  */
-extern const Rtti<model::IntType> IntType;
+extern const RttiType IntType;
 
 /**
  * Type information for the DoubleType class.
  */
-extern const Rtti<model::DoubleType> DoubleType;
+extern const RttiType DoubleType;
 
 /**
  * Type information for the BoolType class.
  */
-extern const Rtti<model::BoolType> BoolType;
+extern const RttiType BoolType;
 
 /**
  * Type information for the EnumType class.
  */
-extern const Rtti<model::EnumType> EnumType;
+extern const RttiType EnumType;
 
 /**
  * Type information for the StructType class.
  */
-extern const Rtti<model::StructType> StructType;
+extern const RttiType StructType;
 
 /**
  * Type information for the ArrayType class.
  */
-extern const Rtti<model::ArrayType> ArrayType;
+extern const RttiType ArrayType;
 
 /**
  * Type information for the UnknownType class.
  */
-extern const Rtti<model::UnknownType> UnknownType;
+extern const RttiType UnknownType;
 
 /**
  * Type information for the Constant class.
  */
-extern const Rtti<model::Constant> Constant;
+extern const RttiType Constant;
 
 /**
- * Type information for the Constant class.
+ * Type information for the Attribute class.
  */
-extern const Rtti<model::Attribute> Attribute;
+extern const RttiType Attribute;
 
 /**
  * Type information for the Typesystem class.
  */
-extern const Rtti<model::Typesystem> Typesystem;
+extern const RttiType Typesystem;
 
 /**
  * Type information for the SystemTypesystem class.
  */
-extern const Rtti<model::SystemTypesystem> SystemTypesystem;
+extern const RttiType SystemTypesystem;
 }
 }
 

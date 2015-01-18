@@ -575,7 +575,7 @@ namespace RttiTypes {
 /**
  * Typeinformation for the base "Node" class.
  */
-extern const Rtti<Node> Node;
+extern const RttiType Node;
 }
 }
 

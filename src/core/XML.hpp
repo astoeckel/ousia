@@ -173,9 +173,9 @@ public:
 }
 
 namespace RttiTypes {
-extern const Rtti<xml::Node> XMLNode;
-extern const Rtti<xml::Element> XMLElement;
-extern const Rtti<xml::Text> XMLText;
+extern const RttiType XMLNode;
+extern const RttiType XMLElement;
+extern const RttiType XMLText;
 }
 }
 #endif

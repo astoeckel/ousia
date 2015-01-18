@@ -45,9 +45,9 @@ const RttiType &RttiStore::lookup(const std::type_info &native)
 	}
 }
 
-/* Class RttiBuilder */
+/* Class RttiBuilderBase */
 
-RttiBuilder &RttiBuilder::genericMethod(const std::string name,
+RttiBuilderBase &RttiBuilderBase::genericMethod(const std::string &name,
                                         std::shared_ptr<Function> function)
 {
 	if (!methods.emplace(name, function).second) {
@@ -58,8 +58,8 @@ RttiBuilder &RttiBuilder::genericMethod(const std::string name,
 	return *this;
 }
 
-RttiBuilder &RttiBuilder::genericProperty(
-    const std::string name, std::shared_ptr<PropertyDescriptor> property)
+RttiBuilderBase &RttiBuilderBase::genericProperty(
+    const std::string &name, std::shared_ptr<PropertyDescriptor> property)
 {
 	if (!properties.emplace(name, property).second) {
 		throw OusiaException(std::string("Property with name \"") + name +
@@ -174,7 +174,7 @@ bool RttiType::hasProperty(const std::string &name) const
 /* Constant initialization */
 
 namespace RttiTypes {
-const RttiType None{"unknown"};
+const RttiType None{"none"};
 const RttiType Nullptr{"nullptr"};
 const RttiType Bool{"bool"};
 const RttiType Int{"int"};

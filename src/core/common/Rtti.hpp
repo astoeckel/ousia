@@ -34,7 +34,7 @@
  * this would create a significant overhead.
  *
  * <b>How to use:</b> The Rtti class allows to attach information to a certain
- * C++ class. To do so, create a global constant of the type Rtti<T> in the
+ * C++ class. To do so, create a global constant of the type RttiType in the
  * source file associated with the type declaration, where T is the type you
  * want to register. As the type must only be registered once, you must not
  * declare the variable as "static" in the header file (this would register it
@@ -50,12 +50,18 @@
  * // Only needed if the type needs to be accessed
  * // from other compilation units!
  * namespace RttiTypes {
- *     extern const Rtti<MyT> MyT;
+ *     extern const RttiType MyT;
  * }
  * \endcode
  * In the source file:
  * \code{.cpp}
- * const Rtti<MyT> RttiTypes::MyT{"MyT", {&RttiTypes::MyOtherT}, [...]};
+ * #include <core/common/RttiBuilder.hpp>
+ *
+ * // [...]
+ *
+ * namespace RttiTypes {
+ *     const RttiType MyT = RttiBuilder<ousia::MyT>("MyT");
+ * }
  * \endcode
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
@@ -125,13 +131,22 @@ public:
 };
 
 /**
- * The RttiBuilder class is used to conveniently build new instances of the Rtti
- * or the RttiType class. It follows the "Builder" pattern and allows to create
+ * The RttiBuilderBase class is used to build new instances of the Rtti or the
+ * RttiType class. It follows the "Builder" pattern and allows to create
  * the properties of the RttiType class by chaining method calls. The RttiType
- * and Rtti class can be constructed from the RttiBuilder instance.
+ * class can be constructed from the RttiBuilderBase instance. Use the
+ * RttiBuilder class for a more convenient, templated version that does not
+ * require the native C++ type in the constructor and allows for more convenient
+ * definition of methods and properties.
  */
-class RttiBuilder {
+class RttiBuilderBase {
 public:
+	/**
+	 * Reference at the native type for which the Rtti information is currently
+	 * being built by the RttiBuilder.
+	 */
+	const std::type_info &native;
+
 	/**
 	 * Contains the human readable name of the type for which the type
 	 * information is being built.
@@ -161,27 +176,34 @@ public:
 	/**
 	 * Default constructor, initializes the name of the type described by the
 	 * RttiTypeSet with "unknown".
+	 *
+	 * @param native is the native C++ type information for which the type
+	 * information is being built.
 	 */
-	RttiBuilder() : currentName("unknown"){};
+	RttiBuilderBase(const std::type_info &native)
+	    : native(native), currentName("unknown"){};
 
 	/**
 	 * Default constructor, initializes the name of the type described by the
 	 * RttiTypeSet with the given name.
 	 *
+	 * @param native is the native C++ type information for which the type
+	 * information is being built.
 	 * @param name is the initial name of the type described by the type
 	 * builder.
 	 */
-	RttiBuilder(std::string name) : currentName(std::move(name)){};
+	RttiBuilderBase(const std::type_info &native, std::string name)
+	    : native(native), currentName(std::move(name)){};
 
 	/**
 	 * Sets the human readable name of the type information being built to the
 	 * given string.
 	 *
 	 * @param s is the name to which the name should be set.
-	 * @return a reference to the current RttiBuilder reference to allow method
-	 * chaining.
+	 * @return a reference to the current RttiBuilderBase instance to allow
+	 * method chaining.
 	 */
-	RttiBuilder &name(const std::string &s)
+	RttiBuilderBase &name(const std::string &s)
 	{
 		currentName = s;
 		return *this;
@@ -189,13 +211,13 @@ public:
 
 	/**
 	 * Adds the given type descriptor as "parent" of the type information that
-	 * is being built by this RttiBuilder instance.
+	 * is being built by this RttiBuilderBase instance.
 	 *
 	 * @param p is the pointer to the type descriptor that should be added.
-	 * @return a reference to the current RttiBuilder reference to allow method
-	 * chaining.
+	 * @return a reference to the current RttiBuilderBase instance to allow
+	 * method chaining.
 	 */
-	RttiBuilder &parent(const RttiType *p)
+	RttiBuilderBase &parent(const RttiType *p)
 	{
 		parentTypes.insert(p);
 		return *this;
@@ -203,43 +225,43 @@ public:
 
 	/**
 	 * Adds the given type descriptors as "parent" of the type information that
-	 * is being built by this RttiBuilder instance.
+	 * is being built by this RttiBuilderBase instance.
 	 *
-	 * @param p is a
-	 * @return a reference to the current RttiBuilder reference to allow method
-	 * chaining.
+	 * @param p is the pointer to the type descriptor that should be added.
+	 * @return a reference to the current RttiBuilderBase instance to allow
+	 * method chaining.
 	 */
-	RttiBuilder &parent(const RttiTypeSet &p)
+	RttiBuilderBase &parent(const RttiTypeSet &p)
 	{
 		parentTypes.insert(p.begin(), p.end());
 		return *this;
 	}
 
 	/**
-	 * Marks the current type being built by this RttiBuilder instance as being
-	 * a composition of the given other type.
+	 * Marks the current type being built by this RttiBuilderBase instance as
+	 * being a composition of the given other type.
 	 *
 	 * @param p is the pointer to the type descriptor that should be added as
 	 * composition type.
-	 * @return a reference to the current RttiBuilder reference to allow method
-	 * chaining.
+	 * @return a reference to the current RttiBuilderBase instance to allow
+	 * method chaining.
 	 */
-	RttiBuilder &composedOf(const RttiType *p)
+	RttiBuilderBase &composedOf(const RttiType *p)
 	{
 		compositeTypes.insert(p);
 		return *this;
 	}
 
 	/**
-	 * Marks the current type being built by this RttiBuilder instance as being
-	 * a composition of the given other types.
+	 * Marks the current type being built by this RttiBuilderBase instance as
+	 * being a composition of the given other types.
 	 *
 	 * @param p is the pointer to the type descriptor that should be added as
 	 * composition type.
-	 * @return a reference to the current RttiBuilder reference to allow method
-	 * chaining.
+	 * @return a reference to the current RttiBuilderBase instance to allow
+	 * method chaining.
 	 */
-	RttiBuilder &composedOf(const RttiTypeSet &p)
+	RttiBuilderBase &composedOf(const RttiTypeSet &p)
 	{
 		compositeTypes.insert(p.begin(), p.end());
 		return *this;
@@ -252,11 +274,11 @@ public:
 	 * @param name is the name of the method. Names must be unique for one
 	 * RttiType instance. If the name is not unique, an exception is thrown.
 	 * @param function is the function that should be registered.
-	 * @return a reference to the current RttiBuilder reference to allow method
-	 * chaining.
+	 * @return a reference to the current RttiBuilderBase instance to allow
+	 * method chaining.
 	 */
-	RttiBuilder &genericMethod(const std::string name,
-	                           std::shared_ptr<Function> function);
+	RttiBuilderBase &genericMethod(const std::string &name,
+	                               std::shared_ptr<Function> function);
 
 	/**
 	 * Registers a generic (no particular C++ type given) property descriptor
@@ -265,11 +287,11 @@ public:
 	 * @param name is the name of the property. Names must be unique for one
 	 * RttiType instance. If the property is not unique, an exception is thrown.
 	 * @param property is the property that should be registered.
-	 * @return a reference to the current RttiBuilder reference to allow method
-	 * chaining.
+	 * @return a reference to the current RttiBuilderBase instance to allow
+	 * method chaining.
 	 */
-	RttiBuilder &genericProperty(const std::string name,
-	                             std::shared_ptr<PropertyDescriptor> property);
+	RttiBuilderBase &genericProperty(
+	    const std::string &name, std::shared_ptr<PropertyDescriptor> property);
 };
 
 /**
@@ -315,33 +337,11 @@ private:
 	 */
 	void initialize() const;
 
-protected:
+public:
 	/**
-	 * Creates a new RttiType instance and registers it in the global type
-	 * table. Use the Rtti and the RttiBuilder class for more convenient
-	 * registration of type information.
-	 *
-	 * @param name is the name of the type.
-	 * @param native is a reference at the native type information provided by
-	 * the compiler.
-	 * @param parents is a list of parent types.
-	 * @param compositeTypes is a list of types of which instances of this type
-	 * are composited (consist of).
+	 * Human readable name associated with the type.
 	 */
-	RttiType(std::string name, const std::type_info &native,
-	         RttiTypeSet parents = RttiTypeSet{},
-	         RttiTypeSet compositeTypes = RttiTypeSet{},
-	         RttiMethodMap methods = RttiMethodMap{},
-	         RttiPropertyMap properties = RttiPropertyMap{})
-	    : initialized(false),
-	      parents(std::move(parents)),
-	      compositeTypes(compositeTypes),
-	      methods(std::move(methods)),
-	      properties(std::move(properties)),
-	      name(std::move(name))
-	{
-		RttiStore::store(native, this);
-	}
+	const std::string name;
 
 	/**
 	 * Creates a new RttiType instance and registers it in the global type
@@ -350,7 +350,7 @@ protected:
 	 *
 	 * @param builder is the builder instance containing the Rtti data.
 	 */
-	RttiType(const std::type_info &native, const RttiBuilder &builder)
+	RttiType(const RttiBuilderBase &builder)
 	    : initialized(false),
 	      parents(std::move(builder.parentTypes)),
 	      compositeTypes(std::move(builder.compositeTypes)),
@@ -358,14 +358,8 @@ protected:
 	      properties(std::move(builder.properties)),
 	      name(std::move(builder.currentName))
 	{
-		RttiStore::store(native, this);
+		RttiStore::store(builder.native, this);
 	}
-
-public:
-	/**
-	 * Human readable name associated with the type.
-	 */
-	const std::string name;
 
 	/**
 	 * Default constructor. Creates a Rtti instance with name "unknown"
@@ -405,7 +399,7 @@ public:
 	 * @return a mapping between method name and shared pointers of the
 	 * registered function.
 	 */
-	const RttiMethodMap& getMethods() const;
+	const RttiMethodMap &getMethods() const;
 
 	/**
 	 * Returns all properties that are registered for this type (and the parent
@@ -415,7 +409,7 @@ public:
 	 * @return a mapping between property name and the shared pointers of the
 	 * registered properties.
 	 */
-	const RttiPropertyMap& getProperties() const;
+	const RttiPropertyMap &getProperties() const;
 
 	/**
 	 * Searches for a method with the given name. Returns a shared pointer to
@@ -433,7 +427,8 @@ public:
 	 * @param name is the name of the property that should be looked up.
 	 * @return a shared pointer pointing at the property with the given name
 	 */
-	std::shared_ptr<PropertyDescriptor> getProperty(const std::string &name) const;
+	std::shared_ptr<PropertyDescriptor> getProperty(
+	    const std::string &name) const;
 
 	/**
 	 * Returns true if a method with the given name is registered for this type.
@@ -451,35 +446,6 @@ public:
 	 * @return true if a property with this name exists, false otherwise.
 	 */
 	bool hasProperty(const std::string &name) const;
-
-};
-
-/**
- * The Rtti class allows for attaching data to native types that can be accessed
- * at runtime. This type information can e.g. be retrieved using the "type"
- * method of the Managed class. This system is used for attaching human
- * readable names, parent types and script engine functionality.
- *
- * @tparam T is the class for which the type information should be registered.
- */
-template <class T>
-class Rtti : public RttiType {
-public:
-	/**
-	 * Creates a new Rtti instance and registers it in the global type table.
-	 *
-	 * @param name is the name of the type.
-	 */
-	Rtti(std::string name) : RttiType(name, typeid(T)) {}
-
-	/**
-	 * Creates a new Rtti instance from the data stored in the given builder
-	 * instance and registers it in the global type table.
-	 *
-	 * @param builder is the RttiBuilder instance containing the data from which
-	 * the Rtti information should be copied.
-	 */
-	Rtti(const RttiBuilder &builder) : RttiType(typeid(T), builder){};
 };
 
 /**

@@ -18,7 +18,7 @@
 
 #include <set>
 
-#include <core/common/Rtti.hpp>
+#include <core/common/RttiBuilder.hpp>
 #include <core/common/Exceptions.hpp>
 
 #include "Domain.hpp"
@@ -279,17 +279,17 @@ void Domain::addAnnotationClass(Handle<AnnotationClass> a)
 /* Type registrations */
 
 namespace RttiTypes {
-const Rtti<model::FieldDescriptor> FieldDescriptor =
-    RttiBuilder("FieldDescriptor").parent(&Node);
-const Rtti<model::Descriptor> Descriptor =
-    RttiBuilder("Descriptor").parent(&Node);
-const Rtti<model::StructuredClass> StructuredClass =
-    RttiBuilder("StructuredClass").parent(&Descriptor).composedOf(
+const RttiType FieldDescriptor =
+    RttiBuilder<model::FieldDescriptor>("FieldDescriptor").parent(&Node);
+const RttiType Descriptor =
+    RttiBuilder<model::Descriptor>("Descriptor").parent(&Node);
+const RttiType StructuredClass =
+    RttiBuilder<model::StructuredClass>("StructuredClass").parent(&Descriptor).composedOf(
         &FieldDescriptor);
-const Rtti<model::AnnotationClass> AnnotationClass =
-    RttiBuilder("AnnotationClass").parent(&Descriptor);
-const Rtti<model::Domain> Domain =
-    RttiBuilder("Domain").parent(&Node).composedOf(
+const RttiType AnnotationClass =
+    RttiBuilder<model::AnnotationClass>("AnnotationClass").parent(&Descriptor);
+const RttiType Domain =
+    RttiBuilder<model::Domain>("Domain").parent(&Node).composedOf(
         {&StructuredClass, &AnnotationClass});
 }
 }

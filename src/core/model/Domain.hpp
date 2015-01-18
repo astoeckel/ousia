@@ -769,11 +769,11 @@ public:
 
 namespace RttiTypes {
 
-extern const Rtti<model::FieldDescriptor> FieldDescriptor;
-extern const Rtti<model::Descriptor> Descriptor;
-extern const Rtti<model::StructuredClass> StructuredClass;
-extern const Rtti<model::AnnotationClass> AnnotationClass;
-extern const Rtti<model::Domain> Domain;
+extern const RttiType FieldDescriptor;
+extern const RttiType Descriptor;
+extern const RttiType StructuredClass;
+extern const RttiType AnnotationClass;
+extern const RttiType Domain;
 }
 }
 

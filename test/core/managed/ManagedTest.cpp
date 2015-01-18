@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <core/common/Rtti.hpp>
+#include <core/common/RttiBuilder.hpp>
 #include <core/managed/Managed.hpp>
 
 #include "TestManaged.hpp"
@@ -76,11 +77,11 @@ class TypeTestManaged5 : public Managed {
 	using Managed::Managed;
 };
 
-static const Rtti<TypeTestManaged1> Type1 = RttiBuilder{"Type1"};
-static const Rtti<TypeTestManaged2> Type2 = RttiBuilder{"Type2"};
-static const Rtti<TypeTestManaged3> Type3 = RttiBuilder{"Type3"}.parent(&Type1);
-static const Rtti<TypeTestManaged4> Type4 =
-    RttiBuilder{"Type4"}.parent({&Type3, &Type2});
+static const RttiType Type1 = RttiBuilder<TypeTestManaged1>("Type1");
+static const RttiType Type2 = RttiBuilder<TypeTestManaged2>("Type2");
+static const RttiType Type3 = RttiBuilder<TypeTestManaged3>("Type3").parent(&Type1);
+static const RttiType Type4 =
+    RttiBuilder<TypeTestManaged4>("Type4").parent({&Type3, &Type2});
 
 TEST(Managed, type)
 {

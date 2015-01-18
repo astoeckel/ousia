@@ -23,7 +23,7 @@
 #include <core/common/Argument.hpp>
 #include <core/common/Function.hpp>
 #include <core/common/Logger.hpp>
-#include <core/common/Rtti.hpp>
+#include <core/common/RttiBuilder.hpp>
 
 #include <core/managed/Managed.hpp>
 
@@ -46,10 +46,10 @@ public:
 }
 
 namespace RttiTypes {
-static const Rtti<ousia::TestManaged1> TestManaged1 =
-    RttiBuilder("TestManaged1");
-static const Rtti<ousia::TestManaged2> TestManaged2 =
-    RttiBuilder("TestManaged2").parent(&TestManaged1);
+static const RttiType TestManaged1 =
+    RttiBuilder<ousia::TestManaged1>("TestManaged1");
+static const RttiType TestManaged2 =
+    RttiBuilder<ousia::TestManaged2>("TestManaged2").parent(&TestManaged1);
 }
 
 TEST(Argument, validateAny)

@@ -23,8 +23,7 @@
 #include <gtest/gtest.h>
 
 #include <core/common/Function.hpp>
-#include <core/common/Rtti.hpp>
-#include <core/common/TypedRttiBuilder.hpp>
+#include <core/common/RttiBuilder.hpp>
 #include <core/common/Variant.hpp>
 
 namespace ousia {
@@ -45,18 +44,18 @@ class RttiTestClass6 {
 class RttiTestClass7 {
 };
 
-extern const Rtti<RttiTestClass6> Type6;
-extern const Rtti<RttiTestClass7> Type7;
+extern const RttiType Type6;
+extern const RttiType Type7;
 
-const Rtti<RttiTestClass1> Type1 = RttiBuilder{"Type1"};
-const Rtti<RttiTestClass2> Type2 = RttiBuilder{"Type2"};
-const Rtti<RttiTestClass3> Type3 = RttiBuilder{"Type3"}.parent(&Type1);
-const Rtti<RttiTestClass4> Type4 =
-    RttiBuilder{"Type4"}.parent({&Type3, &Type2});
-const Rtti<RttiTestClass5> Type5 =
-    RttiBuilder{"Type5"}.composedOf({&Type6, &Type7});
-const Rtti<RttiTestClass6> Type6 = RttiBuilder{"Type6"}.composedOf(&Type1);
-const Rtti<RttiTestClass7> Type7 = RttiBuilder{"Type7"}.parent(&Type6);
+const RttiType Type1 = RttiBuilder<RttiTestClass1>{"Type1"};
+const RttiType Type2 = RttiBuilder<RttiTestClass2>{"Type2"};
+const RttiType Type3 = RttiBuilder<RttiTestClass3>{"Type3"}.parent(&Type1);
+const RttiType Type4 =
+    RttiBuilder<RttiTestClass4>{"Type4"}.parent({&Type3, &Type2});
+const RttiType Type5 =
+    RttiBuilder<RttiTestClass5>{"Type5"}.composedOf({&Type6, &Type7});
+const RttiType Type6 = RttiBuilder<RttiTestClass6>{"Type6"}.composedOf(&Type1);
+const RttiType Type7 = RttiBuilder<RttiTestClass7>{"Type7"}.parent(&Type6);
 
 TEST(Rtti, isa)
 {
@@ -124,8 +123,8 @@ class RttiMethodTestClass1 {
 class RttiMethodTestClass2 {
 };
 
-static const Rtti<RttiMethodTestClass1> MType1 =
-    RttiBuilder{"MType1"}
+static const RttiType MType1 =
+    RttiBuilder<RttiMethodTestClass1>{"MType1"}
         .genericMethod(
              "a", std::make_shared<Method<RttiMethodTestClass1>>([](
                       Variant::arrayType &args,
@@ -139,8 +138,8 @@ static const Rtti<RttiMethodTestClass1> MType1 =
                      Variant::arrayType &args,
                      RttiMethodTestClass1 *thisPtr) { return Variant{"c"}; }));
 
-static const Rtti<RttiMethodTestClass2> MType2 =
-    TypedRttiBuilder<RttiMethodTestClass2>{"MType2"}
+static const RttiType MType2 =
+    RttiBuilder<RttiMethodTestClass2>{"MType2"}
         .parent(&MType1)
         .method("c",
                 [](Variant::arrayType &args,
@@ -218,13 +217,12 @@ public:
 	}
 };
 
-static const Rtti<RttiPropertyTestClass1> PType1 =
-    TypedRttiBuilder<RttiPropertyTestClass1>{"PType1"}.property(
-        "a", {RttiTypes::Int, RttiPropertyTestClass1::getA,
-              RttiPropertyTestClass1::setA});
+static const RttiType PType1 = RttiBuilder<RttiPropertyTestClass1>{
+    "PType1"}.property("a", {RttiTypes::Int, RttiPropertyTestClass1::getA,
+                             RttiPropertyTestClass1::setA});
 
-static const Rtti<RttiMethodTestClass2> PType2 =
-    TypedRttiBuilder<RttiPropertyTestClass2>{"PType2"}.parent(&PType1).property(
+static const RttiType PType2 =
+    RttiBuilder<RttiPropertyTestClass2>{"PType2"}.parent(&PType1).property(
         "b", {RttiTypes::Int, RttiPropertyTestClass2::getB,
               RttiPropertyTestClass2::setB});
 

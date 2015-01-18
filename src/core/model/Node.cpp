@@ -21,8 +21,7 @@
 
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
-#include <core/common/Rtti.hpp>
-#include <core/common/TypedRttiBuilder.hpp>
+#include <core/common/RttiBuilder.hpp>
 #include <core/common/Utils.hpp>
 
 #include "Node.hpp"
@@ -438,8 +437,8 @@ bool Node::validate(Logger &logger) const
 
 /* RTTI type registrations */
 namespace RttiTypes {
-const Rtti<ousia::Node> Node =
-    TypedRttiBuilder<ousia::Node>("Node")
+const RttiType Node =
+    RttiBuilder<ousia::Node>("Node")
         .property("name", {RttiTypes::String,
                            {[](const ousia::Node *obj) {
 	                           return Variant::fromString(obj->getName());

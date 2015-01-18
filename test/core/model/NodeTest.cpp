@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include <core/common/Rtti.hpp>
+#include <core/common/RttiBuilder.hpp>
 #include <core/managed/Managed.hpp>
 #include <core/model/Node.hpp>
 
@@ -60,8 +60,9 @@ public:
 };
 
 namespace RttiTypes {
-const Rtti<ousia::TestNode> TestNode =
-    RttiBuilder("TestNode").parent(&RttiTypes::Node).composedOf(&TestNode);
+const RttiType TestNode = RttiBuilder<ousia::TestNode>("TestNode")
+                              .parent(&RttiTypes::Node)
+                              .composedOf(&TestNode);
 }
 
 TEST(Node, isRoot)

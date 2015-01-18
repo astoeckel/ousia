@@ -641,13 +641,13 @@ public:
 }
 
 namespace RttiTypes {
-extern const Rtti<model::Document> Document;
-extern const Rtti<model::DocumentEntity> DocumentEntity;
-extern const Rtti<model::AnnotationEntity> AnnotationEntity;
-extern const Rtti<model::StructureNode> StructureNode;
-extern const Rtti<model::StructuredEntity> StructuredEntity;
-extern const Rtti<model::DocumentPrimitive> DocumentPrimitive;
-extern const Rtti<model::Anchor> Anchor;
+extern const RttiType Document;
+extern const RttiType DocumentEntity;
+extern const RttiType AnnotationEntity;
+extern const RttiType StructureNode;
+extern const RttiType StructuredEntity;
+extern const RttiType DocumentPrimitive;
+extern const RttiType Anchor;
 }
 }
 

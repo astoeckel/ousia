@@ -119,8 +119,8 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Number
 	src/core/common/Property
 	src/core/common/Rtti
+	src/core/common/RttiBuilder
 	src/core/common/Terminal
-	src/core/common/TypedRttiBuilder
 	src/core/common/Utils
 	src/core/common/Variant
 	src/core/common/VariantConverter
