@@ -380,7 +380,7 @@ bool Node::validateName(Logger &logger) const
 	return true;
 }
 
-void Node::invalidate()
+void Node::invalidate() const
 {
 	// Only perform the invalidation if necessary
 	if (validationState != ValidationState::UNKNOWN) {
@@ -391,7 +391,7 @@ void Node::invalidate()
 	}
 }
 
-void Node::markInvalid()
+void Node::markInvalid() const
 {
 	// Do not override the validationState if we're currently in the validation
 	// procedure, try to mark the parent node as invalid

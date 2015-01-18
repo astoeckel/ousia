@@ -144,6 +144,12 @@ class DocumentEntity {
 	friend StructureNode;
 
 private:
+	/*
+	 * this is a rather dirty method that should not be used in other cases:
+	 * We store a pointer to the Node instance that inherits from
+	 * DocumentEntity.
+	 */
+	const Node *subInst;
 	Owned<Descriptor> descriptor;
 	const Variant attributes;
 	std::vector<NodeVector<StructureNode>> fields;
@@ -156,10 +162,7 @@ private:
 
 protected:
 	void addStructureNode(Handle<StructureNode> s,
-	                      const std::string &fieldName = "")
-	{
-		fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
-	}
+	                      const std::string &fieldName = "");
 
 	bool doValidate(Logger &logger) const;
 
@@ -169,7 +172,7 @@ public:
 	 * from Node. Therefore we need to have a handle to the subclass Node
 	 * instance to create NodeVectors and Owned references.
 	 *
-	 * @param owner      is a handle to the subclass instance
+	 * @param subInst    is a handle to the subclass instance
 	 *                   (e.g. StructuredEntity), such that the fields vectors
 	 *                   and the descriptor reference can be obtained.
 	 * @param descriptor is the Descriptor for this DocumentEntity, which will
@@ -177,19 +180,8 @@ public:
 	 * @param attributes is a Map Variant adhering to the attribute StructType
 	 *                   in the given descriptor.
 	 */
-	DocumentEntity(Handle<Node> owner, Handle<Descriptor> descriptor,
-	               Variant attributes = {})
-	    : descriptor(owner->acquire(descriptor)),
-	      attributes(std::move(attributes))
-	{
-		// insert empty vectors for each field.
-		if (!descriptor.isNull()) {
-			for (size_t f = 0; f < descriptor->getFieldDescriptors().size();
-			     f++) {
-				fields.push_back(NodeVector<StructureNode>(owner));
-			}
-		}
-	}
+	DocumentEntity(Handle<Node> subInst, Handle<Descriptor> descriptor,
+	               Variant attributes = {});
 
 	/**
 	 * Returns the Descriptor for this DocumentEntity.
@@ -509,6 +501,8 @@ public:
  *
  */
 class AnnotationEntity : public Node, public DocumentEntity {
+	friend DocumentEntity;
+
 private:
 	Owned<Anchor> start;
 	Owned<Anchor> end;
@@ -584,7 +578,11 @@ public:
 	/**
 	 * Sets the root StructuredEntity of this Document.
 	 */
-	void setRoot(Handle<StructuredEntity> root) { this->root = acquire(root); };
+	void setRoot(Handle<StructuredEntity> root)
+	{
+		invalidate();
+		this->root = acquire(root);
+	};
 
 	/**
 	 * Returns the root StructuredEntity of this Document.
@@ -617,13 +615,18 @@ public:
 	/**
 	 * Adds a Domain reference to this Document.
 	 */
-	void addDomain(Handle<Domain> d) { domains.push_back(d); }
+	void addDomain(Handle<Domain> d)
+	{
+		invalidate();
+		domains.push_back(d);
+	}
 
 	/**
 	 * Adds multiple Domain references to this Document.
 	 */
 	void addDomains(const std::vector<Handle<Domain>> &d)
 	{
+		invalidate();
 		domains.insert(domains.end(), d.begin(), d.end());
 	}
 

@@ -92,28 +92,83 @@ int DocumentEntity::getFieldDescriptorIndex(
 	}
 }
 
+void DocumentEntity::addStructureNode(Handle<StructureNode> s,
+                                      const std::string &fieldName)
+{
+	if (subInst->isa(RttiTypes::StructuredEntity)) {
+		const StructuredEntity *s =
+		    static_cast<const StructuredEntity *>(subInst);
+		s->invalidate();
+	} else {
+		const AnnotationEntity *a =
+		    static_cast<const AnnotationEntity *>(subInst);
+		a->invalidate();
+	}
+	fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
+}
+
+DocumentEntity::DocumentEntity(Handle<Node> subInst,
+                               Handle<Descriptor> descriptor,
+                               Variant attributes)
+    : subInst(subInst.get()),
+      descriptor(subInst->acquire(descriptor)),
+      attributes(std::move(attributes))
+{
+	// insert empty vectors for each field.
+	if (!descriptor.isNull()) {
+		NodeVector<FieldDescriptor> fieldDescs;
+		if (descriptor->isa(RttiTypes::StructuredClass)) {
+			fieldDescs = descriptor.cast<StructuredClass>()
+			                 ->getEffectiveFieldDescriptors();
+		} else {
+			fieldDescs = descriptor->getFieldDescriptors();
+		}
+		for (size_t f = 0; f < fieldDescs.size(); f++) {
+			fields.push_back(NodeVector<StructureNode>(subInst));
+		}
+	}
+}
+
 bool DocumentEntity::doValidate(Logger &logger) const
 {
+	// if we have no descriptor, this is invalid.
+	if (descriptor == nullptr) {
+		logger.error("This DocumentEntity has no descriptor!");
+		return false;
+	}
 	// TODO: check the validated form of Attributes
+	// TODO: Check if descriptor is registered at the Document?
+
+	/*
+	 * generate the set of effective fields. This is trivial for
+	 * AnnotationEntities, but in the case of StructuredEntities we have to
+	 * gather all fields of superclasses as well, that have not been
+	 * overridden in the subclasses.
+	 */
+	NodeVector<FieldDescriptor> fieldDescs;
+	if (descriptor->isa(RttiTypes::StructuredClass)) {
+		fieldDescs =
+		    descriptor.cast<StructuredClass>()->getEffectiveFieldDescriptors();
+	} else {
+		fieldDescs = descriptor->getFieldDescriptors();
+	}
 	// iterate over every field
 	for (unsigned int f = 0; f < fields.size(); f++) {
 		// we can do a faster check if this field is empty.
 		if (fields[f].size() == 0) {
 			// if this field is optional, an empty field is valid anyways.
-			if (descriptor->getFieldDescriptors()[f]->optional) {
+			if (fieldDescs[f]->optional) {
 				continue;
 			}
 			/*
-			 * if it is not optional we have to chack if zero is a valid
+			 * if it is not optional we have to check if zero is a valid
 			 * cardinality.
 			 */
-			for (auto &ac :
-			     descriptor->getFieldDescriptors()[f]->getChildren()) {
+			for (auto &ac : fieldDescs[f]->getChildren()) {
 				const size_t min = ac->getCardinality().min();
 				if (min > 0) {
 					logger.error(
-					    std::string("Field ") +
-					    descriptor->getFieldDescriptors()[f]->getName() +
+					    std::string("Field ") + fieldDescs[f]->getName() +
 					    " was empty but needs at least " + std::to_string(min) +
 					    " elements of class " + ac->getName() +
 					    " according to the definition of " +
@@ -126,7 +181,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 
 		// create a set of allowed classes identified by their unique id.
 		std::set<ManagedUid> accs;
-		for (auto &ac : descriptor->getFieldDescriptors()[f]->getChildren()) {
+		for (auto &ac : fieldDescs[f]->getChildren()) {
 			accs.insert(ac->getUid());
 		}
 		// store the actual numbers of children for each child class in a map
@@ -134,11 +189,11 @@ bool DocumentEntity::doValidate(Logger &logger) const
 
 		// iterate over every actual child of this DocumentEntity
 		for (auto &rc : fields[f]) {
-			if (!rc->isa(RttiTypes::Anchor)) {
+			if (rc->isa(RttiTypes::Anchor)) {
 				// Anchors are uninteresting and can be ignored.
 				continue;
 			}
-			if (!rc->isa(RttiTypes::DocumentPrimitive)) {
+			if (rc->isa(RttiTypes::DocumentPrimitive)) {
 				// For DocumentPrimitives we have to check the content type.
 				// TODO: Do that!
 				continue;
@@ -154,8 +209,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			 * child of a permitted class.
 			 */
 			if (!allowed) {
-				for (auto &ac :
-				     descriptor->getFieldDescriptors()[f]->getChildren()) {
+				for (auto &ac : fieldDescs[f]->getChildren()) {
 					if (c->getDescriptor()
 					        .cast<StructuredClass>()
 					        ->isSubclassOf(ac)) {
@@ -169,7 +223,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				             c->getDescriptor()->getName() +
 				             " is not allowed as child of an instance of " +
 				             descriptor->getName() + " in field " +
-				             descriptor->getFieldDescriptors()[f]->getName());
+				             fieldDescs[f]->getName());
 				return false;
 			}
 			// note the number of occurences.
@@ -182,7 +236,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		}
 
 		// now check if the cardinalities are right.
-		for (auto &ac : descriptor->getFieldDescriptors()[f]->getChildren()) {
+		for (auto &ac : fieldDescs[f]->getChildren()) {
 			const auto &n = nums.find(ac->getUid());
 			unsigned int num = 0;
 			if (n != nums.end()) {
@@ -190,8 +244,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			}
 			if (!ac->getCardinality().contains(num)) {
 				logger.error(
-				    std::string("Field ") +
-				    descriptor->getFieldDescriptors()[f]->getName() + " had " +
+				    std::string("Field ") + fieldDescs[f]->getName() + " had " +
 				    std::to_string(num) + " elements of class " +
 				    ac->getName() +
 				    ", which is invalid according to the definition of " +
@@ -245,6 +298,12 @@ bool StructuredEntity::doValidate(Logger &logger) const
 	if (getParent() == nullptr) {
 		return false;
 	}
+	// check name
+	if (getName() != "") {
+		if (!validateName(logger)) {
+			return false;
+		}
+	}
 	// check the validity as a DocumentEntity.
 	return DocumentEntity::doValidate(logger);
 }
@@ -281,6 +340,12 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 		logger.error("This annotation was not registered at the document.");
 		return false;
 	}
+	// check name
+	if (getName() != "") {
+		if (!validateName(logger)) {
+			return false;
+		}
+	}
 	// check if the Anchors are part of the right document.
 	if (!doc->hasChild(start)) {
 		return false;
@@ -308,26 +373,23 @@ void Document::doResolve(ResolutionState &state)
 
 bool Document::doValidate(Logger &logger) const
 {
-	if (root != nullptr) {
-		// check if the root is allowed to be a root.
-		if (!root->getDescriptor().cast<StructuredClass>()->root) {
-			logger.error(std::string("A node of type ") +
-			             root->getDescriptor()->getName() +
-			             " is not allowed to be the Document root!");
-			return false;
-		}
-		// then call validate on the root
-		if (!root->validate(logger)) {
-			return false;
-		}
+	// An empty document is always invalid. TODO: Is this a smart choice?
+	if (root == nullptr) {
+		return false;
+	}
+	// check if the root is allowed to be a root.
+	if (!root->getDescriptor().cast<StructuredClass>()->root) {
+		logger.error(std::string("A node of type ") +
+		             root->getDescriptor()->getName() +
+		             " is not allowed to be the Document root!");
+		return false;
+	}
+	// then call validate on the root
+	if (!root->validate(logger)) {
+		return false;
 	}
 	// call validate on the AnnotationEntities
-	for (auto &a : annotations) {
-		if (!a->validate(logger)) {
-			return false;
-		}
-	}
-	return true;
+	return continueValidation(annotations, logger);
 }
 
 bool Document::hasChild(Handle<StructureNode> s) const
