@@ -61,8 +61,8 @@ int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName,
 		}
 	}
 	if (enforce) {
-		throw OusiaException(descriptor->getName() +
-		                     " has no field with name " + fieldName);
+		throw OusiaException(std::string("\"") + descriptor->getName() +
+		                     "\" has no field with name \"" + fieldName + "\"");
 	} else {
 		return -1;
 	}
@@ -84,9 +84,9 @@ int DocumentEntity::getFieldDescriptorIndex(
 		f++;
 	}
 	if (enforce) {
-		throw OusiaException(descriptor->getName() +
-		                     " has no field with name " +
-		                     fieldDescriptor->getName());
+		throw OusiaException(std::string("\"") + descriptor->getName() +
+		                     "\" has no field with name \"" +
+		                     fieldDescriptor->getName() + "\"");
 	} else {
 		return -1;
 	}
@@ -133,12 +133,15 @@ bool DocumentEntity::doValidate(Logger &logger) const
 {
 	// if we have no descriptor, this is invalid.
 	if (descriptor == nullptr) {
-		logger.error("This DocumentEntity has no descriptor!");
+		logger.error("This entity has no descriptor!");
+		// in this case we have to stop the validation process, because without
+		// a constructor we can not check anything else.
 		return false;
 	}
 	// TODO: check the validated form of Attributes
 	// TODO: Check if descriptor is registered at the Document?
 
+	bool valid = true;
 	/*
 	 * generate the set of effective fields. This is trivial for
 	 * AnnotationEntities, but in the case of StructuredEntities we have to
@@ -168,12 +171,12 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				const size_t min = ac->getCardinality().min();
 				if (min > 0) {
 					logger.error(
-					    std::string("Field ") + fieldDescs[f]->getName() +
-					    " was empty but needs at least " + std::to_string(min) +
-					    " elements of class " + ac->getName() +
-					    " according to the definition of " +
-					    descriptor->getName());
-					return false;
+					    std::string("Field \"") + fieldDescs[f]->getName() +
+					    "\" was empty but needs at least " +
+					    std::to_string(min) + " elements of class \"" +
+					    ac->getName() + "\" according to the definition of \"" +
+					    descriptor->getName() + "\"");
+					valid = false;
 				}
 			}
 			continue;
@@ -219,12 +222,13 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				}
 			}
 			if (!allowed) {
-				logger.error(std::string("An instance of ") +
+				logger.error(std::string("An instance of \"") +
 				             c->getDescriptor()->getName() +
-				             " is not allowed as child of an instance of " +
-				             descriptor->getName() + " in field " +
-				             fieldDescs[f]->getName());
-				return false;
+				             "\" is not allowed as child of an instance of \"" +
+				             descriptor->getName() + "\" in field \"" +
+				             fieldDescs[f]->getName() + "\"");
+				valid = false;
+				continue;
 			}
 			// note the number of occurences.
 			const auto &n = nums.find(id);
@@ -244,12 +248,13 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			}
 			if (!ac->getCardinality().contains(num)) {
 				logger.error(
-				    std::string("Field ") + fieldDescs[f]->getName() + " had " +
-				    std::to_string(num) + " elements of class " +
+				    std::string("Field \"") + fieldDescs[f]->getName() +
+				    "\" had " + std::to_string(num) + " elements of class \"" +
 				    ac->getName() +
-				    ", which is invalid according to the definition of " +
-				    descriptor->getName());
-				return false;
+				    "\", which is invalid according to the definition of \"" +
+				    descriptor->getName() + "\"");
+				valid = false;
+				continue;
 			}
 		}
 	}
@@ -257,13 +262,10 @@ bool DocumentEntity::doValidate(Logger &logger) const
 	// go into recursion.
 	for (auto &f : fields) {
 		for (auto &n : f) {
-			if (!n->validate(logger)) {
-				return false;
-			}
+			valid = valid & n->validate(logger);
 		}
 	}
-
-	return true;
+	return valid;
 }
 
 /* Class StructureNode */
@@ -294,18 +296,18 @@ StructuredEntity::StructuredEntity(Manager &mgr, Handle<Document> doc,
 
 bool StructuredEntity::doValidate(Logger &logger) const
 {
+	bool valid = true;
 	// check if the parent is set.
 	if (getParent() == nullptr) {
-		return false;
+		logger.error("The parent is not set!");
+		valid = false;
 	}
 	// check name
 	if (!getName().empty()) {
-		if (!validateName(logger)) {
-			return false;
-		}
+		valid = valid & validateName(logger);
 	}
 	// check the validity as a DocumentEntity.
-	return DocumentEntity::doValidate(logger);
+	return valid & DocumentEntity::doValidate(logger);
 }
 
 /* Class AnnotationEntity */
@@ -324,9 +326,14 @@ AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
 
 bool AnnotationEntity::doValidate(Logger &logger) const
 {
+	bool valid = true;
 	// check if this AnnotationEntity is correctly registered at its document.
-	if (getParent() == nullptr || !getParent()->isa(RttiTypes::Document)) {
-		return false;
+	if (getParent() == nullptr) {
+		logger.error("The parent is not set!");
+		valid = false;
+	} else if (!getParent()->isa(RttiTypes::Document)) {
+		logger.error("The parent is not a document!");
+		valid = false;
 	}
 	Handle<Document> doc = getParent().cast<Document>();
 	bool found = false;
@@ -338,26 +345,25 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 	}
 	if (!found) {
 		logger.error("This annotation was not registered at the document.");
-		return false;
+		valid = false;
 	}
 	// check name
 	if (!getName().empty()) {
-		if (!validateName(logger)) {
-			return false;
-		}
+		valid = valid & validateName(logger);
 	}
 	// check if the Anchors are part of the right document.
 	if (!doc->hasChild(start)) {
-		return false;
+		logger.error(
+		    "This annotations start anchor was not part of the same document!");
+		valid = false;
 	}
 	if (!doc->hasChild(end)) {
-		return false;
+		logger.error(
+		    "This annotations end anchor was not part of the same document!");
+		valid = false;
 	}
 	// check the validity as a DocumentEntity.
-	if (!DocumentEntity::doValidate(logger)) {
-		return false;
-	}
-	return true;
+	return valid & DocumentEntity::doValidate(logger);
 }
 
 /* Class Document */
@@ -374,22 +380,22 @@ void Document::doResolve(ResolutionState &state)
 bool Document::doValidate(Logger &logger) const
 {
 	// An empty document is always invalid. TODO: Is this a smart choice?
+	bool valid = true;
 	if (root == nullptr) {
-		return false;
-	}
-	// check if the root is allowed to be a root.
-	if (!root->getDescriptor().cast<StructuredClass>()->root) {
-		logger.error(std::string("A node of type ") +
-		             root->getDescriptor()->getName() +
-		             " is not allowed to be the Document root!");
-		return false;
-	}
-	// then call validate on the root
-	if (!root->validate(logger)) {
-		return false;
+		valid = false;
+	} else {
+		// check if the root is allowed to be a root.
+		if (!root->getDescriptor().cast<StructuredClass>()->root) {
+			logger.error(std::string("A node of type \"") +
+			             root->getDescriptor()->getName() +
+			             "\" is not allowed to be the Document root!");
+			valid = false;
+		}
+		// then call validate on the root
+		valid = valid & root->validate(logger);
 	}
 	// call validate on the AnnotationEntities
-	return continueValidation(annotations, logger);
+	return valid & continueValidation(annotations, logger);
 }
 
 bool Document::hasChild(Handle<StructureNode> s) const
@@ -409,20 +415,18 @@ bool Document::hasChild(Handle<StructureNode> s) const
 
 /* Type registrations */
 namespace RttiTypes {
-const Rtti Document =
-    RttiBuilder<model::Document>("Document").parent(&Node).composedOf(
-        {&AnnotationEntity, &StructuredEntity});
+const Rtti Document = RttiBuilder<model::Document>("Document")
+                          .parent(&Node)
+                          .composedOf({&AnnotationEntity, &StructuredEntity});
 const Rtti StructureNode =
     RttiBuilder<model::StructureNode>("StructureNode").parent(&Node);
 const Rtti StructuredEntity =
     RttiBuilder<model::StructuredEntity>("StructuredEntity")
         .parent(&StructureNode)
         .composedOf({&StructuredEntity, &DocumentPrimitive, &Anchor});
-const Rtti DocumentPrimitive =
-    RttiBuilder<model::DocumentPrimitive>("DocumentPrimitive")
-        .parent(&StructureNode);
-const Rtti Anchor =
-    RttiBuilder<model::Anchor>("Anchor").parent(&StructureNode);
+const Rtti DocumentPrimitive = RttiBuilder<model::DocumentPrimitive>(
+                                   "DocumentPrimitive").parent(&StructureNode);
+const Rtti Anchor = RttiBuilder<model::Anchor>("Anchor").parent(&StructureNode);
 const Rtti AnnotationEntity =
     RttiBuilder<model::AnnotationEntity>("AnnotationEntity")
         .parent(&Node)
