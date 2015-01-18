@@ -149,9 +149,65 @@ EnumType::Ordinal EnumType::valueOf(const std::string &name) const
 
 /* Class Attribute */
 
+Attribute::Attribute(Manager &mgr, std::string name, Handle<Type> type,
+                     Variant defaultValue, bool optional)
+    : Node(mgr, std::move(name)),
+      type(acquire(type)),
+      rawDefaultValue(defaultValue),
+      optional(optional)
+{
+	ExceptionLogger logger;
+	initialize(logger);
+}
+
+Attribute::Attribute(Manager &mgr, std::string name, Handle<Type> type)
+    : Attribute(mgr, name, type, Variant{}, false)
+{
+}
+
+Attribute::Attribute(Manager &mgr, std::string name, Variant defaultValue,
+                     bool optional)
+    : Attribute(mgr, name, new UnknownType(mgr), defaultValue, optional)
+{
+}
+
+void Attribute::initialize(Logger &logger)
+{
+	if (optional) {
+		defaultValue = rawDefaultValue;
+		type->build(defaultValue, logger);
+	}
+}
+
 bool Attribute::doValidate(Logger &logger) const
 {
 	return validateName(logger);
+}
+
+void Attribute::setDefaultValue(const Variant &defaultValue, Logger &logger)
+{
+	invalidate();
+
+	rawDefaultValue = defaultValue;
+	optional = true;
+	initialize(logger);
+}
+
+void Attribute::removeDefaultValue()
+{
+	invalidate();
+
+	rawDefaultValue = nullptr;
+	defaultValue = nullptr;
+	optional = false;
+}
+
+void Attribute::setType(Handle<Type> type, Logger &logger)
+{
+	invalidate();
+
+	this->type = acquire(type);
+	initialize(logger);
 }
 
 /* Class StructType */
@@ -195,8 +251,8 @@ bool StructType::insertDefaults(Variant &data, const std::vector<bool> &set,
 	Variant::arrayType &arr = data.asArray();
 	for (size_t a = 0; a < arr.size(); a++) {
 		if (!set[a]) {
-			if (attributes[a]->optional) {
-				arr[a] = attributes[a]->defaultValue;
+			if (attributes[a]->isOptional()) {
+				arr[a] = attributes[a]->getDefaultValue();
 			} else {
 				ok = false;
 				arr[a] = attributes[a]->getType()->create();
@@ -333,7 +389,7 @@ bool StructType::doValidate(Logger &logger) const
 
 Rooted<StructType> StructType::createValidated(
     Manager &mgr, std::string name, Handle<Typesystem> system,
-    Handle<StructType> parentStructure, NodeVector<Attribute> attributes,
+    Handle<StructType> parentStructure, const NodeVector<Attribute> &attributes,
     Logger &logger)
 {
 	Rooted<StructType> structType{new StructType(mgr, name, system)};
@@ -353,6 +409,16 @@ void StructType::setParentStructure(Handle<StructType> parentStructure,
 	invalidate();
 	this->parentStructure = acquire(parentStructure);
 	initialize(logger);
+}
+
+Rooted<Attribute> StructType::createAttribute(const std::string &name,
+                                              Variant defaultValue,
+                                              bool optional, Logger &logger)
+{
+	Rooted<Attribute> attribute =
+	    new Attribute(getManager(), name, defaultValue, optional);
+	addAttribute(attribute, logger);
+	return attribute;
 }
 
 void StructType::addAttribute(Handle<Attribute> attribute, Logger &logger,
@@ -398,8 +464,8 @@ Variant StructType::create() const
 	Variant::arrayType arr;
 	arr.resize(attributes.size());
 	for (size_t idx = 0; idx < attributes.size(); idx++) {
-		if (attributes[idx]->optional) {
-			arr[idx] = attributes[idx]->defaultValue;
+		if (attributes[idx]->isOptional()) {
+			arr[idx] = attributes[idx]->getDefaultValue();
 		} else {
 			arr[idx] = attributes[idx]->getType()->create();
 		}

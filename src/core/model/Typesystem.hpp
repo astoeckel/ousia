@@ -368,18 +368,6 @@ public:
  */
 class Attribute : public Node {
 private:
-
-
-protected:
-	/**
-	 * Returns true if the name of the Attribute is a valid identifier.
-	 *
-	 * @param logger is the logger instance to which validation errors are
-	 * logged.
-	 */
-	bool doValidate(Logger &logger) const override;
-
-public:
 	/**
 	 * Reference to the actual type of the attribute.
 	 */
@@ -402,6 +390,25 @@ public:
 	bool optional;
 
 	/**
+	 * Reinitializes the default value from the raw default value with the
+	 * current type.
+	 *
+	 * @param logger is the logger instance to which errors while building the
+	 * default value should be passed.
+	 */
+	void initialize(Logger &logger);
+
+protected:
+	/**
+	 * Returns true if the name of the Attribute is a valid identifier.
+	 *
+	 * @param logger is the logger instance to which validation errors are
+	 * logged.
+	 */
+	bool doValidate(Logger &logger) const override;
+
+public:
+	/**
 	 * Constructor of the Attribute class.
 	 *
 	 * @param mgr is the Manager instance to be used for the Node.
@@ -414,13 +421,7 @@ public:
 	 * be used.
 	 */
 	Attribute(Manager &mgr, std::string name, Handle<Type> type,
-	          Variant defaultValue, bool optional = true)
-	    : Node(mgr, std::move(name)),
-	      type(acquire(type)),
-	      defaultValue(defaultValue),
-	      optional(optional)
-	{
-	}
+	          Variant defaultValue, bool optional = true);
 
 	/**
 	 * Constructor of the Attribute class with no default value.
@@ -428,14 +429,22 @@ public:
 	 * @param mgr is the Manager instance to be used for the Node.
 	 * @param type holds a reference to the type descriptor holding the type
 	 * of the attribute.
+	 * @param name is the name of the Attribute. Should be a valid identifier.
 	 */
-	Attribute(Manager &mgr, std::string name, Handle<Type> type)
-	    : Node(mgr, std::move(name)),
-	      type(acquire(type)),
-	      defaultValue(nullptr),
-	      optional(false)
-	{
-	}
+	Attribute(Manager &mgr, std::string name, Handle<Type> type);
+
+	/**
+	 * Constructor of the Attribute class with default value but unknown type.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param name is the name of the Attribute. Should be a valid identifier.
+	 * @param defaultValue is the default value of the attribute and must have
+	 * been passed through the build of the specified type.
+	 * @param optional should be set to true if the if the default value should
+	 * be used.
+	 */
+	Attribute(Manager &mgr, std::string name, Variant defaultValue,
+	          bool optional);
 
 	/**
 	 * Sets a new default value. This makes the Attribute optional. The given
@@ -454,7 +463,7 @@ public:
 	 * @return the default value of the attribute. If no default value has been
 	 * given a null variant is returned (the opposite does not hold).
 	 */
-	Variant getDefaultValue() const;
+	Variant getDefaultValue() const { return defaultValue; }
 
 	/**
 	 * Removes any default value from the attribute, making this attribute
@@ -468,7 +477,7 @@ public:
 	 *
 	 * @return true if the attribute is optional, false otherwise.
 	 */
-	bool isOptional() const {return optional; }
+	bool isOptional() const { return optional; }
 
 	/**
 	 * Sets the type of the attribute to the specified value. This will
@@ -653,9 +662,24 @@ public:
 	{
 	}
 
+	/**
+	 * Creates a new instance of the StructType class and checks the given
+	 * parameters for validity.
+	 *
+	 * @param mgr is the underlying Manager instance.
+	 * @param name is the name of the EnumType instance. Should be a valid
+	 * identifier.
+	 * @param system is a reference to the parent Typesystem instance.
+	 * @param parentStructure is a reference to the StructType this type is
+	 * derived from, may be nullptr.
+	 * @param attributes is a vector containing the struct type attributes.
+	 * The attributes are checked for validity (their names must be a valid
+	 * identifiers) and uniqueness (each value must exist exactly once).
+	 * @param logger is the Logger instance into which errors should be written.
+	 */
 	static Rooted<StructType> createValidated(
 	    Manager &mgr, std::string name, Handle<Typesystem> system,
-	    Handle<StructType> parentStructure, NodeVector<Attribute> attributes,
+	    Handle<StructType> parentStructure, const NodeVector<Attribute> &attributes,
 	    Logger &logger);
 
 	/**
@@ -674,8 +698,23 @@ public:
 	void setParentStructure(Handle<StructType> parentStructure, Logger &logger);
 
 	/**
-	 * Adds an attribute. Throws an exception if the name of the attribute is
-	 * not unique.
+	 * Creates a new attribute with unknown type and adds it to the attribute
+	 * list.
+	 *
+	 * @param name is the name of the attribute.
+	 * @param defaultValue is the default value of the attribute.
+	 * @param optional specifies whether the attribute is optional or not.
+	 * @param logger is the logger instance to which errors while creating or
+	 * adding the attribute should be logged.
+	 * @return a new instance of the Attribute class.
+	 */
+	Rooted<Attribute> createAttribute(const std::string &name,
+	                                  Variant defaultValue, bool optional,
+	                                  Logger &logger);
+
+	/**
+	 * Adds an attribute. Throws an exception if the name of the attribute
+	 * is not unique.
 	 *
 	 * @param attribute is the attribute descriptor that should be added to the
 	 * internal attribute list.
@@ -828,13 +867,8 @@ public:
 	 * (yet) resolved type.
 	 *
 	 * @param mgr is the Manager instance to be used for the Node.
-	 * @param name is the name of the unresolved type which may be used later
-	 * to perform a complete resolution.
 	 */
-	UnknownType(Manager &mgr, std::string name)
-	    : Type(mgr, std::move(name), nullptr, false)
-	{
-	}
+	UnknownType(Manager &mgr) : Type(mgr, "unknown", nullptr, false) {}
 
 	/**
 	 * Returns a nullptr variant.
@@ -912,7 +946,6 @@ private:
 	NodeVector<Constant> constants;
 
 protected:
-
 	void doResolve(ResolutionState &state) override;
 
 	bool doValidate(Logger &logger) const override;

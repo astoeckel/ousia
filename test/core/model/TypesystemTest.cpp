@@ -846,7 +846,7 @@ TEST(ArrayType, conversion)
 TEST(UnknownType, rtti)
 {
 	Manager mgr;
-	Rooted<UnknownType> unknownType{new UnknownType(mgr, "unknown")};
+	Rooted<UnknownType> unknownType{new UnknownType(mgr)};
 	ASSERT_TRUE(unknownType->isa(RttiTypes::UnknownType));
 	ASSERT_TRUE(unknownType->isa(typeOf<Type>()));
 	ASSERT_TRUE(unknownType->isa(typeOf<Node>()));
@@ -868,7 +868,7 @@ TEST(UnknownType, rtti)
 TEST(UnknownType, creation)
 {
 	Manager mgr;
-	Rooted<UnknownType> unknownType{new UnknownType(mgr, "unknown")};
+	Rooted<UnknownType> unknownType{new UnknownType(mgr)};
 
 	Variant val = unknownType->create();
 	ASSERT_TRUE(val.isNull());
@@ -877,7 +877,7 @@ TEST(UnknownType, creation)
 TEST(UnknownType, conversion)
 {
 	Manager mgr;
-	Rooted<UnknownType> unknownType{new UnknownType(mgr, "unknown")};
+	Rooted<UnknownType> unknownType{new UnknownType(mgr)};
 
 	{
 		Variant val1{{1, "test", false, 42.5}};
