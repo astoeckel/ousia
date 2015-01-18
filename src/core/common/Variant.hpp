@@ -379,19 +379,6 @@ public:
 	}
 
 	/**
-	 * Constructor for storing managed objects. The reference at the managed
-	 * object is stored as a Rooted object.
-	 *
-	 * @param o is a reference to the object.
-	 */
-	template <class T>
-	Variant(Handle<T> o)
-	    : ptrVal(nullptr)
-	{
-		setObject(o);
-	}
-
-	/**
 	 * Copy assignment operator.
 	 */
 	Variant &operator=(const Variant &v)
