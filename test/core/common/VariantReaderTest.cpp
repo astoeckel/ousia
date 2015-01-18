@@ -762,6 +762,42 @@ TEST(VariantReader, parseGeneric)
 	}
 }
 
+TEST(VariantReader, parseGenericString)
+{
+	// Simple case, unescaped string
+	{
+		auto res = VariantReader::parseGenericString("foo", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isMagic());
+		ASSERT_EQ("foo", res.second.asMagic());
+	}
+
+	// Simple case, unescaped string with space
+	{
+		auto res = VariantReader::parseGenericString("foo bar", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_FALSE(res.second.isMagic());
+		ASSERT_TRUE(res.second.isString());
+		ASSERT_EQ("foo bar", res.second.asString());
+	}
+
+	// Parse double
+	{
+		auto res = VariantReader::parseGenericString("12.3", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isDouble());
+		ASSERT_EQ(12.3, res.second.asDouble());
+	}
+
+	// Parse string
+	{
+		auto res = VariantReader::parseGenericString("6 times 7 is 42", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isString());
+		ASSERT_EQ("6 times 7 is 42", res.second.asString());
+	}
+}
+
 TEST(VariantReader, parseGenericComplex)
 {
 	CharReader reader("10 true [1, 2] [] [foo=bar,h]; []");
