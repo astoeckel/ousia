@@ -526,6 +526,7 @@ void Typesystem::doResolve(ResolutionState &state)
 {
 	continueResolveComposita(constants, constants.getIndex(), state);
 	continueResolveComposita(types, constants.getIndex(), state);
+	continueResolveReferences(typesystems, state);
 }
 
 bool Typesystem::doValidate(Logger &logger) const
@@ -540,6 +541,11 @@ Rooted<StructType> Typesystem::createStructType(const std::string &name)
 	Rooted<StructType> structType{new StructType(getManager(), name, this)};
 	addType(structType);
 	return structType;
+}
+
+void Typesystem::includeTypesystem(Handle<Typesystem> typesystem)
+{
+	typesystems.push_back(typesystem);
 }
 
 /* Class SystemTypesystem */

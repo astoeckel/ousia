@@ -93,7 +93,7 @@ public:
 
 		// Try to resolve the parent type and set it as parent structure
 		if (!parent.empty()) {
-			scope().resolve<StructType>(Utils::split(parent, '.'), logger(),
+			scope().resolve<StructType>(parent, logger(),
 			                            [structType](Handle<StructType> parent,
 			                                         Logger &logger) mutable {
 				                            structType->setParentStructure(
@@ -125,13 +125,22 @@ public:
 	void start(Variant::mapType &args) override
 	{
 		// Read the argument values
-		/*		const std::string &name = args["name"].asString();
-		        const std::string &type = args["parent"].asString();
-		        const Variant &defaultValue = args["default"];
-		        const bool optional = !(defaultValue.isObject() &&
-		   defaultValue.asObject() == nullptr);*/
+		const std::string &name = args["name"].asString();
+		const std::string &type = args["type"].asString();
+		const Variant &defaultValue = args["default"];
+		const bool optional =
+		    !(defaultValue.isObject() && defaultValue.asObject() == nullptr);
 
-		// Try to resolve the
+		Rooted<StructType> structType = scope().getLeaf().cast<StructType>();
+		Rooted<Attribute> attribute = structType->createAttribute(
+		    name, defaultValue, optional, logger());
+
+		// Try to resolve the type
+		scope().resolve<Type>(type, logger(),
+		    [attribute](Handle<Type> type, Logger &logger) mutable {
+			    attribute->setType(type, logger);
+			},
+		    location());
 	}
 
 	void end() override {}

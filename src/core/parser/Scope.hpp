@@ -25,6 +25,7 @@
 
 #include <core/common/Logger.hpp>
 #include <core/common/Rtti.hpp>
+#include <core/common/Utils.hpp>
 #include <core/model/Node.hpp>
 
 /**
@@ -52,7 +53,8 @@ using ResolutionImposterCallback = std::function<Rooted<Node>()>;
  * Callback function type called whenever the result of a resolution is
  * available.
  */
-using ResolutionResultCallback = std::function<void(Handle<Node>, Logger &logger)>;
+using ResolutionResultCallback =
+    std::function<void(Handle<Node>, Logger &logger)>;
 
 /**
  * The GuardedScope class takes care of pushing a Node instance into the
@@ -329,7 +331,7 @@ public:
 	 * temporary) and another time if the resolution turned out to because
 	 * successful at a later point in time.
 	 *
-	 * @tparam is the type of the node that should be resolved.
+	 * @tparam T is the type of the node that should be resolved.
 	 * @param path is the path for which a node should be resolved.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
@@ -352,7 +354,7 @@ public:
 	template <class T>
 	bool resolve(const std::vector<std::string> &path, Logger &logger,
 	             std::function<Rooted<T>()> imposterCallback,
-	             std::function<void(Handle<T>, Logger&)> resultCallback,
+	             std::function<void(Handle<T>, Logger &)> resultCallback,
 	             const SourceLocation &location = SourceLocation{})
 	{
 		return resolve(
@@ -360,7 +362,8 @@ public:
 		    [imposterCallback]() -> Rooted<Node> { return imposterCallback(); },
 		    [resultCallback](Handle<Node> node, Logger &logger) {
 			    resultCallback(node.cast<T>(), logger);
-			}, location);
+			},
+		    location);
 	}
 
 	/**
@@ -369,7 +372,7 @@ public:
 	 * The "resultCallback" is called when the resolution was successful, which
 	 * may be at a later point in time.
 	 *
-	 * @tparam is the type of the node that should be resolved.
+	 * @tparam T is the type of the node that should be resolved.
 	 * @param path is the path for which a node should be resolved.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
@@ -384,13 +387,83 @@ public:
 	 */
 	template <class T>
 	bool resolve(const std::vector<std::string> &path, Logger &logger,
-	             std::function<void(Handle<T>, Logger&)> resultCallback,
+	             std::function<void(Handle<T>, Logger &)> resultCallback,
 	             const SourceLocation &location = SourceLocation{})
 	{
 		return resolve(path, typeOf<T>(), logger,
 		               [resultCallback](Handle<Node> node, Logger &logger) {
-			resultCallback(node.cast<T>(), logger);
-		}, location);
+			               resultCallback(node.cast<T>(), logger);
+			           },
+		               location);
+	}
+
+	/**
+	 * Tries to resolve a node for the given type and path for all nodes
+	 * currently on the stack, starting with the topmost node on the stack.
+	 * Calls the "imposterCallback" function for obtaining a temporary result if
+	 * a node cannot be resolved right now. The "resultCallback" is at most
+	 * called twice: Once when this method is called (probably with the
+	 * temporary) and another time if the resolution turned out to because
+	 * successful at a later point in time.
+	 *
+	 * @tparam T is the type of the node that should be resolved.
+	 * @param name is the path for which a node should be resolved. The name is
+	 * split at '.' to form a path.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param imposterCallback is the callback function that is called if
+	 * the node cannot be resolved at this moment. It gives the caller the
+	 * possibility to create an imposter (a temporary object) that may be used
+	 * later in the resolution process.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called at least once
+	 * either with the imposter (if the resolution was not successful) or the
+	 * resolved object directly when this function is called. If the resolution
+	 * was not successful the first time, it may be called another time later
+	 * in the context of the "performDeferredResolution" function.
+	 * @param location is the location in the current source file in which the
+	 * resolution was triggered.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	template <class T>
+	bool resolve(const std::string &name, Logger &logger,
+	             std::function<Rooted<T>()> imposterCallback,
+	             std::function<void(Handle<T>, Logger &)> resultCallback,
+	             const SourceLocation &location = SourceLocation{})
+	{
+		return resolve<T>(Utils::split(name, '.'), logger, imposterCallback,
+		                  resultCallback, location);
+	}
+
+	/**
+	 * Tries to resolve a node for the given type and path for all nodes
+	 * currently on the stack, starting with the topmost node on the stack.
+	 * The "resultCallback" is called when the resolution was successful, which
+	 * may be at a later point in time.
+	 *
+	 * @tparam T is the type of the node that should be resolved.
+	 * @param name is the path for which a node should be resolved. The name is
+	 * split at '.' to form a path.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @param location is the location in the current source file in which the
+	 * resolution was triggered.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	template <class T>
+	bool resolve(const std::string &name, Logger &logger,
+	             std::function<void(Handle<T>, Logger &)> resultCallback,
+	             const SourceLocation &location = SourceLocation{})
+	{
+		return resolve<T>(Utils::split(name, '.'), logger, resultCallback,
+		                  location);
 	}
 
 	/**

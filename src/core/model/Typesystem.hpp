@@ -679,8 +679,8 @@ public:
 	 */
 	static Rooted<StructType> createValidated(
 	    Manager &mgr, std::string name, Handle<Typesystem> system,
-	    Handle<StructType> parentStructure, const NodeVector<Attribute> &attributes,
-	    Logger &logger);
+	    Handle<StructType> parentStructure,
+	    const NodeVector<Attribute> &attributes, Logger &logger);
 
 	/**
 	 * Returns a handle pointing at the parent type.
@@ -945,6 +945,11 @@ private:
 	 */
 	NodeVector<Constant> constants;
 
+	/**
+	 * List containing references to other referenced typesystems.
+	 */
+	NodeVector<Typesystem> typesystems;
+
 protected:
 	void doResolve(ResolutionState &state) override;
 
@@ -958,7 +963,10 @@ public:
 	 * @param name is the name of the typesystem.
 	 */
 	Typesystem(Manager &mgr, std::string name)
-	    : Node(mgr, std::move(name)), types(this), constants(this)
+	    : Node(mgr, std::move(name)),
+	      types(this),
+	      constants(this),
+	      typesystems(this)
 	{
 	}
 
@@ -970,6 +978,14 @@ public:
 	 * @return the new StructType instance.
 	 */
 	Rooted<StructType> createStructType(const std::string &name);
+
+	/**
+	 * Adds a reference to the given typesystem class.
+	 *
+	 * @param typesystem is the typesystem that should be added to the
+	 * referenced typesystems list.
+	 */
+	void includeTypesystem(Handle<Typesystem> typesystem);
 
 	/**
 	 * Adds the given type to the to the type list.
