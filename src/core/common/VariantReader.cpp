@@ -583,6 +583,7 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 				return std::make_pair(true, n.doubleValue());
 			}
 		}
+		reader.resetPeek();
 	}
 
 	// Try to parse an object
