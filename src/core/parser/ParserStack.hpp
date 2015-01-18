@@ -147,6 +147,8 @@ public:
 
 	Logger &logger() { return handlerData.ctx.logger; }
 
+	Rooted<model::Project> project() { return handlerData.ctx.project; }
+
 	State state() { return handlerData.state; }
 
 	State parentState() { return handlerData.parentState; }

@@ -69,7 +69,7 @@ static const std::multimap<std::string, HandlerDescriptor> TEST_HANDLERS{
 TEST(ParserStack, simpleTest)
 {
 	StandaloneParserContext ctx;
-	ParserStack s{ctx, TEST_HANDLERS};
+	ParserStack s{ctx.context, TEST_HANDLERS};
 
 	startCount = 0;
 	endCount = 0;
@@ -132,7 +132,7 @@ TEST(ParserStack, simpleTest)
 TEST(ParserStack, errorHandling)
 {
 	StandaloneParserContext ctx;
-	ParserStack s{ctx, TEST_HANDLERS};
+	ParserStack s{ctx.context, TEST_HANDLERS};
 
 	ASSERT_THROW(s.start("body", {}), OusiaException);
 	s.start("document", {});
@@ -152,7 +152,7 @@ TEST(ParserStack, validation)
 {
 	ConcreteLogger logger;
 	StandaloneParserContext ctx(logger);
-	ParserStack s{ctx, TEST_HANDLERS};
+	ParserStack s{ctx.context, TEST_HANDLERS};
 
 	s.start("arguments", {});
 	ASSERT_TRUE(logger.hasError());

@@ -38,7 +38,7 @@ TEST(XmlParser, mismatchedTagException)
 
 	bool hadException = false;
 	try {
-		p.parse("<document>\n</document2>", ctx);
+		p.parse("<document>\n</document2>", ctx.context);
 	}
 	catch (LoggableException ex) {
 		ASSERT_EQ(2, ex.loc.line);
@@ -81,7 +81,7 @@ TEST(XmlParser, namespaces)
 		ScopedLogger sl(logger, "test.oxd", SourceLocation{},
 		                CharReader::contextCallback, &reader);
 		try {
-			p.parse(TEST_DATA, ctx);
+			p.parse(TEST_DATA, ctx.context);
 		}
 		catch (LoggableException ex) {
 			logger.log(ex);

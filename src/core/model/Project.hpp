@@ -35,10 +35,13 @@ namespace ousia {
 // Forward declarations
 class Logger;
 class Rtti;
-class SystemTypesystem;
-class Typesystem;
 
 namespace model {
+
+class SystemTypesystem;
+class Typesystem;
+class Document;
+class Domain;
 
 /**
  * The Project class constitutes the top-level node in which documents, domains,
@@ -88,7 +91,7 @@ public:
 	 *
 	 * @return a reference to the system typesystem.
 	 */
-	Rooted<SystemTypesystem> getSystemTypesystem() { return systemTypesystem; }
+	Rooted<SystemTypesystem> getSystemTypesystem();
 
 	/**
 	 * Returns a new typesystem with the given name adds it to the list of
@@ -141,21 +144,21 @@ public:
 	 *
 	 * @return a reference pointing at the document list.
 	 */
-	const NodeVector<Document> &getDocuments() { return documents; }
+	const NodeVector<Document> &getDocuments();
 
 	/**
 	 * Returns all domains of this project.
 	 *
 	 * @return a reference pointing at the domain list.
 	 */
-	const NodeVector<Domain> &getDomains() { return domains; }
+	const NodeVector<Domain> &getDomains();
 
 	/**
 	 * Returns all typesystems of this project.
 	 *
 	 * @return a reference pointing at the typesystem list.
 	 */
-	const NodeVector<Typesystem> &getTypesystems() { return typesystems; }
+	const NodeVector<Typesystem> &getTypesystems();
 };
 }
 

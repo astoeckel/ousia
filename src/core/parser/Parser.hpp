@@ -37,6 +37,7 @@
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
 #include <core/model/Node.hpp>
+#include <core/model/Project.hpp>
 
 #include "Scope.hpp"
 
@@ -70,6 +71,11 @@ struct ParserContext {
 	Manager &manager;
 
 	/**
+	 * Project instance into which the new content should be parsed.
+	 */
+	Rooted<model::Project> project;
+
+	/**
 	 * Constructor of the ParserContext class.
 	 *
 	 * @param scope is a reference to the Scope instance that should be used to
@@ -80,11 +86,16 @@ struct ParserContext {
 	 * @param logger is a reference to the Logger instance that should be used
 	 * to log error messages and warnings that occur while parsing the document.
 	 * @param manager is a Reference to the Manager the parser should append
-	 *nodes to.
+	 * nodes to.
+	 * @param project is the project into which the content should be parsed.
 	 */
 	ParserContext(Scope &scope, Registry &registry, Logger &logger,
-	              Manager &manager)
-	    : scope(scope), registry(registry), logger(logger), manager(manager){};
+	              Manager &manager, Handle<model::Project> project)
+	    : scope(scope),
+	      registry(registry),
+	      logger(logger),
+	      manager(manager),
+	      project(project){};
 };
 
 /**

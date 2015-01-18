@@ -43,6 +43,11 @@ bool Project::doValidate(Logger &logger) const
 	       continueValidation(typesystems, logger);
 }
 
+Rooted<SystemTypesystem> Project::getSystemTypesystem()
+{
+	return systemTypesystem;
+}
+
 Rooted<Typesystem> Project::createTypesystem(const std::string &name)
 {
 	Rooted<Typesystem> typesystem{
@@ -82,6 +87,12 @@ void Project::addDomain(Handle<Domain> domain)
 	invalidate();
 	domains.push_back(domain);
 }
+
+const NodeVector<Document> &Project::getDocuments() { return documents; }
+
+const NodeVector<Domain> &Project::getDomains() { return domains; }
+
+const NodeVector<Typesystem> &Project::getTypesystems() { return typesystems; }
 }
 
 namespace RttiTypes {

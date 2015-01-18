@@ -19,28 +19,35 @@
 #ifndef _OUSIA_STANDALONE_PARSER_CONTEXT_
 #define _OUSIA_STANDALONE_PARSER_CONTEXT_
 
+#include <memory>
+
+#include <core/model/Project.hpp>
 #include <core/parser/Parser.hpp>
 
 namespace ousia {
 namespace parser {
 
-struct StandaloneParserContext : public ParserContext {
-private:
+struct StandaloneParserContext {
+public:
 	Manager manager;
 	Logger logger;
 	Scope scope;
 	Registry registry;
+	Rooted<model::Project> project;
+	ParserContext context;
 
-public:
 	StandaloneParserContext()
-	    : ParserContext(scope, registry, logger, manager),
-	      registry(logger){};
+	    : registry(logger),
+	      project(new model::Project(manager)),
+	      context(scope, registry, logger, manager, project)
+	{
+	}
 
 	StandaloneParserContext(Logger &externalLogger)
-	    : ParserContext(scope, registry, externalLogger, manager),
-	      registry(externalLogger){};
+	    : registry(externalLogger),
+	      project(new model::Project(manager)),
+	      context(scope, registry, externalLogger, manager, project){};
 };
-
 }
 }
 
