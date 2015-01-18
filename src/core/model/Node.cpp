@@ -361,7 +361,9 @@ bool Node::checkDuplicate(Handle<Node> elem,
 	const std::string &name = elem->getName();
 	if (!names.emplace(name).second) {
 		logger.error(std::string("Element with name \"") + name +
-		             std::string("\" defined multiple times."));
+		             std::string("\" defined multiple times in parent ") +
+		             type().name + std::string(" \"") +
+		             Utils::join(path(), ".") + std::string("\""));
 		return false;
 	}
 	return true;
