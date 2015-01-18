@@ -161,7 +161,7 @@ protected:
 		fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
 	}
 
-	bool validate(Logger &logger) const;
+	bool doValidate(Logger &logger) const;
 
 public:
 	/**
@@ -569,6 +569,9 @@ private:
 
 	void continueResolve(ResolutionState &state) override;
 
+protected:
+	bool doValidate(Logger &logger) const override;
+
 public:
 	Document(Manager &mgr, std::string name)
 	    // TODO: Can a document have a parent?
@@ -622,6 +625,17 @@ public:
 	{
 		domains.insert(domains.end(), d.begin(), d.end());
 	}
+	
+	/**
+	 * Returns true if and only if the given StructureNode is part of this
+	 * document, meaning that there is a path of parent references in the
+	 * Structure Tree leading from the given StructureNode to this Document.
+	 *
+	 * @param s is some StructureNode.
+	 * @return  true if and only if the given StructureNode is part of this
+	 *          document.
+	 */
+	bool hasChild(Handle<StructureNode> s) const;
 };
 }
 
