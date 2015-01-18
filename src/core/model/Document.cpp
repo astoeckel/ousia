@@ -299,7 +299,7 @@ bool StructuredEntity::doValidate(Logger &logger) const
 		return false;
 	}
 	// check name
-	if (getName() != "") {
+	if (!getName().empty()) {
 		if (!validateName(logger)) {
 			return false;
 		}
@@ -341,7 +341,7 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 		return false;
 	}
 	// check name
-	if (getName() != "") {
+	if (!getName().empty()) {
 		if (!validateName(logger)) {
 			return false;
 		}
