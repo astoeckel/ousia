@@ -47,6 +47,7 @@ namespace model {
 
 // Forward declarations
 class Typesystem;
+class SystemTypesystem;
 
 /**
  * The abstract Type class represents a type descriptor. Each Type node is part
@@ -966,6 +967,19 @@ public:
 	      constants(this),
 	      typesystems(this)
 	{
+	}
+
+	/**
+	 * Constructor of the Typesystem class.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param sys is a reference at the system typesystem.
+	 * @param name is the name of the typesystem.
+	 */
+	Typesystem(Manager &mgr, Handle<SystemTypesystem> sys, std::string name)
+	    : Typesystem(mgr, std::move(name))
+	{
+		includeTypesystem(sys);
 	}
 
 	/**

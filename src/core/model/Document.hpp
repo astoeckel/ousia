@@ -567,7 +567,6 @@ protected:
 
 public:
 	Document(Manager &mgr, std::string name)
-	    // TODO: Can a document have a parent?
 	    : Node(mgr, std::move(name), nullptr),
 	      annotations(this)
 	{

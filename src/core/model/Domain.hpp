@@ -703,6 +703,23 @@ protected:
 	void addAnnotationClass(Handle<AnnotationClass> a);
 
 public:
+
+	/**
+	 * The constructor for a new domain. Note that this is an empty Domain and
+	 * still has to be filled with StructuredClasses and AnnotationClasses.
+	 *
+	 * @param mgr  is the Manager instance.
+	 * @param name is a name for this domain which will be used for later
+	 *             references to this Domain.
+	 */
+	Domain(Manager &mgr, std::string name)
+	    : Node(mgr, std::move(name), nullptr),
+	      structuredClasses(this),
+	      annotationClasses(this),
+	      typesystems(this)
+	{
+	}
+
 	/**
 	 * The constructor for a new domain. Note that this is an empty Domain and
 	 * still has to be filled with StructuredClasses and AnnotationClasses.
@@ -713,12 +730,9 @@ public:
 	 *             references to this Domain.
 	 */
 	Domain(Manager &mgr, Handle<SystemTypesystem> sys, std::string name)
-	    // TODO: Can a domain have a parent?
-	    : Node(mgr, std::move(name), nullptr),
-	      structuredClasses(this),
-	      annotationClasses(this),
-	      typesystems(this, std::vector<Handle<Typesystem>>{sys})
+	    : Domain(mgr, std::move(name))
 	{
+		includeTypesystem(sys);
 	}
 
 	/**
@@ -757,12 +771,12 @@ public:
 	/**
 	 * Adds a Typesystem reference to this Domain.
 	 */
-	void addTypesystem(Handle<Typesystem> t) { typesystems.push_back(t); }
+	void includeTypesystem(Handle<Typesystem> t) { typesystems.push_back(t); }
 
 	/**
 	 * Adds multiple Typesystem references to this Domain.
 	 */
-	void addTypesystems(const std::vector<Handle<Typesystem>> &ts)
+	void includeTypesystems(const std::vector<Handle<Typesystem>> &ts)
 	{
 		typesystems.insert(typesystems.end(), ts.begin(), ts.end());
 	}
