@@ -77,11 +77,11 @@ bool Managed::unregisterEvent(EventType type, EventHandler handler,
 
 bool Managed::triggerEvent(Event &ev) { return mgr.triggerEvent(this, ev); }
 
-const RttiType &Managed::type() const { return typeOf(*this); }
+const Rtti &Managed::type() const { return typeOf(*this); }
 
-bool Managed::isa(const RttiType &t) const { return type().isa(t); }
+bool Managed::isa(const Rtti &t) const { return type().isa(t); }
 
-bool Managed::composedOf(const RttiType &t) const
+bool Managed::composedOf(const Rtti &t) const
 {
 	return type().composedOf(t);
 }

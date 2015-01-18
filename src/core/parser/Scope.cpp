@@ -46,7 +46,7 @@ GuardedScope::GuardedScope(GuardedScope &&s)
 /* Class ScopeBase */
 
 Rooted<Node> ScopeBase::resolve(const std::vector<std::string> &path,
-                                const RttiType &type, Logger &logger)
+                                const Rtti &type, Logger &logger)
 {
 	// Go up the stack and try to resolve the
 	for (auto it = nodes.rbegin(); it != nodes.rend(); it++) {
@@ -75,7 +75,7 @@ Rooted<Node> ScopeBase::resolve(const std::vector<std::string> &path,
 
 DeferredResolution::DeferredResolution(const NodeVector<Node> &nodes,
                                        const std::vector<std::string> &path,
-                                       const RttiType &type,
+                                       const Rtti &type,
                                        ResolutionResultCallback resultCallback,
                                        const SourceLocation &location)
     : scope(nodes),
@@ -116,7 +116,7 @@ Rooted<Node> Scope::getRoot() const { return nodes.front(); }
 
 Rooted<Node> Scope::getLeaf() { return nodes.back(); }
 
-bool Scope::resolve(const std::vector<std::string> &path, const RttiType &type,
+bool Scope::resolve(const std::vector<std::string> &path, const Rtti &type,
                     Logger &logger, ResolutionImposterCallback imposterCallback,
                     ResolutionResultCallback resultCallback,
 	             const SourceLocation &location)
@@ -128,7 +128,7 @@ bool Scope::resolve(const std::vector<std::string> &path, const RttiType &type,
 	return true;
 }
 
-bool Scope::resolve(const std::vector<std::string> &path, const RttiType &type,
+bool Scope::resolve(const std::vector<std::string> &path, const Rtti &type,
                     Logger &logger, ResolutionResultCallback resultCallback,
                     const SourceLocation &location)
 {

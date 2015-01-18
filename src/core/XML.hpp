@@ -51,7 +51,7 @@
 namespace ousia {
 
 // Forward declarations
-class RttiType;
+class Rtti;
 
 namespace xml {
 
@@ -171,9 +171,9 @@ public:
 }
 
 namespace RttiTypes {
-extern const RttiType XMLNode;
-extern const RttiType XMLElement;
-extern const RttiType XMLText;
+extern const Rtti XMLNode;
+extern const Rtti XMLElement;
+extern const Rtti XMLText;
 }
 }
 #endif

@@ -67,7 +67,7 @@ public:
 	/**
 	 * Type of the node that was requested for resolution.
 	 */
-	const RttiType &type;
+	const Rtti &type;
 
 	/**
 	 * Tracks all nodes that have already been visited.
@@ -90,7 +90,7 @@ public:
 	 * @param type is the type of the node that should be resolved.
 	 */
 	SharedResolutionState(const std::vector<std::string> &path,
-	                      const RttiType &type)
+	                      const Rtti &type)
 	    : path(path), type(type)
 	{
 	}
@@ -187,9 +187,9 @@ public:
 	 *
 	 * @return true if the type matches, false otherwise.
 	 */
-	bool typeMatches(const RttiType &type) { return type.isa(shared.type); }
+	bool typeMatches(const Rtti &type) { return type.isa(shared.type); }
 
-	bool canContainType(const RttiType &type)
+	bool canContainType(const Rtti &type)
 	{
 		return type.composedOf(shared.type);
 	}
@@ -331,7 +331,7 @@ bool Node::continueResolveReference(Handle<Node> h, ResolutionState &state)
 }
 
 std::vector<ResolutionResult> Node::resolve(
-    const std::vector<std::string> &path, const RttiType &type)
+    const std::vector<std::string> &path, const Rtti &type)
 {
 	// Create the state variables
 	SharedResolutionState sharedState(path, type);
@@ -347,7 +347,7 @@ std::vector<ResolutionResult> Node::resolve(
 }
 
 std::vector<ResolutionResult> Node::resolve(const std::string &name,
-                                            const RttiType &type)
+                                            const Rtti &type)
 {
 	// Place the name in a vector and call the corresponding resolve function
 	return resolve(std::vector<std::string>{name}, type);
@@ -437,7 +437,7 @@ bool Node::validate(Logger &logger) const
 
 /* RTTI type registrations */
 namespace RttiTypes {
-const RttiType Node =
+const Rtti Node =
     RttiBuilder<ousia::Node>("Node")
         .property("name", {RttiTypes::String,
                            {[](const ousia::Node *obj) {

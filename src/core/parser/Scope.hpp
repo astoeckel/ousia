@@ -142,7 +142,7 @@ public:
 	 * found.
 	 */
 	Rooted<Node> resolve(const std::vector<std::string> &path,
-	                     const RttiType &type, Logger &logger);
+	                     const Rtti &type, Logger &logger);
 };
 
 /**
@@ -173,7 +173,7 @@ public:
 	/**
 	 * Reference at the type of the object that should be resolved.
 	 */
-	const RttiType &type;
+	const Rtti &type;
 
 	/**
 	 * Position at which the resolution was triggered.
@@ -188,14 +188,14 @@ public:
 	 * Scope class.
 	 * @param path is the path that was queried when the resolution failed the
 	 * first time.
-	 * @param type is the RttiType of the element that should be queried.
+	 * @param type is the Rtti of the element that should be queried.
 	 * @param resultCallback is the callback function that should be called if
 	 * the desired element has indeed been found.
 	 * @param location is the location at which the resolution was triggered.
 	 */
 	DeferredResolution(const NodeVector<Node> &nodes,
 	                   const std::vector<std::string> &path,
-	                   const RttiType &type,
+	                   const Rtti &type,
 	                   ResolutionResultCallback resultCallback,
 	                   const SourceLocation &location = SourceLocation{});
 
@@ -294,7 +294,7 @@ public:
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
-	bool resolve(const std::vector<std::string> &path, const RttiType &type,
+	bool resolve(const std::vector<std::string> &path, const Rtti &type,
 	             Logger &logger, ResolutionImposterCallback imposterCallback,
 	             ResolutionResultCallback resultCallback,
 	             const SourceLocation &location = SourceLocation{});
@@ -318,7 +318,7 @@ public:
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
-	bool resolve(const std::vector<std::string> &path, const RttiType &type,
+	bool resolve(const std::vector<std::string> &path, const Rtti &type,
 	             Logger &logger, ResolutionResultCallback resultCallback,
 	             const SourceLocation &location = SourceLocation{});
 

@@ -46,9 +46,9 @@ public:
 }
 
 namespace RttiTypes {
-static const RttiType TestManaged1 =
+static const Rtti TestManaged1 =
     RttiBuilder<ousia::TestManaged1>("TestManaged1");
-static const RttiType TestManaged2 =
+static const Rtti TestManaged2 =
     RttiBuilder<ousia::TestManaged2>("TestManaged2").parent(&TestManaged1);
 }
 

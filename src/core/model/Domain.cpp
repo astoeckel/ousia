@@ -279,16 +279,16 @@ void Domain::addAnnotationClass(Handle<AnnotationClass> a)
 /* Type registrations */
 
 namespace RttiTypes {
-const RttiType FieldDescriptor =
+const Rtti FieldDescriptor =
     RttiBuilder<model::FieldDescriptor>("FieldDescriptor").parent(&Node);
-const RttiType Descriptor =
+const Rtti Descriptor =
     RttiBuilder<model::Descriptor>("Descriptor").parent(&Node);
-const RttiType StructuredClass =
+const Rtti StructuredClass =
     RttiBuilder<model::StructuredClass>("StructuredClass").parent(&Descriptor).composedOf(
         &FieldDescriptor);
-const RttiType AnnotationClass =
+const Rtti AnnotationClass =
     RttiBuilder<model::AnnotationClass>("AnnotationClass").parent(&Descriptor);
-const RttiType Domain =
+const Rtti Domain =
     RttiBuilder<model::Domain>("Domain").parent(&Node).composedOf(
         {&StructuredClass, &AnnotationClass});
 }

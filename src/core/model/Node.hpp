@@ -44,7 +44,7 @@ namespace ousia {
 
 // Forward declarations
 class Logger;
-class RttiType;
+class Rtti;
 
 /**
  * Describes the validity of a node structure.
@@ -481,7 +481,7 @@ public:
 	 * the resolved elements.
 	 */
 	std::vector<ResolutionResult> resolve(const std::vector<std::string> &path,
-	                                      const RttiType &type);
+	                                      const Rtti &type);
 
 	/**
 	 * Function which resolves a single name to a list of possible nodes
@@ -493,7 +493,7 @@ public:
 	 * the resolved elements.
 	 */
 	std::vector<ResolutionResult> resolve(const std::string &name,
-	                                      const RttiType &type);
+	                                      const Rtti &type);
 
 	/**
 	 * Checks whether this node is valid and returns true if it is and false
@@ -573,7 +573,7 @@ namespace RttiTypes {
 /**
  * Typeinformation for the base "Node" class.
  */
-extern const RttiType Node;
+extern const Rtti Node;
 }
 }
 

@@ -33,7 +33,7 @@ namespace ousia {
 
 // Forward declaration
 class Logger;
-class RttiType;
+class Rtti;
 class Variant;
 
 /**
@@ -160,7 +160,7 @@ public:
 	 * @return true if the operation was successful, false otherwise. In any
 	 * case the input/output parameter "var" will have the requested type.
 	 */
-	static bool toArray(Variant &var, const RttiType &innerType, Logger &logger,
+	static bool toArray(Variant &var, const Rtti &innerType, Logger &logger,
 	                    Mode mode = Mode::SAFE);
 
 
@@ -180,7 +180,7 @@ public:
 	 * @return true if the operation was successful, false otherwise. In any
 	 * case the input/output parameter "var" will have the requested type.
 	 */
-	static bool toMap(Variant &var, const RttiType &innerType, Logger &logger,
+	static bool toMap(Variant &var, const Rtti &innerType, Logger &logger,
 	                    Mode mode = Mode::SAFE);
 
 	/**
@@ -195,17 +195,17 @@ public:
 	static bool toFunction(Variant &var, Logger &logger);
 
 	/**
-	 * Tries conversion to the given RttiType with the given optional inner
+	 * Tries conversion to the given Rtti with the given optional inner
 	 * type.
 	 *
 	 * @param type describes the type to which the variant should be converted.
-	 * This might either be a variant type such as RttiType::Bool,
-	 * RttiType::Int, RttiType::Double, RttiType::String, RttiType::Array,
-	 * RttiType::Map or RttiType::Function. All other types are regarded as
-	 * managed object of this type. If RttiType::None is given, all types are
+	 * This might either be a variant type such as RttiTypes::Bool,
+	 * RttiTypes::Int, RttiTypes::Double, RttiTypes::String, RttiTypes::Array,
+	 * RttiTypes::Map or RttiTypes::Function. All other types are regarded as
+	 * managed object of this type. If RttiTypes::None is given, all types are
 	 * accepted.
 	 * @param innerType is used in case of maps or arrays to check the type of
-	 * the elements of these containers. If RttiType::None is given, no special
+	 * the elements of these containers. If RttiTypes::None is given, no special
 	 * type is required.
 	 * @param logger is a reference at the logger instance to which error
 	 * messages are forwarded.
@@ -213,19 +213,19 @@ public:
 	 * @return true if the operation was successful, false otherwise. In any
 	 * case the input/output parameter "var" will have the requested type.
 	 */
-	static bool convert(Variant &var, const RttiType &type,
-	                    const RttiType &innerType, Logger &logger,
+	static bool convert(Variant &var, const Rtti &type,
+	                    const Rtti &innerType, Logger &logger,
 	                    Mode mode = Mode::SAFE);
 
 	/**
-	 * Tries conversion to the given RttiType without any enforcement regarding
+	 * Tries conversion to the given Rtti without any enforcement regarding
 	 * the inner type of container types.
 	 *
 	 * @param type describes the type to which the variant should be converted.
-	 * This might either be a variant type such as RttiType::Bool,
-	 * RttiType::Int, RttiType::Double, RttiType::String, RttiType::Array,
-	 * RttiType::Map or RttiType::Function. All other types are regarded as
-	 * managed object of this type. If RttiType::None is given, all types are
+	 * This might either be a variant type such as RttiTypes::Bool,
+	 * RttiTypes::Int, RttiTypes::Double, RttiTypes::String, RttiTypes::Array,
+	 * RttiTypes::Map or RttiTypes::Function. All other types are regarded as
+	 * managed object of this type. If RttiTypes::None is given, all types are
 	 * accepted.
 	 * @param logger is a reference at the logger instance to which error
 	 * messages are forwarded.
@@ -233,7 +233,7 @@ public:
 	 * @return true if the operation was successful, false otherwise. In any
 	 * case the input/output parameter "var" will have the requested type.
 	 */
-	static bool convert(Variant &var, const RttiType &type,
+	static bool convert(Variant &var, const Rtti &type,
 	                    Logger &logger, Mode mode = Mode::SAFE);
 };
 }

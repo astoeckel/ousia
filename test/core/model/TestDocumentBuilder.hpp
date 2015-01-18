@@ -46,7 +46,7 @@ static std::string getPathString(const Path &path)
 
 static Rooted<Descriptor> resolveDescriptor(Handle<Document> doc,
                                             Logger &logger, const Path &path,
-                                            const RttiType &type)
+                                            const Rtti &type)
 {
 	// use the actual resolve method.
 	std::vector<ResolutionResult> resolved = doc->resolve(path, type);

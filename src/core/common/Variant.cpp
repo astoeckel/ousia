@@ -112,7 +112,7 @@ Variant::arrayType Variant::toArray() const
 	return res.asArray();
 }
 
-Variant::arrayType Variant::toArray(const RttiType &innerType) const
+Variant::arrayType Variant::toArray(const Rtti &innerType) const
 {
 	ExceptionLogger logger;
 	Variant res{*this};
@@ -128,7 +128,7 @@ Variant::mapType Variant::toMap() const
 	return res.asMap();
 }
 
-Variant::mapType Variant::toMap(const RttiType &innerType) const
+Variant::mapType Variant::toMap(const Rtti &innerType) const
 {
 	ExceptionLogger logger;
 	Variant res{*this};
@@ -138,7 +138,7 @@ Variant::mapType Variant::toMap(const RttiType &innerType) const
 
 /* Type management */
 
-const RttiType& Variant::getRttiType() const
+const Rtti& Variant::getRtti() const
 {
 	switch (type) {
 		case VariantType::NULLPTR:

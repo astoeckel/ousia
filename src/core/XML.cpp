@@ -118,8 +118,8 @@ void Text::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 
 namespace RttiTypes
 {
-	const RttiType XMLNode = RttiBuilder<xml::Node>("XMLNode");
-	const RttiType XMLElement =
+	const Rtti XMLNode = RttiBuilder<xml::Node>("XMLNode");
+	const Rtti XMLElement =
 	    RttiBuilder<xml::Element>("XMLElement")
 	        .parent(&XMLNode)
 	        .composedOf(&XMLNode)
@@ -127,6 +127,6 @@ namespace RttiTypes
 	                           {[](const xml::Element *obj) {
 		                           return Variant::fromString(obj->name);
 		                       }}});
-	const RttiType XMLText = RttiBuilder<xml::Text>("XMLText").parent(&XMLNode);
+	const Rtti XMLText = RttiBuilder<xml::Text>("XMLText").parent(&XMLNode);
 }
 }

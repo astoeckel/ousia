@@ -44,18 +44,18 @@ class RttiTestClass6 {
 class RttiTestClass7 {
 };
 
-extern const RttiType Type6;
-extern const RttiType Type7;
+extern const Rtti Type6;
+extern const Rtti Type7;
 
-const RttiType Type1 = RttiBuilder<RttiTestClass1>{"Type1"};
-const RttiType Type2 = RttiBuilder<RttiTestClass2>{"Type2"};
-const RttiType Type3 = RttiBuilder<RttiTestClass3>{"Type3"}.parent(&Type1);
-const RttiType Type4 =
+const Rtti Type1 = RttiBuilder<RttiTestClass1>{"Type1"};
+const Rtti Type2 = RttiBuilder<RttiTestClass2>{"Type2"};
+const Rtti Type3 = RttiBuilder<RttiTestClass3>{"Type3"}.parent(&Type1);
+const Rtti Type4 =
     RttiBuilder<RttiTestClass4>{"Type4"}.parent({&Type3, &Type2});
-const RttiType Type5 =
+const Rtti Type5 =
     RttiBuilder<RttiTestClass5>{"Type5"}.composedOf({&Type6, &Type7});
-const RttiType Type6 = RttiBuilder<RttiTestClass6>{"Type6"}.composedOf(&Type1);
-const RttiType Type7 = RttiBuilder<RttiTestClass7>{"Type7"}.parent(&Type6);
+const Rtti Type6 = RttiBuilder<RttiTestClass6>{"Type6"}.composedOf(&Type1);
+const Rtti Type7 = RttiBuilder<RttiTestClass7>{"Type7"}.parent(&Type6);
 
 TEST(Rtti, isa)
 {
@@ -82,7 +82,7 @@ TEST(Rtti, isa)
 
 TEST(Rtti, composedOf)
 {
-	std::vector<const RttiType *> types{&Type1, &Type2, &Type3, &Type4};
+	std::vector<const Rtti *> types{&Type1, &Type2, &Type3, &Type4};
 	for (auto t : types) {
 		ASSERT_FALSE(t->composedOf(Type1));
 		ASSERT_FALSE(t->composedOf(Type2));
@@ -123,7 +123,7 @@ class RttiMethodTestClass1 {
 class RttiMethodTestClass2 {
 };
 
-static const RttiType MType1 =
+static const Rtti MType1 =
     RttiBuilder<RttiMethodTestClass1>{"MType1"}
         .genericMethod(
              "a", std::make_shared<Method<RttiMethodTestClass1>>([](
@@ -138,7 +138,7 @@ static const RttiType MType1 =
                      Variant::arrayType &args,
                      RttiMethodTestClass1 *thisPtr) { return Variant{"c"}; }));
 
-static const RttiType MType2 =
+static const Rtti MType2 =
     RttiBuilder<RttiMethodTestClass2>{"MType2"}
         .parent(&MType1)
         .method("c",
@@ -217,11 +217,11 @@ public:
 	}
 };
 
-static const RttiType PType1 = RttiBuilder<RttiPropertyTestClass1>{
+static const Rtti PType1 = RttiBuilder<RttiPropertyTestClass1>{
     "PType1"}.property("a", {RttiTypes::Int, RttiPropertyTestClass1::getA,
                              RttiPropertyTestClass1::setA});
 
-static const RttiType PType2 =
+static const Rtti PType2 =
     RttiBuilder<RttiPropertyTestClass2>{"PType2"}.parent(&PType1).property(
         "b", {RttiTypes::Int, RttiPropertyTestClass2::getB,
               RttiPropertyTestClass2::setB});

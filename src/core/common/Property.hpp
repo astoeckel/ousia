@@ -47,15 +47,15 @@ public:
 };
 
 // Forward declaration
-class RttiType;
+class Rtti;
 namespace RttiTypes {
-extern const RttiType None;
+extern const Rtti None;
 }
 
 /**
  * Structure describing the type of a property -- which consists of a "outer"
  * type (which may either be a primitive variant type such as e.g.
- * RttiTypes::Int or any other RttiType instance) and an inner type, which
+ * RttiTypes::Int or any other Rtti instance) and an inner type, which
  * describes the type contained within a container type such as RttiTypes::Array
  * or RttiTypes::Map.
  */
@@ -64,17 +64,17 @@ struct PropertyType {
 	static const PropertyType None;
 
 	/**
-	 * Outer type, may be any RttiType instance. If set to RttiType::None, any
+	 * Outer type, may be any Rtti instance. If set to RttiTypes::None, any
 	 * outer type is acceptable.
 	 */
-	const RttiType &type;
+	const Rtti &type;
 
 	/**
 	 * Describes the inner type of the property used when the outer type is a
-	 * container type such as RttiType::Array or RttiType::Map. If set to
-	 * RttiType::None any inner type is acceptable.
+	 * container type such as RttiTypes::Array or RttiTypes::Map. If set to
+	 * RttiTypes::None any inner type is acceptable.
 	 */
-	const RttiType &innerType;
+	const Rtti &innerType;
 
 	/**
 	 * Creates a new instance of the PropertyType class with both inner and
@@ -88,10 +88,10 @@ struct PropertyType {
 	 * type.
 	 *
 	 * @param type is the "outer" type of the PropertyType instance which may
-	 * be any RttiType instances or RttiType::None, in which case all types are
+	 * be any Rtti instances or RttiTypes::None, in which case all types are
 	 * allowed.
 	 */
-	PropertyType(const RttiType &type)
+	PropertyType(const Rtti &type)
 	    : type(type), innerType(RttiTypes::None){};
 
 	/**
@@ -99,13 +99,13 @@ struct PropertyType {
 	 * inner type.
 	 *
 	 * @param type is the "outer" type of the PropertyType instance which may
-	 * be any RttiType instances or RttiType::None, in which case all types are
+	 * be any Rtti instances or RttiTypes::None, in which case all types are
 	 * allowed.
 	 * @param innerType is the inner type of the PropertyType instance, which is
 	 * relevant if the outer type is set to a basic container type, namely
 	 * RttiTypes::Array or RttiTypes::Map.
 	 */
-	PropertyType(const RttiType &type, const RttiType &innerType)
+	PropertyType(const Rtti &type, const Rtti &innerType)
 	    : type(type), innerType(innerType){};
 };
 
@@ -448,13 +448,13 @@ public:
 	 *
 	 * @param type is the type of the field that can be accessed by the
 	 * property. This may either be a primitive variant type such as e.g.
-	 * RttiTypes::Int or any other RttiType instance
+	 * RttiTypes::Int or any other Rtti instance
 	 * @param getter is a Getter for accessing the described property for
 	 * objects of type T.
 	 * @param setter is a Setter for writing the described property for objects
 	 * of type T.
 	 */
-	Property(const RttiType &type, const Getter<T> &getter,
+	Property(const Rtti &type, const Getter<T> &getter,
 	         const Setter<T> &setter = Setter<T>{})
 	    : PropertyDescriptor(
 	          PropertyType{type},
@@ -468,7 +468,7 @@ public:
 	 *
 	 * @param type is the type of the field that can be accessed by the
 	 * property. This may either be a primitive variant type such as e.g.
-	 * RttiTypes::Int or any other RttiType instance.
+	 * RttiTypes::Int or any other Rtti instance.
 	 * @param innerType is only relevant if type is set to either
 	 * RttiTypes::Array or RttiTypes::Map. In this case the innerType describes
 	 * the type of the elements stored inside these containers.
@@ -477,7 +477,7 @@ public:
 	 * @param setter is a Setter for writing the described property for objects
 	 * of type T.
 	 */
-	Property(const RttiType &type, const RttiType &innerType,
+	Property(const Rtti &type, const Rtti &innerType,
 	         const Getter<T> &getter, const Setter<T> &setter = Setter<T>{})
 	    : PropertyDescriptor(
 	          PropertyType{type, innerType},

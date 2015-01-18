@@ -48,7 +48,7 @@ namespace ousia {
 
 // Forward declarations
 class Function;
-class RttiType;
+class Rtti;
 
 /**
  * Enum containing the possible types a variant may have.
@@ -764,7 +764,7 @@ public:
 	 * to.
 	 * @return the value of the variant as array.
 	 */
-	arrayType toArray(const RttiType &innerType) const;
+	arrayType toArray(const Rtti &innerType) const;
 
 	/**
 	 * Returns the value of the Variant as map.
@@ -781,7 +781,7 @@ public:
 	 * to.
 	 * @return the value of the variant as map.
 	 */
-	mapType toMap(const RttiType &innerType) const;
+	mapType toMap(const Rtti &innerType) const;
 
 	/**
 	 * Sets the variant to null.
@@ -939,9 +939,9 @@ public:
 	 * @return the Rtti type descriptor. Either one of RttiTypes::Int,
 	 * RttiTypes::Bool, RttiTypes::Double, RttiTypes::String, RttiTypes::Array
 	 * or RttiTypes::Function or -- in case an object is stored inside the
-	 * variant -- the RttiType of that object.
+	 * variant -- the Rtti of that object.
 	 */
-	const RttiType &getRttiType() const;
+	const Rtti &getRtti() const;
 
 	/**
 	 * Returns the name of the given variant type as C-style string.

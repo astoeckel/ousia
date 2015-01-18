@@ -23,18 +23,18 @@ namespace ousia {
 
 /* Class RttiStore */
 
-std::unordered_map<std::type_index, const RttiType *> &RttiStore::table()
+std::unordered_map<std::type_index, const Rtti *> &RttiStore::table()
 {
-	static std::unordered_map<std::type_index, const RttiType *> table;
+	static std::unordered_map<std::type_index, const Rtti *> table;
 	return table;
 }
 
-void RttiStore::store(const std::type_info &native, const RttiType *rtti)
+void RttiStore::store(const std::type_info &native, const Rtti *rtti)
 {
 	table().emplace(std::type_index{native}, rtti);
 }
 
-const RttiType &RttiStore::lookup(const std::type_info &native)
+const Rtti &RttiStore::lookup(const std::type_info &native)
 {
 	const auto &tbl = table();
 	auto it = tbl.find(std::type_index{native});
@@ -69,9 +69,9 @@ RttiBuilderBase &RttiBuilderBase::genericProperty(
 	return *this;
 }
 
-/* Class RttiType */
+/* Class Rtti */
 
-void RttiType::initialize() const
+void Rtti::initialize() const
 {
 	// Only run this function exactly once -- directly set the initialized flag
 	// to prevent unwanted recursion
@@ -80,7 +80,7 @@ void RttiType::initialize() const
 
 		// Register the parent properties and methods
 		{
-			for (const RttiType *parent: parents) {
+			for (const Rtti *parent: parents) {
 				parent->initialize();
 				methods.insert(parent->methods.begin(), parent->methods.end());
 				properties.insert(parent->properties.begin(), parent->properties.end());
@@ -90,12 +90,12 @@ void RttiType::initialize() const
 		// Insert the parent types of the parent types and the composite types
 		// of the parents
 		{
-			std::unordered_set<const RttiType *> origParents = parents;
-			for (const RttiType *parent : origParents) {
+			std::unordered_set<const Rtti *> origParents = parents;
+			for (const Rtti *parent : origParents) {
 				parent->initialize();
 				parents.insert(parent->parents.begin(), parent->parents.end());
 			}
-			for (const RttiType *parent : parents) {
+			for (const Rtti *parent : parents) {
 				parent->initialize();
 				compositeTypes.insert(parent->compositeTypes.begin(),
 				                      parent->compositeTypes.end());
@@ -106,9 +106,9 @@ void RttiType::initialize() const
 		// Insert the composite types of the composite types and the parents
 		// of each composite type
 		{
-			std::unordered_set<const RttiType *> origCompositeTypes =
+			std::unordered_set<const Rtti *> origCompositeTypes =
 			    compositeTypes;
-			for (const RttiType *compositeType : origCompositeTypes) {
+			for (const Rtti *compositeType : origCompositeTypes) {
 				compositeType->initialize();
 				compositeTypes.insert(compositeType->compositeTypes.begin(),
 				                      compositeType->compositeTypes.end());
@@ -119,29 +119,29 @@ void RttiType::initialize() const
 	}
 }
 
-bool RttiType::isa(const RttiType &other) const
+bool Rtti::isa(const Rtti &other) const
 {
 	initialize();
 	return parents.count(&other) > 0;
 }
 
-bool RttiType::composedOf(const RttiType &other) const
+bool Rtti::composedOf(const Rtti &other) const
 {
 	initialize();
 	return compositeTypes.count(&other) > 0;
 }
 
-const RttiMethodMap &RttiType::getMethods() const {
+const RttiMethodMap &Rtti::getMethods() const {
 	initialize();
 	return methods;
 }
 
-const RttiPropertyMap &RttiType::getProperties() const {
+const RttiPropertyMap &Rtti::getProperties() const {
 	initialize();
 	return properties;
 }
 
-std::shared_ptr<Function> RttiType::getMethod(const std::string &name) const
+std::shared_ptr<Function> Rtti::getMethod(const std::string &name) const
 {
 	initialize();
 	auto it = methods.find(name);
@@ -151,7 +151,7 @@ std::shared_ptr<Function> RttiType::getMethod(const std::string &name) const
 	return it->second;
 }
 
-std::shared_ptr<PropertyDescriptor> RttiType::getProperty(const std::string &name) const
+std::shared_ptr<PropertyDescriptor> Rtti::getProperty(const std::string &name) const
 {
 	initialize();
 	auto it = properties.find(name);
@@ -161,12 +161,12 @@ std::shared_ptr<PropertyDescriptor> RttiType::getProperty(const std::string &nam
 	return it->second;
 }
 
-bool RttiType::hasMethod(const std::string &name) const
+bool Rtti::hasMethod(const std::string &name) const
 {
 	return methods.count(name) > 0;
 }
 
-bool RttiType::hasProperty(const std::string &name) const
+bool Rtti::hasProperty(const std::string &name) const
 {
 	return properties.count(name) > 0;
 }
@@ -174,15 +174,15 @@ bool RttiType::hasProperty(const std::string &name) const
 /* Constant initialization */
 
 namespace RttiTypes {
-const RttiType None{"none"};
-const RttiType Nullptr{"nullptr"};
-const RttiType Bool{"bool"};
-const RttiType Int{"int"};
-const RttiType Double{"double"};
-const RttiType String{"string"};
-const RttiType Array{"array"};
-const RttiType Map{"map"};
-const RttiType Function{"function"};
+const Rtti None{"none"};
+const Rtti Nullptr{"nullptr"};
+const Rtti Bool{"bool"};
+const Rtti Int{"int"};
+const Rtti Double{"double"};
+const Rtti String{"string"};
+const Rtti Array{"array"};
+const Rtti Map{"map"};
+const Rtti Function{"function"};
 }
 }
 

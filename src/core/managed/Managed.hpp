@@ -41,7 +41,7 @@ class Rooted;
 template <class T>
 class Owned;
 
-class RttiType;
+class Rtti;
 
 // TODO: Implement clone, getReferenced and getReferencing
 
@@ -207,32 +207,32 @@ public:
 	/* RTTI methods */
 
 	/**
-	 * Returns the RttiType instance registered for instances of the type of
+	 * Returns the Rtti instance registered for instances of the type of
 	 * this Managed instance.
 	 *
-	 * @return a reference to the registered RttiType for this particular
+	 * @return a reference to the registered Rtti for this particular
 	 * Managed class.
 	 */
-	const RttiType &type() const;
+	const Rtti &type() const;
 
 	/**
 	 * Returns true if this Managed instance is of the type described by the
-	 * given RttiType instance.
+	 * given Rtti instance.
 	 *
-	 * @param true if the RttiType registered for this particular Managed
+	 * @param true if the Rtti registered for this particular Managed
 	 * class is of the given type or one of the registered parent types is of
 	 * the given type.
 	 */
-	bool isa(const RttiType &t) const;
+	bool isa(const Rtti &t) const;
 
 	/**
 	 * Returns true if this Managed instance may contain instances of the type
-	 * described by the given RttiType instance.
+	 * described by the given Rtti instance.
 	 *
-	 * @param true if the RttiType registered for this particular Managed class
+	 * @param true if the Rtti registered for this particular Managed class
 	 * may contain instance of the given type.
 	 */
-	bool composedOf(const RttiType &t) const;
+	bool composedOf(const Rtti &t) const;
 };
 
 /**

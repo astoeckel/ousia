@@ -41,7 +41,7 @@
 namespace ousia {
 
 // Forward declarations
-class RttiType;
+class Rtti;
 
 namespace model {
 
@@ -1111,67 +1111,67 @@ namespace RttiTypes {
 /**
  * Type information for the Type class.
  */
-extern const RttiType Type;
+extern const Rtti Type;
 
 /**
  * Type information for the StringType class.
  */
-extern const RttiType StringType;
+extern const Rtti StringType;
 
 /**
  * Type information for the IntType class.
  */
-extern const RttiType IntType;
+extern const Rtti IntType;
 
 /**
  * Type information for the DoubleType class.
  */
-extern const RttiType DoubleType;
+extern const Rtti DoubleType;
 
 /**
  * Type information for the BoolType class.
  */
-extern const RttiType BoolType;
+extern const Rtti BoolType;
 
 /**
  * Type information for the EnumType class.
  */
-extern const RttiType EnumType;
+extern const Rtti EnumType;
 
 /**
  * Type information for the StructType class.
  */
-extern const RttiType StructType;
+extern const Rtti StructType;
 
 /**
  * Type information for the ArrayType class.
  */
-extern const RttiType ArrayType;
+extern const Rtti ArrayType;
 
 /**
  * Type information for the UnknownType class.
  */
-extern const RttiType UnknownType;
+extern const Rtti UnknownType;
 
 /**
  * Type information for the Constant class.
  */
-extern const RttiType Constant;
+extern const Rtti Constant;
 
 /**
  * Type information for the Attribute class.
  */
-extern const RttiType Attribute;
+extern const Rtti Attribute;
 
 /**
  * Type information for the Typesystem class.
  */
-extern const RttiType Typesystem;
+extern const Rtti Typesystem;
 
 /**
  * Type information for the SystemTypesystem class.
  */
-extern const RttiType SystemTypesystem;
+extern const Rtti SystemTypesystem;
 }
 }
 

@@ -566,26 +566,26 @@ SystemTypesystem::SystemTypesystem(Manager &mgr)
 /* RTTI type registrations */
 
 namespace RttiTypes {
-const RttiType Type = RttiBuilder<model::Type>("Type").parent(&Node);
-const RttiType StringType =
+const Rtti Type = RttiBuilder<model::Type>("Type").parent(&Node);
+const Rtti StringType =
     RttiBuilder<model::StringType>("StringType").parent(&Type);
-const RttiType IntType = RttiBuilder<model::IntType>("IntType").parent(&Type);
-const RttiType DoubleType =
+const Rtti IntType = RttiBuilder<model::IntType>("IntType").parent(&Type);
+const Rtti DoubleType =
     RttiBuilder<model::DoubleType>("DoubleType").parent(&Type);
-const RttiType BoolType = RttiBuilder<model::BoolType>("BoolType").parent(&Type);
-const RttiType EnumType = RttiBuilder<model::EnumType>("EnumType").parent(&Type);
-const RttiType StructType =
+const Rtti BoolType = RttiBuilder<model::BoolType>("BoolType").parent(&Type);
+const Rtti EnumType = RttiBuilder<model::EnumType>("EnumType").parent(&Type);
+const Rtti StructType =
     RttiBuilder<model::StructType>("StructType").parent(&Type).composedOf(&Attribute);
-const RttiType ArrayType = RttiBuilder<model::ArrayType>("ArrayType").parent(&Type);
-const RttiType UnknownType =
+const Rtti ArrayType = RttiBuilder<model::ArrayType>("ArrayType").parent(&Type);
+const Rtti UnknownType =
     RttiBuilder<model::UnknownType>("UnknownType").parent(&Type);
-const RttiType Constant = RttiBuilder<model::Constant>("Constant").parent(&Node);
-const RttiType Attribute = RttiBuilder<model::Attribute>("Attribute").parent(&Node);
-const RttiType Typesystem =
+const Rtti Constant = RttiBuilder<model::Constant>("Constant").parent(&Node);
+const Rtti Attribute = RttiBuilder<model::Attribute>("Attribute").parent(&Node);
+const Rtti Typesystem =
     RttiBuilder<model::Typesystem>("Typesystem").parent(&Node).composedOf(
         {&StringType, &IntType, &DoubleType, &BoolType, &EnumType, &StructType,
          &Constant});
-const RttiType SystemTypesystem =
+const Rtti SystemTypesystem =
     RttiBuilder<model::SystemTypesystem> ("SystemTypesystem").parent(&Typesystem);
 }
 }

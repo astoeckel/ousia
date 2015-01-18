@@ -270,7 +270,7 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 	return false;
 }
 
-bool VariantConverter::toArray(Variant &var, const RttiType &innerType,
+bool VariantConverter::toArray(Variant &var, const Rtti &innerType,
                                Logger &logger, Mode mode)
 {
 	// If unsafe conversions are allowed, encapsulate the given variant in an
@@ -302,7 +302,7 @@ bool VariantConverter::toArray(Variant &var, const RttiType &innerType,
 	return false;
 }
 
-bool VariantConverter::toMap(Variant &var, const RttiType &innerType,
+bool VariantConverter::toMap(Variant &var, const Rtti &innerType,
                              Logger &logger, Mode mode)
 {
 	// Make sure the variant is a map
@@ -341,8 +341,8 @@ bool VariantConverter::toFunction(Variant &var, Logger &logger)
 	return false;
 }
 
-bool VariantConverter::convert(Variant &var, const RttiType &type,
-                               const RttiType &innerType, Logger &logger,
+bool VariantConverter::convert(Variant &var, const Rtti &type,
+                               const Rtti &innerType, Logger &logger,
                                Mode mode)
 {
 	// Check for simple Variant types
@@ -382,16 +382,16 @@ bool VariantConverter::convert(Variant &var, const RttiType &type,
 	}
 
 	// Make sure the object type is correct
-	if (!var.getRttiType().isa(type)) {
+	if (!var.getRtti().isa(type)) {
 		logger.error(std::string("Expected object of type ") + type.name +
-		             " but got object of type " + var.getRttiType().name);
+		             " but got object of type " + var.getRtti().name);
 		var.setObject(nullptr);
 		return false;
 	}
 	return true;
 }
 
-bool VariantConverter::convert(Variant &var, const RttiType &type,
+bool VariantConverter::convert(Variant &var, const Rtti &type,
                                Logger &logger, Mode mode)
 {
 	return convert(var, type, RttiTypes::None, logger, mode);

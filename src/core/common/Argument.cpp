@@ -27,8 +27,8 @@ namespace ousia {
 
 /* Class Argument */
 
-Argument::Argument(std::string name, const RttiType &type,
-                   const RttiType &innerType, Variant defaultValue,
+Argument::Argument(std::string name, const Rtti &type,
+                   const Rtti &innerType, Variant defaultValue,
                    bool hasDefault)
     : type(type),
       innerType(innerType),
@@ -38,12 +38,12 @@ Argument::Argument(std::string name, const RttiType &type,
 {
 }
 
-Argument::Argument(std::string name, const RttiType &type, Variant defaultValue)
+Argument::Argument(std::string name, const Rtti &type, Variant defaultValue)
     : Argument(std::move(name), type, RttiTypes::None, defaultValue, true)
 {
 }
 
-Argument::Argument(std::string name, const RttiType &type)
+Argument::Argument(std::string name, const Rtti &type)
     : Argument(std::move(name), type, RttiTypes::None, nullptr, false)
 {
 }
@@ -99,13 +99,13 @@ Argument Argument::String(std::string name,
 	return Argument{name, RttiTypes::String, Variant::fromString(defaultValue)};
 }
 
-Argument Argument::Object(std::string name, const RttiType &type)
+Argument Argument::Object(std::string name, const Rtti &type)
 {
 	return Argument(std::move(name), type, RttiTypes::None,
 	                Variant::fromObject(nullptr), false);
 }
 
-Argument Argument::Object(std::string name, const RttiType &type,
+Argument Argument::Object(std::string name, const Rtti &type,
                           std::nullptr_t)
 {
 	return Argument(std::move(name), type, RttiTypes::None,
@@ -135,13 +135,13 @@ Argument Argument::Array(std::string name,
 	return Argument(std::move(name), RttiTypes::Array, defaultValue);
 }
 
-Argument Argument::Array(std::string name, const RttiType &innerType)
+Argument Argument::Array(std::string name, const Rtti &innerType)
 {
 	return Argument(std::move(name), RttiTypes::Array, innerType, nullptr,
 	                false);
 }
 
-Argument Argument::Array(std::string name, const RttiType &innerType,
+Argument Argument::Array(std::string name, const Rtti &innerType,
                          const Variant::arrayType &defaultValue)
 {
 	return Argument(std::move(name), RttiTypes::Array, innerType, defaultValue,
@@ -158,12 +158,12 @@ Argument Argument::Map(std::string name, const Variant::mapType &defaultValue)
 	return Argument(std::move(name), RttiTypes::Map, defaultValue);
 }
 
-Argument Argument::Map(std::string name, const RttiType &innerType)
+Argument Argument::Map(std::string name, const Rtti &innerType)
 {
 	return Argument(std::move(name), RttiTypes::Map, innerType, nullptr, false);
 }
 
-Argument Argument::Map(std::string name, const RttiType &innerType,
+Argument Argument::Map(std::string name, const Rtti &innerType,
                        const Variant::mapType &defaultValue)
 {
 	return Argument(std::move(name), RttiTypes::Map, innerType, defaultValue,

@@ -44,7 +44,7 @@ namespace ousia {
 
 // Forward declaration
 class Logger;
-class RttiType;
+class Rtti;
 
 /**
  * The Argument class represents a single argument that can be passed to a
@@ -55,13 +55,13 @@ private:
 	/**
 	 * Type that should be returned by the Variant rttiType function.
 	 */
-	const RttiType &type;
+	const Rtti &type;
 
 	/**
 	 * Describes the inner type of the variant -- e.g. the type of the elements
-	 * inside an array. Normally set to RttiType::None.
+	 * inside an array. Normally set to RttiTypes::None.
 	 */
-	const RttiType &innerType;
+	const Rtti &innerType;
 
 	/**
 	 * Private constructor used for manually setting all internal data fields.
@@ -75,7 +75,7 @@ private:
 	 * @param hasDefault indicates whether the defaultValue actually should be
 	 * used.
 	 */
-	Argument(std::string name, const RttiType &type, const RttiType &innerType,
+	Argument(std::string name, const Rtti &type, const Rtti &innerType,
 	         Variant defaultValue, bool hasDefault);
 
 	/**
@@ -87,7 +87,7 @@ private:
 	 * expected.
 	 * @param defaultValue is the default value to be used.
 	 */
-	Argument(std::string name, const RttiType &type, Variant defaultValue);
+	Argument(std::string name, const Rtti &type, Variant defaultValue);
 
 	/**
 	 * Private constructor used to build an argument describing a primitive type
@@ -97,7 +97,7 @@ private:
 	 * @param variantType is the variant type of the argument that is to be
 	 * expected.
 	 */
-	Argument(std::string name, const RttiType &type);
+	Argument(std::string name, const Rtti &type);
 
 public:
 	/**
@@ -226,11 +226,11 @@ public:
 	 *
 	 * @param name is the name of the argument as used for error messages and in
 	 * case the arguments are given as a map.
-	 * @param type is the RttiType of acceptable objects. All objects where the
+	 * @param type is the Rtti of acceptable objects. All objects where the
 	 * "isa" function returns true for the given type are be accepted.
 	 * @return a new Argument instance.
 	 */
-	static Argument Object(std::string name, const RttiType &type);
+	static Argument Object(std::string name, const Rtti &type);
 
 	/**
 	 * Named constructor for an object argument with default value. The default
@@ -240,13 +240,13 @@ public:
 	 *
 	 * @param name is the name of the argument as used for error messages and in
 	 * case the arguments are given as a map.
-	 * @param type is the RttiType of acceptable objects. All objects where the
+	 * @param type is the Rtti of acceptable objects. All objects where the
 	 * "isa" function returns true for the given type are be accepted.
 	 * @param defaultValue must be set to nullptr. Default object instances
 	 * cannot be stored.
 	 * @return a new Argument instance.
 	 */
-	static Argument Object(std::string name, const RttiType &type,
+	static Argument Object(std::string name, const Rtti &type,
 	                       std::nullptr_t defaultValue);
 
 	/**
@@ -303,7 +303,7 @@ public:
 	 * forced to be of this type.
 	 * @return a new Argument instance.
 	 */
-	static Argument Array(std::string name, const RttiType &innerType);
+	static Argument Array(std::string name, const Rtti &innerType);
 
 	/**
 	 * Named constructor for an array argument of objects of the given RTTI
@@ -317,7 +317,7 @@ public:
 	 * @param defaultValue is the default value to be used in case this argument
 	 * is not supplied.
 	 */
-	static Argument Array(std::string name, const RttiType &innerType,
+	static Argument Array(std::string name, const Rtti &innerType,
 	                      const Variant::arrayType &defaultValue);
 
 	/**
@@ -352,7 +352,7 @@ public:
 	 * to be of this type.
 	 * @return a new Argument instance.
 	 */
-	static Argument Map(std::string name, const RttiType &innerType);
+	static Argument Map(std::string name, const Rtti &innerType);
 
 	/**
 	 * Named constructor for a map argument with default value and a given inner
@@ -366,7 +366,7 @@ public:
 	 * is not supplied.
 	 * @return a new Argument instance.
 	 */
-	static Argument Map(std::string name, const RttiType &innerType,
+	static Argument Map(std::string name, const Rtti &innerType,
 	                    const Variant::mapType &defaultValue);
 
 	/**

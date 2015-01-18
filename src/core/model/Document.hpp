@@ -120,7 +120,7 @@
 namespace ousia {
 
 // Forward declarations
-class RttiType;
+class Rtti;
 
 namespace model {
 
@@ -642,13 +642,13 @@ public:
 }
 
 namespace RttiTypes {
-extern const RttiType Document;
-extern const RttiType DocumentEntity;
-extern const RttiType AnnotationEntity;
-extern const RttiType StructureNode;
-extern const RttiType StructuredEntity;
-extern const RttiType DocumentPrimitive;
-extern const RttiType Anchor;
+extern const Rtti Document;
+extern const Rtti DocumentEntity;
+extern const Rtti AnnotationEntity;
+extern const Rtti StructureNode;
+extern const Rtti StructuredEntity;
+extern const Rtti DocumentPrimitive;
+extern const Rtti Anchor;
 }
 }
 

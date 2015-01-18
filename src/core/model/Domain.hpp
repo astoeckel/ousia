@@ -211,7 +211,7 @@
 namespace ousia {
 
 // Forward declarations
-class RttiType;
+class Rtti;
 
 namespace model {
 
@@ -771,11 +771,11 @@ public:
 
 namespace RttiTypes {
 
-extern const RttiType FieldDescriptor;
-extern const RttiType Descriptor;
-extern const RttiType StructuredClass;
-extern const RttiType AnnotationClass;
-extern const RttiType Domain;
+extern const Rtti FieldDescriptor;
+extern const Rtti Descriptor;
+extern const Rtti StructuredClass;
+extern const Rtti AnnotationClass;
+extern const Rtti Domain;
 }
 }
 

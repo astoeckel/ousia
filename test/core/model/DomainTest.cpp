@@ -28,7 +28,7 @@
 namespace ousia {
 namespace model {
 
-void assert_path(const ResolutionResult &res, const RttiType &expected_type,
+void assert_path(const ResolutionResult &res, const Rtti &expected_type,
                  std::vector<std::string> expected_path)
 {
 	// Check class/type

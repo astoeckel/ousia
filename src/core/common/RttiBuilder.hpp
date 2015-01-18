@@ -45,13 +45,13 @@ class RttiBuilder : public RttiBuilderBase {
 public:
 	/**
 	 * Default constructor, initializes the name of the type described by the
-	 * RttiTypeSet with "unknown".
+	 * RttiSet with "unknown".
 	 */
 	RttiBuilder() : RttiBuilderBase(typeid(T)){};
 
 	/**
 	 * Default constructor, initializes the name of the type described by the
-	 * RttiTypeSet with the given name.
+	 * RttiSet with the given name.
 	 *
 	 * @param name is the initial name of the type described by the type
 	 * builder.
@@ -78,7 +78,7 @@ public:
 	 * @param p is the pointer to the type descriptor that should be added.
 	 * @return a reference to the current RttiBuilder to allow method chaining.
 	 */
-	RttiBuilder<T> &parent(const RttiType *p)
+	RttiBuilder<T> &parent(const Rtti *p)
 	{
 		RttiBuilderBase::parent(p);
 		return *this;
@@ -91,7 +91,7 @@ public:
 	 * @param p is the pointer to the type descriptor that should be added.
 	 * @return a reference to the current RttiBuilder to allow method chaining.
 	 */
-	RttiBuilder<T> &parent(const RttiTypeSet &p)
+	RttiBuilder<T> &parent(const RttiSet &p)
 	{
 		RttiBuilderBase::parent(p);
 		return *this;
@@ -105,7 +105,7 @@ public:
 	 * composition type.
 	 * @return a reference to the current RttiBuilder to allow method chaining.
 	 */
-	RttiBuilder<T> &composedOf(const RttiType *p)
+	RttiBuilder<T> &composedOf(const Rtti *p)
 	{
 		RttiBuilderBase::composedOf(p);
 		return *this;
@@ -119,7 +119,7 @@ public:
 	 * composition type.
 	 * @return a reference to the current RttiBuilder to allow method chaining.
 	 */
-	RttiBuilder<T> &composedOf(const RttiTypeSet &p)
+	RttiBuilder<T> &composedOf(const RttiSet &p)
 	{
 		RttiBuilderBase::composedOf(p);
 		return *this;
@@ -130,7 +130,7 @@ public:
 	 * type descriptor.
 	 *
 	 * @param name is the name of the method. Names must be unique for one
-	 * RttiType instance. If the name is not unique, an exception is thrown.
+	 * Rtti instance. If the name is not unique, an exception is thrown.
 	 * @param function is the function that should be registered.
 	 * @return a reference to the current RttiBuilder to allow method chaining.
 	 */
@@ -146,7 +146,7 @@ public:
 	 * for this RTTI type descriptor.
 	 *
 	 * @param name is the name of the property. Names must be unique for one
-	 * RttiType instance. If the property is not unique, an exception is thrown.
+	 * Rtti instance. If the property is not unique, an exception is thrown.
 	 * @param property is the property that should be registered.
 	 * @return a reference to the current RttiBuilder to allow method chaining.
 	 */
@@ -161,7 +161,7 @@ public:
 	 * Registers a method for this RTTI type descriptor.
 	 *
 	 * @param name is the name of the method. Names must be unique for one
-	 * RttiType instance. If the name is not unique, an exception is thrown.
+	 * Rtti instance. If the name is not unique, an exception is thrown.
 	 * @param method is the function that should be registered.
 	 * @return a reference to the current RttiBuilder to allow method chaining.
 	 */
@@ -174,7 +174,7 @@ public:
 	 * Registers a method for this RTTI type descriptor.
 	 *
 	 * @param name is the name of the method. Names must be unique for one
-	 * RttiType instance. If the name is not unique, an exception is thrown.
+	 * Rtti instance. If the name is not unique, an exception is thrown.
 	 * @param method is the function that should be registered.
 	 * @return a reference to the current RttiBuilder to allow method chaining.
 	 */
@@ -188,7 +188,7 @@ public:
 	 * Registers a property for this RTTI type descriptor.
 	 *
 	 * @param name is the name of the property. Names must be unique for one
-	 * RttiType instance. If the property is not unique, an exception is thrown.
+	 * Rtti instance. If the property is not unique, an exception is thrown.
 	 * @param property is the property that should be registered.
 	 * @return a reference to the current RttiBuilder to allow method chaining.
 	 */

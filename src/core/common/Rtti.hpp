@@ -34,7 +34,7 @@
  * this would create a significant overhead.
  *
  * <b>How to use:</b> The Rtti class allows to attach information to a certain
- * C++ class. To do so, create a global constant of the type RttiType in the
+ * C++ class. To do so, create a global constant of the type Rtti in the
  * source file associated with the type declaration, where T is the type you
  * want to register. As the type must only be registered once, you must not
  * declare the variable as "static" in the header file (this would register it
@@ -50,7 +50,7 @@
  * // Only needed if the type needs to be accessed
  * // from other compilation units!
  * namespace RttiTypes {
- *     extern const RttiType MyT;
+ *     extern const Rtti MyT;
  * }
  * \endcode
  * In the source file:
@@ -60,7 +60,7 @@
  * // [...]
  *
  * namespace RttiTypes {
- *     const RttiType MyT = RttiBuilder<ousia::MyT>("MyT");
+ *     const Rtti MyT = RttiBuilder<ousia::MyT>("MyT");
  * }
  * \endcode
  *
@@ -79,14 +79,14 @@
 
 namespace ousia {
 
-class RttiType;
+class Rtti;
 class Function;
 class PropertyDescriptor;
 
 /**
- * Type describing a set of RttiType pointers.
+ * Type describing a set of Rtti pointers.
  */
-using RttiTypeSet = std::unordered_set<const RttiType *>;
+using RttiSet = std::unordered_set<const Rtti *>;
 
 /**
  * Type describing a map containing methods and their name.
@@ -109,11 +109,11 @@ private:
 	 * Function used internally to access the static map storing all registered
 	 * native types and their corresponding type information.
 	 */
-	static std::unordered_map<std::type_index, const RttiType *> &table();
+	static std::unordered_map<std::type_index, const Rtti *> &table();
 
 public:
 	/**
-	 * Registers the given pointer to the RttiType class in the RTTI table. Does
+	 * Registers the given pointer to the Rtti class in the RTTI table. Does
 	 * not override information for already registered types.
 	 *
 	 * @param native is a reference at the native type information provided
@@ -121,19 +121,19 @@ public:
 	 * @param rtti is a pointer pointing at the type information that should be
 	 * stored for this type.
 	 */
-	static void store(const std::type_info &native, const RttiType *rtti);
+	static void store(const std::type_info &native, const Rtti *rtti);
 
 	/**
 	 * Looks up the type information stored for the given native type
 	 * information.
 	 */
-	static const RttiType &lookup(const std::type_info &native);
+	static const Rtti &lookup(const std::type_info &native);
 };
 
 /**
  * The RttiBuilderBase class is used to build new instances of the Rtti or the
- * RttiType class. It follows the "Builder" pattern and allows to create
- * the properties of the RttiType class by chaining method calls. The RttiType
+ * Rtti class. It follows the "Builder" pattern and allows to create
+ * the properties of the Rtti class by chaining method calls. The RttiType
  * class can be constructed from the RttiBuilderBase instance. Use the
  * RttiBuilder class for a more convenient, templated version that does not
  * require the native C++ type in the constructor and allows for more convenient
@@ -156,12 +156,12 @@ public:
 	/**
 	 * Set containing references to all parent types.
 	 */
-	RttiTypeSet parentTypes;
+	RttiSet parentTypes;
 
 	/**
 	 * Set containing references to all composite types.
 	 */
-	RttiTypeSet compositeTypes;
+	RttiSet compositeTypes;
 
 	/**
 	 * Map containing all methods.
@@ -175,7 +175,7 @@ public:
 
 	/**
 	 * Default constructor, initializes the name of the type described by the
-	 * RttiTypeSet with "unknown".
+	 * RttiSet with "unknown".
 	 *
 	 * @param native is the native C++ type information for which the type
 	 * information is being built.
@@ -185,7 +185,7 @@ public:
 
 	/**
 	 * Default constructor, initializes the name of the type described by the
-	 * RttiTypeSet with the given name.
+	 * RttiSet with the given name.
 	 *
 	 * @param native is the native C++ type information for which the type
 	 * information is being built.
@@ -217,7 +217,7 @@ public:
 	 * @return a reference to the current RttiBuilderBase instance to allow
 	 * method chaining.
 	 */
-	RttiBuilderBase &parent(const RttiType *p)
+	RttiBuilderBase &parent(const Rtti *p)
 	{
 		parentTypes.insert(p);
 		return *this;
@@ -231,7 +231,7 @@ public:
 	 * @return a reference to the current RttiBuilderBase instance to allow
 	 * method chaining.
 	 */
-	RttiBuilderBase &parent(const RttiTypeSet &p)
+	RttiBuilderBase &parent(const RttiSet &p)
 	{
 		parentTypes.insert(p.begin(), p.end());
 		return *this;
@@ -246,7 +246,7 @@ public:
 	 * @return a reference to the current RttiBuilderBase instance to allow
 	 * method chaining.
 	 */
-	RttiBuilderBase &composedOf(const RttiType *p)
+	RttiBuilderBase &composedOf(const Rtti *p)
 	{
 		compositeTypes.insert(p);
 		return *this;
@@ -261,7 +261,7 @@ public:
 	 * @return a reference to the current RttiBuilderBase instance to allow
 	 * method chaining.
 	 */
-	RttiBuilderBase &composedOf(const RttiTypeSet &p)
+	RttiBuilderBase &composedOf(const RttiSet &p)
 	{
 		compositeTypes.insert(p.begin(), p.end());
 		return *this;
@@ -272,7 +272,7 @@ public:
 	 * type descriptor.
 	 *
 	 * @param name is the name of the method. Names must be unique for one
-	 * RttiType instance. If the name is not unique, an exception is thrown.
+	 * Rtti instance. If the name is not unique, an exception is thrown.
 	 * @param function is the function that should be registered.
 	 * @return a reference to the current RttiBuilderBase instance to allow
 	 * method chaining.
@@ -285,7 +285,7 @@ public:
 	 * for this RTTI type descriptor.
 	 *
 	 * @param name is the name of the property. Names must be unique for one
-	 * RttiType instance. If the property is not unique, an exception is thrown.
+	 * Rtti instance. If the property is not unique, an exception is thrown.
 	 * @param property is the property that should be registered.
 	 * @return a reference to the current RttiBuilderBase instance to allow
 	 * method chaining.
@@ -295,13 +295,13 @@ public:
 };
 
 /**
- * The RttiType class allows for attaching data to native types that can be
+ * The Rtti class allows for attaching data to native types that can be
  * accessed at runtime. This type information can e.g. be retrieved using the
  * "type" method of the Managed class. This system is used for attaching human
  * readable names, parent types and script engine functionality. Use the
- * RttiType class for convenient registration of type information.
+ * Rtti class for convenient registration of type information.
  */
-class RttiType {
+class Rtti {
 private:
 	/**
 	 * Set to true if once the parents and the composite types list have been
@@ -313,13 +313,13 @@ private:
 	/**
 	 * Set containing references to all parent types, including their parents.
 	 */
-	mutable RttiTypeSet parents;
+	mutable RttiSet parents;
 
 	/**
 	 * Set containing references to all types this type is a composition of,
 	 * including all composite types of the original composite types.
 	 */
-	mutable RttiTypeSet compositeTypes;
+	mutable RttiSet compositeTypes;
 
 	/**
 	 * Map used for storing all registered methods.
@@ -344,13 +344,13 @@ public:
 	const std::string name;
 
 	/**
-	 * Creates a new RttiType instance and registers it in the global type
+	 * Creates a new Rtti instance and registers it in the global type
 	 * table. Use the Rtti class for more convenient registration of type
 	 * information.
 	 *
 	 * @param builder is the builder instance containing the Rtti data.
 	 */
-	RttiType(const RttiBuilderBase &builder)
+	Rtti(const RttiBuilderBase &builder)
 	    : initialized(false),
 	      parents(std::move(builder.parentTypes)),
 	      compositeTypes(std::move(builder.compositeTypes)),
@@ -365,12 +365,12 @@ public:
 	 * Default constructor. Creates a Rtti instance with name "unknown"
 	 * and no parents.
 	 */
-	RttiType() : name("unknown") {}
+	Rtti() : name("unknown") {}
 
 	/**
-	 * Constructor for an empty RttiType with the given name.
+	 * Constructor for an empty Rtti with the given name.
 	 */
-	RttiType(std::string name) : name(std::move(name)) {}
+	Rtti(std::string name) : name(std::move(name)) {}
 
 	/**
 	 * Returns true if this Rtti instance is the given type or has the
@@ -379,7 +379,7 @@ public:
 	 * @param other is the other type for which the relation to this type
 	 * should be checked.
 	 */
-	bool isa(const RttiType &other) const;
+	bool isa(const Rtti &other) const;
 
 	/**
 	 * Returns true if an instance of this type may have references to the other
@@ -389,7 +389,7 @@ public:
 	 * @param other is the other type for which should be checked whether this
 	 * type is directly or indirectly composed of it.
 	 */
-	bool composedOf(const RttiType &other) const;
+	bool composedOf(const Rtti &other) const;
 
 	/**
 	 * Returns all methods that are registered for this type (and the parent
@@ -457,7 +457,7 @@ public:
  * @tparam T is the C++ type for which the type information should be returned.
  */
 template <typename T>
-inline const RttiType &typeOf()
+inline const Rtti &typeOf()
 {
 	return RttiStore::lookup(typeid(T));
 }
@@ -473,7 +473,7 @@ inline const RttiType &typeOf()
  * returned.
  */
 template <typename T>
-inline const RttiType &typeOf(const T &obj)
+inline const Rtti &typeOf(const T &obj)
 {
 	return RttiStore::lookup(typeid(obj));
 }
@@ -482,47 +482,47 @@ namespace RttiTypes {
 /**
  * Type of no particular type.
  */
-extern const RttiType None;
+extern const Rtti None;
 
 /**
- * Nullptr type for use by the Variant::getRttiType method.
+ * Nullptr type for use by the Variant::getRtti method.
  */
-extern const RttiType Nullptr;
+extern const Rtti Nullptr;
 
 /**
- * Bool type for use by the Variant::getRttiType method.
+ * Bool type for use by the Variant::getRtti method.
  */
-extern const RttiType Bool;
+extern const Rtti Bool;
 
 /**
- * Integer type for use by the Variant::getRttiType method.
+ * Integer type for use by the Variant::getRtti method.
  */
-extern const RttiType Int;
+extern const Rtti Int;
 
 /**
- * Double type for use by the Variant::getRttiType method.
+ * Double type for use by the Variant::getRtti method.
  */
-extern const RttiType Double;
+extern const Rtti Double;
 
 /**
- * String type for use by the Variant::getRttiType method.
+ * String type for use by the Variant::getRtti method.
  */
-extern const RttiType String;
+extern const Rtti String;
 
 /**
- * Array type for use by the Variant::getRttiType method.
+ * Array type for use by the Variant::getRtti method.
  */
-extern const RttiType Array;
+extern const Rtti Array;
 
 /**
- * Map type for use by the Variant::getRttiType method.
+ * Map type for use by the Variant::getRtti method.
  */
-extern const RttiType Map;
+extern const Rtti Map;
 
 /**
- * Function type for use by the Variant::getRttiType method.
+ * Function type for use by the Variant::getRtti method.
  */
-extern const RttiType Function;
+extern const Rtti Function;
 }
 }
 

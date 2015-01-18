@@ -409,21 +409,21 @@ bool Document::hasChild(Handle<StructureNode> s) const
 
 /* Type registrations */
 namespace RttiTypes {
-const RttiType Document =
+const Rtti Document =
     RttiBuilder<model::Document>("Document").parent(&Node).composedOf(
         {&AnnotationEntity, &StructuredEntity});
-const RttiType StructureNode =
+const Rtti StructureNode =
     RttiBuilder<model::StructureNode>("StructureNode").parent(&Node);
-const RttiType StructuredEntity =
+const Rtti StructuredEntity =
     RttiBuilder<model::StructuredEntity>("StructuredEntity")
         .parent(&StructureNode)
         .composedOf({&StructuredEntity, &DocumentPrimitive, &Anchor});
-const RttiType DocumentPrimitive =
+const Rtti DocumentPrimitive =
     RttiBuilder<model::DocumentPrimitive>("DocumentPrimitive")
         .parent(&StructureNode);
-const RttiType Anchor =
+const Rtti Anchor =
     RttiBuilder<model::Anchor>("Anchor").parent(&StructureNode);
-const RttiType AnnotationEntity =
+const Rtti AnnotationEntity =
     RttiBuilder<model::AnnotationEntity>("AnnotationEntity")
         .parent(&Node)
         .composedOf({&StructuredEntity, &DocumentPrimitive, &Anchor});

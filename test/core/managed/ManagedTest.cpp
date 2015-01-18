@@ -77,10 +77,10 @@ class TypeTestManaged5 : public Managed {
 	using Managed::Managed;
 };
 
-static const RttiType Type1 = RttiBuilder<TypeTestManaged1>("Type1");
-static const RttiType Type2 = RttiBuilder<TypeTestManaged2>("Type2");
-static const RttiType Type3 = RttiBuilder<TypeTestManaged3>("Type3").parent(&Type1);
-static const RttiType Type4 =
+static const Rtti Type1 = RttiBuilder<TypeTestManaged1>("Type1");
+static const Rtti Type2 = RttiBuilder<TypeTestManaged2>("Type2");
+static const Rtti Type3 = RttiBuilder<TypeTestManaged3>("Type3").parent(&Type1);
+static const Rtti Type4 =
     RttiBuilder<TypeTestManaged4>("Type4").parent({&Type3, &Type2});
 
 TEST(Managed, type)

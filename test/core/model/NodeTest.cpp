@@ -60,7 +60,7 @@ public:
 };
 
 namespace RttiTypes {
-const RttiType TestNode = RttiBuilder<ousia::TestNode>("TestNode")
+const Rtti TestNode = RttiBuilder<ousia::TestNode>("TestNode")
                               .parent(&RttiTypes::Node)
                               .composedOf(&TestNode);
 }
