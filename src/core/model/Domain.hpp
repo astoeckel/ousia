@@ -467,7 +467,11 @@ public:
 	std::vector<Rooted<Node>> pathTo(
 	    Handle<StructuredClass> childDescriptor) const;
 };
-
+/*
+ * TODO: We should discuss Cardinalities one more time. Is it smart to define
+ * cardinalities independent of context? Should we not have at least have the
+ * possibility to define it context-dependently?
+ */
 typedef RangeSet<size_t> Cardinality;
 
 /**
