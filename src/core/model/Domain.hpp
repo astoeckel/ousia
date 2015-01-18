@@ -212,8 +212,6 @@ namespace ousia {
 
 // Forward declarations
 class RttiType;
-template <class T>
-class Rtti;
 
 namespace model {
 

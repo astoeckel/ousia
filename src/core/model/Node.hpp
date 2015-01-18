@@ -45,8 +45,6 @@ namespace ousia {
 // Forward declarations
 class Logger;
 class RttiType;
-template <class T>
-class Rtti;
 
 /**
  * Describes the validity of a node structure.
