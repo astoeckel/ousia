@@ -151,12 +151,7 @@ EnumType::Ordinal EnumType::valueOf(const std::string &name) const
 
 bool Attribute::doValidate(Logger &logger) const
 {
-	if (!Utils::isIdentifier(getName())) {
-		logger.error("Attribute name \"" + getName() +
-		             "\" is not a valid identifier.");
-		return false;
-	}
-	return true;
+	return validateName(logger);
 }
 
 /* Class StructType */
@@ -332,22 +327,8 @@ bool StructType::doBuild(Variant &data, Logger &logger) const
 
 bool StructType::doValidate(Logger &logger) const
 {
-	// Check whether all attributes are valid and unique
-	std::unordered_set<std::string> names;
-	bool res = true;
-	for (Handle<Attribute> a : attributes) {
-		res = a->validate(logger) && res;
-		const std::string &name = a->getName();
-		if (!names.emplace(name).second) {
-			logger.error(
-			    std::string("Attribute with name \"") + name +
-			    std::string("\" defined multiple times in structure \"") +
-			    Utils::join(path(), ".") + std::string("\""));
-			res = false;
-		}
-	}
-
-	return res;
+	return validateName(logger) &
+	       continueValidationCheckDuplicates(attributes, logger);
 }
 
 Rooted<StructType> StructType::createValidated(
@@ -471,6 +452,28 @@ bool ArrayType::doBuild(Variant &data, Logger &logger) const
 		}
 	}
 	return res;
+}
+
+/* Class Typesystem */
+
+void Typesystem::doResolve(ResolutionState &state)
+{
+	continueResolveComposita(constants, constants.getIndex(), state);
+	continueResolveComposita(types, constants.getIndex(), state);
+}
+
+bool Typesystem::doValidate(Logger &logger) const
+{
+	return validateName(logger) &
+	       continueValidationCheckDuplicates(constants, logger) &
+	       continueValidationCheckDuplicates(types, logger);
+}
+
+Rooted<StructType> Typesystem::createStructType(const std::string &name)
+{
+	Rooted<StructType> structType{new StructType(getManager(), name, this)};
+	addType(structType);
+	return structType;
 }
 
 /* Class SystemTypesystem */

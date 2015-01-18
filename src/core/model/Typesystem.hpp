@@ -368,10 +368,7 @@ public:
  */
 class Attribute : public Node {
 private:
-	/**
-	 * Reference to the actual type of the attribute.
-	 */
-	const Owned<Type> type;
+
 
 protected:
 	/**
@@ -384,14 +381,25 @@ protected:
 
 public:
 	/**
+	 * Reference to the actual type of the attribute.
+	 */
+	Owned<Type> type;
+
+	/**
+	 * Initial default value passed to the constructor of the Attribute class
+	 * that has not been passed through the "build" method of the type.
+	 */
+	Variant rawDefaultValue;
+
+	/**
 	 * Default value of the attribute.
 	 */
-	const Variant defaultValue;
+	Variant defaultValue;
 
 	/**
 	 * Flag indicating whether this attribute is actually optional or not.
 	 */
-	const bool optional;
+	bool optional;
 
 	/**
 	 * Constructor of the Attribute class.
@@ -428,6 +436,50 @@ public:
 	      optional(false)
 	{
 	}
+
+	/**
+	 * Sets a new default value. This makes the Attribute optional. The given
+	 * default value is passed through the "build" function of the current
+	 * type.
+	 *
+	 * @param defaultValue is the new default value.
+	 * @param logger is the logger instance to which errors that occur during
+	 * reinterpretion of the default value.
+	 */
+	void setDefaultValue(const Variant &defaultValue, Logger &logger);
+
+	/**
+	 * Returns the default value of the attribute.
+	 *
+	 * @return the default value of the attribute. If no default value has been
+	 * given a null variant is returned (the opposite does not hold).
+	 */
+	Variant getDefaultValue() const;
+
+	/**
+	 * Removes any default value from the attribute, making this attribute
+	 * non-optional.
+	 */
+	void removeDefaultValue();
+
+	/**
+	 * Returns true if the attribute is optional (a default value has been
+	 * supplied by the user).
+	 *
+	 * @return true if the attribute is optional, false otherwise.
+	 */
+	bool isOptional() const {return optional; }
+
+	/**
+	 * Sets the type of the attribute to the specified value. This will
+	 * reinterpret the default value that has been passed to the attribute (if
+	 * available).
+	 *
+	 * @param type is the new type that should be used for the attribute.
+	 * @param logger is the logger instance to which errors that occur during
+	 * reinterpretion of the default value.
+	 */
+	void setType(Handle<Type> type, Logger &logger);
 
 	/**
 	 * Returns a reference to the type descriptor holding the type of the
@@ -859,6 +911,12 @@ private:
 	 */
 	NodeVector<Constant> constants;
 
+protected:
+
+	void doResolve(ResolutionState &state) override;
+
+	bool doValidate(Logger &logger) const override;
+
 public:
 	/**
 	 * Constructor of the Typesystem class.
@@ -867,9 +925,18 @@ public:
 	 * @param name is the name of the typesystem.
 	 */
 	Typesystem(Manager &mgr, std::string name)
-	    : Node(mgr, name), types(this), constants(this)
+	    : Node(mgr, std::move(name)), types(this), constants(this)
 	{
 	}
+
+	/**
+	 * Creates a new StructType instance with the given name. Adds the new
+	 * StructType as member to the typesystem.
+	 *
+	 * @param name is the name of the structure that should be created.
+	 * @return the new StructType instance.
+	 */
+	Rooted<StructType> createStructType(const std::string &name);
 
 	/**
 	 * Adds the given type to the to the type list.

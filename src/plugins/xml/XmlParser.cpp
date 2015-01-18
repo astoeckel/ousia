@@ -23,6 +23,7 @@
 
 #include <core/common/CharReader.hpp>
 #include <core/common/Utils.hpp>
+#include <core/common/VariantReader.hpp>
 #include <core/parser/ParserStack.hpp>
 #include <core/model/Typesystem.hpp>
 
@@ -31,6 +32,8 @@
 namespace ousia {
 namespace parser {
 namespace xml {
+
+using namespace ousia::model;
 
 /* Document structure */
 static const State STATE_DOCUMENT = 0;
@@ -63,6 +66,8 @@ public:
 	void end() override
 	{
 		scope().performDeferredResolution(logger());
+		// TODO: Automatically call validate in "pop"?
+		scope().getLeaf()->validate(logger());
 		scope().pop();
 	}
 
@@ -76,22 +81,36 @@ class StructHandler : public Handler {
 public:
 	using Handler::Handler;
 
-	std::string name;
-	std::string parent;
-
-	NodeVector<model::Attribute> attributes;
-
 	void start(Variant::mapType &args) override
 	{
-		this->name = args["name"].asString();
-		this->parent = args["parent"].asString();
+		// Fetch the arguments used for creating this type
+		const std::string &name = args["name"].asString();
+		const std::string &parent = args["parent"].asString();
+
+		// Fetch the current typesystem and create the struct node
+		Rooted<Typesystem> typesystem = scope().getLeaf().cast<Typesystem>();
+		Rooted<StructType> structType = typesystem->createStructType(name);
+
+		// Try to resolve the parent type and set it as parent structure
+		if (!parent.empty()) {
+			scope().resolve<StructType>(Utils::split(parent, '.'), logger(),
+			                            [structType](Handle<StructType> parent,
+			                                         Logger &logger) mutable {
+				                            structType->setParentStructure(
+				                                parent, logger);
+				                        },
+			                            location());
+		}
+
+		// Descend into the struct type
+		scope().push(structType);
 	}
 
-	void end() override {
-		
+	void end() override
+	{
+		// Descend from the struct type
+		scope().pop();
 	}
-
-	void child(std::shared_ptr<Handler> handler) {}
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -103,15 +122,24 @@ class StructFieldHandler : public Handler {
 public:
 	using Handler::Handler;
 
-	Rooted<model::Attribute> attribute;
-
 	void start(Variant::mapType &args) override
 	{
-		/*		this->name = args["name"].asString();
-		        this->type = args["parent"].asString();*/
+		// Read the argument values
+		/*		const std::string &name = args["name"].asString();
+		        const std::string &type = args["parent"].asString();
+		        const Variant &defaultValue = args["default"];
+		        const bool optional = !(defaultValue.isObject() &&
+		   defaultValue.asObject() == nullptr);*/
+
+		// Try to resolve the
 	}
 
 	void end() override {}
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new StructFieldHandler{handlerData};
+	}
 };
 
 static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
@@ -142,7 +170,7 @@ static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
       {Argument::String("name"), Argument::String("parent", "")}}},
     {"field",
      {{{STATE_STRUCT}},
-      nullptr,
+      StructFieldHandler::create,
       STATE_FIELD,
       false,
       {Argument::String("name"), Argument::String("type"),
@@ -198,24 +226,25 @@ public:
 
 /* Adapter Expat -> ParserStack */
 
-static void syncLoggerPosition(XML_Parser p)
+static SourceLocation syncLoggerPosition(XML_Parser p)
 {
 	// Fetch the current location in the XML file
 	int line = XML_GetCurrentLineNumber(p);
 	int column = XML_GetCurrentColumnNumber(p);
 	size_t offs = XML_GetCurrentByteIndex(p);
+	SourceLocation loc{line, column, offs};
 
 	// Update the default location of the current logger instance
 	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(p));
-	stack->getContext().logger.setDefaultLocation(
-	    SourceLocation{line, column, offs});
+	stack->getContext().logger.setDefaultLocation(loc);
+	return loc;
 }
 
 static void xmlStartElementHandler(void *p, const XML_Char *name,
                                    const XML_Char **attrs)
 {
 	XML_Parser parser = static_cast<XML_Parser>(p);
-	syncLoggerPosition(parser);
+	SourceLocation loc = syncLoggerPosition(parser);
 
 	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(parser));
 
@@ -223,9 +252,11 @@ static void xmlStartElementHandler(void *p, const XML_Char *name,
 	const XML_Char **attr = attrs;
 	while (*attr) {
 		const std::string key{*(attr++)};
-		args.emplace(std::make_pair(key, Variant{*(attr++)}));
+		std::pair<bool, Variant> value = VariantReader::parseGenericString(
+		    *(attr++), stack->getContext().logger);
+		args.emplace(std::make_pair(key, value.second));
 	}
-	stack->start(std::string(name), args);
+	stack->start(std::string(name), args, loc);
 }
 
 static void xmlEndElementHandler(void *p, const XML_Char *name)
