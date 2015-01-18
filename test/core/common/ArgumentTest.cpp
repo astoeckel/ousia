@@ -374,7 +374,7 @@ TEST(Argument, validateObject)
 
 	{
 		Rooted<Managed> m{new Managed(mgr)};
-		Variant v(m);
+		Variant v = Variant::fromObject(m);
 
 		ASSERT_FALSE(a.validate(v, logger));
 		ASSERT_TRUE(v.isObject());
@@ -383,7 +383,7 @@ TEST(Argument, validateObject)
 
 	{
 		Rooted<TestManaged1> m{new TestManaged1(mgr)};
-		Variant v(m);
+		Variant v = Variant::fromObject(m);
 
 		ASSERT_TRUE(a.validate(v, logger));
 		ASSERT_TRUE(v.isObject());
@@ -392,7 +392,7 @@ TEST(Argument, validateObject)
 
 	{
 		Rooted<TestManaged2> m{new TestManaged2(mgr)};
-		Variant v(m);
+		Variant v = Variant::fromObject(m);
 
 		ASSERT_TRUE(a.validate(v, logger));
 		ASSERT_TRUE(v.isObject());
@@ -401,7 +401,7 @@ TEST(Argument, validateObject)
 
 	{
 		Rooted<TestManaged1> m1{nullptr};
-		Variant v(m1);
+		Variant v = Variant::fromObject(m1);
 
 		ASSERT_FALSE(a.validate(v, logger));
 		ASSERT_TRUE(v.isObject());
@@ -428,7 +428,7 @@ TEST(Argument, validateObjectDefault)
 
 	{
 		Rooted<Managed> m{new Managed(mgr)};
-		Variant v(m);
+		Variant v = Variant::fromObject(m);
 
 		ASSERT_FALSE(a.validate(v, logger));
 		ASSERT_TRUE(v.isObject());
@@ -437,7 +437,7 @@ TEST(Argument, validateObjectDefault)
 
 	{
 		Rooted<TestManaged1> m{new TestManaged1(mgr)};
-		Variant v(m);
+		Variant v = Variant::fromObject(m);
 
 		ASSERT_TRUE(a.validate(v, logger));
 		ASSERT_TRUE(v.isObject());
@@ -446,7 +446,7 @@ TEST(Argument, validateObjectDefault)
 
 	{
 		Rooted<TestManaged2> m{new TestManaged2(mgr)};
-		Variant v(m);
+		Variant v = Variant::fromObject(m);
 
 		ASSERT_TRUE(a.validate(v, logger));
 		ASSERT_TRUE(v.isObject());
@@ -455,7 +455,7 @@ TEST(Argument, validateObjectDefault)
 
 	{
 		Rooted<TestManaged1> m1{nullptr};
-		Variant v(m1);
+		Variant v = Variant::fromObject(m1);
 
 		ASSERT_FALSE(a.validate(v, logger));
 		ASSERT_TRUE(v.isObject());
