@@ -31,7 +31,7 @@
 namespace ousia {
 namespace model {
 
-TEST(Document, testDocumentConstruction)
+TEST(Document, construct)
 {
 	// Construct Manager
 	TerminalLogger logger{std::cerr, true};
@@ -108,6 +108,92 @@ TEST(Document, testDocumentConstruction)
 			}
 		}
 	}
+}
+
+TEST(Document, validate)
+{
+	// Let's start with a trivial domain and a trivial document.
+	TerminalLogger logger{std::cerr, true};
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	Rooted<Domain> domain{new Domain(mgr, sys, "trivial")};
+	Cardinality single;
+	single.merge({1});
+	// Set up the "root" StructuredClass.
+	Rooted<StructuredClass> rootClass{new StructuredClass(
+	    mgr, "root", domain, single, {nullptr}, {nullptr}, false, true)};
+
+	// set up a document for it.
+	{
+		// first an invalid one, which is empty.
+		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
+		doc->addDomain(domain);
+		ASSERT_FALSE(doc->validate(logger));
+		// then add a root, which should make it valid.
+		Rooted<StructuredEntity> root =
+		    buildRootStructuredEntity(doc, logger, {"root"});
+		ASSERT_TRUE(doc->validate(logger));
+	}
+
+	// now let's extend the rootClass with a default field.
+	Rooted<FieldDescriptor> rootField{new FieldDescriptor(mgr, rootClass)};
+	// and add a child class for it.
+	Rooted<StructuredClass> childClass{
+	    new StructuredClass(mgr, "child", domain, single)};
+	rootField->addChild(childClass);
+	{
+		/*
+		 * now check again: Because the child has the cardinality {1} our
+		 * document should be invalid again.
+		 */
+		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
+		doc->addDomain(domain);
+		Rooted<StructuredEntity> root =
+		    buildRootStructuredEntity(doc, logger, {"root"});
+		ASSERT_FALSE(doc->validate(logger));
+		// but it should get valid if we add a proper child.
+		buildStructuredEntity(doc, logger, root, {"child"});
+		ASSERT_TRUE(doc->validate(logger));
+		// and it should get invalid again if we add one more child.
+		buildStructuredEntity(doc, logger, root, {"child"});
+		ASSERT_FALSE(doc->validate(logger));
+	}
+	/*
+	 * Add a further extension to the domain: We add a subclass to child.
+	 */
+	Rooted<StructuredClass> childSubClass{new StructuredClass(
+	    mgr, "childSub", domain, single, {nullptr}, childClass)};
+	{
+		/*
+		 * A document with one instance of the Child subclass should be valid.
+		 */
+		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
+		doc->addDomain(domain);
+		Rooted<StructuredEntity> root =
+		    buildRootStructuredEntity(doc, logger, {"root"});
+		buildStructuredEntity(doc, logger, root, {"childSub"});
+		ASSERT_TRUE(doc->validate(logger));
+	}
+	/*
+	 * Make it even more complicated: child gets a field for further child
+	 * instances now.
+	 */
+	Rooted<FieldDescriptor> childField{new FieldDescriptor(mgr, childClass)};
+	childField->addChild(childClass);
+	{
+		/*
+		 * Now a document with one instance of the Child subclass should be
+		 * invalid, because it has no children of itself.
+		 */
+		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
+		doc->addDomain(domain);
+		Rooted<StructuredEntity> root =
+		    buildRootStructuredEntity(doc, logger, {"root"});
+		buildStructuredEntity(doc, logger, root, {"childSub"});
+		ASSERT_FALSE(doc->validate(logger));
+	}
+	// TODO: Override child field in childSub such that an empty childSub is
+	// valid.
 }
 }
 }

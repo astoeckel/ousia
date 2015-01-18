@@ -92,10 +92,27 @@ int DocumentEntity::getFieldDescriptorIndex(
 	}
 }
 
-DocumentEntity::DocumentEntity(Handle<Node> owner,
+void DocumentEntity::addStructureNode(Handle<StructureNode> s,
+                                      const std::string &fieldName)
+{
+	if (subInst->isa(RttiTypes::StructuredEntity)) {
+		const StructuredEntity *s =
+		    static_cast<const StructuredEntity *>(subInst);
+		s->invalidate();
+	} else {
+		const AnnotationEntity *a =
+		    static_cast<const AnnotationEntity *>(subInst);
+		a->invalidate();
+	}
+	fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
+}
+
+DocumentEntity::DocumentEntity(Handle<Node> subInst,
                                Handle<Descriptor> descriptor,
                                Variant attributes)
-    : descriptor(owner->acquire(descriptor)), attributes(std::move(attributes))
+    : subInst(subInst.get()),
+      descriptor(subInst->acquire(descriptor)),
+      attributes(std::move(attributes))
 {
 	// insert empty vectors for each field.
 	if (!descriptor.isNull()) {
@@ -107,7 +124,7 @@ DocumentEntity::DocumentEntity(Handle<Node> owner,
 			fieldDescs = descriptor->getFieldDescriptors();
 		}
 		for (size_t f = 0; f < fieldDescs.size(); f++) {
-			fields.push_back(NodeVector<StructureNode>(owner));
+			fields.push_back(NodeVector<StructureNode>(subInst));
 		}
 	}
 }
@@ -120,6 +137,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		return false;
 	}
 	// TODO: check the validated form of Attributes
+	// TODO: Check if descriptor is registered at the Document?
 
 	/*
 	 * generate the set of effective fields. This is trivial for
@@ -150,8 +168,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				const size_t min = ac->getCardinality().min();
 				if (min > 0) {
 					logger.error(
-					    std::string("Field ") +
-					    descriptor->getFieldDescriptors()[f]->getName() +
+					    std::string("Field ") + fieldDescs[f]->getName() +
 					    " was empty but needs at least " + std::to_string(min) +
 					    " elements of class " + ac->getName() +
 					    " according to the definition of " +
@@ -172,11 +189,11 @@ bool DocumentEntity::doValidate(Logger &logger) const
 
 		// iterate over every actual child of this DocumentEntity
 		for (auto &rc : fields[f]) {
-			if (!rc->isa(RttiTypes::Anchor)) {
+			if (rc->isa(RttiTypes::Anchor)) {
 				// Anchors are uninteresting and can be ignored.
 				continue;
 			}
-			if (!rc->isa(RttiTypes::DocumentPrimitive)) {
+			if (rc->isa(RttiTypes::DocumentPrimitive)) {
 				// For DocumentPrimitives we have to check the content type.
 				// TODO: Do that!
 				continue;
@@ -281,6 +298,12 @@ bool StructuredEntity::doValidate(Logger &logger) const
 	if (getParent() == nullptr) {
 		return false;
 	}
+	// check name
+	if (getName() != "") {
+		if (!validateName(logger)) {
+			return false;
+		}
+	}
 	// check the validity as a DocumentEntity.
 	return DocumentEntity::doValidate(logger);
 }
@@ -317,6 +340,12 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 		logger.error("This annotation was not registered at the document.");
 		return false;
 	}
+	// check name
+	if (getName() != "") {
+		if (!validateName(logger)) {
+			return false;
+		}
+	}
 	// check if the Anchors are part of the right document.
 	if (!doc->hasChild(start)) {
 		return false;
@@ -344,26 +373,23 @@ void Document::doResolve(ResolutionState &state)
 
 bool Document::doValidate(Logger &logger) const
 {
-	if (root != nullptr) {
-		// check if the root is allowed to be a root.
-		if (!root->getDescriptor().cast<StructuredClass>()->root) {
-			logger.error(std::string("A node of type ") +
-			             root->getDescriptor()->getName() +
-			             " is not allowed to be the Document root!");
-			return false;
-		}
-		// then call validate on the root
-		if (!root->validate(logger)) {
-			return false;
-		}
+	// An empty document is always invalid. TODO: Is this a smart choice?
+	if (root == nullptr) {
+		return false;
+	}
+	// check if the root is allowed to be a root.
+	if (!root->getDescriptor().cast<StructuredClass>()->root) {
+		logger.error(std::string("A node of type ") +
+		             root->getDescriptor()->getName() +
+		             " is not allowed to be the Document root!");
+		return false;
+	}
+	// then call validate on the root
+	if (!root->validate(logger)) {
+		return false;
 	}
 	// call validate on the AnnotationEntities
-	for (auto &a : annotations) {
-		if (!a->validate(logger)) {
-			return false;
-		}
-	}
-	return true;
+	return continueValidation(annotations, logger);
 }
 
 bool Document::hasChild(Handle<StructureNode> s) const
