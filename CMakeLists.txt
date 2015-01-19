@@ -108,7 +108,6 @@ ADD_LIBRARY(ousia_core
 	src/core/CodeTokenizer
 	src/core/CSS
 	src/core/Registry
-	src/core/ResourceLocator
 	src/core/Tokenizer
 	src/core/XML
 	src/core/common/Argument
@@ -138,6 +137,8 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/Parser
 	src/core/parser/ParserStack
 	src/core/parser/Scope
+	src/core/resource/Resource
+	src/core/resource/ResourceLocator
 #	src/core/script/ScriptEngine
 )
 
@@ -197,7 +198,6 @@ IF(TEST)
 		test/core/CSSTest
 		test/core/RangeSetTest
 		test/core/RegistryTest
-		test/core/ResourceLocatorTest
 		test/core/TokenizerTest
 		test/core/XMLTest
 		test/core/common/ArgumentTest
@@ -220,6 +220,7 @@ IF(TEST)
 		test/core/model/NodeTest
 		test/core/model/TypesystemTest
 		test/core/parser/ParserStackTest
+		test/core/resource/ResourceLocatorTest
 #		test/core/script/FunctionTest
 #		test/core/script/ObjectTest
 #		test/core/script/VariantTest
