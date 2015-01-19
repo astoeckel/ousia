@@ -156,7 +156,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		    FieldDescriptor::FieldType::PRIMITIVE) {
 			switch (fields[f].size()) {
 				case 0:
-					if (!fieldDescs[f]->optional) {
+					if (!fieldDescs[f]->isOptional()) {
 						logger.error(std::string("Primitive Field \"") +
 						             fieldDescs[f]->getName() +
 						             "\" had no content!");
@@ -180,7 +180,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		// we can do a faster check if this field is empty.
 		if (fields[f].size() == 0) {
 			// if this field is optional, an empty field is valid anyways.
-			if (fieldDescs[f]->optional) {
+			if (fieldDescs[f]->isOptional()) {
 				continue;
 			}
 			/*
@@ -212,6 +212,13 @@ bool DocumentEntity::doValidate(Logger &logger) const
 
 		// iterate over every actual child of this DocumentEntity
 		for (auto &rc : fields[f]) {
+			// check if the parent reference is correct.
+			if (rc->getParent() != subInst) {
+				logger.error(std::string("A child of field \"") +
+				             fieldDescs[f]->getName() +
+				             "\" has the wrong parent reference!");
+				valid = false;
+			}
 			if (rc->isa(RttiTypes::Anchor)) {
 				// Anchors are uninteresting and can be ignored.
 				continue;
@@ -453,7 +460,9 @@ bool Document::doValidate(Logger &logger) const
 		valid = false;
 	} else {
 		// check if the root is allowed to be a root.
-		if (!root->getDescriptor().cast<StructuredClass>()->root) {
+		if (!root->getDescriptor()
+		         .cast<StructuredClass>()
+		         ->hasRootPermission()) {
 			logger.error(std::string("A node of type \"") +
 			             root->getDescriptor()->getName() +
 			             "\" is not allowed to be the Document root!");
