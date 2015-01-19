@@ -92,25 +92,19 @@ int DocumentEntity::getFieldDescriptorIndex(
 	}
 }
 
-void DocumentEntity::addStructureNode(Handle<StructureNode> s,
-                                      const std::string &fieldName)
+void DocumentEntity::invalidateSubInstance()
 {
 	if (subInst->isa(RttiTypes::StructuredEntity)) {
-		const StructuredEntity *s =
-		    static_cast<const StructuredEntity *>(subInst);
-		s->invalidate();
+		subInst.cast<StructuredEntity>()->invalidate();
 	} else {
-		const AnnotationEntity *a =
-		    static_cast<const AnnotationEntity *>(subInst);
-		a->invalidate();
+		subInst.cast<AnnotationEntity>()->invalidate();
 	}
-	fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
 }
 
 DocumentEntity::DocumentEntity(Handle<Node> subInst,
                                Handle<Descriptor> descriptor,
                                Variant attributes)
-    : subInst(subInst.get()),
+    : subInst(subInst),
       descriptor(subInst->acquire(descriptor)),
       attributes(std::move(attributes))
 {
@@ -294,6 +288,45 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		}
 	}
 	return valid;
+}
+
+void DocumentEntity::setAttributes(const Variant &a)
+{
+	invalidateSubInstance();
+	attributes = a;
+}
+
+void DocumentEntity::addStructureNode(Handle<StructureNode> s,
+                                      const std::string &fieldName)
+{
+	invalidateSubInstance();
+	fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
+}
+
+void DocumentEntity::addStructureNodes(
+    const std::vector<Handle<StructureNode>> &ss, const std::string &fieldName)
+{
+	invalidateSubInstance();
+	NodeVector<StructureNode> &field =
+	    fields[getFieldDescriptorIndex(fieldName, true)];
+	field.insert(field.end(), ss.begin(), ss.end());
+}
+
+void DocumentEntity::addStructureNode(Handle<StructureNode> s,
+                                      Handle<FieldDescriptor> fieldDescriptor)
+{
+	invalidateSubInstance();
+	fields[getFieldDescriptorIndex(fieldDescriptor, true)].push_back(s);
+}
+
+void DocumentEntity::addStructureNodes(
+    const std::vector<Handle<StructureNode>> &ss,
+    Handle<FieldDescriptor> fieldDescriptor)
+{
+	invalidateSubInstance();
+	NodeVector<StructureNode> &field =
+	    fields[getFieldDescriptorIndex(fieldDescriptor, true)];
+	field.insert(field.end(), ss.begin(), ss.end());
 }
 
 /* Class StructureNode */
