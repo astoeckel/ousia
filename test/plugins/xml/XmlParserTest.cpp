@@ -53,22 +53,26 @@ const char *TEST_DATA =
     "	<head>\n"
     "		<typesystem name=\"color\">\n"
     "			<types>\n"
-    "				<struct name=\"color\" parent=\"blub\">\n"
-    "					<field name=\"r\" type=\"int\"/>\n"
-    "					<field name=\"g\" type=\"int\"/>\n"
-    "					<field name=\"b\" type=\"int\"/>\n"
+    "				<struct name=\"rgb\">\n"
+    "					<field name=\"r\" type=\"double\"/>\n"
+    "					<field name=\"g\" type=\"double\"/>\n"
+    "					<field name=\"b\" type=\"double\"/>\n"
     "				</struct>\n"
-    "				<struct name=\"blub\">\n"
-    "					<field name=\"a\" type=\"int\"/>\n"
+    "				<struct name=\"rgba\" parent=\"rgb\">\n"
+    "					<field name=\"a\" type=\"double\" default=\"0xf3\"/>\n"
     "				</struct>\n"
-    "				<struct name=\"blub\">\n"
-    "					<field name=\"a\" type=\"int\"/>\n"
+    "			</types>\n"
+    "		</typesystem>\n"
+    "		<typesystem name=\"color2\">\n"
+    "			<types>\n"
+    "				<struct name=\"rgba\" parent=\"rgb\">\n"
+    "					<field name=\"a\" type=\"bla\" default=\"0xf3\"/>\n"
     "				</struct>\n"
     "			</types>\n"
     "		</typesystem>\n"
     "	</head>\n"
     "	<body xmlAttr=\"blub\">\n"
-    "		<book>Dies ist ein Test&gt;</book>\n"
+    "		<!--<book>Dies ist ein Test&gt;</book>-->\n"
     "	</body>\n"
     "</document>\n";
 
@@ -86,6 +90,7 @@ TEST(XmlParser, namespaces)
 		catch (LoggableException ex) {
 			logger.log(ex);
 		}
+		ctx.manager.exportGraphviz("xmlDocument.dot");
 	}
 }
 }

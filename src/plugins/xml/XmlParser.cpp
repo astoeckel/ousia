@@ -60,7 +60,7 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
-		scope().push(new model::Typesystem(manager(), args["name"].asString()));
+		scope().push(project()->createTypesystem(args["name"].asString()));
 	}
 
 	void end() override

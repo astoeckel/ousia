@@ -100,6 +100,7 @@ const Rtti Project = RttiBuilder<model::Project>("Project")
                          .parent(&Node)
                          .composedOf(&Document)
                          .composedOf(&Typesystem)
+                         .composedOf(&SystemTypesystem)
                          .composedOf(&Domain);
 }
 }
