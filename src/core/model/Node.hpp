@@ -319,12 +319,12 @@ protected:
 	 * changed such that a new validation run has to be made. Also informs the
 	 * parent node about the invalidation.
 	 */
-	void invalidate() const;
+	void invalidate();
 
 	/**
 	 * This method should be called if a Node finds itself in an invalid state.
 	 */
-	void markInvalid() const;
+	void markInvalid();
 
 	/**
 	 * The convention for this function is as follows:

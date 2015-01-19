@@ -269,10 +269,9 @@ private:
 	NodeVector<StructuredClass> children;
 	FieldType fieldType;
 	Owned<Type> primitiveType;
+	bool optional;
 
 public:
-	const bool optional;
-
 	// TODO: What about the name of default fields?
 	/**
 	 * This is the constructor for primitive fields. The type is automatically
@@ -330,7 +329,11 @@ public:
 	 * Adds a StructuredClass whose instances shall be allowed as children in
 	 * the StructureTree of instances of this field.
 	 */
-	void addChild(Handle<StructuredClass> c) { children.push_back(c); }
+	void addChild(Handle<StructuredClass> c)
+	{
+		invalidate();
+		children.push_back(c);
+	}
 
 	/**
 	 * Adds multiple StructuredClasses whose instances shall be allowed as
@@ -338,14 +341,73 @@ public:
 	 */
 	void addChildren(const std::vector<Handle<StructuredClass>> &cs)
 	{
+		invalidate();
 		children.insert(children.end(), cs.begin(), cs.end());
 	}
 
+	/**
+	 * Returns the type of this field (not to be confused with the primitive
+	 *type of this field).
+	 *
+	 * @return the type of this field.
+	 */
 	FieldType getFieldType() const { return fieldType; }
+	/**
+	 * Sets the type of this field (not to be confused with the primitive type
+	 *of this field).
+	 *
+	 * @param ft is the new type of this field.
+	 */
+	void setFieldType(const FieldType &ft)
+	{
+		invalidate();
+		fieldType = ft;
+	}
 
+	/**
+	 * Returns true if and only if the type of this field is PRIMITIVE.
+	 *
+	 * @return true if and only if the type of this field is PRIMITIVE.
+	 */
 	bool isPrimitive() const { return fieldType == FieldType::PRIMITIVE; }
 
+	/**
+	 * Returns the primitive type of this field, which is only allowed to be
+	 * set if the type of this field is PRIMITIVE.
+	 *
+	 * @return the primitive type of this field.
+	 */
 	Rooted<Type> getPrimitiveType() const { return primitiveType; }
+
+	/**
+	 * Sets the primitive type of this field, which is only allowed to be
+	 * set if the type of this field is PRIMITIVE.
+	 *
+	 * @param t is the new primitive type of this field-
+	 */
+	void setPrimitiveType(Handle<Type> t)
+	{
+		invalidate();
+		primitiveType = acquire(t);
+	}
+
+	/**
+	 * Returns true if and only if this field is optional.
+	 *
+	 * @return true if and only if this field is optional.
+	 */
+	bool isOptional() const { return optional; }
+
+	/**
+	 * Specifies whether this field shall be optional.
+	 *
+	 * @param o should be true if and only if this field should be optional.
+	 */
+	void setOptional(bool o)
+	{
+		invalidate();
+		optional = std::move(o);
+	}
 };
 
 /**
@@ -390,11 +452,6 @@ private:
 protected:
 	void doResolve(ResolutionState &state) override;
 
-	/**
-	 * Adds a FieldDescriptor and checks for name uniqueness.
-	 */
-	void addFieldDescriptor(Handle<FieldDescriptor> fd);
-
 public:
 	Descriptor(Manager &mgr, std::string name, Handle<Domain> domain,
 	           // TODO: What would be a wise default value for attributes?
@@ -429,9 +486,30 @@ public:
 	}
 
 	/**
+	 * Adds the given FieldDescriptor to this Descriptor.
+	 *
+	 * @param fd is a FieldDescriptor.
+	 */
+	void addFieldDescriptor(Handle<FieldDescriptor> fd)
+	{
+		invalidate();
+		fieldDescriptors.push_back(fd);
+	}
+
+	/**
+	 * Adds the given FieldDescriptors to this Descriptor.
+	 *
+	 * @param fds are FieldDescriptors.
+	 */
+	void addFieldDescriptors(std::vector<Handle<FieldDescriptor>> fds)
+	{
+		invalidate();
+		fieldDescriptors.insert(fieldDescriptors.end(), fds.begin(), fds.end());
+	}
+
+	/**
 	 * Copies a FieldDescriptor that belongs to another Descriptor to this
-	 * Descriptor. This will throw an exception if a FieldDescriptor with the
-	 * given name already exists.
+	 * Descriptor.
 	 */
 	void copyFieldDescriptor(Handle<FieldDescriptor> fd);
 
@@ -550,6 +628,8 @@ private:
 	const Cardinality cardinality;
 	Owned<StructuredClass> superclass;
 	NodeVector<StructuredClass> subclasses;
+	bool transparent;
+	bool root;
 
 	/**
 	 * Helper method for getFieldDescriptors.
@@ -559,12 +639,6 @@ private:
 	    std::set<std::string> &overriddenFields) const;
 
 public:
-	const bool transparent;
-	// TODO: Is it possible to have root=true and cardinality other than 1?
-	// This also refers to the question in Document.hpp: Is it possible to have
-	// more than 1 root?
-	const bool root;
-
 	/**
 	 * The constructor for a StructuredClass.
 	 *
@@ -589,6 +663,8 @@ public:
 	 *                             transparent. For more information on
 	 *                             transparency please refer to the class
 	 *                             documentation above. The default is false.
+	 * @param root                 specifies whether this StructuredClass is
+	 *                             allowed to be at the root of a Document.
 	 */
 	StructuredClass(Manager &mgr, std::string name, Handle<Domain> domain,
 	                const Cardinality &cardinality,
@@ -651,6 +727,22 @@ public:
 	 * this StructuredClass.
 	 */
 	NodeVector<FieldDescriptor> getEffectiveFieldDescriptors() const;
+
+	bool isTransparent() const { return transparent; }
+
+	void setTransparent(bool t)
+	{
+		invalidate();
+		transparent = std::move(t);
+	}
+
+	bool hasRootPermission() const { return root; }
+
+	void setRootPermission(bool r)
+	{
+		invalidate();
+		root = std::move(r);
+	}
 };
 
 /**
@@ -699,11 +791,7 @@ private:
 protected:
 	void doResolve(ResolutionState &state) override;
 
-	void addStructuredClass(Handle<StructuredClass> s);
-	void addAnnotationClass(Handle<AnnotationClass> a);
-
 public:
-
 	/**
 	 * The constructor for a new domain. Note that this is an empty Domain and
 	 * still has to be filled with StructuredClasses and AnnotationClasses.
@@ -780,6 +868,10 @@ public:
 	{
 		typesystems.insert(typesystems.end(), ts.begin(), ts.end());
 	}
+	
+
+	void addStructuredClass(Handle<StructuredClass> s);
+	void addAnnotationClass(Handle<AnnotationClass> a);
 };
 }
 

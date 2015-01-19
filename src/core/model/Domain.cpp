@@ -26,23 +26,6 @@
 namespace ousia {
 namespace model {
 
-template <class T>
-static void checkUniqueName(Handle<Node> parent, NodeVector<T> vec,
-                            Handle<T> child, const std::string &parentClassName,
-                            const std::string &childClassName)
-{
-	std::set<std::string> childNames;
-	for (auto &c : vec) {
-		childNames.insert(c->getName());
-	}
-	if (childNames.find(child->getName()) != childNames.end()) {
-		// TODO: Do we really want to have an exception here?
-		throw OusiaException(std::string("The ") + parentClassName + " " +
-		                     parent->getName() + " already has a " +
-		                     childClassName + " with name " + child->getName());
-	}
-}
-
 /* Class FieldDescriptor */
 
 FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
@@ -79,13 +62,6 @@ void Descriptor::doResolve(ResolutionState &state)
 	}
 	continueResolveComposita(fieldDescriptors, fieldDescriptors.getIndex(),
 	                         state);
-}
-
-void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd)
-{
-	checkUniqueName(this, fieldDescriptors, fd, "Descriptor",
-	                "FieldDescriptor");
-	fieldDescriptors.push_back(fd);
 }
 
 std::vector<Rooted<Node>> Descriptor::pathTo(
@@ -126,7 +102,7 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 				return true;
 			}
 			// look for transparent intermediate nodes.
-			if (c->transparent) {
+			if (c->isTransparent()) {
 				// copy the path.
 				std::vector<Rooted<Node>> cPath = currentPath;
 				cPath.push_back(fd);
@@ -166,17 +142,18 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 
 void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd)
 {
+	invalidate();
 	if (fd->getFieldType() == FieldDescriptor::FieldType::PRIMITIVE) {
 		/*
-		 *To call the "new" operation is enough here, because the
+		 * To call the "new" operation is enough here, because the
 		 * constructor will add the newly constructed FieldDescriptor to this
 		 * Descriptor automatically.
 		 */
 		new FieldDescriptor(getManager(), this, fd->getPrimitiveType(),
-		                    fd->getName(), fd->optional);
+		                    fd->getName(), fd->isOptional());
 	} else {
 		new FieldDescriptor(getManager(), this, fd->getFieldType(),
-		                    fd->getName(), fd->optional);
+		                    fd->getName(), fd->isOptional());
 	}
 }
 
@@ -266,13 +243,13 @@ void Domain::doResolve(ResolutionState &state)
 
 void Domain::addStructuredClass(Handle<StructuredClass> s)
 {
-	checkUniqueName(this, structuredClasses, s, "Domain", "StructuredClass");
+	invalidate();
 	structuredClasses.push_back(s);
 }
 
 void Domain::addAnnotationClass(Handle<AnnotationClass> a)
 {
-	checkUniqueName(this, annotationClasses, a, "Domain", "AnnotationClass");
+	invalidate();
 	annotationClasses.push_back(a);
 }
 }

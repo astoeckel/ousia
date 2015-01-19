@@ -229,33 +229,24 @@ TEST(Document, validate)
 		doc->addDomain(domain);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
-		buildStructuredEntity(doc, logger, root, {"childSub"});
+		Rooted<StructuredEntity> child =
+		    buildStructuredEntity(doc, logger, root, {"childSub"});
 		ASSERT_FALSE(doc->validate(logger));
+		// if we add a DocumentPrimitive with the wrong content it should not
+		// work either.
+		Rooted<DocumentPrimitive> primitive{
+		    new DocumentPrimitive(mgr, child, {"ololol"}, "int")};
+		//TODO: ASSERT_FALSE(doc->validate(logger));
+		// but if we set the content right, it should work.
+		primitive->setContent({2});
+		ASSERT_TRUE(doc->validate(logger));
 	}
-	// TODO: Check wrongly typed primitive content.
 
 	// Now add an Annotation class to the domain.
 	Rooted<AnnotationClass> annoClass{new AnnotationClass(mgr, "anno", domain)};
 	{
 		/*
 		 * Create a valid document in itself.
-		 */
-		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->addDomain(domain);
-		Rooted<StructuredEntity> root =
-		    buildRootStructuredEntity(doc, logger, {"root"});
-		Rooted<StructuredEntity> child =
-		    buildStructuredEntity(doc, logger, root, {"childSub"});
-		Rooted<DocumentPrimitive> primitive{
-		    new DocumentPrimitive(mgr, child, {2}, "int")};
-		ASSERT_TRUE(doc->validate(logger));
-		// then add an AnnotationEntity without Anchors.
-		buildAnnotationEntity(doc, logger, {"anno"}, nullptr, nullptr);
-		ASSERT_FALSE(doc->validate(logger));
-	}
-	{
-		/*
-		 * Do the same again, but with a valid AnnotationEntity now.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
 		doc->addDomain(domain);
@@ -269,7 +260,12 @@ TEST(Document, validate)
 		Rooted<Anchor> end{new Anchor(mgr, "end", root)};
 		ASSERT_TRUE(doc->validate(logger));
 		// then add an AnnotationEntity without Anchors.
-		buildAnnotationEntity(doc, logger, {"anno"}, start, end);
+		Rooted<AnnotationEntity> anno =
+		    buildAnnotationEntity(doc, logger, {"anno"}, nullptr, nullptr);
+		ASSERT_FALSE(doc->validate(logger));
+		// but it should be valid again if we set the start end and Anchor.
+		anno->setStart(start);
+		anno->setEnd(end);
 		ASSERT_TRUE(doc->validate(logger));
 	}
 }

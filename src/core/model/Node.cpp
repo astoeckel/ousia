@@ -227,6 +227,7 @@ std::vector<std::string> ResolutionResult::path() const
 
 void Node::setName(std::string name)
 {
+	invalidate();
 	// Call the name change event and (afterwards!) set the new name
 	NameChangeEvent ev{this->name, name};
 	triggerEvent(ev);
@@ -380,7 +381,7 @@ bool Node::validateName(Logger &logger) const
 	return true;
 }
 
-void Node::invalidate() const
+void Node::invalidate()
 {
 	// Only perform the invalidation if necessary
 	if (validationState != ValidationState::UNKNOWN) {
@@ -391,7 +392,7 @@ void Node::invalidate() const
 	}
 }
 
-void Node::markInvalid() const
+void Node::markInvalid()
 {
 	// Do not override the validationState if we're currently in the validation
 	// procedure, try to mark the parent node as invalid

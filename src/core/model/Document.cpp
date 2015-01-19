@@ -92,25 +92,19 @@ int DocumentEntity::getFieldDescriptorIndex(
 	}
 }
 
-void DocumentEntity::addStructureNode(Handle<StructureNode> s,
-                                      const std::string &fieldName)
+void DocumentEntity::invalidateSubInstance()
 {
 	if (subInst->isa(RttiTypes::StructuredEntity)) {
-		const StructuredEntity *s =
-		    static_cast<const StructuredEntity *>(subInst);
-		s->invalidate();
+		subInst.cast<StructuredEntity>()->invalidate();
 	} else {
-		const AnnotationEntity *a =
-		    static_cast<const AnnotationEntity *>(subInst);
-		a->invalidate();
+		subInst.cast<AnnotationEntity>()->invalidate();
 	}
-	fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
 }
 
 DocumentEntity::DocumentEntity(Handle<Node> subInst,
                                Handle<Descriptor> descriptor,
                                Variant attributes)
-    : subInst(subInst.get()),
+    : subInst(subInst),
       descriptor(subInst->acquire(descriptor)),
       attributes(std::move(attributes))
 {
@@ -162,7 +156,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		    FieldDescriptor::FieldType::PRIMITIVE) {
 			switch (fields[f].size()) {
 				case 0:
-					if (!fieldDescs[f]->optional) {
+					if (!fieldDescs[f]->isOptional()) {
 						logger.error(std::string("Primitive Field \"") +
 						             fieldDescs[f]->getName() +
 						             "\" had no content!");
@@ -186,7 +180,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		// we can do a faster check if this field is empty.
 		if (fields[f].size() == 0) {
 			// if this field is optional, an empty field is valid anyways.
-			if (fieldDescs[f]->optional) {
+			if (fieldDescs[f]->isOptional()) {
 				continue;
 			}
 			/*
@@ -218,6 +212,13 @@ bool DocumentEntity::doValidate(Logger &logger) const
 
 		// iterate over every actual child of this DocumentEntity
 		for (auto &rc : fields[f]) {
+			// check if the parent reference is correct.
+			if (rc->getParent() != subInst) {
+				logger.error(std::string("A child of field \"") +
+				             fieldDescs[f]->getName() +
+				             "\" has the wrong parent reference!");
+				valid = false;
+			}
 			if (rc->isa(RttiTypes::Anchor)) {
 				// Anchors are uninteresting and can be ignored.
 				continue;
@@ -294,6 +295,45 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		}
 	}
 	return valid;
+}
+
+void DocumentEntity::setAttributes(const Variant &a)
+{
+	invalidateSubInstance();
+	attributes = a;
+}
+
+void DocumentEntity::addStructureNode(Handle<StructureNode> s,
+                                      const std::string &fieldName)
+{
+	invalidateSubInstance();
+	fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
+}
+
+void DocumentEntity::addStructureNodes(
+    const std::vector<Handle<StructureNode>> &ss, const std::string &fieldName)
+{
+	invalidateSubInstance();
+	NodeVector<StructureNode> &field =
+	    fields[getFieldDescriptorIndex(fieldName, true)];
+	field.insert(field.end(), ss.begin(), ss.end());
+}
+
+void DocumentEntity::addStructureNode(Handle<StructureNode> s,
+                                      Handle<FieldDescriptor> fieldDescriptor)
+{
+	invalidateSubInstance();
+	fields[getFieldDescriptorIndex(fieldDescriptor, true)].push_back(s);
+}
+
+void DocumentEntity::addStructureNodes(
+    const std::vector<Handle<StructureNode>> &ss,
+    Handle<FieldDescriptor> fieldDescriptor)
+{
+	invalidateSubInstance();
+	NodeVector<StructureNode> &field =
+	    fields[getFieldDescriptorIndex(fieldDescriptor, true)];
+	field.insert(field.end(), ss.begin(), ss.end());
 }
 
 /* Class StructureNode */
@@ -420,7 +460,9 @@ bool Document::doValidate(Logger &logger) const
 		valid = false;
 	} else {
 		// check if the root is allowed to be a root.
-		if (!root->getDescriptor().cast<StructuredClass>()->root) {
+		if (!root->getDescriptor()
+		         .cast<StructuredClass>()
+		         ->hasRootPermission()) {
 			logger.error(std::string("A node of type \"") +
 			             root->getDescriptor()->getName() +
 			             "\" is not allowed to be the Document root!");

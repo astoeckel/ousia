@@ -144,12 +144,14 @@ class DocumentEntity {
 private:
 	/*
 	 * this is a rather dirty method that should not be used in other cases:
-	 * We store a pointer to the Node instance that inherits from
-	 * DocumentEntity.
+	 * We store a handle to the Node instance that inherits from
+	 * DocumentEntity. This Handle is not registered and would lead to Segfaults
+	 * if we could not garantuee that it lives exactly as long as this
+	 * DocumentEntity because the handle is for the subclass instance.
 	 */
-	const Node *subInst;
+	Handle<Node> subInst;
 	Owned<Descriptor> descriptor;
-	const Variant attributes;
+	Variant attributes;
 	std::vector<NodeVector<StructureNode>> fields;
 
 	int getFieldDescriptorIndex(const std::string &fieldName,
@@ -158,10 +160,9 @@ private:
 	int getFieldDescriptorIndex(Handle<FieldDescriptor> fieldDescriptor,
 	                            bool enforce) const;
 
-protected:
-	void addStructureNode(Handle<StructureNode> s,
-	                      const std::string &fieldName = "");
+	void invalidateSubInstance();
 
+protected:
 	bool doValidate(Logger &logger) const;
 
 public:
@@ -198,6 +199,15 @@ public:
 	Variant getAttributes() const { return attributes; }
 
 	/**
+	 * Sets the attributes for this DocumentEntity. Attributes are set as a Map
+	 * variant.
+	 *
+	 * @param a is a Map variant containing the attributes for this
+	 *          DocumentEntity.
+	 */
+	void setAttributes(const Variant &a);
+
+	/**
 	 * This returns true if there is a FieldDescriptor in the Descriptor for
 	 * this DocumentEntity which has the given name. If an empty name is
 	 * given it is assumed that the 'default' FieldDescriptor is referenced,
@@ -207,7 +217,7 @@ public:
 	 *
 	 * @param fieldName is the name of a field as specified in the
 	 *                  FieldDescriptor in the Domain description.
-	 * @return true if this FieldDescriptor exists.
+	 * @return          true if this FieldDescriptor exists.
 	 */
 	bool hasField(const std::string &fieldName = "") const
 	{
@@ -225,7 +235,7 @@ public:
 	 *
 	 * @param fieldName is the name of a field as specified in the
 	 *                  FieldDescriptor in the Domain description.
-	 * @return a NodeVector of all StructuredEntities in that field.
+	 * @return          a NodeVector of all StructuredEntities in that field.
 	 */
 	const NodeVector<StructureNode> &getField(
 	    const std::string &fieldName = "") const
@@ -242,7 +252,8 @@ public:
 	 *
 	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
 	 *                        this DocumentEntity.
-	 * @return a NodeVector of all StructuredEntities in that field.
+	 * @return                a NodeVector of all StructuredEntities in that
+	 *                        field.
 	 */
 	const NodeVector<StructureNode> &getField(
 	    Handle<FieldDescriptor> fieldDescriptor) const
@@ -250,84 +261,63 @@ public:
 		return fields[getFieldDescriptorIndex(fieldDescriptor, true)];
 	}
 
-	// TODO: Change this to move methods.
-	//	/**
-	//	 * This adds a StructureNode to the field with the given name. If an
-	//	 * empty name is given it is assumed that the 'default' FieldDescriptor
-	// is
-	//	 * referenced, where 'default' means either:
-	//	 * 1.) The only TREE typed FieldDescriptor (if present) or
-	//	 * 2.) the only FieldDescriptor (if only one is specified).
-	//	 *
-	//	 * If the name is unknown an exception is thrown.
-	//	 *
-	//	 * @param s         is the StructureNode that shall be added.
-	//	 * @param fieldName is the name of a field as specified in the
-	//	 *                  FieldDescriptor in the Domain description.
-	//	 */
-	//	void addStructureNode(Handle<StructureNode> s,
-	//	                         const std::string &fieldName = "")
-	//	{
-	//		fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
-	//	}
-	//	/**
-	//	 * This adds multiple StructureNodes to the field with the given name.
-	//	 * If an empty name is given it is assumed that the 'default'
-	//	 * FieldDescriptor is referenced, where 'default' means either:
-	//	 * 1.) The only TREE typed FieldDescriptor (if present) or
-	//	 * 2.) the only FieldDescriptor (if only one is specified).
-	//	 *
-	//	 * If the name is unknown an exception is thrown.
-	//	 *
-	//	 * @param ss        are the StructureNodes that shall be added.
-	//	 * @param fieldName is the name of a field as specified in the
-	//	 *                  FieldDescriptor in the Domain description.
-	//	 */
-	//	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
-	//	                           const std::string &fieldName = "")
-	//	{
-	//		NodeVector<StructureNode> &field =
-	//		    fields[getFieldDescriptorIndex(fieldName, true)];
-	//		field.insert(field.end(), ss.begin(), ss.end());
-	//	}
+	/**
+	 * This adds a StructureNode to the field with the given name. If an
+	 * empty name is given it is assumed that the 'default' FieldDescriptor is
+	 * referenced, where 'default' means either:
+	 * 1.) The only TREE typed FieldDescriptor (if present) or
+	 * 2.) the only FieldDescriptor (if only one is specified).
+	 *
+	 * If the name is unknown an exception is thrown.
+	 *
+	 * @param s         is the StructureNode that shall be added.
+	 * @param fieldName is the name of a field as specified in the
+	 *                  FieldDescriptor in the Domain description.
+	 */
+	void addStructureNode(Handle<StructureNode> s,
+	                      const std::string &fieldName = "");
+	/**
+	 * This adds multiple StructureNodes to the field with the given name.
+	 * If an empty name is given it is assumed that the 'default'
+	 * FieldDescriptor is referenced, where 'default' means either:
+	 * 1.) The only TREE typed FieldDescriptor (if present) or
+	 * 2.) the only FieldDescriptor (if only one is specified).
+	 *
+	 * If the name is unknown an exception is thrown.
+	 *
+	 * @param ss        are the StructureNodes that shall be added.
+	 * @param fieldName is the name of a field as specified in the
+	 *                  FieldDescriptor in the Domain description.
+	 */
+	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
+	                       const std::string &fieldName = "");
 
-	//	/**
-	//	 * This adds a StructureNode to the field with the given
-	// FieldDescriptor.
-	//	 *
-	//	 * If the FieldDescriptor does not belong to the Descriptor of this node
-	//	 * an exception is thrown.
-	//	 *
-	//	 * @param s               is the StructureNode that shall be added.
-	//	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor
-	// for
-	//	 *                        this DocumentEntity.
-	//	 */
-	//	void addStructureNode(Handle<StructureNode> s,
-	//	                         Handle<FieldDescriptor> fieldDescriptor)
-	//	{
-	//		fields[getFieldDescriptorIndex(fieldDescriptor, true)].push_back(s);
-	//	}
+	/**
+	 * This adds a StructureNode to the field with the given FieldDescriptor.
+	 *
+	 * If the FieldDescriptor does not belong to the Descriptor of this node
+	 * an exception is thrown.
+	 *
+	 * @param s               is the StructureNode that shall be added.
+	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
+	 *                        this DocumentEntity.
+	 */
+	void addStructureNode(Handle<StructureNode> s,
+	                      Handle<FieldDescriptor> fieldDescriptor);
 
-	//	/**
-	//	 * This adds multiple StructureNodes to the field with the given
-	//	 * FieldDescriptor.
-	//	 *
-	//	 * If the FieldDescriptor does not belong to the Descriptor of this node
-	//	 * an exception is thrown.
-	//	 *
-	//	 * @param ss              are the StructureNodes that shall be added.
-	//	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor
-	// for
-	//	 *                        this DocumentEntity.
-	//	 */
-	//	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
-	//	                           Handle<FieldDescriptor> fieldDescriptor)
-	//	{
-	//		NodeVector<StructureNode> &field =
-	//		    fields[getFieldDescriptorIndex(fieldDescriptor, true)];
-	//		field.insert(field.end(), ss.begin(), ss.end());
-	//	}
+	/**
+	 * This adds multiple StructureNodes to the field with the given
+	 * FieldDescriptor.
+	 *
+	 * If the FieldDescriptor does not belong to the Descriptor of this node
+	 * an exception is thrown.
+	 *
+	 * @param ss              are the StructureNodes that shall be added.
+	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
+	 *                        this DocumentEntity.
+	 */
+	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
+	                       Handle<FieldDescriptor> fieldDescriptor);
 };
 
 /**
@@ -432,7 +422,7 @@ public:
 	 *                  where this DocumentPrimitive shall be added. It is empty
 	 *                  per default, referring to the default field.
 	 */
-	DocumentPrimitive(Manager &mgr, Handle<Node> parent, Variant content,
+	DocumentPrimitive(Manager &mgr, Handle<Node> parent, Variant content = {},
 	                  const std::string &fieldName = "")
 	    : StructureNode(mgr, "", parent, fieldName), content(content)
 	{
@@ -444,6 +434,17 @@ public:
 	 * @return the content of this DocumentPrimitive.
 	 */
 	Variant getContent() const { return content; }
+
+	/**
+	 * Sets the content of this DocumentPrimitive to the given Variant.
+	 *
+	 * @param c is the new content of this DocumentPrimitive.
+	 */
+	void setContent(const Variant &c)
+	{
+		invalidate();
+		content = c;
+	}
 };
 
 /**
@@ -527,8 +528,9 @@ public:
 	 *                   used for references later on. It is empty per default.
 	 */
 	AnnotationEntity(Manager &mgr, Handle<Document> parent,
-	                 Handle<AnnotationClass> descriptor, Handle<Anchor> start,
-	                 Handle<Anchor> end, Variant attributes = {},
+	                 Handle<AnnotationClass> descriptor,
+	                 Handle<Anchor> start = nullptr,
+	                 Handle<Anchor> end = nullptr, Variant attributes = {},
 	                 std::string name = "");
 
 	/**
@@ -544,6 +546,27 @@ public:
 	 * @return the end Anchor of this AnnotationEntity.
 	 */
 	Rooted<Anchor> getEnd() const { return end; }
+
+	/**
+	 * Sets the start Anchor of this AnnotationEntity.
+	 *
+	 * @param s is the new start Anchor for this AnnotationEntity.
+	 */
+	void setStart(Handle<Anchor> s)
+	{
+		invalidate();
+		start = acquire(s);
+	}
+
+	/**
+	 * Sets the end Anchor of this AnnotationEntity.
+	 *
+	 * @param e is the new end Anchor for this AnnotationEntity.
+	 */
+	void setEnd(Handle<Anchor> e)
+	{
+		end = acquire(e);
+	}
 };
 
 /**
@@ -567,8 +590,7 @@ protected:
 
 public:
 	Document(Manager &mgr, std::string name)
-	    : Node(mgr, std::move(name), nullptr),
-	      annotations(this)
+	    : Node(mgr, std::move(name), nullptr), annotations(this)
 	{
 	}
 
