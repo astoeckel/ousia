@@ -16,8 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <core/common/Logger.hpp>
 #include <core/parser/Parser.hpp>
+#include <core/resource/Resource.hpp>
+#include <core/resource/ResourceLocator.hpp>
+
+#include "Registry.hpp"
 
 namespace ousia {
 
@@ -25,9 +28,9 @@ using namespace parser;
 
 /* Class Registry */
 
-void Registry::registerParser(parser::Parser *parser)
+void Registry::registerParser(parser::Parser &parser)
 {
-	parsers.push_back(parser);
+	parsers.push_back(&parser);
 	for (const auto &mime : parser->mimetypes()) {
 		//TODO: This does not allow for multiple parsers with the same mimetype.
 		// Is that how its supposed to be?
@@ -44,24 +47,40 @@ Parser *Registry::getParserForMimetype(const std::string &mimetype) const
 	return nullptr;
 }
 
-void Registry::registerResourceLocator(ResourceLocator *locator)
+void Registry::registerResourceLocator(ResourceLocator &locator)
 {
-	locators.push_back(locator);
+	locators.push_back(&locator);
 }
 
-ResourceLocator::Location Registry::locateResource(
-    const std::string &path, const std::string &relativeTo,
-    ResourceLocator::Type type) const
+bool Registry::locateResource(Resource &resource, const std::string &path,
+                              ResourceType type,
+                              const Resource &relativeTo) const
 {
-	ResourceLocator::Location *last;
-	for (auto &locator : locators) {
-		ResourceLocator::Location loc = locator->locate(path, relativeTo, type);
-		if (loc.found) {
-			return loc;
+	// Try the locator of the given "relativeTo" resource first
+	if (relativeTo.isValid()) {
+		if (relativeTo.getLocator().locate(resource, path, type, relativeTo)) {
+			return true;
 		}
-		last = &loc;
 	}
-	return *last;
+
+	// Iterate over all registered locators and try to resolve the given path
+	for (auto &locator : locators) {
+		if (locator->locate(resource, path, type, relativeTo)) {
+			return true;
+		}
+	}
+
+	// If this did not work out, retry but use the UNKNOWN type.
+	if (type != ResourceType::UNKNOWN) {
+		for (auto &locator : locators) {
+			if (locator->locate(resource, path, ResourceType::UNKNOWN,
+			                    relativeTo)) {
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 }
 

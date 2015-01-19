@@ -18,46 +18,55 @@
 
 #include "FileLocator.hpp"
 
+#include <boost/filesystem.hpp>
+
 #include <fstream>
 
 namespace ousia {
 
-void FileLocator::addSearchPath(const boost::filesystem::path &path,
-                                std::set<ResourceLocator::Type> types)
+void FileLocator::addSearchPath(const std::string &path,
+                                std::set<ResourceType> types)
 {
+	// Canonicalize the given path
+	std::string canonicalPath =
+	    boost::filesystem::canonical(path).generic_string();
+
+	// Insert the path for all given types.
 	for (auto &type : types) {
-		// retrieve the path vector for the given type.
 		auto it = searchPaths.find(type);
 		if (it != searchPaths.end()) {
-			it->second.push_back(path);
+			it->second.push_back(canonicalPath);
 		} else {
-			std::vector<boost::filesystem::path> v{path};
-			searchPaths.insert({type, v});
+			searchPaths.insert({type, {canonicalPath}});
 		}
 	}
 }
 
-ResourceLocator::Location FileLocator::locate(const std::string &path,
-                                              const std::string &relativeTo,
-                                              const Type type) const
+bool FileLocator::doLocate(Resource &resource, const std::string &path,
+                           const ResourceType type,
+                           const std::string &relativeTo) const
 {
 	boost::filesystem::path base(relativeTo);
 	if (boost::filesystem::exists(base)) {
-		// look if 'relativeTo' is a directory already.
+		// Look if 'relativeTo' is a directory already.
 		if (!boost::filesystem::is_directory(base)) {
-			// if not we use the parent directory.
+			// If not we use the parent directory.
 			base = base.parent_path();
 		}
-		// use the / operator to append the path.
+
+		// Use the / operator to append the path.
 		base /= path;
-		// if we already found a fitting resource there, use that.
+
+		// If we already found a fitting resource there, use that.
 		if (boost::filesystem::exists(base)) {
 			std::string location =
 			    boost::filesystem::canonical(base).generic_string();
-			return ResourceLocator::Location(true, *this, type, location);
+			resource = Resource(true, *this, type, location);
+			return true;
 		}
 	}
-	// otherwise look in the search paths.
+
+	// Otherwise look in the search paths.
 	auto it = searchPaths.find(type);
 	if (it != searchPaths.end()) {
 		for (boost::filesystem::path p : it->second) {
@@ -65,17 +74,15 @@ ResourceLocator::Location FileLocator::locate(const std::string &path,
 			if (boost::filesystem::exists(p)) {
 				std::string location =
 				    boost::filesystem::canonical(p).generic_string();
-				return ResourceLocator::Location(true, *this, type, location);
+				resource = Resource(true, *this, type, location);
+				return true;
 			}
 		}
 	}
-	// if we find the resource in none of the search paths we return a location.
-	// with the found flag set to false.
-	ResourceLocator::Location l(false, *this, type, "");
-	return l;
+	return false;
 }
 
-std::unique_ptr<std::istream> FileLocator::stream(
+std::unique_ptr<std::istream> FileLocator::doStream(
     const std::string &location) const
 {
 	std::unique_ptr<std::istream> ifs{new std::ifstream(location)};

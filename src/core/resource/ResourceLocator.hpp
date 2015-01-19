@@ -22,7 +22,12 @@
 #include <istream>
 #include <memory>
 
+#include "Resource.hpp"
+
 namespace ousia {
+
+// Forward declaration
+class ResourceLocator;
 
 /**
  * A ResourceLocator is a class able to locate resources in some way, usually
@@ -33,84 +38,29 @@ namespace ousia {
  * locations (e.g. online resources, .zip files, etc.).
  */
 class ResourceLocator {
-public:
-	/**
-	 * This enum contains all possible types of includable resources in Ousía.
-	 */
-	enum class Type {
-		// A Domain description
-		DOMAIN_DESC,
-		// An ECMA/JavaScript
-		SCRIPT,
-		// A Type System
-		TYPESYS,
-		DOCUMENT,
-		ATTRIBUTES,
-		// TODO: Aren't documents and attribute descriptors missing?
-		// TODO: What is the purpose of these two?
-		GENERIC_MODULE,
-		GENERIC_INCLUDE
-	};
-
-	/**
-	 * A Location contains the location of a Resource, e.g. a file path
-	 * on a hard drive. Note that the 'found' flag might be set to false
-	 * indicating that a resource was not found.
-	 */
-	struct Location {
-		const bool found;
-		const ResourceLocator &locator;
-		const Type type;
-		/**
-		 * This is a fully qualified/canonical path to the resource found or
-		 * in an undefined state (possibly empty) if the 'found' flag is set
-		 * to 'false'.
-		 */
-		const std::string location;
-
-		Location(const bool found, const ResourceLocator &locator,
-		         const Type type, const std::string location)
-		    : found(found), locator(locator), type(type), location(location)
-		{
-		}
-
-		/**
-		 * This calls the 'stream' method of the underlying ResourceLocator that
-		 * found this location and returns a stream containing the data of the
-		 * Resource at this location.
-		 *
-		 * @return a stream containing the data of the Resource at this
-		 *         location. This has to be a unique_pointer because the current
-		 *         C++11 compiler does not yet support move semantics for
-		 *         streams.
-		 */
-		std::unique_ptr<std::istream> stream() const
-		{
-			return std::move(locator.stream(location));
-		}
-	};
-
+protected:
 	/**
 	 * The locate function uses this ResourceLocator to search for a given
 	 * Resource name (path parameter). It returns a Location with the
-	 * 'found' flag set accordingly.
+	 * 'valid' flag set accordingly.
 	 *
+	 * @param resource reference to a Resource the will be set the the found
+	 * location. The content of the variable will be only valid if the return
+	 * value of this function is set to true.
 	 * @param path is the resource name.
 	 * @param relativeTo is an already resolved fully qualified name/canonical
-	 *                   path that is to be used as base directory for this
-	 *                   search.
+	 * path that is to be used as base directory for this search. It is
+	 * guaranteed that the path was produced by this locator instance. Otherwise
+	 * this argument is set to an empty string.
 	 * @param type is the type of this resource.
-	 *
-	 * @return A Location containing either the found location of the
-	 *         Resource and the found flag set to 'true' or an empty location
-	 *         and the found flag set to 'false'.
+	 * @return true if a resource could be found, false otherwise.
 	 */
-	virtual Location locate(const std::string &path,
-	                        const std::string &relativeTo,
-	                        const Type type) const = 0;
+	virtual bool doLocate(Resource &resource, const std::string &path,
+	                      const ResourceType type,
+	                      const std::string &relativeTo) const = 0;
 
 	/**
-	 * This method returns a strem containing the data of the resource at the
+	 * This method returns a stream containing the data of the resource at the
 	 * given location.
 	 *
 	 * @param location is a found location, most likely from a Location.
@@ -120,9 +70,123 @@ public:
 	 *         C++11 compiler does not yet support move semantics for
 	 *         streams.
 	 */
-	virtual std::unique_ptr<std::istream> stream(
+	virtual std::unique_ptr<std::istream> doStream(
 	    const std::string &location) const = 0;
+
+public:
+	/**
+	 * Virtual destructor of the ResourceLocator interface.
+	 */
+	virtual ~ResourceLocator() {}
+
+	/**
+	 * The locate function uses this ResourceLocator to search for a given
+	 * Resource name (path parameter).
+	 *
+	 * @param resource reference to a Resource the will be set the the found
+	 * location. The content of the variable will be only valid if the return
+	 * value of this function is set to true.
+	 * @param path is the resource name.
+	 * @param relativeTo is an already resolved Resource.
+	 * @param type is the type of this resource.
+	 * @return true if a resource could be found, false otherwise.
+	 */
+	bool locate(Resource &resource, const std::string &path,
+	            const ResourceType type = ResourceType::UNKNOWN,
+	            const Resource &relativeTo = NullResource) const;
+
+	/**
+	 * The locate function uses this ResourceLocator to search for a given
+	 * Resource name (path parameter).
+	 *
+	 * @param resource reference to a Resource the will be set the the found
+	 * location. The content of the variable will be only valid if the return
+	 * value of this function is set to true.
+	 * @param path is the resource name.
+	 * @param type is the type of this resource.
+	 * @param relativeTo is the location of an already resolved resource
+	 * relative to which this resource should be located.
+	 * @return true if a resource could be found, false otherwise.
+	 */
+	bool locate(Resource &resource, const std::string &path,
+	            const ResourceType type,
+	            const std::string &relativeTo) const;
+
+	/**
+	 * This method returns a stream containing the data of the resource at the
+	 * given location.
+	 *
+	 * @param location is a found location, most likely from a Location.
+	 *
+	 * @return a stream containing the data of the Resource at this
+	 *         location. This has to be a unique_pointer because the current
+	 *         C++11 compiler does not yet support move semantics for
+	 *         streams.
+	 */
+	std::unique_ptr<std::istream> stream(const std::string &location) const;	
 };
+
+/**
+ * The StaticResourceLocator class stores a set of predefined resources in
+ * memory and allows to return these.
+ */
+class StaticResourceLocator : public ResourceLocator {
+private:
+	/**
+	 * Map containing the paths and the corresponding stored data.
+	 */
+	std::map<std::string, std::string> resources;
+
+protected:
+	/**
+	 * Always returns false.
+	 */
+	bool doLocate(Resource &resource, const std::string &path,
+	              const ResourceType type,
+	              const std::string &relativeTo) const override;
+
+	/**
+	 * Returns an input stream containing an empty string.
+	 */
+	std::unique_ptr<std::istream> doStream(
+	    const std::string &location) const override;
+
+public:
+	/**
+	 * Stores static (string) data for the given path.
+	 *
+	 * @param path is the path the resource should be stored with.
+	 * @param data is the data that should be stored for that path.
+	 */
+	void store(const std::string &path, const std::string &data);
+};
+
+/**
+ * Implementation of the NullResourceLocator - contains a default implementation
+ * of the ResourceLocator class that does nothing. This class is e.g. used in
+ * the default constructor of the resource class. A instance of the class is
+ * provided as "NullResourceLocator".
+ */
+class NullResourceLocatorImpl : public ResourceLocator {
+protected:
+	/**
+	 * Always returns false.
+	 */
+	bool doLocate(Resource &resource, const std::string &path,
+	              const ResourceType type,
+	              const std::string &relativeTo) const override;
+
+	/**
+	 * Returns an input stream containing an empty string.
+	 */
+	std::unique_ptr<std::istream> doStream(
+	    const std::string &location) const override;
+};
+
+/**
+ * The NullResourceLocator is used as a fallback for invalid Resources.
+ */
+extern const NullResourceLocatorImpl NullResourceLocator;
 }
 
 #endif /* _RESOURCE_LOCATOR_HPP_ */

@@ -22,37 +22,34 @@
 #include <map>
 #include <vector>
 
-#include "ResourceLocator.hpp"
+#include <core/resource/Resource.hpp>
 
 namespace ousia {
 
 // TODO: Add support for ScriptEngine type
 
-class Logger;
-
 namespace parser {
 class Parser;
 }
+class ResourceLocator;
 
 class Registry {
 private:
-	Logger &logger;
 	std::vector<parser::Parser *> parsers;
 	std::map<std::string, parser::Parser *> parserMimetypes;
+
 	std::vector<ResourceLocator *> locators;
 
 public:
-	Registry(Logger &logger) : logger(logger) {}
+	void registerParser(parser::Parser &parser);
 
-	void registerParser(parser::Parser *parser);
+	parser::Parser *getParserForMimetype(const std::string &mimetype) const;
 
-	parser::Parser *getParserForMimetype(const std::string& mimetype) const;
+	void registerResourceLocator(ResourceLocator &locator);
 
-	void registerResourceLocator(ResourceLocator *locator);
-
-	ResourceLocator::Location locateResource(const std::string &path,
-	                                         const std::string &relativeTo,
-	                                         ResourceLocator::Type type) const;
+	bool locateResource(Resource &resource, const std::string &path,
+	                    ResourceType type = ResourceType::UNKNOWN,
+	                    const Resource &relativeTo = NullResource) const;
 };
 }
 

@@ -18,46 +18,26 @@
 
 #include <gtest/gtest.h>
 
-#include <core/Registry.hpp>
-
 #include <sstream>
 
-#include <core/common/Logger.hpp>
+#include <core/resource/ResourceLocator.hpp>
+#include <core/Registry.hpp>
 
 namespace ousia {
 
-class TestResourceLocator : public ResourceLocator {
-public:
-	ResourceLocator::Location locate(
-	    const std::string &path, const std::string &relativeTo,
-	    const ResourceLocator::Type type) const override
-	{
-		// trivial test implementation.
-		return ResourceLocator::Location(true, *this, type, path);
-	}
-
-	std::unique_ptr<std::istream> stream(
-	    const std::string &location) const override
-	{
-		// trivial test implementation.
-		std::unique_ptr<std::stringstream> ss(new std::stringstream());
-		(*ss) << "test";
-		return std::move(ss);
-	}
-};
-
 TEST(Registry, locateResource)
 {
-	TestResourceLocator locator;
-	Logger logger;
-	Registry instance {logger};
-	instance.registerResourceLocator(&locator);
-	
-	ResourceLocator::Location location =
-	    instance.locateResource("path", "", ResourceLocator::Type::DOMAIN_DESC);
-	ASSERT_TRUE(location.found);
-	ASSERT_EQ(ResourceLocator::Type::DOMAIN_DESC, location.type);
-	ASSERT_EQ("path", location.location);
-}
+	StaticResourceLocator locator;
+	locator.store("path", "test");
 
+	Registry registry;
+	registry.registerResourceLocator(locator);
+
+	Resource res;
+	ASSERT_TRUE(
+	    registry.locateResource(res, "path", ResourceType::DOMAIN_DESC));
+	ASSERT_TRUE(res.isValid());
+	ASSERT_EQ(ResourceType::DOMAIN_DESC, res.getType());
+	ASSERT_EQ("path", res.getLocation());
+}
 }

@@ -37,15 +37,13 @@ public:
 	ParserContext context;
 
 	StandaloneParserContext()
-	    : registry(logger),
-	      project(new model::Project(manager)),
+	    : project(new model::Project(manager)),
 	      context(scope, registry, logger, manager, project)
 	{
 	}
 
 	StandaloneParserContext(Logger &externalLogger)
-	    : registry(externalLogger),
-	      project(new model::Project(manager)),
+	    : project(new model::Project(manager)),
 	      context(scope, registry, externalLogger, manager, project){};
 };
 }

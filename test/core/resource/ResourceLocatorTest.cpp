@@ -18,48 +18,31 @@
 
 #include <gtest/gtest.h>
 
-#include <core/ResourceLocator.hpp>
-
-#include <sstream>
+#include <core/resource/ResourceLocator.hpp>
 
 namespace ousia {
 
-class TestResourceLocator : public ResourceLocator {
-public:
-	ResourceLocator::Location locate(
-	    const std::string &path, const std::string &relativeTo,
-	    const ResourceLocator::Type type) const override
-	{
-		// trivial test implementation.
-		return ResourceLocator::Location(true, *this, type, path);
-	}
-
-	std::unique_ptr<std::istream> stream(
-	    const std::string &location) const override
-	{
-		// trivial test implementation.
-		std::unique_ptr<std::stringstream> ss(new std::stringstream());
-		(*ss) << "test";
-		return std::move(ss);
-	}
-};
-
-TEST(ResourceLocator, locate)
+TEST(StaticResourceLocator, locate)
 {
-	TestResourceLocator instance;
-	ResourceLocator::Location location =
-	    instance.locate("path", "", ResourceLocator::Type::DOMAIN_DESC);
-	ASSERT_TRUE(location.found);
-	ASSERT_EQ(ResourceLocator::Type::DOMAIN_DESC, location.type);
-	ASSERT_EQ("path", location.location);
+	StaticResourceLocator locator;
+	locator.store("path", "test");
+
+	Resource res;
+	ASSERT_TRUE(locator.locate(res, "path"));
+	ASSERT_TRUE(res.isValid());
+	ASSERT_EQ(ResourceType::UNKNOWN, res.getType());
+	ASSERT_EQ("path", res.getLocation());
 }
 
-TEST(ResourceLocator, stream)
+TEST(StaticResourceLocator, stream)
 {
-	TestResourceLocator instance;
-	ResourceLocator::Location location =
-	    instance.locate("path", "", ResourceLocator::Type::DOMAIN_DESC);
-	std::unique_ptr<std::istream> is = location.stream();
+	StaticResourceLocator locator;
+	locator.store("path", "test");
+
+	Resource res;
+	ASSERT_TRUE(locator.locate(res, "path"));
+
+	auto is = res.stream();
 
 	std::string str;
 	*is >> str;
