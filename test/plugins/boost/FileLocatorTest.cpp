@@ -20,67 +20,75 @@
 
 #include <plugins/boost/FileLocator.hpp>
 
+#include <boost/filesystem.hpp>
+
 namespace ousia {
 TEST(FileLocator, testAddSearchPath)
 {
 	FileLocator instance;
-	ASSERT_EQ(0, instance.getSearchPaths().size());
+	ASSERT_EQ(0U, instance.getSearchPaths().size());
+
+	// Read the canonical path of "."
+	std::string canonicalPath =
+	    boost::filesystem::canonical(".").generic_string();
 
 	// Add one path for three types.
-	instance.addSearchPath(
-	    ".", {ResourceLocator::Type::DOMAIN_DESC, ResourceLocator::Type::SCRIPT,
-	          ResourceLocator::Type::TYPESYS});
+	instance.addSearchPath(".",
+	                       {ResourceType::DOMAIN_DESC, ResourceType::SCRIPT,
+	                        ResourceType::TYPESYSTEM});
 
-	ASSERT_EQ(3, instance.getSearchPaths().size());
+	ASSERT_EQ(3U, instance.getSearchPaths().size());
 
-	auto it =
-	    instance.getSearchPaths().find(ResourceLocator::Type::DOMAIN_DESC);
+	auto it = instance.getSearchPaths().find(ResourceType::DOMAIN_DESC);
 
-	ASSERT_EQ(1, it->second.size());
-	ASSERT_EQ(".", it->second[0].generic_string());
+	ASSERT_EQ(1U, it->second.size());
+	ASSERT_EQ(canonicalPath, it->second[0]);
 
-	it = instance.getSearchPaths().find(ResourceLocator::Type::SCRIPT);
+	it = instance.getSearchPaths().find(ResourceType::SCRIPT);
 
-	ASSERT_EQ(1, it->second.size());
-	ASSERT_EQ(".", it->second[0].generic_string());
+	ASSERT_EQ(1U, it->second.size());
+	ASSERT_EQ(canonicalPath, it->second[0]);
 
-	it = instance.getSearchPaths().find(ResourceLocator::Type::TYPESYS);
+	it = instance.getSearchPaths().find(ResourceType::TYPESYSTEM);
 
-	ASSERT_EQ(1, it->second.size());
-	ASSERT_EQ(".", it->second[0].generic_string());
+	ASSERT_EQ(1U, it->second.size());
+	ASSERT_EQ(canonicalPath, it->second[0]);
 
 	// Add another path for only one of those types.
 
-	instance.addSearchPath("..", {ResourceLocator::Type::DOMAIN_DESC});
+	std::string canonicalPath2 =
+	    boost::filesystem::canonical("..").generic_string();
 
-	ASSERT_EQ(3, instance.getSearchPaths().size());
+	instance.addSearchPath("..", {ResourceType::DOMAIN_DESC});
 
-	it = instance.getSearchPaths().find(ResourceLocator::Type::DOMAIN_DESC);
+	ASSERT_EQ(3U, instance.getSearchPaths().size());
 
-	ASSERT_EQ(2, it->second.size());
-	ASSERT_EQ(".", it->second[0].generic_string());
-	ASSERT_EQ("..", it->second[1].generic_string());
+	it = instance.getSearchPaths().find(ResourceType::DOMAIN_DESC);
+
+	ASSERT_EQ(2U, it->second.size());
+	ASSERT_EQ(canonicalPath, it->second[0]);
+	ASSERT_EQ(canonicalPath2, it->second[1]);
 }
 
-void assert_located(
-    const FileLocator &instance, const std::string &path,
-    const std::string &relativeTo,
-    ResourceLocator::Type type = ResourceLocator::Type::DOMAIN_DESC)
+void assert_located(const FileLocator &instance, const std::string &path,
+                    const std::string &relativeTo,
+                    ResourceType type = ResourceType::DOMAIN_DESC)
 {
-	ResourceLocator::Location loc = instance.locate(path, relativeTo, type);
-	ASSERT_TRUE(loc.found);
-	boost::filesystem::path p(loc.location);
+	Resource res;
+	ASSERT_TRUE(instance.locate(res, path, type, relativeTo));
+	ASSERT_TRUE(res.isValid());
+	boost::filesystem::path p(res.getLocation());
 	ASSERT_TRUE(boost::filesystem::exists(p));
 	ASSERT_EQ(path, p.filename());
 }
 
-void assert_not_located(
-    const FileLocator &instance, const std::string &path,
-    const std::string &relativeTo,
-    ResourceLocator::Type type = ResourceLocator::Type::DOMAIN_DESC)
+void assert_not_located(const FileLocator &instance, const std::string &path,
+                        const std::string &relativeTo,
+                        ResourceType type = ResourceType::DOMAIN_DESC)
 {
-	ResourceLocator::Location loc = instance.locate(path, relativeTo, type);
-	ASSERT_FALSE(loc.found);
+	Resource res;
+	ASSERT_FALSE(instance.locate(res, path, type, relativeTo));
+	ASSERT_FALSE(res.isValid());
 }
 
 TEST(FileLocator, testLocate)
@@ -106,14 +114,14 @@ TEST(FileLocator, testLocate)
 	assert_not_located(instance, "FileLocator.hpp", relativeTo);
 
 	// Add the respective search path.
-	instance.addSearchPath(start / "src/plugins/boost",
-	                       {ResourceLocator::Type::DOMAIN_DESC});
+	instance.addSearchPath((start / "src/plugins/boost").generic_string(),
+	                       {ResourceType::DOMAIN_DESC});
 	// Now we should be able to find both.
 	assert_located(instance, "CMakeLists.txt", relativeTo);
 	assert_located(instance, "FileLocator.hpp", relativeTo);
 	// but only with the correct type.
 	assert_not_located(instance, "FileLocator.hpp", relativeTo,
-	                   ResourceLocator::Type::SCRIPT);
+	                   ResourceType::SCRIPT);
 }
 
 TEST(FileLocator, testStream)
@@ -133,10 +141,11 @@ TEST(FileLocator, testStream)
 	}
 	FileLocator instance;
 	// Locate the CMakeLists.txt
-	ResourceLocator::Location loc = instance.locate(
-	    "CMakeLists.txt", relativeTo, ResourceLocator::Type::DOMAIN_DESC);
+	Resource res;
+	instance.locate(res, "CMakeLists.txt", ResourceType::DOMAIN_DESC,
+	                relativeTo);
 	// Stream the content.
-	auto is_ptr = loc.stream();
+	auto is_ptr = res.stream();
 	// get the beginning.
 	char buf[256];
 	is_ptr->getline(buf, 256);

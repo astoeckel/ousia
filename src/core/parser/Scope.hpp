@@ -467,18 +467,12 @@ public:
 	}
 
 	/**
-	 * Tries to resolve all currently deferred resolution steps.
+	 * Tries to resolve all currently deferred resolution steps. The list of
+	 * pending deferred resolutions is cleared after this function has run.
 	 *
 	 * @param logger is the logger instance into which errors should be logged.
 	 */
 	bool performDeferredResolution(Logger &logger);
-
-	/**
-	 * Clears the list of currently deferred resolutions. This function may be
-	 * used to gracefully continue parsing, even after the resolution has
-	 * failed.
-	 */
-	void purgeDeferredResolutions();
 };
 }
 }

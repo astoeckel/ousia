@@ -19,14 +19,12 @@
 #ifndef _OUSIA_FILE_LOCATOR_HPP_
 #define _OUSIA_FILE_LOCATOR_HPP_
 
-#include <core/ResourceLocator.hpp>
+#include <core/resource/Resource.hpp>
+#include <core/resource/ResourceLocator.hpp>
 
 #include <map>
 #include <set>
 #include <vector>
-
-#include <boost/filesystem.hpp>
-
 
 namespace ousia {
 
@@ -39,8 +37,25 @@ namespace ousia {
  * locations (e.g. online resources, .zip files, etc.).
  */
 class FileLocator : public ResourceLocator {
+public:
+	/**
+	 * Type alias representing a Res
+	 */
+	using SearchPaths = std::map<ResourceType, std::vector<std::string>>;
+
 private:
-	std::map<ResourceLocator::Type, std::vector<boost::filesystem::path>> searchPaths;
+	/**
+	 * Internal variable containing all stored search paths.
+	 */
+	SearchPaths searchPaths;
+
+protected:
+	bool doLocate(Resource &resource, const std::string &path,
+	              const ResourceType type,
+	              const std::string &relativeTo) const override;
+
+	std::unique_ptr<std::istream> doStream(
+	    const std::string &location) const override;
 
 public:
 	FileLocator() : searchPaths() {}
@@ -53,24 +68,23 @@ public:
 	 *              resources of the specified types at the given path in the
 	 *              future.
 	 */
-	void addSearchPath(const boost::filesystem::path &path,
-	                   std::set<ResourceLocator::Type> types);
+	void addSearchPath(const std::string &path, std::set<ResourceType> types);
+
+	/**
+	 * Adds a search path. Implicitly adds the search path for the "unknown"
+	 *
+	 * @param path is a fully qualified/canonical path to a directory.
+	 * @param types is a set of Resource Types. The FileLocator will look for
+	 *              resources of the specified types at the given path in the
+	 *              future.
+	 */
+	void addSearchPath(const std::string &path);
 
 	/**
 	 * Returns the backing map containing all search paths for a given type.
 	 * This is read-only.
 	 */
-	const std::map<ResourceLocator::Type, std::vector<boost::filesystem::path>> &
-	getSearchPaths() const
-	{
-		return searchPaths;
-	}
-
-	Location locate(const std::string &path, const std::string &relativeTo,
-	                const Type type) const override;
-
-	std::unique_ptr<std::istream> stream(
-	    const std::string &location) const override;
+	const SearchPaths &getSearchPaths() const { return searchPaths; }
 };
 }
 

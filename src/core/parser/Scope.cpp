@@ -119,7 +119,7 @@ Rooted<Node> Scope::getLeaf() { return nodes.back(); }
 bool Scope::resolve(const std::vector<std::string> &path, const Rtti &type,
                     Logger &logger, ResolutionImposterCallback imposterCallback,
                     ResolutionResultCallback resultCallback,
-	             const SourceLocation &location)
+                    const SourceLocation &location)
 {
 	if (!resolve(path, type, logger, resultCallback, location)) {
 		resultCallback(imposterCallback(), logger);
@@ -168,22 +168,21 @@ bool Scope::performDeferredResolution(Logger &logger)
 		}
 	}
 
-	// Output an error message if there are still deferred elements left that
-	// could not be resolved
-	if (!deferred.empty()) {
-		for (const auto &failed : deferred) {
-			logger.error(
-			    std::string("Could not resolve a reference to \"") +
-			        Utils::join(failed.path, ".") +
-			        std::string("\" of type " + failed.type.name),
-			    failed.location);
-		}
+	// We were successful if there are no more deferred resolutions
+	if (deferred.empty()) {
+		return true;
 	}
 
-	// We were successful if there are no more deferred resolutions
-	return deferred.empty();
+	// Output error messages for all elements for which resolution did not
+	// succeed.
+	for (const auto &failed : deferred) {
+		logger.error(std::string("Could not resolve ")  + failed.type.name + std::string(" \"") +
+		                 Utils::join(failed.path, ".") +
+		                 std::string("\""),
+		             failed.location);
+	}
+	deferred.clear();
+	return false;
 }
-
-void Scope::purgeDeferredResolutions() { deferred.clear(); }
 }
 }

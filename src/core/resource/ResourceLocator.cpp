@@ -1,0 +1,103 @@
+/*
+    Ousía
+    Copyright (C) 2014, 2015  Benjamin Paaßen, Andreas Stöckel
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <sstream>
+
+#include "Resource.hpp"
+#include "ResourceLocator.hpp"
+
+namespace ousia {
+
+/* Class ResourceLocator */
+
+bool ResourceLocator::locate(Resource &resource, const std::string &path,
+                             const ResourceType type,
+                             const Resource &relativeTo) const
+{
+	if (&relativeTo.getLocator() == this) {
+		return doLocate(resource, path, type, relativeTo.getLocation());
+	}
+	return doLocate(resource, path, type, "");
+}
+
+bool ResourceLocator::locate(Resource &resource, const std::string &path,
+                             const ResourceType type,
+                             const std::string &relativeTo) const
+{
+	return doLocate(resource, path, type, relativeTo);
+}
+
+std::unique_ptr<std::istream> ResourceLocator::stream(
+    const std::string &location) const
+{
+	return doStream(location);
+}
+
+/* Class StaticResourceLocator */
+
+bool StaticResourceLocator::doLocate(
+    Resource &resource, const std::string &path, const ResourceType type,
+    const std::string &relativeTo) const
+{
+	auto it = resources.find(path);
+	if (it != resources.end()) {
+		resource = Resource(true, *this, type, path);
+		return true;
+	}
+	return false;
+}
+
+std::unique_ptr<std::istream> StaticResourceLocator::doStream(
+    const std::string &location) const
+{
+	auto it = resources.find(location);
+	if (it != resources.end()) {
+		return std::unique_ptr<std::istream>{new std::stringstream{it->second}};
+	}
+	return std::unique_ptr<std::istream>{new std::stringstream{""}};
+}
+
+void StaticResourceLocator::store(const std::string &path,
+                                  const std::string &data)
+{
+	auto it = resources.find(path);
+	if (it != resources.end()) {
+		it->second = data;
+	} else {
+		resources.emplace(path, data);
+	}
+}
+
+/* Class NullResourceLocatorImpl */
+
+bool NullResourceLocatorImpl::doLocate(Resource &resource,
+                                       const std::string &path,
+                                       const ResourceType type,
+                                       const std::string &relativeTo) const
+{
+	return false;
+}
+std::unique_ptr<std::istream> NullResourceLocatorImpl::doStream(
+    const std::string &location) const
+{
+	return std::unique_ptr<std::istream>{new std::stringstream{""}};
+}
+
+const NullResourceLocatorImpl NullResourceLocator;
+}
+

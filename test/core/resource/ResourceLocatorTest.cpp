@@ -16,38 +16,37 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_STANDALONE_PARSER_CONTEXT_
-#define _OUSIA_STANDALONE_PARSER_CONTEXT_
+#include <gtest/gtest.h>
 
-#include <memory>
-
-#include <core/model/Project.hpp>
-#include <core/parser/Parser.hpp>
+#include <core/resource/ResourceLocator.hpp>
 
 namespace ousia {
-namespace parser {
 
-struct StandaloneParserContext {
-public:
-	Manager manager;
-	Logger logger;
-	Scope scope;
-	Registry registry;
-	Rooted<model::Project> project;
-	ParserContext context;
+TEST(StaticResourceLocator, locate)
+{
+	StaticResourceLocator locator;
+	locator.store("path", "test");
 
-	StandaloneParserContext()
-	    : project(new model::Project(manager)),
-	      context(scope, registry, logger, manager, project)
-	{
-	}
-
-	StandaloneParserContext(Logger &externalLogger)
-	    : project(new model::Project(manager)),
-	      context(scope, registry, externalLogger, manager, project){};
-};
-}
+	Resource res;
+	ASSERT_TRUE(locator.locate(res, "path"));
+	ASSERT_TRUE(res.isValid());
+	ASSERT_EQ(ResourceType::UNKNOWN, res.getType());
+	ASSERT_EQ("path", res.getLocation());
 }
 
-#endif /* _OUSIA_STANDALONE_PARSER_CONTEXT_ */
+TEST(StaticResourceLocator, stream)
+{
+	StaticResourceLocator locator;
+	locator.store("path", "test");
 
+	Resource res;
+	ASSERT_TRUE(locator.locate(res, "path"));
+
+	auto is = res.stream();
+
+	std::string str;
+	*is >> str;
+
+	ASSERT_EQ("test", str);
+}
+}
