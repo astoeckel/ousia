@@ -360,6 +360,27 @@ void DocumentEntity::addStructureNodes(
 
 /* Class StructureNode */
 
+bool StructureNode::doValidate(Logger &logger) const
+{
+	bool valid = true;
+	// check name
+	if (!getName().empty()) {
+		valid = validateName(logger);
+	}
+	// check the parent.
+	if (getParent() == nullptr) {
+		logger.error("The parent is not set!");
+		valid = false;
+	}
+	if (!getParent()->isa(RttiTypes::StructuredEntity) &&
+	    !getParent()->isa(RttiTypes::AnnotationEntity) &&
+	    !getParent()->isa(RttiTypes::Document)) {
+		logger.error("The parent does not have a valid type!");
+		valid = false;
+	}
+	return valid;
+}
+
 StructureNode::StructureNode(Manager &mgr, std::string name,
                              Handle<Node> parent, const std::string &fieldName)
     : Node(mgr, std::move(name), parent)
@@ -394,18 +415,22 @@ StructuredEntity::StructuredEntity(Manager &mgr, Handle<Node> parent,
 
 bool StructuredEntity::doValidate(Logger &logger) const
 {
+	// check the validity as a StructureNode and as a DocumentEntity.
+	return StructureNode::doValidate(logger) &
+	       DocumentEntity::doValidate(logger);
+}
+
+/* Class Anchor */
+
+bool Anchor::doValidate(Logger &logger) const
+{
 	bool valid = true;
-	// check if the parent is set.
-	if (getParent() == nullptr) {
-		logger.error("The parent is not set!");
+	// check name
+	if (getName().empty()) {
+		logger.error("An Anchor needs a name!");
 		valid = false;
 	}
-	// check name
-	if (!getName().empty()) {
-		valid = valid & validateName(logger);
-	}
-	// check the validity as a DocumentEntity.
-	return valid & DocumentEntity::doValidate(logger);
+	return valid & StructureNode::doValidate(logger);
 }
 
 /* Class AnnotationEntity */
@@ -427,6 +452,10 @@ AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
 bool AnnotationEntity::doValidate(Logger &logger) const
 {
 	bool valid = true;
+	// check name
+	if (!getName().empty()) {
+		valid = valid & validateName(logger);
+	}
 	// check if this AnnotationEntity is correctly registered at its document.
 	if (getParent() == nullptr) {
 		logger.error("The parent is not set!");
@@ -434,39 +463,38 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 	} else if (!getParent()->isa(RttiTypes::Document)) {
 		logger.error("The parent is not a document!");
 		valid = false;
-	}
-	Handle<Document> doc = getParent().cast<Document>();
-	bool found = false;
-	for (auto &a : doc->getAnnotations()) {
-		if (a == this) {
-			found = true;
-			break;
+	} else {
+		Handle<Document> doc = getParent().cast<Document>();
+		bool found = false;
+		for (auto &a : doc->getAnnotations()) {
+			if (a == this) {
+				found = true;
+				break;
+			}
 		}
-	}
-	if (!found) {
-		logger.error("This annotation was not registered at the document.");
-		valid = false;
-	}
-	// check name
-	if (!getName().empty()) {
-		valid = valid & validateName(logger);
-	}
-	// check if the Anchors are part of the right document.
-	if (start == nullptr) {
-		logger.error("This annotation has no start Anchor!");
-		valid = false;
-	} else if (!doc->hasChild(start)) {
-		logger.error(
-		    "This annotations start anchor was not part of the same document!");
-		valid = false;
-	}
-	if (end == nullptr) {
-		logger.error("This annotation has no end Anchor!");
-		valid = false;
-	} else if (!doc->hasChild(end)) {
-		logger.error(
-		    "This annotations end anchor was not part of the same document!");
-		valid = false;
+		if (!found) {
+			logger.error("This annotation was not registered at the document.");
+			valid = false;
+		}
+		// check if the Anchors are part of the right document.
+		if (start == nullptr) {
+			logger.error("This annotation has no start Anchor!");
+			valid = false;
+		} else if (!doc->hasChild(start)) {
+			logger.error(
+			    "This annotations start anchor was not part of the same "
+			    "document!");
+			valid = false;
+		}
+		if (end == nullptr) {
+			logger.error("This annotation has no end Anchor!");
+			valid = false;
+		} else if (!doc->hasChild(end)) {
+			logger.error(
+			    "This annotations end anchor was not part of the same "
+			    "document!");
+			valid = false;
+		}
 	}
 	// check the validity as a DocumentEntity.
 	return valid & DocumentEntity::doValidate(logger);

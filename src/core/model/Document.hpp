@@ -346,6 +346,9 @@ public:
 class StructureNode : public Node {
 	friend DocumentEntity;
 
+protected:
+	bool doValidate(Logger &logger) const override;
+
 public:
 	/**
 	 * Constructor for a StructureNode in the StructureTree.
@@ -491,6 +494,9 @@ public:
  * Please refer to the AnnotationEntity documentation for more information.
  */
 class Anchor : public StructureNode {
+protected:
+	bool doValidate(Logger &logger) const override;
+	
 public:
 	/**
 	 * Constructor for Anchor.
