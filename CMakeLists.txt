@@ -81,6 +81,18 @@ IF(TEST)
 ENDIF()
 
 ################################################################################
+# Commands for assembling and including the configuration file                 #
+################################################################################
+
+CONFIGURE_FILE(
+	"${PROJECT_SOURCE_DIR}/config.h.in"
+	"${PROJECT_BINARY_DIR}/config.h"
+)
+
+# Adapt the include path for finding the configuration file
+INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}")
+
+################################################################################
 # Commands for building Ousía                                                  #
 ################################################################################
 

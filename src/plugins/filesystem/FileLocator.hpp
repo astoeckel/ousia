@@ -16,6 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/**
+ * @file FileLocator.hpp
+ *
+ * Contains the FileLocator class which is used to locate resources and to
+ * canonicalize file system paths.
+ *
+ * @author Benjamin Paaßen (bpassen@techfak.uni-bielefeld.de)
+ */
+
 #ifndef _OUSIA_FILE_LOCATOR_HPP_
 #define _OUSIA_FILE_LOCATOR_HPP_
 
@@ -39,7 +48,7 @@ namespace ousia {
 class FileLocator : public ResourceLocator {
 public:
 	/**
-	 * Type alias representing a Res
+	 * Type alias representing the internal search path list.
 	 */
 	using SearchPaths = std::map<ResourceType, std::vector<std::string>>;
 
@@ -48,6 +57,25 @@ private:
 	 * Internal variable containing all stored search paths.
 	 */
 	SearchPaths searchPaths;
+
+	/**
+	 * Internally used to add a search path to the given vector without
+	 * duplications.
+	 *
+	 * @parm path is the path that should be added to the vector (must be
+	 * canonicalized).
+	 * @parm paths is the list to which the path should be added.
+	 */
+	void addPath(const std::string &path, std::vector<std::string> &paths);
+
+	/**
+	 * Internally used to add the default search paths for various resource
+	 * types relative to a certain parent directory.
+	 *
+	 * @param relativeTo is the base directory relative to which the search
+	 * paths ought to be setup.
+	 */
+	void addDefaultSearchPaths(const std::string &relativeTo);
 
 protected:
 	bool doLocate(Resource &resource, const std::string &path,
@@ -74,11 +102,24 @@ public:
 	 * Adds a search path. Implicitly adds the search path for the "unknown"
 	 *
 	 * @param path is a fully qualified/canonical path to a directory.
-	 * @param types is a set of Resource Types. The FileLocator will look for
-	 *              resources of the specified types at the given path in the
-	 *              future.
+	 * @param type is a single type for which the path should be added.
 	 */
-	void addSearchPath(const std::string &path);
+	void addSearchPath(const std::string &path,
+	                   ResourceType type = ResourceType::UNKNOWN);
+
+	/**
+	 * Adds platform-specific default search paths. These include
+	 * (in order of their precedence):
+	 * <ul>
+	 *   <li>The user application data directory (~/.local/share/ousia/ on
+	 *       UNIX)</li>
+	 *   <li>The global application data directory used for make install
+	 *       (default is /usr/local/share on UNIX)</li>
+	 * </ul>
+	 * Resource type specific subdirectories (domain, typesytem, etc.)
+	 * are automatically added to the aforementioned paths.
+	 */
+	void addDefaultSearchPaths();
 
 	/**
 	 * Returns the backing map containing all search paths for a given type.

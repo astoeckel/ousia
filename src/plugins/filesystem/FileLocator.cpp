@@ -16,64 +16,140 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "FileLocator.hpp"
+#ifndef NDEBUG
+#include <iostream>
+#endif
+
+#include <algorithm>
+#include <fstream>
 
 #include <boost/filesystem.hpp>
 
-#include <fstream>
+#include "FileLocator.hpp"
+#include "SpecialPaths.hpp"
+
+namespace fs = boost::filesystem;
 
 namespace ousia {
+
+void FileLocator::addPath(const std::string &path,
+                          std::vector<std::string> &paths)
+{
+	auto it = std::find(paths.begin(), paths.end(), path);
+	if (it == paths.end()) {
+		paths.push_back(path);
+	}
+}
 
 void FileLocator::addSearchPath(const std::string &path,
                                 std::set<ResourceType> types)
 {
-	// Canonicalize the given path
-	std::string canonicalPath =
-	    boost::filesystem::canonical(path).generic_string();
+	if (path.empty() || !fs::exists(path)) {
+		return;
+	}
+
+	// Canonicalize the given path, check whether it exists
+	std::string canonicalPath = fs::canonical(path).generic_string();
+
+#ifndef NDEBUG
+	std::cout << "FileLocator: Adding search path " << canonicalPath
+	          << std::endl;
+#endif
 
 	// Insert the path for all given types.
 	for (auto &type : types) {
 		auto it = searchPaths.find(type);
 		if (it != searchPaths.end()) {
-			it->second.push_back(canonicalPath);
+			addPath(canonicalPath, it->second);
 		} else {
 			searchPaths.insert({type, {canonicalPath}});
 		}
 	}
 }
 
+void FileLocator::addSearchPath(const std::string &path, ResourceType type)
+{
+	addSearchPath(path, std::set<ResourceType>{type});
+}
+
+void FileLocator::addDefaultSearchPaths(const std::string &relativeTo)
+{
+	// Abort if the base directory is empty
+	if (relativeTo.empty()) {
+		return;
+	}
+
+	// Abort if the base directory does not exist or is not a directory
+	fs::path base(relativeTo);
+	if (!fs::exists(base) || !fs::is_directory(base)) {
+		return;
+	}
+
+	// Add the search paths
+	addSearchPath(base.generic_string(), ResourceType::UNKNOWN);
+	addSearchPath((base / "domain").generic_string(),
+	              ResourceType::DOMAIN_DESC);
+	addSearchPath((base / "typesystem").generic_string(),
+	              ResourceType::TYPESYSTEM);
+}
+
+void FileLocator::addDefaultSearchPaths()
+{
+	addDefaultSearchPaths(SpecialPaths::getGlobalDataDir());
+	addDefaultSearchPaths(SpecialPaths::getLocalDataDir());
+#ifndef NDEBUG
+	addDefaultSearchPaths(SpecialPaths::getDebugDataDir());
+	addDefaultSearchPaths(SpecialPaths::getDebugTestdataDir());
+#endif
+}
+
 bool FileLocator::doLocate(Resource &resource, const std::string &path,
                            const ResourceType type,
                            const std::string &relativeTo) const
 {
-	boost::filesystem::path base(relativeTo);
-	if (boost::filesystem::exists(base)) {
-		// Look if 'relativeTo' is a directory already.
-		if (!boost::filesystem::is_directory(base)) {
-			// If not we use the parent directory.
-			base = base.parent_path();
-		}
+	if (!relativeTo.empty()) {
+		fs::path base(relativeTo);
+		if (fs::exists(base)) {
+			// Look if 'relativeTo' is a directory already.
+			if (!fs::is_directory(base)) {
+				// If not we use the parent directory.
+				base = base.parent_path();
+			}
 
-		// Use the / operator to append the path.
-		base /= path;
+			// Use the / operator to append the path.
+			base /= path;
 
-		// If we already found a fitting resource there, use that.
-		if (boost::filesystem::exists(base)) {
-			std::string location =
-			    boost::filesystem::canonical(base).generic_string();
-			resource = Resource(true, *this, type, location);
-			return true;
+			// If we already found a fitting resource there, use that.
+			if (fs::exists(base)) {
+				std::string location = fs::canonical(base).generic_string();
+#ifndef NDEBUG
+				std::cout << "FileLocator: Found \"" << path << "\" at "
+				          << location << std::endl;
+#endif
+				resource = Resource(true, *this, type, location);
+				return true;
+			}
 		}
 	}
 
-	// Otherwise look in the search paths.
+	// Otherwise look in the search paths, search backwards, last defined search
+	// paths have a higher precedence
 	auto it = searchPaths.find(type);
 	if (it != searchPaths.end()) {
-		for (boost::filesystem::path p : it->second) {
+		const auto &paths = it->second;
+		for (auto it = paths.rbegin(); it != paths.rend(); it++) {
+#ifndef NDEBUG
+			std::cout << "FileLocator: Searching for \"" << path << "\" in "
+			          << *it << std::endl;
+#endif
+			fs::path p{*it};
 			p /= path;
-			if (boost::filesystem::exists(p)) {
-				std::string location =
-				    boost::filesystem::canonical(p).generic_string();
+			if (fs::exists(p)) {
+				std::string location = fs::canonical(p).generic_string();
+#ifndef NDEBUG
+				std::cout << "FileLocator: Found \"" << path << "\" at "
+				          << location << std::endl;
+#endif
 				resource = Resource(true, *this, type, location);
 				return true;
 			}

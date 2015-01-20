@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include <plugins/boost/FileLocator.hpp>
+#include <plugins/filesystem/FileLocator.hpp>
 
 #include <boost/filesystem.hpp>
 
@@ -114,7 +114,7 @@ TEST(FileLocator, testLocate)
 	assert_not_located(instance, "FileLocator.hpp", relativeTo);
 
 	// Add the respective search path.
-	instance.addSearchPath((start / "src/plugins/boost").generic_string(),
+	instance.addSearchPath((start / "src/plugins/filesystem").generic_string(),
 	                       {ResourceType::DOMAIN_DESC});
 	// Now we should be able to find both.
 	assert_located(instance, "CMakeLists.txt", relativeTo);
