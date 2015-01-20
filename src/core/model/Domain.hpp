@@ -271,13 +271,9 @@ private:
 	Owned<Type> primitiveType;
 	bool optional;
 
-	/*
-	 * TODO: doValidate with:
-	 * # primitive and primitiveType set and no children XOR other FieldType and
-	 *   no primitive type set
-	 * # namecheck
-	 * # parent typecheck
-	 */
+protected:
+	bool doValidate(Logger &logger) const override;
+
 public:
 	/**
 	 * This is the constructor for primitive fields. The type is automatically
@@ -346,6 +342,17 @@ public:
 		invalidate();
 		children.insert(children.end(), cs.begin(), cs.end());
 	}
+
+	/**
+	 * Removes the given StructuredClass from the list of children of this
+	 * FieldDescriptor.
+	 *
+	 * @param c some StructuredClass that shan't be a child of this
+	 *          FieldDescriptor anymore.
+	 * @return  true if the FieldDescriptor contained this child and false if it
+	 *          did not.
+	 */
+	bool removeChild(Handle<StructuredClass> c);
 
 	/**
 	 * Returns the type of this field (not to be confused with the primitive
@@ -451,14 +458,8 @@ private:
 
 protected:
 	void doResolve(ResolutionState &state) override;
-	/*
-	 * TODO: doValidate with:
-	 * # namecheck
-	 * # FieldDescriptor name uniqueness
-	 * # do all FieldDescriptors have this Descriptor as parent?
-	 * # is the parent a domain?
-	 * # is the attributes descriptor either not set or a StructType?
-	 */
+
+	bool doValidate(Logger &logger) const override;
 
 public:
 	Descriptor(Manager &mgr, std::string name, Handle<Domain> domain,
@@ -584,12 +585,12 @@ public:
  */
 typedef RangeSet<size_t> Cardinality;
 
-
 /**
  * This is the default cardinality.
  */
 
-static Cardinality createAny(){
+static Cardinality createAny()
+{
 	Cardinality any;
 	any.merge(Range<size_t>::typeRangeFrom(0));
 	return std::move(any);
@@ -685,14 +686,8 @@ private:
 	    NodeVector<FieldDescriptor> &current,
 	    std::set<std::string> &overriddenFields) const;
 
-	
-
-	/*
-	 * TODO: doValidate with
-	 * # does the subclasses have this class as superclass?
-	 * # are the subclasses and the superclass valid?
-	 * # is this a valid descriptor?
-	 */
+protected:
+	bool doValidate(Logger &logger) const override;
 
 public:
 	/**
@@ -883,6 +878,8 @@ protected:
 	 * # are all annotationclasses valid and have a unique name?
 	 * # are all typesystems valid?
 	 */
+	bool doValidate(Logger &logger) const override;
+
 public:
 	/**
 	 * The constructor for a new domain. Note that this is an empty Domain and

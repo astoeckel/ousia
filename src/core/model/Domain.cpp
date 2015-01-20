@@ -55,6 +55,72 @@ FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
 	}
 }
 
+bool FieldDescriptor::doValidate(Logger &logger) const
+{
+	bool valid = true;
+	// check parent type
+	if(getParent() == nullptr){
+		logger.error("This field has no parent!");
+		valid = false;
+	} else if (!getParent()->isa(RttiTypes::Descriptor)) {
+		logger.error("The parent of this field is not a descriptor!");
+		valid = false;
+	}
+	// check name
+	if (!getName().empty()) {
+		valid = valid & validateName(logger);
+	}
+	// check consistency of FieldType with the rest of the FieldDescriptor.
+	if (fieldType == FieldType::PRIMITIVE) {
+		if (children.size() > 0) {
+			logger.error(
+			    "This field is supposed to be primitive but has "
+			    "registered child classes!");
+			valid = false;
+		}
+		if (primitiveType == nullptr) {
+			logger.error(
+			    "This field is supposed to be primitive but has "
+			    "no primitive type!");
+			valid = false;
+		}
+	} else {
+		if (primitiveType != nullptr) {
+			logger.error(
+			    "This field is supposed to be non-primitive but has "
+			    "a primitive type!");
+			valid = false;
+		}
+	}
+	/*
+	 * we are not allowed to call the validation functions of each child because
+	 * this might lead to cycles. What we should do, however, is to check if
+	 * there are no duplicates.
+	 */
+	std::set<std::string> names;
+	for (Handle<StructuredClass> c : children) {
+		if (!names.insert(c->getName()).second) {
+			logger.error(std::string("Field \"") + getName() +
+			             "\" had multiple children with the name \"" +
+			             c->getName() + "\"");
+			valid = false;
+		}
+	}
+
+	return valid;
+}
+
+
+bool FieldDescriptor::removeChild(Handle<StructuredClass> c){
+	auto it = children.find(c);
+	if(it != children.end()){
+		invalidate();
+		children.erase(it);
+		return true;
+	}
+	return false;
+}
+
 /* Class Descriptor */
 
 void Descriptor::doResolve(ResolutionState &state)
@@ -66,6 +132,40 @@ void Descriptor::doResolve(ResolutionState &state)
 	}
 	continueResolveComposita(fieldDescriptors, fieldDescriptors.getIndex(),
 	                         state);
+}
+
+bool Descriptor::doValidate(Logger &logger) const
+{
+	bool valid = true;
+	// check parent type
+	if(getParent() == nullptr){
+		logger.error("This Descriptor has no parent!");
+		valid = false;
+	} else if (!getParent()->isa(RttiTypes::Domain)) {
+		logger.error("The parent of this Descriptor is not a Domain!");
+		valid = false;
+	}
+	// check name
+	if (getName().empty()) {
+		logger.error("The name of this Descriptor is empty!");
+		valid = false;
+	} else{
+		valid = valid & validateName(logger);
+	}
+	// check if all FieldDescriptors have this Descriptor as parent.
+	for (Handle<FieldDescriptor> fd : fieldDescriptors) {
+		if (fd->getParent() != this) {
+			logger.error(std::string("Descriptor \"") + getName() +
+			             "\" has "
+			             "field \"" +
+			             fd->getName() +
+			             "\" as child but the field does not "
+			             "have the Descriptor as parent.");
+			valid = false;
+		}
+	}
+	// check the FieldDescriptors themselves.
+	return valid & continueValidationCheckDuplicates(fieldDescriptors, logger);
 }
 
 std::vector<Rooted<Node>> Descriptor::pathTo(
@@ -184,19 +284,47 @@ StructuredClass::StructuredClass(Manager &mgr, std::string name,
 	}
 }
 
+bool StructuredClass::doValidate(Logger &logger) const
+{
+	bool valid = true;
+	// check if all registered subclasses have this StructuredClass as parent.
+	for (Handle<StructuredClass> sub : subclasses) {
+		if (sub->getSuperclass() != this) {
+			logger.error(std::string("Struct \"") + sub->getName() +
+			             "\" is registered as subclass of \"" + getName() +
+			             "\" but does not have it as superclass!");
+			valid = false;
+		}
+	}
+	// check the validity of this superclass.
+	if (superclass != nullptr) {
+		valid = valid & superclass->validate(logger);
+	}
+	// check the validity as a Descriptor.
+	/*
+	 * Note that we do not check the validity of all subclasses. This is because
+	 * it will lead to cycles as the subclasses would call validate on their
+	 * superclass, which is this one.
+	 */
+	return valid & Descriptor::doValidate(logger);
+}
+
 void StructuredClass::setSuperclass(Handle<StructuredClass> sup)
 {
 	if (superclass == sup) {
 		return;
 	}
-	invalidate();
-	if (sup != nullptr) {
-		sup->addSubclass(this);
-	}
+	// remove this subclass from the old superclass.
 	if (superclass != nullptr) {
 		superclass->removeSubclass(this);
 	}
+	// set the new superclass
 	superclass = acquire(sup);
+	invalidate();
+	// add this class as new subclass of the new superclass.
+	if (sup != nullptr) {
+		sup->addSubclass(this);
+	}
 }
 
 bool StructuredClass::isSubclassOf(Handle<StructuredClass> c) const
@@ -287,6 +415,16 @@ void Domain::doResolve(ResolutionState &state)
 	}
 }
 
+bool Domain::doValidate(Logger &logger) const
+{
+	// check validity of name, of StructuredClasses, of AnnotationClasses and
+	// TypeSystems.
+	return validateName(logger) &
+	       continueValidationCheckDuplicates(structuredClasses, logger) &
+	       continueValidationCheckDuplicates(annotationClasses, logger) &
+	       continueValidationCheckDuplicates(typesystems, logger);
+}
+
 void Domain::addStructuredClass(Handle<StructuredClass> s)
 {
 	invalidate();
@@ -323,4 +461,3 @@ const Rtti Domain = RttiBuilder<model::Domain>("Domain")
                         .composedOf({&StructuredClass, &AnnotationClass});
 }
 }
-
