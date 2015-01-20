@@ -111,10 +111,24 @@ public:
 	 * @param data is a variant containing the data that should be checked and
 	 * -- if possible and necessary -- converted to a variant adhering to the
 	 * internal representation used by the Type class.
-	 * @param logger is the Logger instance into which errors should be written.
+	 * @param logger is the Logger instance into which errors should be
+	 * written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool build(Variant &data, Logger &logger) const;
+
+	/**
+	 * Returns true if and only if the given Variant adheres to this Type. In
+	 * essence this just calls the build method on a copy of the input Variant.
+	 *
+	 * @param data is a Variant containing data that shall be validated.
+	 * @param logger is a logger instance to which errors will be written.
+	 *
+	 * @return true if and only if the given Variant adheres to this Type.
+	 */
+	bool isValid(Variant data, Logger &logger) const{
+		return build(data, logger);
+	}
 
 	/**
 	 * Returns the underlying Typesystem instance.
