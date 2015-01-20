@@ -550,7 +550,7 @@ void Document::addAnnotation(Handle<AnnotationEntity> a)
 	}
 }
 
-void Document::addAnnotations(std::vector<Handle<AnnotationEntity>> as)
+void Document::addAnnotations(const std::vector<Handle<AnnotationEntity>> &as)
 {
 	for (Handle<AnnotationEntity> a : as) {
 		addAnnotation(a);

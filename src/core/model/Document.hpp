@@ -279,6 +279,7 @@ public:
 	 *
 	 * This method also changes the parent of the newly added StructureNode if
 	 * it is not set to this DocumentEntity already.
+	 * TODO: This could get move semantics.
 	 *
 	 * @param s         is the StructureNode that shall be added.
 	 * @param fieldName is the name of a field as specified in the
@@ -690,7 +691,7 @@ public:
 	 *
 	 * @param as is a vector of AnnotationEntities.
 	 */
-	void addAnnotations(std::vector<Handle<AnnotationEntity>> as);
+	void addAnnotations(const std::vector<Handle<AnnotationEntity>>& as);
 
 	/**
 	 * Returns a const reference to the NodeVector of Domains that are used
