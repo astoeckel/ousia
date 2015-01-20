@@ -322,7 +322,7 @@ public:
 	ManagedContainer(own_type &&other)
 	    : owner(other.owner), c(std::move(other.c))
 	{
-		//other.owner = nullptr;
+		// other.owner = nullptr;
 	}
 
 	/**
@@ -338,7 +338,7 @@ public:
 	{
 		initialize();
 		other.finalize(c);
-		//other.owner = nullptr;
+		// other.owner = nullptr;
 	}
 
 	/**
@@ -356,7 +356,7 @@ public:
 	{
 		initialize();
 		other.finalize(c);
-		//other.owner = nullptr;
+		// other.owner = nullptr;
 	}
 
 	/**
@@ -413,7 +413,7 @@ public:
 		finalize();
 		owner = other.owner;
 		c = std::move(other.c);
-		//other.owner = nullptr;
+		// other.owner = nullptr;
 		return *this;
 	}
 
@@ -528,6 +528,18 @@ public:
 			this->deleteElement(*it);
 		}
 		return c.erase(first, last);
+	}
+
+	iterator find(Handle<Managed> elem)
+	{
+		iterator it = begin();
+		while (it != end()) {
+			if (*it == elem) {
+				break;
+			}
+			it++;
+		}
+		return it;
 	}
 };
 
