@@ -271,8 +271,14 @@ private:
 	Owned<Type> primitiveType;
 	bool optional;
 
+	/*
+	 * TODO: doValidate with:
+	 * # primitive and primitiveType set and no children XOR other FieldType and
+	 *   no primitive type set
+	 * # namecheck
+	 * # parent typecheck
+	 */
 public:
-	// TODO: What about the name of default fields?
 	/**
 	 * This is the constructor for primitive fields. The type is automatically
 	 * set to "PRIMITIVE".
@@ -293,7 +299,7 @@ public:
 
 	/**
 	 * This is the constructor for non-primitive fields. You have to provide
-	 * children here.
+	 * children here later on.
 	 *
 	 * @param mgr           is the global Manager instance.
 	 * @param parent        is a handle of the Descriptor node that has this
@@ -306,7 +312,7 @@ public:
 	 *                      filled in order for an instance of the parent
 	 *                      Descriptor to be valid.
 	 */
-	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
+	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent = nullptr,
 	                FieldType fieldType = FieldType::TREE,
 	                std::string name = "", bool optional = false);
 
@@ -321,10 +327,6 @@ public:
 	 */
 	const NodeVector<StructuredClass> &getChildren() const { return children; }
 
-	/*
-	 *TODO: This should check whether another class is permitted that is a
-	 * superclass of this one.
-	 */
 	/**
 	 * Adds a StructuredClass whose instances shall be allowed as children in
 	 * the StructureTree of instances of this field.
@@ -347,14 +349,14 @@ public:
 
 	/**
 	 * Returns the type of this field (not to be confused with the primitive
-	 *type of this field).
+	 * type of this field).
 	 *
 	 * @return the type of this field.
 	 */
 	FieldType getFieldType() const { return fieldType; }
 	/**
 	 * Sets the type of this field (not to be confused with the primitive type
-	 *of this field).
+	 * of this field).
 	 *
 	 * @param ft is the new type of this field.
 	 */
@@ -421,8 +423,6 @@ public:
  * the attribute specification of a descriptor is done by referencing an
  * appropriate StructType that contains all permitted keys and value types.
  *
- * TODO: What about optional attributes?
- *
  * In XML terms the difference between primitive fields and attributes can be
  * explained as the difference between node attributes and node children.
  * Consider the XML
@@ -451,10 +451,17 @@ private:
 
 protected:
 	void doResolve(ResolutionState &state) override;
+	/*
+	 * TODO: doValidate with:
+	 * # namecheck
+	 * # FieldDescriptor name uniqueness
+	 * # do all FieldDescriptors have this Descriptor as parent?
+	 * # is the parent a domain?
+	 * # is the attributes descriptor either not set or a StructType?
+	 */
 
 public:
 	Descriptor(Manager &mgr, std::string name, Handle<Domain> domain,
-	           // TODO: What would be a wise default value for attributes?
 	           Handle<StructType> attributesDescriptor)
 	    : Node(mgr, std::move(name), domain),
 	      attributesDescriptor(acquire(attributesDescriptor)),
@@ -473,6 +480,18 @@ public:
 	{
 		return attributesDescriptor;
 	}
+
+	/**
+	 * Sets the StructType that specifies the attributes of this Descriptor.
+	 *
+	 * @param t some StructType.
+	 */
+	void setAttributesDescriptor(Handle<StructType> t)
+	{
+		invalidate();
+		attributesDescriptor = acquire(t);
+	}
+
 	/**
 	 * Returns a const reference to the NodeVector of all FieldDescriptors of
 	 * this Descriptor.
@@ -486,7 +505,13 @@ public:
 	}
 
 	/**
-	 * Adds the given FieldDescriptor to this Descriptor.
+	 * Adds the given FieldDescriptor to this Descriptor. This also sets the
+	 * parent of the given FieldDescriptor if it is not set to this Descriptor
+	 * already.
+	 *
+	 * This should not be used if the given FieldDescriptor is a field of
+	 * another Descriptor already. Use copyFieldDescriptor in that case.
+	 * TODO: But this could get move semantics.
 	 *
 	 * @param fd is a FieldDescriptor.
 	 */
@@ -494,22 +519,31 @@ public:
 	{
 		invalidate();
 		fieldDescriptors.push_back(fd);
+		if (fd->getParent() != this) {
+			fd->setParent(this);
+		}
 	}
 
 	/**
-	 * Adds the given FieldDescriptors to this Descriptor.
+	 * Adds the given FieldDescriptors to this Descriptor. This also sets the
+	 * parent of each given FieldDescriptor if it is not set to this Descriptor
+	 * already.
 	 *
 	 * @param fds are FieldDescriptors.
 	 */
-	void addFieldDescriptors(std::vector<Handle<FieldDescriptor>> fds)
+	void addFieldDescriptors(const std::vector<Handle<FieldDescriptor>> &fds)
 	{
 		invalidate();
-		fieldDescriptors.insert(fieldDescriptors.end(), fds.begin(), fds.end());
+		for (Handle<FieldDescriptor> fd : fds) {
+			addFieldDescriptor(fd);
+		}
 	}
 
 	/**
 	 * Copies a FieldDescriptor that belongs to another Descriptor to this
 	 * Descriptor.
+	 *
+	 * @param fd some FieldDescriptor belonging to another Descriptor.
 	 */
 	void copyFieldDescriptor(Handle<FieldDescriptor> fd);
 
@@ -549,6 +583,19 @@ public:
  * possibility to define it context-dependently?
  */
 typedef RangeSet<size_t> Cardinality;
+
+
+/**
+ * This is the default cardinality.
+ */
+
+static Cardinality createAny(){
+	Cardinality any;
+	any.merge(Range<size_t>::typeRangeFrom(0));
+	return std::move(any);
+}
+
+static const Cardinality AnyCardinality = createAny();
 
 /**
  * A StructuredClass specifies nodes in the StructureTree of a document that
@@ -638,6 +685,15 @@ private:
 	    NodeVector<FieldDescriptor> &current,
 	    std::set<std::string> &overriddenFields) const;
 
+	
+
+	/*
+	 * TODO: doValidate with
+	 * # does the subclasses have this class as superclass?
+	 * # are the subclasses and the superclass valid?
+	 * # is this a valid descriptor?
+	 */
+
 public:
 	/**
 	 * The constructor for a StructuredClass.
@@ -649,7 +705,9 @@ public:
 	 * @param cardinality          specifies how often an element of this type
 	 *                             may occur at a specific point in the
 	 *                             StructureTree. For example: A document should
-	 *                             have at least one author.
+	 *                             have at least one author. This is set to *
+	 *                             per default, meaning that any number of
+	 *                             of instances is valid, including zero.
 	 * @param attributesDescriptor is a StructType that specifies the attribute
 	 *                             keys as well as value domains for this
 	 *                             Descriptor.
@@ -666,10 +724,10 @@ public:
 	 * @param root                 specifies whether this StructuredClass is
 	 *                             allowed to be at the root of a Document.
 	 */
-	StructuredClass(Manager &mgr, std::string name, Handle<Domain> domain,
-	                const Cardinality &cardinality,
+	StructuredClass(Manager &mgr, std::string name = "",
+	                Handle<Domain> domain = nullptr,
+	                const Cardinality &cardinality = AnyCardinality,
 	                Handle<StructType> attributesDescriptor = nullptr,
-	                // TODO: What would be a wise default value for isa?
 	                Handle<StructuredClass> superclass = nullptr,
 	                bool transparent = false, bool root = false);
 
@@ -687,6 +745,18 @@ public:
 	 * @return the superclass of this StructuredClass.
 	 */
 	Rooted<StructuredClass> getSuperclass() const { return superclass; }
+
+	/**
+	 * Sets the superclass of this StructuredClass. This is not the same as
+	 * the parents in the Structure Tree!
+	 *
+	 * This will also register this class as a subclass at the given superclass
+	 * and unregister it at the previous superclass.
+	 *
+	 * @parem sup some StructuredClass that shall be the new superclass of this
+	 *            StructuredClass.
+	 */
+	void setSuperclass(Handle<StructuredClass> sup);
 
 	/**
 	 * Returns true if this class is a subclass of the given class. It does not
@@ -716,6 +786,22 @@ public:
 	{
 		return subclasses;
 	}
+
+	/**
+	 * Adds a subclass to this StructuredClass. This also calls setSuperclass
+	 * on the given subclass.
+	 *
+	 * @param sc is some StructuredClass.
+	 */
+	void addSubclass(Handle<StructuredClass> sc);
+
+	/**
+	 * Removes a subclass from this StructuredClass. This also calls
+	 * setSuperclass(nullptr) on the given subclass.
+	 *
+	 * @param sc is some StructuredClass.
+	 */
+	void removeSubclass(Handle<StructuredClass> sc);
 
 	/**
 	 * Returns a const reference to the NodeVector of all FieldDescriptors of
@@ -790,7 +876,13 @@ private:
 
 protected:
 	void doResolve(ResolutionState &state) override;
-
+	/*
+	 * TODO: doValidate with:
+	 * # namecheck
+	 * # are all structureclasses valid and have a unique name?
+	 * # are all annotationclasses valid and have a unique name?
+	 * # are all typesystems valid?
+	 */
 public:
 	/**
 	 * The constructor for a new domain. Note that this is an empty Domain and
@@ -800,7 +892,7 @@ public:
 	 * @param name is a name for this domain which will be used for later
 	 *             references to this Domain.
 	 */
-	Domain(Manager &mgr, std::string name)
+	Domain(Manager &mgr, std::string name = "")
 	    : Node(mgr, std::move(name), nullptr),
 	      structuredClasses(this),
 	      annotationClasses(this),
@@ -817,7 +909,7 @@ public:
 	 * @param name is a name for this domain which will be used for later
 	 *             references to this Domain.
 	 */
-	Domain(Manager &mgr, Handle<SystemTypesystem> sys, std::string name)
+	Domain(Manager &mgr, Handle<SystemTypesystem> sys, std::string name = "")
 	    : Domain(mgr, std::move(name))
 	{
 		includeTypesystem(sys);
@@ -834,6 +926,14 @@ public:
 	{
 		return structuredClasses;
 	}
+	/**
+	 * Adds a StructuredClass to this domain. This also sets the parent of the
+	 * given StructuredClass if it is not set to this Domain already.
+	 * TODO: This could have move semantics.
+	 *
+	 * @param s is some StructuredClass.
+	 */
+	void addStructuredClass(Handle<StructuredClass> s);
 
 	/**
 	 * Returns a const reference to the NodeVector of AnnotationClasses that are
@@ -846,6 +946,14 @@ public:
 	{
 		return annotationClasses;
 	}
+	/**
+	 * Adds an AnnotationClass to this domain. This also sets the parent of the
+	 * given AnnotationClass if it is not set to this Domain already.
+	 * TODO: This could have move semantics.
+	 *
+	 * @param a is some AnnotationClass.
+	 */
+	void addAnnotationClass(Handle<AnnotationClass> a);
 
 	/**
 	 * Returns a const reference to the NodeVector of TypeSystems that are
@@ -868,10 +976,6 @@ public:
 	{
 		typesystems.insert(typesystems.end(), ts.begin(), ts.end());
 	}
-	
-
-	void addStructuredClass(Handle<StructuredClass> s);
-	void addAnnotationClass(Handle<AnnotationClass> a);
 };
 }
 

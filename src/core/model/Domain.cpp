@@ -37,7 +37,9 @@ FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
       primitiveType(acquire(primitiveType)),
       optional(optional)
 {
-	parent->addFieldDescriptor(this);
+	if (parent != nullptr) {
+		parent->addFieldDescriptor(this);
+	}
 }
 
 FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
@@ -48,7 +50,9 @@ FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
       fieldType(fieldType),
       optional(optional)
 {
-	parent->addFieldDescriptor(this);
+	if (parent != nullptr) {
+		parent->addFieldDescriptor(this);
+	}
 }
 
 /* Class Descriptor */
@@ -173,11 +177,26 @@ StructuredClass::StructuredClass(Manager &mgr, std::string name,
       root(root)
 {
 	if (superclass != nullptr) {
-		superclass->subclasses.push_back(this);
+		superclass->addSubclass(this);
 	}
-	if (!domain.isNull()) {
+	if (domain != nullptr) {
 		domain->addStructuredClass(this);
 	}
+}
+
+void StructuredClass::setSuperclass(Handle<StructuredClass> sup)
+{
+	if (superclass == sup) {
+		return;
+	}
+	invalidate();
+	if (sup != nullptr) {
+		sup->addSubclass(this);
+	}
+	if (superclass != nullptr) {
+		superclass->removeSubclass(this);
+	}
+	superclass = acquire(sup);
 }
 
 bool StructuredClass::isSubclassOf(Handle<StructuredClass> c) const
@@ -189,6 +208,33 @@ bool StructuredClass::isSubclassOf(Handle<StructuredClass> c) const
 		return true;
 	}
 	return superclass->isSubclassOf(c);
+}
+
+void StructuredClass::addSubclass(Handle<StructuredClass> sc)
+{
+	// check if we already have that class.
+	if (subclasses.find(sc) != subclasses.end()) {
+		return;
+	}
+	invalidate();
+	subclasses.push_back(sc);
+	sc->setSuperclass(this);
+}
+
+void StructuredClass::removeSubclass(Handle<StructuredClass> sc)
+{
+	// if we don't have this subclass we can return directly.
+	if (sc == nullptr) {
+		return;
+	}
+	auto it = subclasses.find(sc);
+	if (it == subclasses.end()) {
+		return;
+	}
+	// otherwise we have to erase it.
+	invalidate();
+	subclasses.erase(it);
+	sc->setSuperclass(nullptr);
 }
 
 const void StructuredClass::gatherFieldDescriptors(
@@ -245,12 +291,18 @@ void Domain::addStructuredClass(Handle<StructuredClass> s)
 {
 	invalidate();
 	structuredClasses.push_back(s);
+	if (s->getParent() != this) {
+		s->setParent(this);
+	}
 }
 
 void Domain::addAnnotationClass(Handle<AnnotationClass> a)
 {
 	invalidate();
 	annotationClasses.push_back(a);
+	if (a->getParent() != this) {
+		a->setParent(this);
+	}
 }
 }
 /* Type registrations */
@@ -261,13 +313,14 @@ const Rtti FieldDescriptor =
 const Rtti Descriptor =
     RttiBuilder<model::Descriptor>("Descriptor").parent(&Node);
 const Rtti StructuredClass =
-    RttiBuilder<model::StructuredClass>("StructuredClass").parent(&Descriptor).composedOf(
-        &FieldDescriptor);
+    RttiBuilder<model::StructuredClass>("StructuredClass")
+        .parent(&Descriptor)
+        .composedOf(&FieldDescriptor);
 const Rtti AnnotationClass =
     RttiBuilder<model::AnnotationClass>("AnnotationClass").parent(&Descriptor);
-const Rtti Domain =
-    RttiBuilder<model::Domain>("Domain").parent(&Node).composedOf(
-        {&StructuredClass, &AnnotationClass});
+const Rtti Domain = RttiBuilder<model::Domain>("Domain")
+                        .parent(&Node)
+                        .composedOf({&StructuredClass, &AnnotationClass});
 }
 }
 
