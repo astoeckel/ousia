@@ -29,17 +29,28 @@ bool ResourceLocator::locate(Resource &resource, const std::string &path,
                              const ResourceType type,
                              const Resource &relativeTo) const
 {
+	// If the locator of the given relative resource is this locator instance,
+	// use the location specified in the resource, otherwise just use no
+	// "relativeTo" path.
 	if (&relativeTo.getLocator() == this) {
-		return doLocate(resource, path, type, relativeTo.getLocation());
+		return locate(resource, path, type, relativeTo.getLocation());
 	}
-	return doLocate(resource, path, type, "");
+	return locate(resource, path, type, "");
 }
 
 bool ResourceLocator::locate(Resource &resource, const std::string &path,
                              const ResourceType type,
                              const std::string &relativeTo) const
 {
-	return doLocate(resource, path, type, relativeTo);
+	// Try to locate the resource for the specified type, if not found, use
+	// the "UNKNOWN" type.
+	if (doLocate(resource, path, type, relativeTo)) {
+		return true;
+	}
+	if (type != ResourceType::UNKNOWN) {
+		return doLocate(resource, path, ResourceType::UNKNOWN, relativeTo);
+	}
+	return false;
 }
 
 std::unique_ptr<std::istream> ResourceLocator::stream(
@@ -50,9 +61,10 @@ std::unique_ptr<std::istream> ResourceLocator::stream(
 
 /* Class StaticResourceLocator */
 
-bool StaticResourceLocator::doLocate(
-    Resource &resource, const std::string &path, const ResourceType type,
-    const std::string &relativeTo) const
+bool StaticResourceLocator::doLocate(Resource &resource,
+                                     const std::string &path,
+                                     const ResourceType type,
+                                     const std::string &relativeTo) const
 {
 	auto it = resources.find(path);
 	if (it != resources.end()) {

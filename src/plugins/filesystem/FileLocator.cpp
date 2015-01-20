@@ -17,6 +17,10 @@
 */
 
 #ifndef NDEBUG
+//#define FILELOCATOR_DEBUG_PRINT
+#endif
+
+#ifdef FILELOCATOR_DEBUG_PRINT
 #include <iostream>
 #endif
 
@@ -44,6 +48,7 @@ void FileLocator::addPath(const std::string &path,
 void FileLocator::addSearchPath(const std::string &path,
                                 std::set<ResourceType> types)
 {
+	// Skip empty or non-existant paths
 	if (path.empty() || !fs::exists(path)) {
 		return;
 	}
@@ -51,7 +56,7 @@ void FileLocator::addSearchPath(const std::string &path,
 	// Canonicalize the given path, check whether it exists
 	std::string canonicalPath = fs::canonical(path).generic_string();
 
-#ifndef NDEBUG
+#ifdef FILELOCATOR_DEBUG_PRINT
 	std::cout << "FileLocator: Adding search path " << canonicalPath
 	          << std::endl;
 #endif
@@ -99,14 +104,22 @@ void FileLocator::addDefaultSearchPaths()
 	addDefaultSearchPaths(SpecialPaths::getLocalDataDir());
 #ifndef NDEBUG
 	addDefaultSearchPaths(SpecialPaths::getDebugDataDir());
-	addDefaultSearchPaths(SpecialPaths::getDebugTestdataDir());
 #endif
+}
+
+void FileLocator::addUnittestSearchPath(const std::string &subdir, ResourceType type)
+{
+	addSearchPath((fs::path{SpecialPaths::getDebugTestdataDir()} / subdir)
+	                  .generic_string(), type);
 }
 
 bool FileLocator::doLocate(Resource &resource, const std::string &path,
                            const ResourceType type,
                            const std::string &relativeTo) const
 {
+#ifdef FILELOCATOR_DEBUG_PRINT
+	std::cout << "FileLocator: Searching for \"" << path << "\"" << std::endl;
+#endif
 	if (!relativeTo.empty()) {
 		fs::path base(relativeTo);
 		if (fs::exists(base)) {
@@ -122,7 +135,7 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 			// If we already found a fitting resource there, use that.
 			if (fs::exists(base)) {
 				std::string location = fs::canonical(base).generic_string();
-#ifndef NDEBUG
+#ifdef FILELOCATOR_DEBUG_PRINT
 				std::cout << "FileLocator: Found \"" << path << "\" at "
 				          << location << std::endl;
 #endif
@@ -138,16 +151,15 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 	if (it != searchPaths.end()) {
 		const auto &paths = it->second;
 		for (auto it = paths.rbegin(); it != paths.rend(); it++) {
-#ifndef NDEBUG
-			std::cout << "FileLocator: Searching for \"" << path << "\" in "
-			          << *it << std::endl;
+#ifdef FILELOCATOR_DEBUG_PRINT
+			std::cout << "FileLocator: Entering " << *it << std::endl;
 #endif
 			fs::path p{*it};
 			p /= path;
 			if (fs::exists(p)) {
 				std::string location = fs::canonical(p).generic_string();
-#ifndef NDEBUG
-				std::cout << "FileLocator: Found \"" << path << "\" at "
+#ifdef FILELOCATOR_DEBUG_PRINT
+				std::cout << "FileLocator: Found \"" << path << "\" in "
 				          << location << std::endl;
 #endif
 				resource = Resource(true, *this, type, location);

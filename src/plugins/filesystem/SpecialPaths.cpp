@@ -59,8 +59,12 @@ std::string SpecialPaths::getDebugDataDir()
 
 std::string SpecialPaths::getDebugTestdataDir()
 {
-	fs::path debug{OUSIA_DEBUG_DIR};
-	return (debug / "testdata").generic_string();
+	std::string debug{OUSIA_DEBUG_DIR};
+	if (debug.empty()) {
+		return "./testdata";
+	} else {
+		return (fs::path{debug} / "testdata").generic_string();
+	}
 }
 
 }

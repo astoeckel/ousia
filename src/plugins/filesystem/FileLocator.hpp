@@ -122,6 +122,17 @@ public:
 	void addDefaultSearchPaths();
 
 	/**
+	 * Adds a search path for a unit test. This function should not be used
+	 * outside the code in the "test" folder.
+	 *
+	 * @param subdir is the subdirectory in the "testdata" directory that should
+	 * be added.
+	 * @param type is a single type for which the path should be added.
+	 */
+	void addUnittestSearchPath(const std::string &subdir,
+	                           ResourceType type = ResourceType::UNKNOWN);
+
+	/**
 	 * Returns the backing map containing all search paths for a given type.
 	 * This is read-only.
 	 */

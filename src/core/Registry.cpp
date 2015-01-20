@@ -70,16 +70,6 @@ bool Registry::locateResource(Resource &resource, const std::string &path,
 		}
 	}
 
-	// If this did not work out, retry but use the UNKNOWN type.
-	if (type != ResourceType::UNKNOWN) {
-		for (auto &locator : locators) {
-			if (locator->locate(resource, path, ResourceType::UNKNOWN,
-			                    relativeTo)) {
-				return true;
-			}
-		}
-	}
-
 	return false;
 }
 }
