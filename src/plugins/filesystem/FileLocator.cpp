@@ -49,7 +49,7 @@ void FileLocator::addSearchPath(const std::string &path,
                                 std::set<ResourceType> types)
 {
 	// Skip empty or non-existant paths
-	if (path.empty() || !fs::exists(path)) {
+	if (path.empty() || !fs::exists(path) || !fs::is_directory(path)) {
 		return;
 	}
 
@@ -80,17 +80,13 @@ void FileLocator::addSearchPath(const std::string &path, ResourceType type)
 void FileLocator::addDefaultSearchPaths(const std::string &relativeTo)
 {
 	// Abort if the base directory is empty
-	if (relativeTo.empty()) {
-		return;
-	}
-
-	// Abort if the base directory does not exist or is not a directory
-	fs::path base(relativeTo);
-	if (!fs::exists(base) || !fs::is_directory(base)) {
+	if (relativeTo.empty() || !fs::exists(relativeTo) ||
+	    !fs::is_directory(relativeTo)) {
 		return;
 	}
 
 	// Add the search paths
+	fs::path base{relativeTo};
 	addSearchPath(base.generic_string(), ResourceType::UNKNOWN);
 	addSearchPath((base / "domain").generic_string(),
 	              ResourceType::DOMAIN_DESC);
@@ -107,10 +103,12 @@ void FileLocator::addDefaultSearchPaths()
 #endif
 }
 
-void FileLocator::addUnittestSearchPath(const std::string &subdir, ResourceType type)
+void FileLocator::addUnittestSearchPath(const std::string &subdir,
+                                        ResourceType type)
 {
 	addSearchPath((fs::path{SpecialPaths::getDebugTestdataDir()} / subdir)
-	                  .generic_string(), type);
+	                  .generic_string(),
+	              type);
 }
 
 bool FileLocator::doLocate(Resource &resource, const std::string &path,
@@ -173,7 +171,6 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 std::unique_ptr<std::istream> FileLocator::doStream(
     const std::string &location) const
 {
-	std::unique_ptr<std::istream> ifs{new std::ifstream(location)};
-	return std::move(ifs);
+	return std::unique_ptr<std::istream>{new std::ifstream(location)};
 }
 }
