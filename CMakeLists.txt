@@ -140,11 +140,12 @@ ADD_LIBRARY(ousia_core
 #	src/core/script/ScriptEngine
 )
 
-ADD_LIBRARY(ousia_boost
-	src/plugins/boost/FileLocator
+ADD_LIBRARY(ousia_filesystem
+	src/plugins/filesystem/FileLocator
+	src/plugins/filesystem/SpecialPaths
 )
 
-TARGET_LINK_LIBRARIES(ousia_boost
+TARGET_LINK_LIBRARIES(ousia_filesystem
 	ousia_core
 	${Boost_LIBRARIES}
 )
@@ -229,14 +230,14 @@ IF(TEST)
 		ousia_core
 	)
 
-	ADD_EXECUTABLE(ousia_test_boost
-		test/plugins/boost/FileLocatorTest
+	ADD_EXECUTABLE(ousia_test_filesystem
+		test/plugins/filesystem/FileLocatorTest
 	)
 
-	TARGET_LINK_LIBRARIES(ousia_test_boost
+	TARGET_LINK_LIBRARIES(ousia_test_filesystem
 		${GTEST_LIBRARIES}
 		ousia_core
-		ousia_boost
+		ousia_filesystem
 	)
 
 	ADD_EXECUTABLE(ousia_test_css
@@ -281,7 +282,7 @@ IF(TEST)
 
 	# Register the unit tests
 	ADD_TEST(ousia_test_core ousia_test_core)
-	ADD_TEST(ousia_test_boost ousia_test_boost)
+	ADD_TEST(ousia_test_filesystem ousia_test_filesystem)
 	ADD_TEST(ousia_test_css ousia_test_css)
 	ADD_TEST(ousia_test_html ousia_test_html)
 	ADD_TEST(ousia_test_xml ousia_test_xml)
