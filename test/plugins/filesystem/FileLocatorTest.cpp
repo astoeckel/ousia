@@ -111,7 +111,6 @@ void assert_located(const FileLocator &instance, const std::string &path,
 	ASSERT_TRUE(res.isValid());
 	fs::path p(res.getLocation());
 	ASSERT_TRUE(fs::exists(p));
-	ASSERT_EQ(path, p.filename());
 }
 
 void assert_not_located(const FileLocator &instance, const std::string &path,
@@ -158,4 +157,19 @@ TEST(FileLocator, testStream)
 	std::getline(*is_ptr, line);
 	ASSERT_EQ("file a", line);
 }
+
+TEST(FileLocator, testDefaultSearchPaths)
+{
+	FileLocator locator;
+	locator.addDefaultSearchPaths();
+
+	assert_not_located(locator, "book.oxm", "", ResourceType::UNKNOWN);
+	assert_located(locator, "domain/book.oxm", "", ResourceType::UNKNOWN);
+	assert_located(locator, "book.oxm", "", ResourceType::DOMAIN_DESC);
+	assert_not_located(locator, "color.oxm", "", ResourceType::UNKNOWN);
+	assert_located(locator, "typesystem/color.oxm", "", ResourceType::UNKNOWN);
+	assert_located(locator, "color.oxm", "", ResourceType::TYPESYSTEM);
+}
+
+
 }
