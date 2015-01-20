@@ -31,10 +31,10 @@ using namespace parser;
 void Registry::registerParser(parser::Parser &parser)
 {
 	parsers.push_back(&parser);
-	for (const auto &mime : parser->mimetypes()) {
+	for (const auto &mime : parser.mimetypes()) {
 		//TODO: This does not allow for multiple parsers with the same mimetype.
 		// Is that how its supposed to be?
-		parserMimetypes.insert(std::make_pair(mime, parser));
+		parserMimetypes.insert(std::make_pair(mime, &parser));
 	}
 }
 
