@@ -422,6 +422,7 @@ bool Node::validate(Logger &logger) const
 				validationState = ValidationState::INVALID;
 				throw;
 			}
+			validationState = ValidationState::INVALID;
 			return false;
 		case ValidationState::VALID:
 			return true;
@@ -440,8 +441,8 @@ bool Node::validate(Logger &logger) const
 
 void Node::setParent(Handle<Node> p)
 {
-	invalidate();
 	parent = acquire(p);
+	invalidate();
 }
 
 /* RTTI type registrations */
