@@ -430,10 +430,18 @@ bool Node::validate(Logger &logger) const
 		case ValidationState::VALIDATING:
 			// We've run into recursion -- a circular structure cannot be
 			// properly validated, so return false
-			logger.error("This validation run lead to a cycle. As a fallback it is set to invalid!");
+			logger.error(
+			    "This validation run lead to a cycle. As a fallback it is set "
+			    "to invalid!");
 			return false;
 	}
 	return false;
+}
+
+void Node::setParent(Handle<Node> p)
+{
+	invalidate();
+	parent = acquire(p);
 }
 
 /* RTTI type registrations */

@@ -139,8 +139,6 @@ class StructureNode;
  *
  */
 class DocumentEntity {
-	friend StructureNode;
-
 private:
 	/*
 	 * this is a rather dirty method that should not be used in other cases:
@@ -161,6 +159,8 @@ private:
 	                            bool enforce) const;
 
 	void invalidateSubInstance();
+
+	void addStructureNode(Handle<StructureNode> s, const int &i);
 
 protected:
 	bool doValidate(Logger &logger) const;
@@ -188,6 +188,13 @@ public:
 	 * @return the Descriptor for this DocumentEntity.
 	 */
 	Rooted<Descriptor> getDescriptor() const { return descriptor; }
+
+	/**
+	 * Sets the Descriptor for this DocumentEntity.
+	 *
+	 * @param d is the new Descriptor for this DocumentEntity.
+	 */
+	void setDescriptor(Handle<Descriptor> d);
 
 	/**
 	 * Returns a Map Variant adhering to the attribute StructType in the given
@@ -270,6 +277,9 @@ public:
 	 *
 	 * If the name is unknown an exception is thrown.
 	 *
+	 * This method also changes the parent of the newly added StructureNode if
+	 * it is not set to this DocumentEntity already.
+	 *
 	 * @param s         is the StructureNode that shall be added.
 	 * @param fieldName is the name of a field as specified in the
 	 *                  FieldDescriptor in the Domain description.
@@ -285,6 +295,9 @@ public:
 	 *
 	 * If the name is unknown an exception is thrown.
 	 *
+	 * This method also changes the parent of each newly added StructureNode if
+	 * it is not set to this DocumentEntity already.
+	 *
 	 * @param ss        are the StructureNodes that shall be added.
 	 * @param fieldName is the name of a field as specified in the
 	 *                  FieldDescriptor in the Domain description.
@@ -297,6 +310,9 @@ public:
 	 *
 	 * If the FieldDescriptor does not belong to the Descriptor of this node
 	 * an exception is thrown.
+	 *
+	 * This method also changes the parent of the newly added StructureNode if
+	 * it is not set to this DocumentEntity already.
 	 *
 	 * @param s               is the StructureNode that shall be added.
 	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
@@ -311,6 +327,9 @@ public:
 	 *
 	 * If the FieldDescriptor does not belong to the Descriptor of this node
 	 * an exception is thrown.
+	 *
+	 * This method also changes the parent of each newly added StructureNode if
+	 * it is not set to this DocumentEntity already.
 	 *
 	 * @param ss              are the StructureNodes that shall be added.
 	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
@@ -329,18 +348,19 @@ class StructureNode : public Node {
 
 public:
 	/**
-	 * Constructor for a StructureNode at the root.
-	 */
-	StructureNode(Manager &mgr, std::string name, Handle<Document> doc)
-	    : Node(mgr, std::move(name), doc)
-	{
-	}
-
-	/**
 	 * Constructor for a StructureNode in the StructureTree.
 	 */
 	StructureNode(Manager &mgr, std::string name, Handle<Node> parent,
 	              const std::string &fieldName);
+
+	/**
+	 * Constructor for an empty StructureNode.
+	 */
+	StructureNode(Manager &mgr, std::string name = "",
+	              Handle<Node> parent = nullptr)
+	    : Node(mgr, std::move(name), parent)
+	{
+	}
 };
 
 /**
@@ -393,6 +413,23 @@ public:
 	 */
 	StructuredEntity(Manager &mgr, Handle<Document> doc,
 	                 Handle<StructuredClass> descriptor,
+	                 Variant attributes = {}, std::string name = "");
+
+	/**
+	 * Constructor for an empty StructuredEntity that is not yet connected.
+	 *
+	 * @param mgr        is the Manager instance.
+	 * @param parent     is the parent Document of this StructuredEntity. Note
+	 *                   that this StructuredEntity will automatically register
+	 *                   itself as child of this Document.
+	 * @param descriptor is the StructuredClass of this StructuredEntity.
+	 * @param attributes is a Map Variant containing attribute fillings for this
+	 *                   StructuredEntity. It is empty per default.
+	 * @param name       is some name for this StructuredEntity that may be used
+	 *                   for later reference. It is empty per default.
+	 */
+	StructuredEntity(Manager &mgr, Handle<Node> parent = nullptr,
+	                 Handle<StructuredClass> descriptor = nullptr,
 	                 Variant attributes = {}, std::string name = "");
 };
 
@@ -527,8 +564,8 @@ public:
 	 * @param name       is some name for this AnnotationEntity that might be
 	 *                   used for references later on. It is empty per default.
 	 */
-	AnnotationEntity(Manager &mgr, Handle<Document> parent,
-	                 Handle<AnnotationClass> descriptor,
+	AnnotationEntity(Manager &mgr, Handle<Document> parent = nullptr,
+	                 Handle<AnnotationClass> descriptor = nullptr,
 	                 Handle<Anchor> start = nullptr,
 	                 Handle<Anchor> end = nullptr, Variant attributes = {},
 	                 std::string name = "");
@@ -565,6 +602,7 @@ public:
 	 */
 	void setEnd(Handle<Anchor> e)
 	{
+		invalidate();
 		end = acquire(e);
 	}
 };
@@ -575,8 +613,6 @@ public:
  * document and the AnnotationEntities that span over Anchors in this Document.
  */
 class Document : public Node {
-	friend AnnotationEntity;
-
 private:
 	// TODO: Might there be several roots? E.g. metadata?
 	Owned<StructuredEntity> root;
@@ -589,18 +625,29 @@ protected:
 	bool doValidate(Logger &logger) const override;
 
 public:
+	/**
+	 * This sets up an empty document.
+	 *
+	 * @param mgr  is the Manager instance.
+	 * @param name is a name for this Document.
+	 */
 	Document(Manager &mgr, std::string name)
 	    : Node(mgr, std::move(name), nullptr), annotations(this)
 	{
 	}
 
 	/**
-	 * Sets the root StructuredEntity of this Document.
+	 * Sets the root StructuredEntity of this Document. This also sets the
+	 * parent of the given StructuredEntity if it is not set to this Document
+	 * already.
 	 */
 	void setRoot(Handle<StructuredEntity> root)
 	{
 		invalidate();
 		this->root = acquire(root);
+		if (root->getParent() != this) {
+			root->setParent(this);
+		}
 	};
 
 	/**
@@ -621,6 +668,23 @@ public:
 	{
 		return annotations;
 	}
+
+	/**
+	 * Adds an AnnotationEntity to this document. This also sets the parent
+	 * of the given AnnotationEntity if it is not set to this document already.
+	 *
+	 * @param a is some AnnotationEntity
+	 */
+	void addAnnotation(Handle<AnnotationEntity> a);
+
+	/**
+	 * Adds multiple AnnotationEntities to this document. This also sets the
+	 * parent of each given AnnotationEntity if it is not set to this document
+	 * already.
+	 *
+	 * @param as is a vector of AnnotationEntities.
+	 */
+	void addAnnotations(std::vector<Handle<AnnotationEntity>> as);
 
 	/**
 	 * Returns a const reference to the NodeVector of Domains that are used

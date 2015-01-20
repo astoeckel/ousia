@@ -105,21 +105,36 @@ DocumentEntity::DocumentEntity(Handle<Node> subInst,
                                Handle<Descriptor> descriptor,
                                Variant attributes)
     : subInst(subInst),
-      descriptor(subInst->acquire(descriptor)),
+      // initialize descriptor as nullptr first and then set it right
       attributes(std::move(attributes))
 {
 	// insert empty vectors for each field.
-	if (!descriptor.isNull()) {
-		NodeVector<FieldDescriptor> fieldDescs;
-		if (descriptor->isa(RttiTypes::StructuredClass)) {
-			fieldDescs = descriptor.cast<StructuredClass>()
-			                 ->getEffectiveFieldDescriptors();
-		} else {
-			fieldDescs = descriptor->getFieldDescriptors();
-		}
-		for (size_t f = 0; f < fieldDescs.size(); f++) {
-			fields.push_back(NodeVector<StructureNode>(subInst));
-		}
+	if (descriptor != nullptr) {
+		setDescriptor(descriptor);
+	}
+}
+
+void DocumentEntity::setDescriptor(Handle<Descriptor> d)
+{
+	// check if we have to do anything.
+	if (descriptor == d) {
+		return;
+	}
+	invalidateSubInstance();
+	descriptor = subInst->acquire(d);
+	// get the effective field descriptors in the descriptor.
+	NodeVector<FieldDescriptor> fieldDescs;
+	if (descriptor->isa(RttiTypes::StructuredClass)) {
+		fieldDescs =
+		    descriptor.cast<StructuredClass>()->getEffectiveFieldDescriptors();
+	} else {
+		fieldDescs = descriptor->getFieldDescriptors();
+	}
+	// clear the fields vector.
+	fields.clear();
+	// fill it again.
+	for (size_t f = 0; f < fieldDescs.size(); f++) {
+		fields.push_back(NodeVector<StructureNode>(subInst));
 	}
 }
 
@@ -303,37 +318,44 @@ void DocumentEntity::setAttributes(const Variant &a)
 	attributes = a;
 }
 
+void DocumentEntity::addStructureNode(Handle<StructureNode> s, const int &i)
+{
+	invalidateSubInstance();
+	fields[i].push_back(s);
+	if (s->getParent() != subInst) {
+		s->setParent(subInst);
+	}
+}
+
 void DocumentEntity::addStructureNode(Handle<StructureNode> s,
                                       const std::string &fieldName)
 {
-	invalidateSubInstance();
-	fields[getFieldDescriptorIndex(fieldName, true)].push_back(s);
+	addStructureNode(s, getFieldDescriptorIndex(fieldName, true));
 }
 
 void DocumentEntity::addStructureNodes(
     const std::vector<Handle<StructureNode>> &ss, const std::string &fieldName)
 {
-	invalidateSubInstance();
-	NodeVector<StructureNode> &field =
-	    fields[getFieldDescriptorIndex(fieldName, true)];
-	field.insert(field.end(), ss.begin(), ss.end());
+	const int i = getFieldDescriptorIndex(fieldName, true);
+	for (Handle<StructureNode> s : ss) {
+		addStructureNode(s, i);
+	}
 }
 
 void DocumentEntity::addStructureNode(Handle<StructureNode> s,
                                       Handle<FieldDescriptor> fieldDescriptor)
 {
-	invalidateSubInstance();
-	fields[getFieldDescriptorIndex(fieldDescriptor, true)].push_back(s);
+	addStructureNode(s, getFieldDescriptorIndex(fieldDescriptor, true));
 }
 
 void DocumentEntity::addStructureNodes(
     const std::vector<Handle<StructureNode>> &ss,
     Handle<FieldDescriptor> fieldDescriptor)
 {
-	invalidateSubInstance();
-	NodeVector<StructureNode> &field =
-	    fields[getFieldDescriptorIndex(fieldDescriptor, true)];
-	field.insert(field.end(), ss.begin(), ss.end());
+	const int i = getFieldDescriptorIndex(fieldDescriptor, true);
+	for (Handle<StructureNode> s : ss) {
+		addStructureNode(s, i);
+	}
 }
 
 /* Class StructureNode */
@@ -360,6 +382,14 @@ StructuredEntity::StructuredEntity(Manager &mgr, Handle<Document> doc,
       DocumentEntity(this, descriptor, std::move(attributes))
 {
 	doc->setRoot(this);
+}
+
+StructuredEntity::StructuredEntity(Manager &mgr, Handle<Node> parent,
+                                   Handle<StructuredClass> descriptor,
+                                   Variant attributes, std::string name)
+    : StructureNode(mgr, std::move(name), parent),
+      DocumentEntity(this, descriptor, std::move(attributes))
+{
 }
 
 bool StructuredEntity::doValidate(Logger &logger) const
@@ -389,8 +419,9 @@ AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
       start(acquire(start)),
       end(acquire(end))
 {
-	parent->annotations.push_back(this);
-	parent->invalidate();
+	if (parent != nullptr) {
+		parent->addAnnotation(this);
+	}
 }
 
 bool AnnotationEntity::doValidate(Logger &logger) const
@@ -457,6 +488,7 @@ bool Document::doValidate(Logger &logger) const
 	// An empty document is always invalid. TODO: Is this a smart choice?
 	bool valid = true;
 	if (root == nullptr) {
+		logger.error("This document is empty (it has no root)!");
 		valid = false;
 	} else {
 		// check if the root is allowed to be a root.
@@ -468,11 +500,33 @@ bool Document::doValidate(Logger &logger) const
 			             "\" is not allowed to be the Document root!");
 			valid = false;
 		}
+		// check if it has this document as parent.
+		if (root->getParent() != this) {
+			logger.error(
+			    "The document root does not have the document as parent!");
+			valid = false;
+		}
 		// then call validate on the root
 		valid = valid & root->validate(logger);
 	}
 	// call validate on the AnnotationEntities
 	return valid & continueValidation(annotations, logger);
+}
+
+void Document::addAnnotation(Handle<AnnotationEntity> a)
+{
+	invalidate();
+	annotations.push_back(a);
+	if (a->getParent() != this) {
+		a->setParent(this);
+	}
+}
+
+void Document::addAnnotations(std::vector<Handle<AnnotationEntity>> as)
+{
+	for (Handle<AnnotationEntity> a : as) {
+		addAnnotation(a);
+	}
 }
 
 bool Document::hasChild(Handle<StructureNode> s) const

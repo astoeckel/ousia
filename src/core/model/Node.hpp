@@ -451,6 +451,13 @@ public:
 	Rooted<Managed> getParent() const { return parent; }
 
 	/**
+	 * Sets the parent node.
+	 *
+	 * @param parent is a Handle to the parent node.
+	 */
+	void setParent(Handle<Node> parent);
+
+	/**
 	 * Returns true, if the node does not have a parent. Root nodes may either
 	 * be the root element of the complete DOM tree
 	 *
@@ -522,8 +529,8 @@ class NodeVector
     : public ManagedGenericList<T, std::vector<Handle<T>>,
                                 ListAccessor<Handle<T>>, Listener> {
 public:
-	using Base = ManagedGenericList<T, std::vector<Handle<T>>, ListAccessor<Handle<T>>,
-	                         Listener>;
+	using Base = ManagedGenericList<T, std::vector<Handle<T>>,
+	                                ListAccessor<Handle<T>>, Listener>;
 	using Base::Base;
 
 	/**
@@ -553,9 +560,9 @@ class NodeMap
     : public ManagedGenericMap<K, T, std::map<K, Handle<T>>,
                                MapAccessor<std::pair<K, Handle<T>>>, Listener> {
 public:
-	using Base = ManagedGenericMap<K, T, std::map<K, Handle<T>>,
-	                        MapAccessor<std::pair<K, Handle<T>>>,
-	                        Listener>;
+	using Base =
+	    ManagedGenericMap<K, T, std::map<K, Handle<T>>,
+	                      MapAccessor<std::pair<K, Handle<T>>>, Listener>;
 	using Base::Base;
 
 	/**
