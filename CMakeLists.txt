@@ -62,8 +62,6 @@ IF(BUILD_DOCUMENTATION)
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		COMMENT "Generating API documentation with Doxygen"
 		VERBATIM)
-
-	INSTALL(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
 ENDIF()
 
 
@@ -289,4 +287,18 @@ IF(TEST)
 	ADD_TEST(ousia_test_xml ousia_test_xml)
 #	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
 ENDIF()
+
+################################################################################
+# Commands for building installing                                             #
+################################################################################
+
+INSTALL(DIRECTORY data/ DESTINATION share/ousia
+		FILE_PERMISSIONS
+				OWNER_READ GROUP_READ WORLD_READ
+				OWNER_WRITE
+		DIRECTORY_PERMISSIONS
+				OWNER_READ GROUP_READ WORLD_READ
+				OWNER_WRITE
+				OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
+)
 
