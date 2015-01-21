@@ -147,10 +147,14 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		// a constructor we can not check anything else.
 		return false;
 	}
-	// TODO: check the validated form of Attributes
-	// TODO: Check if descriptor is registered at the Document?
-
-	bool valid = true;
+	// check the attribute primitive content.
+	bool valid;
+	if (descriptor->getAttributesDescriptor() == nullptr) {
+		valid = getAttributes() == nullptr;
+	} else {
+		valid = descriptor->getAttributesDescriptor()->isValid(getAttributes(),
+		                                                       logger);
+	}
 	/*
 	 * generate the set of effective fields. This is trivial for
 	 * AnnotationEntities, but in the case of StructuredEntities we have to
@@ -188,7 +192,18 @@ bool DocumentEntity::doValidate(Logger &logger) const
 					continue;
 			}
 			// if we are here we know that exactly one child exists.
-			// TODO: Check the primitive type of the child.
+			if (!fields[f][0]->isa(RttiTypes::DocumentPrimitive)) {
+				logger.error(std::string("Primitive Field \"") +
+				             fieldDescs[f]->getName() +
+				             "\" has non primitive content!");
+				valid = false;
+			} else {
+				Handle<DocumentPrimitive> primitive =
+				    fields[f][0].cast<DocumentPrimitive>();
+				valid = valid &
+				        fieldDescs[f]->getPrimitiveType()->isValid(
+				            primitive->getContent(), logger);
+			}
 			continue;
 		}
 
