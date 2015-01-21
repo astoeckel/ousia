@@ -162,6 +162,8 @@ private:
 
 	void addStructureNode(Handle<StructureNode> s, const int &i);
 
+	bool removeStructureNodeFromField(Handle<StructureNode> s, const int &i);
+
 protected:
 	bool doValidate(Logger &logger) const;
 
@@ -278,8 +280,8 @@ public:
 	 * If the name is unknown an exception is thrown.
 	 *
 	 * This method also changes the parent of the newly added StructureNode if
-	 * it is not set to this DocumentEntity already.
-	 * TODO: This could get move semantics.
+	 * it is not set to this DocumentEntity already and removes it from the
+	 * old parent.
 	 *
 	 * @param s         is the StructureNode that shall be added.
 	 * @param fieldName is the name of a field as specified in the
@@ -287,6 +289,7 @@ public:
 	 */
 	void addStructureNode(Handle<StructureNode> s,
 	                      const std::string &fieldName = "");
+
 	/**
 	 * This adds multiple StructureNodes to the field with the given name.
 	 * If an empty name is given it is assumed that the 'default'
@@ -297,7 +300,8 @@ public:
 	 * If the name is unknown an exception is thrown.
 	 *
 	 * This method also changes the parent of each newly added StructureNode if
-	 * it is not set to this DocumentEntity already.
+	 * it is not set to this DocumentEntity already and removes it from the
+	 * old parent.
 	 *
 	 * @param ss        are the StructureNodes that shall be added.
 	 * @param fieldName is the name of a field as specified in the
@@ -307,13 +311,34 @@ public:
 	                       const std::string &fieldName = "");
 
 	/**
+	 * This removes a StructureNode from the field with the given name. If an
+	 * empty name is given it is assumed that the 'default' FieldDescriptor is
+	 * referenced, where 'default' means either:
+	 * 1.) The only TREE typed FieldDescriptor (if present) or
+	 * 2.) the only FieldDescriptor (if only one is specified).
+	 *
+	 * If the name is unknown an exception is thrown.
+	 *
+	 * This method also changes the parent of the removed StructureNode to null.
+	 *
+	 * @param s         is the StructureNode that shall be removed.
+	 * @param fieldName is the name of a field as specified in the
+	 *                  FieldDescriptor in the Domain description.
+	 * @return          true if this StructureNode was a child here and false if
+	 *                  if was not found.
+	 */
+	bool removeStructureNodeFromField(Handle<StructureNode> s,
+	                                  const std::string &fieldName = "");
+
+	/**
 	 * This adds a StructureNode to the field with the given FieldDescriptor.
 	 *
 	 * If the FieldDescriptor does not belong to the Descriptor of this node
 	 * an exception is thrown.
 	 *
 	 * This method also changes the parent of the newly added StructureNode if
-	 * it is not set to this DocumentEntity already.
+	 * it is not set to this DocumentEntity already and removes it from the
+	 * old parent.
 	 *
 	 * @param s               is the StructureNode that shall be added.
 	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
@@ -330,7 +355,8 @@ public:
 	 * an exception is thrown.
 	 *
 	 * This method also changes the parent of each newly added StructureNode if
-	 * it is not set to this DocumentEntity already.
+	 * it is not set to this DocumentEntity already and removes it from the
+	 * old parent.
 	 *
 	 * @param ss              are the StructureNodes that shall be added.
 	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
@@ -338,6 +364,35 @@ public:
 	 */
 	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
 	                       Handle<FieldDescriptor> fieldDescriptor);
+
+	/**
+	 * This removes a StructureNode from the field with the given
+	 * FieldDescriptor.
+	 *
+	 * This method also changes the parent of the removed StructureNode to null.
+	 *
+	 * @param s         is the StructureNode that shall be removed.
+	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
+	 *                        this DocumentEntity.
+
+	 * @return          true if this StructureNode was a child here and false if
+	 *                  if was not found.
+	*/
+	bool removeStructureNodeFromField(Handle<StructureNode> s,
+	                                  Handle<FieldDescriptor> fieldDescriptor);
+
+	/**
+	 * This removes a StructureNode from this DocumentEntity. It iterates
+	 * through all fields to find it.
+	 *
+	 * This method also changes the parent of the removed StructureNode to null.
+	 *
+	 * @param s is the StructureNode that shall be removed.
+
+	 * @return  true if this StructureNode was a child here and false if if was
+	 *          not found.
+	*/
+	bool removeStructureNode(Handle<StructureNode> s);
 };
 
 /**
@@ -680,21 +735,32 @@ public:
 	}
 
 	/**
-	 * Adds an AnnotationEntity to this document. This also sets the parent
-	 * of the given AnnotationEntity if it is not set to this document already.
+	 * Adds an AnnotationEntity to this Document. This also sets the parent
+	 * of the given AnnotationEntity if it is not set to this Document already
+	 * and removes it from the old Document.
 	 *
 	 * @param a is some AnnotationEntity
 	 */
 	void addAnnotation(Handle<AnnotationEntity> a);
 
 	/**
-	 * Adds multiple AnnotationEntities to this document. This also sets the
-	 * parent of each given AnnotationEntity if it is not set to this document
-	 * already.
+	 * Adds multiple AnnotationEntities to this Document. This also sets the
+	 * parent of each given AnnotationEntity if it is not set to this Document
+	 * already and removes it from the old Document.
 	 *
 	 * @param as is a vector of AnnotationEntities.
 	 */
-	void addAnnotations(const std::vector<Handle<AnnotationEntity>>& as);
+	void addAnnotations(const std::vector<Handle<AnnotationEntity>> &as);
+
+	/**
+	 * Removes an AnnotationEntity from this Document. This also sets the parent
+	 * of the given AnnotationEntity to null.
+	 *
+	 * @param a is some AnnotationEntity.
+	 * @return  true if the given AnnotationEntity was removed and false if this
+	 *          Document did not have the given AnnotationEntity as child.
+	 */
+	bool removeAnnotation(Handle<AnnotationEntity> a);
 
 	/**
 	 * Returns a const reference to the NodeVector of Domains that are used

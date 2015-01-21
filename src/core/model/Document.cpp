@@ -335,11 +335,37 @@ void DocumentEntity::setAttributes(const Variant &a)
 
 void DocumentEntity::addStructureNode(Handle<StructureNode> s, const int &i)
 {
-	invalidateSubInstance();
-	fields[i].push_back(s);
-	if (s->getParent() != subInst) {
+	// only add the new node if we don't have it already.
+	auto it = fields[i].find(s);
+	if (it == fields[i].end()) {
+		invalidateSubInstance();
+		fields[i].push_back(s);
+	}
+	Handle<Managed> par = s->getParent();
+	if (par != subInst) {
+		// if a previous parent existed, remove the StructureNode from it
+		if (par != nullptr) {
+			if (par->isa(RttiTypes::StructuredEntity)) {
+				par.cast<StructuredEntity>()->removeStructureNode(s);
+			} else {
+				par.cast<AnnotationEntity>()->removeStructureNode(s);
+			}
+		}
 		s->setParent(subInst);
 	}
+}
+
+bool DocumentEntity::removeStructureNodeFromField(Handle<StructureNode> s,
+                                                  const int &i)
+{
+	auto it = fields[i].find(s);
+	if (it != fields[i].end()) {
+		invalidateSubInstance();
+		fields[i].erase(it);
+		s->setParent(nullptr);
+		return true;
+	}
+	return false;
 }
 
 void DocumentEntity::addStructureNode(Handle<StructureNode> s,
@@ -357,6 +383,13 @@ void DocumentEntity::addStructureNodes(
 	}
 }
 
+bool DocumentEntity::removeStructureNodeFromField(
+    Handle<StructureNode> s, const std::string &fieldName)
+{
+	return removeStructureNodeFromField(
+	    s, getFieldDescriptorIndex(fieldName, true));
+}
+
 void DocumentEntity::addStructureNode(Handle<StructureNode> s,
                                       Handle<FieldDescriptor> fieldDescriptor)
 {
@@ -371,6 +404,28 @@ void DocumentEntity::addStructureNodes(
 	for (Handle<StructureNode> s : ss) {
 		addStructureNode(s, i);
 	}
+}
+
+bool DocumentEntity::removeStructureNodeFromField(
+    Handle<StructureNode> s, Handle<FieldDescriptor> fieldDescriptor)
+{
+	return removeStructureNodeFromField(
+	    s, getFieldDescriptorIndex(fieldDescriptor, true));
+}
+
+bool DocumentEntity::removeStructureNode(Handle<StructureNode> s)
+{
+	for (auto field : fields) {
+		auto it = field.find(s);
+		if (it != field.end()) {
+			invalidateSubInstance();
+			field.erase(it);
+			s->setParent(nullptr);
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /* Class StructureNode */
@@ -558,9 +613,17 @@ bool Document::doValidate(Logger &logger) const
 
 void Document::addAnnotation(Handle<AnnotationEntity> a)
 {
-	invalidate();
-	annotations.push_back(a);
-	if (a->getParent() != this) {
+	// only add it if we need to.
+	if (annotations.find(a) == annotations.end()) {
+		invalidate();
+		annotations.push_back(a);
+	}
+	Handle<Managed> par = a->getParent();
+	if (par != this) {
+		if (par != nullptr) {
+			// remove the StructuredClass from the old parent.
+			par.cast<Document>()->removeAnnotation(a);
+		}
 		a->setParent(this);
 	}
 }
@@ -570,6 +633,20 @@ void Document::addAnnotations(const std::vector<Handle<AnnotationEntity>> &as)
 	for (Handle<AnnotationEntity> a : as) {
 		addAnnotation(a);
 	}
+}
+
+
+
+bool Document::removeAnnotation(Handle<AnnotationEntity> a)
+{
+	auto it = annotations.find(a);
+	if (it != annotations.end()) {
+		invalidate();
+		annotations.erase(it);
+		a->setParent(nullptr);
+		return true;
+	}
+	return false;
 }
 
 bool Document::hasChild(Handle<StructureNode> s) const

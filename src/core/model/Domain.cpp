@@ -59,7 +59,7 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 {
 	bool valid = true;
 	// check parent type
-	if(getParent() == nullptr){
+	if (getParent() == nullptr) {
 		logger.error("This field has no parent!");
 		valid = false;
 	} else if (!getParent()->isa(RttiTypes::Descriptor)) {
@@ -110,10 +110,10 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	return valid;
 }
 
-
-bool FieldDescriptor::removeChild(Handle<StructuredClass> c){
+bool FieldDescriptor::removeChild(Handle<StructuredClass> c)
+{
 	auto it = children.find(c);
-	if(it != children.end()){
+	if (it != children.end()) {
 		invalidate();
 		children.erase(it);
 		return true;
@@ -138,7 +138,7 @@ bool Descriptor::doValidate(Logger &logger) const
 {
 	bool valid = true;
 	// check parent type
-	if(getParent() == nullptr){
+	if (getParent() == nullptr) {
 		logger.error("This Descriptor has no parent!");
 		valid = false;
 	} else if (!getParent()->isa(RttiTypes::Domain)) {
@@ -149,7 +149,7 @@ bool Descriptor::doValidate(Logger &logger) const
 	if (getName().empty()) {
 		logger.error("The name of this Descriptor is empty!");
 		valid = false;
-	} else{
+	} else {
 		valid = valid & validateName(logger);
 	}
 	// check if all FieldDescriptors have this Descriptor as parent.
@@ -244,9 +244,25 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 	return found;
 }
 
+void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd)
+{
+	// only add it if we need to.
+	if (fieldDescriptors.find(fd) == fieldDescriptors.end()) {
+		invalidate();
+		fieldDescriptors.push_back(fd);
+	}
+	Handle<Managed> par = fd->getParent();
+	if (par != this) {
+		if (par != nullptr) {
+			// remove the FieldDescriptor from the old parent.
+			par.cast<Descriptor>()->removeFieldDescriptor(fd);
+		}
+		fd->setParent(this);
+	}
+}
+
 void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd)
 {
-	invalidate();
 	if (fd->getFieldType() == FieldDescriptor::FieldType::PRIMITIVE) {
 		/*
 		 * To call the "new" operation is enough here, because the
@@ -259,6 +275,18 @@ void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd)
 		new FieldDescriptor(getManager(), this, fd->getFieldType(),
 		                    fd->getName(), fd->isOptional());
 	}
+}
+
+bool Descriptor::removeFieldDescriptor(Handle<FieldDescriptor> fd)
+{
+	auto it = fieldDescriptors.find(fd);
+	if (it != fieldDescriptors.end()) {
+		invalidate();
+		fieldDescriptors.erase(it);
+		fd->setParent(nullptr);
+		return true;
+	}
+	return false;
 }
 
 /* Class StructuredClass */
@@ -341,11 +369,10 @@ bool StructuredClass::isSubclassOf(Handle<StructuredClass> c) const
 void StructuredClass::addSubclass(Handle<StructuredClass> sc)
 {
 	// check if we already have that class.
-	if (subclasses.find(sc) != subclasses.end()) {
-		return;
+	if (subclasses.find(sc) == subclasses.end()) {
+		invalidate();
+		subclasses.push_back(sc);
 	}
-	invalidate();
-	subclasses.push_back(sc);
 	sc->setSuperclass(this);
 }
 
@@ -427,20 +454,60 @@ bool Domain::doValidate(Logger &logger) const
 
 void Domain::addStructuredClass(Handle<StructuredClass> s)
 {
-	invalidate();
-	structuredClasses.push_back(s);
-	if (s->getParent() != this) {
+	// only add it if we need to.
+	if (structuredClasses.find(s) == structuredClasses.end()) {
+		invalidate();
+		structuredClasses.push_back(s);
+	}
+	Handle<Managed> par = s->getParent();
+	if (par != this) {
+		if (par != nullptr) {
+			// remove the StructuredClass from the old parent.
+			par.cast<Domain>()->removeStructuredClass(s);
+		}
 		s->setParent(this);
 	}
 }
 
+bool Domain::removeStructuredClass(Handle<StructuredClass> s)
+{
+	auto it = structuredClasses.find(s);
+	if (it != structuredClasses.end()) {
+		invalidate();
+		structuredClasses.erase(it);
+		s->setParent(nullptr);
+		return true;
+	}
+	return false;
+}
+
 void Domain::addAnnotationClass(Handle<AnnotationClass> a)
 {
-	invalidate();
-	annotationClasses.push_back(a);
-	if (a->getParent() != this) {
+	// only add it if we need to.
+	if (annotationClasses.find(a) == annotationClasses.end()) {
+		invalidate();
+		annotationClasses.push_back(a);
+	}
+	Handle<Managed> par = a->getParent();
+	if (par != this) {
+		if (par != nullptr) {
+			// remove the StructuredClass from the old parent.
+			par.cast<Domain>()->removeAnnotationClass(a);
+		}
 		a->setParent(this);
 	}
+}
+
+bool Domain::removeAnnotationClass(Handle<AnnotationClass> a)
+{
+	auto it = annotationClasses.find(a);
+	if (it != annotationClasses.end()) {
+		invalidate();
+		annotationClasses.erase(it);
+		a->setParent(nullptr);
+		return true;
+	}
+	return false;
 }
 }
 /* Type registrations */
