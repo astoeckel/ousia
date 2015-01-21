@@ -512,6 +512,13 @@ public:
 	 * @return true if this Node is valid.
 	 */
 	bool validate(Logger &logger) const;
+
+	/**
+	 * Returns the current ValidationState of this Node.
+	 *
+	 * @return the current ValidationState of this Node.
+	 */
+	ValidationState getValidationState() const { return validationState; }
 };
 
 /**
