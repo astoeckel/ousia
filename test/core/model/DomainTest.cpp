@@ -284,5 +284,88 @@ TEST(StructuredClass, isSubclassOf)
 	ASSERT_FALSE(F->isSubclassOf(E));
 	ASSERT_FALSE(F->isSubclassOf(F));
 }
+
+TEST(Domain, validate)
+{
+	TerminalLogger logger{std::cerr, true};
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// start with an easy example: Our book domain should be valid.
+	{
+		Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
+		ASSERT_TRUE(domain->validate(logger));
+	}
+	{
+		// Even easier: An empty domain should be valid.
+		Rooted<Domain> domain{new Domain(mgr, sys, "domain")};
+		ASSERT_TRUE(domain->validate(logger));
+		// if we add a StructureClass it should be valid still.
+		Rooted<StructuredClass> base{
+		    new StructuredClass(mgr, "myClass", domain)};
+		ASSERT_TRUE(domain->validate(logger));
+		// if we tamper with the parent reference, however, it shouldn't be
+		// valid anymore.
+		base->setParent(nullptr);
+		ASSERT_FALSE(base->validate(logger));
+		base->setParent(domain);
+		ASSERT_TRUE(domain->validate(logger));
+		// the same goes for the name.
+		base->setName("");
+		ASSERT_FALSE(domain->validate(logger));
+		base->setName("my class");
+		ASSERT_FALSE(domain->validate(logger));
+		base->setName("myClass");
+		ASSERT_TRUE(domain->validate(logger));
+		// Let's add a primitive field (without a primitive type at first)
+		Rooted<FieldDescriptor> base_field{
+		    new FieldDescriptor(mgr, base, nullptr)};
+		// this should not be valid.
+		ASSERT_FALSE(domain->validate(logger));
+		// but it should be if we set the type.
+		base_field->setPrimitiveType(sys->getStringType());
+		ASSERT_TRUE(domain->validate(logger));
+		// not anymore, however, if we tamper with the FieldType.
+		base_field->setFieldType(FieldDescriptor::FieldType::TREE);
+		ASSERT_FALSE(domain->validate(logger));
+		base_field->setFieldType(FieldDescriptor::FieldType::PRIMITIVE);
+		ASSERT_TRUE(domain->validate(logger));
+		// add a subclass for our base class.
+		Rooted<StructuredClass> sub{
+		    new StructuredClass(mgr, "sub", domain)};
+		// this should be valid in itself.
+		ASSERT_TRUE(domain->validate(logger));
+		// and still if we add a superclass.
+		sub->setSuperclass(base);
+		ASSERT_TRUE(domain->validate(logger));
+		// and still we we remove the subclass from the base class.
+		base->removeSubclass(sub);
+		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(nullptr, sub->getSuperclass());
+		// and still if we re-add it.
+		base->addSubclass(sub);
+		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(base, sub->getSuperclass());
+		// add a non-primitive field to the child class.
+		Rooted<FieldDescriptor> sub_field{
+		    new FieldDescriptor(mgr, sub)};
+		// this should be valid
+		ASSERT_TRUE(domain->validate(logger));
+		// .. until we set a primitive type.
+		sub_field->setPrimitiveType(sys->getStringType());
+		ASSERT_FALSE(domain->validate(logger));
+		// and valid again if we unset it.
+		sub_field->setPrimitiveType(nullptr);
+		ASSERT_TRUE(domain->validate(logger));
+		// we should also be able to add a child and have it still be valid.
+		sub_field->addChild(base);
+		ASSERT_TRUE(domain->validate(logger));
+		// it should be invalid if we add it twice.
+		sub_field->addChild(base);
+		ASSERT_FALSE(domain->validate(logger));
+		// and valid again if we remove it once.
+		sub_field->removeChild(base);
+		ASSERT_TRUE(domain->validate(logger));
+	}
+}
 }
 }

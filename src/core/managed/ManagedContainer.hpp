@@ -529,18 +529,6 @@ public:
 		}
 		return c.erase(first, last);
 	}
-
-	iterator find(Handle<Managed> elem)
-	{
-		iterator it = begin();
-		while (it != end()) {
-			if (*it == elem) {
-				break;
-			}
-			it++;
-		}
-		return it;
-	}
 };
 
 /**
