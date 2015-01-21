@@ -143,6 +143,11 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 		}
 	}
 
+	// If the path starts with "./" only perform relative lookups!
+	if (path.substr(0, 2) == "./") {
+		return false;
+	}
+
 	// Otherwise look in the search paths, search backwards, last defined search
 	// paths have a higher precedence
 	auto it = searchPaths.find(type);
