@@ -114,6 +114,26 @@ public:
 	 * @return a vector of strings containing the splitted sub-strings.
 	 */
 	static std::vector<std::string> split(const std::string &s, char delim);
+
+	/**
+	 * Converts the given string to lowercase (only works for ANSI characters).
+	 *
+	 * @param s is the string that should be converted to lowercase.
+	 * @return s in lowercase.
+	 */
+	static std::string toLower(std::string s);
+
+	/**
+	 * Reads the file extension of the given filename.
+	 *
+	 * @param filename is the filename from which the extension should be
+	 * extracted.
+	 * @return the extension, excluding any leading dot. The extension is
+	 * defined as the substring after the last dot in the given string, if the
+	 * dot is after a slash or backslash. The extension is converted to
+	 * lowercase.
+	 */
+	static std::string extractFileExtension(const std::string &filename);
 };
 }
 

@@ -24,6 +24,7 @@
  *
  * @author Benjamin Paassen - bpaassen@techfak.uni-bielefeld.de
  */
+
 #ifndef _OUSIA_CSS_PARSER_HPP_
 #define _OUSIA_CSS_PARSER_HPP_
 
@@ -36,8 +37,6 @@
 #include <core/parser/Parser.hpp>
 
 namespace ousia {
-namespace parser {
-namespace css {
 
 /**
  * This is a context free, recursive parser for a subset of the CSS3 language
@@ -139,7 +138,7 @@ private:
 	bool expect(int expectedType, CodeTokenizer &tokenizer, Token &t,
 	            bool force, ParserContext &ctx);
 
-public:
+protected:
 	/**
 	 * This parses the given input as CSS content as specified by the grammar
 	 * seen above. The return value is a Rooted reference to the root of the
@@ -157,21 +156,8 @@ public:
 	 * @return    returns the root node of the resulting SelectorTree. For more
 	 *            information on the return conventions consult the Parser.hpp.
 	 */
-	Rooted<Node> parse(CharReader &reader, ParserContext &ctx) override;
-
-	using Parser::parse;
-
-	/**
-	 * As befits a class called CSSParser, this Parser parses CSS.
-	 */
-	std::set<std::string> mimetypes()
-	{
-		std::set<std::string> out{"text/css"};
-		return out;
-	}
+	Rooted<Node> doParse(CharReader &reader, ParserContext &ctx) override;
 };
-}
-}
 }
 
 #endif

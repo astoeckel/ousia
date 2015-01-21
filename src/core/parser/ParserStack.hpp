@@ -42,9 +42,9 @@
 #include <core/common/Argument.hpp>
 
 #include "Parser.hpp"
+#include "ParserContext.hpp"
 
 namespace ousia {
-namespace parser {
 
 /**
  * The State type alias is used to
@@ -139,7 +139,7 @@ public:
 
 	const std::string &name() { return handlerData.name; }
 
-	Scope &scope() { return handlerData.ctx.scope; }
+	ParserScope &scope() { return handlerData.ctx.scope; }
 
 	Registry &registry() { return handlerData.ctx.registry; }
 
@@ -420,7 +420,6 @@ public:
 	 */
 	ParserContext &getContext() { return ctx; }
 };
-}
 }
 
 #endif /* _OUSIA_PARSER_STACK_HPP_ */

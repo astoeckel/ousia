@@ -23,16 +23,18 @@
 
 #include <core/model/Project.hpp>
 #include <core/parser/Parser.hpp>
+#include <core/parser/ParserScope.hpp>
+#include <core/parser/ParserContext.hpp>
+#include <core/Registry.hpp>
 
 namespace ousia {
-namespace parser {
 
 struct StandaloneParserContext {
 public:
 	Manager manager;
 	Logger logger;
-	Scope scope;
 	Registry registry;
+	ParserScope scope;
 	Rooted<model::Project> project;
 	ParserContext context;
 
@@ -46,7 +48,6 @@ public:
 	    : project(new model::Project(manager)),
 	      context(scope, registry, externalLogger, manager, project){};
 };
-}
 }
 
 #endif /* _OUSIA_STANDALONE_PARSER_CONTEXT_ */

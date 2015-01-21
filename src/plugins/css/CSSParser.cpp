@@ -19,10 +19,9 @@
 #include "CSSParser.hpp"
 
 #include <core/common/VariantReader.hpp>
+#include <core/parser/ParserContext.hpp>
 
 namespace ousia {
-namespace parser {
-namespace css {
 
 // CSS code tokens
 static const int CURLY_OPEN = 1;
@@ -75,7 +74,7 @@ static const std::map<int, CodeTokenDescriptor> CSS_DESCRIPTORS = {
     {ESCAPE, {CodeTokenMode::ESCAPE, ESCAPE}},
     {LINEBREAK, {CodeTokenMode::LINEBREAK, LINEBREAK}}};
 
-Rooted<Node> CSSParser::parse(CharReader &reader, ParserContext &ctx)
+Rooted<Node> CSSParser::doParse(CharReader &reader, ParserContext &ctx)
 {
 	CodeTokenizer tokenizer{reader, CSS_ROOT, CSS_DESCRIPTORS};
 	tokenizer.ignoreComments = true;
@@ -362,5 +361,4 @@ bool CSSParser::expect(int expectedType, CodeTokenizer &tokenizer, Token &t,
 	return true;
 }
 }
-}
-}
+

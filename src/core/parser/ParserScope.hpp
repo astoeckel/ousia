@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_PARSER_SCOPE_H_
-#define _OUSIA_PARSER_SCOPE_H_
+#ifndef _OUSIA_PARSER_SCOPE_HPP_
+#define _OUSIA_PARSER_SCOPE_HPP_
 
 #include <functional>
 #include <list>
@@ -29,19 +29,21 @@
 #include <core/model/Node.hpp>
 
 /**
- * @file Scope.hpp
+ * @file ParserScope.hpp
  *
- * Contains the Scope class used for resolving references based on the current
+ * Contains the ParserScope class used for resolving references based on the current
  * parser state.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
 namespace ousia {
-namespace parser {
 
 // Forward declaration
-class Scope;
+class CharReader;
+class Registry;
+class Logger;
+class ParserScope;
 
 /**
  * Callback function type used for creating a dummy object while no correct
@@ -57,57 +59,9 @@ using ResolutionResultCallback =
     std::function<void(Handle<Node>, Logger &logger)>;
 
 /**
- * The GuardedScope class takes care of pushing a Node instance into the
- * name resolution stack of a Scope instance and poping this node once the
- * ScopedScope instance is deletes. This way you cannot forget to pop a Node
- * from a Scope instance as this operation is performed automatically.
- */
-class GuardedScope {
-private:
-	/**
-	 * Reference at the backing scope instance.
-	 */
-	Scope *scope;
-
-public:
-	/**
-	 * Creates a new ScopedScope instance.
-	 *
-	 * @param scope is the backing Scope instance.
-	 * @param node is the Node instance that should be pushed onto the stack of
-	 * the Scope instance.
-	 */
-	GuardedScope(Scope *scope, Handle<Node> node);
-
-	/**
-	 * Pops the Node given in the constructor form the stack of the Scope
-	 * instance.
-	 */
-	~GuardedScope();
-
-	/**
-	 * Move constructor of the ScopedScope class.
-	 */
-	GuardedScope(GuardedScope &&);
-
-	// No copy construction
-	GuardedScope(const GuardedScope &) = delete;
-
-	/**
-	 * Provides access at the underlying Scope instance.
-	 */
-	Scope *operator->() { return scope; }
-
-	/**
-	 * Provides access at the underlying Scope instance.
-	 */
-	Scope &operator*() { return *scope; }
-};
-
-/**
  * Base class for the
  */
-class ScopeBase {
+class ParserScopeBase {
 protected:
 	/**
 	 * List containing all nodes currently on the scope, with the newest nodes
@@ -117,18 +71,18 @@ protected:
 
 public:
 	/**
-	 * Default constructor, creates an empty Scope instance.
+	 * Default constructor, creates an empty ParserScope instance.
 	 */
-	ScopeBase() {}
+	ParserScopeBase() {}
 
 	/**
-	 * Creates a new instance of the ScopeBase class, copying the the given
+	 * Creates a new instance of the ParserScopeBase class, copying the the given
 	 * nodes as initial start value of the node stack. This could for example
 	 * be initialized with the path of a node.
 	 *
 	 * @param nodes is a node vector containing the current node stack.
 	 */
-	ScopeBase(const NodeVector<Node> &nodes) : nodes(nodes) {}
+	ParserScopeBase(const NodeVector<Node> &nodes) : nodes(nodes) {}
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes that
@@ -157,7 +111,7 @@ private:
 	/**
 	 * Copy of the scope at the time when the resolution was first triggered.
 	 */
-	ScopeBase scope;
+	ParserScopeBase scope;
 
 	/**
 	 * Callback function to be called when an element is successfully resolved.
@@ -185,7 +139,7 @@ public:
 	 * arguments.
 	 *
 	 * @param nodes is a reference at the current internal node stack of the
-	 * Scope class.
+	 * ParserScope class.
 	 * @param path is the path that was queried when the resolution failed the
 	 * first time.
 	 * @param type is the Rtti of the element that should be queried.
@@ -213,12 +167,11 @@ public:
 
 /**
  * Provides an interface for document parsers to resolve references based on the
- * current position in the created document tree. The Scope class itself is
- * represented as a chain of Scope objects where each element has a reference to
- * a Node object attached to it. The descend method can be used to add a new
- * scope element to the chain.
+ * current position in the created document tree. The ParserScope class itself
+ * is represented as a chain of ParserScope objects where each element has a
+ * reference to a Node object attached to it.
  */
-class Scope : public ScopeBase {
+class ParserScope : public ParserScopeBase {
 private:
 	/**
 	 * List containing all deferred resolution descriptors.
@@ -227,10 +180,10 @@ private:
 
 public:
 	/**
-	 * Default constructor of the Scope class, creates an empty Scope with no
+	 * Default constructor of the ParserScope class, creates an empty ParserScope with no
 	 * element on the internal stack.
 	 */
-	Scope() {}
+	ParserScope() {}
 
 	/**
 	 * Pushes a new node onto the scope.
@@ -245,20 +198,14 @@ public:
 	void pop();
 
 	/**
-	 * Returns a ScopedScope instance, which automatically pushes the given node
-	 * into the Scope stack and pops it once the ScopedScope is destroyed.
-	 */
-	GuardedScope descend(Handle<Node> node);
-
-	/**
-	 * Returns the top-most Node instance in the Scope hirarchy.
+	 * Returns the top-most Node instance in the ParserScope hirarchy.
 	 *
 	 * @return a reference at the root node.
 	 */
 	Rooted<Node> getRoot() const;
 
 	/**
-	 * Returns the bottom-most Node instance in the Scope hirarchy, e.g. the
+	 * Returns the bottom-most Node instance in the ParserScope hirarchy, e.g. the
 	 * node that was pushed last onto the stack.
 	 *
 	 * @return a reference at the leaf node.
@@ -475,7 +422,6 @@ public:
 	bool performDeferredResolution(Logger &logger);
 };
 }
-}
 
-#endif /* _OUSIA_PARSER_SCOPE_H_ */
+#endif /* _OUSIA_PARSER_SCOPE_HPP_ */
 

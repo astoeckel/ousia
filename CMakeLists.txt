@@ -145,8 +145,9 @@ ADD_LIBRARY(ousia_core
 	src/core/model/Project
 	src/core/model/Typesystem
 	src/core/parser/Parser
+	src/core/parser/ParserContext
+	src/core/parser/ParserScope
 	src/core/parser/ParserStack
-	src/core/parser/Scope
 	src/core/resource/Resource
 	src/core/resource/ResourceLocator
 #	src/core/script/ScriptEngine

@@ -20,14 +20,13 @@
 
 #include <gtest/gtest.h>
 
+#include <core/common/CharReader.hpp>
 #include <core/common/Logger.hpp>
 #include <core/parser/StandaloneParserContext.hpp>
 
 #include <plugins/xml/XmlParser.hpp>
 
 namespace ousia {
-namespace parser {
-namespace xml {
 
 static TerminalLogger logger(std::cerr, true);
 
@@ -92,8 +91,6 @@ TEST(XmlParser, namespaces)
 		}
 		ctx.manager.exportGraphviz("xmlDocument.dot");
 	}
-}
-}
 }
 }
 

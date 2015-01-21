@@ -54,5 +54,24 @@ TEST(Utils, split)
 	ASSERT_EQ(std::vector<std::string>({"", "a", "be", "c", ""}),
 	          Utils::split(".a.be.c.", '.'));
 }
+
+TEST(Utils, toLower)
+{
+	ASSERT_EQ("", Utils::toLower(""));
+	ASSERT_EQ("foo00", Utils::toLower("foo00"));
+	ASSERT_EQ("foo00", Utils::toLower("fOO00"));
+}
+
+TEST(Utils, extractFileExtension)
+{
+	ASSERT_EQ("", Utils::extractFileExtension(""));
+	ASSERT_EQ("", Utils::extractFileExtension("test"));
+	ASSERT_EQ("ext", Utils::extractFileExtension("test.ext"));
+	ASSERT_EQ("", Utils::extractFileExtension("foo.bar/test"));
+	ASSERT_EQ("", Utils::extractFileExtension("foo.bar\\test"));
+	ASSERT_EQ("ext", Utils::extractFileExtension("foo.bar/test.ext"));
+	ASSERT_EQ("ext", Utils::extractFileExtension("foo.bar/test.EXT"));
+}
+
 }
 

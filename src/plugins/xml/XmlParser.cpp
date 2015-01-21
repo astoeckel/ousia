@@ -25,13 +25,12 @@
 #include <core/common/Utils.hpp>
 #include <core/common/VariantReader.hpp>
 #include <core/parser/ParserStack.hpp>
+#include <core/parser/ParserScope.hpp>
 #include <core/model/Typesystem.hpp>
 
 #include "XmlParser.hpp"
 
 namespace ousia {
-namespace parser {
-namespace xml {
 
 using namespace ousia::model;
 
@@ -291,12 +290,7 @@ static void xmlCharacterDataHandler(void *p, const XML_Char *s, int len)
 
 /* Class XmlParser */
 
-std::set<std::string> XmlParser::mimetypes()
-{
-	return std::set<std::string>{{"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"}};
-}
-
-Rooted<Node> XmlParser::parse(CharReader &reader, ParserContext &ctx)
+Rooted<Node> XmlParser::doParse(CharReader &reader, ParserContext &ctx)
 {
 	// Create the parser object
 	ScopedExpatXmlParser p{"UTF-8"};
@@ -344,8 +338,6 @@ Rooted<Node> XmlParser::parse(CharReader &reader, ParserContext &ctx)
 		}
 	}
 	return nullptr;
-}
-}
 }
 }
 

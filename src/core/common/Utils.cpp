@@ -17,7 +17,9 @@
 */
 
 #include <algorithm>
+#include <cctype>
 #include <limits>
+#include <string>
 
 #include "Utils.hpp"
 
@@ -72,6 +74,27 @@ std::vector<std::string> Utils::split(const std::string &s, char delim)
 		}
 	}
 	return res;
+}
+
+std::string Utils::toLower(std::string s)
+{
+	std::transform(s.begin(), s.end(), s.begin(), tolower);
+	return s;
+}
+
+std::string Utils::extractFileExtension(const std::string &filename)
+{
+	size_t n = 0;
+	for (ssize_t i = filename.size() - 1; i >= 0; i--) {
+		if (filename[i] == '/' || filename[i] == '\\') {
+			return std::string{};
+		}
+		if (filename[i] == '.') {
+			return toLower(filename.substr(i + 1, n));
+		}
+		n++;
+	}
+	return std::string{};
 }
 
 }
