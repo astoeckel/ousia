@@ -210,6 +210,13 @@ private:
 
 protected:
 	/**
+	 * Sets the parent node.
+	 *
+	 * @param parent is a Handle to the parent node.
+	 */
+	void setParent(Handle<Node> parent);
+
+	/**
 	 * Function which should be overwritten by derived classes in order to
 	 * resolve node names to a list of possible nodes. The implementations of
 	 * this function do not need to do anything but call the
@@ -449,13 +456,6 @@ public:
 	 * @return a handle to the root node.
 	 */
 	Rooted<Managed> getParent() const { return parent; }
-
-	/**
-	 * Sets the parent node.
-	 *
-	 * @param parent is a Handle to the parent node.
-	 */
-	void setParent(Handle<Node> parent);
 
 	/**
 	 * Returns true, if the node does not have a parent. Root nodes may either

@@ -249,6 +249,8 @@ class Domain;
  * undefined state.
  */
 class FieldDescriptor : public Node {
+	friend Descriptor;
+
 public:
 	/**
 	 * This enum class contains all possible FieldTypes, meaning either the
@@ -672,6 +674,8 @@ static const Cardinality AnyCardinality = createAny();
  * What about the cardinality?
  */
 class StructuredClass : public Descriptor {
+	friend Domain;
+
 private:
 	const Cardinality cardinality;
 	Owned<StructuredClass> superclass;
@@ -833,6 +837,8 @@ public:
  * This class has no special properties and is in essence just a Descriptor.
  */
 class AnnotationClass : public Descriptor {
+	friend Domain;
+
 public:
 	/**
 	 * The constructor for a new AnnotationClass. Note that you have to add

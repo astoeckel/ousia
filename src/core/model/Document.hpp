@@ -372,6 +372,8 @@ public:
  * information please refer to the header documentation above.
  */
 class StructuredEntity : public StructureNode, public DocumentEntity {
+	friend Document;
+
 protected:
 	bool doValidate(Logger &logger) const override;
 
@@ -497,7 +499,7 @@ public:
 class Anchor : public StructureNode {
 protected:
 	bool doValidate(Logger &logger) const override;
-	
+
 public:
 	/**
 	 * Constructor for Anchor.
@@ -545,6 +547,7 @@ public:
  */
 class AnnotationEntity : public Node, public DocumentEntity {
 	friend DocumentEntity;
+	friend Document;
 
 private:
 	Owned<Anchor> start;
