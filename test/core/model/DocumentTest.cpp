@@ -128,10 +128,12 @@ TEST(Document, validate)
 		// first an invalid one, which is empty.
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
 		doc->addDomain(domain);
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_FALSE(doc->validate(logger));
 		// then add a root, which should make it valid.
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 	}
 	{
@@ -140,6 +142,7 @@ TEST(Document, validate)
 		doc->addDomain(domain);
 		Rooted<StructuredEntity> root = buildRootStructuredEntity(
 		    doc, logger, {"root"}, {}, "my invalid root");
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_FALSE(doc->validate(logger));
 	}
 
@@ -158,12 +161,15 @@ TEST(Document, validate)
 		doc->addDomain(domain);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_FALSE(doc->validate(logger));
 		// but it should get valid if we add a proper child.
 		buildStructuredEntity(doc, logger, root, {"child"});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 		// and it should get invalid again if we add one more child.
 		buildStructuredEntity(doc, logger, root, {"child"});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_FALSE(doc->validate(logger));
 	}
 	/*
@@ -180,6 +186,7 @@ TEST(Document, validate)
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		buildStructuredEntity(doc, logger, root, {"childSub"});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 	}
 	/*
@@ -198,6 +205,7 @@ TEST(Document, validate)
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		buildStructuredEntity(doc, logger, root, {"childSub"});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_FALSE(doc->validate(logger));
 	}
 	/*
@@ -215,6 +223,7 @@ TEST(Document, validate)
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		buildStructuredEntity(doc, logger, root, {"childSub"});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 	}
 	// add a primitive field to the subclass with integer content.
@@ -231,14 +240,16 @@ TEST(Document, validate)
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		Rooted<StructuredEntity> child =
 		    buildStructuredEntity(doc, logger, root, {"childSub"});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_FALSE(doc->validate(logger));
 		// if we add a DocumentPrimitive with the wrong content it should not
 		// work either.
 		Rooted<DocumentPrimitive> primitive{
 		    new DocumentPrimitive(mgr, child, {"ololol"}, "int")};
-		//TODO: ASSERT_FALSE(doc->validate(logger));
+		ASSERT_FALSE(doc->validate(logger));
 		// but if we set the content right, it should work.
 		primitive->setContent({2});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 	}
 
@@ -258,14 +269,41 @@ TEST(Document, validate)
 		Rooted<DocumentPrimitive> primitive{
 		    new DocumentPrimitive(mgr, child, {2}, "int")};
 		Rooted<Anchor> end{new Anchor(mgr, "end", root)};
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 		// then add an AnnotationEntity without Anchors.
 		Rooted<AnnotationEntity> anno =
 		    buildAnnotationEntity(doc, logger, {"anno"}, nullptr, nullptr);
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_FALSE(doc->validate(logger));
 		// but it should be valid again if we set the start end and Anchor.
 		anno->setStart(start);
 		anno->setEnd(end);
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
+		ASSERT_TRUE(doc->validate(logger));
+		// add an attribute to the root, which should make it invalid.
+		root->setAttributes({2});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
+		ASSERT_FALSE(doc->validate(logger));
+		// if we reset it to null it should be valid again
+		root->setAttributes({});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
+		ASSERT_TRUE(doc->validate(logger));
+		// let's set an attribute descriptor.
+		Rooted<StructType> structType{StructType::createValidated(
+		    mgr, "attributes", nullptr, nullptr,
+		    NodeVector<Attribute>{
+		        new Attribute{mgr, "myAttr", sys->getStringType(), "default"}},
+		    logger)};
+		childSubClass->setAttributesDescriptor(structType);
+		// the right map content should be valid now.
+		child->setAttributes(
+		    std::map<std::string, Variant>{{"myAttr", "content"}});
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
+		ASSERT_TRUE(doc->validate(logger));
+		// but an empty map as well
+		child->setAttributes(std::map<std::string, Variant>());
+		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 	}
 }

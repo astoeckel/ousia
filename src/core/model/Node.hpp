@@ -210,6 +210,13 @@ private:
 
 protected:
 	/**
+	 * Sets the parent node.
+	 *
+	 * @param parent is a Handle to the parent node.
+	 */
+	void setParent(Handle<Node> parent);
+
+	/**
 	 * Function which should be overwritten by derived classes in order to
 	 * resolve node names to a list of possible nodes. The implementations of
 	 * this function do not need to do anything but call the
@@ -451,13 +458,6 @@ public:
 	Rooted<Managed> getParent() const { return parent; }
 
 	/**
-	 * Sets the parent node.
-	 *
-	 * @param parent is a Handle to the parent node.
-	 */
-	void setParent(Handle<Node> parent);
-
-	/**
 	 * Returns true, if the node does not have a parent. Root nodes may either
 	 * be the root element of the complete DOM tree
 	 *
@@ -512,6 +512,13 @@ public:
 	 * @return true if this Node is valid.
 	 */
 	bool validate(Logger &logger) const;
+
+	/**
+	 * Returns the current ValidationState of this Node.
+	 *
+	 * @return the current ValidationState of this Node.
+	 */
+	ValidationState getValidationState() const { return validationState; }
 };
 
 /**

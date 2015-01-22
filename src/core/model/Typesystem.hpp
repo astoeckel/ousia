@@ -660,7 +660,7 @@ protected:
 
 public:
 	/**
-	 * Private constructor of the StructType class, creates a new instance
+	 * Constructor of the StructType class, creates a new instance
 	 * without performing any validity checks.
 	 *
 	 * @param mgr is the underlying Manager instance.
@@ -680,7 +680,7 @@ public:
 	 * parameters for validity.
 	 *
 	 * @param mgr is the underlying Manager instance.
-	 * @param name is the name of the EnumType instance. Should be a valid
+	 * @param name is the name of the StructType instance. Should be a valid
 	 * identifier.
 	 * @param system is a reference to the parent Typesystem instance.
 	 * @param parentStructure is a reference to the StructType this type is

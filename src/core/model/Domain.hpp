@@ -249,6 +249,8 @@ class Domain;
  * undefined state.
  */
 class FieldDescriptor : public Node {
+	friend Descriptor;
+
 public:
 	/**
 	 * This enum class contains all possible FieldTypes, meaning either the
@@ -508,33 +510,21 @@ public:
 	/**
 	 * Adds the given FieldDescriptor to this Descriptor. This also sets the
 	 * parent of the given FieldDescriptor if it is not set to this Descriptor
-	 * already.
-	 *
-	 * This should not be used if the given FieldDescriptor is a field of
-	 * another Descriptor already. Use copyFieldDescriptor in that case.
-	 * TODO: But this could get move semantics.
+	 * already and removes it from the old parent Descriptor.
 	 *
 	 * @param fd is a FieldDescriptor.
 	 */
-	void addFieldDescriptor(Handle<FieldDescriptor> fd)
-	{
-		invalidate();
-		fieldDescriptors.push_back(fd);
-		if (fd->getParent() != this) {
-			fd->setParent(this);
-		}
-	}
+	void addFieldDescriptor(Handle<FieldDescriptor> fd);
 
 	/**
 	 * Adds the given FieldDescriptors to this Descriptor. This also sets the
 	 * parent of each given FieldDescriptor if it is not set to this Descriptor
-	 * already.
+	 * already and removes it from the old parent Descriptor.
 	 *
 	 * @param fds are FieldDescriptors.
 	 */
 	void addFieldDescriptors(const std::vector<Handle<FieldDescriptor>> &fds)
 	{
-		invalidate();
 		for (Handle<FieldDescriptor> fd : fds) {
 			addFieldDescriptor(fd);
 		}
@@ -547,6 +537,16 @@ public:
 	 * @param fd some FieldDescriptor belonging to another Descriptor.
 	 */
 	void copyFieldDescriptor(Handle<FieldDescriptor> fd);
+
+	/**
+	 * Removes the given FieldDescriptor from this Descriptor. This also sets
+	 * the parent of the given FieldDescriptor to null.
+	 *
+	 * @param fd is a FieldDescriptor.
+	 * @return   true if the FieldDescriptor was removed and false if this
+	 *           Descriptor did not have the given FieldDescriptor as child.
+	 */
+	bool removeFieldDescriptor(Handle<FieldDescriptor> fd);
 
 	/**
 	 * This tries to construct the shortest possible path of this Descriptor
@@ -672,6 +672,8 @@ static const Cardinality AnyCardinality = createAny();
  * What about the cardinality?
  */
 class StructuredClass : public Descriptor {
+	friend Domain;
+
 private:
 	const Cardinality cardinality;
 	Owned<StructuredClass> superclass;
@@ -833,6 +835,8 @@ public:
  * This class has no special properties and is in essence just a Descriptor.
  */
 class AnnotationClass : public Descriptor {
+	friend Domain;
+
 public:
 	/**
 	 * The constructor for a new AnnotationClass. Note that you have to add
@@ -871,13 +875,7 @@ private:
 
 protected:
 	void doResolve(ResolutionState &state) override;
-	/*
-	 * TODO: doValidate with:
-	 * # namecheck
-	 * # are all structureclasses valid and have a unique name?
-	 * # are all annotationclasses valid and have a unique name?
-	 * # are all typesystems valid?
-	 */
+
 	bool doValidate(Logger &logger) const override;
 
 public:
@@ -925,12 +923,22 @@ public:
 	}
 	/**
 	 * Adds a StructuredClass to this domain. This also sets the parent of the
-	 * given StructuredClass if it is not set to this Domain already.
-	 * TODO: This could have move semantics.
+	 * given StructuredClass if it is not set to this Domain already and removes
+	 * it from the old Domain.
 	 *
 	 * @param s is some StructuredClass.
 	 */
 	void addStructuredClass(Handle<StructuredClass> s);
+
+	/**
+	 * Removes a StructuredClass from this domain. This also sets the parent of
+	 * the given StructuredClass to null.
+	 *
+	 * @param s is some StructuredClass.
+	 * @return  true if the given StructuredClass was removed and false if this
+	 *          Domain did not have the given StructuredClass as child.
+	 */
+	bool removeStructuredClass(Handle<StructuredClass> s);
 
 	/**
 	 * Returns a const reference to the NodeVector of AnnotationClasses that are
@@ -945,12 +953,22 @@ public:
 	}
 	/**
 	 * Adds an AnnotationClass to this domain. This also sets the parent of the
-	 * given AnnotationClass if it is not set to this Domain already.
-	 * TODO: This could have move semantics.
+	 * given AnnotationClass if it is not set to this Domain already and removes
+	 * it from the old Domain.
 	 *
 	 * @param a is some AnnotationClass.
 	 */
 	void addAnnotationClass(Handle<AnnotationClass> a);
+
+	/**
+	 * Removes a AnnotationClass from this domain. This also sets the parent of
+	 * the given AnnotationClass to null.
+	 *
+	 * @param a is some AnnotationClass.
+	 * @return  true if the given AnnotationClass was removed and false if this
+	 *          Domain did not have the given AnnotationClass as child.
+	 */
+	bool removeAnnotationClass(Handle<AnnotationClass> a);
 
 	/**
 	 * Returns a const reference to the NodeVector of TypeSystems that are
