@@ -143,14 +143,46 @@ public:
 
 	/* Data store methods */
 
+	/**
+	 * Stores arbitrary data under the given key. Data will be overriden. This
+	 * function can be used to attach data to the Managed object.
+	 *
+	 * @param key is an arbitrary string key that under which the data should
+	 * be stored.
+	 * @param h is the data that should be stored.
+	 */
 	void storeData(const std::string &key, Handle<Managed> h);
 
+	/**
+	 * Returns true if data was stored under the given key.
+	 *
+	 * @return true if data was stored under the given key, false otherwise.
+	 */
 	bool hasDataKey(const std::string &key);
 
+	/**
+	 * Returns data previously stored under the given key.
+	 *
+	 * @param key is the key specifying the slot from which the data should be
+	 * read.
+	 * @return previously stored data or nullptr if no data was stored for this
+	 * key.
+	 */
 	Rooted<Managed> readData(const std::string &key);
 
+	/**
+	 * Returns a copy of all data that was attached to the node.
+	 *
+	 * @return a map between keys and stored data.
+	 */
 	std::map<std::string, Rooted<Managed>> readData();
 
+	/**
+	 * Deletes all data entries with the given key from the node.
+	 *
+	 * @param key is the key specifying the slot that should be deleted.
+	 * @return true if the operation was successful, false otherwise.
+	 */
 	bool deleteData(const std::string &key);
 
 	/* Event handling methods */
