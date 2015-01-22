@@ -266,13 +266,13 @@ private:
 	/**
 	 * Id of the source file.
 	 */
-	SourceId sourceId = InvalidSourceId;
+	SourceId sourceId;
 
 public:
 	/**
 	 * Default constructor.
 	 */
-	SourceLocation(){};
+	SourceLocation() : sourceId(InvalidSourceId) {};
 
 	/**
 	 * Constructor, binds the SourceLocation to the given source file.
