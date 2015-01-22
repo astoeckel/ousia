@@ -106,6 +106,11 @@ public:
 	                       const std::string &mimetype);
 
 	/**
+	 * Registers mimetypes for some default extensions.
+	 */
+	void registerDefaultExtensions();
+
+	/**
 	 * Returns the mimetype for the given extension.
 	 *
 	 * @param extension is the file extension for which the mimetype should be
