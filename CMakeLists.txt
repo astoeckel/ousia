@@ -151,6 +151,7 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/ParserStack
 	src/core/resource/Resource
 	src/core/resource/ResourceLocator
+	src/core/resource/ResourceManager
 	src/core/resource/ResourceUtils
 #	src/core/script/ScriptEngine
 )

@@ -35,12 +35,13 @@
 #include <core/common/Location.hpp>
 #include <core/managed/Managed.hpp>
 
+#include "Resource.hpp"
+
 namespace ousia {
 
 // Forward declarations
 class Node;
 class ParserContext;
-class Resource;
 class RttiSet;
 extern const Resource NullResource;
 
@@ -52,19 +53,19 @@ extern const Resource NullResource;
 class ResourceManager {
 private:
 	/**
-	 * Vector used for mapping SourceId instances to the underlying resource.
+	 * Next SourceId to be used.
 	 */
-	std::vector<Resource> resources;
-
-	/**
-	 * Index pointing at the next free entry in the resources list.
-	 */
-	SourceId nextFreeSourceId = 0;
+	SourceId nextSourceId = 0;
 
 	/**
 	 * Map between Resource locations and the corresponding SourceId.
 	 */
 	std::unordered_map<std::string, SourceId> locations;
+
+	/**
+	 * Map used for mapping SourceId instances to the underlying resource.
+	 */
+	std::unordered_map<SourceId, Resource> resources;
 
 	/**
 	 * Map between a SourceId and the corresponding (if available) parsed node
@@ -79,22 +80,115 @@ private:
 	 */
 	std::unordered_map<SourceId, std::vector<SourceOffset>> lineNumberCache;
 
+	/**
+	 * Allocates a new SourceId for the given resource.
+	 *
+	 * @param resource is the Resource that should be associated with the newly
+	 * allocated SourceId.
+	 * @return a new SourceId describing the given resource.
+	 */
+	SourceId allocateSourceId(const Resource &resource);
 
-	Rooted<Node> getCachedNode(SourceId id);
+	/**
+	 * Registers the parsed node for this node id.
+	 *
+	 * @param sourceId is SourceId instance of the resource.
+	 * @param node is the node that was parsed from that resource.
+	 */
+	void storeNode(SourceId sourceId, Handle<Node> node);
 
-	Rooted<Node> getCachedNode(const std::string &location);
+	/**
+	 * Removes a resource from the internal stores.
+	 *
+	 * @param sourceId is the id of the file that should be removed.
+	 */
+	void purgeResource(SourceId sourceId);
 
+	/**
+	 * Used internally to parse the given resource.
+	 *
+	 * @param ctx is the context from the Registry and the Logger instance will
+	 * be looked up.
+	 * @param resource is the resource from which the input stream should be
+	 * obtained.
+	 * @param mimetype is the mimetype of the resource that should be parsed
+	 * (may be empty, in which case the mimetype is deduced from the file
+	 * extension)
+	 * @param supportedTypes contains the types of the returned Node the caller
+	 * can deal with. Note that only the types the parser claims to return are
+	 * checked, not the actual result.
+	 * @return the parsed node or nullptr if something goes wrong.
+	 */
+	Rooted<Node> parse(ParserContext &ctx, Resource &resource,
+	                   const std::string &mimetype,
+	                   const RttiSet &supportedTypes);
+
+public:
+	/**
+	 * Returns the sourceId for the given location string.
+	 *
+	 * @param location is the location string for which the resource id should
+	 * be returned.
+	 * @return the SourceId that can be used to identify the Resource, or
+	 * InvalidSourceId if the specified location is not loaded.
+	 */
 	SourceId getSourceId(const std::string &location);
 
 	/**
-	 * Used internally to either parse a resource or retrieve it from the
-	 * internal cache of already parsed resources.
+	 * Returns the sourceId for the given Resource.
+	 *
+	 * @param resource is the Resource for which the sourceId should be
+	 * returned.
+	 * @return the SourceId that can be used to identify the Resource, or
+	 * InvalidSourceId if the specified resource is not loaded or invalid.
 	 */
-	Rooted<Node> link(ParserContext &ctx, Resource &resource, const std::string &mimetype,
-	                     const RttiSet &supportedTypes);
+	SourceId getSourceId(const Resource &resource);
 
+	/**
+	 * Returns a Resource instance for the given SourceId.
+	 *
+	 * @param sourceId is the id of the Resource instance that should be
+	 * returned.
+	 * @return the Resource instance corresponding to the given sourceId. If the
+	 * sourceId is invalid, the returned Resource will be invalid (a reference
+	 * at NullResource).
+	 */
+	const Resource &getResource(SourceId sourceId) const;
 
-public:
+	/**
+	 * Returns the node that is associated with the given SourceId or nullptr if
+	 * the Node no longer exists or the supplied SourceId is invalid.
+	 *
+	 * @param mgr is the Manager instance that should be used to resolve the
+	 * internal weak reference to the Node instance.
+	 * @param sourceId is the id of the resource for which the parsed Node
+	 * instance should be returned.
+	 * @return the Node instance corresponding to the given sourceId.
+	 */
+	Rooted<Node> getNode(Manager &mgr, SourceId sourceId);
+
+	/**
+	 * Returns the node that is associated with the given location or nullptr if
+	 * the Node no longer exists or the supplied location was never parsed.
+	 *
+	 * @param mgr is the Manager instance that should be used to resolve the
+	 * internal weak reference to the Node instance.
+	 * @param location is the location from which the node was parsed.
+	 * @return the Node instance corresponding to the given location.
+	 */
+	Rooted<Node> getNode(Manager &mgr, const std::string &location);
+
+	/**
+	 * Returns the node that is associated with the given resource or nullptr if
+	 * the Node no longer exists or the supplied resource was never parsed.
+	 *
+	 * @param mgr is the Manager instance that should be used to resolve the
+	 * internal weak reference to the Node instance.
+	 * @param resource is the resource from which the node was parsed.
+	 * @return the Node instance corresponding to the given resource.
+	 */
+	Rooted<Node> getNode(Manager &mgr, const Resource &resource);
+
 	/**
 	 * Resolves the reference to the file specified by the given path and -- if
 	 * this has not already happened -- parses the file. Logs any problem in
@@ -107,10 +201,10 @@ public:
 	 * mimetype is given, the path must have an extension that is known by
 	 */
 	Rooted<Node> link(ParserContext &ctx, const std::string &path,
-	                     const std::string &mimetype = "",
-	                     const std::string &rel = "",
-	                     const RttiSet &supportedTypes = RttiSet{},
-	                     const Resource &relativeTo = NullResource);
+	                  const std::string &mimetype = "",
+	                  const std::string &rel = "",
+	                  const RttiSet &supportedTypes = RttiSet{},
+	                  const Resource &relativeTo = NullResource);
 
 	/**
 	 * Resolves the reference to the file specified by the given path and -- if
@@ -118,19 +212,8 @@ public:
 	 * the logger instance of the given ParserContext.
 	 */
 	Rooted<Node> link(ParserContext &ctx, const std::string &path,
-	                     const std::string &mimetype, const std::string &rel,
-	                     const RttiSet &supportedTypes, SourceId relativeTo);
-
-	/**
-	 * Returns a Resource instance for the given SourceId.
-	 *
-	 * @param sourceId is the id of the Resource instance that should be
-	 * returned.
-	 * @return the Resource instance corresponding to the given sourceId. If the
-	 * sourceId is invalid, the returned Resource will be invalid (a reference
-	 * at NullResource).
-	 */
-	const Resource &getResource(SourceId sourceId) const;
+	                  const std::string &mimetype, const std::string &rel,
+	                  const RttiSet &supportedTypes, SourceId relativeTo);
 
 	/**
 	 * Creates and returns a SourceContext structure containing information
@@ -145,6 +228,7 @@ public:
 	 * invalid SourceContext if the location is invalid.
 	 */
 	SourceContext buildContext(const SourceLocation &location);
+
 };
 }
 
