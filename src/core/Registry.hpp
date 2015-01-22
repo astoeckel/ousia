@@ -121,6 +121,15 @@ public:
 	std::string getMimetypeForExtension(const std::string &extension) const;
 
 	/**
+	 * Tries to deduce the mimetype from the given filename.
+	 *
+	 * @param filename is the filename from which the mimetype should be
+	 * deduced.
+	 * @return the mimetype or an empty string if no filename could be deduced.
+	 */
+	std::string getMimetypeForFilename(const std::string &filename) const;
+
+	/**
 	 * Registers a ResourceLocator instance that should be used for locating
 	 * resources. Two registered ResourceLocator should not be capable of
 	 * accessing Resources at the same location. If this happens, the resource
