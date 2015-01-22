@@ -35,6 +35,7 @@
 #include <string>
 #include <vector>
 
+#include <core/common/Location.hpp>
 #include <core/managed/Managed.hpp>
 #include <core/managed/ManagedContainer.hpp>
 
@@ -135,6 +136,12 @@ private:
 	 * Reference to a parent node instace.
 	 */
 	Owned<Node> parent;
+
+	/**
+	 * Location from which the node was read (specifies the source file and the
+	 * range in that source file).
+	 */
+	SourceLocation location;
 
 	/**
 	 * A "dirty" flag that signifies if this Node has been already validated
@@ -519,6 +526,21 @@ public:
 	 * @return the current ValidationState of this Node.
 	 */
 	ValidationState getValidationState() const { return validationState; }
+
+	/**
+	 * Returns the location in the source file.
+	 *
+	 * @return a source location descriptor.
+	 */
+	SourceLocation getLocation() { return location; }
+
+	/**
+	 * Sets the location of the node to the given value.
+	 *
+	 * @param location describes the exact position of the Node in a source
+	 * file.
+	 */
+	void setLocation(const SourceLocation &location) {this->location = location;}
 };
 
 /**
