@@ -289,6 +289,20 @@ bool Descriptor::removeFieldDescriptor(Handle<FieldDescriptor> fd)
 	return false;
 }
 
+Rooted<FieldDescriptor> Descriptor::createPrimitiveFieldDescriptor(
+    Handle<Type> primitiveType, std::string name, bool optional)
+{
+	return Rooted<FieldDescriptor>{new FieldDescriptor(
+	    getManager(), this, primitiveType, std::move(name), optional)};
+}
+
+Rooted<FieldDescriptor> Descriptor::createFieldDescriptor(
+    FieldDescriptor::FieldType fieldType, std::string name, bool optional)
+{
+	return Rooted<FieldDescriptor>{new FieldDescriptor(
+	    getManager(), this, fieldType, std::move(name), optional)};
+}
+
 /* Class StructuredClass */
 
 StructuredClass::StructuredClass(Manager &mgr, std::string name,
@@ -481,6 +495,16 @@ bool Domain::removeStructuredClass(Handle<StructuredClass> s)
 	return false;
 }
 
+Rooted<StructuredClass> Domain::createStructuredClass(
+    std::string name, const Cardinality &cardinality,
+    Handle<StructType> attributesDescriptor, Handle<StructuredClass> superclass,
+    bool transparent, bool root)
+{
+	return Rooted<StructuredClass>{new StructuredClass(
+	    getManager(), std::move(name), this, cardinality, attributesDescriptor,
+	    superclass, std::move(transparent), std::move(root))};
+}
+
 void Domain::addAnnotationClass(Handle<AnnotationClass> a)
 {
 	// only add it if we need to.
@@ -508,6 +532,13 @@ bool Domain::removeAnnotationClass(Handle<AnnotationClass> a)
 		return true;
 	}
 	return false;
+}
+
+Rooted<AnnotationClass> Domain::createAnnotationClass(
+    std::string name, Handle<StructType> attributesDescriptor)
+{
+	return Rooted<AnnotationClass>{new AnnotationClass(
+	    getManager(), std::move(name), this, attributesDescriptor)};
 }
 }
 /* Type registrations */

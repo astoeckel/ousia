@@ -126,6 +126,9 @@ namespace model {
 
 class Document;
 class StructureNode;
+class StructuredEntity;
+class DocumentPrimitive;
+class Anchor;
 
 /**
  * A DocumentEntity is the common superclass for StructuredEntities and
@@ -309,7 +312,6 @@ public:
 	 */
 	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
 	                       const std::string &fieldName = "");
-
 	/**
 	 * This removes a StructureNode from the field with the given name. If an
 	 * empty name is given it is assumed that the 'default' FieldDescriptor is
@@ -393,6 +395,49 @@ public:
 	 *          not found.
 	*/
 	bool removeStructureNode(Handle<StructureNode> s);
+
+	/**
+	 * This creates a new StructuredEntity as child of this DocumentEntity.
+	 *
+	 * @param descriptor is the StructuredClass of this StructuredEntity.
+	 * @param attributes is a Map Variant containing attribute fillings for this
+	 *                   StructuredEntity. It is empty per default.
+	 * @param fieldName  is the name of the field, where the newly created
+	 *                   StructuredEntity shall be added to this DocumentEntity.
+	 * @param name       is some name for this StructuredEntity that may be used
+	 *                   for later reference. It is empty per default.
+	 *
+	 * @return           the newly created StructuredEntity.
+	 */
+	Rooted<StructuredEntity> createChildStructuredEntity(
+	    Handle<StructuredClass> descriptor, Variant attributes = {},
+	    const std::string &fieldName = "", std::string name = "");
+	/*
+	 * Creates a new DocumentPrimitive as child of this DocumentEntity.
+	 *
+	 * @param content   is a Variant containing the content of this
+	 *                  DocumentPrimitive. The Type of this Variant is
+	 *                  specified at the parents Descriptor for the given
+	 *                  fieldName.
+	 * @param fieldName is the name of the field, where the newly created
+	 *                  StructuredEntity shall be added to this DocumentEntity.
+	 *
+	 * @return          the newly created DocumentPrimitive.
+	 */
+	Rooted<DocumentPrimitive> createChildDocumentPrimitive(
+	    Variant content = {}, const std::string &fieldName = "");
+
+	/**
+	 * Creates a new Anchor as child of this DocumentEntity.
+	 *
+	 * @param name      is the Anchor id.
+	 * @param fieldName is the name of the field, where the newly created
+	 *                  Anchor shall be added to this DocumentEntity.
+	 *
+	 * @return          the newly created Anchor.
+	 */
+	Rooted<Anchor> createChildAnchor(std::string name,
+	                                 const std::string &fieldName = "");
 };
 
 /**
@@ -702,6 +747,17 @@ public:
 	}
 
 	/**
+	 * This sets up an empty document.
+	 *
+	 * @param mgr  is the Manager instance.
+	 * @param name is a name for this Document.
+	 */
+	static Rooted<Document> createEmptyDocument(Manager &mgr, std::string name)
+	{
+		return Rooted<Document>{new Document(mgr, std::move(name))};
+	}
+
+	/**
 	 * Sets the root StructuredEntity of this Document. This also sets the
 	 * parent of the given StructuredEntity if it is not set to this Document
 	 * already.
@@ -721,6 +777,21 @@ public:
 	 * @return the root StructuredEntity of this Document.
 	 */
 	Rooted<StructuredEntity> getRoot() const { return root; }
+
+	/**
+	 * This creates a new StructuredEntity and adds it as root to this Document.
+	 *
+	 * @param descriptor is the StructuredClass of this StructuredEntity.
+	 * @param attributes is a Map Variant containing attribute fillings for this
+	 *                   StructuredEntity. It is empty per default.
+	 * @param name       is some name for this StructuredEntity that may be used
+	 *                   for later reference. It is empty per default.
+	 *
+	 * @return           the newly constructed StructuredEntity.
+	 */
+	Rooted<StructuredEntity> createRootStructuredEntity(
+	    Handle<StructuredClass> descriptor, Variant attributes = {},
+	    std::string name = "");
 
 	/**
 	 * Returns a const reference to the NodeVector of AnnotationEntities that
@@ -761,6 +832,24 @@ public:
 	 *          Document did not have the given AnnotationEntity as child.
 	 */
 	bool removeAnnotation(Handle<AnnotationEntity> a);
+	/**
+	 * Creates a new AnnotationEntity as child of this Document.
+	 *
+	 * @param descriptor is the AnnotationClass of this AnnotationEntity.
+	 * @param start      is the start Anchor of this AnnotationEntity. It has to
+	 *                   be part of this Document.
+	 * @param end        is the end Anchor of this Annotationentity. It has to
+	 *                   be part of this Document.
+	 * @param attributes is a Map Variant containing attribute fillings for this
+	 *                   AnnotationEntity. It is empty per default.
+	 * @param name       is some name for this AnnotationEntity that might be
+	 *                   used for references later on. It is empty per default.
+	 *
+	 * @return           the newly constructed AnnotationEntity.
+	 */
+	Rooted<AnnotationEntity> createChildAnnotation(
+	    Handle<AnnotationClass> descriptor, Handle<Anchor> start,
+	    Handle<Anchor> end, Variant attributes = {}, std::string name = "");
 
 	/**
 	 * Returns a const reference to the NodeVector of Domains that are used
