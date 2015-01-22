@@ -38,9 +38,7 @@ Project::Project(Manager &mgr)
 
 bool Project::doValidate(Logger &logger) const
 {
-	return continueValidation(documents, logger) &
-	       continueValidation(domains, logger) &
-	       continueValidation(typesystems, logger);
+	return continueValidation(documents, logger);
 }
 
 Rooted<SystemTypesystem> Project::getSystemTypesystem()
@@ -50,23 +48,20 @@ Rooted<SystemTypesystem> Project::getSystemTypesystem()
 
 Rooted<Typesystem> Project::createTypesystem(const std::string &name)
 {
-	Rooted<Typesystem> typesystem{
+	return Rooted<Typesystem>{
 	    new Typesystem{getManager(), systemTypesystem, name}};
-	addTypesystem(typesystem);
-	return typesystem;
-}
-
-void Project::addTypesystem(Handle<Typesystem> typesystem)
-{
-	invalidate();
-	typesystems.push_back(typesystem);
 }
 
 Rooted<Document> Project::createDocument(const std::string &name)
 {
-	Rooted<Document> document{new Document(getManager(), name)};
+	return Rooted<Document> document{new Document(getManager(), name)};
 	addDocument(document);
 	return document;
+}
+
+Rooted<Domain> Project::createDomain(const std::string &name)
+{
+	return Rooted<Domain>{new Domain(getManager(), systemTypesystem, name)};
 }
 
 void Project::addDocument(Handle<Document> document)
@@ -75,33 +70,14 @@ void Project::addDocument(Handle<Document> document)
 	documents.push_back(document);
 }
 
-Rooted<Domain> Project::createDomain(const std::string &name)
-{
-	Rooted<Domain> domain{new Domain(getManager(), systemTypesystem, name)};
-	addDomain(domain);
-	return domain;
-}
-
-void Project::addDomain(Handle<Domain> domain)
-{
-	invalidate();
-	domains.push_back(domain);
-}
-
 const NodeVector<Document> &Project::getDocuments() { return documents; }
-
-const NodeVector<Domain> &Project::getDomains() { return domains; }
-
-const NodeVector<Typesystem> &Project::getTypesystems() { return typesystems; }
 }
 
 namespace RttiTypes {
 const Rtti Project = RttiBuilder<model::Project>("Project")
                          .parent(&Node)
                          .composedOf(&Document)
-                         .composedOf(&Typesystem)
-                         .composedOf(&SystemTypesystem)
-                         .composedOf(&Domain);
+                         .composedOf(&SystemTypesystem);
 }
 }
 
