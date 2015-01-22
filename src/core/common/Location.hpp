@@ -40,6 +40,11 @@ namespace ousia {
 using SourceId = uint32_t;
 
 /**
+ * Maximum value for a SourceId. Indicates invalid entries.
+ */
+constexpr SourceId InvalidSourceId = std::numeric_limits<SourceId>::max();
+
+/**
  * Type used for specifying an offset within a source file.
  */
 using SourceOffset = uint32_t;
@@ -49,7 +54,7 @@ using SourceOffset = uint32_t;
  * integer, the maximum value is 2^32-1, which means that 4 GiB are addressable
  * by SourceOffset.
  */
-constexpr SourceOffset SourceOffsetMax =
+constexpr SourceOffset InvalidSourceOffset =
     std::numeric_limits<SourceOffset>::max();
 
 /**
@@ -63,7 +68,7 @@ constexpr SourceOffset SourceOffsetMax =
  */
 inline SourceOffset clampToSourcePosition(size_t pos)
 {
-	return pos > SourceOffsetMax ? SourceOffsetMax : pos;
+	return pos > InvalidSourceOffset ? InvalidSourceOffset : pos;
 }
 
 /**
@@ -79,9 +84,9 @@ private:
 public:
 	/**
 	 * Default constructor of the SourcePosition class. Sets the position to
-	 * SourceOffsetMax and thus marks the SourcePosition as invalid.
+	 * InvalidSourceOffset and thus marks the SourcePosition as invalid.
 	 */
-	SourcePosition() : pos(SourceOffsetMax) {}
+	SourcePosition() : pos(InvalidSourceOffset) {}
 
 	/**
 	 * Creates a new SourcePosition instance with the given byte offset.
@@ -109,7 +114,7 @@ public:
 	 *
 	 * @return true if the SourcePosition instance is value, false otherwise.
 	 */
-	bool isValid() { return pos != SourceOffsetMax; }
+	bool isValid() { return pos != InvalidSourceOffset; }
 };
 
 /**
@@ -261,22 +266,25 @@ private:
 	/**
 	 * Id of the source file.
 	 */
-	SourceId sourceId;
+	SourceId sourceId = InvalidSourceId;
 
 public:
 	/**
+	 * Default constructor.
+	 */
+	SourceLocation(){};
+
+	/**
 	 * Constructor, binds the SourceLocation to the given source file.
 	 *
-	 * @param sourceId is the sourceId to which the SourceLocation instance
-	 * should be bound. The sourceId cannot be overriden after construction.
+	 * @param sourceId specifies the file this location refers to.
 	 */
 	SourceLocation(SourceId sourceId) : sourceId(sourceId){};
 
 	/**
 	 * Constructor for a zero-length range.
 	 *
-	 * @param sourceId is the sourceId to which the SourceLocation instance
-	 * should be bound. The sourceId cannot be overriden after construction.
+	 * @param sourceId specifies the file this location refers to.
 	 * @param pos is the byte offset at which the SourceRange instance should be
 	 * located.
 	 */
@@ -288,8 +296,7 @@ public:
 	/**
 	 * Constructor of a SourceRange instance.
 	 *
-	 * @param sourceId is the sourceId to which the SourceLocation instance
-	 * should be bound. The sourceId cannot be overriden after construction.
+	 * @param sourceId specifies the file this location refers to.
 	 * @param start is the byte offset of the first character in the range
 	 * (start is inclusive).
 	 * @param end points at the end of the range (end is non-inclusive).
@@ -302,8 +309,7 @@ public:
 	/**
 	 * Constructor of a SourceRange instance.
 	 *
-	 * @param sourceId is the sourceId to which the SourceLocation instance
-	 * should be bound. The sourceId cannot be overriden after construction.
+	 * @param sourceId specifies the file this location refers to.
 	 * @param start is the byte offset of the first character in the range
 	 * (start is inclusive).
 	 * @param end points at the end of the range (end is non-inclusive).
@@ -314,12 +320,30 @@ public:
 	}
 
 	/**
+	 * Sets the source id to the given value.
+	 *
+	 * @param sourceId specifies the file this location refers to.
+	 */
+	void setSourceId(SourceId sourceId) { this->sourceId = sourceId; }
+
+	/**
 	 * Returns the id of the source file this SourceLocation instance is bound
 	 * to.
 	 *
 	 * @return the id of the source file this instance is bound to.
 	 */
 	SourceId getSourceId() { return sourceId; }
+
+	/**
+	 * Returns true if this location is actually valid. This is the case if
+	 * the underlying range is valid and the source id is valid.
+	 *
+	 * @return true if the Range is valid.
+	 */
+	bool isValid()
+	{
+		return SourceRange::isValid() && sourceId != InvalidSourceId;
+	}
 };
 
 /**
