@@ -125,6 +125,17 @@ bool Rtti::isa(const Rtti &other) const
 	return parents.count(&other) > 0;
 }
 
+bool Rtii::isOneOf(const RttiSet &others) const
+{
+	initialize();
+	for (const Rtti *other: others) {
+		if (parents.count(other) > 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
 bool Rtti::composedOf(const Rtti &other) const
 {
 	initialize();
