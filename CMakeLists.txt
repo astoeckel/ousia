@@ -125,6 +125,7 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Exceptions
 	src/core/common/Function
 	src/core/common/Logger
+	src/core/common/Location
 	src/core/common/Number
 	src/core/common/Property
 	src/core/common/Rtti
