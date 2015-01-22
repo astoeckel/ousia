@@ -71,8 +71,8 @@ struct ParserContext {
 	/**
 	 * Constructor of the ParserContext class.
 	 *
-	 * @param scope is a reference to the ParserScope instance that should be used to
-	 * lookup names.
+	 * @param scope is a reference to the ParserScope instance that should be
+	 * used to lookup names.
 	 * @param registry is a reference at the Registry class, which allows to
 	 * obtain references at parsers for other formats or script engine
 	 * implementations.
