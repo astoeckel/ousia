@@ -24,9 +24,10 @@ namespace ousia {
 
 const SourceLocation NullSourceLocation;
 
-void SourceContext NullSourceContextCallback(const SourceLocation &location)
+SourceContext NullSourceContextCallback(const SourceLocation &location)
 {
 	return SourceContext{};
 }
+
 }
 
