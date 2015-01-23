@@ -30,9 +30,7 @@ namespace model {
 Project::Project(Manager &mgr)
     : Node(mgr),
       systemTypesystem(acquire(new SystemTypesystem(mgr))),
-      documents(this),
-      domains(this),
-      typesystems(this)
+      documents(this)
 {
 }
 
@@ -54,7 +52,7 @@ Rooted<Typesystem> Project::createTypesystem(const std::string &name)
 
 Rooted<Document> Project::createDocument(const std::string &name)
 {
-	return Rooted<Document> document{new Document(getManager(), name)};
+	Rooted<Document> document{new Document(getManager(), name)};
 	addDocument(document);
 	return document;
 }
@@ -70,7 +68,7 @@ void Project::addDocument(Handle<Document> document)
 	documents.push_back(document);
 }
 
-const NodeVector<Document> &Project::getDocuments() { return documents; }
+const NodeVector<Document> &Project::getDocuments() const { return documents; }
 }
 
 namespace RttiTypes {
