@@ -29,6 +29,7 @@
 #define _OUSIA_LOCATION_HPP_
 
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <string>
 
@@ -272,7 +273,7 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	SourceLocation() : sourceId(InvalidSourceId) {};
+	SourceLocation() : sourceId(InvalidSourceId){};
 
 	/**
 	 * Constructor, binds the SourceLocation to the given source file.
@@ -345,6 +346,11 @@ public:
 		return SourceRange::isValid() && sourceId != InvalidSourceId;
 	}
 };
+
+/**
+ * NullSourceLocation is an empty SourceLocation instance.
+ */
+extern const SourceLocation NullSourceLocation;
 
 /**
  * Represents the context of a SourceLocation instance. Used to build error
@@ -436,6 +442,11 @@ struct SourceContext {
 	bool isValid() const { return range.isValid() && hasLine() && hasColumn(); }
 
 	/**
+	 * Returns true if a valid (non-empty) filename is set.
+	 */
+	bool hasFile() const { return !filename.empty(); }
+
+	/**
 	 * Returns true, if the start line number is valid, false otherwise.
 	 *
 	 * @return true for valid line numbers.
@@ -455,10 +466,20 @@ struct SourceContext {
  * location.
  *
  * @param location is the location for which the context should be looked up.
- * @param data is used defined data associated with the callback.
+ * @return the corresponding SourceContext.
  */
-using SourceContextCallback = SourceContext (*)(const SourceLocation &location,
-                                                void *data);
+using SourceContextCallback =
+    std::function<SourceContext(const SourceLocation &location)>;
+
+/**
+ * Function to be used as default value for the SourceContextCallback. Returns
+ * an invalid SourceContext.
+ *
+ * @param location is the location for which the context should be looked up.
+ * @return an empty, invalid SourceContext.
+ */
+void SourceContext NullSourceContextCallback(const SourceLocation &location);
+
 }
 
 #endif /* _OUSIA_LOCATION_HPP_ */

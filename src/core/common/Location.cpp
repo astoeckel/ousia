@@ -19,5 +19,14 @@
 #include "Location.hpp"
 
 namespace ousia {
+
+/* Global Functions */
+
+const SourceLocation NullSourceLocation;
+
+void SourceContext NullSourceContextCallback(const SourceLocation &location)
+{
+	return SourceContext{};
+}
 }
 
