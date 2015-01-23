@@ -169,6 +169,16 @@ struct Range {
 	{
 		return Range(from, std::numeric_limits<T>::max());
 	}
+
+	friend bool operator==(const Range<T> &lhs, const Range<T> &rhs)
+	{
+		return lhs.start == rhs.start && lhs.end == rhs.end;
+	}
+
+	friend bool operator!=(const Range<T> &lhs, const Range<T> &rhs)
+	{
+		return !(lhs == rhs);
+	}
 };
 
 /**
@@ -340,6 +350,28 @@ public:
 	const std::set<Range<T>, RangeComp<T>> &getRanges() const
 	{
 		return this->ranges;
+	}
+
+	friend bool operator==(const RangeSet<T> &lhs, const RangeSet<T> &rhs)
+	{
+		if (lhs.ranges.size() != rhs.ranges.size()) {
+			return false;
+		}
+		auto leftIt = lhs.ranges.begin();
+		auto rightIt = rhs.ranges.begin();
+		while (leftIt != lhs.ranges.end()) {
+			if (*leftIt != *rightIt) {
+				return false;
+			}
+			leftIt++;
+			rightIt++;
+		}
+		return true;
+	}
+
+	friend bool operator!=(const RangeSet<T> &lhs, const RangeSet<T> &rhs)
+	{
+		return !(lhs == rhs);
 	}
 };
 }
