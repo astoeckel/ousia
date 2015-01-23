@@ -383,8 +383,8 @@ void DocumentEntity::addStructureNodes(
 	}
 }
 
-bool DocumentEntity::removeStructureNodeFromField(
-    Handle<StructureNode> s, const std::string &fieldName)
+bool DocumentEntity::removeStructureNodeFromField(Handle<StructureNode> s,
+                                                  const std::string &fieldName)
 {
 	return removeStructureNodeFromField(
 	    s, getFieldDescriptorIndex(fieldName, true));
@@ -426,6 +426,29 @@ bool DocumentEntity::removeStructureNode(Handle<StructureNode> s)
 	}
 
 	return false;
+}
+
+Rooted<StructuredEntity> DocumentEntity::createChildStructuredEntity(
+    Handle<StructuredClass> descriptor, Variant attributes,
+    const std::string &fieldName, std::string name)
+{
+	return Rooted<StructuredEntity>{new StructuredEntity(
+	    subInst->getManager(), subInst, descriptor, std::move(attributes),
+	    fieldName, std::move(name))};
+}
+
+Rooted<DocumentPrimitive> DocumentEntity::createChildDocumentPrimitive(
+    Variant content, const std::string &fieldName)
+{
+	return Rooted<DocumentPrimitive>{new DocumentPrimitive(
+	    subInst->getManager(), subInst, std::move(content), fieldName)};
+}
+
+Rooted<Anchor> DocumentEntity::createChildAnchor(std::string name,
+                                                 const std::string &fieldName)
+{
+	return Rooted<Anchor>{
+	    new Anchor(subInst->getManager(), std::move(name), subInst, fieldName)};
 }
 
 /* Class StructureNode */
@@ -611,6 +634,14 @@ bool Document::doValidate(Logger &logger) const
 	return valid & continueValidation(annotations, logger);
 }
 
+Rooted<StructuredEntity> Document::createRootStructuredEntity(
+    Handle<StructuredClass> descriptor, Variant attributes, std::string name)
+{
+	return Rooted<StructuredEntity>{
+	    new StructuredEntity(getManager(), Handle<Document>{this}, descriptor,
+	                         attributes, std::move(name))};
+}
+
 void Document::addAnnotation(Handle<AnnotationEntity> a)
 {
 	// only add it if we need to.
@@ -635,8 +666,6 @@ void Document::addAnnotations(const std::vector<Handle<AnnotationEntity>> &as)
 	}
 }
 
-
-
 bool Document::removeAnnotation(Handle<AnnotationEntity> a)
 {
 	auto it = annotations.find(a);
@@ -647,6 +676,15 @@ bool Document::removeAnnotation(Handle<AnnotationEntity> a)
 		return true;
 	}
 	return false;
+}
+
+Rooted<AnnotationEntity> Document::createChildAnnotation(
+    Handle<AnnotationClass> descriptor, Handle<Anchor> start,
+    Handle<Anchor> end, Variant attributes, std::string name)
+{
+	return Rooted<AnnotationEntity>{
+	    new AnnotationEntity(getManager(), this, descriptor, start, end,
+	                         attributes, std::move(name))};
 }
 
 bool Document::hasChild(Handle<StructureNode> s) const

@@ -549,6 +549,41 @@ public:
 	bool removeFieldDescriptor(Handle<FieldDescriptor> fd);
 
 	/**
+	 * This creates a new primitive FieldDescriptor and adds it to this
+	 * Descriptor.
+	 *
+	 * @param primitiveType is a handle to some Type in some Typesystem of which
+	 *                      one instance is allowed to fill this field.
+	 * @param name          is the name of this field.
+	 * @param optional      should be set to 'false' is this field needs to be
+	 *                      filled in order for an instance of the parent
+	 *                      Descriptor to be valid.
+	 *
+	 * @return              the newly created FieldDescriptor.
+	 */
+	Rooted<FieldDescriptor> createPrimitiveFieldDescriptor(
+	    Handle<Type> primitiveType, std::string name = "",
+	    bool optional = false);
+
+	/**
+	 * This creates a new primitive FieldDescriptor and adds it to this
+	 * Descriptor.
+	 *
+	 * @param fieldType     is the FieldType of this FieldDescriptor, either
+	 *                      TREE for the main or default structure or SUBTREE
+	 *                      for supporting structures.
+	 * @param name          is the name of this field.
+	 * @param optional      should be set to 'false' is this field needs to be
+	 *                      filled in order for an instance of the parent
+	 *                      Descriptor to be valid.
+	 *
+	 * @return              the newly created FieldDescriptor.
+	 */
+	Rooted<FieldDescriptor> createFieldDescriptor(
+	    FieldDescriptor::FieldType fieldType = FieldDescriptor::FieldType::TREE,
+	    std::string name = "", bool optional = false);
+
+	/**
 	 * This tries to construct the shortest possible path of this Descriptor
 	 * to the given child Descriptor. As an example consider the book domain
 	 * from above.
@@ -911,6 +946,18 @@ public:
 	}
 
 	/**
+	 * Creates a new Domain and returns it.
+	 *
+	 * @param mgr  is the Manager instance.
+	 * @param name is a name for this domain which will be used for later
+	 *             references to this Domain.
+	 */
+	static Rooted<Domain> createEmptyDomain(Manager &mgr, std::string name)
+	{
+		return Rooted<Domain>{new Domain(mgr, std::move(name))};
+	}
+
+	/**
 	 * Returns a const reference to the NodeVector of StructuredClasses that are
 	 * part of this Domain.
 	 *
@@ -941,6 +988,40 @@ public:
 	bool removeStructuredClass(Handle<StructuredClass> s);
 
 	/**
+	 * This creates a new StructuredClass and appends it to this Domain.
+	 *
+	 * @param name                 is the name of the StructuredClass.
+	 * @param cardinality          specifies how often an element of this type
+	 *                             may occur at a specific point in the
+	 *                             StructureTree. For example: A document should
+	 *                             have at least one author. This is set to *
+	 *                             per default, meaning that any number of
+	 *                             of instances is valid, including zero.
+	 * @param attributesDescriptor is a StructType that specifies the attribute
+	 *                             keys as well as value domains for this
+	 *                             Descriptor.
+	 * @param superclass           references a parent StructuredClass. Please
+	 *                             look for more information on inheritance in
+	 *                             the class documentation above. The default is
+	 *                             a null reference, meaning no super class.
+	 *                             The constructor automatically registers this
+	 *                             class as a subclass at the super class.
+	 * @param transparent          specifies whether this StructuredClass is
+	 *                             transparent. For more information on
+	 *                             transparency please refer to the class
+	 *                             documentation above. The default is false.
+	 * @param root                 specifies whether this StructuredClass is
+	 *                             allowed to be at the root of a Document.
+	 *
+	 * @return                     the newly created StructuredClass.
+	 */
+	Rooted<StructuredClass> createStructuredClass(
+	    std::string name, const Cardinality &cardinality = AnyCardinality,
+	    Handle<StructType> attributesDescriptor = nullptr,
+	    Handle<StructuredClass> superclass = nullptr, bool transparent = false,
+	    bool root = false);
+
+	/**
 	 * Returns a const reference to the NodeVector of AnnotationClasses that are
 	 * part of this Domain.
 	 *
@@ -969,6 +1050,19 @@ public:
 	 *          Domain did not have the given AnnotationClass as child.
 	 */
 	bool removeAnnotationClass(Handle<AnnotationClass> a);
+
+	/**
+	 * This creates a new AnnotationClass and appends it to this Domain.
+	 *
+	 * @param name                 is a name for this AnnotationClass that will
+	 *                             be used for later references to this
+	 *                             AnnotationClass.
+	 * @param attributesDescriptor is a StructType that specifies the attribute
+	 *                             keys as well as value domains for this
+	 *                             Descriptor.
+	 */
+	Rooted<AnnotationClass> createAnnotationClass(
+	    std::string name, Handle<StructType> attributesDescriptor = nullptr);
 
 	/**
 	 * Returns a const reference to the NodeVector of TypeSystems that are
