@@ -367,7 +367,7 @@ private:
 	 * @param c a reference to the character that should be written.
 	 * @return true if another character needs to be read.
 	 */
-	bool substituteLinebreaks(Cursor &cursor, char &c);
+	bool substituteLinebreaks(Buffer::CursorId &cursor, char &c);
 
 	/**
 	 * Reads a single character from the given cursor.
@@ -534,7 +534,14 @@ public:
 	 *
 	 * @return the offset of the read cursor in bytes.
 	 */
-	size_t getOffset() const;
+	SourceOffset getOffset() const;
+
+	/**
+	 * Returns the offset of the read cursor in bytes.
+	 *
+	 * @return the offset of the read cursor in bytes.
+	 */
+	SourcePosition getPosition() const;
 
 	/**
 	 * Returns a SourceLocation object describing the exact position (including
@@ -544,6 +551,24 @@ public:
 	 * cursor.
 	 */
 	SourceLocation getLocation() const;
+
+	/**
+	 * Returns a SourceLocation object starting at the given start position and
+	 * ending at the exact position (including the source file) of the read
+	 * cursor.
+	 *
+	 * @return a SourceLocation object at the position of the current read
+	 * cursor.
+	 */
+	SourceLocation getLocation(SourcePosition start) const;
+
+	/**
+	 * Returns the current SourceId which describes the Resource on which the
+	 * CharReader is currently working.
+	 *
+	 * @return the current SourceId.
+	 */
+	SourceId getSourceId() const;
 };
 
 /**
@@ -577,9 +602,9 @@ private:
 	 * coherently.
 	 */
 	CharReaderFork(std::shared_ptr<Buffer> buffer,
-	               Buffer::CursorId &parentReadCursor,
-	               Buffer::CursorId &parentPeekCursor,
-	               SourceContextCallback sourceId, size_t offs, bool coherent);
+	               Buffer::CursorId parentReadCursor,
+	               Buffer::CursorId parentPeekCursor, SourceId sourceId,
+	               size_t offs, bool coherent);
 
 public:
 	/**

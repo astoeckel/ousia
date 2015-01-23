@@ -405,10 +405,10 @@ CharReader::~CharReader()
 	buffer->deleteCursor(peekCursor);
 }
 
-bool CharReader::readAtCursor(Cursor &cursor, char &c)
+bool CharReader::readAtCursor(Buffer::CursorId &cursor, char &c)
 {
 	// Return false if we're at the end of the stream
-	if (!buffer->read(cursor.cursor, c)) {
+	if (!buffer->read(cursor, c)) {
 		return false;
 	}
 
@@ -420,9 +420,9 @@ bool CharReader::readAtCursor(Cursor &cursor, char &c)
 		// Check whether the next character is a continuation of the
 		// current character
 		char c2;
-		if (buffer->read(cursor.cursor, c2)) {
+		if (buffer->read(cursor, c2)) {
 			if ((c2 != '\n' && c2 != '\r') || c2 == c) {
-				buffer->moveCursor(cursor.cursor, -1);
+				buffer->moveCursor(cursor, -1);
 			}
 		}
 	}
@@ -486,8 +486,8 @@ bool CharReader::consumeWhitespace()
 
 CharReaderFork CharReader::fork()
 {
-	return CharReaderFork(buffer, readCursor, peekCursor, sourceId, offs,
-	                      coherent);
+	return CharReaderFork{buffer,   readCursor, peekCursor,
+	                      sourceId, offs,       coherent};
 }
 
 size_t CharReader::readRaw(char *buf, size_t size)
@@ -502,11 +502,16 @@ size_t CharReader::readRaw(char *buf, size_t size)
 	return res;
 }
 
-bool CharReader::atEnd() const { return buffer->atEnd(readCursor.cursor); }
+bool CharReader::atEnd() const { return buffer->atEnd(readCursor); }
 
-size_t CharReader::getOffset() const
+SourceOffset CharReader::getOffset() const
 {
-	return buffer->offset(readCursor.cursor) + offs;
+	return buffer->offset(readCursor) + offs;
+}
+
+SourcePosition CharReader::getPosition() const
+{
+	return getOffset();
 }
 
 SourceLocation CharReader::getLocation() const
@@ -514,13 +519,19 @@ SourceLocation CharReader::getLocation() const
 	return SourceLocation{sourceId, getOffset()};
 }
 
+SourceLocation CharReader::getLocation(SourcePosition start) const
+{
+	return SourceLocation{sourceId, start, getOffset()};
+}
+
+SourceId CharReader::getSourceId() const { return sourceId; }
+
 /* Class CharReaderFork */
 
 CharReaderFork::CharReaderFork(std::shared_ptr<Buffer> buffer,
                                Buffer::CursorId parentReadCursor,
                                Buffer::CursorId parentPeekCursor,
-                               SourceContextCallback sourceId, size_t offs,
-                               bool coherent)
+                               SourceId sourceId, size_t offs, bool coherent)
     : CharReader(buffer, sourceId, offs),
       parentReadCursor(parentReadCursor),
       parentPeekCursor(parentPeekCursor)
