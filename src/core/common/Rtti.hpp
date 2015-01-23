@@ -393,6 +393,16 @@ public:
 	bool isOneOf(const RttiSet &others) const;
 
 	/**
+	 * Checks whether any type in the first set is one type in the second set.
+	 *
+	 * @param s1 is the first set. For each type in this set we check whether
+	 * it is one of the types in s2.
+	 * @param s2 is the second set.
+	 * @return true if the above condition is fulfilled, false otherwise.
+	 */
+	static bool setIsOneOf(const RttiSet &s1, const RttiSet &s2);
+
+	/**
 	 * Returns true if an instance of this type may have references to the other
 	 * given type. This mechanism is used to prune impossible paths when
 	 * resolving objects of a certain type by name in an object graph.

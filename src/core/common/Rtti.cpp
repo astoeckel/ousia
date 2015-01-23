@@ -47,8 +47,8 @@ const Rtti &RttiStore::lookup(const std::type_info &native)
 
 /* Class RttiBuilderBase */
 
-RttiBuilderBase &RttiBuilderBase::genericMethod(const std::string &name,
-                                        std::shared_ptr<Function> function)
+RttiBuilderBase &RttiBuilderBase::genericMethod(
+    const std::string &name, std::shared_ptr<Function> function)
 {
 	if (!methods.emplace(name, function).second) {
 		throw OusiaException(std::string("Method with name \"") + name +
@@ -80,10 +80,11 @@ void Rtti::initialize() const
 
 		// Register the parent properties and methods
 		{
-			for (const Rtti *parent: parents) {
+			for (const Rtti *parent : parents) {
 				parent->initialize();
 				methods.insert(parent->methods.begin(), parent->methods.end());
-				properties.insert(parent->properties.begin(), parent->properties.end());
+				properties.insert(parent->properties.begin(),
+				                  parent->properties.end());
 			}
 		}
 
@@ -125,11 +126,21 @@ bool Rtti::isa(const Rtti &other) const
 	return parents.count(&other) > 0;
 }
 
-bool Rtii::isOneOf(const RttiSet &others) const
+bool Rtti::isOneOf(const RttiSet &others) const
 {
 	initialize();
-	for (const Rtti *other: others) {
+	for (const Rtti *other : others) {
 		if (parents.count(other) > 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Rtti::setIsOneOf(const RttiSet &s1, const RttiSet &s2)
+{
+	for (const Rtti *t1 : s1) {
+		if (t1->isOneOf(s2)) {
 			return true;
 		}
 	}
@@ -142,12 +153,14 @@ bool Rtti::composedOf(const Rtti &other) const
 	return compositeTypes.count(&other) > 0;
 }
 
-const RttiMethodMap &Rtti::getMethods() const {
+const RttiMethodMap &Rtti::getMethods() const
+{
 	initialize();
 	return methods;
 }
 
-const RttiPropertyMap &Rtti::getProperties() const {
+const RttiPropertyMap &Rtti::getProperties() const
+{
 	initialize();
 	return properties;
 }
@@ -162,7 +175,8 @@ std::shared_ptr<Function> Rtti::getMethod(const std::string &name) const
 	return it->second;
 }
 
-std::shared_ptr<PropertyDescriptor> Rtti::getProperty(const std::string &name) const
+std::shared_ptr<PropertyDescriptor> Rtti::getProperty(
+    const std::string &name) const
 {
 	initialize();
 	auto it = properties.find(name);
