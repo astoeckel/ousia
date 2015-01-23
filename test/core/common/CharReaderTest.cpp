@@ -453,9 +453,8 @@ TEST(CharReader, simpleRead)
 	// The two strings must equal
 	ASSERT_EQ(testStr, res);
 
-	// We must now be at line 1, column 15
-	ASSERT_EQ(1, reader.getLine());
-	ASSERT_EQ((int)(testStr.size() + 1), reader.getColumn());
+	// Check the char reader offset
+	ASSERT_EQ(testStr.size(), reader.getOffset());
 
 	// If we call either read or peek, false is returned
 	ASSERT_FALSE(reader.read(c));
@@ -483,78 +482,16 @@ TEST(CharReader, simplePeek)
 	ASSERT_EQ(testStr, res);
 
 	// We must now be at line 1, column 1 and NOT at the end of the stream
-	ASSERT_EQ(1, reader.getLine());
-	ASSERT_EQ(1, reader.getColumn());
+	ASSERT_EQ(0, reader.getOffset());
 	ASSERT_FALSE(reader.atEnd());
 
-	// If we consume the peek, we must be at line 1, column 15 and we should be
-	// at the end of the stream
 	reader.consumePeek();
-	ASSERT_EQ(1, reader.getLine());
-	ASSERT_EQ((int)(testStr.size() + 1), reader.getColumn());
+	ASSERT_EQ(testStr.size(), reader.getOffset());
 	ASSERT_TRUE(reader.atEnd());
 
 	// If we call either read or peek, false is returned
 	ASSERT_FALSE(reader.read(c));
 	ASSERT_FALSE(reader.peek(c));
-}
-
-TEST(CharReader, rowColumnCounter)
-{
-	// Feed a test string into the reader
-	CharReader reader{"1\n\r2\n3\r\n\n4"};
-
-	// We should currently be in line 1, column 1
-	ASSERT_EQ(1, reader.getLine());
-	ASSERT_EQ(1, reader.getColumn());
-
-	// Read two characters
-	char c;
-	for (int i = 0; i < 2; i++)
-		reader.read(c);
-	ASSERT_EQ(2, reader.getLine());
-	ASSERT_EQ(1, reader.getColumn());
-
-	// Read two characters
-	for (int i = 0; i < 2; i++)
-		reader.read(c);
-	ASSERT_EQ(3, reader.getLine());
-	ASSERT_EQ(1, reader.getColumn());
-
-	// Read three characters
-	for (int i = 0; i < 3; i++)
-		reader.read(c);
-	ASSERT_EQ(5, reader.getLine());
-	ASSERT_EQ(1, reader.getColumn());
-}
-
-TEST(CharReader, rowColumnCounterTest)
-{
-	// Feed a test string into the reader
-	CharReader reader{"1\n\r2\n3\r\n\n4", 4, 10};
-
-	// We should currently be in line 1, column 1
-	ASSERT_EQ(4, reader.getLine());
-	ASSERT_EQ(10, reader.getColumn());
-
-	// Read two characters
-	char c;
-	for (int i = 0; i < 2; i++)
-		reader.read(c);
-	ASSERT_EQ(5, reader.getLine());
-	ASSERT_EQ(1, reader.getColumn());
-
-	// Read two characters
-	for (int i = 0; i < 2; i++)
-		reader.read(c);
-	ASSERT_EQ(6, reader.getLine());
-	ASSERT_EQ(1, reader.getColumn());
-
-	// Read three characters
-	for (int i = 0; i < 3; i++)
-		reader.read(c);
-	ASSERT_EQ(8, reader.getLine());
-	ASSERT_EQ(1, reader.getColumn());
 }
 
 TEST(CharReader, linebreakSubstitution)
@@ -569,23 +506,6 @@ TEST(CharReader, linebreakSubstitution)
 
 	// Test for equality
 	ASSERT_EQ("this\nis\njust\na test\n\ntest\n", res);
-}
-
-TEST(CharReader, rowColumnCounterUTF8)
-{
-	// Feed a test string with some umlauts into the reader
-	CharReader reader{"\x61\xc3\x96\xc3\x84\xc3\x9c\xc3\x9f"};
-
-	// Read all bytes
-	char c;
-	while (reader.read(c)) {
-		// Do nothing
-	}
-
-	// The sequence above equals 5 UTF-8 characters (so after reading all the
-	// cursor is at position 6)
-	ASSERT_EQ(1, reader.getLine());
-	ASSERT_EQ(6, reader.getColumn());
 }
 
 TEST(CharReader, stream)
@@ -608,8 +528,8 @@ TEST(CharReader, stream)
 TEST(CharReader, fork)
 {
 	std::string testStr{"first line\n\n\rsecond line\n\rlast line"};
-	//                   0123456789 0   123456789012   3456789012
-	//                   0         1             2              3
+	//                   0123456789 0 1 234567890123 4 5678901234
+	//                   0          1           2           3
 
 	char c;
 	CharReader reader{testStr};
@@ -626,8 +546,7 @@ TEST(CharReader, fork)
 	{
 		CharReaderFork fork = reader.fork();
 
-		ASSERT_EQ(1, fork.getLine());
-		ASSERT_EQ(5, fork.getColumn());
+		ASSERT_EQ(4, fork.getOffset());
 
 		fork.peek(c);
 		ASSERT_EQ('i', c);
@@ -635,11 +554,7 @@ TEST(CharReader, fork)
 		fork.read(c);
 		ASSERT_EQ('t', c);
 
-		ASSERT_EQ(1, fork.getLine());
-		ASSERT_EQ(6, fork.getColumn());
-
-		ASSERT_EQ(1, reader.getLine());
-		ASSERT_EQ(5, reader.getColumn());
+		ASSERT_EQ(5, fork.getOffset());
 
 		reader.read(c);
 		reader.read(c);
@@ -647,11 +562,10 @@ TEST(CharReader, fork)
 
 		fork.commit();
 	}
-	ASSERT_EQ(1, reader.getLine());
-	ASSERT_EQ(6, reader.getColumn());
+	ASSERT_EQ(5, reader.getOffset());
 }
 
-TEST(CharReaderTest, context)
+/*TEST(CharReader, context)
 {
 	std::string testStr{"first line\n\n\rsecond line\n\rlast line"};
 	//                   0123456789 0   123456789012   3456789012
@@ -816,6 +730,7 @@ TEST(CharReaderTest, context)
 		ASSERT_TRUE(ctx.truncatedStart);
 		ASSERT_FALSE(ctx.truncatedEnd);
 	}
-}
+}*/
+
 }
 

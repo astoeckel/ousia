@@ -40,7 +40,6 @@ TEST(XmlParser, mismatchedTagException)
 		p.parse("<document>\n</document2>", ctx.context);
 	}
 	catch (LoggableException ex) {
-		ASSERT_EQ(2, ex.loc.line);
 		hadException = true;
 	}
 	ASSERT_TRUE(hadException);
@@ -81,8 +80,6 @@ TEST(XmlParser, namespaces)
 	XmlParser p;
 	CharReader reader(TEST_DATA);
 	{
-		ScopedLogger sl(logger, "test.oxd", SourceLocation{},
-		                CharReader::contextCallback, &reader);
 		try {
 			p.parse(TEST_DATA, ctx.context);
 		}

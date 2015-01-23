@@ -33,32 +33,30 @@ struct Pos {
 	SourceLocation getLocation() { return pos; }
 };
 
-static SourceContext contextCallback(const SourceLocation &location,
-	                                     void *)
+static SourceContext contextCallback(const SourceLocation &location)
 {
-	return SourceContext{"int bla = blub;", 10, true, false};
+	SourceContext ctx;
+	ctx.filename = "testfile.test";
+	ctx.startLine = 10;
+	ctx.endLine = 10;
+	ctx.startColumn = 20;
+	ctx.endColumn = 20;
+	return ctx;
 }
 
 TEST(TerminalLogger, log)
 {
 	// Test for manual visual expection only -- no assertions
 	TerminalLogger logger{std::cerr, true};
-	logger.pushFile("test.odp");
+	logger.setSourceContextCallback(contextCallback);
 
-	logger.debug("This is a test debug message", SourceLocation{10, 20});
-	logger.debug("This is a test debug message with no column",
-	             SourceLocation{10});
-	logger.debug("This is a test debug message with no line");
-	logger.note("This is a test note", SourceLocation{10, 20});
-	logger.warning("This is a test warning", SourceLocation{10, 20});
-	logger.error("This is a test error", SourceLocation{10, 20});
-	logger.fatalError("This is a test fatal error!", SourceLocation{10, 20});
+	logger.debug("This is a test debug message");
+	logger.note("This is a test note");
+	logger.warning("This is a test warning");
+	logger.error("This is a test error");
+	logger.fatalError("This is a test fatal error!");
 
-	logger.pushFile("test2.odp", SourceLocation{}, contextCallback);
-	logger.error("This is a test error with context", SourceLocation{10, 20});
-	logger.popFile();
-
-	Pos pos(SourceLocation{10, 20});
+	logger.error("This is a test error with context");
 
 	try {
 		throw LoggableException{"An exception"};
@@ -66,15 +64,6 @@ TEST(TerminalLogger, log)
 	catch (const LoggableException &ex) {
 		logger.log(ex);
 	}
-
-	try {
-		throw LoggableException{"An exception at position", pos};
-	}
-	catch (const LoggableException &ex) {
-		logger.log(ex);
-	}
-
-	logger.log(Severity::ERROR, "This is a positioned log message", pos);
 }
 
 TEST(TerminalLogger, fork)
@@ -82,16 +71,11 @@ TEST(TerminalLogger, fork)
 	// Test for manual visual expection only -- no assertions
 	TerminalLogger logger{std::cerr, true};
 
+	logger.setSourceContextCallback(contextCallback);
+
 	LoggerFork fork = logger.fork();
 
-	fork.pushFile("test.odp", SourceLocation{}, contextCallback);
-	fork.error("This is a test error with context", SourceLocation{10, 20});
-	fork.pushFile("test2.odp");
-	fork.error("This is a test error without context");
-	fork.popFile();
-	fork.error("Another error");
-	fork.popFile();
-	fork.error("Another error");
+	fork.error("This is a test error with context");
 
 	// Print all error messages
 	fork.commit();

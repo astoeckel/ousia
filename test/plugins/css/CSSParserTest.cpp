@@ -266,8 +266,7 @@ void assertException(std::string css)
 	CharReader reader(css);
 	TerminalLogger logger(std::cerr, true);
 	{
-		ScopedLogger sl(logger, "test.css", SourceLocation{},
-		                CharReader::contextCallback, &reader);
+		ScopedLogger sl(logger);
 		StandaloneParserContext ctx(sl);
 
 		CSSParser instance;
