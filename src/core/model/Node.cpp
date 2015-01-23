@@ -363,7 +363,7 @@ bool Node::checkDuplicate(Handle<Node> elem,
 		logger.error(std::string("Element with name \"") + name +
 		             std::string("\" defined multiple times in parent ") +
 		             type().name + std::string(" \"") +
-		             Utils::join(path(), ".") + std::string("\""));
+		             Utils::join(path(), ".") + std::string("\""), *elem);
 		return false;
 	}
 	return true;
@@ -375,7 +375,7 @@ bool Node::validateName(Logger &logger) const
 {
 	if (!Utils::isIdentifier(name)) {
 		logger.error(type().name + std::string(" name \"") + name +
-		             std::string("\" is not a valid identifier"));
+		             std::string("\" is not a valid identifier"), this);
 		return false;
 	}
 	return true;
