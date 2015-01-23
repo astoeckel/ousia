@@ -532,7 +532,7 @@ public:
 	 *
 	 * @return a source location descriptor.
 	 */
-	SourceLocation getLocation() { return location; }
+	SourceLocation getLocation() const { return location; }
 
 	/**
 	 * Sets the location of the node to the given value.
