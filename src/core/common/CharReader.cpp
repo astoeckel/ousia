@@ -376,50 +376,39 @@ bool Buffer::fetch(CursorId cursor, char &c)
 	return fetchCharacter(cursor, c, false);
 }
 
-/* CharReader::Cursor class */
-
-void CharReader::Cursor::assign(std::shared_ptr<Buffer> buffer,
-                                CharReader::Cursor &cursor)
-{
-	// Copy the cursor position
-	buffer->copyCursor(cursor.cursor, this->cursor);
-
-	// Copy the state
-	line = cursor.line;
-	column = cursor.column;
-}
-
 /* CharReader class */
 
-CharReader::CharReader(std::shared_ptr<Buffer> buffer, size_t line,
-                       size_t column)
+CharReader::CharReader(std::shared_ptr<Buffer> buffer, SourceId sourceId,
+                       size_t offs)
     : buffer(buffer),
-      readCursor(buffer->createCursor(), line, column),
-      peekCursor(buffer->createCursor(), line, column),
-      coherent(true)
+      readCursor(buffer->createCursor()),
+      peekCursor(buffer->createCursor()),
+      coherent(true),
+      sourceId(sourceId),
+      offs(offs)
 {
 }
 
-CharReader::CharReader(const std::string &str, size_t line, size_t column)
-    : CharReader(std::shared_ptr<Buffer>{new Buffer{str}}, line, column)
+CharReader::CharReader(const std::string &str, SourceId sourceId, size_t offs)
+    : CharReader(std::shared_ptr<Buffer>{new Buffer{str}}, sourceId, offs)
 {
 }
 
-CharReader::CharReader(std::istream &istream, size_t line, size_t column)
-    : CharReader(std::shared_ptr<Buffer>{new Buffer{istream}}, line, column)
+CharReader::CharReader(std::istream &istream, SourceId sourceId, size_t offs)
+    : CharReader(std::shared_ptr<Buffer>{new Buffer{istream}}, sourceId, offs)
 {
 }
 
 CharReader::~CharReader()
 {
-	buffer->deleteCursor(readCursor.cursor);
-	buffer->deleteCursor(peekCursor.cursor);
+	buffer->deleteCursor(readCursor);
+	buffer->deleteCursor(peekCursor);
 }
 
-bool CharReader::readAtCursor(Cursor &cursor, char &c)
+bool CharReader::readAtCursor(Buffer::CursorId &cursor, char &c)
 {
 	// Return false if we're at the end of the stream
-	if (!buffer->read(cursor.cursor, c)) {
+	if (!buffer->read(cursor, c)) {
 		return false;
 	}
 
@@ -431,22 +420,10 @@ bool CharReader::readAtCursor(Cursor &cursor, char &c)
 		// Check whether the next character is a continuation of the
 		// current character
 		char c2;
-		if (buffer->read(cursor.cursor, c2)) {
+		if (buffer->read(cursor, c2)) {
 			if ((c2 != '\n' && c2 != '\r') || c2 == c) {
-				buffer->moveCursor(cursor.cursor, -1);
+				buffer->moveCursor(cursor, -1);
 			}
-		}
-	}
-
-	// Count lines and columns
-	if (c == '\n') {
-		// A linebreak was reached, go to the next line
-		cursor.line++;
-		cursor.column = 1;
-	} else {
-		// Ignore UTF-8 continuation bytes
-		if (!((c & 0x80) && !(c & 0x40))) {
-			cursor.column++;
 		}
 	}
 	return true;
@@ -456,7 +433,7 @@ bool CharReader::peek(char &c)
 {
 	// If the reader was coherent, update the peek cursor state
 	if (coherent) {
-		peekCursor.assign(buffer, readCursor);
+		buffer->copyCursor(readCursor, peekCursor);
 		coherent = false;
 	}
 
@@ -471,12 +448,8 @@ bool CharReader::read(char &c)
 
 	// Set the peek position to the current read position, if reading was not
 	// coherent
-	if (!coherent) {
-		peekCursor.assign(buffer, readCursor);
-		coherent = true;
-	} else {
-		buffer->copyCursor(readCursor.cursor, peekCursor.cursor);
-	}
+	buffer->copyCursor(readCursor, peekCursor);
+	coherent = true;
 
 	// Return the result of the read function
 	return res;
@@ -485,7 +458,7 @@ bool CharReader::read(char &c)
 void CharReader::resetPeek()
 {
 	if (!coherent) {
-		peekCursor.assign(buffer, readCursor);
+		buffer->copyCursor(readCursor, peekCursor);
 		coherent = true;
 	}
 }
@@ -493,7 +466,7 @@ void CharReader::resetPeek()
 void CharReader::consumePeek()
 {
 	if (!coherent) {
-		readCursor.assign(buffer, peekCursor);
+		buffer->copyCursor(peekCursor, readCursor);
 		coherent = true;
 	}
 }
@@ -513,7 +486,8 @@ bool CharReader::consumeWhitespace()
 
 CharReaderFork CharReader::fork()
 {
-	return CharReaderFork(buffer, readCursor, peekCursor, coherent);
+	return CharReaderFork{buffer,   readCursor, peekCursor,
+	                      sourceId, offs,       coherent};
 }
 
 size_t CharReader::readRaw(char *buf, size_t size)
@@ -528,155 +502,49 @@ size_t CharReader::readRaw(char *buf, size_t size)
 	return res;
 }
 
-SourceContext CharReader::getContextAt(ssize_t maxSize,
-                                       Buffer::CursorId referenceCursor)
+bool CharReader::atEnd() const { return buffer->atEnd(readCursor); }
+
+SourceOffset CharReader::getOffset() const
 {
-	// Clone the given read cursor
-	Buffer::CursorId cur = buffer->createCursor(referenceCursor);
-
-	// Fetch the start position of the search
-	ssize_t offs = buffer->offset(cur);
-	ssize_t start = offs;
-	ssize_t end = offs;
-	char c;
-
-	// Search the beginning of the line with the last non-whitespace character
-	bool hadNonWhitespace = false;
-	bool foundBegin = false;
-	for (ssize_t i = 0; i < maxSize; i++) {
-		// Fetch the character at the current position
-		if (buffer->fetch(cur, c)) {
-			// Abort, at linebreaks if we found a non-linebreak character
-			hadNonWhitespace = hadNonWhitespace || !Utils::isWhitespace(c);
-			if (hadNonWhitespace && (c == '\n' || c == '\r')) {
-				buffer->moveCursor(cur, 1);
-				start++;
-				foundBegin = true;
-				break;
-			}
-		}
-		if (buffer->moveCursor(cur, -1) == 0) {
-			foundBegin = true;
-			break;
-		} else {
-			// Update the start position and the hadNonWhitespace flag
-			start--;
-		}
-	}
-
-	// Search the end of the line
-	buffer->moveCursor(cur, offs - start);
-	bool foundEnd = false;
-	for (ssize_t i = 0; i < maxSize; i++) {
-		// Increment the end counter if a character was read, abort if the end
-		// of the stream has been reached
-		if (buffer->read(cur, c)) {
-			end++;
-		} else {
-			foundEnd = true;
-			break;
-		}
-
-		// Abort on linebreak characters
-		if (c == '\n' || c == '\r') {
-			foundEnd = true;
-			break;
-		}
-	}
-
-	// Calculate the truncated start and end position and limit the number of
-	// characters to the maximum number of characters
-	ssize_t tStart = start;
-	ssize_t tEnd = end;
-	if (tEnd - tStart > maxSize) {
-		tStart = std::max(offs - maxSize / 2, tStart);
-		tEnd = tStart + maxSize;
-	}
-
-	// Try to go to the calculated start position and fetch the actual start
-	// position
-	ssize_t aStart = end + buffer->moveCursor(cur, tStart - end);
-	if (aStart > tStart) {
-		tEnd = tEnd + (aStart - tStart);
-		tStart = aStart;
-	}
-
-	// Read one line
-	std::stringstream ss;
-	size_t relPos = 0;
-	for (ssize_t i = tStart; i < tEnd; i++) {
-		if (buffer->read(cur, c)) {
-			// Break once a linebreak is reached
-			if (c == '\n' || c == '\r') {
-				break;
-			}
-
-			// Add the current character to the output
-			ss << c;
-
-			// Increment the string-relative offset as long as the original
-			// offset is not reached in the for loop
-			if (i < offs) {
-				relPos++;
-			}
-		}
-	}
-
-	// Delete the newly created cursor
-	buffer->deleteCursor(cur);
-
-	return SourceContext{ss.str(), relPos, !foundBegin || tStart != start,
-	                     !foundEnd || tEnd != end};
+	return buffer->offset(readCursor) + offs;
 }
 
-SourceContext CharReader::getContextAtOffs(ssize_t maxSize, size_t offs)
+SourcePosition CharReader::getPosition() const
 {
-	// Create a new cursor and calculate how far it has to be moved to reach
-	// the position specified in the location instance
-	Buffer::CursorId cur = buffer->createCursor();
-	ssize_t moveOffs = offs - buffer->offset(cur);
-
-	// Try to move the cursor to the specified position and read the context
-	SourceContext res;
-	if (buffer->moveCursor(cur, moveOffs) == moveOffs) {
-		res = getContextAt(60, cur);
-	}
-
-	// Delete the read cursor
-	buffer->deleteCursor(cur);
-	return res;
+	return getOffset();
 }
 
-SourceContext CharReader::getContext(ssize_t maxSize)
+SourceLocation CharReader::getLocation() const
 {
-	return getContextAt(maxSize, readCursor.cursor);
+	return SourceLocation{sourceId, getOffset()};
 }
 
-SourceContext CharReader::contextCallback(const SourceLocation &location,
-                                          void *data)
+SourceLocation CharReader::getLocation(SourcePosition start) const
 {
-	return static_cast<CharReader *>(data)->getContextAtOffs(60, location.offs);
+	return SourceLocation{sourceId, start, getOffset()};
 }
+
+SourceId CharReader::getSourceId() const { return sourceId; }
 
 /* Class CharReaderFork */
 
 CharReaderFork::CharReaderFork(std::shared_ptr<Buffer> buffer,
-                               CharReader::Cursor &parentReadCursor,
-                               CharReader::Cursor &parentPeekCursor,
-                               bool coherent)
-    : CharReader(buffer, 1, 1),
+                               Buffer::CursorId parentReadCursor,
+                               Buffer::CursorId parentPeekCursor,
+                               SourceId sourceId, size_t offs, bool coherent)
+    : CharReader(buffer, sourceId, offs),
       parentReadCursor(parentReadCursor),
       parentPeekCursor(parentPeekCursor)
 {
-	readCursor.assign(buffer, parentReadCursor);
-	peekCursor.assign(buffer, parentPeekCursor);
+	buffer->copyCursor(parentReadCursor, readCursor);
+	buffer->copyCursor(parentPeekCursor, peekCursor);
 	this->coherent = coherent;
 }
 
 void CharReaderFork::commit()
 {
-	parentReadCursor.assign(buffer, readCursor);
-	parentPeekCursor.assign(buffer, peekCursor);
+	buffer->copyCursor(readCursor, parentReadCursor);
+	buffer->copyCursor(peekCursor, parentPeekCursor);
 }
 }
 

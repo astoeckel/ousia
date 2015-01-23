@@ -18,35 +18,14 @@
 
 #include <core/common/Utils.hpp>
 
-#include "Scope.hpp"
+#include "ParserScope.hpp"
 
 namespace ousia {
-namespace parser {
 
-/* Class GuardedScope */
+/* Class ParserScopeBase */
 
-GuardedScope::GuardedScope(Scope *scope, Handle<Node> node) : scope(scope)
-{
-	scope->push(node);
-}
-
-GuardedScope::~GuardedScope()
-{
-	if (scope) {
-		scope->pop();
-	}
-}
-
-GuardedScope::GuardedScope(GuardedScope &&s)
-{
-	scope = s.scope;
-	s.scope = nullptr;
-}
-
-/* Class ScopeBase */
-
-Rooted<Node> ScopeBase::resolve(const std::vector<std::string> &path,
-                                const Rtti &type, Logger &logger)
+Rooted<Node> ParserScopeBase::resolve(const std::vector<std::string> &path,
+                                      const Rtti &type, Logger &logger)
 {
 	// Go up the stack and try to resolve the
 	for (auto it = nodes.rbegin(); it != nodes.rend(); it++) {
@@ -101,22 +80,17 @@ bool DeferredResolution::resolve(Logger &logger)
 	return false;
 }
 
-/* Class Scope */
+/* Class ParserScope */
 
-void Scope::push(Handle<Node> node) { nodes.push_back(node); }
+void ParserScope::push(Handle<Node> node) { nodes.push_back(node); }
 
-void Scope::pop() { nodes.pop_back(); }
+void ParserScope::pop() { nodes.pop_back(); }
 
-GuardedScope Scope::descend(Handle<Node> node)
-{
-	return GuardedScope{this, node};
-}
+Rooted<Node> ParserScope::getRoot() const { return nodes.front(); }
 
-Rooted<Node> Scope::getRoot() const { return nodes.front(); }
+Rooted<Node> ParserScope::getLeaf() { return nodes.back(); }
 
-Rooted<Node> Scope::getLeaf() { return nodes.back(); }
-
-bool Scope::resolve(const std::vector<std::string> &path, const Rtti &type,
+bool ParserScope::resolve(const std::vector<std::string> &path, const Rtti &type,
                     Logger &logger, ResolutionImposterCallback imposterCallback,
                     ResolutionResultCallback resultCallback,
                     const SourceLocation &location)
@@ -128,11 +102,11 @@ bool Scope::resolve(const std::vector<std::string> &path, const Rtti &type,
 	return true;
 }
 
-bool Scope::resolve(const std::vector<std::string> &path, const Rtti &type,
+bool ParserScope::resolve(const std::vector<std::string> &path, const Rtti &type,
                     Logger &logger, ResolutionResultCallback resultCallback,
                     const SourceLocation &location)
 {
-	Rooted<Node> res = ScopeBase::resolve(path, type, logger);
+	Rooted<Node> res = ParserScopeBase::resolve(path, type, logger);
 	if (res != nullptr) {
 		try {
 			resultCallback(res, logger);
@@ -146,7 +120,7 @@ bool Scope::resolve(const std::vector<std::string> &path, const Rtti &type,
 	return false;
 }
 
-bool Scope::performDeferredResolution(Logger &logger)
+bool ParserScope::performDeferredResolution(Logger &logger)
 {
 	// Repeat the resolution process as long as something has changed in the
 	// last iteration (resolving a node may cause other nodes to be resolvable).
@@ -176,8 +150,8 @@ bool Scope::performDeferredResolution(Logger &logger)
 	// Output error messages for all elements for which resolution did not
 	// succeed.
 	for (const auto &failed : deferred) {
-		logger.error(std::string("Could not resolve ")  + failed.type.name + std::string(" \"") +
-		                 Utils::join(failed.path, ".") +
+		logger.error(std::string("Could not resolve ") + failed.type.name +
+		                 std::string(" \"") + Utils::join(failed.path, ".") +
 		                 std::string("\""),
 		             failed.location);
 	}
@@ -185,4 +159,4 @@ bool Scope::performDeferredResolution(Logger &logger)
 	return false;
 }
 }
-}
+

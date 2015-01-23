@@ -73,6 +73,40 @@ enum class Severity : uint8_t {
 	FATAL_ERROR = 4
 };
 
+/**
+ * Enum signifying how the message should be displayed. MessageMode constants
+ * can be combined using the bitwise or (|) operator.
+ */
+enum class MessageMode : uint8_t {
+	/**
+     * Default display mode.
+     */
+	DEFAULT = 0,
+
+	/**
+     * Do not display a context.
+     */
+	NO_CONTEXT = 1,
+
+	/**
+     * Do not display a file backtrace.
+     */
+	NO_TRACE = 2
+};
+
+/**
+ * Bitwise or for the MessageMode class.
+ *
+ * @param a is the first MessageMode.
+ * @param b is the second MessageMode.
+ * @return the two message modes combined using bitwise or.
+ */
+inline MessageMode operator|(MessageMode a, MessageMode b)
+{
+	return static_cast<MessageMode>(static_cast<uint8_t>(a) |
+	                                static_cast<uint8_t>(b));
+}
+
 // Forward declaration
 class LoggerFork;
 class ScopedLogger;
@@ -92,51 +126,6 @@ public:
 	friend ScopedLogger;
 
 	/**
-	 * Describes a file inclusion.
-	 */
-	struct File {
-		/**
-		 * Current filename.
-		 */
-		std::string file;
-
-		/**
-		 * Location at which the file was included.
-		 */
-		SourceLocation loc;
-
-		/**
-		 * Callback used to retrieve the context for a certain location
-		 */
-		SourceContextCallback ctxCallback;
-
-		/**
-		 * Data to be passed to the callback.
-		 */
-		void *ctxCallbackData;
-
-		/**
-		 * Constructor of the Scope struct.
-		 *
-		 * @param type is the type of
-		 * @param file is the name of the current file.
-		 * @param loc is the location at which the file was included.
-		 * @param ctxCallback is the callback function that should be called
-		 * for looking up the context belonging to a SourceLocation instance.
-		 * @param ctxCallbackData is additional data that should be passed to
-		 * the callback function.
-		 */
-		File(std::string file, SourceLocation loc,
-		     SourceContextCallback ctxCallback, void *ctxCallbackData)
-		    : file(std::move(file)),
-		      loc(loc),
-		      ctxCallback(ctxCallback),
-		      ctxCallbackData(ctxCallbackData)
-		{
-		}
-	};
-
-	/**
 	 * The message struct represents a single log message and all information
 	 * attached to it.
 	 */
@@ -145,6 +134,11 @@ public:
 		 * Severity of the log message.
 		 */
 		Severity severity;
+
+		/**
+		 * Message mode.
+		 */
+		MessageMode mode;
 
 		/**
 		 * Actual log message.
@@ -157,14 +151,50 @@ public:
 		SourceLocation loc;
 
 		/**
+		 * Default constructor of the Message struct.
+		 */
+		Message() : severity(Severity::DEBUG), mode(MessageMode::DEFAULT) {}
+
+		/**
 		 * Constructor of the Message struct.
 		 *
 		 * @param severity describes the message severity.
+		 * @param mode is the mode in which the message should be displayed.
 		 * @param msg contains the actual message.
+		 * @param loc is the location at which the message should be displayed.
 		 */
-		Message(Severity severity, std::string msg, const SourceLocation &loc)
-		    : severity(severity), msg(std::move(msg)), loc(loc){};
+		Message(Severity severity, MessageMode mode, std::string msg,
+		        const SourceLocation &loc)
+		    : severity(severity), mode(mode), msg(std::move(msg)), loc(loc)
+		{
+		}
 	};
+
+	/**
+	 * Calls the getLocation function on the given reference.
+	 *
+	 * @param obj is the object on which the getLocation function should be
+	 * called.
+	 * @return the SourceLocation returned by the getLocation function.
+	 */
+	template <typename T>
+	static SourceLocation location(const T &obj)
+	{
+		return obj.getLocation();
+	}
+
+	/**
+	 * Calls the getLocation function on the given pointer.
+	 *
+	 * @param obj is the object on which the getLocation function should be
+	 * called.
+	 * @return the SourceLocation returned by the getLocation function.
+	 */
+	template <typename T>
+	static SourceLocation location(const T *obj)
+	{
+		return obj->getLocation();
+	}
 
 protected:
 	/**
@@ -188,23 +218,36 @@ protected:
 	virtual bool filterMessage(const Message &msg) { return true; }
 
 	/**
-	 * Called whenever a new file is pushed onto the stack.
+	 * Called whenever the pushDefaultLocation function is called.
 	 *
-	 * @param file is the file structure that should be stored on the stack.
+	 * @param loc is the default location that should be pushed onto the stack.
 	 */
-	virtual void processPushFile(const File &file) {}
+	virtual void processPushDefaultLocation(const SourceLocation &loc) {}
 
 	/**
-	 * Called whenever a scope is popped from the stack.
+	 * Called whenever the popDefaultLocation function is called.
+	 *
+	 * @param loc is the default location that should be popped from the stack.
 	 */
-	virtual void processPopFile() {}
+	virtual void processPopDefaultLocation() {}
 
 	/**
 	 * Called whenever the setDefaultLocation function is called.
 	 *
-	 * @param loc is the default location that should be set.
+	 * @param loc is the default location that shuold replace the current one on
+	 * the stack.
 	 */
 	virtual void processSetDefaultLocation(const SourceLocation &loc) {}
+
+	/**
+	 * Called whenever the setSourceContextCallback function is called.
+	 *
+	 * @param sourceContextCallback is the callback function that should be set.
+	 */
+	virtual void processSetSourceContextCallback(
+	    SourceContextCallback sourceContextCallback)
+	{
+	}
 
 public:
 	/**
@@ -228,28 +271,25 @@ public:
 	 * @param severity is the severity of the log message.
 	 * @param msg is the actual log message.
 	 * @param loc is the location in the source file the message refers to.
+	 * @param mode specifies how the message should be displayed.
 	 */
 	void log(Severity severity, const std::string &msg,
-	         const SourceLocation &loc = SourceLocation{});
+	         const SourceLocation &loc = SourceLocation{},
+	         MessageMode mode = MessageMode::DEFAULT);
 
 	/**
 	 * Logs the given loggable exception.
 	 *
 	 * @param ex is the exception that should be logged.
+	 * @param loc is a location which (if valid overrides the location given in
+	 * the exception.
+	 * @param mode specifies how the message should be displayed.
 	 */
-	void log(const LoggableException &ex)
+	void log(const LoggableException &ex,
+	         const SourceLocation &loc = SourceLocation{},
+	         MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::ERROR, ex.msg, ex.getLocation());
-	}
-
-	/**
-	 * Logs the given loggable exception at the given location.
-	 *
-	 * @param ex is the exception that should be logged.
-	 */
-	void log(const LoggableException &ex, const SourceLocation &loc)
-	{
-		log(Severity::ERROR, ex.msg, loc.valid() ? loc : ex.getLocation());
+		log(Severity::ERROR, ex.msg, loc.isValid() ? loc : ex.getLocation());
 	}
 
 	/**
@@ -260,11 +300,13 @@ public:
 	 * @param msg is the actual log message.
 	 * @param loc is a reference to a variable which provides location
 	 * information.
+	 * @param mode specifies how the message should be displayed.
 	 */
 	template <class LocationType>
-	void log(Severity severity, const std::string &msg, LocationType &loc)
+	void log(Severity severity, const std::string &msg, LocationType loc,
+	         MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(severity, msg, loc.getLocation());
+		log(severity, msg, location(loc), mode);
 	}
 
 	/**
@@ -275,10 +317,11 @@ public:
 	 * @param loc is the location in the source file the message refers to.
 	 */
 	void debug(const std::string &msg,
-	           const SourceLocation &loc = SourceLocation{})
+	           const SourceLocation &loc = SourceLocation{},
+	           MessageMode mode = MessageMode::DEFAULT)
 	{
 #ifndef NDEBUG
-		log(Severity::DEBUG, msg, loc);
+		log(Severity::DEBUG, msg, loc, mode);
 #endif
 	}
 
@@ -291,10 +334,11 @@ public:
 	 * information.
 	 */
 	template <class LocationType>
-	void debug(const std::string &msg, LocationType &loc)
+	void debug(const std::string &msg, LocationType loc,
+	           MessageMode mode = MessageMode::DEFAULT)
 	{
 #ifndef NDEBUG
-		log(Severity::DEBUG, msg, loc);
+		log(Severity::DEBUG, msg, loc, mode);
 #endif
 	}
 
@@ -305,9 +349,10 @@ public:
 	 * @param loc is the location in the source file the message refers to.
 	 */
 	void note(const std::string &msg,
-	          const SourceLocation &loc = SourceLocation{})
+	          const SourceLocation &loc = SourceLocation{},
+	          MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::NOTE, msg, loc);
+		log(Severity::NOTE, msg, loc, mode);
 	}
 
 	/**
@@ -318,9 +363,10 @@ public:
 	 * information.
 	 */
 	template <class LocationType>
-	void note(const std::string &msg, LocationType &loc)
+	void note(const std::string &msg, LocationType loc,
+	          MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::NOTE, msg, loc);
+		log(Severity::NOTE, msg, loc, mode);
 	}
 
 	/**
@@ -330,9 +376,10 @@ public:
 	 * @param loc is a reference to a variable which provides position
 	 */
 	void warning(const std::string &msg,
-	             const SourceLocation &loc = SourceLocation{})
+	             const SourceLocation &loc = SourceLocation{},
+	             MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::WARNING, msg, loc);
+		log(Severity::WARNING, msg, loc, mode);
 	}
 
 	/**
@@ -343,9 +390,10 @@ public:
 	 * information.
 	 */
 	template <class LocationType>
-	void warning(const std::string &msg, LocationType &loc)
+	void warning(const std::string &msg, LocationType loc,
+	             MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::WARNING, msg, loc);
+		log(Severity::WARNING, msg, location(loc), mode);
 	}
 
 	/**
@@ -355,9 +403,10 @@ public:
 	 * @param loc is a reference to a variable which provides position
 	 */
 	void error(const std::string &msg,
-	           const SourceLocation &loc = SourceLocation{})
+	           const SourceLocation &loc = SourceLocation{},
+	           MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::ERROR, msg, std::move(loc));
+		log(Severity::ERROR, msg, loc, mode);
 	}
 
 	/**
@@ -368,9 +417,10 @@ public:
 	 * information.
 	 */
 	template <class LocationType>
-	void error(const std::string &msg, LocationType &loc)
+	void error(const std::string &msg, LocationType loc,
+	           MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::ERROR, msg, loc);
+		log(Severity::ERROR, msg, location(loc), mode);
 	}
 
 	/**
@@ -380,9 +430,10 @@ public:
 	 * @param loc is a reference to a variable which provides position
 	 */
 	void fatalError(const std::string &msg,
-	                const SourceLocation &loc = SourceLocation{})
+	                const SourceLocation &loc = SourceLocation{},
+	                MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::FATAL_ERROR, msg, loc);
+		log(Severity::FATAL_ERROR, msg, loc, mode);
 	}
 
 	/**
@@ -393,41 +444,44 @@ public:
 	 * information.
 	 */
 	template <class LocationType>
-	void fatalError(const std::string &msg, LocationType &loc)
+	void fatalError(const std::string &msg, LocationType loc,
+	                MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::FATAL_ERROR, msg, loc);
+		log(Severity::FATAL_ERROR, msg, location(loc), mode);
 	}
 
 	/**
-	 * Pushes a new file name onto the internal filename stack.
+	 * Sets the source context callback to be used to resolve SourceLocation
+	 * instances to SourceContext instances. The sourceContextCallback should be
+	 * set as early as possible when using the logger.
 	 *
-	 * @param name is the name of the file to be added to the stack.
-	 * @param loc is the position from which the new file is included.
-	 * @param ctxCallback is the callback function that should be called if a
-	 * SourceLocation needs to be resolved to a SourceContext.
-	 * @param ctxCallbackData is the data that should be passed to the callback.
+	 * @param sourceContextCallback is the new sourceContextCallback to be used.
 	 */
-	void pushFile(std::string name, SourceLocation loc = SourceLocation{},
-	              SourceContextCallback ctxCallback = nullptr,
-	              void *ctxCallbackData = nullptr)
+	void setSourceContextCallback(SourceContextCallback sourceContextCallback)
 	{
-		processPushFile(
-		    File(std::move(name), loc, ctxCallback, ctxCallbackData));
+		processSetSourceContextCallback(sourceContextCallback);
 	}
 
 	/**
-	 * Pops the filename from the internal filename stack. Resets any location
-	 * set by the setDefaultLocation() method.
+	 * Pushes a new default location onto the default location stack.
+	 *
+	 * @param loc is the location that should be used if no (valid) location is
+	 * specified in the Logger.
 	 */
-	void popFile()
+	void pushDefaultLocation(const SourceLocation &loc)
 	{
-		processPopFile();
-		resetDefaultLocation();
+		processPushDefaultLocation(loc);
 	}
 
 	/**
-	 * Sets the default location. The default location is automatically reset
-	 * once the popFile() method is called.
+	 * Pops the last default location from the default location stack.
+	 */
+	void popDefaultLocation() { processPopDefaultLocation(); }
+
+	/**
+	 * Replaces the topmost default location on the location stack with the
+	 * given location. Creates a new entry in the location stack if the stack
+	 * was empty.
 	 *
 	 * @param loc is the location that should be used if no (valid) location is
 	 * specified in the Logger.
@@ -436,12 +490,6 @@ public:
 	{
 		processSetDefaultLocation(loc);
 	}
-
-	/**
-	 * Resets the default location, a previously set default location will be
-	 * no longer used.
-	 */
-	void resetDefaultLocation() { processSetDefaultLocation(SourceLocation{}); }
 
 	/**
 	 * Returns a forked logger instance which can be used to collect log
@@ -469,7 +517,13 @@ private:
 	/**
 	 * Intanally used to store the incomming function calls.
 	 */
-	enum class CallType { MESSAGE, PUSH_FILE, POP_FILE, SET_DEFAULT_LOCATION };
+	enum class CallType {
+		MESSAGE,
+		PUSH_LOCATION,
+		POP_LOCATION,
+		SET_LOCATION,
+		SET_CONTEXT_CALLBACK
+	};
 
 	/**
 	 * Datastructure used to represent a logger function call.
@@ -506,14 +560,14 @@ private:
 	std::vector<Message> messages;
 
 	/**
-	 * Vector storing all incomming pushed Scope instances.
-	 */
-	std::vector<File> files;
-
-	/**
 	 * Vector storing all incomming location instances.
 	 */
 	std::vector<SourceLocation> locations;
+
+	/**
+	 * Vector storing all incomming source context callbacks.
+	 */
+	std::vector<SourceContextCallback> callbacks;
 
 	/**
 	 * Parent logger instance.
@@ -529,17 +583,19 @@ private:
 
 protected:
 	void processMessage(const Message &msg) override;
-	void processPushFile(const File &file) override;
-	void processPopFile() override;
+	void processPushDefaultLocation(const SourceLocation &loc) override;
+	void processPopDefaultLocation() override;
 	void processSetDefaultLocation(const SourceLocation &loc) override;
+	void processSetSourceContextCallback(
+	    SourceContextCallback sourceContextCallback) override;
 
 public:
 	// Default move constructor
 	LoggerFork(LoggerFork &&l)
 	    : calls(std::move(l.calls)),
 	      messages(std::move(l.messages)),
-	      files(std::move(l.files)),
 	      locations(std::move(l.locations)),
+	      callbacks(std::move(l.callbacks)),
 	      parent(std::move(l.parent)){};
 
 	/**
@@ -578,93 +634,54 @@ protected:
 	 *
 	 * @param msg is the message to be relayed to the parent logger.
 	 */
-	void processMessage(const Message &msg) override
-	{
-		parent.processMessage(msg);
-	}
+	void processMessage(const Message &msg) override;
 
 	/**
 	 * Relays the filterMessage call to the parent logger.
 	 *
 	 * @param msg is the message to be relayed to the parent logger.
 	 */
-	bool filterMessage(const Message &msg) override
-	{
-		return parent.filterMessage(msg);
-	}
+	bool filterMessage(const Message &msg) override;
 
 	/**
-	 * Relays the processPushFile call to the parent logger and increments the
-	 * stack depth counter.
-	 *
-	 * @param file is the File instance to be relayed to the parent logger.
+	 * Relays the processPushDefaultLocation call to the parent logger and
+	 * increments the stack depth counter.
 	 */
-	void processPushFile(const File &file)
-	{
-		parent.processPushFile(file);
-		depth++;
-	}
+	void processPushDefaultLocation(const SourceLocation &loc) override;
 
 	/**
-	 * Relays the processPopFile call to the parent logger and decrements the
-	 * stack depth counter.
+	 * Relays the processPopDefaultLocation call to the parent logger and
+	 * decrements the stack depth counter.
 	 */
-	void processPopFile()
-	{
-		depth--;
-		parent.processPopFile();
-	}
+	void processPopDefaultLocation() override;
 
 	/**
 	 * Relays the processSetDefaultLocation call to the parent logger.
-	 *
-	 * @param loc is the location to be passed to the parent logger.
 	 */
-	void processSetDefaultLocation(const SourceLocation &loc)
-	{
-		parent.processSetDefaultLocation(loc);
-	}
+	void processSetDefaultLocation(const SourceLocation &loc) override;
+
+	/**
+	 * Relays the processSetSourceContextCallback call to the parent logger.
+	 */
+	void processSetSourceContextCallback(
+	    SourceContextCallback sourceContextCallback) override;
 
 public:
-	/**
-	 * Constructor of the ScopedLogger class.
-	 *
-	 * @param parent is the parent logger instance to which all calls should
-	 * be relayed.
-	 */
-	ScopedLogger(Logger &parent) : Logger(), parent(parent) {}
-
 	/**
 	 * Constructor of the ScopedLogger class, pushes a first file instance onto
 	 * the file stack.
 	 *
 	 * @param parent is the parent logger instance to which all calls should
 	 * be relayed.
-	 * @param name is the name of the file to be added to the stack.
-	 * @param loc is the position from which the new file is included.
-	 * @param ctxCallback is the callback function that should be called if a
-	 * SourceLocation needs to be resolved to a SourceContext.
-	 * @param ctxCallbackData is the data that should be passed to the callback.
+	 * @param loc specifies the first source location.
 	 */
-	ScopedLogger(Logger &parent, std::string name,
-	             SourceLocation loc = SourceLocation{},
-	             SourceContextCallback ctxCallback = nullptr,
-	             void *ctxCallbackData = nullptr)
-	    : Logger(), parent(parent), depth(0)
-	{
-		pushFile(name, loc, ctxCallback, ctxCallbackData);
-	}
+	ScopedLogger(Logger &parent, SourceLocation loc = SourceLocation{});
 
 	/**
 	 * Destructor of the ScopedLogger class, automatically unwinds the file
 	 * stack.
 	 */
-	~ScopedLogger()
-	{
-		while (depth > 0) {
-			processPopFile();
-		}
-	}
+	~ScopedLogger();
 };
 
 /**
@@ -681,7 +698,7 @@ protected:
 	{
 		if (msg.severity == Severity::ERROR ||
 		    msg.severity == Severity::FATAL_ERROR) {
-			throw LoggableException(msg.msg);
+			throw LoggableException(msg.msg, msg.loc);
 		}
 	}
 };
@@ -701,14 +718,14 @@ constexpr Severity DEFAULT_MIN_SEVERITY = Severity::DEBUG;
 class ConcreteLogger : public Logger {
 private:
 	/**
-	 * Stack containing the current file instance.
-	 */
-	std::vector<File> files;
-
-	/**
 	 * Vector used to store the counts of each message type.
 	 */
 	std::vector<size_t> messageCounts;
+
+	/**
+	 * Vector used to store the current default locations.
+	 */
+	std::vector<SourceLocation> locations;
 
 	/**
 	 * Minimum severity to be used for filtering messages.
@@ -716,9 +733,9 @@ private:
 	Severity minSeverity;
 
 	/**
-	 * Current default location.
+	 * Current source context callback.
 	 */
-	SourceLocation defaultLocation;
+	SourceContextCallback sourceContextCallback;
 
 protected:
 	/**
@@ -730,25 +747,11 @@ protected:
 	 */
 	bool filterMessage(const Message &msg) override;
 
-	/**
-	 * Pushes the given file descriptor onto the internal file stack.
-	 *
-	 * @param file is the File descriptor to be pushed onto the internal file
-	 * stack.
-	 */
-	void processPushFile(const File &file) override;
-
-	/**
-	 * Pops the given file descriptor from the internal file stack.
-	 */
-	void processPopFile() override;
-
-	/**
-	 * Sets the default location.
-	 *
-	 * @param loc is the new default location.
-	 */
+	void processPushDefaultLocation(const SourceLocation &loc) override;
+	void processPopDefaultLocation() override;
 	void processSetDefaultLocation(const SourceLocation &loc) override;
+	void processSetSourceContextCallback(
+	    SourceContextCallback sourceContextCallback) override;
 
 public:
 	/**
@@ -757,24 +760,7 @@ public:
 	 * @param minSeverity is the severity below which message should be
 	 * discarded.
 	 */
-	ConcreteLogger(Severity minSeverity = DEFAULT_MIN_SEVERITY)
-	    : minSeverity(minSeverity)
-	{
-	}
-
-	/**
-	 * Returns the name of the current file or an empty instance of the File
-	 * instance if no current file is available.
-	 *
-	 * @return the name of the current file.
-	 */
-	const File &currentFile() const;
-
-	/**
-	 * Returns the current filename or an empty string if no surch file is
-	 * available.
-	 */
-	const std::string &currentFilename() const;
+	ConcreteLogger(Severity minSeverity = DEFAULT_MIN_SEVERITY);
 
 	/**
 	 * Returns the current cursor location.
@@ -800,7 +786,8 @@ public:
 	/**
 	 * Returns the number of messages for the given severity.
 	 *
-	 * @param severity is the log severity for which the message count should
+	 * @param severity is the log severity for which the message count
+	 *should
 	 * be returned.
 	 * @return the number of messages for this severity. Returns zero for
 	 * invalid arguments.
@@ -808,22 +795,32 @@ public:
 	size_t getSeverityCount(Severity severity);
 
 	/**
-	 * Resets the statistics gathered by the ConcreteLogger instance (the number
+	 * Resets the statistics gathered by the ConcreteLogger instance (the
+	 * number
 	 * of messages per log severity) and the internal file stack.
 	 */
 	void reset();
 
 	/**
-	 * Returns true if at least one message with either a fatal error or error
-	 * severity was logged.
+	 * Returns true if at least one message with either a fatal error or
+	 * error severity was logged.
 	 *
 	 * @return true if an error or fatal error was logged.
 	 */
 	bool hasError();
+
+	/**
+	 * Returns true if at least one message with either a fatal error was
+	 * logged.
+	 *
+	 * @return true if a fatal error was logged.
+	 */
+	bool hasFatalError();
 };
 
 /**
- * Class extending the Logger class and printing the log messages to the given
+ * Class extending the Logger class and printing the log messages to the
+ * given
  * stream.
  */
 class TerminalLogger : public ConcreteLogger {
@@ -850,7 +847,8 @@ public:
 	 * Should be set to std::cerr in most cases.
 	 * @param useColor if true, the TerminalLogger class will do its best to
 	 * use ANSI/VT100 control sequences for colored log messages.
-	 * @param minSeverity is the minimum severity below which log messages are
+	 * @param minSeverity is the minimum severity below which log messages
+	 *are
 	 * discarded.
 	 */
 	TerminalLogger(std::ostream &os, bool useColor = false,

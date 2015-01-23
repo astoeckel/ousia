@@ -16,23 +16,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <core/common/CharReader.hpp>
-
-#include "Parser.hpp"
+#include "ParserContext.hpp"
 
 namespace ousia {
 
-/* Class Parser */
+/* Class ParserContext */
 
-Rooted<Node> Parser::parse(CharReader &reader, ParserContext &ctx)
+ParserContext::ParserContext(ParserScope &scope, Registry &registry,
+                             Logger &logger, Manager &manager,
+                             Handle<model::Project> project)
+    : scope(scope),
+      registry(registry),
+      logger(logger),
+      manager(manager),
+      project(project)
 {
-	return doParse(reader, ctx);
-}
-
-Rooted<Node> Parser::parse(const std::string &str, ParserContext &ctx)
-{
-	CharReader reader{str};
-	return doParse(reader, ctx);
 }
 }
 

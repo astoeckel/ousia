@@ -142,6 +142,26 @@ TEST(FileLocator, testLocate)
 	assert_not_located(locator, "c.txt", "", ResourceType::SCRIPT);
 }
 
+TEST(FileLocator, testLocateRelative)
+{
+	FileLocator locator;
+	locator.addUnittestSearchPath("filesystem");
+
+	// Add the respective search path
+	locator.addUnittestSearchPath("filesystem/b");
+
+	Resource resA, resC;
+	ASSERT_TRUE(locator.locate(resA, "a.txt"));
+	ASSERT_TRUE(locator.locate(resC, "c.txt"));
+
+	Resource resD;
+	ASSERT_TRUE(locator.locate(resD, "d.txt"));
+	ASSERT_TRUE(locator.locate(resD, "d.txt", ResourceType::UNKNOWN, resA));
+	ASSERT_TRUE(locator.locate(resD, "d.txt", ResourceType::UNKNOWN, resC));
+	ASSERT_FALSE(locator.locate(resD, "./d.txt", ResourceType::UNKNOWN, resA));
+	ASSERT_TRUE(locator.locate(resD, "./d.txt", ResourceType::UNKNOWN, resC));
+}
+
 TEST(FileLocator, testStream)
 {
 	FileLocator locator;

@@ -378,8 +378,29 @@ public:
 	 *
 	 * @param other is the other type for which the relation to this type
 	 * should be checked.
+	 * @return true if this type (directly or indirectly) has the given other
+	 * type as parent or equals the other type.
 	 */
 	bool isa(const Rtti &other) const;
+
+	/**
+	 * Returns true if this Rtti instance is one of the given types.
+	 *
+	 * @param others is a set of other types to be checked.
+	 * @return true if this type (directly or indirectly) has once of the given
+	 * other types as parent or equals one of the other types.
+	 */
+	bool isOneOf(const RttiSet &others) const;
+
+	/**
+	 * Checks whether any type in the first set is one type in the second set.
+	 *
+	 * @param s1 is the first set. For each type in this set we check whether
+	 * it is one of the types in s2.
+	 * @param s2 is the second set.
+	 * @return true if the above condition is fulfilled, false otherwise.
+	 */
+	static bool setIsOneOf(const RttiSet &s1, const RttiSet &s2);
 
 	/**
 	 * Returns true if an instance of this type may have references to the other

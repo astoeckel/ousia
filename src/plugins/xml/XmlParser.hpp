@@ -31,23 +31,13 @@
 #include <core/parser/Parser.hpp>
 
 namespace ousia {
-namespace parser {
-namespace xml {
 
 /**
  * The XmlParser class implements parsing the various types of Ousía XML
  * documents using the expat stream XML parser.
  */
 class XmlParser : public Parser {
-public:
-	/**
-	 * Returns the mimetype supported by the XmlParser which is
-	 * "text/vnd.ousia.oxm" and "text/vnd.ousia.oxd".
-	 *
-	 * @return a list containing the mimetype supported by Ousía.
-	 */
-	std::set<std::string> mimetypes() override;
-
+protected:
 	/**
 	 * Parses the given input stream as XML file and returns the parsed
 	 * top-level node.
@@ -56,13 +46,9 @@ public:
 	 * @param ctx is a reference to the ParserContext instance that should be
 	 * used.
 	 */
-	Rooted<Node> parse(CharReader &reader, ParserContext &ctx) override;
-
-	using Parser::parse;
+	Rooted<Node> doParse(CharReader &reader, ParserContext &ctx) override;
 };
 
-}
-}
 }
 
 #endif /* _OUSIA_XML_PARSER_HPP_ */

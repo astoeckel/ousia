@@ -65,29 +65,28 @@ TEST(Tokenizer, testTokenization)
 {
 	TokenTreeNode root{{{"/", 1}, {"/*", 2}, {"*/", 3}}};
 
-	CharReader reader{"Test/Test /* Block Comment */"};
-	//                 12345678901234567890123456789
+	CharReader reader{"Test/Test /* Block Comment */", 0};
+	//                 012345678901234567890123456789
 	//                 0        1         2
 
 	std::vector<Token> expected = {
-	    {TOKEN_TEXT, "Test", 1, 1, 5, 1},
-	    {1, "/", 5, 1, 6, 1},
-	    {TOKEN_TEXT, "Test ", 6, 1, 11, 1},
-	    {2, "/*", 11, 1, 13, 1},
-	    {TOKEN_TEXT, " Block Comment ", 13, 1, 28, 1},
-	    {3, "*/", 28, 1, 30, 1}};
+	    {TOKEN_TEXT, "Test", SourceLocation{0, 0, 4}},
+	    {1, "/", SourceLocation{0, 4, 5}},
+	    {TOKEN_TEXT, "Test ", SourceLocation{0, 5, 10}},
+	    {2, "/*", SourceLocation{0, 10, 12}},
+	    {TOKEN_TEXT, " Block Comment ", SourceLocation{0, 12, 27}},
+	    {3, "*/", SourceLocation{0, 27, 29}}};
 
 	Tokenizer tokenizer{reader, root};
 
 	Token t;
 	for (auto &te : expected) {
-		ASSERT_TRUE(tokenizer.next(t));
-		ASSERT_EQ(te.tokenId, t.tokenId);
-		ASSERT_EQ(te.content, t.content);
-		ASSERT_EQ(te.startColumn, t.startColumn);
-		ASSERT_EQ(te.startLine, t.startLine);
-		ASSERT_EQ(te.endColumn, t.endColumn);
-		ASSERT_EQ(te.endLine, t.endLine);
+		EXPECT_TRUE(tokenizer.next(t));
+		EXPECT_EQ(te.tokenId, t.tokenId);
+		EXPECT_EQ(te.content, t.content);
+		EXPECT_EQ(te.location.getSourceId(), t.location.getSourceId());
+		EXPECT_EQ(te.location.getStart(), t.location.getStart());
+		EXPECT_EQ(te.location.getEnd(), t.location.getEnd());
 	}
 	ASSERT_FALSE(tokenizer.next(t));
 }
@@ -96,23 +95,22 @@ TEST(Tokenizer, testIncompleteTokens)
 {
 	TokenTreeNode root{{{"ab", 1}, {"c", 2}}};
 
-	CharReader reader{"ac"};
+	CharReader reader{"ac", 0};
 
 	std::vector<Token> expected = {
-	    {TOKEN_TEXT, "a", 1, 1, 2, 1},
-	    {2, "c", 2, 1, 3, 1}};
+	    {TOKEN_TEXT, "a", SourceLocation{0, 0, 1}},
+	    {2, "c", SourceLocation{0, 1, 2}}};
 
 	Tokenizer tokenizer{reader, root};
 
 	Token t;
 	for (auto &te : expected) {
-		ASSERT_TRUE(tokenizer.next(t));
-		ASSERT_EQ(te.tokenId, t.tokenId);
-		ASSERT_EQ(te.content, t.content);
-		ASSERT_EQ(te.startColumn, t.startColumn);
-		ASSERT_EQ(te.startLine, t.startLine);
-		ASSERT_EQ(te.endColumn, t.endColumn);
-		ASSERT_EQ(te.endLine, t.endLine);
+		EXPECT_TRUE(tokenizer.next(t));
+		EXPECT_EQ(te.tokenId, t.tokenId);
+		EXPECT_EQ(te.content, t.content);
+		EXPECT_EQ(te.location.getSourceId(), t.location.getSourceId());
+		EXPECT_EQ(te.location.getStart(), t.location.getStart());
+		EXPECT_EQ(te.location.getEnd(), t.location.getEnd());
 	}
 	ASSERT_FALSE(tokenizer.next(t));
 }

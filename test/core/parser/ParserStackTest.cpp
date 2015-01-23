@@ -24,7 +24,6 @@
 #include <core/parser/StandaloneParserContext.hpp>
 
 namespace ousia {
-namespace parser {
 
 static const State STATE_DOCUMENT = 0;
 static const State STATE_BODY = 1;
@@ -167,8 +166,6 @@ TEST(ParserStack, validation)
 	s.start("arguments", {{"a", 5}, {"b", "test"}});
 	ASSERT_FALSE(logger.hasError());
 	s.end();
-}
-
 }
 }
 

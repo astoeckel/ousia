@@ -44,8 +44,9 @@ class Document;
 class Domain;
 
 /**
- * The Project class constitutes the top-level node in which documents, domains,
- * typesystems and other resources are embedded.
+ * The Project class constitutes the top-level node in which a collection of
+ * documents are stored. It also contains an instance of the SystemTypesystem
+ * and allows for simple creation of new Typesystem and Domain instances.
  */
 class Project : public Node {
 private:
@@ -59,16 +60,6 @@ private:
 	 * List containing all loaded documents.
 	 */
 	NodeVector<Document> documents;
-
-	/**
-	 * List containing all loaded domains.
-	 */
-	NodeVector<Domain> domains;
-
-	/**
-	 * List containing all loaded typesystems.
-	 */
-	NodeVector<Typesystem> typesystems;
 
 protected:
 	/**
@@ -103,26 +94,12 @@ public:
 	Rooted<Typesystem> createTypesystem(const std::string &name);
 
 	/**
-	 * Adds a single new typesystem to the project.
-	 *
-	 * @param typesystem is the typesystem that should be added to the project.
-	 */
-	void addTypesystem(Handle<Typesystem> typesystem);
-
-	/**
 	 * Returns a new document with the given name and adds it to the list of
 	 * documents.
 	 *
 	 * @param name is the name of the document that should be created.
 	 */
 	Rooted<Document> createDocument(const std::string &name);
-
-	/**
-	 * Adds the given document to the list of documents in the project.
-	 *
-	 * @param document is the document that should be added to the project.
-	 */
-	void addDocument(Handle<Document> document);
 
 	/**
 	 * Returns a new domain with the given name and adds it to the list of
@@ -133,32 +110,18 @@ public:
 	Rooted<Domain> createDomain(const std::string &name);
 
 	/**
-	 * Adds the given domain to the list of domains in the project.
+	 * Adds the given document to the list of documents in the project.
 	 *
-	 * @param domain is the document that should be added to the project.
+	 * @param document is the document that should be added to the project.
 	 */
-	void addDomain(Handle<Domain> domain);
+	void addDocument(Handle<Document> document);
 
 	/**
 	 * Returns all documents of this project.
 	 *
 	 * @return a reference pointing at the document list.
 	 */
-	const NodeVector<Document> &getDocuments();
-
-	/**
-	 * Returns all domains of this project.
-	 *
-	 * @return a reference pointing at the domain list.
-	 */
-	const NodeVector<Domain> &getDomains();
-
-	/**
-	 * Returns all typesystems of this project.
-	 *
-	 * @return a reference pointing at the typesystem list.
-	 */
-	const NodeVector<Typesystem> &getTypesystems();
+	const NodeVector<Document> &getDocuments() const;
 };
 }
 

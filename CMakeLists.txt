@@ -125,6 +125,7 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Exceptions
 	src/core/common/Function
 	src/core/common/Logger
+	src/core/common/Location
 	src/core/common/Number
 	src/core/common/Property
 	src/core/common/Rtti
@@ -145,10 +146,13 @@ ADD_LIBRARY(ousia_core
 	src/core/model/Project
 	src/core/model/Typesystem
 	src/core/parser/Parser
+	src/core/parser/ParserContext
+	src/core/parser/ParserScope
 	src/core/parser/ParserStack
-	src/core/parser/Scope
 	src/core/resource/Resource
 	src/core/resource/ResourceLocator
+	src/core/resource/ResourceManager
+	src/core/resource/ResourceUtils
 #	src/core/script/ScriptEngine
 )
 

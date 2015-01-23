@@ -38,7 +38,7 @@ TEST(CodeTokenizer, testTokenizer)
 	    " */\n"                                 // 3
 	    "var my_string = 'My \\'String\\'';\n"  // 4
 	    "// and a line comment\n"               // 5
-	    "var my_obj = { a = 4;}"};              // 6
+	    "var my_obj = { a = 4;}", 0};              // 6
 	//   123456789012345678901234567890123456789
 	//   0        1         2         3
 	TokenTreeNode root{{{"/*", 1},
@@ -60,40 +60,39 @@ TEST(CodeTokenizer, testTokenizer)
 	    {6, {CodeTokenMode::LINEBREAK, LINEBREAK}}};
 
 	std::vector<Token> expected = {
-	    {BLOCK_COMMENT, "*\n * Some Block Comment\n ", 1, 1, 4, 3},
-	    {LINEBREAK, "\n", 4, 3, 1, 4},
-	    {TOKEN_TEXT, "var", 1, 4, 4, 4},
-	    {TOKEN_TEXT, "my_string", 5, 4, 14, 4},
-	    {TOKEN_TEXT, "=", 15, 4, 16, 4},
-	    {STRING, "My 'String'", 17, 4, 32, 4},
-	    {TOKEN_TEXT, ";", 32, 4, 33, 4},
-	    {LINEBREAK, "\n", 33, 4, 1, 5},
+	    {BLOCK_COMMENT, "*\n * Some Block Comment\n ", SourceLocation{0, 0, 29}},
+	    {LINEBREAK, "\n", SourceLocation{0, 29, 30}},
+	    {TOKEN_TEXT, "var", SourceLocation{0, 30, 33}},
+	    {TOKEN_TEXT, "my_string", SourceLocation{0, 34, 43}},
+	    {TOKEN_TEXT, "=", SourceLocation{0, 44, 45}},
+	    {STRING, "My 'String'", SourceLocation{0, 46, 61}},
+	    {TOKEN_TEXT, ";", SourceLocation{0, 61, 62}},
+	    {LINEBREAK, "\n", SourceLocation{0, 62, 63}},
 	    // this is slightly counter-intuitive but makes sense if you think about
 	    // it: As a line comment is ended by a line break the line break is
 	    // technically still a part of the line comment and thus the ending
 	    // is in the next line.
-	    {LINE_COMMENT, " and a line comment", 1, 5, 1, 6},
-	    {TOKEN_TEXT, "var", 1, 6, 4, 6},
-	    {TOKEN_TEXT, "my_obj", 5, 6, 11, 6},
-	    {TOKEN_TEXT, "=", 12, 6, 13, 6},
-	    {CURLY_OPEN, "{", 14, 6, 15, 6},
-	    {TOKEN_TEXT, "a", 16, 6, 17, 6},
-	    {TOKEN_TEXT, "=", 18, 6, 19, 6},
-	    {TOKEN_TEXT, "4;", 20, 6, 22, 6},
-	    {CURLY_CLOSE, "}", 22, 6, 23, 6},
+	    {LINE_COMMENT, " and a line comment", SourceLocation{0, 63, 85}},
+	    {TOKEN_TEXT, "var", SourceLocation{0, 85, 88}},
+	    {TOKEN_TEXT, "my_obj", SourceLocation{0, 89, 95}},
+	    {TOKEN_TEXT, "=", SourceLocation{0, 96, 97}},
+	    {CURLY_OPEN, "{", SourceLocation{0, 98, 99}},
+	    {TOKEN_TEXT, "a", SourceLocation{0, 100, 101}},
+	    {TOKEN_TEXT, "=", SourceLocation{0, 102, 103}},
+	    {TOKEN_TEXT, "4;", SourceLocation{0, 104, 106}},
+	    {CURLY_CLOSE, "}", SourceLocation{0, 106, 107}},
 	};
 
 	CodeTokenizer tokenizer{reader, root, descriptors};
 
 	Token t;
 	for (auto &te : expected) {
-		ASSERT_TRUE(tokenizer.next(t));
-		ASSERT_EQ(te.tokenId, t.tokenId);
-		ASSERT_EQ(te.content, t.content);
-		ASSERT_EQ(te.startColumn, t.startColumn);
-		ASSERT_EQ(te.startLine, t.startLine);
-		ASSERT_EQ(te.endColumn, t.endColumn);
-		ASSERT_EQ(te.endLine, t.endLine);
+		EXPECT_TRUE(tokenizer.next(t));
+		EXPECT_EQ(te.tokenId, t.tokenId);
+		EXPECT_EQ(te.content, t.content);
+		EXPECT_EQ(te.location.getSourceId(), t.location.getSourceId());
+		EXPECT_EQ(te.location.getStart(), t.location.getStart());
+		EXPECT_EQ(te.location.getEnd(), t.location.getEnd());
 	}
 	ASSERT_FALSE(tokenizer.next(t));
 }

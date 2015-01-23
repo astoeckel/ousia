@@ -131,7 +131,7 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 			base /= path;
 
 			// If we already found a fitting resource there, use that.
-			if (fs::exists(base)) {
+			if (fs::exists(base) && fs::is_regular_file(base)) {
 				std::string location = fs::canonical(base).generic_string();
 #ifdef FILELOCATOR_DEBUG_PRINT
 				std::cout << "FileLocator: Found \"" << path << "\" at "
@@ -141,6 +141,11 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 				return true;
 			}
 		}
+	}
+
+	// If the path starts with "./" or "../" only perform relative lookups!
+	if (path.substr(0, 2) == "./" || path.substr(0, 3) == "../") {
+		return false;
 	}
 
 	// Otherwise look in the search paths, search backwards, last defined search
@@ -154,7 +159,7 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 #endif
 			fs::path p{*it};
 			p /= path;
-			if (fs::exists(p)) {
+			if (fs::exists(p) && fs::is_regular_file(p)) {
 				std::string location = fs::canonical(p).generic_string();
 #ifdef FILELOCATOR_DEBUG_PRINT
 				std::cout << "FileLocator: Found \"" << path << "\" in "

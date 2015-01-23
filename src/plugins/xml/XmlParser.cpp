@@ -25,13 +25,12 @@
 #include <core/common/Utils.hpp>
 #include <core/common/VariantReader.hpp>
 #include <core/parser/ParserStack.hpp>
+#include <core/parser/ParserScope.hpp>
 #include <core/model/Typesystem.hpp>
 
 #include "XmlParser.hpp"
 
 namespace ousia {
-namespace parser {
-namespace xml {
 
 using namespace ousia::model;
 
@@ -132,11 +131,12 @@ public:
 		    !(defaultValue.isObject() && defaultValue.asObject() == nullptr);
 
 		Rooted<StructType> structType = scope().getLeaf().cast<StructType>();
-		Rooted<Attribute> attribute = structType->createAttribute(
-		    name, defaultValue, optional, logger());
+		Rooted<Attribute> attribute =
+		    structType->createAttribute(name, defaultValue, optional, logger());
 
 		// Try to resolve the type
-		scope().resolve<Type>(type, logger(),
+		scope().resolve<Type>(
+		    type, logger(),
 		    [attribute](Handle<Type> type, Logger &logger) mutable {
 			    attribute->setType(type, logger);
 			},
@@ -235,16 +235,23 @@ public:
 
 /* Adapter Expat -> ParserStack */
 
+struct XMLParserUserData {
+	SourceId sourceId;
+};
+
 static SourceLocation syncLoggerPosition(XML_Parser p)
 {
-	// Fetch the current location in the XML file
-	int line = XML_GetCurrentLineNumber(p);
-	int column = XML_GetCurrentColumnNumber(p);
-	size_t offs = XML_GetCurrentByteIndex(p);
-	SourceLocation loc{line, column, offs};
-
-	// Update the default location of the current logger instance
+	// Fetch the parser stack and the associated user data
 	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(p));
+	XMLParserUserData *ud =
+	    static_cast<XMLParserUserData *>(stack->getUserData());
+
+	// Fetch the current location in the XML file
+	size_t offs = XML_GetCurrentByteIndex(p);
+
+	// Build the source location and update the default location of the current
+	// logger instance
+	SourceLocation loc{ud->sourceId, offs};
 	stack->getContext().logger.setDefaultLocation(loc);
 	return loc;
 }
@@ -271,9 +278,9 @@ static void xmlStartElementHandler(void *p, const XML_Char *name,
 static void xmlEndElementHandler(void *p, const XML_Char *name)
 {
 	XML_Parser parser = static_cast<XML_Parser>(p);
-	syncLoggerPosition(parser);
-
 	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(parser));
+
+	syncLoggerPosition(parser);
 	stack->end();
 }
 
@@ -291,19 +298,17 @@ static void xmlCharacterDataHandler(void *p, const XML_Char *s, int len)
 
 /* Class XmlParser */
 
-std::set<std::string> XmlParser::mimetypes()
-{
-	return std::set<std::string>{{"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"}};
-}
-
-Rooted<Node> XmlParser::parse(CharReader &reader, ParserContext &ctx)
+Rooted<Node> XmlParser::doParse(CharReader &reader, ParserContext &ctx)
 {
 	// Create the parser object
 	ScopedExpatXmlParser p{"UTF-8"};
 
 	// Create the parser stack instance and pass the reference to the state
 	// machine descriptor
-	ParserStack stack{ctx, XML_HANDLERS};
+	XMLParserUserData data;
+	data.sourceId = reader.getSourceId();
+
+	ParserStack stack{ctx, XML_HANDLERS, &data};
 	XML_SetUserData(&p, &stack);
 	XML_UseParserAsHandlerArg(&p);
 
@@ -327,15 +332,14 @@ Rooted<Node> XmlParser::parse(CharReader &reader, ParserContext &ctx)
 
 		// Parse the data and handle any XML error
 		if (!XML_ParseBuffer(&p, bytesRead, bytesRead == 0)) {
-			// Fetch the current line number and column
-			int line = XML_GetCurrentLineNumber(&p);
-			int column = XML_GetCurrentColumnNumber(&p);
+			// Fetch the xml parser byte offset
 			size_t offs = XML_GetCurrentByteIndex(&p);
 
 			// Throw a corresponding exception
 			XML_Error code = XML_GetErrorCode(&p);
 			std::string msg = std::string{XML_ErrorString(code)};
-			throw LoggableException{"XML: " + msg, line, column, offs};
+			throw LoggableException{"XML: " + msg,
+			                        SourceLocation{reader.getSourceId(), offs}};
 		}
 
 		// Abort once there are no more bytes in the stream
@@ -344,8 +348,6 @@ Rooted<Node> XmlParser::parse(CharReader &reader, ParserContext &ctx)
 		}
 	}
 	return nullptr;
-}
-}
 }
 }
 

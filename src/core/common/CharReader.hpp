@@ -355,54 +355,10 @@ class CharReaderFork;
 /**
  * Used within parsers for convenient access to single characters in an input
  * stream or buffer. It allows reading and peeking single characters from a
- * buffer. Additionally it counts the current column/row (with correct handling
- * for UTF-8) and contains an internal state machine that handles the detection
- * of linebreaks and converts these to a single '\n'.
+ * buffer. Additionally it contains an internal state machine that handles the
+ * detection of linebreaks and converts these to a single '\n'.
  */
 class CharReader {
-protected:
-	/**
-	 * Internally used cursor structure for managing the read and the peek
-	 * cursor.
-	 */
-	struct Cursor {
-		/**
-		 * Corresponding cursor in the underlying buffer instance.
-		 */
-		const Buffer::CursorId cursor;
-
-		/**
-		 * Current line the cursor is in.
-		 */
-		int line;
-
-		/**
-		 * Current column the cursor is in.
-		 */
-		int column;
-
-		/**
-		 * Constructor of the Cursor class.
-		 *
-		 * @param cursor is the underlying cursor in the Buffer instance.
-		 * @param line is the line at which the cursor is positioned.
-		 * @param column is the column at which the cursor is positioned.
-		 */
-		Cursor(Buffer::CursorId cursor, int line, int column)
-		    : cursor(cursor), line(line), column(column)
-		{
-		}
-
-		/**
-		 * Assigns one cursor to another.
-		 *
-		 * @param buffer is the underlying buffer instance the internal cursor
-		 * belongs to.
-		 * @param cursor is the cursor from which the state should be copied.
-		 */
-		void assign(std::shared_ptr<Buffer> buffer, Cursor &cursor);
-	};
-
 private:
 	/**
 	 * Substitutes "\r", "\n\r", "\r\n" with a single "\n".
@@ -411,7 +367,7 @@ private:
 	 * @param c a reference to the character that should be written.
 	 * @return true if another character needs to be read.
 	 */
-	bool substituteLinebreaks(Cursor &cursor, char &c);
+	bool substituteLinebreaks(Buffer::CursorId &cursor, char &c);
 
 	/**
 	 * Reads a single character from the given cursor.
@@ -421,29 +377,7 @@ private:
 	 * @return true if a character was read, false if the end of the stream has
 	 * been reached.
 	 */
-	bool readAtCursor(Cursor &cursor, char &c);
-
-	/**
-	 * Returns the line the given cursor currently is in, but at most the
-	 * given number of characters in the form of a Context structure.
-	 *
-	 * @param maxSize is the maximum length of the extracted context
-	 * @param referenceCursor is a cursor in the internal buffer pointing at the
-	 * location at which the context should be read.
-	 */
-	SourceContext getContextAt(ssize_t maxSize,
-	                           Buffer::CursorId referenceCursor);
-
-	/**
-	 * Returns the line the at the given byte offset, but at most the
-	 * given number of characters in the form of a Context structure.
-	 *
-	 * @param maxSize is the maximum length of the extracted context
-	 * @param offs is the byte offset for which the context should be read.
-	 * @return the context at the specified position or an empty (invalid)
-	 * context if the context could not be read.
-	 */
-	SourceContext getContextAtOffs(ssize_t maxSize, size_t offs);
+	bool readAtCursor(Buffer::CursorId &cursor, char &c);
 
 protected:
 	/**
@@ -454,12 +388,12 @@ protected:
 	/**
 	 * Cursor used for reading.
 	 */
-	Cursor readCursor;
+	Buffer::CursorId readCursor;
 
 	/**
 	 * Cursor used for peeking.
 	 */
-	Cursor peekCursor;
+	Buffer::CursorId peekCursor;
 
 	/**
 	 * Set to true as long the underlying Buffer cursor is at the same position
@@ -469,33 +403,50 @@ protected:
 	bool coherent;
 
 	/**
+	 * Id of the underlying source file.
+	 */
+	SourceId sourceId;
+
+	/**
+	 * Offset to be added to the underlying buffer byte positions.
+	 */
+	size_t offs;
+
+	/**
 	 * Protected constructor of the CharReader base class. Creates new read
 	 * and peek cursors for the given buffer.
 	 *
 	 * @param buffer is a reference to the underlying Buffer class responsible
 	 * for allowing to read from a single input stream from multiple locations.
+	 * @param sourceId is the ID of the underlying source file.
+	 * @param offs is the byte offset at which the char reader should start
+	 * counting.
 	 */
-	CharReader(std::shared_ptr<Buffer> buffer, size_t line, size_t column);
+	CharReader(std::shared_ptr<Buffer> buffer, SourceId sourceId, size_t offs);
 
 public:
 	/**
 	 * Creates a new CharReader instance from a string.
 	 *
 	 * @param str is a string containing the input data.
-	 * @param line is the start line.
-	 * @param column is the start column.
+	 * @param sourceId is the ID of the underlying source file.
+	 * @param offs is the byte offset at which the char reader should start
+	 * counting.
 	 */
-	CharReader(const std::string &str, size_t line = 1, size_t column = 1);
+	CharReader(const std::string &str, SourceId sourceId = InvalidSourceId,
+	           size_t offs = 0);
 
 	/**
 	 * Creates a new CharReader instance for an input stream.
 	 *
 	 * @param istream is the input stream from which incomming data should be
 	 * read.
-	 * @param line is the start line.
-	 * @param column is the start column.
+	 * @param sourceId is the ID of the underlying source file.
+	 * @param offs is the byte offset at which the char reader should start
+	 * counting.
 	 */
-	CharReader(std::istream &istream, size_t line = 1, size_t column = 1);
+	CharReader(std::istream &istream, SourceId sourceId = InvalidSourceId,
+	           size_t offs = 0);
 
 	/**
 	 * Deletes the used cursors from the underlying buffer instance.
@@ -572,56 +523,52 @@ public:
 	size_t readRaw(char *buf, size_t size);
 
 	/**
-	 * Returns true if there are no more characters as the stream was
-	 * closed.
+	 * Returns true if there are no more characters as the stream was closed.
 	 *
 	 * @return true if there is no more data.
 	 */
-	bool atEnd() const { return buffer->atEnd(readCursor.cursor); }
+	bool atEnd() const;
 
 	/**
 	 * Returns the offset of the read cursor in bytes.
-	 */
-	size_t getOffset() const { return buffer->offset(readCursor.cursor); }
-
-	/**
-	 * Returns the line number the read cursor currently is at.
-	 */
-	int getLine() const { return readCursor.line; }
-
-	/**
-	 * Returns the column the read cursor currently is at.
-	 */
-	int getColumn() const { return readCursor.column; }
-
-	/**
-	 * Returns the current position of the read cursor (line and column).
-	 */
-	SourceLocation getLocation() const
-	{
-		return SourceLocation(getLine(), getColumn(), getOffset());
-	}
-
-	/**
-	 * Returns the line the read cursor currently is in, but at most the
-	 * given number of characters in the form of a Context structure.
 	 *
-	 * @param maxSize is the maximum length of the extracted context
+	 * @return the offset of the read cursor in bytes.
 	 */
-	SourceContext getContext(ssize_t maxSize = 60);
+	SourceOffset getOffset() const;
 
 	/**
-	 * Function that can be used to provide the context for a certain source
-	 * location. A pointer to this function can be supplied to a Logger instance
-	 * in the pushFile() method. The data should be set to a pointer to the
-	 * CharReader instance.
+	 * Returns the offset of the read cursor in bytes.
 	 *
-	 * @param location is the location for which the context should be returned.
-	 * Only the "offs" field within the location is used.
-	 * @param data is a pointer pointing at a CharReader instance.
+	 * @return the offset of the read cursor in bytes.
 	 */
-	static SourceContext contextCallback(const SourceLocation &location,
-	                                     void *data);
+	SourcePosition getPosition() const;
+
+	/**
+	 * Returns a SourceLocation object describing the exact position (including
+	 * the source file) of the read cursor.
+	 *
+	 * @return a SourceLocation object at the position of the current read
+	 * cursor.
+	 */
+	SourceLocation getLocation() const;
+
+	/**
+	 * Returns a SourceLocation object starting at the given start position and
+	 * ending at the exact position (including the source file) of the read
+	 * cursor.
+	 *
+	 * @return a SourceLocation object at the position of the current read
+	 * cursor.
+	 */
+	SourceLocation getLocation(SourcePosition start) const;
+
+	/**
+	 * Returns the current SourceId which describes the Resource on which the
+	 * CharReader is currently working.
+	 *
+	 * @return the current SourceId.
+	 */
+	SourceId getSourceId() const;
 };
 
 /**
@@ -637,12 +584,12 @@ private:
 	/**
 	 * The reader cursor of the underlying CharReader instance.
 	 */
-	CharReader::Cursor &parentReadCursor;
+	Buffer::CursorId parentReadCursor;
 
 	/**
 	 * The peek cursor of the underlying CharReader instance.
 	 */
-	CharReader::Cursor &parentPeekCursor;
+	Buffer::CursorId parentPeekCursor;
 
 	/**
 	 * Constructor of the CharReaderFork class.
@@ -650,12 +597,14 @@ private:
 	 * @param buffer is a reference at the parent Buffer instance.
 	 * @param parentPeekCursor is a reference at the parent read cursor.
 	 * @param parentPeekCursor is a reference at the parent peek cursor.
+	 * @param location is the current location.
 	 * @param coherent specifies whether the char reader cursors are initialized
 	 * coherently.
 	 */
 	CharReaderFork(std::shared_ptr<Buffer> buffer,
-	               CharReader::Cursor &parentReadCursor,
-	               CharReader::Cursor &parentPeekCursor, bool coherent);
+	               Buffer::CursorId parentReadCursor,
+	               Buffer::CursorId parentPeekCursor, SourceId sourceId,
+	               size_t offs, bool coherent);
 
 public:
 	/**

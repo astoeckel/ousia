@@ -26,8 +26,6 @@
 #include <core/parser/StandaloneParserContext.hpp>
 
 namespace ousia {
-namespace parser {
-namespace css {
 TEST(CSSParser, testParseSelectors)
 {
 	// create a string describing a SelectorTree
@@ -268,8 +266,7 @@ void assertException(std::string css)
 	CharReader reader(css);
 	TerminalLogger logger(std::cerr, true);
 	{
-		ScopedLogger sl(logger, "test.css", SourceLocation{},
-		                CharReader::contextCallback, &reader);
+		ScopedLogger sl(logger);
 		StandaloneParserContext ctx(sl);
 
 		CSSParser instance;
@@ -294,7 +291,5 @@ TEST(CSSParser, testParseExceptions)
 	assertException("A[a");
 	assertException("A[a=]");
 	assertException("A > ");
-}
-}
 }
 }

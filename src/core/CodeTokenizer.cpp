@@ -26,8 +26,10 @@ Token CodeTokenizer::constructToken(const Token &t)
 {
 	std::string content = buf.str();
 	buf.str(std::string());
-	return Token{returnTokenId,        content,     startToken.startColumn,
-	             startToken.startLine, t.endColumn, t.endLine};
+	return Token{
+	    returnTokenId, content,
+	    SourceLocation{t.location.getSourceId(), startToken.location.getStart(),
+	                   t.location.getEnd()}};
 }
 
 void CodeTokenizer::buffer(const Token &t) { buf << t.content; }
@@ -38,12 +40,6 @@ bool CodeTokenizer::doPrepare(const Token &t, std::deque<Token> &peeked)
 	CodeTokenMode mode = CodeTokenMode::NONE;
 	if (it != descriptors.end()) {
 		mode = it->second.mode;
-	}
-
-	if (t.startLine != t.endLine && mode != CodeTokenMode::LINEBREAK) {
-		throw TokenizerException(
-		    "We did not expect a multiline token (except linebreaks). Most "
-		    "likely you did not add a linebreak token to your tokenizer!");
 	}
 
 	switch (state) {
@@ -60,9 +56,8 @@ bool CodeTokenizer::doPrepare(const Token &t, std::deque<Token> &peeked)
 					break;
 				case CodeTokenMode::LINEBREAK:
 					if (!ignoreLinebreaks) {
-						peeked.push_back({it->second.id, t.content,
-						                  t.startColumn, t.startLine,
-						                  t.endColumn, t.endLine});
+						peeked.push_back(
+						    {it->second.id, t.content, t.location});
 					}
 					return !ignoreLinebreaks;
 				default:
@@ -87,18 +82,21 @@ bool CodeTokenizer::doPrepare(const Token &t, std::deque<Token> &peeked)
 									peeked.push_back(Token{
 									    TOKEN_TEXT,
 									    t.content.substr(begin, (int)c - begin),
-									    t.startColumn + begin, t.startLine,
-									    t.startColumn + (int)c, t.endLine});
+									    SourceLocation{
+									        t.location.getSourceId(),
+									        t.location.getStart() + begin,
+									        t.location.getStart() + c}});
 									begin = -1;
 									empty = false;
 								}
 							}
 						}
 						if (begin >= 0) {
-							peeked.push_back(
-							    Token{TOKEN_TEXT, t.content.substr(begin),
-							          t.startColumn + begin, t.startLine,
-							          t.endColumn, t.endLine});
+							peeked.push_back(Token{
+							    TOKEN_TEXT, t.content.substr(begin),
+							    SourceLocation{t.location.getSourceId(),
+							                   t.location.getStart() + begin,
+							                   t.location.getEnd()}});
 							empty = false;
 						}
 					} else {

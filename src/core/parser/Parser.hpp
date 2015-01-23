@@ -32,71 +32,14 @@
 #include <set>
 #include <string>
 
-#include <core/Registry.hpp>
-#include <core/common/CharReader.hpp>
-#include <core/common/Exceptions.hpp>
-#include <core/common/Logger.hpp>
+#include <core/managed/Managed.hpp>
 #include <core/model/Node.hpp>
-#include <core/model/Project.hpp>
-
-#include "Scope.hpp"
 
 namespace ousia {
-namespace parser {
 
-// TODO: Implement a proper Mimetype class
-
-/**
- * Struct containing the objects that are passed to a parser instance.
- */
-struct ParserContext {
-	/**
-	 * Reference to the Scope instance that should be used within the parser.
-	 */
-	Scope &scope;
-
-	/**
-	 * Reference to the Registry instance that should be used within the parser.
-	 */
-	Registry &registry;
-
-	/**
-	 * Reference to the Logger the parser should log any messages to.
-	 */
-	Logger &logger;
-
-	/**
-	 * Reference to the Manager the parser should append nodes to.
-	 */
-	Manager &manager;
-
-	/**
-	 * Project instance into which the new content should be parsed.
-	 */
-	Rooted<model::Project> project;
-
-	/**
-	 * Constructor of the ParserContext class.
-	 *
-	 * @param scope is a reference to the Scope instance that should be used to
-	 * lookup names.
-	 * @param registry is a reference at the Registry class, which allows to
-	 * obtain references at parsers for other formats or script engine
-	 * implementations.
-	 * @param logger is a reference to the Logger instance that should be used
-	 * to log error messages and warnings that occur while parsing the document.
-	 * @param manager is a Reference to the Manager the parser should append
-	 * nodes to.
-	 * @param project is the project into which the content should be parsed.
-	 */
-	ParserContext(Scope &scope, Registry &registry, Logger &logger,
-	              Manager &manager, Handle<model::Project> project)
-	    : scope(scope),
-	      registry(registry),
-	      logger(logger),
-	      manager(manager),
-	      project(project){};
-};
+// Forward declarations
+class CharReader;
+class ParserContext;
 
 /**
  * Abstract parser class. This class builds the basic interface that should be
@@ -104,23 +47,7 @@ struct ParserContext {
  * into an Ousía node graph.
  */
 class Parser {
-public:
-	Parser(){};
-	Parser(const Parser &) = delete;
-
-	/**
-	 * Returns a set containing all mime types supported by the parser. The mime
-	 * types are used to describe the type of the document that is read by the
-	 * parser. The default implementation returns an empty set. This method
-	 * should be overridden by derived classes.
-	 *
-	 * @return a set containing the string value of the supported mime types.
-	 */
-	virtual std::set<std::string> mimetypes()
-	{
-		return std::set<std::string>{};
-	};
-
+protected:
 	/**
 	 * Parses the given input stream and returns a corresponding node for
 	 * inclusion in the document graph. This method should be overridden by
@@ -134,7 +61,38 @@ public:
 	 * calling code will try to resolve these. If no valid node can be produced,
 	 * a corresponding LoggableException must be thrown by the parser.
 	 */
-	virtual Rooted<Node> parse(CharReader &reader, ParserContext &ctx) = 0;
+	virtual Rooted<Node> doParse(CharReader &reader, ParserContext &ctx) = 0;
+
+public:
+	/**
+	 * Default constructor.
+	 */
+	Parser() {}
+
+	/**
+	 * No copy construction.
+	 */
+	Parser(const Parser &) = delete;
+
+	/**
+	 * Virtual destructor.
+	 */
+	virtual ~Parser(){};
+
+	/**
+	 * Parses the given input stream and returns a corresponding node for
+	 * inclusion in the document graph. This method should be overridden by
+	 * derived classes.
+	 *
+	 * @param reader is a reference to the CharReader that should be used.
+	 * @param ctx is a reference to the context that should be used while
+	 * parsing the document.
+	 * @return a reference to the node representing the subgraph that has been
+	 * created. The resulting node may point at not yet resolved entities, the
+	 * calling code will try to resolve these. If no valid node can be produced,
+	 * a corresponding ParserException must be thrown by the parser.
+	 */
+	Rooted<Node> parse(CharReader &reader, ParserContext &ctx);
 
 	/**
 	 * Parses the given string and returns a corresponding node for
@@ -151,7 +109,6 @@ public:
 	 */
 	Rooted<Node> parse(const std::string &str, ParserContext &ctx);
 };
-}
 }
 
 #endif /* _OUSIA_PARSER_HPP_ */

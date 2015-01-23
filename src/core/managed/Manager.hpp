@@ -320,7 +320,8 @@ public:
 	 * references.
 	 *
 	 * @param uid is the unique id for which the object should be returned.
-	 * @return a pointer to the object with the given uid.
+	 * @return a pointer to the object with the given uid or nullptr if the
+	 * object no longer exists.
 	 */
 	Managed * getManaged(ManagedUid uid);
 

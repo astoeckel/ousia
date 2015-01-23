@@ -42,9 +42,9 @@
 #include <core/common/Argument.hpp>
 
 #include "Parser.hpp"
+#include "ParserContext.hpp"
 
 namespace ousia {
-namespace parser {
 
 /**
  * The State type alias is used to
@@ -139,7 +139,7 @@ public:
 
 	const std::string &name() { return handlerData.name; }
 
-	Scope &scope() { return handlerData.ctx.scope; }
+	ParserScope &scope() { return handlerData.ctx.scope; }
 
 	Registry &registry() { return handlerData.ctx.registry; }
 
@@ -322,6 +322,11 @@ private:
 	std::stack<HandlerInstance> stack;
 
 	/**
+	 * Reference at some user defined data.
+	 */
+	void *userData;
+
+	/**
 	 * Used internally to get all expected command names for the given state
 	 * (does not work if the current Handler instance allows arbitrary
 	 * children). This function is used to build error messages.
@@ -340,8 +345,9 @@ public:
 	 * corresponding HandlerDescriptor instances.
 	 */
 	ParserStack(ParserContext &ctx,
-	            const std::multimap<std::string, HandlerDescriptor> &handlers)
-	    : ctx(ctx), handlers(handlers){};
+	            const std::multimap<std::string, HandlerDescriptor> &handlers,
+	            void *userData = nullptr)
+	    : ctx(ctx), handlers(handlers), userData(userData){};
 
 	/**
 	 * Returns the state the ParserStack instance currently is in.
@@ -419,8 +425,14 @@ public:
 	 * @return a reference to the parser context.
 	 */
 	ParserContext &getContext() { return ctx; }
+
+	/**
+	 * Returns the user defined data.
+	 *
+	 * @return the userData pointer that was given in the constructor.
+	 */
+	void *getUserData() { return userData; }
 };
-}
 }
 
 #endif /* _OUSIA_PARSER_STACK_HPP_ */

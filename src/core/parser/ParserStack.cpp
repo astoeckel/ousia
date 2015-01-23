@@ -24,7 +24,6 @@
 #include <core/common/Exceptions.hpp>
 
 namespace ousia {
-namespace parser {
 
 /* A default handler */
 
@@ -184,7 +183,6 @@ void ParserStack::data(const std::string &data, int field)
 
 	// Pass the data to the current Handler instance
 	stack.top().handler->data(data, field);
-}
 }
 }
 
