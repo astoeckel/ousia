@@ -100,13 +100,13 @@ std::string Registry::getMimetypeForExtension(
 std::string Registry::getMimetypeForFilename(const std::string &filename) const
 {
 	// Fetch the file extension
-	std::string ext = Utils::extractFileExtension(path);
+	std::string ext = Utils::extractFileExtension(filename);
 	if (ext.empty()) {
 		return std::string{};
 	}
 
 	// Fetch the mimetype for the extension
-	return ctx.registry.getMimetypeForExtension(ext);
+	return getMimetypeForExtension(ext);
 }
 
 void Registry::registerResourceLocator(ResourceLocator *locator)
