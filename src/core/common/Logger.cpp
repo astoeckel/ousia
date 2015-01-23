@@ -27,10 +27,11 @@ namespace ousia {
 /* Class Logger */
 
 void Logger::log(Severity severity, const std::string &msg,
-                 const SourceLocation &loc)
+                 const SourceLocation &loc,
+                 MessageMode mode = MessageMode::DEFAULT)
 {
 	// Assemble the message and pass it through the filter, then process it
-	Message message { severity, std::move(msg), loc };
+	Message message{severity, std::move(msg), loc, mode};
 	if (filterMessage(message)) {
 		processMessage(message);
 	}
@@ -42,30 +43,37 @@ LoggerFork Logger::fork() { return LoggerFork(this); }
 
 void LoggerFork::processMessage(const Message &msg)
 {
-	calls.push_back(Call(CallType::MESSAGE, messages.size()));
+	calls.emplace_back(CallType::MESSAGE, messages.size());
 	messages.push_back(msg);
 }
 
-void LoggerFork::processPushFile(const File &file)
+void LoggerFork::processPushDefaultLocation(const SourceLocation &loc)
 {
-	calls.push_back(Call(CallType::PUSH_FILE, files.size()));
-	files.push_back(file);
+	calls.emplace_back(CallType::PUSH_LOCATION, locations.size());
+	locations.push_back(loc);
 }
 
-void LoggerFork::processPopFile()
+void LoggerFork::processPopDefaultLocation()
 {
-	calls.push_back(Call(CallType::POP_FILE, 0));
+	calls.emplace_back(CallType::POP_LOCATION, 0);
 }
 
 void LoggerFork::processSetDefaultLocation(const SourceLocation &loc)
 {
-	// Check whether setDefaultLocation was called immediately before, if yes,
-	// simply override the data
-	if (!calls.empty() && calls.back().type == CallType::SET_DEFAULT_LOCATION) {
-		locations.back() = loc;
+	calls.emplace_back(CallType : SET_LOCATION, locations.size());
+	locations.push_back(loc);
+}
+
+void LoggerFork::processSetSourceContextCallback(
+    SourceContextCallback sourceContextCallback)
+{
+	// Check whether setSourceContextCallback was called immediately before,
+	// if yes, simply override the data
+	if (!calls.empty() && calls.back().type == CallType::SET_CONTEXT_CALLBACK) {
+		callbacks.back() = loc;
 	} else {
-		calls.push_back(Call(CallType::SET_DEFAULT_LOCATION, locations.size()));
-		locations.push_back(loc);
+		calls.emplace_back(CallType::SET_CONTEXT_CALLBACK, callbacks.size());
+		callbacks.emplace_back(sourceContextCallback);
 	}
 }
 
@@ -73,45 +81,91 @@ void LoggerFork::purge()
 {
 	calls.clear();
 	messages.clear();
-	files.clear();
 	locations.clear();
+	callbacks.clear();
 }
 
 void LoggerFork::commit()
 {
 	for (const Call &call : calls) {
 		switch (call.type) {
-			case CallType::MESSAGE: {
+			case CallType::MESSAGE:
 				if (parent->filterMessage(messages[call.dataIdx])) {
 					parent->processMessage(messages[call.dataIdx]);
 				}
 				break;
-			}
-			case CallType::PUSH_FILE: {
-				parent->processPushFile(files[call.dataIdx]);
+			case CallType::PUSH_LOCATION:
+				parent->processPushDefaultLocation(locations[call.dataIdx]);
 				break;
-			}
-			case CallType::POP_FILE:
-				parent->processPopFile();
+			case CallType::POP_LOCATION:
+				parent->processPopDefaultLocation();
 				break;
-			case CallType::SET_DEFAULT_LOCATION:
+			case CallType::SET_LOCATION:
 				parent->processSetDefaultLocation(locations[call.dataIdx]);
+				break;
+			case CallType::SET_CONTEXT_CALLBACK:
+				parent->processSetSourceContextCallback(
+				    callbacks[call.dataIdx]);
 				break;
 		}
 	}
 	purge();
 }
 
-/* Class ConcreteLogger */
+/* Class ScopedLogger */
 
-static const Logger::File EMPTY_FILE{"", SourceLocation{}, nullptr, nullptr};
-
-void ConcreteLogger::processPushFile(const File &file)
+ScopedLogger::ScopedLogger(Logger &parent, SourceLocation loc = SourceLocation{})
+	: Logger(), parent(parent), depth(0)
 {
-	files.push_back(file);
+	pushDefaultLocation(loc);
 }
 
-void ConcreteLogger::processPopFile() { files.pop_back(); }
+ScopedLogger::~ScopedLogger()
+{
+	while (depth > 0) {
+		popDefaultLocation();
+	}
+}
+
+void ScopedLogger::processMessage(const Message &msg)
+{
+	parent.processMessage(msg);
+}
+
+bool ScopedLogger::filterMessage(const Message &msg)
+{
+	return parent.filterMessage(msg);
+}
+
+void ScopedLogger::processPushDefaultLocation(const SourceLocation &loc)
+{
+	parent.processPushDefaultLocation(loc);
+	depth++;
+}
+
+void ScopedLogger::processPopDefaultLocation()
+{
+	depth--;
+	parent.processPopDefaultLocation();
+}
+
+void ScopedLogger::processSetDefaultLocation(const SourceLocation &loc)
+{
+	parent.processSetDefaultLocation(loc);
+}
+
+void ScopedLogger::processSetSourceContextCallback(
+    SourceContextCallback sourceContextCallback)
+{
+	parent.processSetContextCallback(sourceContextCallback);
+}
+
+/* Class ConcreteLogger */
+
+ConcreteLogger(Severity minSeverity = Severity::DEFAULT_MIN_SEVERITY)
+    : minSeverity(minSeverity), sourceContextCallback(NullSourceContextCallback)
+{
+}
 
 bool ConcreteLogger::filterMessage(const Message &msg)
 {
@@ -126,40 +180,38 @@ bool ConcreteLogger::filterMessage(const Message &msg)
 	return sev >= static_cast<uint8_t>(minSeverity);
 }
 
+void ConcreteLogger::processPushDefaultLocation(const SourceLocation &loc) {
+	locations.emplace_back(loc);
+}
+
+void ConcreteLogger::processPopDefaultLocation() {
+	if (!locations.empty()) {
+		locations.pop_back();
+	}
+}
+
 void ConcreteLogger::processSetDefaultLocation(const SourceLocation &loc)
 {
-	defaultLocation = loc;
-}
-
-const Logger::File &ConcreteLogger::currentFile() const
-{
-	if (!files.empty()) {
-		return files.back();
+	if (!locations.empty()) {
+		locations.back() = loc;
+	} else {
+		locations.emplace_back(loc);
 	}
-	return EMPTY_FILE;
-}
-
-const std::string &ConcreteLogger::currentFilename() const
-{
-	return currentFile().file;
 }
 
 const SourceLocation &ConcreteLogger::messageLocation(const Message &msg) const
 {
 	if (msg.loc.valid()) {
 		return msg.loc;
+	} else if (!locatios.empty()) {
+		return locations.back();
 	}
-	return defaultLocation;
+	return NullSourceLocation;
 }
 
 SourceContext ConcreteLogger::messageContext(const Message &msg) const
 {
-	const Logger::File &file = currentFile();
-	const SourceLocation &loc = messageLocation(msg);
-	if (file.ctxCallback && loc.valid()) {
-		return file.ctxCallback(loc, file.ctxCallbackData);
-	}
-	return SourceContext{};
+	return sourceContextCallback(messageLocation(msg));
 }
 
 Severity ConcreteLogger::getMaxEncounteredSeverity()
@@ -193,6 +245,11 @@ bool ConcreteLogger::hasError()
 	       getSeverityCount(Severity::FATAL_ERROR) > 0;
 }
 
+bool ConcreteLogger::hasFatalError()
+{
+	return getSeverityCount(Severity::FATAL_ERROR) > 0;
+}
+
 /* Class TerminalLogger */
 
 void TerminalLogger::processMessage(const Message &msg)
@@ -200,29 +257,26 @@ void TerminalLogger::processMessage(const Message &msg)
 	Terminal t(useColor);
 
 	// Fetch filename, position and context
-	const std::string filename = currentFilename();
-	const SourceLocation pos = messageLocation(msg);
 	const SourceContext ctx = messageContext(msg);
 
 	// Print the file name
-	bool hasFile = !filename.empty();
-	if (hasFile) {
-		os << t.bright() << filename << t.reset();
+	if (ctx.hasFile()) {
+		os << t.bright() << ctx.filename << t.reset();
 	}
 
 	// Print line and column number
-	if (pos.hasLine()) {
+	if (ctx.hasLine()) {
 		if (hasFile) {
 			os << ':';
 		}
-		os << t.bright() << pos.line << t.reset();
-		if (pos.hasColumn()) {
-			os << ':' << pos.column;
+		os << t.bright() << ctx.startLine << t.reset();
+		if (ctx.hasColumn()) {
+			os << ':' << ctx.startColumn;
 		}
 	}
 
 	// Print the optional seperator
-	if (hasFile || pos.hasLine()) {
+	if (ctx.hasFile() || ctx.hasLine()) {
 		os << ": ";
 	}
 
@@ -249,7 +303,7 @@ void TerminalLogger::processMessage(const Message &msg)
 	os << msg.msg << std::endl;
 
 	// Print the error message context if available
-	if (ctx.valid()) {
+/*	if (ctx.valid()) {
 		size_t relPos = ctx.relPos;
 		if (ctx.truncatedStart) {
 			os << "[...] ";
@@ -272,7 +326,7 @@ void TerminalLogger::processMessage(const Message &msg)
 			}
 		}
 		os << t.color(Terminal::GREEN) << '^' << t.reset() << std::endl;
-	}
+	}*/
 }
 }
 
