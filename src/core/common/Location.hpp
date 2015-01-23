@@ -115,7 +115,7 @@ public:
 	 *
 	 * @return true if the SourcePosition instance is value, false otherwise.
 	 */
-	bool isValid() { return pos != InvalidSourceOffset; }
+	bool isValid() const { return pos != InvalidSourceOffset; }
 };
 
 /**
@@ -252,7 +252,7 @@ public:
 	 *
 	 * @return true if the Range is valid.
 	 */
-	bool isValid()
+	bool isValid() const
 	{
 		return start.isValid() && end.isValid() &&
 		       start.getPosition() <= end.getPosition();
@@ -333,7 +333,7 @@ public:
 	 *
 	 * @return the id of the source file this instance is bound to.
 	 */
-	SourceId getSourceId() { return sourceId; }
+	SourceId getSourceId() const { return sourceId; }
 
 	/**
 	 * Returns true if this location is actually valid. This is the case if
@@ -341,7 +341,7 @@ public:
 	 *
 	 * @return true if the Range is valid.
 	 */
-	bool isValid()
+	bool isValid() const
 	{
 		return SourceRange::isValid() && sourceId != InvalidSourceId;
 	}
@@ -469,7 +469,7 @@ struct SourceContext {
  * @return the corresponding SourceContext.
  */
 using SourceContextCallback =
-    std::function<SourceContext(const SourceLocation &location)>;
+    std::function<SourceContext(const SourceLocation &)>;
 
 /**
  * Function to be used as default value for the SourceContextCallback. Returns
@@ -478,7 +478,7 @@ using SourceContextCallback =
  * @param location is the location for which the context should be looked up.
  * @return an empty, invalid SourceContext.
  */
-void SourceContext NullSourceContextCallback(const SourceLocation &location);
+SourceContext NullSourceContextCallback(const SourceLocation &location);
 
 }
 
