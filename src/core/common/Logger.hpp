@@ -594,8 +594,8 @@ public:
 	LoggerFork(LoggerFork &&l)
 	    : calls(std::move(l.calls)),
 	      messages(std::move(l.messages)),
-	      files(std::move(l.files)),
 	      locations(std::move(l.locations)),
+	      callbacks(std::move(l.callbacks)),
 	      parent(std::move(l.parent)){};
 
 	/**
@@ -718,11 +718,6 @@ constexpr Severity DEFAULT_MIN_SEVERITY = Severity::DEBUG;
 class ConcreteLogger : public Logger {
 private:
 	/**
-	 * Current source context callback.
-	 */
-	SourceContextCallback sourceContextCallback;
-
-	/**
 	 * Vector used to store the counts of each message type.
 	 */
 	std::vector<size_t> messageCounts;
@@ -740,7 +735,7 @@ private:
 	/**
 	 * Current source context callback.
 	 */
-	SourceContextCallback callback;
+	SourceContextCallback sourceContextCallback;
 
 protected:
 	/**
@@ -765,7 +760,7 @@ public:
 	 * @param minSeverity is the severity below which message should be
 	 * discarded.
 	 */
-	ConcreteLogger(Severity minSeverity = Severity::DEFAULT_MIN_SEVERITY);
+	ConcreteLogger(Severity minSeverity = DEFAULT_MIN_SEVERITY);
 
 	/**
 	 * Returns the current cursor location.

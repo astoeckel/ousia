@@ -27,11 +27,10 @@ namespace ousia {
 /* Class Logger */
 
 void Logger::log(Severity severity, const std::string &msg,
-                 const SourceLocation &loc,
-                 MessageMode mode = MessageMode::DEFAULT)
+                 const SourceLocation &loc, MessageMode mode)
 {
 	// Assemble the message and pass it through the filter, then process it
-	Message message{severity, std::move(msg), loc, mode};
+	Message message{severity, mode, std::move(msg), loc};
 	if (filterMessage(message)) {
 		processMessage(message);
 	}
@@ -60,8 +59,14 @@ void LoggerFork::processPopDefaultLocation()
 
 void LoggerFork::processSetDefaultLocation(const SourceLocation &loc)
 {
-	calls.emplace_back(CallType : SET_LOCATION, locations.size());
-	locations.push_back(loc);
+	// Check whether setDefaultLocation was called immediately before, if yes,
+	// simply override the data
+	if (!calls.empty() && calls.back().type == CallType::SET_LOCATION) {
+		locations.back() = loc;
+	} else {
+		calls.emplace_back(CallType::SET_LOCATION, locations.size());
+		locations.emplace_back(loc);
+	}
 }
 
 void LoggerFork::processSetSourceContextCallback(
@@ -70,7 +75,7 @@ void LoggerFork::processSetSourceContextCallback(
 	// Check whether setSourceContextCallback was called immediately before,
 	// if yes, simply override the data
 	if (!calls.empty() && calls.back().type == CallType::SET_CONTEXT_CALLBACK) {
-		callbacks.back() = loc;
+		callbacks.back() = sourceContextCallback;
 	} else {
 		calls.emplace_back(CallType::SET_CONTEXT_CALLBACK, callbacks.size());
 		callbacks.emplace_back(sourceContextCallback);
@@ -114,8 +119,8 @@ void LoggerFork::commit()
 
 /* Class ScopedLogger */
 
-ScopedLogger::ScopedLogger(Logger &parent, SourceLocation loc = SourceLocation{})
-	: Logger(), parent(parent), depth(0)
+ScopedLogger::ScopedLogger(Logger &parent, SourceLocation loc)
+    : parent(parent), depth(0)
 {
 	pushDefaultLocation(loc);
 }
@@ -157,12 +162,12 @@ void ScopedLogger::processSetDefaultLocation(const SourceLocation &loc)
 void ScopedLogger::processSetSourceContextCallback(
     SourceContextCallback sourceContextCallback)
 {
-	parent.processSetContextCallback(sourceContextCallback);
+	parent.processSetSourceContextCallback(sourceContextCallback);
 }
 
 /* Class ConcreteLogger */
 
-ConcreteLogger(Severity minSeverity = Severity::DEFAULT_MIN_SEVERITY)
+ConcreteLogger::ConcreteLogger(Severity minSeverity)
     : minSeverity(minSeverity), sourceContextCallback(NullSourceContextCallback)
 {
 }
@@ -180,11 +185,13 @@ bool ConcreteLogger::filterMessage(const Message &msg)
 	return sev >= static_cast<uint8_t>(minSeverity);
 }
 
-void ConcreteLogger::processPushDefaultLocation(const SourceLocation &loc) {
+void ConcreteLogger::processPushDefaultLocation(const SourceLocation &loc)
+{
 	locations.emplace_back(loc);
 }
 
-void ConcreteLogger::processPopDefaultLocation() {
+void ConcreteLogger::processPopDefaultLocation()
+{
 	if (!locations.empty()) {
 		locations.pop_back();
 	}
@@ -199,11 +206,17 @@ void ConcreteLogger::processSetDefaultLocation(const SourceLocation &loc)
 	}
 }
 
+void ConcreteLogger::processSetSourceContextCallback(
+    SourceContextCallback sourceContextCallback)
+{
+	this->sourceContextCallback = sourceContextCallback;
+}
+
 const SourceLocation &ConcreteLogger::messageLocation(const Message &msg) const
 {
-	if (msg.loc.valid()) {
+	if (msg.loc.isValid()) {
 		return msg.loc;
-	} else if (!locatios.empty()) {
+	} else if (!locations.empty()) {
 		return locations.back();
 	}
 	return NullSourceLocation;
@@ -235,8 +248,9 @@ size_t ConcreteLogger::getSeverityCount(Severity severity)
 
 void ConcreteLogger::reset()
 {
-	files.clear();
+	locations.clear();
 	messageCounts.clear();
+	sourceContextCallback = NullSourceContextCallback;
 }
 
 bool ConcreteLogger::hasError()
@@ -266,7 +280,7 @@ void TerminalLogger::processMessage(const Message &msg)
 
 	// Print line and column number
 	if (ctx.hasLine()) {
-		if (hasFile) {
+		if (ctx.hasFile()) {
 			os << ':';
 		}
 		os << t.bright() << ctx.startLine << t.reset();
@@ -303,30 +317,30 @@ void TerminalLogger::processMessage(const Message &msg)
 	os << msg.msg << std::endl;
 
 	// Print the error message context if available
-/*	if (ctx.valid()) {
-		size_t relPos = ctx.relPos;
-		if (ctx.truncatedStart) {
-			os << "[...] ";
-		}
-		os << ctx.text;
-		if (ctx.truncatedEnd) {
-			os << " [...]";
-		}
-		os << std::endl;
+	/*	if (ctx.valid()) {
+	        size_t relPos = ctx.relPos;
+	        if (ctx.truncatedStart) {
+	            os << "[...] ";
+	        }
+	        os << ctx.text;
+	        if (ctx.truncatedEnd) {
+	            os << " [...]";
+	        }
+	        os << std::endl;
 
-		if (ctx.truncatedStart) {
-			os << "      ";
-		}
+	        if (ctx.truncatedStart) {
+	            os << "      ";
+	        }
 
-		for (size_t i = 0; i < relPos; i++) {
-			if (i < ctx.text.size() && ctx.text[i] == '\t') {
-				os << '\t';
-			} else {
-				os << ' ';
-			}
-		}
-		os << t.color(Terminal::GREEN) << '^' << t.reset() << std::endl;
-	}*/
+	        for (size_t i = 0; i < relPos; i++) {
+	            if (i < ctx.text.size() && ctx.text[i] == '\t') {
+	                os << '\t';
+	            } else {
+	                os << ' ';
+	            }
+	        }
+	        os << t.color(Terminal::GREEN) << '^' << t.reset() << std::endl;
+	    }*/
 }
 }
 
