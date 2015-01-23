@@ -131,7 +131,7 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 			base /= path;
 
 			// If we already found a fitting resource there, use that.
-			if (fs::exists(base) && fs::is_file(base)) {
+			if (fs::exists(base) && fs::is_regular_file(base)) {
 				std::string location = fs::canonical(base).generic_string();
 #ifdef FILELOCATOR_DEBUG_PRINT
 				std::cout << "FileLocator: Found \"" << path << "\" at "
@@ -159,7 +159,7 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 #endif
 			fs::path p{*it};
 			p /= path;
-			if (fs::exists(p) && fs::is_file(p)) {
+			if (fs::exists(p) && fs::is_regular_file(p)) {
 				std::string location = fs::canonical(p).generic_string();
 #ifdef FILELOCATOR_DEBUG_PRINT
 				std::cout << "FileLocator: Found \"" << path << "\" in "
