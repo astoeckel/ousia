@@ -33,6 +33,7 @@
 #include <unordered_map>
 
 #include <core/common/Location.hpp>
+#include <core/common/Rtti.hpp>
 #include <core/managed/Managed.hpp>
 
 #include "Resource.hpp"
@@ -42,7 +43,6 @@ namespace ousia {
 // Forward declarations
 class Node;
 class ParserContext;
-class RttiSet;
 extern const Resource NullResource;
 
 /**

@@ -30,13 +30,11 @@
 
 #include <string>
 
+#include <core/common/Rtti.hpp>
+
 #include "Resource.hpp"
 
 namespace ousia {
-
-// Forward declarations
-class Rtti;
-class RttiSet;
 
 /**
  * Class containing static utility functions for dealing with Resources and
