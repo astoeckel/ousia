@@ -77,14 +77,6 @@ public:
  * makes it simple to handle non-recoverable errors in the code.
  */
 class LoggableException : public OusiaException {
-private:
-	/**
-	 * Function used internally to build the formated message that should be
-	 * reported to the runtime environment.
-	 */
-	static std::string formatMessage(const std::string &msg,
-	                                 const SourceLocation &loc);
-
 public:
 	/**
 	 * Reported error message.
@@ -104,7 +96,7 @@ public:
 	 */
 	LoggableException(std::string msg,
 	                  SourceLocation loc = SourceLocation{})
-	    : OusiaException(formatMessage(msg, loc)),
+	    : OusiaException(msg),
 	      msg(std::move(msg)),
 	      loc(std::move(loc))
 	{
@@ -128,11 +120,23 @@ public:
 	 * Constructor of LoggableException for arbitrary position objects.
 	 *
 	 * @param msg is the actual log message.
-	 * @param loc is a reference to a variable with position and context data.
+	 * @param loc is a reference to a variable with location data.
 	 */
 	template <class LocationType>
-	LoggableException(std::string msg, LocationType &loc)
+	LoggableException(std::string msg, const LocationType &loc)
 	    : LoggableException(std::move(msg), loc.getLocation())
+	{
+	}
+
+	/**
+	 * Constructor of LoggableException for arbitrary position objects.
+	 *
+	 * @param msg is the actual log message.
+	 * @param loc is a pointe to a variable with location data.
+	 */
+	template <class LocationType>
+	LoggableException(std::string msg, const LocationType *loc)
+	    : LoggableException(std::move(msg), loc->getLocation())
 	{
 	}
 

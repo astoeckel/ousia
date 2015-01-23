@@ -22,21 +22,5 @@
 
 namespace ousia {
 
-/* Class LoggableException */
-
-std::string LoggableException::formatMessage(const std::string &msg,
-                                             const SourceLocation &loc)
-{
-	std::stringstream ss;
-	ss << "error ";
-	if (loc.hasLine()) {
-		ss << "at line " << loc.line << ", ";
-		if (loc.hasColumn()) {
-			ss << "column " << loc.column << " ";
-		}
-	}
-	ss << "with message: " << msg;
-	return ss.str();
-}
 }
 
