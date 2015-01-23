@@ -50,13 +50,13 @@ public:
 	 */
 	enum class Mode {
 		/**
-		 * Performs only lossless and sane conversions.
-		 */
+	     * Performs only lossless and sane conversions.
+	     */
 		SAFE,
 
 		/**
-		 * Performs possibly lossy and probably unintuitive conversions.
-		 */
+	     * Performs possibly lossy and probably unintuitive conversions.
+	     */
 		ALL
 	};
 
@@ -122,7 +122,7 @@ public:
 	static bool toDouble(Variant &var, Logger &logger, Mode mode = Mode::SAFE);
 
 	/**
-	 * Converts the given variant to a double. If the "mode" parameter is set
+	 * Converts the given variant to a string. If the "mode" parameter is set
 	 * to Mode::SAFE, all primitive types can be converted to strings. For
 	 * all other types the conversion fails. If "mode" is set to Mode::ALL,
 	 * maps and arrays are converted to a JSON representation, objects and
@@ -163,7 +163,6 @@ public:
 	static bool toArray(Variant &var, const Rtti &innerType, Logger &logger,
 	                    Mode mode = Mode::SAFE);
 
-
 	/**
 	 * Converts the given variant to an map with the given inner type. The given
 	 * variant must be a map. If "innerType" points at a primitive Rtti type,
@@ -181,7 +180,36 @@ public:
 	 * case the input/output parameter "var" will have the requested type.
 	 */
 	static bool toMap(Variant &var, const Rtti &innerType, Logger &logger,
-	                    Mode mode = Mode::SAFE);
+	                  Mode mode = Mode::SAFE);
+
+	/**
+	 * Converts the given variant to a cardinality. If the "mode" parameter is
+	 * set to Mode::SAFE, only integers are converted to a cardinality with
+	 * exactly that elment. If mode is set to Mode::ALL, the conversion gets
+	 * more creative:
+	 *
+	 * * NULLPTR is converted to an empty cardinality that accepts nothing
+	 * * BOOL is converted to either that empty cardinality (false) or to a
+	 *   cardinality accepting everything (true).
+	 * * DOUBLE gets rounded to the next integer and then converted.
+	 * * STRING gets parsed as a cardinality using the VariantReader.
+	 * * ARRAY (of ints) is interpreted as ranges with interleaving start and
+	 *   end notation.
+	 *
+	 * Other converstions are not made. If the conversion was not possible, an
+	 * empty cardinality is returned.
+	 *
+	 * @param var is instance of the Variant class that should be converted to
+	 * the requested type.
+	 * @param logger is a reference to the logger instance into which messages
+	 * should be logged.
+	 * @param mode is the conversion mode. See method description for the exact
+	 * effect.
+	 * @return true if the operation was successful, false otherwise. In any
+	 * case the input/output parameter "var" will have the requested type.
+	 */
+	static bool toCardinality(Variant &var, Logger &logger,
+	                          Mode mode = Mode::SAFE);
 
 	/**
 	 * Makes sure the given variant is a function. If it is not, it is replaced
@@ -213,9 +241,8 @@ public:
 	 * @return true if the operation was successful, false otherwise. In any
 	 * case the input/output parameter "var" will have the requested type.
 	 */
-	static bool convert(Variant &var, const Rtti &type,
-	                    const Rtti &innerType, Logger &logger,
-	                    Mode mode = Mode::SAFE);
+	static bool convert(Variant &var, const Rtti &type, const Rtti &innerType,
+	                    Logger &logger, Mode mode = Mode::SAFE);
 
 	/**
 	 * Tries conversion to the given Rtti without any enforcement regarding
@@ -233,8 +260,8 @@ public:
 	 * @return true if the operation was successful, false otherwise. In any
 	 * case the input/output parameter "var" will have the requested type.
 	 */
-	static bool convert(Variant &var, const Rtti &type,
-	                    Logger &logger, Mode mode = Mode::SAFE);
+	static bool convert(Variant &var, const Rtti &type, Logger &logger,
+	                    Mode mode = Mode::SAFE);
 };
 }
 

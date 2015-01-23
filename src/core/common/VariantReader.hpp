@@ -176,8 +176,9 @@ public:
 	 * assumes that it is already inside the array and will not wait for a '['
 	 * character.
 	 */
-	static std::pair<bool, Variant::arrayType> parseArray(
-	    CharReader &reader, Logger &logger, char delim = 0);
+	static std::pair<bool, Variant::arrayType> parseArray(CharReader &reader,
+	                                                      Logger &logger,
+	                                                      char delim = 0);
 
 	/**
 	 * Parses an object definition.
@@ -191,13 +192,50 @@ public:
 	 * assumes that it is already inside the array and will not wait for a '['
 	 * character.
 	 */
-	static std::pair<bool, Variant::mapType> parseObject(
-	    CharReader &reader, Logger &logger, char delim = 0);
+	static std::pair<bool, Variant::mapType> parseObject(CharReader &reader,
+	                                                     Logger &logger,
+	                                                     char delim = 0);
+	/**
+	 * Parses a Cardinality. A Cardinality is specified as a list of Ranges,
+	 * separated by commas and enclosed in curly braces. The ranges can be
+	 * either
+	 *
+	 * * simple unsigned integers
+	   * a pair of unsigned integers with a hyphen in between (specifying the
+	     range from the left to the right integer)
+	 * * an unsigned integer preceded by a <, specifying the range from 0 to the
+	 *   integer.
+	 * * an unsigned integer preceded by a >, specifying the range from the
+	 *   integer to infinity.
+	 * * A Kleene-Star (*), specifying the range from 0 to infinity.
+	 *
+	 * Consider the following examples:
+	 *
+	 * * {3}
+	 * * {0-1}, which is equivalent to {<1}
+	 * * {>0}
+	 * * {*}
+	 *
+	 * Note that the given Ranges will be merged internally to be non-redundant,
+	 * as in the following examples:
+	 *
+	 * * {3-9, 7-10} will be optimized to {3-10}
+	 * * {> 1, 8} will be optimized to {> 1}
+	 * * {*, > 0} will be optimized to {*}
+	 *
+	 * @param reader is a reference to the CharReader instance which is
+	 * the source for the character data. The reader will be positioned after
+	 * the number or at the terminating delimiting character.
+	 * @param logger is the logger instance that should be used to log error
+	 * messages and warnings.
+	 */
+	static std::pair<bool, Variant::cardinalityType> parseCardinality(
+	    CharReader &reader, Logger &logger);
 
 	/**
 	 * Tries to parse the most specific item from the given stream until one of
-	 * the given delimiters is reached or a meaningful literal (possibly an 
-	 * array of literals) has been read. The resulting variant represents the 
+	 * the given delimiters is reached or a meaningful literal (possibly an
+	 * array of literals) has been read. The resulting variant represents the
 	 * value that has been read.
 	 *
 	 * @param reader is a reference to the CharReader instance which is
@@ -221,7 +259,7 @@ public:
 	 * @param delims is a set of characters which will terminate the string.
 	 * These characters are not included in the result. May not be nullptr.
 	 * @param extractUnescapedStrings if set to true, interprets non-primitive
-	 * literals as unescaped strings, which may also contain whitespace 
+	 * literals as unescaped strings, which may also contain whitespace
 	 * characters. Otherwise string literals are only generated until the next
 	 * whitespace character.
 	 */
@@ -247,8 +285,8 @@ public:
 	 * variant.) Information on why the operation has failed is passed to the
 	 * logger.
 	 */
-	static std::pair<bool, Variant> parseGenericString(
-	    const std::string &str, Logger &logger);
+	static std::pair<bool, Variant> parseGenericString(const std::string &str,
+	                                                   Logger &logger);
 };
 }
 

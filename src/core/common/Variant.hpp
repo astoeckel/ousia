@@ -40,6 +40,7 @@
 // http://nikic.github.io/2012/02/02/Pointer-magic-for-efficient-dynamic-value-representations.html
 // later (will allow to use 8 bytes for a variant)
 
+#include <core/RangeSet.hpp>
 #include <core/managed/Managed.hpp>
 
 #include "Exceptions.hpp"
@@ -63,6 +64,7 @@ enum class VariantType : int16_t {
 	ARRAY,
 	MAP,
 	OBJECT,
+	CARDINALITY,
 	FUNCTION
 };
 
@@ -111,6 +113,8 @@ public:
 	using arrayType = std::vector<Variant>;
 	using mapType = std::map<std::string, Variant>;
 	using objectType = Rooted<Managed>;
+	using cardinalityType = RangeSet<size_t>;
+	using rangeType = Range<size_t>;
 	using functionType = std::shared_ptr<Function>;
 
 private:
@@ -192,6 +196,9 @@ private:
 			case VariantType::OBJECT:
 				ptrVal = new objectType(v.asObject());
 				break;
+			case VariantType::CARDINALITY:
+				ptrVal = new cardinalityType(v.asCardinality());
+				break;
 			case VariantType::FUNCTION:
 				ptrVal = new functionType(v.asFunction());
 				break;
@@ -225,6 +232,7 @@ private:
 			case VariantType::ARRAY:
 			case VariantType::MAP:
 			case VariantType::OBJECT:
+			case VariantType::CARDINALITY:
 			case VariantType::FUNCTION:
 				ptrVal = v.ptrVal;
 				v.ptrVal = nullptr;
@@ -252,6 +260,9 @@ private:
 					break;
 				case VariantType::OBJECT:
 					delete static_cast<objectType *>(ptrVal);
+					break;
+				case VariantType::CARDINALITY:
+					delete static_cast<cardinalityType *>(ptrVal);
 					break;
 				case VariantType::FUNCTION:
 					delete static_cast<functionType *>(ptrVal);
@@ -346,12 +357,24 @@ public:
 	 *
 	 * @param o is an object that can be converted to a Rooted handle.
 	 */
-	template<class T>
+	template <class T>
 	static Variant fromObject(T o)
 	{
 		Variant res;
 		res.setObject(o);
 		return res;
+	}
+
+	/**
+	 * Constructor for cardinality values. The given cardinality is copied and
+	 *managed by the
+	 * new Variant instance.
+	 *
+	 * @param c is a reference to the cardinality.
+	 */
+	Variant(cardinalityType c) : ptrVal(nullptr)
+	{
+		setCardinality(std::move(c));
 	}
 
 	/**
@@ -522,6 +545,13 @@ public:
 	bool isObject() const { return type == VariantType::OBJECT; }
 
 	/**
+	 * Checks whether this Variant instance is a cardinality.
+	 *
+	 * @return true if the Variant instance is an cardinality, false otherwise.
+	 */
+	bool isCardinality() const { return type == VariantType::CARDINALITY; }
+
+	/**
 	 * Checks whether this Variant instance is a function.
 	 *
 	 * @return true if the Variant instance is a function, false otherwise.
@@ -666,13 +696,12 @@ public:
 	const mapType &asMap() const { return asObj<mapType>(VariantType::MAP); }
 
 	/**
-	 * Returns a pointer pointing at the stored managed object. Performs no type
-	 * conversion. Throws an exception if the underlying type is not a managed
-	 * object.
+	 * Returns a reference to the map value. Performs no type conversion.
+	 * Throws an exception if the underlying type is not a map.
 	 *
-	 * @return pointer at the stored managed object.
+	 * @return the map value as reference.
 	 */
-	objectType asObject() { return asObj<objectType>(VariantType::OBJECT); }
+	mapType &asMap() { return asObj<mapType>(VariantType::MAP); }
 
 	/**
 	 * Returns a pointer pointing at the stored managed object. Performs no type
@@ -687,12 +716,37 @@ public:
 	}
 
 	/**
-	 * Returns a reference to the map value. Performs no type conversion.
-	 * Throws an exception if the underlying type is not a map.
+	 * Returns a pointer pointing at the stored managed object. Performs no type
+	 * conversion. Throws an exception if the underlying type is not a managed
+	 * object.
 	 *
-	 * @return the map value as reference.
+	 * @return pointer at the stored managed object.
 	 */
-	mapType &asMap() { return asObj<mapType>(VariantType::MAP); }
+	objectType asObject() { return asObj<objectType>(VariantType::OBJECT); }
+
+	/**
+	 * Returns a reference to the cardinality value. Performs no type
+	 *conversion.
+	 * Throws an exception if the underlying type is not a cardinality.
+	 *
+	 * @return the cardinality value as reference.
+	 */
+	const cardinalityType &asCardinality() const
+	{
+		return asObj<cardinalityType>(VariantType::CARDINALITY);
+	}
+
+	/**
+	 * Returns a reference to the cardinality value. Performs no type
+	 * conversion.
+	 * Throws an exception if the underlying type is not a cardinality.
+	 *
+	 * @return the cardinality value as reference.
+	 */
+	cardinalityType &asCardinality()
+	{
+		return asObj<cardinalityType>(VariantType::CARDINALITY);
+	}
 
 	/**
 	 * Returns a shared pointer pointing at the stored function object. Performs
@@ -784,6 +838,13 @@ public:
 	mapType toMap(const Rtti &innerType) const;
 
 	/**
+	 * Returns the value of the Variant as cardinality.
+	 *
+	 * @return the value of the variant as cardinality.
+	 */
+	cardinalityType toCardinality() const;
+
+	/**
 	 * Sets the variant to null.
 	 */
 	void setNull()
@@ -832,7 +893,7 @@ public:
 	/**
 	 * Sets the variant to the given string value.
 	 *
-	 * @param d is the new string value.
+	 * @param s is the new string value.
 	 */
 	void setString(const char *s)
 	{
@@ -849,7 +910,7 @@ public:
 	/**
 	 * Sets the variant to the given magic string value.
 	 *
-	 * @param d is the new magic string value.
+	 * @param s is the new magic string value.
 	 */
 	void setMagic(const char *s)
 	{
@@ -882,7 +943,7 @@ public:
 	/**
 	 * Sets the variant to the given map value.
 	 *
-	 * @param a is the new map value.
+	 * @param m is the new map value.
 	 */
 	void setMap(mapType m)
 	{
@@ -905,6 +966,18 @@ public:
 		destroy();
 		type = VariantType::OBJECT;
 		ptrVal = new objectType(o);
+	}
+
+	/**
+	 * Sets the variant to the given cardinality value.
+	 *
+	 * @param c is the new cardinality value.
+	 */
+	void setCardinality(cardinalityType c)
+	{
+		destroy();
+		type = VariantType::CARDINALITY;
+		ptrVal = new cardinalityType(std::move(c));
 	}
 
 	/**

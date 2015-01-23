@@ -182,6 +182,7 @@ const Rtti Double{"double"};
 const Rtti String{"string"};
 const Rtti Array{"array"};
 const Rtti Map{"map"};
+const Rtti Cardinality{"cardinality"};
 const Rtti Function{"function"};
 }
 }

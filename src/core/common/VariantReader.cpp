@@ -82,6 +82,7 @@ static const int STATE_WHITESPACE = 5;
 static const int STATE_RESYNC = 6;
 static const int STATE_EXPECT_COMMA = 7;
 static const int STATE_HAS_KEY = 8;
+static const int STATE_HAS_START = 9;
 
 /* Helper function for parsing arrays or objects */
 
@@ -515,6 +516,136 @@ std::pair<bool, Variant::mapType> VariantReader::parseObject(CharReader &reader,
 {
 	auto res = parseComplex(reader, logger, delim, ComplexMode::OBJECT);
 	return std::make_pair(res.first, res.second.asMap());
+}
+
+static const std::unordered_set<char> cardDelims{' ', ',', '}'};
+
+std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
+    CharReader &reader, Logger &logger)
+{
+	// first we consume all whitespaces.
+	reader.consumeWhitespace();
+	// then we expect curly braces.
+	char c;
+	if (!reader.read(c) || c != '{') {
+		return unexpected(reader, logger, "{", c, Variant::cardinalityType{});
+	}
+
+	Variant::cardinalityType card{};
+
+	reader.consumeWhitespace();
+
+	// which should in turn be followed by ranges.
+	while (reader.peek(c)) {
+		if (Utils::isNumeric(c)) {
+			// in case of a numeric character we want to read an integer.
+			reader.resetPeek();
+			Number n;
+			n.parse(reader, logger, cardDelims);
+			if (!n.isInt() || n.intValue() < 0) {
+				return error(reader, logger, "Invalid number for cardinality!",
+				             Variant::cardinalityType{});
+			}
+			unsigned int start = (unsigned int)n.intValue();
+			// if we have that we might either find a } or , making this a
+			// range or a - leading us to expect another integer.
+			reader.consumeWhitespace();
+			if (!reader.peek(c)) {
+				error(reader, logger, ERR_UNEXPECTED_END,
+				      Variant::cardinalityType{});
+			}
+			switch (c) {
+				case '}':
+				case ',':
+					reader.resetPeek();
+					break;
+				case '-': {
+					reader.consumePeek();
+					// get another integer.
+					reader.consumeWhitespace();
+					if (!reader.peek(c)) {
+						error(reader, logger, ERR_UNEXPECTED_END,
+						      Variant::cardinalityType{});
+					}
+					Number n2;
+					n2.parse(reader, logger, cardDelims);
+					if (!n2.isInt() || n2.intValue() < 0) {
+						return error(reader, logger,
+						             "Invalid number for cardinality!",
+						             Variant::cardinalityType{});
+					}
+
+					unsigned int end = (unsigned int)n2.intValue();
+					card.merge({start, end});
+					break;
+				}
+				default:
+					return unexpected(reader, logger, "}, , or -", c,
+					                  Variant::cardinalityType{});
+			}
+			if (c == '{' || c == ',') {
+				reader.resetPeek();
+			}
+		} else {
+			switch (c) {
+				case '*':
+					// in case of a Kleene star we can construct the
+					// cardinality right away.
+					card.merge(Variant::rangeType::typeRangeFrom(0));
+					break;
+				case '<':
+				case '>': {
+					// in case of an open range we expect a number.
+					reader.consumeWhitespace();
+					Number n;
+					if (!n.parse(reader, logger, cardDelims)) {
+						return error(reader, logger,
+						             "Expected number in an open range "
+						             "specifier!",
+						             Variant::cardinalityType{});
+					}
+					if (!n.isInt() || n.intValue() < 0) {
+						return error(reader, logger,
+						             "Invalid number for cardinality!",
+						             Variant::cardinalityType{});
+					}
+					if (c == '<') {
+						card.merge(
+						    Variant::rangeType{0, (unsigned int)n.intValue()});
+					} else {
+						card.merge(Variant::rangeType::typeRangeFrom(
+						    (unsigned int)n.intValue()));
+					}
+					break;
+				}
+				default:
+					return unexpected(reader, logger,
+					                  "Unsigned integer, *, < or >", c,
+					                  Variant::cardinalityType{});
+			}
+		}
+		// after we have parsed a range, read all whitespaces.
+		reader.consumeWhitespace();
+		// ... and check if we are at the end.
+		if (!reader.read(c)) {
+			error(reader, logger, ERR_UNEXPECTED_END,
+			      Variant::cardinalityType{});
+		}
+		switch (c) {
+			case '}':
+				return std::make_pair(true, card);
+			case ',':
+				reader.consumeWhitespace();
+				break;
+
+			default:
+				return unexpected(reader, logger, "} or ,", c,
+				                  Variant::cardinalityType{});
+		}
+	}
+
+	return error(reader, logger, ERR_UNEXPECTED_END,
+	             Variant::cardinalityType{});
 }
 
 std::pair<bool, Variant> VariantReader::parseGeneric(

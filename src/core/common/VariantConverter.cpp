@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -34,9 +35,9 @@ namespace ousia {
 static std::string msgUnexpectedType(const Variant &v,
                                      VariantType requestedType)
 {
-	return std::string("Cannot convert ") + v.getTypeName() + std::string(" (") +
-	       VariantWriter::writeJsonToString(v, false) + std::string(") to ") +
-	       Variant::getTypeName(requestedType);
+	return std::string("Cannot convert ") + v.getTypeName() +
+	       std::string(" (") + VariantWriter::writeJsonToString(v, false) +
+	       std::string(") to ") + Variant::getTypeName(requestedType);
 }
 
 static std::string msgImplicitConversion(VariantType actualType,
@@ -329,6 +330,114 @@ bool VariantConverter::toMap(Variant &var, const Rtti &innerType,
 	return false;
 }
 
+bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
+{
+	// Perform safe conversions (all these operations are considered "lossless")
+	const VariantType type = var.getType();
+	if (type == VariantType::INT) {
+		int value = var.asInt();
+		var.setCardinality(Variant::cardinalityType{});
+		Variant::cardinalityType &card = var.asCardinality();
+		if (value < 0) {
+			logger.error(
+			    "A value smaller 0 can not be converted to a cardinality!");
+			return false;
+		}
+		card.merge({(unsigned int) value});
+		return true;
+	}
+
+	// Perform lossy conversions
+	if (mode == Mode::ALL) {
+		switch (type) {
+			case VariantType::NULLPTR:
+				var.setCardinality(Variant::cardinalityType{});
+				return true;
+			case VariantType::BOOL: {
+				bool value = var.asBool();
+				var.setCardinality(Variant::cardinalityType{});
+				Variant::cardinalityType &card = var.asCardinality();
+				if (value) {
+					// accept any value
+					card.merge(Range<size_t>::typeRangeFrom(0));
+				}
+				return true;
+			}
+			case VariantType::DOUBLE: {
+				int value = (int)std::round(var.asDouble());
+				var.setCardinality(Variant::cardinalityType{});
+				Variant::cardinalityType &card = var.asCardinality();
+				if (value < 0) {
+					logger.error(
+					    "A value smaller 0 can not be converted to a "
+					    "cardinality!");
+					return false;
+				}
+				card.merge({(unsigned int) value});
+				return true;
+			}
+			case VariantType::ARRAY: {
+				Variant::arrayType arr = var.asArray();
+				var.setCardinality(Variant::cardinalityType{});
+				Variant::cardinalityType &card = var.asCardinality();
+				auto it = arr.begin();
+				while (it != arr.end()) {
+					Variant startVar = *it;
+					if (!startVar.isInt()) {
+						logger.error(
+						    "A non-integer can not be interpreted as the start "
+						    "of a range");
+						return false;
+					}
+					int start = startVar.asInt();
+					if (start < 0) {
+						logger.error(
+						    "A value smaller 0 can not be converted to a "
+						    "cardinality!");
+						return false;
+					}
+					it++;
+					if (it == arr.end()) {
+						return true;
+					}
+					Variant endVar = *it;
+					if (!endVar.isInt()) {
+						logger.error(
+						    "A non-integer can not be interpreted as the end "
+						    "of a range");
+						return false;
+					}
+					int end = endVar.asInt();
+					if (end <= start) {
+						logger.error(
+						    std::string("The supposed start value ") +
+						    std::to_string(start) +
+						    " was bigger or equal to the supposed end value " +
+						    std::to_string(end) + " of the Range.");
+						return false;
+					}
+					card.merge({(unsigned int) start, (unsigned int) end});
+					it++;
+				}
+				return true;
+			}
+			case VariantType::STRING: {
+				var.setCardinality(Variant::cardinalityType{});
+//				Variant::cardinalityType &card = var.asCardinality();
+				// TODO: Implement!
+				return false;
+			}
+			default:
+				break;
+		}
+	}
+
+	// No conversion possible, assign the default value and log an error
+	logger.error(msgUnexpectedType(var, VariantType::CARDINALITY));
+	var.setCardinality(Variant::cardinalityType{});
+	return false;
+}
+
 bool VariantConverter::toFunction(Variant &var, Logger &logger)
 {
 	if (var.isFunction()) {
@@ -342,8 +451,7 @@ bool VariantConverter::toFunction(Variant &var, Logger &logger)
 }
 
 bool VariantConverter::convert(Variant &var, const Rtti &type,
-                               const Rtti &innerType, Logger &logger,
-                               Mode mode)
+                               const Rtti &innerType, Logger &logger, Mode mode)
 {
 	// Check for simple Variant types
 	if (&type == &RttiTypes::None) {
@@ -391,8 +499,8 @@ bool VariantConverter::convert(Variant &var, const Rtti &type,
 	return true;
 }
 
-bool VariantConverter::convert(Variant &var, const Rtti &type,
-                               Logger &logger, Mode mode)
+bool VariantConverter::convert(Variant &var, const Rtti &type, Logger &logger,
+                               Mode mode)
 {
 	return convert(var, type, RttiTypes::None, logger, mode);
 }

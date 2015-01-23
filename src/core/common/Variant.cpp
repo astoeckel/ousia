@@ -31,7 +31,8 @@ namespace ousia {
 
 /* Class Variant::TypeException */
 
-Variant::TypeException::TypeException(VariantType actualType, VariantType requestedType)
+Variant::TypeException::TypeException(VariantType actualType,
+                                      VariantType requestedType)
     : OusiaException(std::string("Variant: Requested \"") +
                      Variant::getTypeName(requestedType) +
                      std::string("\" but is \"") +
@@ -64,6 +65,8 @@ const char *Variant::getTypeName(VariantType type)
 			return "map";
 		case VariantType::OBJECT:
 			return "object";
+		case VariantType::CARDINALITY:
+			return "cardinality";
 		case VariantType::FUNCTION:
 			return "function";
 	}
@@ -108,7 +111,8 @@ Variant::arrayType Variant::toArray() const
 {
 	ExceptionLogger logger;
 	Variant res{*this};
-	VariantConverter::toArray(res, RttiTypes::None, logger, VariantConverter::Mode::ALL);
+	VariantConverter::toArray(res, RttiTypes::None, logger,
+	                          VariantConverter::Mode::ALL);
 	return res.asArray();
 }
 
@@ -116,7 +120,8 @@ Variant::arrayType Variant::toArray(const Rtti &innerType) const
 {
 	ExceptionLogger logger;
 	Variant res{*this};
-	VariantConverter::toArray(res, innerType, logger, VariantConverter::Mode::ALL);
+	VariantConverter::toArray(res, innerType, logger,
+	                          VariantConverter::Mode::ALL);
 	return res.asArray();
 }
 
@@ -124,7 +129,8 @@ Variant::mapType Variant::toMap() const
 {
 	ExceptionLogger logger;
 	Variant res{*this};
-	VariantConverter::toMap(res, RttiTypes::None, logger, VariantConverter::Mode::ALL);
+	VariantConverter::toMap(res, RttiTypes::None, logger,
+	                        VariantConverter::Mode::ALL);
 	return res.asMap();
 }
 
@@ -132,13 +138,22 @@ Variant::mapType Variant::toMap(const Rtti &innerType) const
 {
 	ExceptionLogger logger;
 	Variant res{*this};
-	VariantConverter::toMap(res, innerType, logger, VariantConverter::Mode::ALL);
+	VariantConverter::toMap(res, innerType, logger,
+	                        VariantConverter::Mode::ALL);
 	return res.asMap();
+}
+
+Variant::cardinalityType Variant::toCardinality() const
+{
+	ExceptionLogger logger;
+	Variant res{*this};
+	VariantConverter::toCardinality(res, logger, VariantConverter::Mode::ALL);
+	return res.asCardinality();
 }
 
 /* Type management */
 
-const Rtti& Variant::getRtti() const
+const Rtti &Variant::getRtti() const
 {
 	switch (type) {
 		case VariantType::NULLPTR:
@@ -156,6 +171,8 @@ const Rtti& Variant::getRtti() const
 			return RttiTypes::Array;
 		case VariantType::MAP:
 			return RttiTypes::Map;
+		case VariantType::CARDINALITY:
+			return RttiTypes::Cardinality;
 		case VariantType::FUNCTION:
 			return RttiTypes::Function;
 		case VariantType::OBJECT: {
@@ -198,28 +215,24 @@ bool operator<(const Variant &lhs, const Variant &rhs)
 			return lhs.asArray() < rhs.asArray();
 		case VariantType::MAP:
 			return lhs.asMap() < rhs.asMap();
+		case VariantType::CARDINALITY:
+			throw OusiaException(
+			    "No sensible comparison on cardinalities is possible!");
 		case VariantType::OBJECT:
-			return lhs.asObject().get() < rhs.asObject().get();
+			throw OusiaException(
+			    "No sensible comparison on objects is possible!");
 		case VariantType::FUNCTION:
-			return lhs.asFunction() < rhs.asFunction();
+			throw OusiaException(
+			    "No sensible comparison on functions is possible!");
 	}
 	throw OusiaException("Internal Error! Unknown type!");
 }
 
-bool operator>(const Variant &lhs, const Variant &rhs)
-{
-	return rhs < lhs;
-}
+bool operator>(const Variant &lhs, const Variant &rhs) { return rhs < lhs; }
 
-bool operator<=(const Variant &lhs, const Variant &rhs)
-{
-	return !(lhs > rhs);
-}
+bool operator<=(const Variant &lhs, const Variant &rhs) { return !(lhs > rhs); }
 
-bool operator>=(const Variant &lhs, const Variant &rhs)
-{
-	return !(lhs < rhs);
-}
+bool operator>=(const Variant &lhs, const Variant &rhs) { return !(lhs < rhs); }
 
 bool operator==(const Variant &lhs, const Variant &rhs)
 {
@@ -244,6 +257,8 @@ bool operator==(const Variant &lhs, const Variant &rhs)
 			return lhs.asMap() == rhs.asMap();
 		case VariantType::OBJECT:
 			return lhs.asObject() == rhs.asObject();
+		case VariantType::CARDINALITY:
+			return lhs.asCardinality() == rhs.asCardinality();
 		case VariantType::FUNCTION:
 			return lhs.asFunction() == rhs.asFunction();
 	}
@@ -254,6 +269,5 @@ bool operator!=(const Variant &lhs, const Variant &rhs)
 {
 	return !(lhs == rhs);
 }
-
 }
 

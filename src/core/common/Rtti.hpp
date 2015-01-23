@@ -520,6 +520,11 @@ extern const Rtti Array;
 extern const Rtti Map;
 
 /**
+ * Cardinality type for use by the Variant::getRtti method.
+ */
+extern const Rtti Cardinality;
+
+/**
  * Function type for use by the Variant::getRtti method.
  */
 extern const Rtti Function;
