@@ -16,8 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <core/common/Rtti.hpp>
 #include <core/common/Logger.hpp>
+#include <core/common/Rtti.hpp>
+#include <core/common/Utils.hpp>
 
 #include "ResourceUtils.hpp"
 
@@ -42,15 +43,15 @@ static const std::unordered_map<std::string, ResourceType> RelResourceTypeMap{
 /**
  * Map mapping from relations to the corresponding Rtti descriptor.
  */
-static const std::unordered_map<std::string, Rtti *> RelRttiTypeMap{
-    {"document", &RttiTypes::DOCUMENT},
-    {"domain", &RttiTypes::DOMAIN},
-    {"typesystem", &RttiTypes::TYPESYSTEM}};
+static const std::unordered_map<std::string, const Rtti *> RelRttiTypeMap{
+    {"document", &RttiTypes::Document},
+    {"domain", &RttiTypes::Domain},
+    {"typesystem", &RttiTypes::Typesystem}};
 
 /**
  * Map mapping from Rtti pointers to the corresponding ResourceType.
  */
-static const std::unordered_map<Rtti *, ResourceType> RttiResourceTypeMap{
+static const std::unordered_map<const Rtti *, ResourceType> RttiResourceTypeMap{
     {&RttiTypes::Document, ResourceType::DOCUMENT},
     {&RttiTypes::Domain, ResourceType::DOMAIN_DESC},
     {&RttiTypes::Typesystem, ResourceType::TYPESYSTEM}};
@@ -80,7 +81,7 @@ ResourceType ResourceUtils::deduceResourceType(const std::string &rel,
 ResourceType ResourceUtils::deduceResourceType(const std::string &rel,
                                                Logger &logger)
 {
-	std::string s = Utils::toLowercase(rel);
+	std::string s = Utils::toLower(rel);
 	if (!s.empty()) {
 		auto it = RelResourceTypeMap.find(s);
 		if (it != RelResourceTypeMap.end()) {
@@ -97,8 +98,8 @@ ResourceType ResourceUtils::deduceResourceType(const RttiSet &supportedTypes,
                                                Logger &logger)
 {
 	if (supportedTypes.size() == 1U) {
-		auto it = RttiResourceTypeMap.find(supportedTypes[0]);
-		if (it != RelResourceTypeMap.end()) {
+		auto it = RttiResourceTypeMap.find(*supportedTypes.begin());
+		if (it != RttiResourceTypeMap.end()) {
 			return it->second;
 		}
 	}
@@ -107,14 +108,14 @@ ResourceType ResourceUtils::deduceResourceType(const RttiSet &supportedTypes,
 
 const Rtti *ResourceUtils::deduceRttiType(const std::string &rel)
 {
-	std::string s = Utils::toLowercase(rel);
+	std::string s = Utils::toLower(rel);
 	if (!s.empty()) {
 		auto it = RelRttiTypeMap.find(s);
 		if (it != RelRttiTypeMap.end()) {
 			return it->second;
 		}
 	}
-	return &ResourceType::Node;
+	return &RttiTypes::Node;
 }
 
 RttiSet ResourceUtils::limitRttiTypes(const RttiSet &supportedTypes,
@@ -128,7 +129,7 @@ RttiSet ResourceUtils::limitRttiTypes(const RttiSet &supportedTypes,
 {
 	RttiSet res;
 	for (const Rtti *supportedType : supportedTypes) {
-		if (supportedType.isa(type)) {
+		if (supportedType->isa(*type)) {
 			res.insert(supportedType);
 		}
 	}

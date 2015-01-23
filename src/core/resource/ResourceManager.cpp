@@ -18,12 +18,14 @@
 
 #include <vector>
 
+#include <core/common/CharReader.hpp>
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
 #include <core/common/Rtti.hpp>
 #include <core/common/Utils.hpp>
 #include <core/model/Node.hpp>
 #include <core/parser/ParserContext.hpp>
+#include <core/parser/Parser.hpp>
 #include <core/Registry.hpp>
 
 #include "ResourceManager.hpp"
@@ -33,17 +35,7 @@ namespace ousia {
 
 /* Static helper functions */
 
-static bool typeSetsIntersect(const RttiSet &s1, const RttiSet &s2)
-{
-	for (const Rtti *t1 : s1) {
-		if (t1->isOneOf(s2)) {
-			return true;
-		}
-	}
-	return false;
-}
-
-static void logUnsopportedType(Logger &logger, const RttiSet &supportedTypes)
+static void logUnsopportedType(Logger &logger, Resource &resource, const RttiSet &supportedTypes)
 {
 	// Build a list containing the expected type names
 	std::vector<std::string> expected;
@@ -52,8 +44,8 @@ static void logUnsopportedType(Logger &logger, const RttiSet &supportedTypes)
 	}
 
 	// Log the actual error message
-	ctx.logger.error(
-	    std::string("Expected the file \"") + resource.location +
+	logger.error(
+	    std::string("Expected the file \"") + resource.getLocation() +
 	    std::string("\" to define one of the following internal types ") +
 	    Utils::join(expected, ", ", "{", "}"));
 }
@@ -101,7 +93,7 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, Resource &resource,
 	if (mime.empty()) {
 		mime = ctx.registry.getMimetypeForFilename(resource.getLocation());
 		if (mime.empty()) {
-			ctx.logger.error(std::string("Filename \"") + path +
+			ctx.logger.error(std::string("Filename \"") + resource.getLocation() +
 			                 std::string(
 			                     "\" has an unknown file extension. Explicitly "
 			                     "specify a mimetype."));
@@ -122,8 +114,8 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, Resource &resource,
 	}
 
 	// Make sure the parser returns at least one of the supported types
-	if (!typeSetsIntersect(parserDescr.second, supportedTypes)) {
-		logUnsopportedType(ctx.logger, supportedTypes);
+	if (!Rtti::setIsOneOf(parserDescr.second, supportedTypes)) {
+		logUnsopportedType(ctx.logger, resource, supportedTypes);
 		return nullptr;
 	}
 
@@ -133,7 +125,14 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, Resource &resource,
 	// We can now try to parse the given file
 	Rooted<Node> node;
 	try {
-		CharReader reader(resource.stream(), sourceId);
+		// Set the current source id in the logger instance
+		ScopedLogger logger(ctx.logger, SourceLocation{sourceId});
+
+		// Fetch the input stream and create a char reader
+		std::unique_ptr<std::istream> is = resource.stream();
+		CharReader reader(*is, sourceId);
+
+		// Actually parse the input stream
 		node = parser->parse(reader, ctx);
 		if (node == nullptr) {
 			throw LoggableException{"Internal error: Parser returned null."};
@@ -174,7 +173,7 @@ SourceId ResourceManager::getSourceId(const Resource &resource)
 const Resource &ResourceManager::getResource(SourceId sourceId) const
 {
 	auto it = resources.find(sourceId);
-	if (it != resourced.end()) {
+	if (it != resources.end()) {
 		return it->second;
 	}
 	return NullResource;
@@ -239,7 +238,7 @@ Rooted<Node> ResourceManager::link(ParserContext &ctx, const std::string &path,
 
 	// Make sure the node has one of the supported types
 	if (!node->type().isOneOf(supportedTypes)) {
-		logUnsopportedType(ctx.logger, supportedTypes);
+		logUnsopportedType(ctx.logger, resource, supportedTypes);
 		return nullptr;
 	}
 
@@ -260,7 +259,7 @@ Rooted<Node> ResourceManager::link(ParserContext &ctx, const std::string &path,
 	}
 
 	// Continue with the usual include routine
-	return include(ctx, path, mimetype, rel, supportedTypes, relativeResource);
+	return link(ctx, path, mimetype, rel, supportedTypes, relativeResource);
 }
 
 SourceContext ResourceManager::buildContext(const SourceLocation &location)
@@ -273,6 +272,4 @@ SourceContext ResourceManager::buildContext(const SourceLocation &location)
 }
 
 }
-
-#endif /* _OUSIA_RESOURCE_MANAGER_HPP_ */
 
