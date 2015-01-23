@@ -81,8 +81,7 @@ bool Tokenizer::prepare()
 {
 	std::stringstream buffer;
 	char c;
-	int startColumn = input.getColumn();
-	int startLine = input.getLine();
+	SourcePosition start = input.getOffset();
 	bool bufEmpty = true;
 	while (input.peek(c)) {
 		if (root.children.find(c) != root.children.end()) {
@@ -124,20 +123,16 @@ bool Tokenizer::prepare()
 				if (bufEmpty) {
 					// if we did not have text before, construct that token.
 					if (doPrepare(
-					        Token{match, tBuf.str(), startColumn, startLine,
-					              input.getColumn(), input.getLine()},
+					        Token{match, tBuf.str(), input.getLocation(start)},
 					        peeked)) {
 						return true;
 					} else {
-						startColumn = input.getColumn();
-						startLine = input.getLine();
+						start = input.getOffset();
 						continue;
 					}
 				} else {
 					// otherwise we return the text before the token.
-					if (doPrepare(Token{TOKEN_TEXT, buffer.str(), startColumn,
-					                    startLine, input.getColumn(),
-					                    input.getLine()},
+					if (doPrepare(Token{TOKEN_TEXT, buffer.str(), input.getLocation(start)},
 					              peeked)) {
 						return true;
 					} else{
@@ -146,8 +141,7 @@ bool Tokenizer::prepare()
 						//constructed.
 						buffer.str(std::string());
 						bufEmpty = true;
-						startColumn = input.getColumn();
-						startLine = input.getLine();
+						start = input.getOffset();
 						continue;
 					} 
 				}
@@ -161,8 +155,7 @@ bool Tokenizer::prepare()
 		input.consumePeek();
 	}
 	if (!bufEmpty) {
-		return doPrepare(Token{TOKEN_TEXT, buffer.str(), startColumn, startLine,
-		                       input.getColumn(), input.getLine()},
+		return doPrepare(Token{TOKEN_TEXT, buffer.str(), input.getLocation(start)},
 		                 peeked);
 	}
 	return false;
