@@ -610,6 +610,13 @@ TEST(VariantReader, parseGenericToken)
 		ASSERT_EQ("hello world", res.second.asString());
 	}
 
+	// String with whitespaces at the beginning.
+	{
+		CharReader reader("   \' test\'");
+		auto res = VariantReader::parseGenericToken(reader, logger, {';'}, true);
+		ASSERT_EQ(" test", res.second);
+	}
+
 	// Integer
 	{
 		CharReader reader("1234");

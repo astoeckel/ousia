@@ -563,6 +563,7 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 
 	// Parse a string if a quote is reached
 	if (c == '"' || c == '\'') {
+		reader.resetPeek();
 		auto res = parseString(reader, logger);
 		return std::make_pair(res.first, res.second.c_str());
 	}
