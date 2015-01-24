@@ -41,9 +41,23 @@ std::string Terminal::bright() const
 	if (!useColor) {
 		return std::string{};
 	}
-	std::stringstream ss;
-	ss << "\x1b[1m";
-	return ss.str();
+	return "\x1b[1m";
+}
+
+std::string Terminal::italic() const
+{
+	if (!useColor) {
+		return std::string{};
+	}
+	return "\x1b[3m";
+}
+
+std::string Terminal::underline() const
+{
+	if (!useColor) {
+		return std::string{};
+	}
+	return "\x1b[4m";
 }
 
 std::string Terminal::reset() const

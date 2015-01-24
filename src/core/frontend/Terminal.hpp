@@ -112,6 +112,20 @@ public:
 	std::string bright() const;
 
 	/**
+	 * Makes the text italic.
+	 *
+	 * @return a control string to be included in the output stream.
+	 */
+	std::string italic() const;
+
+	/**
+	 * Underlines the text.
+	 *
+	 * @return a control string to be included in the output stream.
+	 */
+	std::string underline() const;
+
+	/**
 	 * Returns a control string for switching to the default mode.
 	 *
 	 * @return a control string to be included in the output stream.
