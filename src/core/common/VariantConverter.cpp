@@ -111,8 +111,7 @@ bool VariantConverter::toInt(Variant &var, Logger &logger, Mode mode)
 			case VariantType::STRING:
 			case VariantType::MAGIC: {
 				Number n;
-				n.parse(var.asString(), logger);
-				if (n.isInt()) {
+				if (n.parse(var.asString(), logger) && n.isInt()) {
 					var = (Variant::intType)n.intValue();
 					return true;
 				}
@@ -122,12 +121,24 @@ bool VariantConverter::toInt(Variant &var, Logger &logger, Mode mode)
 				try {
 					// JavaScript behaviour when converting arrays to doubles
 					const Variant::arrayType &a = var.asArray();
-					var = (a.size() == 1) ? a[0].toInt() : 0.0;
-					return true;
+					if (a.size() == 1) {
+						var = a[0].toInt();
+						return true;
+					}
 				}
 				catch (LoggableException ex) {
 					logger.log(ex);
+					break;
 				}
+			}
+			case VariantType::CARDINALITY: {
+				const Variant::cardinalityType &card = var.asCardinality();
+				if (card.getRanges().size() == 1 &&
+				    card.getRanges().begin()->isPrimitive()) {
+					var = (Variant::intType)card.getRanges().begin()->start;
+					return true;
+				}
+				break;
 			}
 			default:
 				break;
@@ -168,9 +179,11 @@ bool VariantConverter::toDouble(Variant &var, Logger &logger, Mode mode)
 			case VariantType::STRING:
 			case VariantType::MAGIC: {
 				Number n;
-				n.parse(var.asString(), logger);
-				var = (Variant::doubleType)n.doubleValue();
-				return true;
+				if (n.parse(var.asString(), logger)) {
+					var = (Variant::doubleType)n.doubleValue();
+					return true;
+				}
+				break;
 			}
 			case VariantType::ARRAY: {
 				try {
@@ -181,7 +194,17 @@ bool VariantConverter::toDouble(Variant &var, Logger &logger, Mode mode)
 				}
 				catch (LoggableException ex) {
 					logger.log(ex);
+					break;
 				}
+			}
+			case VariantType::CARDINALITY: {
+				const Variant::cardinalityType &card = var.asCardinality();
+				if (card.getRanges().size() == 1 &&
+				    card.getRanges().begin()->isPrimitive()) {
+					var = (Variant::doubleType)card.getRanges().begin()->start;
+					return true;
+				}
+				break;
 			}
 			default:
 				break;
@@ -233,6 +256,40 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 	// Perform lossy conversions
 	if (mode == Mode::ALL) {
 		switch (type) {
+			case VariantType::CARDINALITY: {
+				// Print cardinality syntax
+				Variant::cardinalityType card = var.asCardinality();
+				std::stringstream ss;
+				ss << "<cardinality {";
+				bool first = true;
+				for (Variant::rangeType r : card.getRanges()) {
+					if (first) {
+						first = false;
+					} else {
+						ss << ", ";
+					}
+					if (r.isPrimitive()) {
+						ss << std::to_string(r.start);
+					} else if (r.isCompact()) {
+						ss << std::to_string(r.start) << "-"
+						   << std::to_string(r.end);
+					} else if (r.isOpenLow()) {
+						if (r.isOpenHigh()) {
+							// if it is open at both ends, we set a Kleene Star
+							ss << "*";
+						} else {
+							ss << "<" << std::to_string(r.end + 1);
+						}
+					} else {
+						// because r is not compact and not open low, it must be
+						// open high.
+						ss << ">" << std::to_string(r.start - 1);
+					}
+				}
+				ss << "}>";
+				var = ss.str().c_str();
+				return true;
+			}
 			case VariantType::ARRAY:
 			case VariantType::MAP: {
 				std::stringstream ss;
@@ -343,7 +400,7 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 			    "A value smaller 0 can not be converted to a cardinality!");
 			return false;
 		}
-		card.merge({(unsigned int) value});
+		card.merge({(unsigned int)value});
 		return true;
 	}
 
@@ -373,7 +430,7 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 					    "cardinality!");
 					return false;
 				}
-				card.merge({(unsigned int) value});
+				card.merge({(unsigned int)value});
 				return true;
 			}
 			case VariantType::ARRAY: {
@@ -416,14 +473,15 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 						    std::to_string(end) + " of the Range.");
 						return false;
 					}
-					card.merge({(unsigned int) start, (unsigned int) end});
+					card.merge({(unsigned int)start, (unsigned int)end});
 					it++;
 				}
 				return true;
 			}
 			case VariantType::STRING: {
 				var.setCardinality(Variant::cardinalityType{});
-//				Variant::cardinalityType &card = var.asCardinality();
+				//				Variant::cardinalityType &card =
+				// var.asCardinality();
 				// TODO: Implement!
 				return false;
 			}
