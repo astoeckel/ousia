@@ -297,8 +297,7 @@ public:
 	 * @param relativeOffs is a positive or negative integer number specifying
 	 * the number of bytes the cursor should be moved forward (positive numbers)
 	 * or backwards (negative numbers).
-	 * @return the actual number of bytes the cursor was moved. This number is
-	 * smaller than the relativeOffs given in the constructor if the
+	 * @return the actual number of bytes the cursor was moved.
 	 */
 	ssize_t moveCursor(CursorId cursor, ssize_t relativeOffs);
 
@@ -523,6 +522,17 @@ public:
 	size_t readRaw(char *buf, size_t size);
 
 	/**
+	 * Moves read and peek cursor to the requested offset. Returns the offset
+	 * that was actually reached.
+	 *
+	 * @param requestedOffset is the requested offset. This offset may no longer
+	 * be reachable by the CharReader.
+	 * @return the actually reached offset. The operation was successful, if
+	 * the requested and reached offset are equal.
+	 */
+	size_t seek(size_t requestedOffset);
+
+	/**
 	 * Returns true if there are no more characters as the stream was closed.
 	 *
 	 * @return true if there is no more data.
@@ -534,14 +544,14 @@ public:
 	 *
 	 * @return the offset of the read cursor in bytes.
 	 */
-	SourceOffset getOffset() const;
+	size_t getOffset() const;
 
 	/**
-	 * Returns the offset of the read cursor in bytes.
+	 * Returns the offset of the peek cursor in bytes.
 	 *
-	 * @return the offset of the read cursor in bytes.
+	 * @return the offset of the peek cursor in bytes.
 	 */
-	SourcePosition getPosition() const;
+	size_t getPeekOffset() const;
 
 	/**
 	 * Returns a SourceLocation object describing the exact position (including

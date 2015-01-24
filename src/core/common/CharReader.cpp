@@ -502,16 +502,31 @@ size_t CharReader::readRaw(char *buf, size_t size)
 	return res;
 }
 
+size_t CharReader::seek(size_t requestedOffset)
+{
+	// Fetch the current offset
+	const ssize_t currentOffs = getOffset();
+	const ssize_t relativeOffs = requestedOffset - currentOffs;
+
+	// Perform the actual seeking, move the peek cursor to the read cursor
+	const ssize_t reachedOffs =  currentOffs + buffer->moveCursor(readCursor, relativeOffs);
+	buffer->copyCursor(readCursor, peekCursor);
+	coherent = true;
+
+	// Clamp to values larger or equal to zero
+	return reachedOffs < 0 ? 0 : reachedOffs;
+}
+
 bool CharReader::atEnd() const { return buffer->atEnd(readCursor); }
 
-SourceOffset CharReader::getOffset() const
+size_t CharReader::getOffset() const
 {
 	return buffer->offset(readCursor) + offs;
 }
 
-SourcePosition CharReader::getPosition() const
+size_t CharReader::getPeekOffset() const
 {
-	return getOffset();
+	return buffer->offset(readCursor) + offs;
 }
 
 SourceLocation CharReader::getLocation() const
