@@ -19,9 +19,8 @@
 /**
  * @file Logger.hpp
  *
- * Contains classes for logging messages in Ousía. Provides a generic Logger
- * class, and TerminalLogger, an extension of Logger which logs do an output
- * stream.
+ * Contains classes for logging messages in Ousía. Provides various base Logger
+ * classes that allow to Fork logger instances or to create a GuardedLogger.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
@@ -30,7 +29,6 @@
 #define _OUSIA_LOGGER_HPP_
 
 #include <cstdint>
-#include <ostream>
 #include <string>
 #include <vector>
 
@@ -109,7 +107,7 @@ inline MessageMode operator|(MessageMode a, MessageMode b)
 
 // Forward declaration
 class LoggerFork;
-class ScopedLogger;
+class GuardedLogger;
 
 /**
  * The Logger class is the base class the individual logging systems should
@@ -123,7 +121,7 @@ class ScopedLogger;
 class Logger {
 public:
 	friend LoggerFork;
-	friend ScopedLogger;
+	friend GuardedLogger;
 
 	/**
 	 * The message struct represents a single log message and all information
@@ -611,12 +609,12 @@ public:
 };
 
 /**
- * The ScopedLogger class can be used to automatically pop any pushed file from
+ * The GuardedLogger class can be used to automatically pop any pushed file from
  * the File stack maintained by a Logger class (in a RAII manner). This
  * simplifies managing pushing and popping files in case there are multiple
  * return calls or exceptions thrown.
  */
-class ScopedLogger : public Logger {
+class GuardedLogger : public Logger {
 private:
 	/**
 	 * Reference to the parent logger instance.
@@ -668,20 +666,20 @@ protected:
 
 public:
 	/**
-	 * Constructor of the ScopedLogger class, pushes a first file instance onto
+	 * Constructor of the GuardedLogger class, pushes a first file instance onto
 	 * the file stack.
 	 *
 	 * @param parent is the parent logger instance to which all calls should
 	 * be relayed.
 	 * @param loc specifies the first source location.
 	 */
-	ScopedLogger(Logger &parent, SourceLocation loc = SourceLocation{});
+	GuardedLogger(Logger &parent, SourceLocation loc = SourceLocation{});
 
 	/**
-	 * Destructor of the ScopedLogger class, automatically unwinds the file
+	 * Destructor of the GuardedLogger class, automatically unwinds the file
 	 * stack.
 	 */
-	~ScopedLogger();
+	~GuardedLogger();
 };
 
 /**
@@ -818,45 +816,6 @@ public:
 	bool hasFatalError();
 };
 
-/**
- * Class extending the Logger class and printing the log messages to the
- * given
- * stream.
- */
-class TerminalLogger : public ConcreteLogger {
-private:
-	/**
-	 * Reference to the target output stream.
-	 */
-	std::ostream &os;
-
-	/**
-	 * If true, the TerminalLogger will use colors to make the log messages
-	 * prettier.
-	 */
-	bool useColor;
-
-protected:
-	void processMessage(const Message &msg) override;
-
-public:
-	/**
-	 * Constructor of the TerminalLogger class.
-	 *
-	 * @param os is the output stream the log messages should be logged to.
-	 * Should be set to std::cerr in most cases.
-	 * @param useColor if true, the TerminalLogger class will do its best to
-	 * use ANSI/VT100 control sequences for colored log messages.
-	 * @param minSeverity is the minimum severity below which log messages
-	 *are
-	 * discarded.
-	 */
-	TerminalLogger(std::ostream &os, bool useColor = false,
-	               Severity minSeverity = DEFAULT_MIN_SEVERITY)
-	    : ConcreteLogger(minSeverity), os(os), useColor(useColor)
-	{
-	}
-};
 }
 
 #endif /* _OUSIA_LOGGER_HPP_ */

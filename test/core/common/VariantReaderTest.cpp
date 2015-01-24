@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 
 #include <core/common/VariantReader.hpp>
+#include <core/frontend/TerminalLogger.hpp>
 
 namespace ousia {
 

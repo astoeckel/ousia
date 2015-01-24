@@ -22,6 +22,7 @@
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
 #include <core/common/Rtti.hpp>
+#include <core/common/SourceContextReader.hpp>
 #include <core/common/Utils.hpp>
 #include <core/model/Node.hpp>
 #include <core/parser/ParserContext.hpp>
@@ -128,7 +129,7 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, Resource &resource,
 	Rooted<Node> node;
 	try {
 		// Set the current source id in the logger instance
-		ScopedLogger logger(ctx.logger, SourceLocation{sourceId});
+		GuardedLogger logger(ctx.logger, SourceLocation{sourceId});
 
 		// Fetch the input stream and create a char reader
 		std::unique_ptr<std::istream> is = resource.stream();
@@ -280,5 +281,11 @@ SourceContext ResourceManager::readContext(const SourceLocation &location,
 	}
 	return SourceContext{};
 }
+
+SourceContext ResourceManager::readContext(const SourceLocation &location)
+{
+	return readContext(location, SourceContextReader::MAX_MAX_CONTEXT_LENGTH);
+}
+
 }
 

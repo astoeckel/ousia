@@ -131,12 +131,13 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Rtti
 	src/core/common/RttiBuilder
 	src/core/common/SourceContextReader
-	src/core/common/Terminal
 	src/core/common/Utils
 	src/core/common/Variant
 	src/core/common/VariantConverter
 	src/core/common/VariantReader
 	src/core/common/VariantWriter
+	src/core/frontend/Terminal
+	src/core/frontend/TerminalLogger
 	src/core/managed/Events
 	src/core/managed/Managed
 	src/core/managed/Manager
@@ -228,6 +229,7 @@ IF(TEST)
 		test/core/common/VariantWriterTest
 		test/core/common/VariantTest
 		test/core/common/UtilsTest
+		test/core/frontend/TerminalLoggerTest
 		test/core/managed/ManagedContainerTest
 		test/core/managed/ManagedTest
 		test/core/managed/ManagerTest

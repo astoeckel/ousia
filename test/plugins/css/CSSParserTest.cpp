@@ -21,9 +21,9 @@
 #include <iostream>
 #include <sstream>
 
-#include <plugins/css/CSSParser.hpp>
-
+#include <core/frontend/TerminalLogger.hpp>
 #include <core/parser/StandaloneParserContext.hpp>
+#include <plugins/css/CSSParser.hpp>
 
 namespace ousia {
 TEST(CSSParser, testParseSelectors)
@@ -266,7 +266,7 @@ void assertException(std::string css)
 	CharReader reader(css);
 	TerminalLogger logger(std::cerr, true);
 	{
-		ScopedLogger sl(logger);
+		GuardedLogger sl(logger);
 		StandaloneParserContext ctx(sl);
 
 		CSSParser instance;

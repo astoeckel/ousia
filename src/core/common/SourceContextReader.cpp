@@ -56,8 +56,8 @@ SourceContext SourceContextReader::readContext(CharReader &reader,
 	size_t offs = 0;
 	auto it = std::lower_bound(cache.begin(), cache.end(), start);
 	if (it != cache.begin()) {
-		it--;  // Go to the previous entry
-		offs = *it; // Read the corresponding byte offset
+		it--;        // Go to the previous entry
+		offs = *it;  // Read the corresponding byte offset
 		size_t line = it - cache.begin() + 1;
 		ctx.startLine = line;
 		ctx.endLine = line;
@@ -182,17 +182,23 @@ SourceContext SourceContextReader::readContext(CharReader &reader,
 		}
 
 		// Update the relative position and length, set the "truncated" flags
-		size_t us = static_cast<size_t>(s), ue = static_cast<size_t>(e);
-		ctx.relPos = start - lineBufStart - us;
-		ctx.relLen = std::min(ctx.relLen, ue - us);
+		ctx.relPos = std::max<ssize_t>(0, start - lineBufStart - s);
+		ctx.relLen = std::min<ssize_t>(ctx.relLen, e - s);
 		ctx.truncatedStart = s > ts || lastLineStart < lineBufStart;
 		ctx.truncatedEnd = e < te;
 
 		// Copy the selected area to the output string
-		ctx.text = std::string{&lineBuf[s], ue - us};
+		ctx.text = std::string{&lineBuf[s], static_cast<size_t>(e - s)};
 	}
 
 	return ctx;
+}
+
+SourceContext SourceContextReader::readContext(CharReader &reader,
+                                               const SourceRange &range,
+                                               const std::string &filename)
+{
+	return readContext(reader, range, MAX_MAX_CONTEXT_LENGTH, filename);
 }
 }
 
