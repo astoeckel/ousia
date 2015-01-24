@@ -27,20 +27,8 @@ namespace ousia {
 
 std::string Utils::trim(const std::string &s)
 {
-	size_t firstNonWhitespace = std::numeric_limits<size_t>::max();
-	size_t lastNonWhitespace = 0;
-	for (size_t i = 0; i < s.size(); i++) {
-		if (!isWhitespace(s[i])) {
-			firstNonWhitespace = std::min(i, firstNonWhitespace);
-			lastNonWhitespace = std::max(i, lastNonWhitespace);
-		}
-	}
-
-	if (firstNonWhitespace < lastNonWhitespace) {
-		return s.substr(firstNonWhitespace,
-		                lastNonWhitespace - firstNonWhitespace + 1);
-	}
-	return std::string{};
+	std::pair<size_t, size_t> bounds = trim(s, Utils::isWhitespace);
+	return s.substr(bounds.first, bounds.second - bounds.first);
 }
 
 bool Utils::isIdentifier(const std::string &name)
