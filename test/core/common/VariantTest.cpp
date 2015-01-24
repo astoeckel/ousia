@@ -124,6 +124,20 @@ TEST(Variant, stringValueConversion)
 	ASSERT_EQ(42.5, v.toDouble());
 }
 
+TEST(Variant, cardinalityValue)
+{
+	Variant::cardinalityType card;
+	card.merge({1,4});
+	card.merge({7,12});
+	const Variant v{card};
+	ASSERT_EQ(card, v.asCardinality());
+
+	ASSERT_TRUE(v.isCardinality());
+	ASSERT_EQ(VariantType::CARDINALITY, v.getType());
+	ASSERT_EQ(&RttiTypes::Cardinality, &v.getRtti());
+}
+
+
 TEST(Variant, arrayValue)
 {
 	const Variant v{{"test1", 42}};

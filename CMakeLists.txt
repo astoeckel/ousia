@@ -223,6 +223,7 @@ IF(TEST)
 		test/core/common/PropertyTest
 		test/core/common/RttiTest
 		test/core/common/SourceContextReaderTest
+		test/core/common/VariantConverterTest
 		test/core/common/VariantReaderTest
 		test/core/common/VariantWriterTest
 		test/core/common/VariantTest
