@@ -35,7 +35,8 @@ namespace ousia {
 
 /* Static helper functions */
 
-static void logUnsopportedType(Logger &logger, Resource &resource, const RttiSet &supportedTypes)
+static void logUnsopportedType(Logger &logger, Resource &resource,
+                               const RttiSet &supportedTypes)
 {
 	// Build a list containing the expected type names
 	std::vector<std::string> expected;
@@ -81,7 +82,7 @@ void ResourceManager::purgeResource(SourceId sourceId)
 	}
 	resources.erase(sourceId);
 	nodes.erase(sourceId);
-	lineNumberCache.erase(sourceId);
+	contextReaders.erase(sourceId);
 }
 
 Rooted<Node> ResourceManager::parse(ParserContext &ctx, Resource &resource,
@@ -93,7 +94,8 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, Resource &resource,
 	if (mime.empty()) {
 		mime = ctx.registry.getMimetypeForFilename(resource.getLocation());
 		if (mime.empty()) {
-			ctx.logger.error(std::string("Filename \"") + resource.getLocation() +
+			ctx.logger.error(std::string("Filename \"") +
+			                 resource.getLocation() +
 			                 std::string(
 			                     "\" has an unknown file extension. Explicitly "
 			                     "specify a mimetype."));
@@ -137,7 +139,8 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, Resource &resource,
 		if (node == nullptr) {
 			throw LoggableException{"Internal error: Parser returned null."};
 		}
-	} catch (LoggableException ex) {
+	}
+	catch (LoggableException ex) {
 		// Remove all data associated with the allocated source id
 		purgeResource(sourceId);
 
@@ -262,14 +265,20 @@ Rooted<Node> ResourceManager::link(ParserContext &ctx, const std::string &path,
 	return link(ctx, path, mimetype, rel, supportedTypes, relativeResource);
 }
 
-SourceContext ResourceManager::buildContext(const SourceLocation &location)
+SourceContext ResourceManager::readContext(const SourceLocation &location,
+                                           size_t maxContextLength)
 {
-	SourceContext res;
+	const Resource &resource = getResource(location.getSourceId());
+	if (resource.isValid()) {
+		// Fetch a char reader for the resource
+		std::unique_ptr<std::istream> is = resource.stream();
+		CharReader reader{*is, location.getSourceId()};
 
-	// TODO
-
-	return res;
+		// Return the context
+		return contextReaders[location.getSourceId()].readContext(
+		    reader, location, maxContextLength, resource.getLocation());
+	}
+	return SourceContext{};
 }
-
 }
 

@@ -20,28 +20,51 @@
 
 #include <gtest/gtest.h>
 
+#include <core/common/CharReader.hpp>
 #include <core/common/Logger.hpp>
+#include <core/common/SourceContextReader.hpp>
 
 namespace ousia {
 
 struct Pos {
 	SourceLocation pos;
 
-	Pos(SourceLocation pos = SourceLocation{})
-	    : pos(pos) {};
+	Pos(SourceLocation pos = SourceLocation{}) : pos(pos){};
 
 	SourceLocation getLocation() { return pos; }
 };
 
+static const std::string testStr =
+    "\\link[domain]{book}\n" // 1
+    "\\link[domain]{meta}\n" // 2
+    "\n" // 3
+    "\\meta{\n" // 4
+    "\t\\title{The Adventures Of Tom Sawyer}\n" // 5
+    "\t\\author{Mark Twain}\n" // 6
+    "}\n" // 7
+    "\n" // 8
+    "\\book{\n" // 9
+    "\n" // 10
+    "\n" // 11
+    "\\chapter\n" // 12
+    "<<TOM!>>\n" // 13
+    "\n" // 14
+    "No answer.\n" // 15
+    "\n" // 16
+    "<<TOM!>>\n" // 17
+    "\n" // 18
+    "No answer.\n" // 19
+    "\n" // 20
+    "<<What's gone with that boy, I wonder? You TOM!>>\n" // 21
+    "}\n"; // 22
+
+static SourceContextReader contextReader{};
+
 static SourceContext contextCallback(const SourceLocation &location)
 {
-	SourceContext ctx;
-	ctx.filename = "testfile.test";
-	ctx.startLine = 10;
-	ctx.endLine = 10;
-	ctx.startColumn = 20;
-	ctx.endColumn = 20;
-	return ctx;
+	CharReader reader{testStr, 0};
+	return contextReader.readContext(reader, location, 60,
+	                                 "the_adventures_of_tom_sawyer.opd");
 }
 
 TEST(TerminalLogger, log)
@@ -52,6 +75,9 @@ TEST(TerminalLogger, log)
 
 	logger.debug("This is a test debug message");
 	logger.note("This is a test note");
+	logger.note("This is a test note with point context", SourceLocation{0, 49});
+	logger.note("This is a test note with range context", SourceLocation{0, 49, 55});
+	logger.note("This is a test note with multiline context", SourceLocation{0, 49, 150});
 	logger.warning("This is a test warning");
 	logger.error("This is a test error");
 	logger.fatalError("This is a test fatal error!");

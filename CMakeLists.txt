@@ -130,6 +130,7 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Property
 	src/core/common/Rtti
 	src/core/common/RttiBuilder
+	src/core/common/SourceContextReader
 	src/core/common/Terminal
 	src/core/common/Utils
 	src/core/common/Variant
@@ -221,6 +222,7 @@ IF(TEST)
 		test/core/common/LoggerTest
 		test/core/common/PropertyTest
 		test/core/common/RttiTest
+		test/core/common/SourceContextReaderTest
 		test/core/common/VariantReaderTest
 		test/core/common/VariantWriterTest
 		test/core/common/VariantTest

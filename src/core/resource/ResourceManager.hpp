@@ -34,6 +34,7 @@
 
 #include <core/common/Location.hpp>
 #include <core/common/Rtti.hpp>
+#include <core/common/SourceContextReader.hpp>
 #include <core/managed/Managed.hpp>
 
 #include "Resource.hpp"
@@ -74,11 +75,11 @@ private:
 	std::unordered_map<SourceId, ManagedUid> nodes;
 
 	/**
-	 * Cache used for translating byte offsets to line numbers. Maps from a
-	 * SourceId onto a list of (sorted) SourceOffsets. The index in the list
-	 * corresponds to the line number.
+	 * Map containing SourceContextReader instances which are -- as their name
+	 * suggests -- used to produce SourceContext structures describing the
+	 * source code at a given SourceLocation.
 	 */
-	std::unordered_map<SourceId, std::vector<SourceOffset>> lineNumberCache;
+	std::unordered_map<SourceId, SourceContextReader> contextReaders;
 
 	/**
 	 * Allocates a new SourceId for the given resource.
@@ -224,11 +225,14 @@ public:
 	 * @param location is the SourceLocation for which context information
 	 * should be retrieved. This method is used by the Logger class to print
 	 * pretty messages.
+	 * @param maxContextLength is the maximum length in character of context
+	 * that should be extracted.
 	 * @return a valid SourceContext if a valid SourceLocation was given or an
 	 * invalid SourceContext if the location is invalid.
 	 */
-	SourceContext buildContext(const SourceLocation &location);
-
+	SourceContext readContext(
+	    const SourceLocation &location,
+	    size_t maxContextLength = SourceContextReader::MAX_MAX_CONTEXT_LENGTH);
 };
 }
 
