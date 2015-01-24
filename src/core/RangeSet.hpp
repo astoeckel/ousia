@@ -128,13 +128,51 @@ struct Range {
 
 	/**
 	 * Calculates the union of the two ranges -- note that this operation is
-	 * only valid if the ranges overlapp. Use the RangeSet class if you cannot
+	 * only valid if the ranges overlap. Use the RangeSet class if you cannot
 	 * guarantee that.
 	 */
 	Range<T> merge(const Range<T> &r) const
 	{
 		return Range(std::min(start, r.start), std::max(end, r.end));
 	}
+
+	/**
+	 * Returns true if and only if this Range only accepts a single element.
+	 *
+	 * @return true if and only if this Range only accepts a single element.
+	 */
+	bool isPrimitive() const { return start == end; }
+	/**
+	 * Returns true if and only if this Range [a,b] meets the criteria:
+	 * * a > lower limit of the type range (a > negative infinity)
+	 * * a < b
+	 * * b < upper limit of the type range (b < infinity)
+	 *
+	 * @return true if and only if this Range is compact as defined above.
+	 */
+	bool isCompact() const
+	{
+		return start > std::numeric_limits<T>::min() && start < end &&
+		       end < std::numeric_limits<T>::max();
+	}
+
+	/**
+	 * Returns true if and only if the lower limit of this Range is equal to the
+	 * type minimum (negative infinity).
+	 *
+	 * @return true if and only if this Range is open at the lower end in the
+	 *         sense defined above.
+	 */
+	bool isOpenLow() const { return start == std::numeric_limits<T>::min(); }
+
+	/**
+	 * Returns true if and only if the upper limit of this Range is equal to the
+	 * type maximum (positive infinity).
+	 *
+	 * @return true if and only if this Range is open at the upper end in the
+	 *         sense defined above.
+	 */
+	bool isOpenHigh() const { return end == std::numeric_limits<T>::max(); }
 
 	/**
 	 * Returns a range that represents the spans the complete set defined by the
