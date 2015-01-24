@@ -45,7 +45,7 @@ class Logger;
 class Number {
 private:
 	/**
-	 * Reprsents the part of the number: Base value a, nominator n, exponent e.
+	 * Represents the part of the number: Base value a, nominator n, exponent e.
 	 */
 	enum class Part { A, N, E };
 
