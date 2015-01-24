@@ -726,7 +726,7 @@ public:
 
 	/**
 	 * Returns a reference to the cardinality value. Performs no type
-	 *conversion.
+	 * conversion.
 	 * Throws an exception if the underlying type is not a cardinality.
 	 *
 	 * @return the cardinality value as reference.
