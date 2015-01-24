@@ -610,11 +610,11 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
 						             Variant::cardinalityType{});
 					}
 					if (c == '<') {
-						card.merge(
-						    Variant::rangeType{0, (unsigned int)n.intValue()});
+						card.merge(Variant::rangeType{
+						    0, (unsigned int)n.intValue() - 1});
 					} else {
 						card.merge(Variant::rangeType::typeRangeFrom(
-						    (unsigned int)n.intValue()));
+						    (unsigned int)n.intValue() + 1));
 					}
 					break;
 				}
