@@ -93,18 +93,27 @@ void TerminalLogger::processMessage(const Message &msg)
 
 			// Indicate truncation and indent non-first lines
 			if (ctx.truncatedStart && firstLine) {
-				os << "[...] ";
+				os << t.italic() << "[...] " << t.reset();
 			}
 			if (!firstLine) {
 				os << "\t";
 			}
 
-			// Print the actual line
-			os << lines[n];
+			// Print the actual line, replace tabs
+			for (char c: lines[n]) {
+				if (c == '\t') {
+					os << "    ";
+				} else {
+					os << c;
+				}
+			}
+			if (!lastLine) {
+				os << t.color(Terminal::BLACK) << "¶" << t.reset();
+			}
 
 			// Indicate truncation
 			if (ctx.truncatedEnd && lastLine) {
-				os << " [...]";
+				os << t.italic() << " [...]" << t.reset();
 			}
 			os << std::endl;
 
@@ -118,31 +127,48 @@ void TerminalLogger::processMessage(const Message &msg)
 
 			// Print the position indicators
 			lend = lastLine ? pend : lstart + lines[n].size();
-			for (size_t i = lstart; i < lend; i++) {
+			bool inRegion = false;
+			for (size_t i = lstart; i < lend + 1; i++) {
 				if (i >= pstart && i < pend) {
-					os << t.color(Terminal::GREEN);
-					for (; i < std::min(lend, pend); i++) {
-						if (relLen == 1) {
-							os << '^';
-						} else {
-							os << '~';
-						}
-						if (i < ctx.text.size() && ctx.text[i] == '\t') {
-							os << '\t';
-						}
+					if (!inRegion) {
+						os << t.color(Terminal::GREEN);
+						inRegion = true;
 					}
-					os << t.reset();
 				} else {
-					if (i < ctx.text.size() && ctx.text[i] == '\t') {
-						os << '\t';
+					if (inRegion) {
+						os << t.reset();
+						inRegion = false;
+					}
+				}
+				char c = i < ctx.text.size() ? ctx.text[i] : ' ';
+				if (c == '\t') {
+					if (inRegion) {
+						if (relLen == 1) {
+							os << "^   ";
+						} else {
+							os << "~~~~";
+						}
 					} else {
-						os << ' ';
+						os << "    ";
+					}
+				} else {
+					if (inRegion) {
+						if (relLen == 1) {
+							os << "^";
+						} else {
+							os << "~";
+						}
+					} else {
+						os << " ";
 					}
 				}
 			}
+			if (inRegion) {
+				os << t.reset();
+			}
 			os << std::endl;
 
-			lstart = lend;
+			lstart = lend + 1; // skip newline
 		}
 	}
 }
