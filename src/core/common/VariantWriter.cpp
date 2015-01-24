@@ -114,6 +114,7 @@ static void writeJsonInternal(const Variant &var, std::ostream &stream,
 		case VariantType::DOUBLE:
 		case VariantType::FUNCTION:
 		case VariantType::OBJECT:
+		case VariantType::CARDINALITY:
 			stream << var.toString();
 			return;
 		case VariantType::STRING:
