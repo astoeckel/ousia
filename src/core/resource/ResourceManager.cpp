@@ -128,7 +128,7 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, Resource &resource,
 	Rooted<Node> node;
 	try {
 		// Set the current source id in the logger instance
-		ScopedLogger logger(ctx.logger, SourceLocation{sourceId});
+		GuardedLogger logger(ctx.logger, SourceLocation{sourceId});
 
 		// Fetch the input stream and create a char reader
 		std::unique_ptr<std::istream> is = resource.stream();

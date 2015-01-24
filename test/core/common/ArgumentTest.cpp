@@ -22,9 +22,8 @@
 
 #include <core/common/Argument.hpp>
 #include <core/common/Function.hpp>
-#include <core/common/Logger.hpp>
 #include <core/common/RttiBuilder.hpp>
-
+#include <core/frontend/TerminalLogger.hpp>
 #include <core/managed/Managed.hpp>
 
 namespace ousia {

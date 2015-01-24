@@ -21,6 +21,7 @@
 #include <iostream>
 
 #include <core/common/Rtti.hpp>
+#include <core/frontend/TerminalLogger.hpp>
 #include <core/model/Typesystem.hpp>
 
 namespace ousia {
