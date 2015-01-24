@@ -21,6 +21,7 @@
 
 #include "Logger.hpp"
 #include "Terminal.hpp"
+#include "Utils.hpp"
 
 namespace ousia {
 
@@ -317,30 +318,75 @@ void TerminalLogger::processMessage(const Message &msg)
 	os << msg.msg << std::endl;
 
 	// Print the error message context if available
-	/*	if (ctx.valid()) {
-	        size_t relPos = ctx.relPos;
-	        if (ctx.truncatedStart) {
-	            os << "[...] ";
-	        }
-	        os << ctx.text;
-	        if (ctx.truncatedEnd) {
-	            os << " [...]";
-	        }
-	        os << std::endl;
+	if (ctx.hasText()) {
+		// Iterate over each line in the text
+		std::vector<std::string> lines = Utils::split(ctx.text, '\n');
 
-	        if (ctx.truncatedStart) {
-	            os << "      ";
-	        }
+		const size_t relLen = ctx.relLen ? ctx.relLen : 1;
+		const size_t relPos = ctx.relPos;
+		const size_t pstart = relPos;
+		const size_t pend = relPos + relLen;
 
-	        for (size_t i = 0; i < relPos; i++) {
-	            if (i < ctx.text.size() && ctx.text[i] == '\t') {
-	                os << '\t';
-	            } else {
-	                os << ' ';
-	            }
-	        }
-	        os << t.color(Terminal::GREEN) << '^' << t.reset() << std::endl;
-	    }*/
+		size_t lstart = 0;
+		size_t lend = 0;
+		for (size_t n = 0; n < lines.size(); n++) {
+			bool firstLine = n == 0;
+			bool lastLine = n == lines.size() - 1;
+
+			// Indicate truncation and indent non-first lines
+			if (ctx.truncatedStart && firstLine) {
+				os << "[...] ";
+			}
+			if (!firstLine) {
+				os << "\t";
+			}
+
+			// Print the actual line
+			os << lines[n];
+
+			// Indicate truncation
+			if (ctx.truncatedEnd && lastLine) {
+				os << " [...]";
+			}
+			os << std::endl;
+
+			// Repeat truncation or indendation space in the next line
+			if (ctx.truncatedStart && firstLine) {
+				os << "      ";
+			}
+			if (!firstLine) {
+				os << "\t";
+			}
+
+			// Print the position indicators
+			lend = lastLine ? pend : lstart + lines[n].size();
+			for (size_t i = lstart; i < lend; i++) {
+				if (i >= pstart && i < pend) {
+					os << t.color(Terminal::GREEN);
+					for (; i < std::min(lend, pend); i++) {
+						if (relLen == 1) {
+							os << '^';
+						} else {
+							os << '~';
+						}
+						if (i < ctx.text.size() && ctx.text[i] == '\t') {
+							os << '\t';
+						}
+					}
+					os << t.reset();
+				} else {
+					if (i < ctx.text.size() && ctx.text[i] == '\t') {
+						os << '\t';
+					} else {
+						os << ' ';
+					}
+				}
+			}
+			os << std::endl;
+
+			lstart = lend;
+		}
+	}
 }
 }
 
