@@ -82,7 +82,25 @@ public:
 	 * @return a SourceContext instance describing the
 	 */
 	SourceContext readContext(CharReader &reader, const SourceRange &range,
-	                          size_t maxContextLength = MAX_MAX_CONTEXT_LENGTH,
+	                          size_t maxContextLength,
+	                          const std::string &filename = "");
+
+	/**
+	 * Returns the context for the char reader and the given SourceRange.
+	 * Returns an invalid source context if either the given range is invalid
+	 * or the byte offset described in the SourceRange cannot be reached because
+	 * the CharReader cannot be seeked back to this position. Does not limit
+	 * the output context.
+	 *
+	 * @param reader is the CharReader instance from which the context should be
+	 * read.
+	 * @param range describes the Range within the source file for which the
+	 * context should be extraced.
+	 * @param filename is the filename that should be stored in the returned
+	 * context.
+	 * @return a SourceContext instance describing the
+	 */
+	SourceContext readContext(CharReader &reader, const SourceRange &range,
 	                          const std::string &filename = "");
 };
 }

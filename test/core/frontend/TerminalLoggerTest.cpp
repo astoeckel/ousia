@@ -35,32 +35,39 @@ struct Pos {
 };
 
 static const std::string testStr =
-    "\\link[domain]{book}\n" // 1
-    "\\link[domain]{meta}\n" // 2
-    "\n" // 3
-    "\\meta{\n" // 4
-    "\t\\title{The Adventures Of Tom Sawyer}\n" // 5
-    "\t\\author{Mark Twain}\n" // 6
-    "}\n" // 7
-    "\n" // 8
-    "\\book{\n" // 9
-    "\n" // 10
-    "\n" // 11
-    "\\chapter\n" // 12
-    "<<TOM!>>\n" // 13
-    "\n" // 14
-    "No answer.\n" // 15
-    "\n" // 16
-    "<<TOM!>>\n" // 17
-    "\n" // 18
-    "No answer.\n" // 19
-    "\n" // 20
-    "<<What's gone with that boy, I wonder? You TOM!>>\n" // 21
-    "}\n"; // 22
+    "\\link[domain]{book}\n"                               // 1
+    "\\link[domain]{meta}\n"                               // 2
+    "\n"                                                   // 3
+    "\\meta{\n"                                            // 4
+    "\t\\title{The Adventures Of Tom Sawyer}\n"            // 5
+    "\t\\author{Mark Twain}\n"                             // 6
+    "}\n"                                                  // 7
+    "\n"                                                   // 8
+    "\\book{\n"                                            // 9
+    "\n"                                                   // 10
+    "\n"                                                   // 11
+    "\\chapter\n"                                          // 12
+    "<<TOM!>>\n"                                           // 13
+    "\n"                                                   // 14
+    "No answer.\n"                                         // 15
+    "\n"                                                   // 16
+    "<<TOM!>>\n"                                           // 17
+    "\n"                                                   // 18
+    "No answer.\n"                                         // 19
+    "\n"                                                   // 20
+    "<<What's gone with that boy, I wonder? You TOM!>>\n"  // 21
+    "}\n";                                                 // 22
 
 static SourceContextReader contextReader{};
 
 static SourceContext contextCallback(const SourceLocation &location)
+{
+	CharReader reader{testStr, 0};
+	return contextReader.readContext(reader, location,
+	                                 "the_adventures_of_tom_sawyer.opd");
+}
+
+static SourceContext truncatedContextCallback(const SourceLocation &location)
 {
 	CharReader reader{testStr, 0};
 	return contextReader.readContext(reader, location, 60,
@@ -75,9 +82,18 @@ TEST(TerminalLogger, log)
 
 	logger.debug("This is a test debug message");
 	logger.note("This is a test note");
-	logger.note("This is a test note with point context", SourceLocation{0, 49});
-	logger.note("This is a test note with range context", SourceLocation{0, 49, 55});
-	logger.note("This is a test note with multiline context", SourceLocation{0, 49, 150});
+	logger.note("This is a test note with point context",
+	            SourceLocation{0, 49});
+	logger.note("This is a test note with range context",
+	            SourceLocation{0, 49, 55});
+	logger.note("This is a test note with multiline context",
+	            SourceLocation{0, 49, 150});
+
+	logger.setSourceContextCallback(truncatedContextCallback);
+	logger.note("This is a test note with truncated multiline context",
+	            SourceLocation{0, 49, 150});
+	logger.setSourceContextCallback(contextCallback);
+
 	logger.warning("This is a test warning");
 	logger.error("This is a test error");
 	logger.fatalError("This is a test fatal error!");
@@ -86,6 +102,14 @@ TEST(TerminalLogger, log)
 
 	try {
 		throw LoggableException{"An exception"};
+	}
+	catch (const LoggableException &ex) {
+		logger.log(ex);
+	}
+
+	try {
+		throw LoggableException{"An exception with context",
+		                        SourceLocation{0, 41, 46}};
 	}
 	catch (const LoggableException &ex) {
 		logger.log(ex);
@@ -101,7 +125,9 @@ TEST(TerminalLogger, fork)
 
 	LoggerFork fork = logger.fork();
 
-	fork.error("This is a test error with context");
+	fork.error("This is a test error without");
+
+	fork.error("This is a test error with context", SourceLocation{0, 6, 12});
 
 	// Print all error messages
 	fork.commit();

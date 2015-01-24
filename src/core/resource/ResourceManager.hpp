@@ -34,7 +34,6 @@
 
 #include <core/common/Location.hpp>
 #include <core/common/Rtti.hpp>
-#include <core/common/SourceContextReader.hpp>
 #include <core/managed/Managed.hpp>
 
 #include "Resource.hpp"
@@ -230,9 +229,22 @@ public:
 	 * @return a valid SourceContext if a valid SourceLocation was given or an
 	 * invalid SourceContext if the location is invalid.
 	 */
-	SourceContext readContext(
-	    const SourceLocation &location,
-	    size_t maxContextLength = SourceContextReader::MAX_MAX_CONTEXT_LENGTH);
+	SourceContext readContext(const SourceLocation &location,
+	                          size_t maxContextLength);
+	/**
+	 * Creates and returns a SourceContext structure containing information
+	 * about the given SourceLocation (such as line and column number). Throws
+	 * a LoggableException if an irrecoverable error occurs while looking up the
+	 * context (such as a no longer existing resource). Does not limit the
+	 * context length.
+	 *
+	 * @param location is the SourceLocation for which context information
+	 * should be retrieved. This method is used by the Logger class to print
+	 * pretty messages.
+	 * @return a valid SourceContext if a valid SourceLocation was given or an
+	 * invalid SourceContext if the location is invalid.
+	 */
+	SourceContext readContext(const SourceLocation &location);
 };
 }
 
