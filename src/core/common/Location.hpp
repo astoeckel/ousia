@@ -371,22 +371,22 @@ struct SourceContext {
 	/**
 	 * Start line, starting with one.
 	 */
-	int startLine;
+	size_t startLine;
 
 	/**
 	 * Start column, starting with one.
 	 */
-	int startColumn;
+	size_t startColumn;
 
 	/**
 	 * End line, starting with one.
 	 */
-	int endLine;
+	size_t endLine;
 
 	/**
 	 * End column, starting with one.
 	 */
-	int endColumn;
+	size_t endColumn;
 
 	/**
 	 * Set to the content of the current line.
@@ -397,13 +397,13 @@ struct SourceContext {
 	 * Relative position (in characters) within that line. May point to
 	 * locations beyond the text content.
 	 */
-	int relPos;
+	size_t relPos;
 
 	/**
 	 * Relative length (in characters) within that line. May end beyond the
 	 * text given in the context.
 	 */
-	int relLen;
+	size_t relLen;
 
 	/**
 	 * Set to true if the beginning of the line has been truncated (because
@@ -447,6 +447,11 @@ struct SourceContext {
 	bool hasFile() const { return !filename.empty(); }
 
 	/**
+	 * Returns true if some valid context text is set.
+	 */
+	bool hasText() const { return !text.empty(); }
+
+	/**
 	 * Returns true, if the start line number is valid, false otherwise.
 	 *
 	 * @return true for valid line numbers.
@@ -479,7 +484,6 @@ using SourceContextCallback =
  * @return an empty, invalid SourceContext.
  */
 SourceContext NullSourceContextCallback(const SourceLocation &location);
-
 }
 
 #endif /* _OUSIA_LOCATION_HPP_ */
