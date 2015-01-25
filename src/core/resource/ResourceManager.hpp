@@ -149,16 +149,18 @@ public:
 	 * (may be empty, in which case the mimetype is deduced from the file
 	 * extension)
 	 * @param rel is a "relation string" supplied by the user which specifies
-	 * the relationship of the specified resource.
+	 * the relationship of the specified resource. May be empty, in which case
+	 * the relation is deduced from the supported types and the types of the
+	 * parser for the given mimetype.
 	 * @param supportedTypes contains the types of the returned Node the caller
 	 * can deal with. Note that only the types the parser claims to return are
 	 * checked, not the actual result.
 	 * @return the parsed node or nullptr if something goes wrong.
 	 */
 	Rooted<Node> link(Registry &registry, ParserContext &ctx,
-	                  const std::string &path, const std::string &mimetype = "",
-	                  const std::string &rel = "",
-	                  const RttiSet &supportedTypes = RttiSet{});
+	                  const std::string &path, const std::string &mimetype,
+	                  const std::string &rel,
+	                  const RttiSet &supportedTypes);
 
 	/**
 	 * Resolves the reference to the file specified by the given path and parses
@@ -179,7 +181,9 @@ public:
 	 * (may be empty, in which case the mimetype is deduced from the file
 	 * extension)
 	 * @param rel is a "relation string" supplied by the user which specifies
-	 * the relationship of the specified resource.
+	 * the relationship of the specified resource. May be empty, in which case
+	 * the relation is deduced from the supported types and the types of the
+	 * parser for the given mimetype.
 	 * @param supportedTypes contains the types of the returned Node the caller
 	 * can deal with. Note that only the types the parser claims to return are
 	 * checked, not the actual result.
@@ -187,9 +191,9 @@ public:
 	 */
 	Rooted<Node> include(Registry &registry, ParserContext &ctx,
 	                     const std::string &path,
-	                     const std::string &mimetype = "",
-	                     const std::string &rel = "",
-	                     const RttiSet &supportedTypes = RttiSet{});
+	                     const std::string &mimetype,
+	                     const std::string &rel,
+	                     const RttiSet &supportedTypes);
 
 	/**
 	 * Creates and returns a SourceContext structure containing information
