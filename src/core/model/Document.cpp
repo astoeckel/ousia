@@ -147,6 +147,10 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		// a constructor we can not check anything else.
 		return false;
 	}
+	// if we have an invalid descriptor we can not proceed either.
+	if(!descriptor->validate(logger)){
+		return false;
+	}
 	// check the attribute primitive content.
 	bool valid;
 	if (descriptor->getAttributesDescriptor() == nullptr) {
@@ -218,7 +222,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			 * cardinality.
 			 */
 			for (auto &ac : fieldDescs[f]->getChildren()) {
-				const size_t min = ac->getCardinality().min();
+				const size_t min = ac->getCardinality().asCardinality().min();
 				if (min > 0) {
 					logger.error(
 					    std::string("Field \"") + fieldDescs[f]->getName() +
@@ -305,7 +309,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			if (n != nums.end()) {
 				num = n->second;
 			}
-			if (!ac->getCardinality().contains(num)) {
+			if (!ac->getCardinality().asCardinality().contains(num)) {
 				logger.error(
 				    std::string("Field \"") + fieldDescs[f]->getName() +
 				    "\" had " + std::to_string(num) + " elements of class \"" +

@@ -306,13 +306,12 @@ Rooted<FieldDescriptor> Descriptor::createFieldDescriptor(
 /* Class StructuredClass */
 
 StructuredClass::StructuredClass(Manager &mgr, std::string name,
-                                 Handle<Domain> domain,
-                                 const Cardinality &cardinality,
+                                 Handle<Domain> domain, Variant cardinality,
                                  Handle<StructType> attributesDescriptor,
                                  Handle<StructuredClass> superclass,
                                  bool transparent, bool root)
     : Descriptor(mgr, std::move(name), domain, attributesDescriptor),
-      cardinality(cardinality),
+      cardinality(std::move(cardinality)),
       superclass(acquire(superclass)),
       subclasses(this),
       transparent(transparent),
@@ -337,6 +336,11 @@ bool StructuredClass::doValidate(Logger &logger) const
 			             "\" but does not have it as superclass!");
 			valid = false;
 		}
+	}
+	// check the cardinality.
+	if(!cardinality.isCardinality()){
+		logger.error(cardinality.toString() + " is not a cardinality!");
+		valid = false;
 	}
 	// check the validity of this superclass.
 	if (superclass != nullptr) {
@@ -496,13 +500,14 @@ bool Domain::removeStructuredClass(Handle<StructuredClass> s)
 }
 
 Rooted<StructuredClass> Domain::createStructuredClass(
-    std::string name, const Cardinality &cardinality,
+    std::string name, Variant cardinality,
     Handle<StructType> attributesDescriptor, Handle<StructuredClass> superclass,
     bool transparent, bool root)
 {
 	return Rooted<StructuredClass>{new StructuredClass(
-	    getManager(), std::move(name), this, cardinality, attributesDescriptor,
-	    superclass, std::move(transparent), std::move(root))};
+	    getManager(), std::move(name), this, std::move(cardinality),
+	    attributesDescriptor, superclass, std::move(transparent),
+	    std::move(root))};
 }
 
 void Domain::addAnnotationClass(Handle<AnnotationClass> a)

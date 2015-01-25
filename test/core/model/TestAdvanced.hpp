@@ -53,7 +53,7 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 	// set up domain node.
 	Rooted<Domain> domain{new Domain(mgr, sys, "headings")};
 	// set up cardinality (every section may have at most one heading).
-	Cardinality card;
+	Variant::cardinalityType card;
 	card.merge({0, 1});
 	// set up heading StructuredClass.
 	Rooted<StructuredClass> heading{new StructuredClass(
@@ -84,8 +84,8 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 	// set up domain node.
 	Rooted<Domain> domain{new Domain(mgr, sys, "list")};
 	// set up cardinality
-	Cardinality any;
-	any.merge(Range<size_t>::typeRangeFrom(0));
+	Variant::cardinalityType any;
+	any.merge(Range<size_t>::typeRange());
 	// get book.paragraph
 	Rooted<StructuredClass> p = resolveDescriptor(bookDomain, "paragraph");
 	// set up item StructuredClass;

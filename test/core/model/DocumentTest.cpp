@@ -117,7 +117,7 @@ TEST(Document, validate)
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	Rooted<Domain> domain{new Domain(mgr, sys, "trivial")};
-	Cardinality single;
+	Variant::cardinalityType single;
 	single.merge({1});
 	// Set up the "root" StructuredClass.
 	Rooted<StructuredClass> rootClass{new StructuredClass(

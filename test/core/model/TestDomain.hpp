@@ -36,10 +36,10 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	// Start with the Domain itself.
 	Rooted<Domain> domain{new Domain(mgr, sys, "book")};
 	// Set up the cardinalities we'll need.
-	Cardinality single;
+	Variant::cardinalityType single;
 	single.merge({1});
-	Cardinality any;
-	any.merge(Range<size_t>::typeRangeFrom(0));
+	Variant::cardinalityType any;
+	any.merge(Range<size_t>::typeRange());
 
 	// Set up the "book" node.
 	Rooted<StructuredClass> book{new StructuredClass(
