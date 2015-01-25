@@ -328,7 +328,7 @@ Rooted<Node> XmlParser::doParse(CharReader &reader, ParserContext &ctx)
 			XML_Error code = XML_GetErrorCode(&p);
 			std::string msg = std::string{XML_ErrorString(code)};
 			throw LoggableException{"XML: " + msg,
-			                        SourceLocation{reader.getSourceId(), offs}};
+			                        SourceLocation{ctx.getSourceId(), offs}};
 		}
 
 		// Abort once there are no more bytes in the stream
