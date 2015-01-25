@@ -121,9 +121,6 @@ namespace ousia {
 
 // Forward declarations
 class Rtti;
-
-namespace model {
-
 class Document;
 class StructureNode;
 class StructuredEntity;
@@ -889,7 +886,6 @@ public:
 	 */
 	bool hasChild(Handle<StructureNode> s) const;
 };
-}
 
 namespace RttiTypes {
 extern const Rtti Document;

@@ -24,7 +24,6 @@
 #include "Domain.hpp"
 
 namespace ousia {
-namespace model {
 
 /* Class FieldDescriptor */
 
@@ -540,21 +539,21 @@ Rooted<AnnotationClass> Domain::createAnnotationClass(
 	return Rooted<AnnotationClass>{new AnnotationClass(
 	    getManager(), std::move(name), this, attributesDescriptor)};
 }
-}
+
 /* Type registrations */
 
 namespace RttiTypes {
 const Rtti FieldDescriptor =
-    RttiBuilder<model::FieldDescriptor>("FieldDescriptor").parent(&Node);
+    RttiBuilder<ousia::FieldDescriptor>("FieldDescriptor").parent(&Node);
 const Rtti Descriptor =
-    RttiBuilder<model::Descriptor>("Descriptor").parent(&Node);
+    RttiBuilder<ousia::Descriptor>("Descriptor").parent(&Node);
 const Rtti StructuredClass =
-    RttiBuilder<model::StructuredClass>("StructuredClass")
+    RttiBuilder<ousia::StructuredClass>("StructuredClass")
         .parent(&Descriptor)
         .composedOf(&FieldDescriptor);
 const Rtti AnnotationClass =
-    RttiBuilder<model::AnnotationClass>("AnnotationClass").parent(&Descriptor);
-const Rtti Domain = RttiBuilder<model::Domain>("Domain")
+    RttiBuilder<ousia::AnnotationClass>("AnnotationClass").parent(&Descriptor);
+const Rtti Domain = RttiBuilder<ousia::Domain>("Domain")
                         .parent(&Node)
                         .composedOf({&StructuredClass, &AnnotationClass});
 }

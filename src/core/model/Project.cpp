@@ -25,7 +25,6 @@
 
 namespace ousia {
 
-namespace model {
 
 Project::Project(Manager &mgr)
     : Node(mgr),
@@ -69,10 +68,9 @@ void Project::addDocument(Handle<Document> document)
 }
 
 const NodeVector<Document> &Project::getDocuments() const { return documents; }
-}
 
 namespace RttiTypes {
-const Rtti Project = RttiBuilder<model::Project>("Project")
+const Rtti Project = RttiBuilder<ousia::Project>("Project")
                          .parent(&Node)
                          .composedOf(&Document)
                          .composedOf(&SystemTypesystem);

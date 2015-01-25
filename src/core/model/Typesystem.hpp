@@ -42,10 +42,6 @@ namespace ousia {
 
 // Forward declarations
 class Rtti;
-
-namespace model {
-
-// Forward declarations
 class Typesystem;
 class SystemTypesystem;
 
@@ -1131,7 +1127,6 @@ public:
 	 */
 	Rooted<BoolType> getBoolType() { return boolType; }
 };
-}
 
 /* RTTI type registrations */
 

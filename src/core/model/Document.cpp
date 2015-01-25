@@ -25,7 +25,6 @@
 #include <core/common/RttiBuilder.hpp>
 
 namespace ousia {
-namespace model {
 
 /* Class DocumentEntity */
 
@@ -700,24 +699,23 @@ bool Document::hasChild(Handle<StructureNode> s) const
 	}
 	return false;
 }
-}
 
 /* Type registrations */
 namespace RttiTypes {
-const Rtti Document = RttiBuilder<model::Document>("Document")
+const Rtti Document = RttiBuilder<ousia::Document>("Document")
                           .parent(&Node)
                           .composedOf({&AnnotationEntity, &StructuredEntity});
 const Rtti StructureNode =
-    RttiBuilder<model::StructureNode>("StructureNode").parent(&Node);
+    RttiBuilder<ousia::StructureNode>("StructureNode").parent(&Node);
 const Rtti StructuredEntity =
-    RttiBuilder<model::StructuredEntity>("StructuredEntity")
+    RttiBuilder<ousia::StructuredEntity>("StructuredEntity")
         .parent(&StructureNode)
         .composedOf({&StructuredEntity, &DocumentPrimitive, &Anchor});
-const Rtti DocumentPrimitive = RttiBuilder<model::DocumentPrimitive>(
+const Rtti DocumentPrimitive = RttiBuilder<ousia::DocumentPrimitive>(
                                    "DocumentPrimitive").parent(&StructureNode);
-const Rtti Anchor = RttiBuilder<model::Anchor>("Anchor").parent(&StructureNode);
+const Rtti Anchor = RttiBuilder<ousia::Anchor>("Anchor").parent(&StructureNode);
 const Rtti AnnotationEntity =
-    RttiBuilder<model::AnnotationEntity>("AnnotationEntity")
+    RttiBuilder<ousia::AnnotationEntity>("AnnotationEntity")
         .parent(&Node)
         .composedOf({&StructuredEntity, &DocumentPrimitive, &Anchor});
 }

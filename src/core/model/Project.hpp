@@ -36,7 +36,6 @@ namespace ousia {
 class Logger;
 class Rtti;
 
-namespace model {
 
 class SystemTypesystem;
 class Typesystem;
@@ -123,7 +122,6 @@ public:
 	 */
 	const NodeVector<Document> &getDocuments() const;
 };
-}
 
 namespace RttiTypes {
 /**

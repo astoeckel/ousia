@@ -23,7 +23,6 @@
 #include <core/common/VariantConverter.hpp>
 
 namespace ousia {
-namespace model {
 
 /* Class Type */
 
@@ -562,31 +561,31 @@ SystemTypesystem::SystemTypesystem(Manager &mgr)
 	addType(doubleType);
 	addType(boolType);
 }
-}
+
 /* RTTI type registrations */
 
 namespace RttiTypes {
-const Rtti Type = RttiBuilder<model::Type>("Type").parent(&Node);
+const Rtti Type = RttiBuilder<ousia::Type>("Type").parent(&Node);
 const Rtti StringType =
-    RttiBuilder<model::StringType>("StringType").parent(&Type);
-const Rtti IntType = RttiBuilder<model::IntType>("IntType").parent(&Type);
+    RttiBuilder<ousia::StringType>("StringType").parent(&Type);
+const Rtti IntType = RttiBuilder<ousia::IntType>("IntType").parent(&Type);
 const Rtti DoubleType =
-    RttiBuilder<model::DoubleType>("DoubleType").parent(&Type);
-const Rtti BoolType = RttiBuilder<model::BoolType>("BoolType").parent(&Type);
-const Rtti EnumType = RttiBuilder<model::EnumType>("EnumType").parent(&Type);
+    RttiBuilder<ousia::DoubleType>("DoubleType").parent(&Type);
+const Rtti BoolType = RttiBuilder<ousia::BoolType>("BoolType").parent(&Type);
+const Rtti EnumType = RttiBuilder<ousia::EnumType>("EnumType").parent(&Type);
 const Rtti StructType =
-    RttiBuilder<model::StructType>("StructType").parent(&Type).composedOf(&Attribute);
-const Rtti ArrayType = RttiBuilder<model::ArrayType>("ArrayType").parent(&Type);
+    RttiBuilder<ousia::StructType>("StructType").parent(&Type).composedOf(&Attribute);
+const Rtti ArrayType = RttiBuilder<ousia::ArrayType>("ArrayType").parent(&Type);
 const Rtti UnknownType =
-    RttiBuilder<model::UnknownType>("UnknownType").parent(&Type);
-const Rtti Constant = RttiBuilder<model::Constant>("Constant").parent(&Node);
-const Rtti Attribute = RttiBuilder<model::Attribute>("Attribute").parent(&Node);
+    RttiBuilder<ousia::UnknownType>("UnknownType").parent(&Type);
+const Rtti Constant = RttiBuilder<ousia::Constant>("Constant").parent(&Node);
+const Rtti Attribute = RttiBuilder<ousia::Attribute>("Attribute").parent(&Node);
 const Rtti Typesystem =
-    RttiBuilder<model::Typesystem>("Typesystem").parent(&Node).composedOf(
+    RttiBuilder<ousia::Typesystem>("Typesystem").parent(&Node).composedOf(
         {&StringType, &IntType, &DoubleType, &BoolType, &EnumType, &StructType,
          &Constant});
 const Rtti SystemTypesystem =
-    RttiBuilder<model::SystemTypesystem> ("SystemTypesystem").parent(&Typesystem);
+    RttiBuilder<ousia::SystemTypesystem> ("SystemTypesystem").parent(&Typesystem);
 }
 }
 

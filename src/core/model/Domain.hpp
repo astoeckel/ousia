@@ -212,10 +212,6 @@ namespace ousia {
 
 // Forward declarations
 class Rtti;
-
-namespace model {
-
-// Forward declarations
 class Descriptor;
 class StructuredClass;
 class Domain;
@@ -1086,7 +1082,6 @@ public:
 		typesystems.insert(typesystems.end(), ts.begin(), ts.end());
 	}
 };
-}
 
 namespace RttiTypes {
 
