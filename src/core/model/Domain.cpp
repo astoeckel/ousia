@@ -60,10 +60,10 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	bool valid = true;
 	// check parent type
 	if (getParent() == nullptr) {
-		logger.error("This field has no parent!");
+		logger.error("This field has no parent!", *this);
 		valid = false;
 	} else if (!getParent()->isa(RttiTypes::Descriptor)) {
-		logger.error("The parent of this field is not a descriptor!");
+		logger.error("The parent of this field is not a descriptor!", *this);
 		valid = false;
 	}
 	// check name
@@ -75,20 +75,20 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 		if (children.size() > 0) {
 			logger.error(
 			    "This field is supposed to be primitive but has "
-			    "registered child classes!");
+			    "registered child classes!", *this);
 			valid = false;
 		}
 		if (primitiveType == nullptr) {
 			logger.error(
 			    "This field is supposed to be primitive but has "
-			    "no primitive type!");
+			    "no primitive type!", *this);
 			valid = false;
 		}
 	} else {
 		if (primitiveType != nullptr) {
 			logger.error(
 			    "This field is supposed to be non-primitive but has "
-			    "a primitive type!");
+			    "a primitive type!", *this);
 			valid = false;
 		}
 	}
@@ -102,7 +102,7 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 		if (!names.insert(c->getName()).second) {
 			logger.error(std::string("Field \"") + getName() +
 			             "\" had multiple children with the name \"" +
-			             c->getName() + "\"");
+			             c->getName() + "\"", *this);
 			valid = false;
 		}
 	}
@@ -139,15 +139,15 @@ bool Descriptor::doValidate(Logger &logger) const
 	bool valid = true;
 	// check parent type
 	if (getParent() == nullptr) {
-		logger.error("This Descriptor has no parent!");
+		logger.error("This Descriptor has no parent!", *this);
 		valid = false;
 	} else if (!getParent()->isa(RttiTypes::Domain)) {
-		logger.error("The parent of this Descriptor is not a Domain!");
+		logger.error("The parent of this Descriptor is not a Domain!", *this);
 		valid = false;
 	}
 	// check name
 	if (getName().empty()) {
-		logger.error("The name of this Descriptor is empty!");
+		logger.error("The name of this Descriptor is empty!", *this);
 		valid = false;
 	} else {
 		valid = valid & validateName(logger);
@@ -160,7 +160,7 @@ bool Descriptor::doValidate(Logger &logger) const
 			             "field \"" +
 			             fd->getName() +
 			             "\" as child but the field does not "
-			             "have the Descriptor as parent.");
+			             "have the Descriptor as parent.", *this);
 			valid = false;
 		}
 	}
@@ -333,13 +333,13 @@ bool StructuredClass::doValidate(Logger &logger) const
 		if (sub->getSuperclass() != this) {
 			logger.error(std::string("Struct \"") + sub->getName() +
 			             "\" is registered as subclass of \"" + getName() +
-			             "\" but does not have it as superclass!");
+			             "\" but does not have it as superclass!", *this);
 			valid = false;
 		}
 	}
 	// check the cardinality.
 	if(!cardinality.isCardinality()){
-		logger.error(cardinality.toString() + " is not a cardinality!");
+		logger.error(cardinality.toString() + " is not a cardinality!", *this);
 		valid = false;
 	}
 	// check the validity of this superclass.
