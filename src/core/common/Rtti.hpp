@@ -403,6 +403,17 @@ public:
 	static bool setIsOneOf(const RttiSet &s1, const RttiSet &s2);
 
 	/**
+	 * Calculates the intersection of two RttiSets. Only the elements of s1
+	 * which are at least one element in s2 are returned.
+	 *
+	 * @param s1 is the first set. For each type in this set we check whether
+	 * it is one of the types in s2, only those elements are returned.
+	 * @param s2 is the second set.
+	 * @return s1 restricted to the types in s2.
+	 */
+	static RttiSet setIntersection(const RttiSet &s1, const RttiSet &s2);
+
+	/**
 	 * Returns true if an instance of this type may have references to the other
 	 * given type. This mechanism is used to prune impossible paths when
 	 * resolving objects of a certain type by name in an object graph.

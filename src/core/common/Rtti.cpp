@@ -147,6 +147,17 @@ bool Rtti::setIsOneOf(const RttiSet &s1, const RttiSet &s2)
 	return false;
 }
 
+RttiSet Rtti::setIntersection(const RttiSet &s1, const RttiSet &s2)
+{
+	RttiSet res;
+	for (const Rtti *t1 : s1) {
+		if (t1->isOneOf(s2)) {
+			res.insert(t1);
+		}
+	}
+	return res;
+}
+
 bool Rtti::composedOf(const Rtti &other) const
 {
 	initialize();
