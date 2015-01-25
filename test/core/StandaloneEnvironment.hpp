@@ -16,11 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_STANDALONE_PARSER_CONTEXT_
-#define _OUSIA_STANDALONE_PARSER_CONTEXT_
+#ifndef _OUSIA_STANDALONE_ENVIRONMENT_
+#define _OUSIA_STANDALONE_ENVIRONMENT_
 
 #include <memory>
 
+#include <core/common/Logger.hpp>
 #include <core/model/Project.hpp>
 #include <core/parser/Parser.hpp>
 #include <core/parser/ParserScope.hpp>
@@ -29,28 +30,29 @@
 
 namespace ousia {
 
-struct StandaloneParserContext {
-public:
+struct StandaloneEnvironment {
+	ConcreteLogger &logger;
 	Manager manager;
-	Logger logger;
 	Registry registry;
 	Rooted<Project> project;
 	ParserScope scope;
 	ParserContext context;
 
-	StandaloneParserContext()
-	    : project(new Project(manager, registry)),
+	StandaloneEnvironment(ConcreteLogger &logger)
+	    : logger(logger), project(new Project(manager, registry)),
 	      context(project, scope, logger)
 	{
+		logger.reset();
+		logger.setSourceContextCallback(
+		    project->getSourceContextCallback());
 	}
 
-	StandaloneParserContext(Logger &externalLogger)
-	    : project(new Project(manager, registry)),
-	      context(project, scope, externalLogger)
+	~StandaloneEnvironment()
 	{
+		logger.setSourceContextCallback(NullSourceContextCallback);
 	}
 };
 }
 
-#endif /* _OUSIA_STANDALONE_PARSER_CONTEXT_ */
+#endif /* _OUSIA_STANDALONE_ENVIRONMENT_ */
 
