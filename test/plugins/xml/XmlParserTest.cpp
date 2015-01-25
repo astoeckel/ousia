@@ -21,75 +21,54 @@
 #include <gtest/gtest.h>
 
 #include <core/common/CharReader.hpp>
-#include <core/common/Logger.hpp>
 #include <core/common/SourceContextReader.hpp>
+#include <core/model/Project.hpp>
 #include <core/frontend/TerminalLogger.hpp>
-#include <core/parser/StandaloneParserContext.hpp>
+#include <core/StandaloneEnvironment.hpp>
 
+#include <plugins/filesystem/FileLocator.hpp>
 #include <plugins/xml/XmlParser.hpp>
 
 namespace ousia {
 
-static TerminalLogger logger(std::cerr, true);
-
-TEST(XmlParser, mismatchedTagException)
-{
-	StandaloneParserContext ctx;
-	XmlParser p;
-
-	bool hadException = false;
-	try {
-		p.parse("<document>\n</document2>", ctx.context);
-	}
-	catch (LoggableException ex) {
-		hadException = true;
-	}
-	ASSERT_TRUE(hadException);
+namespace RttiTypes {
+extern const Rtti Document;
+extern const Rtti Typesystem;
 }
 
-const char *TEST_DATA =
-    "<?xml version=\"1.0\" standalone=\"yes\"?>\n"
-    "<document a:bc=\"b\">\n"
-    "	<head>\n"
-    "		<typesystem name=\"color\">\n"
-    "			<types>\n"
-    "				<struct name=\"rgb\">\n"
-    "					<field name=\"r\" type=\"double\"/>\n"
-    "					<field name=\"g\" type=\"double\"/>\n"
-    "					<field name=\"b\" type=\"double\"/>\n"
-    "				</struct>\n"
-    "				<struct name=\"rgba\" parent=\"rgb\">\n"
-    "					<field name=\"a\" type=\"double\" default=\"0xf3\"/>\n"
-    "				</struct>\n"
-    "			</types>\n"
-    "		</typesystem>\n"
-    "		<typesystem name=\"color2\">\n"
-    "			<types>\n"
-    "				<struct name=\"rgba\" parent=\"rgb\">\n"
-    "					<field name=\"a\" type=\"bla\" default=\"0xf3\"/>\n"
-    "				</struct>\n"
-    "			</types>\n"
-    "		</typesystem>\n"
-    "	</head>\n"
-    "	<body xmlAttr=\"blub\">\n"
-    "		<!--<book>Dies ist ein Test&gt;</book>-->\n"
-    "	</body>\n"
-    "</document>\n";
+struct XmlStandaloneEnvironment : public StandaloneEnvironment {
+	XmlParser xmlParser;
+	FileLocator fileLocator;
 
-TEST(XmlParser, namespaces)
-{
-	StandaloneParserContext ctx(logger);
-	XmlParser p;
-	CharReader reader(TEST_DATA);
+	XmlStandaloneEnvironment(ConcreteLogger &logger)
+	    : StandaloneEnvironment(logger)
 	{
-		try {
-			p.parse(TEST_DATA, ctx.context);
-		}
-		catch (LoggableException ex) {
-			logger.log(ex);
-		}
-		ctx.manager.exportGraphviz("xmlDocument.dot");
+		fileLocator.addUnittestSearchPath("xmlparser");
+
+		registry.registerDefaultExtensions();
+		registry.registerParser({"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
+		                        {&RttiTypes::Document, &RttiTypes::Typesystem},
+		                        &xmlParser);
+		registry.registerResourceLocator(&fileLocator);
 	}
+};
+
+static TerminalLogger logger(std::cerr, true);
+
+TEST(XmlParser, mismatchedTag)
+{
+	XmlStandaloneEnvironment env(logger);
+	env.project->parse("mismatchedTag.oxm", "", "",
+	                   RttiSet{&RttiTypes::Document}, logger);
+	ASSERT_TRUE(logger.hasError());
+}
+
+TEST(XmlParser, generic)
+{
+	XmlStandaloneEnvironment env(logger);
+	env.project->parse("generic.oxm", "", "", RttiSet{&RttiTypes::Document},
+	                   logger);
+	env.manager.exportGraphviz("xmlDocument.dot");
 }
 }
 

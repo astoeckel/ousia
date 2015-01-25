@@ -22,10 +22,14 @@
 #include <sstream>
 
 #include <core/frontend/TerminalLogger.hpp>
-#include <core/parser/StandaloneParserContext.hpp>
+#include <core/StandaloneEnvironment.hpp>
 #include <plugins/css/CSSParser.hpp>
 
 namespace ousia {
+
+static TerminalLogger logger(std::cerr, true);
+//static ConcreteLogger logger;
+
 TEST(CSSParser, testParseSelectors)
 {
 	// create a string describing a SelectorTree
@@ -39,12 +43,12 @@ TEST(CSSParser, testParseSelectors)
 	 */
 
 	// initialize an empty parser context.
-	StandaloneParserContext ctx;
+	StandaloneEnvironment env(logger);
 
 	// parse the data.
 	CSSParser instance;
 	Rooted<SelectorNode> root =
-	    instance.parse(data, ctx.context).cast<SelectorNode>();
+	    instance.parse(data, env.context).cast<SelectorNode>();
 
 	// we expect three children of the root node overall.
 	ASSERT_EQ(3U, root->getEdges().size());
@@ -149,13 +153,13 @@ TEST(CSSParser, testParseCSS)
 	input << "}\n";
 
 	// initialize an empty parser context.
-	StandaloneParserContext ctx;
+	StandaloneEnvironment env(logger);
 
 	// parse the input.
 	CSSParser instance;
 	CharReader reader{input};
 	Rooted<SelectorNode> root =
-	    instance.parse(reader, ctx.context).cast<SelectorNode>();
+	    instance.parse(reader, env.context).cast<SelectorNode>();
 
 	// we expect three children of the root node overall.
 	ASSERT_EQ(3U, root->getEdges().size());
@@ -264,12 +268,13 @@ TEST(CSSParser, testParseCSS)
 void assertException(std::string css)
 {
 	CharReader reader(css);
-	TerminalLogger logger(std::cerr, true);
 	{
-		StandaloneParserContext ctx(logger);
+		StandaloneEnvironment env(logger);
 		CSSParser instance;
+
+		logger.reset();
 		try {
-			instance.parse(reader, ctx.context).cast<SelectorNode>();
+			instance.parse(reader, env.context).cast<SelectorNode>();
 		}
 		catch (LoggableException ex) {
 			logger.log(ex);

@@ -290,6 +290,7 @@ IF(TEST)
 		${GTEST_LIBRARIES}
 		ousia_core
 		ousia_xml
+		ousia_filesystem
 	)
 
 #	ADD_EXECUTABLE(ousia_test_mozjs

@@ -21,9 +21,11 @@
 #include <gtest/gtest.h>
 
 #include <core/parser/ParserStack.hpp>
-#include <core/parser/StandaloneParserContext.hpp>
+#include <core/StandaloneEnvironment.hpp>
 
 namespace ousia {
+
+ConcreteLogger logger;
 
 static const State STATE_DOCUMENT = 0;
 static const State STATE_BODY = 1;
@@ -67,8 +69,8 @@ static const std::multimap<std::string, HandlerDescriptor> TEST_HANDLERS{
 
 TEST(ParserStack, simpleTest)
 {
-	StandaloneParserContext ctx;
-	ParserStack s{ctx.context, TEST_HANDLERS};
+	StandaloneEnvironment env(logger);
+	ParserStack s{env.context, TEST_HANDLERS};
 
 	startCount = 0;
 	endCount = 0;
@@ -130,8 +132,8 @@ TEST(ParserStack, simpleTest)
 
 TEST(ParserStack, errorHandling)
 {
-	StandaloneParserContext ctx;
-	ParserStack s{ctx.context, TEST_HANDLERS};
+	StandaloneEnvironment env(logger);
+	ParserStack s{env.context, TEST_HANDLERS};
 
 	ASSERT_THROW(s.start("body", {}), OusiaException);
 	s.start("document", {});
@@ -149,9 +151,8 @@ TEST(ParserStack, errorHandling)
 
 TEST(ParserStack, validation)
 {
-	ConcreteLogger logger;
-	StandaloneParserContext ctx(logger);
-	ParserStack s{ctx.context, TEST_HANDLERS};
+	StandaloneEnvironment env(logger);
+	ParserStack s{env.context, TEST_HANDLERS};
 
 	s.start("arguments", {});
 	ASSERT_TRUE(logger.hasError());
