@@ -8,6 +8,8 @@
 					<field name="g" type="double"/>
 					<field name="b" type="double"/>
 				</struct>
+				<struct name="rgb">
+				</struct>
 				<struct name="rgba" parent="rgb">
 					<field name="a" type="double" default="0xf3"/>
 				</struct>
