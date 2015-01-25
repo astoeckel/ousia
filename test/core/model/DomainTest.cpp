@@ -151,8 +151,8 @@ TEST(Descriptor, pathToAdvanced)
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Construct the domain
 	Rooted<Domain> domain{new Domain(mgr, sys, "nasty")};
-	Cardinality any;
-	any.merge(Range<size_t>::typeRangeFrom(0));
+	Variant::cardinalityType any;
+	any.merge(Range<size_t>::typeRange());
 
 	// Let's create the classes that we need first
 	Rooted<StructuredClass> A{new StructuredClass(
@@ -224,8 +224,8 @@ TEST(StructuredClass, isSubclassOf)
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	Rooted<Domain> domain{new Domain(mgr, sys, "inheritance")};
-	Cardinality any;
-	any.merge(Range<size_t>::typeRangeFrom(0));
+	Variant::cardinalityType any;
+	any.merge(Range<size_t>::typeRange());
 	Rooted<StructuredClass> A{new StructuredClass(
 	    mgr, "A", domain, any, {nullptr}, {nullptr}, false, true)};
 	// first branch

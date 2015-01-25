@@ -559,6 +559,7 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
 			switch (c) {
 				case '}':
 				case ',':
+					card.merge({start});
 					reader.resetPeek();
 					break;
 				case '-': {
@@ -569,6 +570,7 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
 						error(reader, logger, ERR_UNEXPECTED_END,
 						      Variant::cardinalityType{});
 					}
+					reader.resetPeek();
 					Number n2;
 					if (!n2.parse(reader, logger, cardDelims) || !n2.isInt() ||
 					    n2.intValue() < 0) {
@@ -576,8 +578,16 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
 						             "Invalid number for cardinality!",
 						             Variant::cardinalityType{});
 					}
-
 					unsigned int end = (unsigned int)n2.intValue();
+					if (end <= start) {
+						return error(reader, logger,
+						             std::string("The start of the range (") +
+						                 std::to_string(start) +
+						                 ") was bigger (or equal) to the end "
+						                 "of the range (" +
+						                 std::to_string(end) + ")!",
+						             Variant::cardinalityType{});
+					}
 					card.merge({start, end});
 					break;
 				}

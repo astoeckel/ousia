@@ -141,9 +141,13 @@ bool DocumentEntity::doValidate(Logger &logger) const
 {
 	// if we have no descriptor, this is invalid.
 	if (descriptor == nullptr) {
-		logger.error("This entity has no descriptor!");
+		logger.error("This entity has no descriptor!", *subInst);
 		// in this case we have to stop the validation process, because without
 		// a constructor we can not check anything else.
+		return false;
+	}
+	// if we have an invalid descriptor we can not proceed either.
+	if (!descriptor->validate(logger)) {
 		return false;
 	}
 	// check the attribute primitive content.
@@ -176,8 +180,9 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				case 0:
 					if (!fieldDescs[f]->isOptional()) {
 						logger.error(std::string("Primitive Field \"") +
-						             fieldDescs[f]->getName() +
-						             "\" had no content!");
+						                 fieldDescs[f]->getName() +
+						                 "\" had no content!",
+						             *subInst);
 						valid = false;
 					}
 					continue;
@@ -185,16 +190,18 @@ bool DocumentEntity::doValidate(Logger &logger) const
 					break;
 				default:
 					logger.error(std::string("Primitive Field \"") +
-					             fieldDescs[f]->getName() +
-					             "\" had more than one child!");
+					                 fieldDescs[f]->getName() +
+					                 "\" had more than one child!",
+					             *subInst);
 					valid = false;
 					continue;
 			}
 			// if we are here we know that exactly one child exists.
 			if (!fields[f][0]->isa(RttiTypes::DocumentPrimitive)) {
 				logger.error(std::string("Primitive Field \"") +
-				             fieldDescs[f]->getName() +
-				             "\" has non primitive content!");
+				                 fieldDescs[f]->getName() +
+				                 "\" has non primitive content!",
+				             *subInst);
 				valid = false;
 			} else {
 				Handle<DocumentPrimitive> primitive =
@@ -217,14 +224,16 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			 * cardinality.
 			 */
 			for (auto &ac : fieldDescs[f]->getChildren()) {
-				const size_t min = ac->getCardinality().min();
+				const size_t min = ac->getCardinality().asCardinality().min();
 				if (min > 0) {
-					logger.error(
-					    std::string("Field \"") + fieldDescs[f]->getName() +
-					    "\" was empty but needs at least " +
-					    std::to_string(min) + " elements of class \"" +
-					    ac->getName() + "\" according to the definition of \"" +
-					    descriptor->getName() + "\"");
+					logger.error(std::string("Field \"") +
+					                 fieldDescs[f]->getName() +
+					                 "\" was empty but needs at least " +
+					                 std::to_string(min) +
+					                 " elements of class \"" + ac->getName() +
+					                 "\" according to the definition of \"" +
+					                 descriptor->getName() + "\"",
+					             *subInst);
 					valid = false;
 				}
 			}
@@ -244,8 +253,9 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			// check if the parent reference is correct.
 			if (rc->getParent() != subInst) {
 				logger.error(std::string("A child of field \"") +
-				             fieldDescs[f]->getName() +
-				             "\" has the wrong parent reference!");
+				                 fieldDescs[f]->getName() +
+				                 "\" has the wrong parent reference!",
+				             *rc);
 				valid = false;
 			}
 			if (rc->isa(RttiTypes::Anchor)) {
@@ -254,8 +264,9 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			}
 			if (rc->isa(RttiTypes::DocumentPrimitive)) {
 				logger.error(std::string("Non-primitive Field \"") +
-				             fieldDescs[f]->getName() +
-				             "\" had primitive content!");
+				                 fieldDescs[f]->getName() +
+				                 "\" had primitive content!",
+				             *rc);
 				valid = false;
 				continue;
 			}
@@ -280,11 +291,13 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				}
 			}
 			if (!allowed) {
-				logger.error(std::string("An instance of \"") +
-				             c->getDescriptor()->getName() +
-				             "\" is not allowed as child of an instance of \"" +
-				             descriptor->getName() + "\" in field \"" +
-				             fieldDescs[f]->getName() + "\"");
+				logger.error(
+				    std::string("An instance of \"") +
+				        c->getDescriptor()->getName() +
+				        "\" is not allowed as child of an instance of \"" +
+				        descriptor->getName() + "\" in field \"" +
+				        fieldDescs[f]->getName() + "\"",
+				    *rc);
 				valid = false;
 				continue;
 			}
@@ -304,13 +317,15 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			if (n != nums.end()) {
 				num = n->second;
 			}
-			if (!ac->getCardinality().contains(num)) {
-				logger.error(
-				    std::string("Field \"") + fieldDescs[f]->getName() +
-				    "\" had " + std::to_string(num) + " elements of class \"" +
-				    ac->getName() +
-				    "\", which is invalid according to the definition of \"" +
-				    descriptor->getName() + "\"");
+			if (!ac->getCardinality().asCardinality().contains(num)) {
+				logger.error(std::string("Field \"") +
+				                 fieldDescs[f]->getName() + "\" had " +
+				                 std::to_string(num) + " elements of class \"" +
+				                 ac->getName() +
+				                 "\", which is invalid according to the "
+				                 "definition of \"" +
+				                 descriptor->getName() + "\"",
+				             *subInst);
 				valid = false;
 				continue;
 			}
@@ -461,13 +476,13 @@ bool StructureNode::doValidate(Logger &logger) const
 	}
 	// check the parent.
 	if (getParent() == nullptr) {
-		logger.error("The parent is not set!");
+		logger.error("The parent is not set!", *this);
 		valid = false;
 	}
 	if (!getParent()->isa(RttiTypes::StructuredEntity) &&
 	    !getParent()->isa(RttiTypes::AnnotationEntity) &&
 	    !getParent()->isa(RttiTypes::Document)) {
-		logger.error("The parent does not have a valid type!");
+		logger.error("The parent does not have a valid type!", *this);
 		valid = false;
 	}
 	return valid;
@@ -519,7 +534,7 @@ bool Anchor::doValidate(Logger &logger) const
 	bool valid = true;
 	// check name
 	if (getName().empty()) {
-		logger.error("An Anchor needs a name!");
+		logger.error("An Anchor needs a name!", *this);
 		valid = false;
 	}
 	return valid & StructureNode::doValidate(logger);
@@ -550,10 +565,10 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 	}
 	// check if this AnnotationEntity is correctly registered at its document.
 	if (getParent() == nullptr) {
-		logger.error("The parent is not set!");
+		logger.error("The parent is not set!", *this);
 		valid = false;
 	} else if (!getParent()->isa(RttiTypes::Document)) {
-		logger.error("The parent is not a document!");
+		logger.error("The parent is not a document!", *this);
 		valid = false;
 	} else {
 		Handle<Document> doc = getParent().cast<Document>();
@@ -565,26 +580,29 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 			}
 		}
 		if (!found) {
-			logger.error("This annotation was not registered at the document.");
+			logger.error("This annotation was not registered at the document.",
+			             *this);
 			valid = false;
 		}
 		// check if the Anchors are part of the right document.
 		if (start == nullptr) {
-			logger.error("This annotation has no start Anchor!");
+			logger.error("This annotation has no start Anchor!", *this);
 			valid = false;
 		} else if (!doc->hasChild(start)) {
 			logger.error(
 			    "This annotations start anchor was not part of the same "
-			    "document!");
+			    "document!",
+			    *this);
 			valid = false;
 		}
 		if (end == nullptr) {
-			logger.error("This annotation has no end Anchor!");
+			logger.error("This annotation has no end Anchor!", *this);
 			valid = false;
 		} else if (!doc->hasChild(end)) {
 			logger.error(
 			    "This annotations end anchor was not part of the same "
-			    "document!");
+			    "document!",
+			    *this);
 			valid = false;
 		}
 	}
@@ -608,7 +626,7 @@ bool Document::doValidate(Logger &logger) const
 	// An empty document is always invalid. TODO: Is this a smart choice?
 	bool valid = true;
 	if (root == nullptr) {
-		logger.error("This document is empty (it has no root)!");
+		logger.error("This document is empty (it has no root)!", *this);
 		valid = false;
 	} else {
 		// check if the root is allowed to be a root.
@@ -616,14 +634,16 @@ bool Document::doValidate(Logger &logger) const
 		         .cast<StructuredClass>()
 		         ->hasRootPermission()) {
 			logger.error(std::string("A node of type \"") +
-			             root->getDescriptor()->getName() +
-			             "\" is not allowed to be the Document root!");
+			                 root->getDescriptor()->getName() +
+			                 "\" is not allowed to be the Document root!",
+			             *root);
 			valid = false;
 		}
 		// check if it has this document as parent.
 		if (root->getParent() != this) {
 			logger.error(
-			    "The document root does not have the document as parent!");
+			    "The document root does not have the document as parent!",
+			    *root);
 			valid = false;
 		}
 		// then call validate on the root

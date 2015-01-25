@@ -614,20 +614,19 @@ public:
  * cardinalities independent of context? Should we not have at least have the
  * possibility to define it context-dependently?
  */
-typedef RangeSet<size_t> Cardinality;
 
 /**
  * This is the default cardinality.
  */
 
-static Cardinality createAny()
+static Variant::cardinalityType createAny()
 {
-	Cardinality any;
+	Variant::cardinalityType any;
 	any.merge(Range<size_t>::typeRangeFrom(0));
 	return std::move(any);
 }
 
-static const Cardinality AnyCardinality = createAny();
+static const Variant AnyCardinality = createAny();
 
 /**
  * A StructuredClass specifies nodes in the StructureTree of a document that
@@ -706,7 +705,7 @@ class StructuredClass : public Descriptor {
 	friend Domain;
 
 private:
-	const Cardinality cardinality;
+	const Variant cardinality;
 	Owned<StructuredClass> superclass;
 	NodeVector<StructuredClass> subclasses;
 	bool transparent;
@@ -754,7 +753,7 @@ public:
 	 */
 	StructuredClass(Manager &mgr, std::string name = "",
 	                Handle<Domain> domain = nullptr,
-	                const Cardinality &cardinality = AnyCardinality,
+	                Variant cardinality = AnyCardinality,
 	                Handle<StructType> attributesDescriptor = nullptr,
 	                Handle<StructuredClass> superclass = nullptr,
 	                bool transparent = false, bool root = false);
@@ -764,7 +763,7 @@ public:
 	 *
 	 * @return the Cardinality of this StructuredClass (as a RangeSet).
 	 */
-	const Cardinality &getCardinality() const { return cardinality; }
+	const Variant &getCardinality() const { return cardinality; }
 
 	/**
 	 * Returns the superclass of this StructuredClass. This is not the same as
@@ -1012,7 +1011,7 @@ public:
 	 * @return                     the newly created StructuredClass.
 	 */
 	Rooted<StructuredClass> createStructuredClass(
-	    std::string name, const Cardinality &cardinality = AnyCardinality,
+	    std::string name, Variant cardinality = AnyCardinality,
 	    Handle<StructType> attributesDescriptor = nullptr,
 	    Handle<StructuredClass> superclass = nullptr, bool transparent = false,
 	    bool root = false);

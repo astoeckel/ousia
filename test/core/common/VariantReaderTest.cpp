@@ -25,7 +25,7 @@
 namespace ousia {
 
 static TerminalLogger logger{std::cerr, true};
-//static Logger logger;
+// static Logger logger;
 
 TEST(VariantReader, readString)
 {
@@ -576,6 +576,153 @@ TEST(VariantReader, parseObject)
 	}
 }
 
+TEST(VariantReader, parseCardinality)
+{
+	Logger logger;
+	// Primitive cardinality.
+	{
+		CharReader reader("  {  5  }   ");
+		auto res = VariantReader::parseCardinality(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		Variant::cardinalityType card{};
+		card.merge({5});
+		ASSERT_EQ(card, res.second);
+	}
+	// Range cardinality
+	{
+		CharReader reader("  {  5-10  }   ");
+		auto res = VariantReader::parseCardinality(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		Variant::cardinalityType card{};
+		card.merge({5, 10});
+		ASSERT_EQ(card, res.second);
+	}
+	// Larger than
+	{
+		CharReader reader("  {  >9  }   ");
+		auto res = VariantReader::parseCardinality(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		Variant::cardinalityType card{};
+		card.merge(Variant::rangeType::typeRangeFrom(10));
+		ASSERT_EQ(card, res.second);
+	}
+	// Smaller than
+	{
+		CharReader reader("  {  <9  }   ");
+		auto res = VariantReader::parseCardinality(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		Variant::cardinalityType card{};
+		card.merge(Variant::rangeType::typeRangeUntil(8));
+		ASSERT_EQ(card, res.second);
+	}
+	// Kleene-Star
+	{
+		CharReader reader("  {  *  }   ");
+		auto res = VariantReader::parseCardinality(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		Variant::cardinalityType card{};
+		card.merge(Variant::rangeType::typeRange());
+		ASSERT_EQ(card, res.second);
+	}
+	// More complex parse
+	{
+		CharReader reader("  {  1  , 4-  6 ,>8  }  some other text");
+		auto res = VariantReader::parseCardinality(reader, logger);
+		ASSERT_TRUE(res.first);
+
+		Variant::cardinalityType card{};
+		card.merge({1});
+		card.merge({4, 6});
+		card.merge(Variant::rangeType::typeRangeFrom(9));
+		ASSERT_EQ(card, res.second);
+	}
+	// More complex parses that are equivalent.
+	{
+		Variant::cardinalityType card{};
+		card.merge(Variant::rangeType::typeRange());
+		{
+			CharReader reader("  {  * }   ");
+			auto res = VariantReader::parseCardinality(reader, logger);
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ(card, res.second);
+		}
+		{
+			CharReader reader = CharReader("  {  1-4, 8, 9-12, 10, * }   ");
+			auto res = VariantReader::parseCardinality(reader, logger);
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ(card, res.second);
+		}
+		{
+			CharReader reader = CharReader("  {  0, >0 }   ");
+			auto res = VariantReader::parseCardinality(reader, logger);
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ(card, res.second);
+		}
+		{
+			CharReader reader = CharReader("  {  <10, 10, >10 }   ");
+			auto res = VariantReader::parseCardinality(reader, logger);
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ(card, res.second);
+		}
+		{
+			CharReader reader = CharReader("  {  0,1-2, 3-4,   >4 }   ");
+			auto res = VariantReader::parseCardinality(reader, logger);
+			ASSERT_TRUE(res.first);
+			ASSERT_EQ(card, res.second);
+		}
+	}
+	// Invalid cardinalities.
+	{
+		CharReader reader("    5  }   ");
+		ASSERT_FALSE(VariantReader::parseCardinality(reader, logger).first);
+	}
+	{
+		CharReader reader("   { 5  ,    }   ");
+		ASSERT_FALSE(VariantReader::parseCardinality(reader, logger).first);
+	}
+	{
+		CharReader reader("   { 5-    }   ");
+		ASSERT_FALSE(VariantReader::parseCardinality(reader, logger).first);
+	}
+	{
+		CharReader reader("   { -3    }   ");
+		ASSERT_FALSE(VariantReader::parseCardinality(reader, logger).first);
+	}
+	{
+		CharReader reader("   { 5-3    }   ");
+		ASSERT_FALSE(VariantReader::parseCardinality(reader, logger).first);
+	}
+	{
+		CharReader reader("   { 3-3    }   ");
+		ASSERT_FALSE(VariantReader::parseCardinality(reader, logger).first);
+	}
+	{
+		CharReader reader("   { >    }   ");
+		ASSERT_FALSE(VariantReader::parseCardinality(reader, logger).first);
+	}
+	{
+		CharReader reader("   { <    }   ");
+		ASSERT_FALSE(VariantReader::parseCardinality(reader, logger).first);
+	}
+	{
+		CharReader reader("   { ,    }   ");
+		ASSERT_FALSE(VariantReader::parseCardinality(reader, logger).first);
+	}
+	{
+		CharReader reader("   { 4       ");
+		ASSERT_FALSE(VariantReader::parseCardinality(reader, logger).first);
+	}
+	{
+		CharReader reader("   { m  }     ");
+		ASSERT_FALSE(VariantReader::parseCardinality(reader, logger).first);
+	}
+}
+
 TEST(VariantReader, parseGenericToken)
 {
 	// Simple case, unescaped string
@@ -614,7 +761,8 @@ TEST(VariantReader, parseGenericToken)
 	// String with whitespaces at the beginning.
 	{
 		CharReader reader("   \' test\'");
-		auto res = VariantReader::parseGenericToken(reader, logger, {';'}, true);
+		auto res =
+		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_EQ(" test", res.second);
 	}
 
