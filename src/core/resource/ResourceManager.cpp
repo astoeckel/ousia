@@ -103,22 +103,21 @@ Rooted<Node> ResourceManager::parse(Registry &registry, ParserContext &ctx,
 					ParserScope scope;  // New empty parser scope instance
 					ParserContext childCtx = ctx.clone(scope, sourceId);
 					node = req.getParser()->parse(reader, childCtx);
+					break;
 				}
 				case ParseMode::INCLUDE: {
 					ParserContext childCtx = ctx.clone(sourceId);
 					node = req.getParser()->parse(reader, childCtx);
+					break;
 				}
 			}
 		}
 		if (node == nullptr) {
-			throw LoggableException{"File \"" + resource.getLocation() +
+			throw LoggableException{"Requested file \"" + resource.getLocation() +
 			                        "\" cannot be parsed."};
 		}
 	}
 	catch (LoggableException ex) {
-		// Remove all data associated with the allocated source id
-		purgeResource(sourceId);
-
 		// Log the exception and return nullptr
 		ctx.getLogger().log(ex);
 		return nullptr;
