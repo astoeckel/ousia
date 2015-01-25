@@ -25,10 +25,9 @@
 #include <core/model/Typesystem.hpp>
 
 namespace ousia {
-namespace model {
 
 static TerminalLogger logger(std::cerr, true);
-//static ConcreteLogger logger;
+// static ConcreteLogger logger;
 
 /* Class StringType */
 
@@ -519,28 +518,28 @@ TEST(StructType, creationWithParent)
 	Manager mgr{1};
 	Rooted<StructType> structType = createStructType(mgr, logger);
 	{
-	Rooted<StructType> structWithParentType =
-	    createStructTypeWithParent(structType, mgr, logger);
+		Rooted<StructType> structWithParentType =
+		    createStructTypeWithParent(structType, mgr, logger);
 
-	Variant val = structWithParentType->create();
-	ASSERT_TRUE(val.isArray());
-	ASSERT_EQ(7U, val.asArray().size());
+		Variant val = structWithParentType->create();
+		ASSERT_TRUE(val.isArray());
+		ASSERT_EQ(7U, val.asArray().size());
 
-	const auto &arr = val.asArray();
-	ASSERT_TRUE(arr[0].isString());
-	ASSERT_TRUE(arr[1].isString());
-	ASSERT_TRUE(arr[2].isInt());
-	ASSERT_TRUE(arr[3].isInt());
-	ASSERT_TRUE(arr[4].isString());
-	ASSERT_TRUE(arr[5].isInt());
-	ASSERT_TRUE(arr[6].isArray());
+		const auto &arr = val.asArray();
+		ASSERT_TRUE(arr[0].isString());
+		ASSERT_TRUE(arr[1].isString());
+		ASSERT_TRUE(arr[2].isInt());
+		ASSERT_TRUE(arr[3].isInt());
+		ASSERT_TRUE(arr[4].isString());
+		ASSERT_TRUE(arr[5].isInt());
+		ASSERT_TRUE(arr[6].isArray());
 
-	ASSERT_EQ("attr1default", arr[0].asString());
-	ASSERT_EQ("", arr[1].asString());
-	ASSERT_EQ(3, arr[2].asInt());
-	ASSERT_EQ(0, arr[3].asInt());
-	ASSERT_EQ("value1", arr[4].asString());
-	ASSERT_EQ(42, arr[5].asInt());
+		ASSERT_EQ("attr1default", arr[0].asString());
+		ASSERT_EQ("", arr[1].asString());
+		ASSERT_EQ(3, arr[2].asInt());
+		ASSERT_EQ(0, arr[3].asInt());
+		ASSERT_EQ("value1", arr[4].asString());
+		ASSERT_EQ(42, arr[5].asInt());
 	}
 }
 
@@ -566,13 +565,13 @@ TEST(StructType, createValidated)
 	{
 		logger.reset();
 		Rooted<StructType> structType{StructType::createValidated(
-			mgr, "struct", nullptr, nullptr,
-			NodeVector<Attribute>{
-			    new Attribute{mgr, "d", stringType, "attr1default"},
-			    new Attribute{mgr, "b", stringType},
-			    new Attribute{mgr, "c", intType, 3},
-			    new Attribute{mgr, "a", intType}},
-			logger)};
+		    mgr, "struct", nullptr, nullptr,
+		    NodeVector<Attribute>{
+		        new Attribute{mgr, "d", stringType, "attr1default"},
+		        new Attribute{mgr, "b", stringType},
+		        new Attribute{mgr, "c", intType, 3},
+		        new Attribute{mgr, "a", intType}},
+		    logger)};
 		ASSERT_TRUE(structType->validate(logger));
 		ASSERT_EQ(Severity::DEBUG, logger.getMaxEncounteredSeverity());
 	}
@@ -580,13 +579,13 @@ TEST(StructType, createValidated)
 	{
 		logger.reset();
 		Rooted<StructType> structType{StructType::createValidated(
-			mgr, "struct", nullptr, nullptr,
-			NodeVector<Attribute>{
-				new Attribute{mgr, "d", stringType, "attr1default"},
-				new Attribute{mgr, "b", stringType},
-				new Attribute{mgr, "a", intType, 3},
-				new Attribute{mgr, "a", intType}},
-			logger)};
+		    mgr, "struct", nullptr, nullptr,
+		    NodeVector<Attribute>{
+		        new Attribute{mgr, "d", stringType, "attr1default"},
+		        new Attribute{mgr, "b", stringType},
+		        new Attribute{mgr, "a", intType, 3},
+		        new Attribute{mgr, "a", intType}},
+		    logger)};
 		ASSERT_FALSE(structType->validate(logger));
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
@@ -594,13 +593,13 @@ TEST(StructType, createValidated)
 	{
 		logger.reset();
 		Rooted<StructType> structType{StructType::createValidated(
-			mgr, "struct", nullptr, nullptr,
-			NodeVector<Attribute>{
-			    new Attribute{mgr, "d", stringType, "attr1default"},
-			    new Attribute{mgr, "b", stringType},
-			    new Attribute{mgr, "a", intType, 3},
-			    new Attribute{mgr, "a a", intType}},
-			logger)};
+		    mgr, "struct", nullptr, nullptr,
+		    NodeVector<Attribute>{
+		        new Attribute{mgr, "d", stringType, "attr1default"},
+		        new Attribute{mgr, "b", stringType},
+		        new Attribute{mgr, "a", intType, 3},
+		        new Attribute{mgr, "a a", intType}},
+		    logger)};
 		ASSERT_FALSE(structType->validate(logger));
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
@@ -703,7 +702,6 @@ TEST(StructType, build)
 		ASSERT_EQ(3, arr[2].asInt());
 		ASSERT_EQ(5, arr[3].asInt());
 	}
-
 
 	// All mandatory attributes given as array
 	{
@@ -922,8 +920,5 @@ TEST(SystemTypesystem, rtti)
 	ASSERT_TRUE(typesystem->composedOf(RttiTypes::Attribute));
 	ASSERT_FALSE(typesystem->composedOf(RttiTypes::Typesystem));
 	ASSERT_FALSE(typesystem->composedOf(RttiTypes::SystemTypesystem));
-}
-
-
 }
 }

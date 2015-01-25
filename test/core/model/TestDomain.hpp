@@ -23,8 +23,6 @@
 #include <core/model/Typesystem.hpp>
 
 namespace ousia {
-namespace model {
-
 /**
  * This constructs the "book" domain for test purposes. The structure of the
  * domain is fairly simple and can be seen from the construction itself.
@@ -89,7 +87,6 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	    false)};
 
 	return domain;
-}
 }
 }
 

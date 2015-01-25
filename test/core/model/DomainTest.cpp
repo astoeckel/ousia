@@ -27,7 +27,6 @@
 #include "TestDomain.hpp"
 
 namespace ousia {
-namespace model {
 
 void assert_path(const ResolutionResult &res, const Rtti &expected_type,
                  std::vector<std::string> expected_path)
@@ -335,8 +334,7 @@ TEST(Domain, validate)
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
 		// add a subclass for our base class.
-		Rooted<StructuredClass> sub{
-		    new StructuredClass(mgr, "sub", domain)};
+		Rooted<StructuredClass> sub{new StructuredClass(mgr, "sub", domain)};
 		// this should be valid in itself.
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
@@ -355,8 +353,7 @@ TEST(Domain, validate)
 		ASSERT_TRUE(domain->validate(logger));
 		ASSERT_EQ(base, sub->getSuperclass());
 		// add a non-primitive field to the child class.
-		Rooted<FieldDescriptor> sub_field{
-		    new FieldDescriptor(mgr, sub)};
+		Rooted<FieldDescriptor> sub_field{new FieldDescriptor(mgr, sub)};
 		// this should be valid
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
@@ -381,6 +378,5 @@ TEST(Domain, validate)
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
 	}
-}
 }
 }

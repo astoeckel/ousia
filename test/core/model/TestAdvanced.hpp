@@ -26,7 +26,6 @@
 #include "TestDocumentBuilder.hpp"
 
 namespace ousia {
-namespace model {
 
 static Rooted<StructuredClass> resolveDescriptor(Handle<Domain> domain,
                                                  const std::string &className)
@@ -314,7 +313,6 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
 	}
 
 	return doc;
-}
 }
 }
 

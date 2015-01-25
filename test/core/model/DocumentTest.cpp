@@ -29,7 +29,6 @@
 #include "TestDomain.hpp"
 
 namespace ousia {
-namespace model {
 
 TEST(Document, construct)
 {
@@ -306,6 +305,5 @@ TEST(Document, validate)
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 	}
-}
 }
 }

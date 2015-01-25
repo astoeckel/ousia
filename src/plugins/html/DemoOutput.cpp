@@ -27,7 +27,7 @@
 namespace ousia {
 namespace html {
 
-void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
+void DemoHTMLTransformer::writeHTML(Handle<Document> doc,
                                     std::ostream &out, bool pretty)
 {
 	Manager &mgr = doc->getManager();
@@ -66,7 +66,7 @@ void DemoHTMLTransformer::writeHTML(Handle<model::Document> doc,
 	}
 
 	// extract the book root node.
-	Rooted<model::StructuredEntity> root = doc->getRoot();
+	Rooted<StructuredEntity> root = doc->getRoot();
 	if (root->getDescriptor()->getName() != "book") {
 		throw OusiaException("The given documents root is no book node!");
 	}
@@ -98,7 +98,7 @@ SectionType getSectionType(const std::string &name)
 }
 
 Rooted<xml::Element> DemoHTMLTransformer::transformSection(
-    Handle<xml::Element> parent, Handle<model::StructuredEntity> section,
+    Handle<xml::Element> parent, Handle<StructuredEntity> section,
     AnnoMap &startMap, AnnoMap &endMap)
 {
 	Manager &mgr = section->getManager();
@@ -115,8 +115,8 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 	// check if we have a heading.
 	if (section->hasField("heading") &&
 	    section->getField("heading").size() > 0) {
-		Handle<model::StructuredEntity> heading =
-		    section->getField("heading")[0].cast<model::StructuredEntity>();
+		Handle<StructuredEntity> heading =
+		    section->getField("heading")[0].cast<StructuredEntity>();
 		std::string headingclass;
 		switch (type) {
 			case SectionType::BOOK:
@@ -149,7 +149,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 		if (!n->isa(RttiTypes::StructuredEntity)) {
 			continue;
 		}
-		Handle<model::StructuredEntity> s = n.cast<model::StructuredEntity>();
+		Handle<StructuredEntity> s = n.cast<StructuredEntity>();
 		/*
 		 * Strictly speaking this is the wrong mechanism, because we would have
 		 * to make an "isa" call here because we can not rely on our knowledge
@@ -174,7 +174,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 }
 
 Rooted<xml::Element> DemoHTMLTransformer::transformList(
-    Handle<xml::Element> parent, Handle<model::StructuredEntity> list,
+    Handle<xml::Element> parent, Handle<StructuredEntity> list,
     AnnoMap &startMap, AnnoMap &endMap)
 {
 	Manager &mgr = list->getManager();
@@ -183,8 +183,8 @@ Rooted<xml::Element> DemoHTMLTransformer::transformList(
 	Rooted<xml::Element> l{new xml::Element{mgr, parent, listclass}};
 	// iterate through list items.
 	for (auto &it : list->getField()) {
-		Handle<model::StructuredEntity> item =
-		    it.cast<model::StructuredEntity>();
+		Handle<StructuredEntity> item =
+		    it.cast<StructuredEntity>();
 		std::string itDescrName = item->getDescriptor()->getName();
 		if (itDescrName == "item") {
 			// create the list item.
@@ -203,10 +203,10 @@ Rooted<xml::Element> DemoHTMLTransformer::transformList(
 	return l;
 }
 
-typedef std::stack<Rooted<model::AnnotationEntity>> AnnoStack;
+typedef std::stack<Rooted<AnnotationEntity>> AnnoStack;
 
 static Rooted<xml::Element> openAnnotation(
-    Manager &mgr, AnnoStack &opened, Handle<model::AnnotationEntity> entity,
+    Manager &mgr, AnnoStack &opened, Handle<AnnotationEntity> entity,
     Handle<xml::Element> current)
 {
 	// we push the newly opened entity on top of the stack.
@@ -225,7 +225,7 @@ static Rooted<xml::Element> openAnnotation(
 }
 
 Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
-    Handle<xml::Element> parent, Handle<model::StructuredEntity> par,
+    Handle<xml::Element> parent, Handle<StructuredEntity> par,
     AnnoMap &startMap, AnnoMap &endMap)
 {
 	Manager &mgr = par->getManager();
@@ -234,8 +234,8 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 
 	// check if we have a heading.
 	if (par->hasField("heading") && par->getField("heading").size() > 0) {
-		Handle<model::StructuredEntity> heading =
-		    par->getField("heading")[0].cast<model::StructuredEntity>();
+		Handle<StructuredEntity> heading =
+		    par->getField("heading")[0].cast<StructuredEntity>();
 		// put the heading in a strong xml::Element.
 		Rooted<xml::Element> strong{new xml::Element{mgr, p, "strong"}};
 		p->addChild(strong);
@@ -281,7 +281,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 				 * be re-opened.
 				 */
 				AnnoStack tmp;
-				Rooted<model::AnnotationEntity> closed = opened.top();
+				Rooted<AnnotationEntity> closed = opened.top();
 				current = current->getParent();
 				opened.pop();
 				while (closed->getEnd()->getName() != n->getName()) {
@@ -313,12 +313,12 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 		if (!n->isa(RttiTypes::StructuredEntity)) {
 			continue;
 		}
-		Handle<model::StructuredEntity> t = n.cast<model::StructuredEntity>();
+		Handle<StructuredEntity> t = n.cast<StructuredEntity>();
 
 		std::string childDescriptorName = t->getDescriptor()->getName();
 		if (childDescriptorName == "text") {
-			Handle<model::DocumentPrimitive> primitive =
-			    t->getField()[0].cast<model::DocumentPrimitive>();
+			Handle<DocumentPrimitive> primitive =
+			    t->getField()[0].cast<DocumentPrimitive>();
 			if (primitive.isNull()) {
 				throw OusiaException("Text field is not primitive!");
 			}

@@ -39,18 +39,18 @@ TEST(DemoHTMLTransformer, writeHTML)
 	// Construct Manager
 	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
-	Rooted<model::SystemTypesystem> sys{new model::SystemTypesystem(mgr)};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Get the domains.
-	Rooted<model::Domain> bookDom =
-	    model::constructBookDomain(mgr, sys, logger);
-	Rooted<model::Domain> headingDom =
-	    model::constructHeadingDomain(mgr, sys, bookDom, logger);
-	Rooted<model::Domain> listDom =
-	    model::constructListDomain(mgr, sys, bookDom, logger);
-	Rooted<model::Domain> emDom =
-	    model::constructEmphasisDomain(mgr, sys, logger);
+	Rooted<Domain> bookDom =
+	    constructBookDomain(mgr, sys, logger);
+	Rooted<Domain> headingDom =
+	    constructHeadingDomain(mgr, sys, bookDom, logger);
+	Rooted<Domain> listDom =
+	    constructListDomain(mgr, sys, bookDom, logger);
+	Rooted<Domain> emDom =
+	    constructEmphasisDomain(mgr, sys, logger);
 	// Construct the document.
-	Rooted<model::Document> doc = model::constructAdvancedDocument(
+	Rooted<Document> doc = constructAdvancedDocument(
 	    mgr, logger, bookDom, headingDom, listDom, emDom);
 	ASSERT_TRUE(doc != nullptr);
 
@@ -77,29 +77,29 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	// Construct Manager
 	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
-	Rooted<model::SystemTypesystem> sys{new model::SystemTypesystem(mgr)};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Get the domains.
-	Rooted<model::Domain> bookDom =
-	    model::constructBookDomain(mgr, sys, logger);
-	Rooted<model::Domain> emDom =
-	    model::constructEmphasisDomain(mgr, sys, logger);
+	Rooted<Domain> bookDom =
+	    constructBookDomain(mgr, sys, logger);
+	Rooted<Domain> emDom =
+	    constructEmphasisDomain(mgr, sys, logger);
 	// Construct a document only containing overlapping annotations.
 	// it has the form: <em>bla<strong>blub</em>bla</strong>
-	Rooted<model::Document> doc{new model::Document(mgr, "annotations.oxd")};
+	Rooted<Document> doc{new Document(mgr, "annotations.oxd")};
 	doc->addDomains({bookDom, emDom});
-	Rooted<model::StructuredEntity> book =
+	Rooted<StructuredEntity> book =
 	    buildRootStructuredEntity(doc, logger, {"book"});
 	ASSERT_TRUE(book != nullptr);
-	Rooted<model::StructuredEntity> p =
+	Rooted<StructuredEntity> p =
 	    buildStructuredEntity(doc, logger, book, {"paragraph"});
 	ASSERT_TRUE(p != nullptr);
-	Rooted<model::Anchor> em_start{new model::Anchor(mgr, "1", p)};
+	Rooted<Anchor> em_start{new Anchor(mgr, "1", p)};
 	ASSERT_TRUE(addText(logger, doc, p, "bla"));
-	Rooted<model::Anchor> strong_start{new model::Anchor(mgr, "2", p)};
+	Rooted<Anchor> strong_start{new Anchor(mgr, "2", p)};
 	ASSERT_TRUE(addText(logger, doc, p, "blub"));
-	Rooted<model::Anchor> em_end{new model::Anchor(mgr, "3", p)};
+	Rooted<Anchor> em_end{new Anchor(mgr, "3", p)};
 	ASSERT_TRUE(addText(logger, doc, p, "bla"));
-	Rooted<model::Anchor> strong_end{new model::Anchor(mgr, "4", p)};
+	Rooted<Anchor> strong_end{new Anchor(mgr, "4", p)};
 	buildAnnotationEntity(doc, logger, {"emphasized"}, em_start, em_end);
 	buildAnnotationEntity(doc, logger, {"strong"}, strong_start, strong_end);
 

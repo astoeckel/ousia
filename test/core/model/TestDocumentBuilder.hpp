@@ -27,7 +27,6 @@
 #include <core/model/Typesystem.hpp>
 
 namespace ousia {
-namespace model {
 
 typedef std::vector<std::string> Path;
 
@@ -213,7 +212,6 @@ Rooted<AnnotationEntity> buildAnnotationEntity(
 	    start, end, attributes, name)};
 	// and return it.
 	return anno;
-}
 }
 }
 #endif

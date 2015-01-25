@@ -26,7 +26,6 @@
 #include "TestDocumentBuilder.hpp"
 
 namespace ousia {
-namespace model {
 
 /**
  * This constructs a fairly simple test document for the "book" domain. The
@@ -86,7 +85,6 @@ static Rooted<Document> constructBookDocument(Manager &mgr, Logger &logger,
 	}
 
 	return doc;
-}
 }
 }
 
