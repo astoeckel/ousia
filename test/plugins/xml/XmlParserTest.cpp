@@ -22,6 +22,7 @@
 
 #include <core/common/CharReader.hpp>
 #include <core/common/Logger.hpp>
+#include <core/common/SourceContextReader.hpp>
 #include <core/frontend/TerminalLogger.hpp>
 #include <core/parser/StandaloneParserContext.hpp>
 

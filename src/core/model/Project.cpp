@@ -17,6 +17,8 @@
 */
 
 #include <core/common/RttiBuilder.hpp>
+#include <core/parser/ParserScope.hpp>
+#include <core/parser/ParserContext.hpp>
 
 #include "Domain.hpp"
 #include "Document.hpp"
@@ -31,6 +33,32 @@ Project::Project(Manager &mgr, Registry &registry)
       systemTypesystem(acquire(new SystemTypesystem(mgr))),
       documents(this)
 {
+}
+
+Rooted<Node> Project::parse(const std::string &path, const std::string mimetype,
+                            const std::string rel, RttiSet &supportedTypes,
+                            Logger &logger)
+{
+	ParserScope scope;
+	ParserContext context(this, scope, logger);
+	return resourceManager.link(registry, context, path, mimetype, rel,
+	                            supportedTypes);
+}
+
+Rooted<Node> Project::link(ParserContext &ctx, const std::string &path,
+                           const std::string mimetype, const std::string rel,
+                           RttiSet &supportedTypes)
+{
+	return resourceManager.link(registry, ctx, path, mimetype, rel,
+	                            supportedTypes);
+}
+
+Rooted<Node> Project::include(ParserContext &ctx, const std::string &path,
+                              const std::string mimetype, const std::string rel,
+                              RttiSet &supportedTypes)
+{
+	return resourceManager.include(registry, ctx, path, mimetype, rel,
+	                               supportedTypes);
 }
 
 bool Project::doValidate(Logger &logger) const
