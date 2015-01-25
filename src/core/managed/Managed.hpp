@@ -91,7 +91,7 @@ public:
 	 * @return a reference at the underlying Manager object which manages this
 	 * particular Managed instance.
 	 */
-	Manager &getManager() { return mgr; }
+	Manager &getManager() const { return mgr; }
 
 	/**
 	 * Returns the unique identifier (UID) of this object. Valid UIDs are
