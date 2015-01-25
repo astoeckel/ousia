@@ -76,7 +76,7 @@ void TerminalLogger::processMessage(const Message &msg)
 	os << msg.msg << std::endl;
 
 	// Print the error message context if available
-	if (ctx.hasText()) {
+	if (ctx.hasText() && !messageModeSet(msg.mode, MessageMode::NO_CONTEXT)) {
 		// Iterate over each line in the text
 		std::vector<std::string> lines = Utils::split(ctx.text, '\n');
 
