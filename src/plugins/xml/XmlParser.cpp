@@ -62,9 +62,6 @@ public:
 
 	void end() override
 	{
-		scope().performDeferredResolution(logger());
-		// TODO: Automatically call validate in "pop"?
-		scope().getLeaf()->validate(logger());
 		scope().pop();
 	}
 

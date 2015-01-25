@@ -103,6 +103,14 @@ Rooted<Node> ResourceManager::parse(Registry &registry, ParserContext &ctx,
 					ParserScope scope;  // New empty parser scope instance
 					ParserContext childCtx = ctx.clone(scope, sourceId);
 					node = req.getParser()->parse(reader, childCtx);
+
+					// Perform all deferred resolutions
+					scope.performDeferredResolution(ctx.getLogger());
+
+					// Validate the parsed node
+					if (node != nullptr) {
+						node->validate(ctx.getLogger());
+					}
 					break;
 				}
 				case ParseMode::INCLUDE: {
