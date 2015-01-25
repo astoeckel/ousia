@@ -40,9 +40,9 @@ Rooted<Node> ParserScopeBase::resolve(const std::vector<std::string> &path,
 		if (res.size() > 1) {
 			logger.error(std::string("The reference \"") +
 			             Utils::join(path, ".") + ("\" is ambigous!"));
-			logger.note("Referenced objects are:");
+			logger.note("Referenced objects are:", SourceLocation{}, MessageMode::NO_CONTEXT);
 			for (const ResolutionResult &r : res) {
-				logger.note(Utils::join(r.path(), "."));
+				logger.note(Utils::join(r.path(), "."), *(r.node));
 			}
 		}
 		return res[0].node;
