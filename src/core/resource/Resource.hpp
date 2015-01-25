@@ -30,6 +30,7 @@
 
 #include <map>
 #include <memory>
+#include <ostream>
 #include <string>
 
 namespace ousia {
@@ -169,7 +170,34 @@ public:
 	 * a resource.
 	 */
 	const std::string &getLocation() const { return location; }
+
+	/**
+	 * Returns the name of the given resource type.
+	 *
+	 * @param resourceType is the ResourceType of which the human readable name
+	 * should be returned.
+	 * @return the human readable name of the ResourceType.
+	 */
+	static std::string getResourceTypeName(ResourceType resourceType);
+
+	/**
+	 * Returns a resourceType by its name or ResourceType::UNKNOWN if the name
+	 * is invalid.
+	 *
+	 * @param name is the name of the resource type. The name is converted to
+	 * lowercase.
+	 */
+	static ResourceType getResourceTypeByName(const std::string &name);
 };
+
+/**
+ * Operator used for streaming the name of ResourceType instances.
+ *
+ * @param os is the output stream.
+ * @param resourceType is the type that should be serialized.
+ * @return the output stream.
+ */
+std::ostream& operator<<(std::ostream &os, ResourceType resourceType);
 
 /**
  * Invalid resource instance.

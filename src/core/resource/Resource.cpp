@@ -16,10 +16,38 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <core/common/Utils.hpp>
+
 #include "Resource.hpp"
 #include "ResourceLocator.hpp"
 
 namespace ousia {
+
+/* Helper functions for the internal maps */
+
+static std::unordered_map<ResourceType, std::string, Utils::EnumHash> reverseMap(
+    const std::unordered_map<std::string, ResourceType> &m)
+{
+	std::unordered_map<ResourceType, std::string, Utils::EnumHash> res;
+	for (auto e : m) {
+		res.emplace(e.second, e.first);
+	}
+	return res;
+}
+
+/* Internal maps */
+
+static const std::unordered_map<std::string, ResourceType>
+    NAME_RESOURCE_TYPE_MAP{{"document", ResourceType::DOCUMENT},
+                           {"domain", ResourceType::DOMAIN_DESC},
+                           {"typesystem", ResourceType::TYPESYSTEM},
+                           {"attributes", ResourceType::ATTRIBUTES},
+                           {"stylesheet", ResourceType::STYLESHEET},
+                           {"script", ResourceType::SCRIPT},
+                           {"data", ResourceType::DATA}};
+
+static const std::unordered_map<ResourceType, std::string, Utils::EnumHash>
+    RESOURCE_TYPE_NAME_MAP = reverseMap(NAME_RESOURCE_TYPE_MAP);
 
 /* Class Resource */
 
@@ -37,6 +65,32 @@ Resource::Resource(bool valid, const ResourceLocator &locator,
 std::unique_ptr<std::istream> Resource::stream() const
 {
 	return locator->stream(location);
+}
+
+std::string Resource::getResourceTypeName(ResourceType resourceType)
+{
+	auto it = RESOURCE_TYPE_NAME_MAP.find(resourceType);
+	if (it != RESOURCE_TYPE_NAME_MAP.end()) {
+		return it->second;
+	}
+	return "unknown";
+}
+
+ResourceType Resource::getResourceTypeByName(const std::string &name)
+{
+	std::string normName = Utils::toLower(name);
+	auto it = NAME_RESOURCE_TYPE_MAP.find(normName);
+	if (it != NAME_RESOURCE_TYPE_MAP.end()) {
+		return it->second;
+	}
+	return ResourceType::UNKNOWN;
+}
+
+/* Operators */
+
+std::ostream &operator<<(std::ostream &os, ResourceType resourceType)
+{
+	return os << Resource::getResourceTypeName(resourceType);
 }
 
 /* NullResource instance */
