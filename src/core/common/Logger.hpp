@@ -105,6 +105,19 @@ inline MessageMode operator|(MessageMode a, MessageMode b)
 	                                static_cast<uint8_t>(b));
 }
 
+/**
+ * Checks whether the MessageMode given in "flag" is set in the MessageMode set
+ * given in "mode".
+ *
+ * @param mode is the MessageMode set that should be checked for flag.
+ * @param flag is the flag that should be checked in mode.
+ * @return true if part is set in mode.
+ */
+inline bool messageModeSet(MessageMode mode, MessageMode flag)
+{
+	return static_cast<uint8_t>(mode) & static_cast<uint8_t>(flag);
+}
+
 // Forward declaration
 class LoggerFork;
 class GuardedLogger;
