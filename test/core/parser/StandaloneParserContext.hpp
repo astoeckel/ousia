@@ -34,19 +34,21 @@ public:
 	Manager manager;
 	Logger logger;
 	Registry registry;
+	Rooted<Project> project;
 	ParserScope scope;
-	Rooted<model::Project> project;
 	ParserContext context;
 
 	StandaloneParserContext()
-	    : project(new model::Project(manager)),
-	      context(scope, registry, logger, manager, project)
+	    : project(new Project(manager, registry)),
+	      context(project, scope, logger)
 	{
 	}
 
 	StandaloneParserContext(Logger &externalLogger)
-	    : project(new model::Project(manager)),
-	      context(scope, registry, externalLogger, manager, project){};
+	    : project(new Project(manager, registry)),
+	      context(project, scope, externalLogger)
+	{
+	}
 };
 }
 

@@ -28,6 +28,8 @@
 #ifndef _OUSIA_PROJECT_HPP_
 #define _OUSIA_PROJECT_HPP_
 
+#include <core/resource/ResourceManager.hpp>
+
 #include "Node.hpp"
 
 namespace ousia {
@@ -35,8 +37,8 @@ namespace ousia {
 // Forward declarations
 class Logger;
 class Rtti;
-
-
+class Registry;
+class ParserContext;
 class SystemTypesystem;
 class Typesystem;
 class Document;
@@ -50,6 +52,11 @@ class Domain;
 class Project : public Node {
 private:
 	/**
+	 * Reference at the internally used Registry instance.
+	 */
+	Registry &registry;
+
+	/**
 	 * Private instance of the system typesystem which is distributed as a
 	 * reference to all child typesystems.
 	 */
@@ -59,6 +66,11 @@ private:
 	 * List containing all loaded documents.
 	 */
 	NodeVector<Document> documents;
+
+	/**
+	 * ResourceManager used to manage all resources used by the project.
+	 */
+	ResourceManager resourceManager;
 
 protected:
 	/**
@@ -73,8 +85,10 @@ public:
 	 * Constructor of the Project class.
 	 *
 	 * @param mgr is the manager instance used for managing this Node.
+	 * @param registry is the registry instance that should be used for locating
+	 * files and finding parsers for these files.
 	 */
-	Project(Manager &mgr);
+	Project(Manager &mgr, Registry &registry);
 
 	/**
 	 * Returns a reference to the internal system typesystem.

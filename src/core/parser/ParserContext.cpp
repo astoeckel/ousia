@@ -22,15 +22,28 @@ namespace ousia {
 
 /* Class ParserContext */
 
-ParserContext::ParserContext(ParserScope &scope, Registry &registry,
-                             Logger &logger, Manager &manager,
-                             Handle<model::Project> project)
-    : scope(scope),
-      registry(registry),
-      logger(logger),
-      manager(manager),
-      project(project)
+ParserContext::ParserContext(Handle<Project> project, ParserScope &scope,
+                             SourceId sourceId, Logger &logger)
+    : project(project), scope(scope), sourceId(sourceId), logger(logger)
 {
 }
+
+ParserContext::ParserContext(Handle<Project> project, ParserScope &scope,
+                             Logger &logger)
+    : project(project), scope(scope), sourceId(InvalidSourceId), logger(logger)
+{
+}
+
+ParserContext ParserContext::clone(ParserScope &scope, SourceId sourceId) const
+{
+	return ParserContext{project, scope, sourceId, logger};
+}
+
+ParserContext ParserContext::clone(SourceId sourceId) const
+{
+	return ParserContext{project, scope, sourceId, logger};
+}
+
+Manager &ParserContext::getManager() const { return project->getManager(); }
 }
 

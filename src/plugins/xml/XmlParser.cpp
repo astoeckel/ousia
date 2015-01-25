@@ -32,8 +32,6 @@
 
 namespace ousia {
 
-using namespace ousia::model;
-
 /* Document structure */
 static const State STATE_DOCUMENT = 0;
 static const State STATE_HEAD = 1;
@@ -235,24 +233,18 @@ public:
 
 /* Adapter Expat -> ParserStack */
 
-struct XMLParserUserData {
-	SourceId sourceId;
-};
-
 static SourceLocation syncLoggerPosition(XML_Parser p)
 {
 	// Fetch the parser stack and the associated user data
 	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(p));
-	XMLParserUserData *ud =
-	    static_cast<XMLParserUserData *>(stack->getUserData());
 
 	// Fetch the current location in the XML file
 	size_t offs = XML_GetCurrentByteIndex(p);
 
 	// Build the source location and update the default location of the current
 	// logger instance
-	SourceLocation loc{ud->sourceId, offs};
-	stack->getContext().logger.setDefaultLocation(loc);
+	SourceLocation loc{stack->getContext().getSourceId(), offs};
+	stack->getContext().getLogger().setDefaultLocation(loc);
 	return loc;
 }
 
@@ -269,7 +261,7 @@ static void xmlStartElementHandler(void *p, const XML_Char *name,
 	while (*attr) {
 		const std::string key{*(attr++)};
 		std::pair<bool, Variant> value = VariantReader::parseGenericString(
-		    *(attr++), stack->getContext().logger);
+		    *(attr++), stack->getContext().getLogger());
 		args.emplace(std::make_pair(key, value.second));
 	}
 	stack->start(std::string(name), args, loc);
@@ -305,10 +297,7 @@ Rooted<Node> XmlParser::doParse(CharReader &reader, ParserContext &ctx)
 
 	// Create the parser stack instance and pass the reference to the state
 	// machine descriptor
-	XMLParserUserData data;
-	data.sourceId = reader.getSourceId();
-
-	ParserStack stack{ctx, XML_HANDLERS, &data};
+	ParserStack stack{ctx, XML_HANDLERS};
 	XML_SetUserData(&p, &stack);
 	XML_UseParserAsHandlerArg(&p);
 

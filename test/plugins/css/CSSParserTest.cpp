@@ -266,9 +266,7 @@ void assertException(std::string css)
 	CharReader reader(css);
 	TerminalLogger logger(std::cerr, true);
 	{
-		GuardedLogger sl(logger);
-		StandaloneParserContext ctx(sl);
-
+		StandaloneParserContext ctx(logger);
 		CSSParser instance;
 		try {
 			instance.parse(reader, ctx.context).cast<SelectorNode>();

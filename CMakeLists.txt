@@ -154,7 +154,7 @@ ADD_LIBRARY(ousia_core
 	src/core/resource/Resource
 	src/core/resource/ResourceLocator
 	src/core/resource/ResourceManager
-	src/core/resource/ResourceUtils
+	src/core/resource/ResourceRequest
 #	src/core/script/ScriptEngine
 )
 
@@ -241,6 +241,7 @@ IF(TEST)
 		test/core/model/TypesystemTest
 		test/core/parser/ParserStackTest
 		test/core/resource/ResourceLocatorTest
+		test/core/resource/ResourceRequestTest
 #		test/core/script/FunctionTest
 #		test/core/script/ObjectTest
 #		test/core/script/VariantTest

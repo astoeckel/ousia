@@ -34,6 +34,7 @@
 
 #include <core/common/Location.hpp>
 #include <core/common/Rtti.hpp>
+#include <core/common/SourceContextReader.hpp>
 #include <core/managed/Managed.hpp>
 
 #include "Resource.hpp"
@@ -41,8 +42,11 @@
 namespace ousia {
 
 // Forward declarations
+class Registry;
 class Node;
+class Parser;
 class ParserContext;
+class ResourceRequest;
 extern const Resource NullResource;
 
 /**
@@ -51,6 +55,12 @@ extern const Resource NullResource;
  * and returns references for those resources that already have been parsed.
  */
 class ResourceManager {
+public:
+	/**
+	 * Used internally to set the mode of the Parse function.
+	 */
+	enum class ParseMode { LINK, INCLUDE };
+
 private:
 	/**
 	 * Next SourceId to be used.
@@ -105,25 +115,113 @@ private:
 	void purgeResource(SourceId sourceId);
 
 	/**
-	 * Used internally to parse the given resource.
+	 * Used internally to parse the given resource. Can either operate in the
+	 * "link" or the "include" mode. In the latter case the ParserScope instance
+	 * inside the ParserContext is exchanged with an empty one.
 	 *
-	 * @param ctx is the context from the Registry and the Logger instance will
-	 * be looked up.
-	 * @param resource is the resource from which the input stream should be
-	 * obtained.
+	 * @param registry is the registry that should be used to locate the
+	 * resource.
+	 * @param ctx is the context that should be passed to the parser.
+	 * @param req is a ResourceRequest instance that contains all information
+	 * about the requested resource.
+	 * @param mode describes whether the file should be included or linked.
+	 * @return the parsed node or nullptr if something goes wrong.
+	 */
+	Rooted<Node> parse(Registry &registry, ParserContext &ctx,
+	                   const ResourceRequest &req, ParseMode mode);
+
+public:
+	/**
+	 * Resolves the reference to the file specified by the given path and -- if
+	 * this has not already happened -- parses the file. The parser that is
+	 * called is provided a new ParserContext instance with an empty ParserScope
+	 * which allows the Node instance returned by the parser to be cached. Logs
+	 * any problem in the logger instance of the given ParserContext.
+	 *
+	 * @param registry is the registry instance that should be used to lookup
+	 * the parser instances and to locate the resources.
+	 * @param ctx is the context from which the Logger instance will be looked
+	 * up. This context instance is not directly passed to the Parser, the
+	 * ParserScope instance is replaced with a new one. The sourceId specified
+	 * in the context instance will be used as relative location for looking up
+	 * the new resource.
 	 * @param mimetype is the mimetype of the resource that should be parsed
 	 * (may be empty, in which case the mimetype is deduced from the file
 	 * extension)
+	 * @param rel is a "relation string" supplied by the user which specifies
+	 * the relationship of the specified resource.
 	 * @param supportedTypes contains the types of the returned Node the caller
 	 * can deal with. Note that only the types the parser claims to return are
 	 * checked, not the actual result.
 	 * @return the parsed node or nullptr if something goes wrong.
 	 */
-	Rooted<Node> parse(ParserContext &ctx, Resource &resource,
-	                   const std::string &mimetype,
-	                   const RttiSet &supportedTypes);
+	Rooted<Node> link(Registry &registry, ParserContext &ctx,
+	                  const std::string &path, const std::string &mimetype = "",
+	                  const std::string &rel = "",
+	                  const RttiSet &supportedTypes = RttiSet{});
 
-public:
+	/**
+	 * Resolves the reference to the file specified by the given path and parses
+	 * the file using the provided context. As the result of the "include"
+	 * function depends on the ParserScope inside the provided ParserContext
+	 * instance, the resource has to be parsed every time this function is
+	 * called. This contasts the behaviour of the "link" function, which creates
+	 * a new ParserScope and thus guarantees reproducible results. Logs any
+	 * problem in the logger instance of the given ParserContext.
+	 *
+	 * @param registry is the registry instance that should be used to lookup
+	 * the parser instances and to locate the resources.
+	 * @param ctx is the context from which the Logger instance will be looked
+	 * up. The sourceId specified in the context instance will be used as
+	 * relative location for looking up the new resource.
+	 * @param path is the requested path of the file that should be included.
+	 * @param mimetype is the mimetype of the resource that should be parsed
+	 * (may be empty, in which case the mimetype is deduced from the file
+	 * extension)
+	 * @param rel is a "relation string" supplied by the user which specifies
+	 * the relationship of the specified resource.
+	 * @param supportedTypes contains the types of the returned Node the caller
+	 * can deal with. Note that only the types the parser claims to return are
+	 * checked, not the actual result.
+	 * @return the parsed node or nullptr if something goes wrong.
+	 */
+	Rooted<Node> include(Registry &registry, ParserContext &ctx,
+	                     const std::string &path,
+	                     const std::string &mimetype = "",
+	                     const std::string &rel = "",
+	                     const RttiSet &supportedTypes = RttiSet{});
+
+	/**
+	 * Creates and returns a SourceContext structure containing information
+	 * about the given SourceLocation (such as line and column number). Throws
+	 * a LoggableException if an irrecoverable error occurs while looking up the
+	 * context (such as a no longer existing resource).
+	 *
+	 * @param location is the SourceLocation for which context information
+	 * should be retrieved. This method is used by the Logger class to print
+	 * pretty messages.
+	 * @param maxContextLength is the maximum length in character of context
+	 * that should be extracted.
+	 * @return a valid SourceContext if a valid SourceLocation was given or an
+	 * invalid SourceContext if the location is invalid.
+	 */
+	SourceContext readContext(const SourceLocation &location,
+	                          size_t maxContextLength);
+	/**
+	 * Creates and returns a SourceContext structure containing information
+	 * about the given SourceLocation (such as line and column number). Throws
+	 * a LoggableException if an irrecoverable error occurs while looking up the
+	 * context (such as a no longer existing resource). Does not limit the
+	 * context length.
+	 *
+	 * @param location is the SourceLocation for which context information
+	 * should be retrieved. This method is used by the Logger class to print
+	 * pretty messages.
+	 * @return a valid SourceContext if a valid SourceLocation was given or an
+	 * invalid SourceContext if the location is invalid.
+	 */
+	SourceContext readContext(const SourceLocation &location);
+
 	/**
 	 * Returns the sourceId for the given location string.
 	 *
@@ -188,63 +286,6 @@ public:
 	 * @return the Node instance corresponding to the given resource.
 	 */
 	Rooted<Node> getNode(Manager &mgr, const Resource &resource);
-
-	/**
-	 * Resolves the reference to the file specified by the given path and -- if
-	 * this has not already happened -- parses the file. Logs any problem in
-	 * the logger instance of the given ParserContext.
-	 *
-	 * @param ctx is the context from the Registry and the Logger instance will
-	 * be looked up.
-	 * @param path is the path to the file that should be included.
-	 * @param mimetype is the mimetype the file was included with. If no
-	 * mimetype is given, the path must have an extension that is known by
-	 */
-	Rooted<Node> link(ParserContext &ctx, const std::string &path,
-	                  const std::string &mimetype = "",
-	                  const std::string &rel = "",
-	                  const RttiSet &supportedTypes = RttiSet{},
-	                  const Resource &relativeTo = NullResource);
-
-	/**
-	 * Resolves the reference to the file specified by the given path and -- if
-	 * this has not already happened -- parses the file. Logs any problem in
-	 * the logger instance of the given ParserContext.
-	 */
-	Rooted<Node> link(ParserContext &ctx, const std::string &path,
-	                  const std::string &mimetype, const std::string &rel,
-	                  const RttiSet &supportedTypes, SourceId relativeTo);
-
-	/**
-	 * Creates and returns a SourceContext structure containing information
-	 * about the given SourceLocation (such as line and column number). Throws
-	 * a LoggableException if an irrecoverable error occurs while looking up the
-	 * context (such as a no longer existing resource).
-	 *
-	 * @param location is the SourceLocation for which context information
-	 * should be retrieved. This method is used by the Logger class to print
-	 * pretty messages.
-	 * @param maxContextLength is the maximum length in character of context
-	 * that should be extracted.
-	 * @return a valid SourceContext if a valid SourceLocation was given or an
-	 * invalid SourceContext if the location is invalid.
-	 */
-	SourceContext readContext(const SourceLocation &location,
-	                          size_t maxContextLength);
-	/**
-	 * Creates and returns a SourceContext structure containing information
-	 * about the given SourceLocation (such as line and column number). Throws
-	 * a LoggableException if an irrecoverable error occurs while looking up the
-	 * context (such as a no longer existing resource). Does not limit the
-	 * context length.
-	 *
-	 * @param location is the SourceLocation for which context information
-	 * should be retrieved. This method is used by the Logger class to print
-	 * pretty messages.
-	 * @return a valid SourceContext if a valid SourceLocation was given or an
-	 * invalid SourceContext if the location is invalid.
-	 */
-	SourceContext readContext(const SourceLocation &location);
 };
 }
 

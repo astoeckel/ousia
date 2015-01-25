@@ -28,64 +28,128 @@
 #ifndef _OUSIA_PARSER_CONTEXT_HPP_
 #define _OUSIA_PARSER_CONTEXT_HPP_
 
+#include <core/common/Location.hpp>
 #include <core/managed/Managed.hpp>
-#include <core/model/Node.hpp>
 #include <core/model/Project.hpp>
+
+#include "ParserScope.hpp"
 
 namespace ousia {
 
 // Forward declaration
 class Logger;
-class ParserScope;
-class Registry;
 
 /**
- * Struct containing the objects that are passed to a parser instance.
+ * Class containing the objects that are passed to a parser instance.
  */
-struct ParserContext {
+class ParserContext {
+private:
 	/**
-	 * Reference to the ParserScope instance that should be used within the parser.
+	 * Project instance into which the new content should be parsed.
+	 */
+	Rooted<Project> project;
+
+	/**
+	 * Reference to the ParserScope instance that should be used within the
+	 * parser.
 	 */
 	ParserScope &scope;
 
 	/**
-	 * Reference to the Registry instance that should be used within the parser.
+	 * SourceId is the ID of the resource that is currently being processed.
 	 */
-	Registry &registry;
+	SourceId sourceId;
 
 	/**
 	 * Reference to the Logger the parser should log any messages to.
 	 */
 	Logger &logger;
 
-	/**
-	 * Reference to the Manager the parser should append nodes to.
-	 */
-	Manager &manager;
-
-	/**
-	 * Project instance into which the new content should be parsed.
-	 */
-	Rooted<model::Project> project;
-
+public:
 	/**
 	 * Constructor of the ParserContext class.
 	 *
+	 * @param project is the project into which the content should be parsed.
 	 * @param scope is a reference to the ParserScope instance that should be
 	 * used to lookup names.
-	 * @param registry is a reference at the Registry class, which allows to
-	 * obtain references at parsers for other formats or script engine
-	 * implementations.
+	 * @param sourceId is a SourceId instance specifying the source the parser
+	 * is reading from.
 	 * @param logger is a reference to the Logger instance that should be used
 	 * to log error messages and warnings that occur while parsing the document.
-	 * @param manager is a Reference to the Manager the parser should append
-	 * nodes to.
-	 * @param project is the project into which the content should be parsed.
 	 */
-	ParserContext(ParserScope &scope, Registry &registry, Logger &logger,
-	              Manager &manager, Handle<model::Project> project);
-};
+	ParserContext(Handle<Project> project, ParserScope &scope,
+	              SourceId sourceId, Logger &logger);
 
+	/**
+	 * Constructor of the ParserContext class with the sourceId being set
+	 * to the InvalidSourceId value.
+	 *
+	 * @param project is the project into which the content should be parsed.
+	 * @param scope is a reference to the ParserScope instance that should be
+	 * used to lookup names.
+	 * @param logger is a reference to the Logger instance that should be used
+	 * to log error messages and warnings that occur while parsing the document.
+	 */
+	ParserContext(Handle<Project> project, ParserScope &scope,
+	              Logger &logger);
+
+	/**
+	 * Clones the ParserContext instance but exchanges the ParserScope instance
+	 * and the source id.
+	 *
+	 * @param scope is a reference at the new ParserScope instance.
+	 * @param sourceId is the source id the parser is reading from.
+	 * @return a copy of this ParserContext with exchanged scope and source id.
+	 */
+	ParserContext clone(ParserScope &scope, SourceId sourceId) const;
+
+	/**
+	 * Clones the ParserContext instance but exchanges the source id.
+	 *
+	 * @param sourceId is the source id the parser is reading from.
+	 * @return a copy of this ParserContext with exchanged source id.
+	 */
+	ParserContext clone(SourceId sourceId) const;
+
+	/**
+	 * Returns a handle pointing at the Project node.
+	 *
+	 * @return a project node handle.
+	 */
+	Rooted<Project> getProject() const { return project; }
+
+	/**
+	 * Returns a reference pointing at the current ParserScope instance.
+	 *
+	 * @return a reference at the parser scope object that should be used during
+	 * the parsing process.
+	 */
+	ParserScope &getScope() const { return scope; }
+
+	/**
+	 * Returns a reference pointing at the current LoggerInstance.
+	 *
+	 * @return a reference at LoggerInstance to which all error messages should
+	 * be logged.
+	 */
+	Logger &getLogger() const { return logger; }
+
+	/**
+	 * Returns a reference pointing at the manager instance that should be used
+	 * when creating new Managed objects.
+	 *
+	 * @return a reference pointing at the underlying Manager instance.
+	 */
+	Manager &getManager() const;
+
+	/**
+	 * Returns the SourceId instance which specifies the source file the parser
+	 * is currently reading from.
+	 *
+	 * @return the current source id.
+	 */
+	SourceId getSourceId() const { return sourceId; }
+};
 }
 
 #endif /* _OUSIA_PARSER_CONTEXT_HPP_ */

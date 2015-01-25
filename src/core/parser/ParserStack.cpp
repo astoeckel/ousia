@@ -22,6 +22,7 @@
 
 #include <core/common/Utils.hpp>
 #include <core/common/Exceptions.hpp>
+#include <core/model/Project.hpp>
 
 namespace ousia {
 
@@ -74,7 +75,7 @@ HandlerInstance HandlerDescriptor::create(const ParserContext &ctx,
 	}
 
 	// Canonicalize the arguments
-	arguments.validateMap(args, ctx.logger, true);
+	arguments.validateMap(args, ctx.getLogger(), true);
 
 	h->start(args);
 	return HandlerInstance(h, this);

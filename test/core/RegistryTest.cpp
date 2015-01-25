@@ -33,7 +33,7 @@ class TestParser : public Parser {
 protected:
 	Rooted<Node> doParse(CharReader &reader, ParserContext &ctx) override
 	{
-		return new Node{ctx.manager};
+		return new Node{ctx.getManager()};
 	}
 };
 }

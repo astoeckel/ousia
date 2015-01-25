@@ -41,7 +41,6 @@ namespace ousia {
 
 // Forward declaration
 class CharReader;
-class Registry;
 class Logger;
 class ParserScope;
 

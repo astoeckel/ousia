@@ -25,9 +25,9 @@
 
 namespace ousia {
 
-
-Project::Project(Manager &mgr)
+Project::Project(Manager &mgr, Registry &registry)
     : Node(mgr),
+      registry(registry),
       systemTypesystem(acquire(new SystemTypesystem(mgr))),
       documents(this)
 {
