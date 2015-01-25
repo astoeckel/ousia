@@ -179,6 +179,18 @@ public:
 	 * lowercase.
 	 */
 	static std::string extractFileExtension(const std::string &filename);
+
+	/**
+	 * Hash functional to be used for enum classes.
+	 * See http://stackoverflow.com/a/24847480/2188211
+	 */
+	struct EnumHash {
+		template <typename T>
+		std::size_t operator()(T t) const
+		{
+			return static_cast<std::size_t>(t);
+		}
+	};
 };
 }
 
