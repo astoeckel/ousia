@@ -73,10 +73,7 @@ public:
 	/**
 	 * Returns true if the given character is a whitespace character.
 	 */
-	static bool isLinebreak(const char c)
-	{
-		return (c == '\n') || (c == '\r');
-	}
+	static bool isLinebreak(const char c) { return (c == '\n') || (c == '\r'); }
 
 	/**
 	 * Removes whitespace at the beginning and the end of the given string.
@@ -93,11 +90,12 @@ public:
 	 * @param s is the container that should be trimmed.
 	 * @param f is a function that returns true for values that should be
 	 * removed.
-	 * @return start and end index. Note that "end" points at the character beyond
-	 * the end, thus "end" minus "start"
+	 * @return start and end index. Note that "end" points at the character
+	 * beyond the end, thus "end" minus "start"
 	 */
 	template <class T, class Filter>
-	static std::pair<size_t, size_t> trim(const T &s, Filter f) {
+	static std::pair<size_t, size_t> trim(const T &s, Filter f)
+	{
 		size_t start = 0;
 		for (size_t i = 0; i < s.size(); i++) {
 			if (!f(s[i])) {
