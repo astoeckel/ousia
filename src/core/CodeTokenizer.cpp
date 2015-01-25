@@ -164,5 +164,6 @@ bool CodeTokenizer::doPrepare(const Token &t, std::deque<Token> &peeked)
 			}
 	}
 	assert(false);
+	return false;
 }
 }
