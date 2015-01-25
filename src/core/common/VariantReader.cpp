@@ -518,7 +518,7 @@ std::pair<bool, Variant::mapType> VariantReader::parseObject(CharReader &reader,
 	return std::make_pair(res.first, res.second.asMap());
 }
 
-static const std::unordered_set<char> cardDelims{' ', ',', '}'};
+static const std::unordered_set<char> cardDelims{' ', ',', '}', '-'};
 
 std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
     CharReader &reader, Logger &logger)
@@ -533,6 +533,7 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
 
 	Variant::cardinalityType card{};
 
+	reader.consumePeek();
 	reader.consumeWhitespace();
 
 	// which should in turn be followed by ranges.
@@ -541,14 +542,15 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
 			// in case of a numeric character we want to read an integer.
 			reader.resetPeek();
 			Number n;
-			n.parse(reader, logger, cardDelims);
-			if (!n.isInt() || n.intValue() < 0) {
+			if (!n.parse(reader, logger, cardDelims) || !n.isInt() ||
+			    n.intValue() < 0) {
 				return error(reader, logger, "Invalid number for cardinality!",
 				             Variant::cardinalityType{});
 			}
 			unsigned int start = (unsigned int)n.intValue();
 			// if we have that we might either find a } or , making this a
 			// range or a - leading us to expect another integer.
+			reader.consumePeek();
 			reader.consumeWhitespace();
 			if (!reader.peek(c)) {
 				error(reader, logger, ERR_UNEXPECTED_END,
@@ -560,16 +562,16 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
 					reader.resetPeek();
 					break;
 				case '-': {
-					reader.consumePeek();
 					// get another integer.
+					reader.consumePeek();
 					reader.consumeWhitespace();
 					if (!reader.peek(c)) {
 						error(reader, logger, ERR_UNEXPECTED_END,
 						      Variant::cardinalityType{});
 					}
 					Number n2;
-					n2.parse(reader, logger, cardDelims);
-					if (!n2.isInt() || n2.intValue() < 0) {
+					if (!n2.parse(reader, logger, cardDelims) || !n2.isInt() ||
+					    n2.intValue() < 0) {
 						return error(reader, logger,
 						             "Invalid number for cardinality!",
 						             Variant::cardinalityType{});
@@ -583,9 +585,6 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
 					return unexpected(reader, logger, "}, , or -", c,
 					                  Variant::cardinalityType{});
 			}
-			if (c == '{' || c == ',') {
-				reader.resetPeek();
-			}
 		} else {
 			switch (c) {
 				case '*':
@@ -596,6 +595,7 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
 				case '<':
 				case '>': {
 					// in case of an open range we expect a number.
+					reader.consumePeek();
 					reader.consumeWhitespace();
 					Number n;
 					if (!n.parse(reader, logger, cardDelims)) {
@@ -625,6 +625,7 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
 			}
 		}
 		// after we have parsed a range, read all whitespaces.
+		reader.consumePeek();
 		reader.consumeWhitespace();
 		// ... and check if we are at the end.
 		if (!reader.read(c)) {
@@ -635,6 +636,7 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
 			case '}':
 				return std::make_pair(true, card);
 			case ',':
+				reader.consumePeek();
 				reader.consumeWhitespace();
 				break;
 

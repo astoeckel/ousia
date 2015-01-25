@@ -22,12 +22,14 @@
 #include <string>
 #include <sstream>
 
+#include "CharReader.hpp"
 #include "Function.hpp"
 #include "Logger.hpp"
 #include "Number.hpp"
 #include "Rtti.hpp"
 #include "Variant.hpp"
 #include "VariantConverter.hpp"
+#include "VariantReader.hpp"
 #include "VariantWriter.hpp"
 
 namespace ousia {
@@ -389,9 +391,11 @@ bool VariantConverter::toMap(Variant &var, const Rtti &innerType,
 
 bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 {
+	if (var.isCardinality()) {
+		return true;
+	}
 	// Perform safe conversions (all these operations are considered "lossless")
-	const VariantType type = var.getType();
-	if (type == VariantType::INT) {
+	if (var.isInt()) {
 		int value = var.asInt();
 		var.setCardinality(Variant::cardinalityType{});
 		Variant::cardinalityType &card = var.asCardinality();
@@ -406,6 +410,7 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 
 	// Perform lossy conversions
 	if (mode == Mode::ALL) {
+		const VariantType type = var.getType();
 		switch (type) {
 			case VariantType::NULLPTR:
 				var.setCardinality(Variant::cardinalityType{});
@@ -465,11 +470,11 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 						return false;
 					}
 					int end = endVar.asInt();
-					if (end <= start) {
+					if (end < start) {
 						logger.error(
 						    std::string("The supposed start value ") +
 						    std::to_string(start) +
-						    " was bigger or equal to the supposed end value " +
+						    " was bigger than the supposed end value " +
 						    std::to_string(end) + " of the Range.");
 						return false;
 					}
@@ -479,11 +484,15 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 				return true;
 			}
 			case VariantType::STRING: {
-				var.setCardinality(Variant::cardinalityType{});
-				//				Variant::cardinalityType &card =
-				// var.asCardinality();
-				// TODO: Implement!
-				return false;
+				CharReader reader{var.asString().c_str()};
+				auto res = VariantReader::parseCardinality(reader, logger);
+				if (res.first) {
+					var.setCardinality(res.second);
+					return true;
+				} else {
+					var.setCardinality(Variant::cardinalityType{});
+					return false;
+				}
 			}
 			default:
 				break;

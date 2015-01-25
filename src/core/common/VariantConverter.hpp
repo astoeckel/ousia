@@ -84,10 +84,10 @@ public:
 	 * to Mode::SAFE, only integers can be converted to integers. For all other
 	 * types the conversion fails. If "mode" is set to Mode::ALL, booleans are
 	 * converted to 0, 1, nullptr is converted to 0, doubles are truncated,
-	 * strings are parsed and truncated, arrays with one element are converted
-	 * to an integer. Conversion fails for objects, functions, maps and arrays
-	 * with zero or more than one entry. If the conversion fails, 0 is returned
-	 * as default value.
+	 * strings are parsed and truncated, arrays and cardinalities with one
+	 * element are converted to an integer. Conversion fails for objects,
+	 * functions, maps and arrays with zero or more than one entry. If the
+	 * conversion fails, 0 is returned as default value.
 	 *
 	 * @param var is instance of the Variant class that should be converted to
 	 * the requested type.
@@ -105,7 +105,8 @@ public:
 	 * to Mode::SAFE, only integers and doubles can be converted to doubles. For
 	 * all other types the conversion fails. If "mode" is set to Mode::ALL,
 	 * booleans are converted to 0.0, 1.0, nullptr is converted to 0.0, strings
-	 * are parsed, arrays with one element are converted to a double.
+	 * are parsed, arrays and cardinalities with one element are converted to a
+	 * double.
 	 * Conversion fails for objects, functions, maps and arrays with zero or
 	 * more than one entry. If the conversion fails, 0.0 is returned as default
 	 * value.
@@ -125,10 +126,10 @@ public:
 	 * Converts the given variant to a string. If the "mode" parameter is set
 	 * to Mode::SAFE, all primitive types can be converted to strings. For
 	 * all other types the conversion fails. If "mode" is set to Mode::ALL,
-	 * maps and arrays are converted to a JSON representation, objects and
-	 * functions are converted to an informative string containing their pointer
-	 * and type. If the conversion fails, an empty string is returned as default
-	 * value.
+	 * maps and arrays are converted to a JSON representation, cardinalities
+	 * to their parsing syntax and objects and functions are converted to an
+	 * informative string containing their pointer and type. If the conversion
+	 * fails, an empty string is returned as default value.
 	 *
 	 * @param var is instance of the Variant class that should be converted to
 	 * the requested type.
