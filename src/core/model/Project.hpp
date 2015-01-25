@@ -111,7 +111,7 @@ public:
 	 * @return the parsed node or nullptr if something goes wrong.
 	 */
 	Rooted<Node> parse(const std::string &path, const std::string mimetype,
-	                   const std::string rel, RttiSet &supportedTypes,
+	                   const std::string rel, const RttiSet &supportedTypes,
 	                   Logger &logger);
 
 	/**
@@ -136,7 +136,7 @@ public:
 	 */
 	Rooted<Node> link(ParserContext &ctx, const std::string &path,
 	                  const std::string mimetype, const std::string rel,
-	                  RttiSet &supportedTypes);
+	                  const RttiSet &supportedTypes);
 
 	/**
 	 * Parses a file with ParserContext and the current ParserScope. In contrast
@@ -160,7 +160,16 @@ public:
 	 */
 	Rooted<Node> include(ParserContext &ctx, const std::string &path,
 	                     const std::string mimetype, const std::string rel,
-	                     RttiSet &supportedTypes);
+	                     const RttiSet &supportedTypes);
+
+	/**
+	 * Returns a SourceContextCallback that can be passed to a logger instance.
+	 * Remeber to reset the SourceContextCallback after the Project instance has
+	 * been freed.
+	 *
+	 * @return a SourceContextCallback that is coupled to this Project instance.
+	 */
+	SourceContextCallback getSourceContextCallback();
 
 	/**
 	 * Returns a reference to the internal system typesystem.
