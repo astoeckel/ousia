@@ -32,12 +32,11 @@
 #include <core/managed/Managed.hpp>
 #include <core/model/Project.hpp>
 
-#include "ParserScope.hpp"
-
 namespace ousia {
 
 // Forward declaration
 class Logger;
+class ParserScope;
 
 /**
  * Class containing the objects that are passed to a parser instance.
