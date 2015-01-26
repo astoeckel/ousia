@@ -116,7 +116,6 @@ ADD_DEFINITIONS(
 
 ADD_LIBRARY(ousia_core
 	src/core/CodeTokenizer
-	src/core/CSS
 	src/core/Registry
 	src/core/Tokenizer
 	src/core/XML
@@ -146,6 +145,7 @@ ADD_LIBRARY(ousia_core
 	src/core/model/Index
 	src/core/model/Node
 	src/core/model/Project
+	src/core/model/Style
 	src/core/model/Typesystem
 	src/core/parser/Parser
 	src/core/parser/ParserContext
@@ -212,7 +212,6 @@ IF(TEST)
 
 	ADD_EXECUTABLE(ousia_test_core
 		test/core/CodeTokenizerTest
-		test/core/CSSTest
 		test/core/RangeSetTest
 		test/core/RegistryTest
 		test/core/TokenizerTest
@@ -238,6 +237,7 @@ IF(TEST)
 		test/core/model/DocumentTest
 		test/core/model/IndexTest
 		test/core/model/NodeTest
+		test/core/model/StyleTest
 		test/core/model/TypesystemTest
 		test/core/parser/ParserStackTest
 		test/core/resource/ResourceLocatorTest

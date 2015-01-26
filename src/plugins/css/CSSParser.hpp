@@ -32,8 +32,8 @@
 #include <utility>
 
 #include <core/CodeTokenizer.hpp>
-#include <core/CSS.hpp>
 #include <core/common/CharReader.hpp>
+#include <core/model/Style.hpp>
 #include <core/parser/Parser.hpp>
 
 namespace ousia {
@@ -71,42 +71,44 @@ private:
 	/**
 	 * Implements the DOC Nonterminal
 	 */
-	void parseDocument(Rooted<SelectorNode> root, CodeTokenizer &tokenizer,
-	                   ParserContext &ctx);
+	void parseDocument(Rooted<model::SelectorNode> root,
+	                   CodeTokenizer &tokenizer, ParserContext &ctx);
 	/**
 	 * Implements the SELECTORS Nonterminal and adds all leaf nodes of the
 	 * resulting SelectorTree to the input leafList so that a parsed RuleSet can
 	 * be inserted there.
 	 */
-	void parseSelectors(Rooted<SelectorNode> root, CodeTokenizer &tokenizer,
-	                    std::vector<Rooted<SelectorNode>> &leafList,
+	void parseSelectors(Rooted<model::SelectorNode> root,
+	                    CodeTokenizer &tokenizer,
+	                    std::vector<Rooted<model::SelectorNode>> &leafList,
 	                    ParserContext &ctx);
 	/**
 	 * Implements the SELECT Nonterminal, which in effect parses a SelectorPath
 	 * of the SelectorTree and returns the beginning node of the path as first
 	 * element as well as the leaf of the path as second tuple element.
 	 */
-	std::pair<Rooted<SelectorNode>, Rooted<SelectorNode>> parseSelector(
-	    CodeTokenizer &tokenizer, ParserContext &ctx);
+	std::pair<Rooted<model::SelectorNode>, Rooted<model::SelectorNode>>
+	parseSelector(CodeTokenizer &tokenizer, ParserContext &ctx);
 
 	/**
 	 * Implements the SELECT' Nonterminal, which parses a single Selector with
 	 * its PseudoSelector and returns it.
 	 */
-	Rooted<SelectorNode> parsePrimitiveSelector(CodeTokenizer &tokenizer,
-	                                            ParserContext &ctx);
+	Rooted<model::SelectorNode> parsePrimitiveSelector(CodeTokenizer &tokenizer,
+	                                                   ParserContext &ctx);
 
 	/**
 	 * Implements the RULESET Nonterminal, which parses an entire RuleSet. Note
 	 * that we do not require RuleSets to be parsed. It is permitted to just
 	 * insert Selector expressions.
 	 */
-	Rooted<RuleSet> parseRuleSet(CodeTokenizer &tokenizer, ParserContext &ctx);
+	Rooted<model::RuleSet> parseRuleSet(CodeTokenizer &tokenizer,
+	                                    ParserContext &ctx);
 
 	/**
 	 * Implements the RULES Nonterminal, which parses CSSRules inside a RuleSet.
 	 */
-	void parseRules(CodeTokenizer &tokenizer, Rooted<RuleSet> ruleSet,
+	void parseRules(CodeTokenizer &tokenizer, Rooted<model::RuleSet> ruleSet,
 	                ParserContext &ctx);
 
 	/**

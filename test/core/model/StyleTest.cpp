@@ -18,9 +18,10 @@
 
 #include <gtest/gtest.h>
 
-#include <core/CSS.hpp>
+#include <core/model/Style.hpp>
 
 namespace ousia {
+namespace model {
 TEST(Specificity, testOperators)
 {
 	Specificity s1{0, 0, 1};
@@ -266,5 +267,6 @@ TEST(SelectorNode, testAppend)
 	children = root->getChildren("A");
 	ASSERT_EQ(2U, children.size());
 	ASSERT_EQ(ASelect, children[1]);
+}
 }
 }
