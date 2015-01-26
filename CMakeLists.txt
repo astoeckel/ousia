@@ -38,7 +38,7 @@ PKG_CHECK_MODULES(MOZJS REQUIRED mozjs-24)
 PKG_CHECK_MODULES(EXPAT REQUIRED expat)
 
 # Include required Boost components using the Boost cmake package
-FIND_PACKAGE(Boost COMPONENTS system filesystem REQUIRED)
+FIND_PACKAGE(Boost COMPONENTS system filesystem program_options REQUIRED)
 
 # Set utf8cpp include path
 SET(UTF8CPP_INCLUDE_DIR "lib/utf8cpp")
@@ -158,6 +158,14 @@ ADD_LIBRARY(ousia_core
 #	src/core/script/ScriptEngine
 )
 
+ADD_LIBRARY(ousia_css
+	src/plugins/css/CSSParser
+)
+
+TARGET_LINK_LIBRARIES(ousia_css
+	ousia_core
+)
+
 ADD_LIBRARY(ousia_filesystem
 	src/plugins/filesystem/FileLocator
 	src/plugins/filesystem/SpecialPaths
@@ -166,14 +174,6 @@ ADD_LIBRARY(ousia_filesystem
 TARGET_LINK_LIBRARIES(ousia_filesystem
 	ousia_core
 	${Boost_LIBRARIES}
-)
-
-ADD_LIBRARY(ousia_css
-	src/plugins/css/CSSParser
-)
-
-TARGET_LINK_LIBRARIES(ousia_css
-	ousia_core
 )
 
 ADD_LIBRARY(ousia_html
@@ -201,6 +201,20 @@ TARGET_LINK_LIBRARIES(ousia_xml
 #	ousia_core
 #	${MOZJS_LIBRARIES}
 #)
+
+# Command line interface
+
+ADD_EXECUTABLE(ousia
+	src/cli/Main
+)
+
+TARGET_LINK_LIBRARIES(ousia
+	ousia_core
+	ousia_css
+	ousia_filesystem
+	ousia_html
+	ousia_xml
+)
 
 # If testing is enabled, build the unit tests
 IF(TEST)
