@@ -94,12 +94,13 @@ NodeVector<Node> ResourceManager::parse(
 
 	// We can now try to parse the given file
 	NodeVector<Node> parsedNodes;
-	try {
-		// Set the current source id in the logger instance. Note that this
-		// modifies the logger instance -- the GuardedLogger is just used to
-		// make sure the default location is popped from the stack again.
-		GuardedLogger guardedLogger(logger, SourceLocation{sourceId});
 
+	// Set the current source id in the logger instance. Note that this
+	// modifies the logger instance -- the GuardedLogger is just used to
+	// make sure the default location is popped from the stack again.
+	GuardedLogger guardedLogger(logger, SourceLocation{sourceId});
+
+	try {
 		// Fetch the input stream and create a char reader
 		std::unique_ptr<std::istream> is = resource.stream();
 		CharReader reader(*is, sourceId);
