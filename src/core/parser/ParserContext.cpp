@@ -61,12 +61,6 @@ ParserContext ParserContext::clone(ParserScope &scope, SourceId sourceId) const
 	                     project,  logger,          sourceId};
 }
 
-ParserContext ParserContext::clone(SourceId sourceId) const
-{
-	return ParserContext{registry, resourceManager, scope,
-	                     project,  logger,          sourceId};
-}
-
 Manager &ParserContext::getManager() const { return project->getManager(); }
 }
 

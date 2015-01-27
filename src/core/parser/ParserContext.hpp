@@ -151,14 +151,6 @@ public:
 	ParserContext clone(ParserScope &scope, SourceId sourceId) const;
 
 	/**
-	 * Clones the ParserContext instance but exchanges the source id.
-	 *
-	 * @param sourceId is the source id the parser is reading from.
-	 * @return a copy of this ParserContext with exchanged source id.
-	 */
-	ParserContext clone(SourceId sourceId) const;
-
-	/**
 	 * Returns a reference pointing at the Registry used within this parser
 	 * context.
 	 *
