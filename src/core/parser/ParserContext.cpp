@@ -39,12 +39,12 @@ ParserContext::ParserContext(Registry &registry,
 {
 }
 
-NodeVector<Node> ParserContext::link(const std::string &path,
+NodeVector<Node> ParserContext::import(const std::string &path,
                                  const std::string mimetype,
                                  const std::string rel,
                                  const RttiSet &supportedTypes)
 {
-	return resourceManager.link(*this, path, mimetype, rel, supportedTypes);
+	return resourceManager.import(*this, path, mimetype, rel, supportedTypes);
 }
 
 NodeVector<Node> ParserContext::include(const std::string &path,

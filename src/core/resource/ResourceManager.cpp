@@ -105,10 +105,10 @@ NodeVector<Node> ResourceManager::parse(
 		std::unique_ptr<std::istream> is = resource.stream();
 		CharReader reader(*is, sourceId);
 
-		// Actually parse the input stream, distinguish the LINK and the
+		// Actually parse the input stream, distinguish the IMPORT and the
 		// INCLUDE mode
 		switch (mode) {
-			case ParseMode::LINK: {
+			case ParseMode::IMPORT: {
 				// Create a new, empty parser scope instance and a new parser
 				// context with this instance in place
 				ParserScope innerScope;
@@ -184,13 +184,13 @@ NodeVector<Node> ResourceManager::parse(
 	return parsedNodes;
 }
 
-NodeVector<Node> ResourceManager::link(ParserContext &ctx,
+NodeVector<Node> ResourceManager::import(ParserContext &ctx,
                                        const std::string &path,
                                        const std::string &mimetype,
                                        const std::string &rel,
                                        const RttiSet &supportedTypes)
 {
-	return parse(ctx, path, mimetype, rel, supportedTypes, ParseMode::LINK);
+	return parse(ctx, path, mimetype, rel, supportedTypes, ParseMode::IMPORT);
 }
 
 NodeVector<Node> ResourceManager::include(ParserContext &ctx,

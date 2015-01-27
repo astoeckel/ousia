@@ -99,7 +99,7 @@ public:
 
 	/**
 	 * Parses a file with ParserContext and an empty ParserScope. The parsed
-	 * object graph of files that are parsed using the "link" function is
+	 * object graph of files that are parsed using the "import" function is
 	 * cached (in contrast to the "include" function). A copy of this parser
 	 * context will be passed to the called parser, with the ParserScope
 	 * reference stored in the "scope" variable exchanged by an empty scope.
@@ -117,12 +117,12 @@ public:
 	 * checked, not the actual result.
 	 * @return the parsed node or nullptr if something goes wrong.
 	 */
-	NodeVector<Node> link(const std::string &path, const std::string mimetype,
+	NodeVector<Node> import(const std::string &path, const std::string mimetype,
 	                  const std::string rel, const RttiSet &supportedTypes);
 
 	/**
 	 * Parses a file with ParserContext and the current ParserScope. In contrast
-	 * to the "link" function, include() does not cache the parsed node (as it
+	 * to the "import" function, include() does not cache the parsed node (as it
 	 * depends on the current ParserScope).
 	 *
 	 * @param path is the path of the file that should be parsed.

@@ -58,7 +58,7 @@ struct StandaloneEnvironment {
 	                     const std::string mimetype, const std::string rel,
 	                     const RttiSet &supportedTypes)
 	{
-		return context.link(path, mimetype, rel, supportedTypes);
+		return context.import(path, mimetype, rel, supportedTypes);
 	}
 };
 }
