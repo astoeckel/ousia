@@ -327,7 +327,7 @@ IF(TEST)
 ENDIF()
 
 ################################################################################
-# Commands for building installing                                             #
+# Commands for installing                                                      #
 ################################################################################
 
 INSTALL(DIRECTORY data/ DESTINATION share/ousia
@@ -340,3 +340,6 @@ INSTALL(DIRECTORY data/ DESTINATION share/ousia
 				OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
 )
 
+INSTALL(TARGETS ousia
+		RUNTIME DESTINATION bin
+)
