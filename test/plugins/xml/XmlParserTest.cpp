@@ -58,16 +58,14 @@ static TerminalLogger logger(std::cerr, true);
 TEST(XmlParser, mismatchedTag)
 {
 	XmlStandaloneEnvironment env(logger);
-	env.project->parse("mismatchedTag.oxm", "", "",
-	                   RttiSet{&RttiTypes::Document}, logger);
+	env.parse("mismatchedTag.oxm", "", "", RttiSet{&RttiTypes::Document});
 	ASSERT_TRUE(logger.hasError());
 }
 
 TEST(XmlParser, generic)
 {
 	XmlStandaloneEnvironment env(logger);
-	env.project->parse("generic.oxm", "", "", RttiSet{&RttiTypes::Document},
-	                   logger);
+	env.parse("generic.oxm", "", "", RttiSet{&RttiTypes::Document});
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	env.manager.exportGraphviz("xmlDocument.dot");
 #endif

@@ -744,17 +744,6 @@ public:
 	}
 
 	/**
-	 * This sets up an empty document.
-	 *
-	 * @param mgr  is the Manager instance.
-	 * @param name is a name for this Document.
-	 */
-	static Rooted<Document> createEmptyDocument(Manager &mgr, std::string name)
-	{
-		return Rooted<Document>{new Document(mgr, std::move(name))};
-	}
-
-	/**
 	 * Sets the root StructuredEntity of this Document. This also sets the
 	 * parent of the given StructuredEntity if it is not set to this Document
 	 * already.

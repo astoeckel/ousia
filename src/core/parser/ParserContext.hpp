@@ -29,7 +29,7 @@
 #define _OUSIA_PARSER_CONTEXT_HPP_
 
 #include <core/common/Location.hpp>
-#include <core/managed/Managed.hpp>
+#include <core/common/Rtti.hpp>
 #include <core/model/Project.hpp>
 
 namespace ousia {
@@ -37,6 +37,8 @@ namespace ousia {
 // Forward declaration
 class Logger;
 class ParserScope;
+class Registry;
+class ResourceManager;
 
 /**
  * Class containing the objects that are passed to a parser instance.
@@ -44,9 +46,14 @@ class ParserScope;
 class ParserContext {
 private:
 	/**
-	 * Project instance into which the new content should be parsed.
+	 * Reference at the internally used Registry instance.
 	 */
-	Rooted<Project> project;
+	Registry &registry;
+
+	/**
+	 * ResourceManager used to manage all resources used by the project.
+	 */
+	ResourceManager &resourceManager;
 
 	/**
 	 * Reference to the ParserScope instance that should be used within the
@@ -55,42 +62,83 @@ private:
 	ParserScope &scope;
 
 	/**
-	 * SourceId is the ID of the resource that is currently being processed.
+	 * Project instance into which the new content should be parsed.
 	 */
-	SourceId sourceId;
+	Rooted<Project> project;
 
 	/**
 	 * Reference to the Logger the parser should log any messages to.
 	 */
 	Logger &logger;
 
+	/**
+	 * SourceId is the ID of the resource that is currently being processed.
+	 */
+	SourceId sourceId;
+
 public:
 	/**
 	 * Constructor of the ParserContext class.
 	 *
-	 * @param project is the project into which the content should be parsed.
+	 * @param registry is the registry instance that should be used for locating
+	 * files and finding parsers for these files.
+	 * @param resourceManager is a reference at the ResourceManager which
+	 * manages the inclusion of source files.
 	 * @param scope is a reference to the ParserScope instance that should be
 	 * used to lookup names.
+	 * @param project is the project into which the content should be parsed.
+	 * @param logger is a reference to the Logger instance that should be used
+	 * to log error messages and warnings that occur while parsing the document.
 	 * @param sourceId is a SourceId instance specifying the source the parser
 	 * is reading from.
-	 * @param logger is a reference to the Logger instance that should be used
-	 * to log error messages and warnings that occur while parsing the document.
 	 */
-	ParserContext(Handle<Project> project, ParserScope &scope,
-	              SourceId sourceId, Logger &logger);
+	ParserContext(Registry &registry, ResourceManager &resourceManager,
+	              ParserScope &scope, Handle<Project> project, Logger &logger,
+	              SourceId sourceId = InvalidSourceId);
 
 	/**
-	 * Constructor of the ParserContext class with the sourceId being set
-	 * to the InvalidSourceId value.
+	 * Parses a file with ParserContext and an empty ParserScope. The parsed
+	 * object graph of files that are parsed using the "link" function is
+	 * cached (in contrast to the "include" function). A copy of this parser
+	 * context will be passed to the called parser, with the ParserScope
+	 * reference stored in the "scope" variable exchanged by an empty scope.
 	 *
-	 * @param project is the project into which the content should be parsed.
-	 * @param scope is a reference to the ParserScope instance that should be
-	 * used to lookup names.
-	 * @param logger is a reference to the Logger instance that should be used
-	 * to log error messages and warnings that occur while parsing the document.
+	 * @param path is the path of the file that should be parsed.
+	 * @param mimetype is the mimetype of the resource that should be parsed
+	 * (may be empty, in which case the mimetype is deduced from the file
+	 * extension).
+	 * @param rel is a "relation string" supplied by the user which specifies
+	 * the relationship of the specified resource. May be empty, in which case
+	 * the relation is deduced from the supported types and the types of the
+	 * parser for the given mimetype.
+	 * @param supportedTypes contains the types of the returned Node the caller
+	 * can deal with. Note that only the types the parser claims to return are
+	 * checked, not the actual result.
+	 * @return the parsed node or nullptr if something goes wrong.
 	 */
-	ParserContext(Handle<Project> project, ParserScope &scope,
-	              Logger &logger);
+	Rooted<Node> link(const std::string &path, const std::string mimetype,
+	                  const std::string rel, const RttiSet &supportedTypes);
+
+	/**
+	 * Parses a file with ParserContext and the current ParserScope. In contrast
+	 * to the "link" function, include() does not cache the parsed node (as it
+	 * depends on the current ParserScope).
+	 *
+	 * @param path is the path of the file that should be parsed.
+	 * @param mimetype is the mimetype of the resource that should be parsed
+	 * (may be empty, in which case the mimetype is deduced from the file
+	 * extension).
+	 * @param rel is a "relation string" supplied by the user which specifies
+	 * the relationship of the specified resource. May be empty, in which case
+	 * the relation is deduced from the supported types and the types of the
+	 * parser for the given mimetype.
+	 * @param supportedTypes contains the types of the returned Node the caller
+	 * can deal with. Note that only the types the parser claims to return are
+	 * checked, not the actual result.
+	 * @return the parsed node or nullptr if something goes wrong.
+	 */
+	Rooted<Node> include(const std::string &path, const std::string mimetype,
+	                     const std::string rel, const RttiSet &supportedTypes);
 
 	/**
 	 * Clones the ParserContext instance but exchanges the ParserScope instance
@@ -111,11 +159,20 @@ public:
 	ParserContext clone(SourceId sourceId) const;
 
 	/**
-	 * Returns a handle pointing at the Project node.
+	 * Returns a reference pointing at the Registry used within this parser
+	 * context.
 	 *
-	 * @return a project node handle.
+	 * @return a reference at the registry instance.
 	 */
-	Rooted<Project> getProject() const { return project; }
+	Registry &getRegistry() const { return registry; }
+
+	/**
+	 * Returns a reference pointing at the ResourceManager used within this
+	 * parser context.
+	 *
+	 * @return a reference at the ResourceManager instance.
+	 */
+	ResourceManager &getResourceManager() const { return resourceManager; }
 
 	/**
 	 * Returns a reference pointing at the current ParserScope instance.
@@ -124,6 +181,13 @@ public:
 	 * the parsing process.
 	 */
 	ParserScope &getScope() const { return scope; }
+
+	/**
+	 * Returns a handle pointing at the Project node.
+	 *
+	 * @return a project node handle.
+	 */
+	Rooted<Project> getProject() const { return project; }
 
 	/**
 	 * Returns a reference pointing at the current LoggerInstance.

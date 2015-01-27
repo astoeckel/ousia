@@ -42,7 +42,6 @@
 namespace ousia {
 
 // Forward declarations
-class Registry;
 class Node;
 class Parser;
 class ParserContext;
@@ -119,16 +118,23 @@ private:
 	 * "link" or the "include" mode. In the latter case the ParserScope instance
 	 * inside the ParserContext is exchanged with an empty one.
 	 *
-	 * @param registry is the registry that should be used to locate the
-	 * resource.
 	 * @param ctx is the context that should be passed to the parser.
-	 * @param req is a ResourceRequest instance that contains all information
-	 * about the requested resource.
+	 * @param mimetype is the mimetype of the resource that should be parsed
+	 * (may be empty, in which case the mimetype is deduced from the file
+	 * extension)
+	 * @param rel is a "relation string" supplied by the user which specifies
+	 * the relationship of the specified resource. May be empty, in which case
+	 * the relation is deduced from the supported types and the types of the
+	 * parser for the given mimetype.
+	 * @param supportedTypes contains the types of the returned Node the caller
+	 * can deal with. Note that only the types the parser claims to return are
+	 * checked, not the actual result.
 	 * @param mode describes whether the file should be included or linked.
 	 * @return the parsed node or nullptr if something goes wrong.
 	 */
-	Rooted<Node> parse(Registry &registry, ParserContext &ctx,
-	                   const ResourceRequest &req, ParseMode mode);
+	Rooted<Node> parse(ParserContext &ctx, const std::string &path,
+	                   const std::string &mimetype, const std::string &rel,
+	                   const RttiSet &supportedTypes, ParseMode mode);
 
 public:
 	/**
@@ -138,13 +144,11 @@ public:
 	 * which allows the Node instance returned by the parser to be cached. Logs
 	 * any problem in the logger instance of the given ParserContext.
 	 *
-	 * @param registry is the registry instance that should be used to lookup
-	 * the parser instances and to locate the resources.
 	 * @param ctx is the context from which the Logger instance will be looked
-	 * up. This context instance is not directly passed to the Parser, the
-	 * ParserScope instance is replaced with a new one. The sourceId specified
-	 * in the context instance will be used as relative location for looking up
-	 * the new resource.
+	 * up. The sourceId specified in the context instance will be used as
+	 * relative location for looking up the new resource. The registry specified
+	 * in the ParserContext is used to lookup the parser instances and to
+	 * locate the resources.
 	 * @param mimetype is the mimetype of the resource that should be parsed
 	 * (may be empty, in which case the mimetype is deduced from the file
 	 * extension)
@@ -157,9 +161,8 @@ public:
 	 * checked, not the actual result.
 	 * @return the parsed node or nullptr if something goes wrong.
 	 */
-	Rooted<Node> link(Registry &registry, ParserContext &ctx,
-	                  const std::string &path, const std::string &mimetype,
-	                  const std::string &rel,
+	Rooted<Node> link(ParserContext &ctx, const std::string &path,
+	                  const std::string &mimetype, const std::string &rel,
 	                  const RttiSet &supportedTypes);
 
 	/**
@@ -171,11 +174,11 @@ public:
 	 * a new ParserScope and thus guarantees reproducible results. Logs any
 	 * problem in the logger instance of the given ParserContext.
 	 *
-	 * @param registry is the registry instance that should be used to lookup
-	 * the parser instances and to locate the resources.
 	 * @param ctx is the context from which the Logger instance will be looked
 	 * up. The sourceId specified in the context instance will be used as
-	 * relative location for looking up the new resource.
+	 * relative location for looking up the new resource. The registry specified
+	 * in the ParserContext is used to lookup the parser instances and to
+	 * locate the resources.
 	 * @param path is the requested path of the file that should be included.
 	 * @param mimetype is the mimetype of the resource that should be parsed
 	 * (may be empty, in which case the mimetype is deduced from the file
@@ -189,10 +192,8 @@ public:
 	 * checked, not the actual result.
 	 * @return the parsed node or nullptr if something goes wrong.
 	 */
-	Rooted<Node> include(Registry &registry, ParserContext &ctx,
-	                     const std::string &path,
-	                     const std::string &mimetype,
-	                     const std::string &rel,
+	Rooted<Node> include(ParserContext &ctx, const std::string &path,
+	                     const std::string &mimetype, const std::string &rel,
 	                     const RttiSet &supportedTypes);
 
 	/**
@@ -290,6 +291,15 @@ public:
 	 * @return the Node instance corresponding to the given resource.
 	 */
 	Rooted<Node> getNode(Manager &mgr, const Resource &resource);
+
+	/**
+	 * Returns a SourceContextCallback that can be passed to a logger instance.
+	 * Remeber to reset the SourceContextCallback after the Project instance has
+	 * been freed.
+	 *
+	 * @return a SourceContextCallback that is coupled to this Project instance.
+	 */
+	SourceContextCallback getSourceContextCallback();
 };
 }
 

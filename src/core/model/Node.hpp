@@ -410,6 +410,7 @@ public:
 	 * Initializes the node with empty name and parent.
 	 *
 	 * @param mgr is a reference to the Manager instace the node belongs to.
+	 * @param parent is a handle pointing at the parent node.
 	 */
 	Node(Manager &mgr, Handle<Node> parent = nullptr)
 	    : Managed(mgr),
@@ -424,6 +425,8 @@ public:
 	 * @param mgr is a reference to the Manager instace the node belongs to.
 	 * @param name is the name of the Node.
 	 * @param parent is a handle pointing at the parent node.
+	 * @param location is the location in the source code at which this node
+	 * was defined.
 	 */
 	Node(Manager &mgr, std::string name, Handle<Node> parent = nullptr)
 	    : Managed(mgr),
@@ -540,7 +543,10 @@ public:
 	 * @param location describes the exact position of the Node in a source
 	 * file.
 	 */
-	void setLocation(const SourceLocation &location) {this->location = location;}
+	void setLocation(const SourceLocation &location)
+	{
+		this->location = location;
+	}
 };
 
 /**

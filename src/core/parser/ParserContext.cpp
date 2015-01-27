@@ -16,32 +16,55 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <core/resource/ResourceManager.hpp>
+#include <core/Registry.hpp>
+
+#include "ParserScope.hpp"
 #include "ParserContext.hpp"
 
 namespace ousia {
 
 /* Class ParserContext */
 
-ParserContext::ParserContext(Handle<Project> project, ParserScope &scope,
-                             SourceId sourceId, Logger &logger)
-    : project(project), scope(scope), sourceId(sourceId), logger(logger)
+ParserContext::ParserContext(Registry &registry,
+                             ResourceManager &resourceManager,
+                             ParserScope &scope, Handle<Project> project,
+                             Logger &logger, SourceId sourceId)
+    : registry(registry),
+      resourceManager(resourceManager),
+      scope(scope),
+      project(project),
+      logger(logger),
+      sourceId(sourceId)
 {
 }
 
-ParserContext::ParserContext(Handle<Project> project, ParserScope &scope,
-                             Logger &logger)
-    : project(project), scope(scope), sourceId(InvalidSourceId), logger(logger)
+Rooted<Node> ParserContext::link(const std::string &path,
+                                 const std::string mimetype,
+                                 const std::string rel,
+                                 const RttiSet &supportedTypes)
 {
+	return resourceManager.link(*this, path, mimetype, rel, supportedTypes);
+}
+
+Rooted<Node> ParserContext::include(const std::string &path,
+                                    const std::string mimetype,
+                                    const std::string rel,
+                                    const RttiSet &supportedTypes)
+{
+	return resourceManager.include(*this, path, mimetype, rel, supportedTypes);
 }
 
 ParserContext ParserContext::clone(ParserScope &scope, SourceId sourceId) const
 {
-	return ParserContext{project, scope, sourceId, logger};
+	return ParserContext{registry, resourceManager, scope,
+	                     project,  logger,          sourceId};
 }
 
 ParserContext ParserContext::clone(SourceId sourceId) const
 {
-	return ParserContext{project, scope, sourceId, logger};
+	return ParserContext{registry, resourceManager, scope,
+	                     project,  logger,          sourceId};
 }
 
 Manager &ParserContext::getManager() const { return project->getManager(); }

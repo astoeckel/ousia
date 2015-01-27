@@ -17,8 +17,6 @@
 */
 
 #include <core/common/RttiBuilder.hpp>
-#include <core/parser/ParserScope.hpp>
-#include <core/parser/ParserContext.hpp>
 
 #include "Domain.hpp"
 #include "Document.hpp"
@@ -27,50 +25,20 @@
 
 namespace ousia {
 
-Project::Project(Manager &mgr, Registry &registry)
+Project::Project(Manager &mgr)
     : Node(mgr),
-      registry(registry),
       systemTypesystem(acquire(new SystemTypesystem(mgr))),
       documents(this)
 {
 }
 
-Rooted<Node> Project::parse(const std::string &path, const std::string mimetype,
-                            const std::string rel,
-                            const RttiSet &supportedTypes, Logger &logger)
-{
-	ParserScope scope;
-	ParserContext context(this, scope, logger);
-	return resourceManager.link(registry, context, path, mimetype, rel,
-	                            supportedTypes);
-}
-
-Rooted<Node> Project::link(ParserContext &ctx, const std::string &path,
-                           const std::string mimetype, const std::string rel,
-                           const RttiSet &supportedTypes)
-{
-	return resourceManager.link(registry, ctx, path, mimetype, rel,
-	                            supportedTypes);
-}
-
-Rooted<Node> Project::include(ParserContext &ctx, const std::string &path,
-                              const std::string mimetype, const std::string rel,
-                              const RttiSet &supportedTypes)
-{
-	return resourceManager.include(registry, ctx, path, mimetype, rel,
-	                               supportedTypes);
-}
-
-SourceContextCallback Project::getSourceContextCallback()
-{
-	return [&](const SourceLocation &location) {
-		return resourceManager.readContext(location);
-	};
-}
-
 bool Project::doValidate(Logger &logger) const
 {
 	return continueValidation(documents, logger);
+}
+
+void Project::doResolve(ResolutionState &state){
+	continueResolveComposita(documents, documents.getIndex(), state);
 }
 
 Rooted<SystemTypesystem> Project::getSystemTypesystem()

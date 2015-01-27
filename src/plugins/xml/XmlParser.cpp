@@ -57,13 +57,13 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
-		scope().push(project()->createTypesystem(args["name"].asString()));
+		Rooted<Typesystem> typesystem =
+		    project()->createTypesystem(args["name"].asString());
+		typesystem->setLocation(location());
+		scope().push(typesystem);
 	}
 
-	void end() override
-	{
-		scope().pop();
-	}
+	void end() override { scope().pop(); }
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -84,6 +84,7 @@ public:
 		// Fetch the current typesystem and create the struct node
 		Rooted<Typesystem> typesystem = scope().getLeaf().cast<Typesystem>();
 		Rooted<StructType> structType = typesystem->createStructType(name);
+		structType->setLocation(location());
 
 		// Try to resolve the parent type and set it as parent structure
 		if (!parent.empty()) {
@@ -128,6 +129,7 @@ public:
 		Rooted<StructType> structType = scope().getLeaf().cast<StructType>();
 		Rooted<Attribute> attribute =
 		    structType->createAttribute(name, defaultValue, optional, logger());
+		attribute->setLocation(location());
 
 		// Try to resolve the type
 		scope().resolve<Type>(

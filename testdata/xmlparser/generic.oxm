@@ -3,22 +3,15 @@
 	<head>
 		<typesystem name="color">
 			<types>
-				<struct name="rgb">
+				<struct name="rgb"> <!-- Instance 1 -->
 					<field name="r" type="double"/>
 					<field name="g" type="double"/>
 					<field name="b" type="double"/>
 				</struct>
-				<struct name="rgb">
+				<struct name="rgb"> <!-- Instance 2 -->
 				</struct>
 				<struct name="rgba" parent="rgb">
 					<field name="a" type="double" default="0xf3"/>
-				</struct>
-			</types>
-		</typesystem>
-		<typesystem name="color2">
-			<types>
-				<struct name="rgba" parent="rgb">
-					<field name="a" type="bla" default="0xf3"/>
 				</struct>
 			</types>
 		</typesystem>

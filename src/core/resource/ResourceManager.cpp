@@ -70,14 +70,23 @@ void ResourceManager::purgeResource(SourceId sourceId)
 	contextReaders.erase(sourceId);
 }
 
-Rooted<Node> ResourceManager::parse(Registry &registry, ParserContext &ctx,
-                                    const ResourceRequest &req, ParseMode mode)
+Rooted<Node> ResourceManager::parse(ParserContext &ctx, const std::string &path,
+                                    const std::string &mimetype,
+                                    const std::string &rel,
+                                    const RttiSet &supportedTypes,
+                                    ParseMode mode)
 {
+	// Some references used for convenience
+	Registry &registry = ctx.getRegistry();
+	Logger &logger = ctx.getLogger();
+	Resource relativeTo = getResource(ctx.getSourceId());
+
 	// Locate the resource relative to the old resource, abort if this did not
 	// work
+	ResourceRequest req{path, mimetype, rel, supportedTypes};
 	Resource resource;
-	if (!req.locate(registry, ctx.getLogger(), resource,
-	                getResource(ctx.getSourceId()))) {
+	if (!req.deduce(registry, logger) ||
+	    !req.locate(registry, logger, resource, relativeTo)) {
 		return nullptr;
 	}
 
@@ -87,17 +96,18 @@ Rooted<Node> ResourceManager::parse(Registry &registry, ParserContext &ctx,
 	// We can now try to parse the given file
 	Rooted<Node> node;
 	try {
-		// Set the current source id in the logger instance
 		{
-			GuardedLogger logger(ctx.getLogger(), SourceLocation{sourceId});
+			// Set the current source id in the logger instance. Note that this
+			// modifies the logger instance -- the GuardedLogger is just used to
+			// make sure the default location is popped from the stack again.
+			GuardedLogger guardedLogger(logger, SourceLocation{sourceId});
 
 			// Fetch the input stream and create a char reader
 			std::unique_ptr<std::istream> is = resource.stream();
 			CharReader reader(*is, sourceId);
 
 			// Actually parse the input stream, distinguish the LINK and the
-			// INCLUDE
-			// mode
+			// INCLUDE mode
 			switch (mode) {
 				case ParseMode::LINK: {
 					ParserScope scope;  // New empty parser scope instance
@@ -105,11 +115,11 @@ Rooted<Node> ResourceManager::parse(Registry &registry, ParserContext &ctx,
 					node = req.getParser()->parse(reader, childCtx);
 
 					// Perform all deferred resolutions
-					scope.performDeferredResolution(ctx.getLogger());
+					scope.performDeferredResolution(logger);
 
 					// Validate the parsed node
 					if (node != nullptr) {
-						node->validate(ctx.getLogger());
+						node->validate(logger);
 					}
 					break;
 				}
@@ -121,13 +131,14 @@ Rooted<Node> ResourceManager::parse(Registry &registry, ParserContext &ctx,
 			}
 		}
 		if (node == nullptr) {
-			throw LoggableException{"Requested file \"" + resource.getLocation() +
+			throw LoggableException{"Requested file \"" +
+			                        resource.getLocation() +
 			                        "\" cannot be parsed."};
 		}
 	}
 	catch (LoggableException ex) {
 		// Log the exception and return nullptr
-		ctx.getLogger().log(ex);
+		logger.log(ex);
 		return nullptr;
 	}
 
@@ -140,30 +151,21 @@ Rooted<Node> ResourceManager::parse(Registry &registry, ParserContext &ctx,
 	return node;
 }
 
-Rooted<Node> ResourceManager::link(Registry &registry, ParserContext &ctx,
-                                   const std::string &path,
+Rooted<Node> ResourceManager::link(ParserContext &ctx, const std::string &path,
                                    const std::string &mimetype,
                                    const std::string &rel,
                                    const RttiSet &supportedTypes)
 {
-	ResourceRequest req{path, mimetype, rel, supportedTypes};
-	if (req.deduce(registry, ctx.getLogger())) {
-		return parse(registry, ctx, req, ParseMode::LINK);
-	}
-	return nullptr;
+	return parse(ctx, path, mimetype, rel, supportedTypes, ParseMode::LINK);
 }
 
-Rooted<Node> ResourceManager::include(Registry &registry, ParserContext &ctx,
+Rooted<Node> ResourceManager::include(ParserContext &ctx,
                                       const std::string &path,
                                       const std::string &mimetype,
                                       const std::string &rel,
                                       const RttiSet &supportedTypes)
 {
-	ResourceRequest req{path, mimetype, rel, supportedTypes};
-	if (req.deduce(registry, ctx.getLogger())) {
-		return parse(registry, ctx, req, ParseMode::INCLUDE);
-	}
-	return nullptr;
+	return parse(ctx, path, mimetype, rel, supportedTypes, ParseMode::INCLUDE);
 }
 
 SourceContext ResourceManager::readContext(const SourceLocation &location,
@@ -235,6 +237,13 @@ Rooted<Node> ResourceManager::getNode(Manager &mgr, const std::string &location)
 Rooted<Node> ResourceManager::getNode(Manager &mgr, const Resource &resource)
 {
 	return getNode(mgr, getSourceId(resource));
+}
+
+SourceContextCallback ResourceManager::getSourceContextCallback()
+{
+	return [this](const SourceLocation &location) {
+		return this->readContext(location);
+	};
 }
 }
 

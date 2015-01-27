@@ -26,6 +26,7 @@
 #include <core/parser/Parser.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
+#include <core/resource/ResourceManager.hpp>
 #include <core/Registry.hpp>
 
 namespace ousia {
@@ -34,22 +35,30 @@ struct StandaloneEnvironment {
 	ConcreteLogger &logger;
 	Manager manager;
 	Registry registry;
-	Rooted<Project> project;
+	ResourceManager resourceManager;
 	ParserScope scope;
+	Rooted<Project> project;
 	ParserContext context;
 
 	StandaloneEnvironment(ConcreteLogger &logger)
-	    : logger(logger), project(new Project(manager, registry)),
-	      context(project, scope, logger)
+	    : logger(logger), project(new Project(manager)),
+	      context(registry, resourceManager, scope, project, logger)
 	{
 		logger.reset();
 		logger.setSourceContextCallback(
-		    project->getSourceContextCallback());
+		    resourceManager.getSourceContextCallback());
 	}
 
 	~StandaloneEnvironment()
 	{
 		logger.setSourceContextCallback(NullSourceContextCallback);
+	}
+
+	Rooted<Node> parse(const std::string &path,
+	                     const std::string mimetype, const std::string rel,
+	                     const RttiSet &supportedTypes)
+	{
+		return context.link(path, mimetype, rel, supportedTypes);
 	}
 };
 }
