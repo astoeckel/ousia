@@ -41,17 +41,17 @@ static TerminalLogger logger(std::cerr, true);
 namespace {
 class ModuleParser : public Parser {
 protected:
-	Rooted<Node> doParse(CharReader &reader, ParserContext &ctx) override
+	void doParse(CharReader &reader, ParserContext &ctx) override
 	{
-		return nullptr;  // Stub
+		// Stub
 	}
 };
 
 class DocumentParser : public Parser {
 protected:
-	Rooted<Node> doParse(CharReader &reader, ParserContext &ctx) override
+	void doParse(CharReader &reader, ParserContext &ctx) override
 	{
-		return nullptr;  // Stub
+		// Stub
 	}
 };
 

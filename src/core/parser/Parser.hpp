@@ -32,9 +32,6 @@
 #include <set>
 #include <string>
 
-#include <core/managed/Managed.hpp>
-#include <core/model/Node.hpp>
-
 namespace ousia {
 
 // Forward declarations
@@ -61,7 +58,7 @@ protected:
 	 * calling code will try to resolve these. If no valid node can be produced,
 	 * a corresponding LoggableException must be thrown by the parser.
 	 */
-	virtual Rooted<Node> doParse(CharReader &reader, ParserContext &ctx) = 0;
+	virtual void doParse(CharReader &reader, ParserContext &ctx) = 0;
 
 public:
 	/**
@@ -82,32 +79,30 @@ public:
 	/**
 	 * Parses the given input stream and returns a corresponding node for
 	 * inclusion in the document graph. This method should be overridden by
-	 * derived classes.
+	 * derived classes. The created nodes should be placed onto the ParserScope
+	 * using the "push" methods and removed using the "pop" methods. Nodes
+	 * pushed to the top level of the ParserScope are considered as the subgraph
+	 * the parser has created.
 	 *
 	 * @param reader is a reference to the CharReader that should be used.
 	 * @param ctx is a reference to the context that should be used while
 	 * parsing the document.
-	 * @return a reference to the node representing the subgraph that has been
-	 * created. The resulting node may point at not yet resolved entities, the
-	 * calling code will try to resolve these. If no valid node can be produced,
-	 * a corresponding ParserException must be thrown by the parser.
 	 */
-	Rooted<Node> parse(CharReader &reader, ParserContext &ctx);
+	void parse(CharReader &reader, ParserContext &ctx);
 
 	/**
 	 * Parses the given string and returns a corresponding node for
 	 * inclusion in the document graph. This method should be overridden by
-	 * derived classes.
+	 * derived classes. The created nodes should be placed onto the ParserScope
+	 * using the "push" methods and removed using the "pop" methods. Nodes
+	 * pushed to the top level of the ParserScope are considered as the subgraph
+	 * the parser has created.
 	 *
 	 * @param str is the string that should be parsed.
 	 * @param ctx is a reference to the context that should be used while
 	 * parsing the document.
-	 * @return a reference to the node representing the subgraph that has been
-	 * created. The resulting node may point at not yet resolved entities, the
-	 * calling code will try to resolve these. If no valid node can be produced,
-	 * a corresponding ParserException must be thrown by the parser.
 	 */
-	Rooted<Node> parse(const std::string &str, ParserContext &ctx);
+	void parse(const std::string &str, ParserContext &ctx);
 };
 }
 

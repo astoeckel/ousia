@@ -39,7 +39,7 @@ ParserContext::ParserContext(Registry &registry,
 {
 }
 
-Rooted<Node> ParserContext::link(const std::string &path,
+NodeVector<Node> ParserContext::link(const std::string &path,
                                  const std::string mimetype,
                                  const std::string rel,
                                  const RttiSet &supportedTypes)
@@ -47,7 +47,7 @@ Rooted<Node> ParserContext::link(const std::string &path,
 	return resourceManager.link(*this, path, mimetype, rel, supportedTypes);
 }
 
-Rooted<Node> ParserContext::include(const std::string &path,
+NodeVector<Node> ParserContext::include(const std::string &path,
                                     const std::string mimetype,
                                     const std::string rel,
                                     const RttiSet &supportedTypes)

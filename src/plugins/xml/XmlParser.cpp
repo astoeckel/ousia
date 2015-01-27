@@ -289,7 +289,7 @@ static void xmlCharacterDataHandler(void *p, const XML_Char *s, int len)
 
 /* Class XmlParser */
 
-Rooted<Node> XmlParser::doParse(CharReader &reader, ParserContext &ctx)
+void XmlParser::doParse(CharReader &reader, ParserContext &ctx)
 {
 	// Create the parser object
 	ScopedExpatXmlParser p{"UTF-8"};
@@ -335,7 +335,6 @@ Rooted<Node> XmlParser::doParse(CharReader &reader, ParserContext &ctx)
 			break;
 		}
 	}
-	return nullptr;
 }
 }
 

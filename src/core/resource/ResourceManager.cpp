@@ -70,11 +70,9 @@ void ResourceManager::purgeResource(SourceId sourceId)
 	contextReaders.erase(sourceId);
 }
 
-Rooted<Node> ResourceManager::parse(ParserContext &ctx, const std::string &path,
-                                    const std::string &mimetype,
-                                    const std::string &rel,
-                                    const RttiSet &supportedTypes,
-                                    ParseMode mode)
+NodeVector<Node> ResourceManager::parse(
+    ParserContext &ctx, const std::string &path, const std::string &mimetype,
+    const std::string &rel, const RttiSet &supportedTypes, ParseMode mode)
 {
 	// Some references used for convenience
 	Registry &registry = ctx.getRegistry();
@@ -88,7 +86,7 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, const std::string &path,
 	Resource resource;
 	if (!req.deduce(registry, logger) ||
 	    !req.locate(registry, logger, resource, relativeTo)) {
-		return nullptr;
+		return NodeVector<Node>{};
 	}
 
 	// Allocate a new SourceId handle for this Resource
@@ -104,7 +102,7 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, const std::string &path,
 
 		// Fetch the input stream and create a char reader
 		std::unique_ptr<std::istream> is = resource.stream();
-			CharReader reader(*is, sourceId);
+		CharReader reader(*is, sourceId);
 
 		// Actually parse the input stream, distinguish the LINK and the
 		// INCLUDE mode
@@ -165,13 +163,12 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, const std::string &path,
 	catch (LoggableException ex) {
 		// Log the exception and return nullptr
 		logger.log(ex);
-		return nullptr;
-		//		return NodeVector<Node>{};
+		return NodeVector<Node>{};
 	}
 
 	// Make sure the parsed nodes fulfill the "supportedTypes" constraint,
 	// remove nodes that do not the result
-	for (auto it = parsedNodes.begin(); it != parsedNodes.end(); ) {
+	for (auto it = parsedNodes.begin(); it != parsedNodes.end();) {
 		const Rtti &type = (*it)->type();
 		if (!type.isOneOf(supportedTypes)) {
 			logger.error(std::string("Node of internal type ") + type.name +
@@ -183,23 +180,23 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, const std::string &path,
 		}
 	}
 
-	// TODO: Return parsed nodes
-	return nullptr;
+	return parsedNodes;
 }
 
-Rooted<Node> ResourceManager::link(ParserContext &ctx, const std::string &path,
-                                   const std::string &mimetype,
-                                   const std::string &rel,
-                                   const RttiSet &supportedTypes)
+NodeVector<Node> ResourceManager::link(ParserContext &ctx,
+                                       const std::string &path,
+                                       const std::string &mimetype,
+                                       const std::string &rel,
+                                       const RttiSet &supportedTypes)
 {
 	return parse(ctx, path, mimetype, rel, supportedTypes, ParseMode::LINK);
 }
 
-Rooted<Node> ResourceManager::include(ParserContext &ctx,
-                                      const std::string &path,
-                                      const std::string &mimetype,
-                                      const std::string &rel,
-                                      const RttiSet &supportedTypes)
+NodeVector<Node> ResourceManager::include(ParserContext &ctx,
+                                          const std::string &path,
+                                          const std::string &mimetype,
+                                          const std::string &rel,
+                                          const RttiSet &supportedTypes)
 {
 	return parse(ctx, path, mimetype, rel, supportedTypes, ParseMode::INCLUDE);
 }

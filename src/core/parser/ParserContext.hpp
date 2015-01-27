@@ -30,6 +30,7 @@
 
 #include <core/common/Location.hpp>
 #include <core/common/Rtti.hpp>
+#include <core/model/Node.hpp>
 #include <core/model/Project.hpp>
 
 namespace ousia {
@@ -116,7 +117,7 @@ public:
 	 * checked, not the actual result.
 	 * @return the parsed node or nullptr if something goes wrong.
 	 */
-	Rooted<Node> link(const std::string &path, const std::string mimetype,
+	NodeVector<Node> link(const std::string &path, const std::string mimetype,
 	                  const std::string rel, const RttiSet &supportedTypes);
 
 	/**
@@ -137,7 +138,7 @@ public:
 	 * checked, not the actual result.
 	 * @return the parsed node or nullptr if something goes wrong.
 	 */
-	Rooted<Node> include(const std::string &path, const std::string mimetype,
+	NodeVector<Node> include(const std::string &path, const std::string mimetype,
 	                     const std::string rel, const RttiSet &supportedTypes);
 
 	/**

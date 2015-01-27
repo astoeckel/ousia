@@ -46,8 +46,10 @@ TEST(CSSParser, testParseSelectors)
 
 	// parse the data.
 	CSSParser instance;
-	Rooted<model::SelectorNode> root =
-	    instance.parse(data, env.context).cast<model::SelectorNode>();
+	instance.parse(data, env.context);
+	auto nodes = env.context.getScope().getTopLevelNodes();
+	ASSERT_EQ(1U, nodes.size());
+	Rooted<model::SelectorNode> root = nodes[0].cast<model::SelectorNode>();
 
 	// we expect three children of the root node overall.
 	ASSERT_EQ(3U, root->getEdges().size());
@@ -158,8 +160,10 @@ TEST(CSSParser, testParseCSS)
 	// parse the input.
 	CSSParser instance;
 	CharReader reader{input};
-	Rooted<model::SelectorNode> root =
-	    instance.parse(reader, env.context).cast<model::SelectorNode>();
+	instance.parse(reader, env.context);
+	auto nodes = env.context.getScope().getTopLevelNodes();
+	ASSERT_EQ(1U, nodes.size());
+	Rooted<model::SelectorNode> root = nodes[0].cast<model::SelectorNode>();
 
 	// we expect three children of the root node overall.
 	ASSERT_EQ(3U, root->getEdges().size());
@@ -274,7 +278,8 @@ void assertException(std::string css)
 
 		logger.reset();
 		try {
-			instance.parse(reader, env.context).cast<model::SelectorNode>();
+			instance.parse(reader, env.context);
+			ASSERT_EQ(1U, env.context.getScope().getTopLevelNodes().size());
 		}
 		catch (LoggableException ex) {
 			logger.log(ex);

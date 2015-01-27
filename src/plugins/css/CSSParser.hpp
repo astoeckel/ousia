@@ -35,6 +35,7 @@
 #include <core/common/CharReader.hpp>
 #include <core/model/Style.hpp>
 #include <core/parser/Parser.hpp>
+#include <core/parser/ParserScope.hpp>
 
 namespace ousia {
 
@@ -158,7 +159,7 @@ protected:
 	 * @return    returns the root node of the resulting SelectorTree. For more
 	 *            information on the return conventions consult the Parser.hpp.
 	 */
-	Rooted<Node> doParse(CharReader &reader, ParserContext &ctx) override;
+	void doParse(CharReader &reader, ParserContext &ctx) override;
 };
 }
 

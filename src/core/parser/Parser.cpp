@@ -24,15 +24,15 @@ namespace ousia {
 
 /* Class Parser */
 
-Rooted<Node> Parser::parse(CharReader &reader, ParserContext &ctx)
+void Parser::parse(CharReader &reader, ParserContext &ctx)
 {
-	return doParse(reader, ctx);
+	doParse(reader, ctx);
 }
 
-Rooted<Node> Parser::parse(const std::string &str, ParserContext &ctx)
+void Parser::parse(const std::string &str, ParserContext &ctx)
 {
 	CharReader reader{str};
-	return doParse(reader, ctx);
+	doParse(reader, ctx);
 }
 }
 

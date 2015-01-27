@@ -35,14 +35,13 @@
 #include <core/common/Location.hpp>
 #include <core/common/Rtti.hpp>
 #include <core/common/SourceContextReader.hpp>
-#include <core/managed/Managed.hpp>
+#include <core/model/Node.hpp>
 
 #include "Resource.hpp"
 
 namespace ousia {
 
 // Forward declarations
-class Node;
 class Parser;
 class ParserContext;
 class ResourceRequest;
@@ -130,9 +129,9 @@ private:
 	 * can deal with. Note that only the types the parser claims to return are
 	 * checked, not the actual result.
 	 * @param mode describes whether the file should be included or linked.
-	 * @return the parsed node or nullptr if something goes wrong.
+	 * @return the parsed nodes or an empty list if something went wrong.
 	 */
-	Rooted<Node> parse(ParserContext &ctx, const std::string &path,
+	NodeVector<Node> parse(ParserContext &ctx, const std::string &path,
 	                   const std::string &mimetype, const std::string &rel,
 	                   const RttiSet &supportedTypes, ParseMode mode);
 
@@ -159,9 +158,9 @@ public:
 	 * @param supportedTypes contains the types of the returned Node the caller
 	 * can deal with. Note that only the types the parser claims to return are
 	 * checked, not the actual result.
-	 * @return the parsed node or nullptr if something goes wrong.
+	 * @return the parsed nodes or an empty list if something went wrong.
 	 */
-	Rooted<Node> link(ParserContext &ctx, const std::string &path,
+	NodeVector<Node> link(ParserContext &ctx, const std::string &path,
 	                  const std::string &mimetype, const std::string &rel,
 	                  const RttiSet &supportedTypes);
 
@@ -190,9 +189,9 @@ public:
 	 * @param supportedTypes contains the types of the returned Node the caller
 	 * can deal with. Note that only the types the parser claims to return are
 	 * checked, not the actual result.
-	 * @return the parsed node or nullptr if something goes wrong.
+	 * @return the parsed nodes or an empty list if something went wrong.
 	 */
-	Rooted<Node> include(ParserContext &ctx, const std::string &path,
+	NodeVector<Node> include(ParserContext &ctx, const std::string &path,
 	                     const std::string &mimetype, const std::string &rel,
 	                     const RttiSet &supportedTypes);
 

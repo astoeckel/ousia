@@ -46,7 +46,7 @@ protected:
 	 * @param ctx is a reference to the ParserContext instance that should be
 	 * used.
 	 */
-	Rooted<Node> doParse(CharReader &reader, ParserContext &ctx) override;
+	void doParse(CharReader &reader, ParserContext &ctx) override;
 };
 
 }
