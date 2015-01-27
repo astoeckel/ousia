@@ -57,7 +57,7 @@ public:
 	/**
 	 * Used internally to set the mode of the Parse function.
 	 */
-	enum class ParseMode { LINK, INCLUDE };
+	enum class ParseMode { IMPORT, INCLUDE };
 
 private:
 	/**
@@ -114,8 +114,8 @@ private:
 
 	/**
 	 * Used internally to parse the given resource. Can either operate in the
-	 * "link" or the "include" mode. In the latter case the ParserScope instance
-	 * inside the ParserContext is exchanged with an empty one.
+	 * "import" or the "include" mode. In the latter case the ParserScope
+	 * instance inside the ParserContext is exchanged with an empty one.
 	 *
 	 * @param ctx is the context that should be passed to the parser.
 	 * @param mimetype is the mimetype of the resource that should be parsed
@@ -128,7 +128,7 @@ private:
 	 * @param supportedTypes contains the types of the returned Node the caller
 	 * can deal with. Note that only the types the parser claims to return are
 	 * checked, not the actual result.
-	 * @param mode describes whether the file should be included or linked.
+	 * @param mode describes whether the file should be included or imported.
 	 * @return the parsed nodes or an empty list if something went wrong.
 	 */
 	NodeVector<Node> parse(ParserContext &ctx, const std::string &path,
@@ -160,7 +160,7 @@ public:
 	 * checked, not the actual result.
 	 * @return the parsed nodes or an empty list if something went wrong.
 	 */
-	NodeVector<Node> link(ParserContext &ctx, const std::string &path,
+	NodeVector<Node> import(ParserContext &ctx, const std::string &path,
 	                  const std::string &mimetype, const std::string &rel,
 	                  const RttiSet &supportedTypes);
 
@@ -169,9 +169,9 @@ public:
 	 * the file using the provided context. As the result of the "include"
 	 * function depends on the ParserScope inside the provided ParserContext
 	 * instance, the resource has to be parsed every time this function is
-	 * called. This contasts the behaviour of the "link" function, which creates
-	 * a new ParserScope and thus guarantees reproducible results. Logs any
-	 * problem in the logger instance of the given ParserContext.
+	 * called. This contasts the behaviour of the "import" function, which
+	 * creates a new ParserScope and thus guarantees reproducible results. Logs
+	 * any problem in the logger instance of the given ParserContext.
 	 *
 	 * @param ctx is the context from which the Logger instance will be looked
 	 * up. The sourceId specified in the context instance will be used as
