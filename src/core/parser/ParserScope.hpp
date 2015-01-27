@@ -31,7 +31,8 @@
 /**
  * @file ParserScope.hpp
  *
- * Contains the ParserScope class used for resolving references based on the current
+ * Contains the ParserScope class used for resolving references based on the
+ *current
  * parser state.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
@@ -72,16 +73,17 @@ public:
 	/**
 	 * Default constructor, creates an empty ParserScope instance.
 	 */
-	ParserScopeBase() {}
+	ParserScopeBase();
 
 	/**
-	 * Creates a new instance of the ParserScopeBase class, copying the the given
+	 * Creates a new instance of the ParserScopeBase class, copying the the
+	 *given
 	 * nodes as initial start value of the node stack. This could for example
 	 * be initialized with the path of a node.
 	 *
 	 * @param nodes is a node vector containing the current node stack.
 	 */
-	ParserScopeBase(const NodeVector<Node> &nodes) : nodes(nodes) {}
+	ParserScopeBase(const NodeVector<Node> &nodes);
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes that
@@ -94,8 +96,8 @@ public:
 	 * @return a reference at a resolved node or nullptr if no node could be
 	 * found.
 	 */
-	Rooted<Node> resolve(const std::vector<std::string> &path,
-	                     const Rtti &type, Logger &logger);
+	Rooted<Node> resolve(const std::vector<std::string> &path, const Rtti &type,
+	                     Logger &logger);
 };
 
 /**
@@ -147,8 +149,7 @@ public:
 	 * @param location is the location at which the resolution was triggered.
 	 */
 	DeferredResolution(const NodeVector<Node> &nodes,
-	                   const std::vector<std::string> &path,
-	                   const Rtti &type,
+	                   const std::vector<std::string> &path, const Rtti &type,
 	                   ResolutionResultCallback resultCallback,
 	                   const SourceLocation &location = SourceLocation{});
 
@@ -177,12 +178,63 @@ private:
 	 */
 	std::list<DeferredResolution> deferred;
 
+	/**
+	 * Depth of the "nodes" list when the ParserScope was created.
+	 */
+	size_t topLevelDepth;
+
+	/**
+	 * List of a all nodes that have been pushed onto the scope at the top level
+	 * depth.
+	 */
+	NodeVector<Node> topLevelNodes;
+
+	/**
+	 * Private constructor used to create a ParserScope fork.
+	 */
+	ParserScope(const NodeVector<Node> &nodes);
+
 public:
 	/**
-	 * Default constructor of the ParserScope class, creates an empty ParserScope with no
-	 * element on the internal stack.
+	 * Default constructor of the ParserScope class, creates an empty
+	 * ParserScope with no element on the internal stack.
 	 */
-	ParserScope() {}
+	ParserScope();
+
+	/**
+	 * Makes sure all elements on the scope have been unwound. Loggs an error
+	 * message if this is not the case and returns false.
+	 *
+	 * @param logger is the Logger instance to which information in case of
+	 * failure should be written.
+	 * @return true if the stack is unwound, false otherwise.
+	 */
+	bool checkUnwound(Logger &logger) const;
+
+	/**
+	 * Returns a new ParserScope instance with a copy of the current node stack
+	 * but empty deferred resolutions list and empty topLevelNodes.
+	 *
+	 * @return a forked ParserScope instance, which starts with a copy of the
+	 * node stack.
+	 */
+	ParserScope fork();
+
+	/**
+	 * Joins a previously forked ParserScope instance with this ParserScope.
+	 * Copies all pending deferred resolutions from this ParserScope instance.
+	 * Joining only works if the node stack of the given ParserScope has the
+	 * same depth as the node stack of this ParserScope instance (has been
+	 * unwound). This is assured by calling the "checkUnwound" function of
+	 * the fork.
+	 *
+	 * @param fork is the ParserScope fork that should be joined with this
+	 * ParserScope instance.
+	 * @param logger is the Logger instance to which information in case of
+	 * failure should be written.
+	 * @return true if the operation was successful, false otherwise.
+	 */
+	bool join(const ParserScope &fork, Logger &logger);
 
 	/**
 	 * Pushes a new node onto the scope.
@@ -197,6 +249,15 @@ public:
 	void pop();
 
 	/**
+	 * Returns the top-level nodes. These are the nodes that are pushed onto the
+	 * scope instance while the node stack has the depth it had during the
+	 * creation of this ParserScope instance.
+	 *
+	 * @return a node vector containing the top-level nodes.
+	 */
+	NodeVector<Node> getTopLevelNodes() const;
+
+	/**
 	 * Returns the top-most Node instance in the ParserScope hirarchy.
 	 *
 	 * @return a reference at the root node.
@@ -204,12 +265,13 @@ public:
 	Rooted<Node> getRoot() const;
 
 	/**
-	 * Returns the bottom-most Node instance in the ParserScope hirarchy, e.g. the
+	 * Returns the bottom-most Node instance in the ParserScope hirarchy, e.g.
+	 *the
 	 * node that was pushed last onto the stack.
 	 *
 	 * @return a reference at the leaf node.
 	 */
-	Rooted<Node> getLeaf();
+	Rooted<Node> getLeaf() const;
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes

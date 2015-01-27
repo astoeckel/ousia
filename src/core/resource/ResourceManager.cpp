@@ -79,6 +79,7 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, const std::string &path,
 	// Some references used for convenience
 	Registry &registry = ctx.getRegistry();
 	Logger &logger = ctx.getLogger();
+	ParserScope &scope = ctx.getScope();
 	Resource relativeTo = getResource(ctx.getSourceId());
 
 	// Locate the resource relative to the old resource, abort if this did not
@@ -94,61 +95,96 @@ Rooted<Node> ResourceManager::parse(ParserContext &ctx, const std::string &path,
 	SourceId sourceId = allocateSourceId(resource);
 
 	// We can now try to parse the given file
-	Rooted<Node> node;
+	NodeVector<Node> parsedNodes;
 	try {
-		{
-			// Set the current source id in the logger instance. Note that this
-			// modifies the logger instance -- the GuardedLogger is just used to
-			// make sure the default location is popped from the stack again.
-			GuardedLogger guardedLogger(logger, SourceLocation{sourceId});
+		// Set the current source id in the logger instance. Note that this
+		// modifies the logger instance -- the GuardedLogger is just used to
+		// make sure the default location is popped from the stack again.
+		GuardedLogger guardedLogger(logger, SourceLocation{sourceId});
 
-			// Fetch the input stream and create a char reader
-			std::unique_ptr<std::istream> is = resource.stream();
+		// Fetch the input stream and create a char reader
+		std::unique_ptr<std::istream> is = resource.stream();
 			CharReader reader(*is, sourceId);
 
-			// Actually parse the input stream, distinguish the LINK and the
-			// INCLUDE mode
-			switch (mode) {
-				case ParseMode::LINK: {
-					ParserScope scope;  // New empty parser scope instance
-					ParserContext childCtx = ctx.clone(scope, sourceId);
-					node = req.getParser()->parse(reader, childCtx);
+		// Actually parse the input stream, distinguish the LINK and the
+		// INCLUDE mode
+		switch (mode) {
+			case ParseMode::LINK: {
+				// Create a new, empty parser scope instance and a new parser
+				// context with this instance in place
+				ParserScope innerScope;
+				ParserContext childCtx = ctx.clone(innerScope, sourceId);
 
-					// Perform all deferred resolutions
-					scope.performDeferredResolution(logger);
+				// Run the parser
+				req.getParser()->parse(reader, childCtx);
 
-					// Validate the parsed node
-					if (node != nullptr) {
-						node->validate(logger);
-					}
-					break;
+				// Make sure the scope has been unwound and perform all
+				// deferred resolutions
+				innerScope.checkUnwound(logger);
+				innerScope.performDeferredResolution(logger);
+
+				// Fetch the nodes that were parsed by this parser instance
+				parsedNodes = innerScope.getTopLevelNodes();
+
+				// Make sure the number of elements is exactly one -- we can
+				// only store one element per top-level node.
+				if (parsedNodes.empty()) {
+					throw LoggableException{"Module is empty."};
 				}
-				case ParseMode::INCLUDE: {
-					ParserContext childCtx = ctx.clone(sourceId);
-					node = req.getParser()->parse(reader, childCtx);
-					break;
+				if (parsedNodes.size() > 1) {
+					throw LoggableException{
+					    std::string(
+					        "Expected exactly one top-level node but got ") +
+					    std::to_string(parsedNodes.size())};
 				}
+
+				// Store the parsed node along with the sourceId
+				storeNode(sourceId, parsedNodes[0]);
+
+				break;
 			}
-		}
-		if (node == nullptr) {
-			throw LoggableException{"Requested file \"" +
-			                        resource.getLocation() +
-			                        "\" cannot be parsed."};
+			case ParseMode::INCLUDE: {
+				// Fork the scope instance and create a new parser context with
+				// this instanc ein place
+				ParserScope forkedScope = scope.fork();
+				ParserContext childCtx = ctx.clone(forkedScope, sourceId);
+
+				// Run the parser
+				req.getParser()->parse(reader, childCtx);
+
+				// Join the forked scope with the outer scope
+				scope.join(forkedScope, logger);
+
+				// Fetch the nodes that were parsed by this parser instance
+				parsedNodes = forkedScope.getTopLevelNodes();
+
+				break;
+			}
 		}
 	}
 	catch (LoggableException ex) {
 		// Log the exception and return nullptr
 		logger.log(ex);
 		return nullptr;
+		//		return NodeVector<Node>{};
 	}
 
-	// Store the parsed node along with the sourceId, if we are in the LINK mode
-	if (mode == ParseMode::LINK) {
-		storeNode(sourceId, node);
+	// Make sure the parsed nodes fulfill the "supportedTypes" constraint,
+	// remove nodes that do not the result
+	for (auto it = parsedNodes.begin(); it != parsedNodes.end(); ) {
+		const Rtti &type = (*it)->type();
+		if (!type.isOneOf(supportedTypes)) {
+			logger.error(std::string("Node of internal type ") + type.name +
+			                 std::string(" not supported here"),
+			             **it);
+			it = parsedNodes.erase(it);
+		} else {
+			it++;
+		}
 	}
 
-	// Return the parsed node
-	return node;
+	// TODO: Return parsed nodes
+	return nullptr;
 }
 
 Rooted<Node> ResourceManager::link(ParserContext &ctx, const std::string &path,

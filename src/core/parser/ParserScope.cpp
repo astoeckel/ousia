@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <core/common/Exceptions.hpp>
 #include <core/common/Utils.hpp>
 
 #include "ParserScope.hpp"
@@ -23,6 +24,12 @@
 namespace ousia {
 
 /* Class ParserScopeBase */
+
+ParserScopeBase::ParserScopeBase() {}
+
+ParserScopeBase::ParserScopeBase(const NodeVector<Node> &nodes) : nodes(nodes)
+{
+}
 
 Rooted<Node> ParserScopeBase::resolve(const std::vector<std::string> &path,
                                       const Rtti &type, Logger &logger)
@@ -40,7 +47,8 @@ Rooted<Node> ParserScopeBase::resolve(const std::vector<std::string> &path,
 		if (res.size() > 1) {
 			logger.error(std::string("The reference \"") +
 			             Utils::join(path, ".") + ("\" is ambigous!"));
-			logger.note("Referenced objects are:", SourceLocation{}, MessageMode::NO_CONTEXT);
+			logger.note("Referenced objects are:", SourceLocation{},
+			            MessageMode::NO_CONTEXT);
 			for (const ResolutionResult &r : res) {
 				logger.note(Utils::join(r.path(), "."), *(r.node));
 			}
@@ -82,18 +90,73 @@ bool DeferredResolution::resolve(Logger &logger)
 
 /* Class ParserScope */
 
-void ParserScope::push(Handle<Node> node) { nodes.push_back(node); }
+ParserScope::ParserScope(const NodeVector<Node> &nodes)
+    : ParserScopeBase(nodes), topLevelDepth(nodes.size())
+{
+}
 
-void ParserScope::pop() { nodes.pop_back(); }
+bool ParserScope::checkUnwound(Logger &logger) const
+{
+	if (nodes.size() != topLevelDepth) {
+		logger.error("Not all open elements have been closed!",
+		             SourceLocation{}, MessageMode::NO_CONTEXT);
+		logger.note("Still open elements are: ", SourceLocation{},
+		            MessageMode::NO_CONTEXT);
+		for (size_t i = topLevelDepth + 1; i < nodes.size(); i++) {
+			logger.note(std::string("Element of interal type ") +
+			                nodes[i]->type().name +
+			                std::string(" defined here:"),
+			            nodes[i]->getLocation());
+		}
+		return false;
+	}
+	return true;
+}
+
+ParserScope ParserScope::fork() { return ParserScope{nodes}; }
+
+bool ParserScope::join(const ParserScope &fork, Logger &logger)
+{
+	// Make sure the fork has been unwound
+	if (!fork.checkUnwound(logger)) {
+		return false;
+	}
+
+	// Insert the deferred resolutions of the fork into our own deferred
+	// resolution list
+	deferred.insert(deferred.end(), fork.deferred.begin(), fork.deferred.end());
+	return true;
+}
+
+ParserScope::ParserScope() : topLevelDepth(0) {}
+
+void ParserScope::push(Handle<Node> node)
+{
+	if (nodes.size() == topLevelDepth) {
+		topLevelNodes.push_back(node);
+	}
+	nodes.push_back(node);
+}
+
+void ParserScope::pop()
+{
+	if (nodes.size() == topLevelDepth) {
+		throw LoggableException{"No element here to end!"};
+	}
+	nodes.pop_back();
+}
+
+NodeVector<Node> ParserScope::getTopLevelNodes() const { return topLevelNodes; }
 
 Rooted<Node> ParserScope::getRoot() const { return nodes.front(); }
 
-Rooted<Node> ParserScope::getLeaf() { return nodes.back(); }
+Rooted<Node> ParserScope::getLeaf() const { return nodes.back(); }
 
-bool ParserScope::resolve(const std::vector<std::string> &path, const Rtti &type,
-                    Logger &logger, ResolutionImposterCallback imposterCallback,
-                    ResolutionResultCallback resultCallback,
-                    const SourceLocation &location)
+bool ParserScope::resolve(const std::vector<std::string> &path,
+                          const Rtti &type, Logger &logger,
+                          ResolutionImposterCallback imposterCallback,
+                          ResolutionResultCallback resultCallback,
+                          const SourceLocation &location)
 {
 	if (!resolve(path, type, logger, resultCallback, location)) {
 		resultCallback(imposterCallback(), logger);
@@ -102,9 +165,10 @@ bool ParserScope::resolve(const std::vector<std::string> &path, const Rtti &type
 	return true;
 }
 
-bool ParserScope::resolve(const std::vector<std::string> &path, const Rtti &type,
-                    Logger &logger, ResolutionResultCallback resultCallback,
-                    const SourceLocation &location)
+bool ParserScope::resolve(const std::vector<std::string> &path,
+                          const Rtti &type, Logger &logger,
+                          ResolutionResultCallback resultCallback,
+                          const SourceLocation &location)
 {
 	Rooted<Node> res = ParserScopeBase::resolve(path, type, logger);
 	if (res != nullptr) {
