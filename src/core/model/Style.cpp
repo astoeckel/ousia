@@ -16,9 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "CSS.hpp"
+#include "Style.hpp"
 
 namespace ousia {
+namespace model {
 
 void RuleSet::merge(Rooted<RuleSet> other){
 	for(auto& o : other->rules){
@@ -138,5 +139,6 @@ std::vector<Rooted<SelectorNode>> SelectorNode::append(
 
 std::vector<Rooted<SelectorNode>> SelectorNode::append(Handle<SelectorNode> node){
 	return append(new SelectorEdge{this->getManager(), node});
+}
 }
 }

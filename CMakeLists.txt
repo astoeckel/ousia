@@ -38,7 +38,7 @@ PKG_CHECK_MODULES(MOZJS REQUIRED mozjs-24)
 PKG_CHECK_MODULES(EXPAT REQUIRED expat)
 
 # Include required Boost components using the Boost cmake package
-FIND_PACKAGE(Boost COMPONENTS system filesystem REQUIRED)
+FIND_PACKAGE(Boost COMPONENTS system filesystem program_options REQUIRED)
 
 # Set utf8cpp include path
 SET(UTF8CPP_INCLUDE_DIR "lib/utf8cpp")
@@ -116,7 +116,6 @@ ADD_DEFINITIONS(
 
 ADD_LIBRARY(ousia_core
 	src/core/CodeTokenizer
-	src/core/CSS
 	src/core/Registry
 	src/core/Tokenizer
 	src/core/XML
@@ -146,6 +145,7 @@ ADD_LIBRARY(ousia_core
 	src/core/model/Index
 	src/core/model/Node
 	src/core/model/Project
+	src/core/model/Style
 	src/core/model/Typesystem
 	src/core/parser/Parser
 	src/core/parser/ParserContext
@@ -158,6 +158,14 @@ ADD_LIBRARY(ousia_core
 #	src/core/script/ScriptEngine
 )
 
+ADD_LIBRARY(ousia_css
+	src/plugins/css/CSSParser
+)
+
+TARGET_LINK_LIBRARIES(ousia_css
+	ousia_core
+)
+
 ADD_LIBRARY(ousia_filesystem
 	src/plugins/filesystem/FileLocator
 	src/plugins/filesystem/SpecialPaths
@@ -166,14 +174,6 @@ ADD_LIBRARY(ousia_filesystem
 TARGET_LINK_LIBRARIES(ousia_filesystem
 	ousia_core
 	${Boost_LIBRARIES}
-)
-
-ADD_LIBRARY(ousia_css
-	src/plugins/css/CSSParser
-)
-
-TARGET_LINK_LIBRARIES(ousia_css
-	ousia_core
 )
 
 ADD_LIBRARY(ousia_html
@@ -202,6 +202,20 @@ TARGET_LINK_LIBRARIES(ousia_xml
 #	${MOZJS_LIBRARIES}
 #)
 
+# Command line interface
+
+ADD_EXECUTABLE(ousia
+	src/cli/Main
+)
+
+TARGET_LINK_LIBRARIES(ousia
+	ousia_core
+	ousia_css
+	ousia_filesystem
+	ousia_html
+	ousia_xml
+)
+
 # If testing is enabled, build the unit tests
 IF(TEST)
 
@@ -212,7 +226,6 @@ IF(TEST)
 
 	ADD_EXECUTABLE(ousia_test_core
 		test/core/CodeTokenizerTest
-		test/core/CSSTest
 		test/core/RangeSetTest
 		test/core/RegistryTest
 		test/core/TokenizerTest
@@ -238,6 +251,7 @@ IF(TEST)
 		test/core/model/DocumentTest
 		test/core/model/IndexTest
 		test/core/model/NodeTest
+		test/core/model/StyleTest
 		test/core/model/TypesystemTest
 		test/core/parser/ParserStackTest
 		test/core/resource/ResourceLocatorTest

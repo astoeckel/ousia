@@ -79,12 +79,13 @@ Rooted<Node> CSSParser::doParse(CharReader &reader, ParserContext &ctx)
 	CodeTokenizer tokenizer{reader, CSS_ROOT, CSS_DESCRIPTORS};
 	tokenizer.ignoreComments = true;
 	tokenizer.ignoreLinebreaks = true;
-	Rooted<SelectorNode> root = {new SelectorNode{ctx.getManager(), "root"}};
+	Rooted<model::SelectorNode> root = {
+	    new model::SelectorNode{ctx.getManager(), "root"}};
 	parseDocument(root, tokenizer, ctx);
 	return root;
 }
 
-void CSSParser::parseDocument(Rooted<SelectorNode> root,
+void CSSParser::parseDocument(Rooted<model::SelectorNode> root,
                               CodeTokenizer &tokenizer, ParserContext &ctx)
 {
 	Token t;
@@ -92,11 +93,11 @@ void CSSParser::parseDocument(Rooted<SelectorNode> root,
 		return;
 	}
 	tokenizer.resetPeek();
-	std::vector<Rooted<SelectorNode>> leafList;
+	std::vector<Rooted<model::SelectorNode>> leafList;
 	// parse the SelectorTree for this ruleSet.
 	parseSelectors(root, tokenizer, leafList, ctx);
 	// parse the RuleSet itself.
-	Rooted<RuleSet> ruleSet = parseRuleSet(tokenizer, ctx);
+	Rooted<model::RuleSet> ruleSet = parseRuleSet(tokenizer, ctx);
 	for (auto &leaf : leafList) {
 		/*
 		* every leaf is an accepting node, if one considers the SelectorTree
@@ -113,14 +114,14 @@ void CSSParser::parseDocument(Rooted<SelectorNode> root,
 	parseDocument(root, tokenizer, ctx);
 }
 
-void CSSParser::parseSelectors(Rooted<SelectorNode> root,
-                               CodeTokenizer &tokenizer,
-                               std::vector<Rooted<SelectorNode>> &leafList,
-                               ParserContext &ctx)
+void CSSParser::parseSelectors(
+    Rooted<model::SelectorNode> root, CodeTokenizer &tokenizer,
+    std::vector<Rooted<model::SelectorNode>> &leafList, ParserContext &ctx)
 {
 	auto tuple = parseSelector(tokenizer, ctx);
 	// append the SelectorPath to the root node.
-	std::vector<Rooted<SelectorNode>> unmergedLeafs = root->append(tuple.first);
+	std::vector<Rooted<model::SelectorNode>> unmergedLeafs =
+	    root->append(tuple.first);
 	// append the leaf to the leafList.
 	switch (unmergedLeafs.size()) {
 		case 0:
@@ -146,10 +147,10 @@ void CSSParser::parseSelectors(Rooted<SelectorNode> root,
 	}
 }
 
-std::pair<Rooted<SelectorNode>, Rooted<SelectorNode>> CSSParser::parseSelector(
-    CodeTokenizer &tokenizer, ParserContext &ctx)
+std::pair<Rooted<model::SelectorNode>, Rooted<model::SelectorNode>>
+CSSParser::parseSelector(CodeTokenizer &tokenizer, ParserContext &ctx)
 {
-	Rooted<SelectorNode> s = parsePrimitiveSelector(tokenizer, ctx);
+	Rooted<model::SelectorNode> s = parsePrimitiveSelector(tokenizer, ctx);
 	Token t;
 	if (!tokenizer.peek(t)) {
 		// if we are at the end the found selector is the immediate child as
@@ -164,8 +165,8 @@ std::pair<Rooted<SelectorNode>, Rooted<SelectorNode>> CSSParser::parseSelector(
 			// so we parse the rest of the subsequent SelectorPath
 			auto tuple = parseSelector(tokenizer, ctx);
 			// then we establish the DESCENDANT relationship
-			s->getEdges().push_back(
-			    new SelectorNode::SelectorEdge(ctx.getManager(), tuple.first));
+			s->getEdges().push_back(new model::SelectorNode::SelectorEdge(
+			    ctx.getManager(), tuple.first));
 			// and we return this node as well as the leaf.
 			return std::make_pair(s, tuple.second);
 		}
@@ -176,9 +177,9 @@ std::pair<Rooted<SelectorNode>, Rooted<SelectorNode>> CSSParser::parseSelector(
 			// so we parse the rest of the subsequent SelectorPath
 			auto tuple = parseSelector(tokenizer, ctx);
 			// then we establish the DESCENDANT relationship
-			s->getEdges().push_back(new SelectorNode::SelectorEdge(
+			s->getEdges().push_back(new model::SelectorNode::SelectorEdge(
 			    ctx.getManager(), tuple.first,
-			    SelectionOperator::DIRECT_DESCENDANT));
+			    model::SelectionOperator::DIRECT_DESCENDANT));
 			// and we return this node as well as the leaf.
 			return std::make_pair(s, tuple.second);
 		}
@@ -189,8 +190,8 @@ std::pair<Rooted<SelectorNode>, Rooted<SelectorNode>> CSSParser::parseSelector(
 	}
 }
 
-Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
-                                                       ParserContext &ctx)
+Rooted<model::SelectorNode> CSSParser::parsePrimitiveSelector(
+    CodeTokenizer &tokenizer, ParserContext &ctx)
 {
 	// first and foremost we expect a class name.
 	Token t;
@@ -198,7 +199,8 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 	const std::string name = t.content;
 	if (!tokenizer.peek(t)) {
 		// if we are at the end, we just return this selector with its name.
-		Rooted<SelectorNode> n{new SelectorNode(ctx.getManager(), name)};
+		Rooted<model::SelectorNode> n{
+		    new model::SelectorNode(ctx.getManager(), name)};
 		return n;
 	}
 
@@ -218,8 +220,9 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 			// look for additional arguments.
 			if (!expect(PAREN_OPEN, tokenizer, t, false, ctx)) {
 				// if we don't have any, we return here.
-				Rooted<SelectorNode> n{new SelectorNode(
-				    ctx.getManager(), name, {pseudo_select_name, isGenerative})};
+				Rooted<model::SelectorNode> n{
+				    new model::SelectorNode(ctx.getManager(), name,
+				                     {pseudo_select_name, isGenerative})};
 				return n;
 			}
 			// parse the argument list.
@@ -227,18 +230,19 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 			// we require at least one argument, if parantheses are used
 			// XXX
 			args.push_back(VariantReader::parseGeneric(tokenizer.getInput(),
-			                                             ctx.getLogger(),
-			                                             {',', ')'}).second);
+			                                           ctx.getLogger(),
+			                                           {',', ')'}).second);
 			while (expect(COMMA, tokenizer, t, false, ctx)) {
 				// as long as we find commas we expect new arguments.
-				args.push_back(
-				    VariantReader::parseGeneric(
-				        tokenizer.getInput(), ctx.getLogger(), {',', ')'}).second);
+				args.push_back(VariantReader::parseGeneric(tokenizer.getInput(),
+				                                           ctx.getLogger(),
+				                                           {',', ')'}).second);
 			}
 			expect(PAREN_CLOSE, tokenizer, t, true, ctx);
 			// and we return with the finished Selector.
-			Rooted<SelectorNode> n{new SelectorNode(
-			    ctx.getManager(), name, {pseudo_select_name, args, isGenerative})};
+			Rooted<model::SelectorNode> n{
+			    new model::SelectorNode(ctx.getManager(), name,
+			                     {pseudo_select_name, args, isGenerative})};
 			return n;
 		}
 		case HASH: {
@@ -249,8 +253,8 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 			expect(TOKEN_TEXT, tokenizer, t, true, ctx);
 			Variant::arrayType args{Variant(t.content.c_str())};
 			// and we return the finished Selector
-			Rooted<SelectorNode> n{
-			    new SelectorNode(ctx.getManager(), name, {"has_id", args, false})};
+			Rooted<model::SelectorNode> n{new model::SelectorNode(
+			    ctx.getManager(), name, {"has_id", args, false})};
 			return n;
 		}
 		case BRACKET_OPEN: {
@@ -269,7 +273,7 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 				// we expect a closing bracket.
 				expect(BRACKET_CLOSE, tokenizer, t, true, ctx);
 				// and then we can return the result.
-				Rooted<SelectorNode> n{new SelectorNode(
+				Rooted<model::SelectorNode> n{new model::SelectorNode(
 				    ctx.getManager(), name, {"has_attribute", args, false})};
 				return n;
 			} else {
@@ -280,7 +284,7 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 				// then we expect a closing bracket.
 				expect(BRACKET_CLOSE, tokenizer, t, true, ctx);
 				// and then we can return the result.
-				Rooted<SelectorNode> n{new SelectorNode(
+				Rooted<model::SelectorNode> n{new model::SelectorNode(
 				    ctx.getManager(), name, {"has_value", args, false})};
 				return n;
 			}
@@ -288,15 +292,16 @@ Rooted<SelectorNode> CSSParser::parsePrimitiveSelector(CodeTokenizer &tokenizer,
 		default:
 			// everything else is not part of the Selector anymore.
 			tokenizer.resetPeek();
-			Rooted<SelectorNode> n{new SelectorNode(ctx.getManager(), name)};
+			Rooted<model::SelectorNode> n{
+			    new model::SelectorNode(ctx.getManager(), name)};
 			return n;
 	}
 }
 
-Rooted<RuleSet> CSSParser::parseRuleSet(CodeTokenizer &tokenizer,
-                                        ParserContext &ctx)
+Rooted<model::RuleSet> CSSParser::parseRuleSet(CodeTokenizer &tokenizer,
+                                               ParserContext &ctx)
 {
-	Rooted<RuleSet> ruleSet{new RuleSet(ctx.getManager())};
+	Rooted<model::RuleSet> ruleSet{new model::RuleSet(ctx.getManager())};
 	// if we have no ruleset content, we return an empty ruleset.
 	Token t;
 	if (!expect(CURLY_OPEN, tokenizer, t, false, ctx)) {
@@ -309,8 +314,8 @@ Rooted<RuleSet> CSSParser::parseRuleSet(CodeTokenizer &tokenizer,
 	return ruleSet;
 }
 
-void CSSParser::parseRules(CodeTokenizer &tokenizer, Rooted<RuleSet> ruleSet,
-                           ParserContext &ctx)
+void CSSParser::parseRules(CodeTokenizer &tokenizer,
+                           Rooted<model::RuleSet> ruleSet, ParserContext &ctx)
 {
 	std::string key;
 	Variant value;
@@ -333,7 +338,7 @@ bool CSSParser::parseRule(CodeTokenizer &tokenizer, ParserContext &ctx,
 	// then the value
 	// TODO: Resolve key for appropriate parsing function here.
 	value = VariantReader::parseGeneric(tokenizer.getInput(), ctx.getLogger(),
-	                                      {';'}).second;
+	                                    {';'}).second;
 	// and a ;
 	expect(SEMICOLON, tokenizer, t, true, ctx);
 	return true;
@@ -347,10 +352,10 @@ bool CSSParser::expect(int expectedType, CodeTokenizer &tokenizer, Token &t,
 		if (force) {
 			if (end) {
 				throw LoggableException{"Unexpected end of file!",
-				                      tokenizer.getInput()};
+				                        tokenizer.getInput()};
 			} else {
 				throw LoggableException{"Unexpected token!",
-				                      tokenizer.getInput()};
+				                        tokenizer.getInput()};
 			}
 		} else {
 			tokenizer.resetPeek();

@@ -17,12 +17,12 @@
 */
 
 /**
- * @file CSS.hpp
+ * @file Style.hpp
  
  * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
  */
-#ifndef _OUSIA_CSS_HPP_
-#define _OUSIA_CSS_HPP_
+#ifndef _OUSIA_STYLE_HPP_
+#define _OUSIA_STYLE_HPP_
 
 #include <map>
 #include <vector>
@@ -33,6 +33,7 @@
 #include <core/model/Node.hpp>
 
 namespace ousia {
+namespace model {
 
 /*
  * The Specificity or Precedence of a CSS RuleSet, which decides which
@@ -401,5 +402,6 @@ public:
 
 	void setAccepting(bool accepting) { this->accepting = accepting; }
 };
+}
 }
 #endif

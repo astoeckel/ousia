@@ -28,7 +28,6 @@
 namespace ousia {
 
 static TerminalLogger logger(std::cerr, true);
-//static ConcreteLogger logger;
 
 TEST(CSSParser, testParseSelectors)
 {
@@ -47,19 +46,19 @@ TEST(CSSParser, testParseSelectors)
 
 	// parse the data.
 	CSSParser instance;
-	Rooted<SelectorNode> root =
-	    instance.parse(data, env.context).cast<SelectorNode>();
+	Rooted<model::SelectorNode> root =
+	    instance.parse(data, env.context).cast<model::SelectorNode>();
 
 	// we expect three children of the root node overall.
 	ASSERT_EQ(3U, root->getEdges().size());
 	// get all "A" children, which should be two.
-	std::vector<Rooted<SelectorNode>> children = root->getChildren("A");
+	std::vector<Rooted<model::SelectorNode>> children = root->getChildren("A");
 	ASSERT_EQ(2U, children.size());
 	// assert A
-	Rooted<SelectorNode> A = children[0];
+	Rooted<model::SelectorNode> A = children[0];
 	ASSERT_EQ("A", A->getName());
 	{
-		PseudoSelector select{"true", false};
+		model::PseudoSelector select{"true", false};
 		ASSERT_EQ(select, A->getPseudoSelector());
 	}
 	ASSERT_EQ(2U, A->getEdges().size());
@@ -67,25 +66,25 @@ TEST(CSSParser, testParseSelectors)
 	ASSERT_EQ(0U, A->getRuleSet()->getRules().size());
 	{
 		// assert A > B
-		std::vector<Rooted<SelectorNode>> Achildren =
-		    A->getChildren(SelectionOperator::DIRECT_DESCENDANT, "B");
+		std::vector<Rooted<model::SelectorNode>> Achildren =
+		    A->getChildren(model::SelectionOperator::DIRECT_DESCENDANT, "B");
 		ASSERT_EQ(1U, Achildren.size());
-		Rooted<SelectorNode> B = Achildren[0];
+		Rooted<model::SelectorNode> B = Achildren[0];
 		ASSERT_EQ("B", B->getName());
 		{
-			PseudoSelector select{"true", false};
+			model::PseudoSelector select{"true", false};
 			ASSERT_EQ(select, B->getPseudoSelector());
 		}
 		ASSERT_EQ(0U, B->getEdges().size());
 		ASSERT_TRUE(B->isAccepting());
 		ASSERT_EQ(0U, B->getRuleSet()->getRules().size());
 		// assert A B:r
-		Achildren = A->getChildren(SelectionOperator::DESCENDANT, "B");
+		Achildren = A->getChildren(model::SelectionOperator::DESCENDANT, "B");
 		ASSERT_EQ(1U, Achildren.size());
-		Rooted<SelectorNode> Br = Achildren[0];
+		Rooted<model::SelectorNode> Br = Achildren[0];
 		ASSERT_EQ("B", Br->getName());
 		{
-			PseudoSelector select{"r", false};
+			model::PseudoSelector select{"r", false};
 			ASSERT_EQ(select, Br->getPseudoSelector());
 		}
 		ASSERT_EQ(0U, Br->getEdges().size());
@@ -95,10 +94,10 @@ TEST(CSSParser, testParseSelectors)
 	// assert C#a
 	children = root->getChildren("C");
 	ASSERT_EQ(1U, children.size());
-	Rooted<SelectorNode> C = children[0];
+	Rooted<model::SelectorNode> C = children[0];
 	ASSERT_EQ("C", C->getName());
 	{
-		PseudoSelector select{"has_id", {"a"}, false};
+		model::PseudoSelector select{"has_id", {"a"}, false};
 		ASSERT_EQ(select, C->getPseudoSelector());
 	}
 	ASSERT_EQ(1U, C->getEdges().size());
@@ -106,13 +105,13 @@ TEST(CSSParser, testParseSelectors)
 	ASSERT_EQ(0U, C->getRuleSet()->getRules().size());
 	{
 		// assert C#a A[bla=\"blub\"]
-		std::vector<Rooted<SelectorNode>> Cchildren =
-		    C->getChildren(SelectionOperator::DESCENDANT, "A");
+		std::vector<Rooted<model::SelectorNode>> Cchildren =
+		    C->getChildren(model::SelectionOperator::DESCENDANT, "A");
 		ASSERT_EQ(1U, Cchildren.size());
-		Rooted<SelectorNode> A = Cchildren[0];
+		Rooted<model::SelectorNode> A = Cchildren[0];
 		ASSERT_EQ("A", A->getName());
 		{
-			PseudoSelector select{"has_value", {"bla", "blub"}, false};
+			model::PseudoSelector select{"has_value", {"bla", "blub"}, false};
 			ASSERT_EQ(select, A->getPseudoSelector());
 		}
 		ASSERT_EQ(0U, A->getEdges().size());
@@ -122,10 +121,11 @@ TEST(CSSParser, testParseSelectors)
 	// assert A::g(4,2,3)
 	children = root->getChildren("A");
 	ASSERT_EQ(2U, children.size());
-	Rooted<SelectorNode> Ag = children[1];
+	Rooted<model::SelectorNode> Ag = children[1];
 	ASSERT_EQ("A", Ag->getName());
 	{
-		PseudoSelector select{"g", {Variant(4), Variant(2), Variant(3)}, true};
+		model::PseudoSelector select{
+		    "g", {Variant(4), Variant(2), Variant(3)}, true};
 		ASSERT_EQ(select, Ag->getPseudoSelector());
 	}
 	ASSERT_EQ(0U, Ag->getEdges().size());
@@ -158,13 +158,13 @@ TEST(CSSParser, testParseCSS)
 	// parse the input.
 	CSSParser instance;
 	CharReader reader{input};
-	Rooted<SelectorNode> root =
-	    instance.parse(reader, env.context).cast<SelectorNode>();
+	Rooted<model::SelectorNode> root =
+	    instance.parse(reader, env.context).cast<model::SelectorNode>();
 
 	// we expect three children of the root node overall.
 	ASSERT_EQ(3U, root->getEdges().size());
 	// get all "A" children, which should be two.
-	std::vector<Rooted<SelectorNode>> children = root->getChildren("A");
+	std::vector<Rooted<model::SelectorNode>> children = root->getChildren("A");
 	ASSERT_EQ(2U, children.size());
 	// assert A
 	/*
@@ -181,16 +181,16 @@ TEST(CSSParser, testParseCSS)
 	 *
 	 * should be merged.
 	 */
-	Rooted<SelectorNode> A = children[0];
+	Rooted<model::SelectorNode> A = children[0];
 	ASSERT_EQ("A", A->getName());
 	{
-		PseudoSelector select{"true", false};
+		model::PseudoSelector select{"true", false};
 		ASSERT_EQ(select, A->getPseudoSelector());
 	}
 	ASSERT_EQ(0U, A->getEdges().size());
 	ASSERT_TRUE(A->isAccepting());
 	{
-		Rooted<RuleSet> ruleSet = A->getRuleSet();
+		Rooted<model::RuleSet> ruleSet = A->getRuleSet();
 		ASSERT_EQ(2U, ruleSet->getRules().size());
 		Variant v = ruleSet->getRules()["ident1"];
 		ASSERT_TRUE(v.isString());
@@ -206,16 +206,16 @@ TEST(CSSParser, testParseCSS)
 	 * ident3 : val3;
 	 * }
 	 */
-	Rooted<SelectorNode> Aselect = children[1];
+	Rooted<model::SelectorNode> Aselect = children[1];
 	ASSERT_EQ("A", Aselect->getName());
 	{
-		PseudoSelector select{"select", {"a", "b"}, false};
+		model::PseudoSelector select{"select", {"a", "b"}, false};
 		ASSERT_EQ(select, Aselect->getPseudoSelector());
 	}
 	ASSERT_EQ(0U, Aselect->getEdges().size());
 	ASSERT_TRUE(Aselect->isAccepting());
 	{
-		Rooted<RuleSet> ruleSet = Aselect->getRuleSet();
+		Rooted<model::RuleSet> ruleSet = Aselect->getRuleSet();
 		ASSERT_EQ(1U, ruleSet->getRules().size());
 		Variant v = ruleSet->getRules()["ident3"];
 		ASSERT_TRUE(v.isString());
@@ -232,10 +232,10 @@ TEST(CSSParser, testParseCSS)
 	children = root->getChildren("B");
 	ASSERT_EQ(1U, children.size());
 
-	Rooted<SelectorNode> B = children[0];
+	Rooted<model::SelectorNode> B = children[0];
 	ASSERT_EQ("B", B->getName());
 	{
-		PseudoSelector select{"true", false};
+		model::PseudoSelector select{"true", false};
 		ASSERT_EQ(select, B->getPseudoSelector());
 	}
 	ASSERT_EQ(1U, B->getEdges().size());
@@ -245,16 +245,16 @@ TEST(CSSParser, testParseCSS)
 	children = B->getChildren("A");
 	ASSERT_EQ(1U, children.size());
 
-	Rooted<SelectorNode> BA = children[0];
+	Rooted<model::SelectorNode> BA = children[0];
 	ASSERT_EQ("A", BA->getName());
 	{
-		PseudoSelector select{"true", false};
+		model::PseudoSelector select{"true", false};
 		ASSERT_EQ(select, BA->getPseudoSelector());
 	}
 	ASSERT_EQ(0U, BA->getEdges().size());
 	ASSERT_TRUE(BA->isAccepting());
 	{
-		Rooted<RuleSet> ruleSet = BA->getRuleSet();
+		Rooted<model::RuleSet> ruleSet = BA->getRuleSet();
 		ASSERT_EQ(2U, ruleSet->getRules().size());
 		Variant v = ruleSet->getRules()["ident1"];
 		ASSERT_TRUE(v.isString());
@@ -274,7 +274,7 @@ void assertException(std::string css)
 
 		logger.reset();
 		try {
-			instance.parse(reader, env.context).cast<SelectorNode>();
+			instance.parse(reader, env.context).cast<model::SelectorNode>();
 		}
 		catch (LoggableException ex) {
 			logger.log(ex);
