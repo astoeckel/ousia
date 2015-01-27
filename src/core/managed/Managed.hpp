@@ -453,7 +453,7 @@ public:
 	 *
 	 * @param h is the Rooted to be moved to this instance.
 	 */
-	Rooted(Rooted<T> &&h) : Handle<T>(h.ptr) { h.ptr = nullptr; }
+	Rooted(Rooted<T> &&h) noexcept : Handle<T>(h.ptr) { h.ptr = nullptr; }
 
 	/**
 	 * Constructor of the Rooted class.
@@ -494,7 +494,7 @@ public:
 	 *
 	 * @param h is the Owned to be moved to this instance.
 	 */
-	Rooted<T> &operator=(Rooted<T> &&h)
+	Rooted<T> &operator=(Rooted<T> &&h) noexcept
 	{
 		deleteRef();
 		this->ptr = h.ptr;
@@ -523,7 +523,7 @@ public:
 	 *
 	 * @param h is the Owned to be moved to this instance.
 	 */
-	Rooted<T> &operator=(Handle<T> &&h)
+	Rooted<T> &operator=(Handle<T> &&h) noexcept
 	{
 		deleteRef();
 		this->ptr = h.ptr;
@@ -600,7 +600,7 @@ public:
 	 *
 	 * @param h is the Owned to be moved to this instance.
 	 */
-	Owned(Owned<T> &&h) : Handle<T>(h.get()), owner(h.getOwner())
+	Owned(Owned<T> &&h) noexcept : Handle<T>(h.get()), owner(h.getOwner())
 	{
 		h.ptr = nullptr;
 	}
@@ -627,7 +627,7 @@ public:
 	 *
 	 * @param h is the Owned to be moved to this instance.
 	 */
-	Owned<T> &operator=(Owned<T> &&h)
+	Owned<T> &operator=(Owned<T> &&h) noexcept
 	{
 		deleteRef();
 		this->ptr = h.ptr;

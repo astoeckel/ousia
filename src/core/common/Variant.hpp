@@ -211,7 +211,7 @@ private:
 	 *
 	 * @param v is the Variant instance that should be copied to this instance.
 	 */
-	void move(Variant &&v)
+	void move(Variant &&v) noexcept
 	{
 		destroy();
 		type = v.type;
@@ -290,7 +290,7 @@ public:
 	 * @param v is the reference to the Variant instance that should be moved,
 	 * this instance is invalidated afterwards.
 	 */
-	Variant(Variant &&v) : ptrVal(nullptr) { move(std::move(v)); }
+	Variant(Variant &&v) noexcept : ptrVal(nullptr) { move(std::move(v)); }
 
 	/**
 	 * Default constructor. VariantType is set to VariantType:NULLPTR.
@@ -413,7 +413,7 @@ public:
 	/**
 	 * Move assignment operator.
 	 */
-	Variant &operator=(Variant &&v)
+	Variant &operator=(Variant &&v) noexcept
 	{
 		move(std::move(v));
 		return *this;

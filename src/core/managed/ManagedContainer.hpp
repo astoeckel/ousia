@@ -319,7 +319,7 @@ public:
 	 *
 	 * @param other is the other container that should be moved.
 	 */
-	ManagedContainer(own_type &&other)
+	ManagedContainer(own_type &&other) noexcept
 	    : owner(other.owner), c(std::move(other.c))
 	{
 		// other.owner = nullptr;
@@ -408,7 +408,7 @@ public:
 	 * @param other is the collection instance that should be moved;
 	 * @return this instance.
 	 */
-	own_type &operator=(own_type &&other)
+	own_type &operator=(own_type &&other) noexcept
 	{
 		finalize();
 		owner = other.owner;

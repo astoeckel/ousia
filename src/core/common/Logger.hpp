@@ -269,12 +269,6 @@ public:
 	// Default constructor
 	Logger() {}
 
-	// No copy
-	Logger(const Logger &) = delete;
-
-	// No assign
-	Logger &operator=(const Logger &) = delete;
-
 	/**
 	 * Logs the given message. The file name is set to the topmost file name on
 	 * the file name stack.
@@ -601,14 +595,6 @@ protected:
 	    SourceContextCallback sourceContextCallback) override;
 
 public:
-	// Default move constructor
-	LoggerFork(LoggerFork &&l)
-	    : calls(std::move(l.calls)),
-	      messages(std::move(l.messages)),
-	      locations(std::move(l.locations)),
-	      callbacks(std::move(l.callbacks)),
-	      parent(std::move(l.parent)){};
-
 	/**
 	 * Commits all collected messages to the parent Logger instance.
 	 */
