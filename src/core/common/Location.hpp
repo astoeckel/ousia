@@ -345,6 +345,32 @@ public:
 	{
 		return SourceRange::isValid() && sourceId != InvalidSourceId;
 	}
+
+	/**
+	 * Calls the getLocation function on the given reference.
+	 *
+	 * @param obj is the object on which the getLocation function should be
+	 * called.
+	 * @return the SourceLocation returned by the getLocation function.
+	 */
+	template <typename T>
+	static SourceLocation location(const T &obj)
+	{
+		return obj.getLocation();
+	}
+
+	/**
+	 * Calls the getLocation function on the given pointer.
+	 *
+	 * @param obj is the object on which the getLocation function should be
+	 * called.
+	 * @return the SourceLocation returned by the getLocation function.
+	 */
+	template <typename T>
+	static SourceLocation location(const T *obj)
+	{
+		return obj->getLocation();
+	}
 };
 
 /**

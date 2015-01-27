@@ -103,40 +103,14 @@ public:
 	}
 
 	/**
-	 * Constructor of the LoggableException class.
-	 *
-	 * @param msg contains the error message.
-	 * @param line is the line in the above file the message refers to.
-	 * @param column is the column in the above file the message refers to.
-	 * @param offs is the byte offset.
-	 */
-	LoggableException(std::string msg, int line,
-	                  int column, size_t offs)
-	    : LoggableException(msg, SourceLocation(line, column, offs))
-	{
-	}
-
-	/**
 	 * Constructor of LoggableException for arbitrary position objects.
 	 *
 	 * @param msg is the actual log message.
 	 * @param loc is a reference to a variable with location data.
 	 */
 	template <class LocationType>
-	LoggableException(std::string msg, const LocationType &loc)
-	    : LoggableException(std::move(msg), loc.getLocation())
-	{
-	}
-
-	/**
-	 * Constructor of LoggableException for arbitrary position objects.
-	 *
-	 * @param msg is the actual log message.
-	 * @param loc is a pointe to a variable with location data.
-	 */
-	template <class LocationType>
-	LoggableException(std::string msg, const LocationType *loc)
-	    : LoggableException(std::move(msg), loc->getLocation())
+	LoggableException(std::string msg, LocationType loc)
+	    : LoggableException(std::move(msg), SourceLocation::location(loc))
 	{
 	}
 
@@ -147,6 +121,7 @@ public:
 	 */
 	const SourceLocation& getLocation() const { return loc; }
 };
+
 }
 
 #endif /* _OUSIA_EXCEPTIONS_HPP_ */

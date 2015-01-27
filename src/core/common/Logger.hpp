@@ -181,32 +181,6 @@ public:
 		}
 	};
 
-	/**
-	 * Calls the getLocation function on the given reference.
-	 *
-	 * @param obj is the object on which the getLocation function should be
-	 * called.
-	 * @return the SourceLocation returned by the getLocation function.
-	 */
-	template <typename T>
-	static SourceLocation location(const T &obj)
-	{
-		return obj.getLocation();
-	}
-
-	/**
-	 * Calls the getLocation function on the given pointer.
-	 *
-	 * @param obj is the object on which the getLocation function should be
-	 * called.
-	 * @return the SourceLocation returned by the getLocation function.
-	 */
-	template <typename T>
-	static SourceLocation location(const T *obj)
-	{
-		return obj->getLocation();
-	}
-
 protected:
 	/**
 	 * Function to be overriden by child classes to actually display or store
@@ -311,7 +285,7 @@ public:
 	void log(Severity severity, const std::string &msg, LocationType loc,
 	         MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(severity, msg, location(loc), mode);
+		log(severity, msg, SourceLocation::location(loc), mode);
 	}
 
 	/**
@@ -398,7 +372,7 @@ public:
 	void warning(const std::string &msg, LocationType loc,
 	             MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::WARNING, msg, location(loc), mode);
+		log(Severity::WARNING, msg, SourceLocation::location(loc), mode);
 	}
 
 	/**
@@ -425,7 +399,7 @@ public:
 	void error(const std::string &msg, LocationType loc,
 	           MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::ERROR, msg, location(loc), mode);
+		log(Severity::ERROR, msg, SourceLocation::location(loc), mode);
 	}
 
 	/**
@@ -452,7 +426,7 @@ public:
 	void fatalError(const std::string &msg, LocationType loc,
 	                MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::FATAL_ERROR, msg, location(loc), mode);
+		log(Severity::FATAL_ERROR, msg, SourceLocation::location(loc), mode);
 	}
 
 	/**
