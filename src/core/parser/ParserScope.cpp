@@ -90,10 +90,13 @@ bool DeferredResolution::resolve(Logger &logger)
 
 /* Class ParserScope */
 
-ParserScope::ParserScope(const NodeVector<Node> &nodes)
-    : ParserScopeBase(nodes), topLevelDepth(nodes.size())
+ParserScope::ParserScope(const NodeVector<Node> &nodes,
+                         const std::vector<ParserFlagDescriptor> &flags)
+    : ParserScopeBase(nodes), flags(flags), topLevelDepth(nodes.size())
 {
 }
+
+ParserScope::ParserScope() : topLevelDepth(0) {}
 
 bool ParserScope::checkUnwound(Logger &logger) const
 {
@@ -113,7 +116,7 @@ bool ParserScope::checkUnwound(Logger &logger) const
 	return true;
 }
 
-ParserScope ParserScope::fork() { return ParserScope{nodes}; }
+ParserScope ParserScope::fork() { return ParserScope{nodes, flags}; }
 
 bool ParserScope::join(const ParserScope &fork, Logger &logger)
 {
@@ -128,11 +131,10 @@ bool ParserScope::join(const ParserScope &fork, Logger &logger)
 	return true;
 }
 
-ParserScope::ParserScope() : topLevelDepth(0) {}
-
 void ParserScope::push(Handle<Node> node)
 {
-	if (nodes.size() == topLevelDepth) {
+	const size_t currentDepth = nodes.size();
+	if (currentDepth == topLevelDepth) {
 		topLevelNodes.push_back(node);
 	}
 	nodes.push_back(node);
@@ -140,9 +142,23 @@ void ParserScope::push(Handle<Node> node)
 
 void ParserScope::pop()
 {
-	if (nodes.size() == topLevelDepth) {
+	// Make sure pop is not called without an element on the stack
+	const size_t currentDepth = nodes.size();
+	if (currentDepth == topLevelDepth) {
 		throw LoggableException{"No element here to end!"};
 	}
+
+	// Remove all flags from the stack that were set for higher stack depths.
+	size_t newLen = 0;
+	for (ssize_t i = flags.size() - 1; i >= 0; i--) {
+		if (flags[i].depth < currentDepth) {
+			newLen = i + 1;
+			break;
+		}
+	}
+	flags.resize(newLen);
+
+	// Remove the element from the stack
 	nodes.pop_back();
 }
 
@@ -151,6 +167,38 @@ NodeVector<Node> ParserScope::getTopLevelNodes() const { return topLevelNodes; }
 Rooted<Node> ParserScope::getRoot() const { return nodes.front(); }
 
 Rooted<Node> ParserScope::getLeaf() const { return nodes.back(); }
+
+void ParserScope::setFlag(ParserFlag flag, bool value)
+{
+	// Fetch the current stack depth
+	const size_t currentDepth = nodes.size();
+
+	// Try to change the value of the flag if it was already set on the same
+	// stack depth
+	for (auto it = flags.rbegin(); it != flags.rend(); it++) {
+		if (it->depth == currentDepth) {
+			if (it->flag == flag) {
+				it->value = value;
+				return;
+			}
+		} else {
+			break;
+		}
+	}
+
+	// Insert a new element into the flags list
+	flags.emplace_back(currentDepth, flag, value);
+}
+
+bool ParserScope::getFlag(ParserFlag flag)
+{
+	for (auto it = flags.crbegin(); it != flags.crend(); it++) {
+		if (it->flag == flag) {
+			return it->value;
+		}
+	}
+	return false;
+}
 
 bool ParserScope::resolve(const std::vector<std::string> &path,
                           const Rtti &type, Logger &logger,

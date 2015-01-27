@@ -253,6 +253,7 @@ IF(TEST)
 		test/core/model/NodeTest
 		test/core/model/StyleTest
 		test/core/model/TypesystemTest
+		test/core/parser/ParserScopeTest
 		test/core/parser/ParserStackTest
 		test/core/resource/ResourceLocatorTest
 		test/core/resource/ResourceRequestTest

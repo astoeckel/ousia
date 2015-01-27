@@ -166,17 +166,74 @@ public:
 };
 
 /**
+ * Enum containing all possible parser flags that can be used by parsers to
+ * signal states that cannot be (explicitly or implicitly) stored in the node
+ * graph itself.
+ */
+enum class ParserFlag {
+	/**
+     * Set to the boolean value "true" if the head section of a file has passed.
+     * This happens once the first non-import tag is reached.
+     */
+	POST_HEAD
+};
+
+/**
  * Provides an interface for document parsers to resolve references based on the
  * current position in the created document tree. The ParserScope class itself
  * is represented as a chain of ParserScope objects where each element has a
  * reference to a Node object attached to it.
  */
 class ParserScope : public ParserScopeBase {
+public:
+	/**
+	 * Struct describing a set parser flag.
+	 */
+	struct ParserFlagDescriptor {
+		/**
+		 * Stack depth at which the flag has been set.
+		 */
+		size_t depth;
+
+		/**
+		 * Flag that has been set.
+		 */
+		ParserFlag flag;
+
+		/**
+		 * Value of that flag.
+		 */
+		bool value;
+
+		/**
+		 * Default constructor.
+		 */
+		ParserFlagDescriptor() {}
+
+		/**
+		 * Constructor of the parser flag descriptor class.
+		 *
+		 * @param depth is the depth at which the flag was set.
+		 * @param flag is the flag that has been set.
+		 * @param value is the value that has been set for that flag.
+		 */
+		ParserFlagDescriptor(size_t depth, ParserFlag flag, bool value)
+		    : depth(depth), flag(flag), value(value)
+		{
+		}
+	};
+
 private:
 	/**
 	 * List containing all deferred resolution descriptors.
 	 */
 	std::list<DeferredResolution> deferred;
+
+	/**
+	 * Vector containing all set flags. The vector contains triples of the
+	 * depth at which the flag was set, the flag itself and the value.
+	 */
+	std::vector<ParserFlagDescriptor> flags;
 
 	/**
 	 * Depth of the "nodes" list when the ParserScope was created.
@@ -192,7 +249,8 @@ private:
 	/**
 	 * Private constructor used to create a ParserScope fork.
 	 */
-	ParserScope(const NodeVector<Node> &nodes);
+	ParserScope(const NodeVector<Node> &nodes,
+	            const std::vector<ParserFlagDescriptor> &flags);
 
 public:
 	/**
@@ -274,12 +332,32 @@ public:
 	Rooted<Node> getLeaf() const;
 
 	/**
+	 * Sets a parser flag for the current stack depth.
+	 *
+	 * @param flag is the flag that should be set.
+	 * @param value is the value to which the flag should be set.
+	 */
+	void setFlag(ParserFlag flag, bool value);
+
+	/**
+	 * Gets the parser flag for the current stack depth, ascends the stack until
+	 * a set for this flag is found. Returns false if the flag is not set.
+	 *
+	 * @param flag is the flag for which the value should be returned.
+	 * @return the value that was previously set by setParserFlag or false if no
+	 * value has been set.
+	 */
+	bool getFlag(ParserFlag flag);
+
+	/**
 	 * Tries to resolve a node for the given type and path for all nodes
 	 * currently on the stack, starting with the topmost node on the stack.
-	 * Calls the "imposterCallback" function for obtaining a temporary result if
+	 * Calls the "imposterCallback" function for obtaining a temporary
+	 *result if
 	 * a node cannot be resolved right now. The "resultCallback" is at most
 	 * called twice: Once when this method is called (probably with the
-	 * temporary) and another time if the resolution turned out to be successful
+	 * temporary) and another time if the resolution turned out to be
+	 *successful
 	 * at a later point in time.
 	 *
 	 * @param path is the path for which a node should be resolved.
@@ -288,17 +366,24 @@ public:
 	 * should be logged.
 	 * @param imposterCallback is the callback function that is called if
 	 * the node cannot be resolved at this moment. It gives the caller the
-	 * possibility to create an imposter (a temporary object) that may be used
+	 * possibility to create an imposter (a temporary object) that may be
+	 *used
 	 * later in the resolution process.
 	 * @param resultCallback is the callback function to which the result of
-	 * the resolution process is passed. This function is called at least once
-	 * either with the imposter (if the resolution was not successful) or the
-	 * resolved object directly when this function is called. If the resolution
-	 * was not successful the first time, it may be called another time later
+	 * the resolution process is passed. This function is called at least
+	 *once
+	 * either with the imposter (if the resolution was not successful) or
+	 *the
+	 * resolved object directly when this function is called. If the
+	 *resolution
+	 * was not successful the first time, it may be called another time
+	 *later
 	 * in the context of the "performDeferredResolution" function.
-	 * @param location is the location in the current source file in which the
+	 * @param location is the location in the current source file in which
+	 *the
 	 * resolution was triggered.
-	 * @return true if the resolution was immediately successful. This does not
+	 * @return true if the resolution was immediately successful. This does
+	 *not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
