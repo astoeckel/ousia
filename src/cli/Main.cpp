@@ -50,7 +50,8 @@ namespace o = ousia;
 int main(int argc, char **argv)
 {
 	// Program options
-	po::options_description desc("Options");
+	po::options_description desc(
+	    "Program usage\n./ousia [optional options] <-F format> <input path>\nProgram options");
 	std::string inputPath;
 	std::string outputPath;
 	std::string format;
@@ -70,11 +71,19 @@ int main(int argc, char **argv)
 	    "The output file name. Per default the input file name will be used.")(
 	    "format,F", po::value<std::string>(&format)->required(),
 	    "The output format that shall be produced.");
-
+	// "input" should be a positional option, such that we can write:
+	// ./ousia [some options] <my input file>
+	// without having to use -i or I
+	po::positional_options_description positional;
+	positional.add("input", 1);
 	po::variables_map vm;
 	try {
 		// try to read the values for each option to the variable map.
-		po::store(po::parse_command_line(argc, argv, desc), vm);
+		po::store(po::command_line_parser(argc, argv)
+		              .options(desc)
+		              .positional(positional)
+		              .run(),
+		          vm);
 
 		// first check the help option.
 		if (vm.count("help")) {
@@ -106,6 +115,20 @@ int main(int argc, char **argv)
 			std::cout << "Using " << outputPath << " as output path."
 			          << std::endl;
 		}
+	}
+
+	// TODO: REMOVE diagnostic code.
+	std::cout << "input : " << vm["input"].as<std::string>() << std::endl;
+	std::cout << "output : " << outputPath << std::endl;
+	std::cout << "format : " << vm["format"].as<std::string>() << std::endl;
+	if (vm.count("include")) {
+		std::vector<std::string> includes =
+		    vm["include"].as<std::vector<std::string>>();
+		std::cout << "includes : ";
+		for (auto &i : includes) {
+			std::cout << i << ", ";
+		}
+		std::cout << std::endl;
 	}
 
 	// initialize global instances.
