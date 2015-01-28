@@ -214,6 +214,7 @@ TARGET_LINK_LIBRARIES(ousia
 	ousia_filesystem
 	ousia_html
 	ousia_xml
+	${Boost_LIBRARIES}
 )
 
 # If testing is enabled, build the unit tests
