@@ -122,8 +122,12 @@ NodeVector<Node> ResourceManager::parse(
 				innerScope.checkUnwound(logger);
 				innerScope.performDeferredResolution(logger);
 
-				// Fetch the nodes that were parsed by this parser instance
+				// Fetch the nodes that were parsed by this parser instance and
+				// validate them
 				parsedNodes = innerScope.getTopLevelNodes();
+				for (auto parsedNode : parsedNodes) {
+					parsedNode->validate(logger);
+				}
 
 				// Make sure the number of elements is exactly one -- we can
 				// only store one element per top-level node.
