@@ -186,7 +186,7 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
 {
 	// Start with the (empty) document.
 	Rooted<Document> doc{new Document(mgr, "kant_was_ist_aufklaerung.oxd")};
-	doc->addDomains({bookDom, headingDom, listDom, emphasisDom});
+	doc->referenceDomains({bookDom, headingDom, listDom, emphasisDom});
 
 	// Add the root.
 	Rooted<StructuredEntity> book =

@@ -849,7 +849,7 @@ public:
 	/**
 	 * Adds a Domain reference to this Document.
 	 */
-	void addDomain(Handle<Domain> d)
+	void referenceDomain(Handle<Domain> d)
 	{
 		invalidate();
 		domains.push_back(d);
@@ -858,7 +858,7 @@ public:
 	/**
 	 * Adds multiple Domain references to this Document.
 	 */
-	void addDomains(const std::vector<Handle<Domain>> &d)
+	void referenceDomains(const std::vector<Handle<Domain>> &d)
 	{
 		invalidate();
 		domains.insert(domains.end(), d.begin(), d.end());

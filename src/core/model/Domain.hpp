@@ -899,8 +899,6 @@ class Domain : public Node {
 private:
 	NodeVector<StructuredClass> structuredClasses;
 	NodeVector<AnnotationClass> annotationClasses;
-	// TODO: Is it wise to attach the type systems here? If not: What would be
-	// a good alternative.
 	NodeVector<Typesystem> typesystems;
 
 protected:
@@ -937,7 +935,7 @@ public:
 	Domain(Manager &mgr, Handle<SystemTypesystem> sys, std::string name = "")
 	    : Domain(mgr, std::move(name))
 	{
-		includeTypesystem(sys);
+		referenceTypesystem(sys);
 	}
 
 	/**
@@ -1071,12 +1069,12 @@ public:
 	/**
 	 * Adds a Typesystem reference to this Domain.
 	 */
-	void includeTypesystem(Handle<Typesystem> t) { typesystems.push_back(t); }
+	void referenceTypesystem(Handle<Typesystem> t) { typesystems.push_back(t); }
 
 	/**
 	 * Adds multiple Typesystem references to this Domain.
 	 */
-	void includeTypesystems(const std::vector<Handle<Typesystem>> &ts)
+	void referenceTypesystems(const std::vector<Handle<Typesystem>> &ts)
 	{
 		typesystems.insert(typesystems.end(), ts.begin(), ts.end());
 	}

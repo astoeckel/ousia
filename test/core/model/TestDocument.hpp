@@ -36,7 +36,7 @@ static Rooted<Document> constructBookDocument(Manager &mgr, Logger &logger,
 {
 	// Start with the (empty) document.
 	Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-	doc->addDomain(bookDomain);
+	doc->referenceDomain(bookDomain);
 
 	// Add the root.
 	Rooted<StructuredEntity> root =

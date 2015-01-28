@@ -86,7 +86,7 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	// Construct a document only containing overlapping annotations.
 	// it has the form: <em>bla<strong>blub</em>bla</strong>
 	Rooted<Document> doc{new Document(mgr, "annotations.oxd")};
-	doc->addDomains({bookDom, emDom});
+	doc->referenceDomains({bookDom, emDom});
 	Rooted<StructuredEntity> book =
 	    buildRootStructuredEntity(doc, logger, {"book"});
 	ASSERT_TRUE(book != nullptr);

@@ -542,7 +542,7 @@ Rooted<StructType> Typesystem::createStructType(const std::string &name)
 	return structType;
 }
 
-void Typesystem::includeTypesystem(Handle<Typesystem> typesystem)
+void Typesystem::referenceTypesystem(Handle<Typesystem> typesystem)
 {
 	typesystems.push_back(typesystem);
 }

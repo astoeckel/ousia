@@ -989,7 +989,7 @@ public:
 	Typesystem(Manager &mgr, Handle<SystemTypesystem> sys, std::string name)
 	    : Typesystem(mgr, std::move(name))
 	{
-		includeTypesystem(sys);
+		referenceTypesystem(sys);
 	}
 
 	/**
@@ -1007,7 +1007,7 @@ public:
 	 * @param typesystem is the typesystem that should be added to the
 	 * referenced typesystems list.
 	 */
-	void includeTypesystem(Handle<Typesystem> typesystem);
+	void referenceTypesystem(Handle<Typesystem> typesystem);
 
 	/**
 	 * Adds the given type to the to the type list.

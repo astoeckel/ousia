@@ -126,7 +126,7 @@ TEST(Document, validate)
 	{
 		// first an invalid one, which is empty.
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->addDomain(domain);
+		doc->referenceDomain(domain);
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_FALSE(doc->validate(logger));
 		// then add a root, which should make it valid.
@@ -138,7 +138,7 @@ TEST(Document, validate)
 	{
 		// A root with an invalid name, however, should make it invalid
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->addDomain(domain);
+		doc->referenceDomain(domain);
 		Rooted<StructuredEntity> root = buildRootStructuredEntity(
 		    doc, logger, {"root"}, {}, "my invalid root");
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
@@ -157,7 +157,7 @@ TEST(Document, validate)
 		 * document should be invalid again.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->addDomain(domain);
+		doc->referenceDomain(domain);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
@@ -181,7 +181,7 @@ TEST(Document, validate)
 		 * A document with one instance of the Child subclass should be valid.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->addDomain(domain);
+		doc->referenceDomain(domain);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		buildStructuredEntity(doc, logger, root, {"childSub"});
@@ -200,7 +200,7 @@ TEST(Document, validate)
 		 * invalid, because it has no children of itself.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->addDomain(domain);
+		doc->referenceDomain(domain);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		buildStructuredEntity(doc, logger, root, {"childSub"});
@@ -218,7 +218,7 @@ TEST(Document, validate)
 		 * valid, because of the override.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->addDomain(domain);
+		doc->referenceDomain(domain);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		buildStructuredEntity(doc, logger, root, {"childSub"});
@@ -234,7 +234,7 @@ TEST(Document, validate)
 		 * invalid again, because we are missing the primitive content.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->addDomain(domain);
+		doc->referenceDomain(domain);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		Rooted<StructuredEntity> child =
@@ -259,7 +259,7 @@ TEST(Document, validate)
 		 * Create a valid document in itself.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->addDomain(domain);
+		doc->referenceDomain(domain);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		Rooted<Anchor> start{new Anchor(mgr, "start", root)};
