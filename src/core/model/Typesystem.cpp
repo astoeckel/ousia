@@ -383,6 +383,11 @@ bool StructType::doBuild(Variant &data, Logger &logger) const
 bool StructType::doValidate(Logger &logger) const
 {
 	return validateName(logger) &
+	       validateIsAcyclic("parent", [](const Node *thisRef) -> const Node * {
+		                                   return dynamic_cast<const StructType *>(
+		                                       thisRef)->parentStructure.get();
+		                               },
+	                         logger) &
 	       continueValidationCheckDuplicates(attributes, logger);
 }
 
