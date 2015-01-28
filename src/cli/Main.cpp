@@ -175,6 +175,11 @@ int main(int argc, char **argv)
 	FileLocator fileLocator;
 	ParserContext context{registry, resourceManager, scope, project, logger};
 
+	// Connect the Source Context Callback of the logger to provide the user
+	// with context information (line, column, filename, text) for log messages
+	logger.setSourceContextCallback(
+		    resourceManager.getSourceContextCallback());
+
 	// fill registry
 	registry.registerDefaultExtensions();
 	XmlParser xmlParser;
