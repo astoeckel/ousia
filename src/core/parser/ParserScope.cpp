@@ -78,7 +78,9 @@ bool DeferredResolution::resolve(Logger &logger)
 	Rooted<Node> res = scope.resolve(path, type, logger);
 	if (res != nullptr) {
 		try {
-			resultCallback(res, logger);
+			// Push the location onto the logger default location stack
+			GuardedLogger localLogger(logger, location);
+			resultCallback(res, localLogger);
 		}
 		catch (LoggableException ex) {
 			logger.log(ex);
