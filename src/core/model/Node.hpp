@@ -31,8 +31,8 @@
 #include <cstdint>
 #include <map>
 #include <set>
-#include <unordered_set>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <core/common/Location.hpp>
@@ -155,6 +155,7 @@ private:
 	 * vector.
 	 *
 	 * @param p is the list the path should be constructed in.
+	 * @param root is a node at which building the path should be aborted.
 	 */
 	void path(std::vector<std::string> &p, Handle<Node> root) const;
 
@@ -214,6 +215,30 @@ private:
 	bool checkDuplicate(Handle<Node> node,
 	                    std::unordered_set<std::string> &names,
 	                    Logger &logger) const;
+
+	/**
+	 * Callback function used to access a Node reference stored inside another
+	 * Node.
+	 *
+	 * @param thisRef is the Node of which the reference should be returned.
+	 * @return the value of the reference.
+	 */
+	using NodeReferenceCallback = const Node* (const Node* thisRef);
+
+	/**
+	 * Checks whether the a certain property is acyclic.
+	 *
+	 * @param path is a path containing the cycle. If no cycle is found, the
+	 * path will be empty.
+	 * @param visited a set of visited nodes used for cycle detection.
+	 * @param callback is the callback that is used to access the underlying
+	 * property that should be checked for acyclicity.
+	 * @return true if the node is acyclic regarding this property, false if
+	 * a cycle was detected. The cycle is stored in the "path".
+	 */
+	bool checkIsAcyclic(std::vector<const Node *> &path,
+	                    std::unordered_set<const Node *> &visited,
+	                    NodeReferenceCallback callback) const;
 
 protected:
 	/**
@@ -363,6 +388,28 @@ protected:
 	 * @return true if the name is valid, false otherwise.
 	 */
 	bool validateName(Logger &logger) const;
+
+	/**
+	 * Makes sure the property accessed by the callback is not cyclic.
+	 *
+	 * @param name is the name of the property. The passed name is used to build
+	 * a nice error message.
+	 * @param callback is the callback that is used to access the property.
+	 * @param logger is the logger instance to which an error message containing
+	 * the cycle is logged.
+	 * @return true if the parent reference is acyclic, false otherwise.
+	 */
+	bool validateIsAcyclic(const std::string &name,
+	                       NodeReferenceCallback callback, Logger &logger) const;
+
+	/**
+	 * Makes sure the "parent" reference is not cyclic.
+	 *
+	 * @param logger is the logger instance to which an error message containing
+	 * the cycle is logged.
+	 * @return true if the parent reference is acyclic, false otherwise.
+	 */
+	bool validateParentIsAcyclic(Logger &logger) const;
 
 	/**
 	 * Helper function that can be used to forward the validation process to

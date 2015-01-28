@@ -361,11 +361,38 @@ bool Node::checkDuplicate(Handle<Node> elem,
 	const std::string &name = elem->getName();
 	if (!names.emplace(name).second) {
 		logger.error(std::string("Element with name \"") + name +
-		             std::string("\" defined multiple times in parent ") +
-		             type().name + std::string(" \"") +
-		             Utils::join(path(), ".") + std::string("\""), *elem);
+		                 std::string("\" defined multiple times in parent ") +
+		                 type().name + std::string(" \"") +
+		                 Utils::join(path(), ".") + std::string("\""),
+		             *elem);
 		return false;
 	}
+	return true;
+}
+
+bool Node::checkIsAcyclic(std::vector<const Node *> &path,
+                          std::unordered_set<const Node *> &visited,
+                          NodeReferenceCallback callback) const
+{
+	// Add this node to the path
+	path.push_back(this);
+
+	// A cycle was found, abort, shorten the path to the actual cycle
+	if (visited.count(this)) {
+		return false;
+	}
+	visited.insert(this);
+
+	// Continue allong the path
+	const Node *node = callback(this);
+	if (node != nullptr) {
+		if (!node->checkIsAcyclic(path, visited, callback)) {
+			return false;
+		}
+	}
+
+	// Remove this node from the path
+	path.pop_back();
 	return true;
 }
 
@@ -375,10 +402,49 @@ bool Node::validateName(Logger &logger) const
 {
 	if (!Utils::isIdentifier(name)) {
 		logger.error(type().name + std::string(" name \"") + name +
-		             std::string("\" is not a valid identifier"), this);
+		                 std::string("\" is not a valid identifier"),
+		             this);
 		return false;
 	}
 	return true;
+}
+
+bool Node::validateIsAcyclic(const std::string &name,
+                             NodeReferenceCallback callback,
+                             Logger &logger) const
+{
+	std::vector<const Node *> path;
+	std::unordered_set<const Node *> visited;
+
+	if (!checkIsAcyclic(path, visited, callback)) {
+		logger.error(std::string("Attribute \"") + name + ("\" is cyclic."),
+		             this);
+		logger.note("The following nodes are included in the cycle: ",
+		            SourceLocation{}, MessageMode::NO_CONTEXT);
+		for (const Node *node : path) {
+			const std::string &name = node->getName();
+			const std::string &typeName = node->type().name;
+			if (name.empty()) {
+				logger.note(std::string("Node of internal type ") + typeName +
+				                std::string(" declared here:"),
+				            node);
+			} else {
+				logger.note(std::string("Node \"") + name +
+				                std::string("\" of internal type ") + typeName +
+				                std::string(" declared here:"),
+				            node);
+			}
+		}
+		return false;
+	}
+	return true;
+}
+
+bool Node::validateParentIsAcyclic(Logger &logger) const
+{
+	return validateIsAcyclic("parent", [](const Node *thisRef) -> const Node *
+	                                   { return thisRef->parent.get(); },
+	                         logger);
 }
 
 void Node::invalidate()
