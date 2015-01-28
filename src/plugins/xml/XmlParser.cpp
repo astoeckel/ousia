@@ -22,34 +22,103 @@
 #include <expat.h>
 
 #include <core/common/CharReader.hpp>
+#include <core/common/RttiBuilder.hpp>
 #include <core/common/Utils.hpp>
 #include <core/common/VariantReader.hpp>
 #include <core/parser/ParserStack.hpp>
 #include <core/parser/ParserScope.hpp>
+#include <core/model/Document.hpp>
+#include <core/model/Domain.hpp>
+#include <core/model/Project.hpp>
 #include <core/model/Typesystem.hpp>
 
 #include "XmlParser.hpp"
 
 namespace ousia {
 
-/* Document structure */
-static const State STATE_DOCUMENT = 0;
-static const State STATE_HEAD = 1;
-static const State STATE_BODY = 2;
+/* HeadNode Helper class */
 
-/* Special commands */
-static const State STATE_USE = 100;
-static const State STATE_INCLUDE = 101;
-static const State STATE_INLINE = 102;
+namespace {
+class HeadNode : public Node {
+public:
+	using Node::Node;
+};
+}
 
-/* Type system definitions */
-static const State STATE_TYPESYSTEM = 200;
-static const State STATE_TYPES = 201;
-static const State STATE_CONSTANTS = 202;
-static const State STATE_CONSTANT = 203;
-static const State STATE_ENUM = 204;
-static const State STATE_STRUCT = 205;
-static const State STATE_FIELD = 206;
+namespace RttiTypes {
+static Rtti HeadNode = RttiBuilder<ousia::HeadNode>("HeadNode");
+}
+
+/* Element Handler Classes */
+
+class DocumentHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	void start(Variant::mapType &args) override
+	{
+		Rooted<Document> document =
+		    project()->createDocument(args["name"].asString());
+		document->setLocation(location());
+		scope().push(document);
+		scope().setFlag(ParserFlag::POST_HEAD, false);
+	}
+
+	void end() override { scope().pop(); }
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new DocumentHandler{handlerData};
+	}
+};
+
+class HeadHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	void start(Variant::mapType &args) override
+	{
+		// Make sure the "HEAD" node is actually allowed here
+		if (scope().getFlag(ParserFlag::POST_HEAD)) {
+			throw LoggableException{
+			    "\"head\" tag not allowed here, head was already specified or "
+			    "another command was given first",
+			    location()};
+		}
+
+		// Insert a new HeadNode instance
+		scope().push(new HeadNode{manager()});
+	}
+
+	void end() override
+	{
+		// Remove the HeadNode instance from the stack
+		scope().pop();
+		scope().setFlag(ParserFlag::POST_HEAD, true);
+	}
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new HeadHandler{handlerData};
+	}
+};
+
+class DisableHeadHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	void start(Variant::mapType &args) override
+	{
+		scope().setFlag(ParserFlag::POST_HEAD, true);
+	}
+
+	void end() override {}
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new DisableHeadHandler{handlerData};
+	}
+};
 
 class TypesystemHandler : public Handler {
 public:
@@ -57,10 +126,20 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
+		// Create the typesystem instance
 		Rooted<Typesystem> typesystem =
 		    project()->createTypesystem(args["name"].asString());
 		typesystem->setLocation(location());
+
+		// Check whether this typesystem is a direct child of a domain
+		Handle<Node> parent = scope().select({&RttiTypes::Domain});
+		if (parent != nullptr) {
+			parent.cast<Domain>()->referenceTypesystem(typesystem);
+		}
+
+		// Push the typesystem onto the scope, set the POST_HEAD flag to true
 		scope().push(typesystem);
+		scope().setFlag(ParserFlag::POST_HEAD, false);
 	}
 
 	void end() override { scope().pop(); }
@@ -148,25 +227,52 @@ public:
 	}
 };
 
+/* Document structure */
+static const State STATE_DOCUMENT = 0;
+static const State STATE_DOCUMENT_HEAD = 1;
+
+/* Special commands */
+static const State STATE_IMPORT = 100;
+static const State STATE_INCLUDE = 101;
+
+/* Type system definitions */
+static const State STATE_TYPESYSTEM = 200;
+static const State STATE_TYPESYSTEM_HEAD = 201;
+static const State STATE_TYPES = 202;
+static const State STATE_CONSTANTS = 203;
+static const State STATE_CONSTANT = 204;
+static const State STATE_ENUM = 205;
+static const State STATE_STRUCT = 206;
+static const State STATE_FIELD = 207;
+
+/* Domain definitions */
+static const State STATE_DOMAIN = 300;
+static const State STATE_DOMAIN_HEAD = 301;
+
 static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
     /* Document tags */
-    {"document", {{STATE_NONE}, nullptr, STATE_DOCUMENT}},
-    {"head", {{STATE_DOCUMENT}, nullptr, STATE_HEAD}},
-    {"body", {{STATE_DOCUMENT}, nullptr, STATE_BODY, true}},
+    {"document",
+     {{STATE_NONE},
+      DocumentHandler::create,
+      STATE_DOCUMENT,
+      true,
+      {Argument::String("name", "")}}},
+    {"head", {{STATE_DOCUMENT}, HeadHandler::create, STATE_DOCUMENT_HEAD}},
 
     /* Special commands */
-    {"use", {{STATE_HEAD}, nullptr, STATE_USE}},
+    {"import",
+     {{STATE_DOCUMENT_HEAD, STATE_TYPESYSTEM_HEAD}, nullptr, STATE_IMPORT}},
     {"include", {{STATE_ALL}, nullptr, STATE_INCLUDE}},
-    {"inline", {{STATE_ALL}, nullptr, STATE_INLINE}},
 
     /* Typesystem */
     {"typesystem",
-     {{STATE_NONE, STATE_HEAD},
+     {{STATE_NONE, STATE_DOMAIN_HEAD},
       TypesystemHandler::create,
       STATE_TYPESYSTEM,
       false,
       {Argument::String("name")}}},
-    {"types", {{STATE_TYPESYSTEM}, nullptr, STATE_TYPES}},
+    {"head", {{STATE_TYPESYSTEM}, HeadHandler::create, STATE_TYPESYSTEM}},
+    {"types", {{STATE_TYPESYSTEM}, DisableHeadHandler::create, STATE_TYPES}},
     {"enum", {{STATE_TYPES}, nullptr, STATE_ENUM}},
     {"struct",
      {{STATE_TYPES},
@@ -175,13 +281,14 @@ static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
       false,
       {Argument::String("name"), Argument::String("parent", "")}}},
     {"field",
-     {{{STATE_STRUCT}},
+     {{STATE_STRUCT},
       StructFieldHandler::create,
       STATE_FIELD,
       false,
       {Argument::String("name"), Argument::String("type"),
        Argument::Any("default", Variant::fromObject(nullptr))}}},
-    {"constants", {{STATE_TYPESYSTEM}, nullptr, STATE_CONSTANTS}},
+    {"constants",
+     {{STATE_TYPESYSTEM}, DisableHeadHandler::create, STATE_CONSTANTS}},
     {"constant", {{STATE_CONSTANTS}, nullptr, STATE_CONSTANT}}};
 
 /**

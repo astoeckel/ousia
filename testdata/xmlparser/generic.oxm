@@ -1,23 +1,11 @@
 <!--<?xml version="1.0" standalone="yes"?>-->
-<document a:bc="b">
-	<head>
-		<typesystem name="color">
-			<types>
-				<struct name="rgb"> <!-- Instance 1 -->
-					<field name="r" type="double"/>
-					<field name="g" type="double"/>
-					<field name="b" type="double"/>
-				</struct>
-				<struct name="rgb"> <!-- Instance 2 -->
-				</struct>
-				<struct name="rgba" parent="rgb">
-					<field name="a" type="double" default="0xf3"/>
-				</struct>
-			</types>
-		</typesystem>
-	</head>
-	<body xmlAttr="blub">
-		<!--<book>Dies ist ein Test&gt;</book>-->
-	</body>
-</document>
+<typesystem name="color">
+	<types>
+		<struct name="rgb" parent="rgb"> <!-- Instance 1 -->
+			<field name="r" type="double"/>
+			<field name="g" type="double"/>
+			<field name="b" type="double"/>
+		</struct>
+	</types>
+</typesystem>
 
