@@ -573,8 +573,9 @@ const Rtti DoubleType =
     RttiBuilder<ousia::DoubleType>("DoubleType").parent(&Type);
 const Rtti BoolType = RttiBuilder<ousia::BoolType>("BoolType").parent(&Type);
 const Rtti EnumType = RttiBuilder<ousia::EnumType>("EnumType").parent(&Type);
-const Rtti StructType =
-    RttiBuilder<ousia::StructType>("StructType").parent(&Type).composedOf(&Attribute);
+const Rtti StructType = RttiBuilder<ousia::StructType>("StructType")
+                            .parent(&Type)
+                            .composedOf(&Attribute);
 const Rtti ArrayType = RttiBuilder<ousia::ArrayType>("ArrayType").parent(&Type);
 const Rtti UnknownType =
     RttiBuilder<ousia::UnknownType>("UnknownType").parent(&Type);
@@ -584,8 +585,8 @@ const Rtti Typesystem =
     RttiBuilder<ousia::Typesystem>("Typesystem").parent(&Node).composedOf(
         {&StringType, &IntType, &DoubleType, &BoolType, &EnumType, &StructType,
          &Constant});
-const Rtti SystemTypesystem =
-    RttiBuilder<ousia::SystemTypesystem> ("SystemTypesystem").parent(&Typesystem);
+const Rtti SystemTypesystem = RttiBuilder<ousia::SystemTypesystem>(
+                                  "SystemTypesystem").parent(&Typesystem);
 }
 }
 
