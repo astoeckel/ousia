@@ -342,6 +342,19 @@ public:
 	Rooted<Node> select(RttiSet types, int maxDepth = -1);
 
 	/**
+	 * Ascends in the stack starting with the leaf node, returns the first node
+	 * that matches the given type or nullptr if none matches.
+	 *
+	 * @tparam T is the type that should be searched in the stack.
+	 * @param maxDepth is the maximum number of stack entries the selection
+	 * function may ascend. A negative value indicates no limitation.
+	 */
+	template<class T>
+	Rooted<T> select(int maxDepth = -1) {
+		return select(RttiSet{&typeOf<T>()}, maxDepth).cast<T>();
+	}
+
+	/**
 	 * Sets a parser flag for the current stack depth.
 	 *
 	 * @param flag is the flag that should be set.
