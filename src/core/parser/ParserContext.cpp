@@ -39,7 +39,7 @@ ParserContext::ParserContext(Registry &registry,
 {
 }
 
-NodeVector<Node> ParserContext::import(const std::string &path,
+Rooted<Node> ParserContext::import(const std::string &path,
                                  const std::string mimetype,
                                  const std::string rel,
                                  const RttiSet &supportedTypes)

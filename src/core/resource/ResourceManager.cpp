@@ -188,13 +188,18 @@ NodeVector<Node> ResourceManager::parse(
 	return parsedNodes;
 }
 
-NodeVector<Node> ResourceManager::import(ParserContext &ctx,
-                                       const std::string &path,
-                                       const std::string &mimetype,
-                                       const std::string &rel,
-                                       const RttiSet &supportedTypes)
+Rooted<Node> ResourceManager::import(ParserContext &ctx,
+                                     const std::string &path,
+                                     const std::string &mimetype,
+                                     const std::string &rel,
+                                     const RttiSet &supportedTypes)
 {
-	return parse(ctx, path, mimetype, rel, supportedTypes, ParseMode::IMPORT);
+	NodeVector<Node> res =
+	    parse(ctx, path, mimetype, rel, supportedTypes, ParseMode::IMPORT);
+	if (res.size() == 1U) {
+		return res[0];
+	}
+	return nullptr;
 }
 
 NodeVector<Node> ResourceManager::include(ParserContext &ctx,

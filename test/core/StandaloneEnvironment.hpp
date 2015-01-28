@@ -54,7 +54,7 @@ struct StandaloneEnvironment {
 		logger.setSourceContextCallback(NullSourceContextCallback);
 	}
 
-	NodeVector<Node> parse(const std::string &path,
+	Rooted<Node> parse(const std::string &path,
 	                     const std::string mimetype, const std::string rel,
 	                     const RttiSet &supportedTypes)
 	{

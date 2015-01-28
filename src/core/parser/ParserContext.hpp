@@ -117,8 +117,8 @@ public:
 	 * checked, not the actual result.
 	 * @return the parsed node or nullptr if something goes wrong.
 	 */
-	NodeVector<Node> import(const std::string &path, const std::string mimetype,
-	                  const std::string rel, const RttiSet &supportedTypes);
+	Rooted<Node> import(const std::string &path, const std::string mimetype,
+	                    const std::string rel, const RttiSet &supportedTypes);
 
 	/**
 	 * Parses a file with ParserContext and the current ParserScope. In contrast
@@ -136,10 +136,12 @@ public:
 	 * @param supportedTypes contains the types of the returned Node the caller
 	 * can deal with. Note that only the types the parser claims to return are
 	 * checked, not the actual result.
-	 * @return the parsed node or nullptr if something goes wrong.
+	 * @return the parsed nodes or an empty list if something goes wrong (or
+	 * there were indeed no objects to be parsed).
 	 */
-	NodeVector<Node> include(const std::string &path, const std::string mimetype,
-	                     const std::string rel, const RttiSet &supportedTypes);
+	NodeVector<Node> include(const std::string &path,
+	                         const std::string mimetype, const std::string rel,
+	                         const RttiSet &supportedTypes);
 
 	/**
 	 * Clones the ParserContext instance but exchanges the ParserScope instance

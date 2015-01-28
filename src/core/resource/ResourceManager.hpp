@@ -158,9 +158,9 @@ public:
 	 * @param supportedTypes contains the types of the returned Node the caller
 	 * can deal with. Note that only the types the parser claims to return are
 	 * checked, not the actual result.
-	 * @return the parsed nodes or an empty list if something went wrong.
+	 * @return the parsed node or nullptr if something went wrong.
 	 */
-	NodeVector<Node> import(ParserContext &ctx, const std::string &path,
+	Rooted<Node> import(ParserContext &ctx, const std::string &path,
 	                  const std::string &mimetype, const std::string &rel,
 	                  const RttiSet &supportedTypes);
 
