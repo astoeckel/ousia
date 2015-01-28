@@ -168,6 +168,20 @@ Rooted<Node> ParserScope::getRoot() const { return nodes.front(); }
 
 Rooted<Node> ParserScope::getLeaf() const { return nodes.back(); }
 
+Rooted<Node> ParserScope::select(RttiSet types, int maxDepth)
+{
+	ssize_t minDepth = 0;
+	if (maxDepth >= 0) {
+		minDepth = static_cast<ssize_t>(nodes.size()) - (maxDepth + 1);
+	}
+	for (ssize_t i = nodes.size() - 1; i >= minDepth; i--) {
+		if (nodes[i]->type().isOneOf(types)) {
+			return nodes[i];
+		}
+	}
+	return nullptr;
+}
+
 void ParserScope::setFlag(ParserFlag flag, bool value)
 {
 	// Fetch the current stack depth

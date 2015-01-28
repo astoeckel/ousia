@@ -324,12 +324,22 @@ public:
 
 	/**
 	 * Returns the bottom-most Node instance in the ParserScope hirarchy, e.g.
-	 *the
-	 * node that was pushed last onto the stack.
+	 * the node that was pushed last onto the stack.
 	 *
 	 * @return a reference at the leaf node.
 	 */
 	Rooted<Node> getLeaf() const;
+
+	/**
+	 * Ascends in the stack starting with the leaf node, returns the first node
+	 * that matches the type given in the RttiSet or nullptr if none matches.
+	 *
+	 * @param types is a set of Rtti types for which should be searched in the
+	 * stack.
+	 * @param maxDepth is the maximum number of stack entries the selection
+	 * function may ascend. A negative value indicates no limitation.
+	 */
+	Rooted<Node> select(RttiSet types, int maxDepth = -1);
 
 	/**
 	 * Sets a parser flag for the current stack depth.
@@ -353,12 +363,10 @@ public:
 	 * Tries to resolve a node for the given type and path for all nodes
 	 * currently on the stack, starting with the topmost node on the stack.
 	 * Calls the "imposterCallback" function for obtaining a temporary
-	 *result if
-	 * a node cannot be resolved right now. The "resultCallback" is at most
-	 * called twice: Once when this method is called (probably with the
+	 * result if a node cannot be resolved right now. The "resultCallback" is
+	 * at most called twice: Once when this method is called (probably with the
 	 * temporary) and another time if the resolution turned out to be
-	 *successful
-	 * at a later point in time.
+	 * successful at a later point in time.
 	 *
 	 * @param path is the path for which a node should be resolved.
 	 * @param type is the type of the node that should be resolved.
@@ -367,24 +375,17 @@ public:
 	 * @param imposterCallback is the callback function that is called if
 	 * the node cannot be resolved at this moment. It gives the caller the
 	 * possibility to create an imposter (a temporary object) that may be
-	 *used
-	 * later in the resolution process.
+	 * used later in the resolution process.
 	 * @param resultCallback is the callback function to which the result of
 	 * the resolution process is passed. This function is called at least
-	 *once
-	 * either with the imposter (if the resolution was not successful) or
-	 *the
-	 * resolved object directly when this function is called. If the
-	 *resolution
-	 * was not successful the first time, it may be called another time
-	 *later
-	 * in the context of the "performDeferredResolution" function.
+	 * once either with the imposter (if the resolution was not successful) or
+	 * the resolved object directly when this function is called. If the
+	 * resolution was not successful the first time, it may be called another
+	 * time later in the context of the "performDeferredResolution" function.
 	 * @param location is the location in the current source file in which
-	 *the
-	 * resolution was triggered.
+	 * the resolution was triggered.
 	 * @return true if the resolution was immediately successful. This does
-	 *not
-	 * mean, that the resolved object does not exist, as it may be resolved
+	 * not mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
 	bool resolve(const std::vector<std::string> &path, const Rtti &type,
