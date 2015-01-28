@@ -122,7 +122,8 @@ public:
 	 *
 	 * @return true if and only if the given Variant adheres to this Type.
 	 */
-	bool isValid(Variant data, Logger &logger) const{
+	bool isValid(Variant data, Logger &logger) const
+	{
 		return build(data, logger);
 	}
 
@@ -899,9 +900,22 @@ private:
 	Owned<Type> type;
 
 	/**
+	 * Value of the value before a proper type was set.
+	 */
+	Variant rawValue;
+
+	/**
 	 * Actual value of the constant.
 	 */
 	Variant value;
+
+	/**
+	 * Reinitializes the value from the raw value with the current type.
+	 *
+	 * @param logger is the logger instance to which errors while building the
+	 * value should be passed.
+	 */
+	void initialize(Logger &logger);
 
 public:
 	/**
@@ -910,17 +924,24 @@ public:
 	 * @param mgr is the Manager instance to be used for the Node.
 	 * @param name is the name of the constant.
 	 * @param system is the parent typesystem.
-	 * @param type is a reference at the actual type of the constant.
-	 * @param value is the actual value of the constant. The value must have
-	 * went through the "build" function of the type.
+	 * @param type is the type of the constant.
+	 * @param value is the value of the constant. Will be passed through the
+	 * build function of the given type.
 	 */
 	Constant(Manager &mgr, std::string name, Handle<Typesystem> system,
-	         Handle<Type> type, Variant value)
-	    : Node(mgr, std::move(name), system),
-	      type(acquire(type)),
-	      value(std::move(value))
-	{
-	}
+	         Handle<Type> type, Variant value);
+
+	/**
+	 * Constructor of the Constant node without type and value. Will initialize
+	 * the type with the an "UnknownType".
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param name is the name of the constant.
+	 * @param system is the parent typesystem.
+	 * @param value is the value of the constant.
+	 */
+	Constant(Manager &mgr, std::string name, Handle<Typesystem> system,
+	         Variant value);
 
 	/**
 	 * Returns a reference pointing at the Type instance describing the type
@@ -928,7 +949,18 @@ public:
 	 *
 	 * @return a Rooted handle pointing at the Type node of the constant.
 	 */
-	Rooted<Type> getType() { return type; }
+	Rooted<Type> getType() const;
+
+	/**
+	 * Sets the type of the constant to the given type. This will cause the raw
+	 * value of the variant to be reparsed and any error to be logged in the
+	 * given logger.
+	 *
+	 * @param type is the new type of the constant.
+	 * @param logger is the logger instance to which errors that occur during
+	 * reinterpretion of the value.
+	  */
+	void setType(Handle<Type> type, Logger &logger);
 
 	/**
 	 * Returns a reference pointing at the value of the constant. The value must
@@ -936,7 +968,17 @@ public:
 	 *
 	 * @return a const reference to the actual value of the constant.
 	 */
-	const Variant &getValue() { return value; }
+	const Variant &getValue() const;
+
+	/**
+	 * Sets the value of the constant. The value will be passed to the "build"
+	 * function of the internal type.
+	 *
+	 * @param value is the value that should be set.
+	 * @param logger is the logger that loggs error messages that occur during
+	 * the conversion of the
+	 */
+	void setValue(Variant value, Logger &logger);
 };
 
 /**
@@ -1000,6 +1042,16 @@ public:
 	 * @return the new StructType instance.
 	 */
 	Rooted<StructType> createStructType(const std::string &name);
+
+	/**
+	 * Creates a new Constant instance with the given name. Adds the new
+	 * Constant as member to the typesystem.
+	 *
+	 * @param name is the name of the constant that should be created.
+	 * @param value is the value of the variant.
+	 * @return the new Constant instance.
+	 */
+	Rooted<Constant> createConstant(const std::string &name, Variant value);
 
 	/**
 	 * Adds a reference to the given typesystem class.

@@ -383,11 +383,12 @@ bool StructType::doBuild(Variant &data, Logger &logger) const
 bool StructType::doValidate(Logger &logger) const
 {
 	return validateName(logger) &
-	       validateIsAcyclic("parent", [](const Node *thisRef) -> const Node * {
-		                                   return dynamic_cast<const StructType *>(
-		                                       thisRef)->parentStructure.get();
-		                               },
-	                         logger) &
+	       validateIsAcyclic(
+	           "parent", [](const Node *thisRef) -> const Node * {
+		                     return dynamic_cast<const StructType *>(thisRef)
+		                         ->parentStructure.get();
+		                 },
+	           logger) &
 	       continueValidationCheckDuplicates(attributes, logger);
 }
 
@@ -524,6 +525,47 @@ bool ArrayType::doBuild(Variant &data, Logger &logger) const
 	return res;
 }
 
+/* Class Constant */
+
+Constant::Constant(Manager &mgr, std::string name, Handle<Typesystem> system,
+                   Handle<Type> type, Variant value)
+    : Node(mgr, std::move(name), system),
+      type(acquire(type)),
+      rawValue(std::move(value))
+{
+	ExceptionLogger logger;
+	initialize(logger);
+}
+
+Constant::Constant(Manager &mgr, std::string name, Handle<Typesystem> system,
+                   Variant variant)
+    : Constant(mgr, name, system, new UnknownType(mgr), std::move(variant))
+{
+}
+
+void Constant::initialize(Logger &logger)
+{
+	value = rawValue;
+	type->build(value, logger);
+}
+
+Rooted<Type> Constant::getType() const { return type; }
+
+void Constant::setType(Handle<Type> type, Logger &logger)
+{
+	this->type = acquire(type);
+	initialize(logger);
+}
+
+const Variant &Constant::getValue() const { return value; }
+
+void Constant::setValue(Variant value, Logger &logger)
+{
+	this->rawValue = value;
+	this->value = std::move(value);
+	initialize(logger);
+}
+
 /* Class Typesystem */
 
 void Typesystem::doResolve(ResolutionState &state)
@@ -545,6 +587,14 @@ Rooted<StructType> Typesystem::createStructType(const std::string &name)
 	Rooted<StructType> structType{new StructType(getManager(), name, this)};
 	addType(structType);
 	return structType;
+}
+
+Rooted<Constant> Typesystem::createConstant(const std::string &name,
+                                            Variant value)
+{
+	Rooted<Constant> constant{new Constant(getManager(), name, this, value)};
+	addConstant(constant);
+	return constant;
 }
 
 void Typesystem::referenceTypesystem(Handle<Typesystem> typesystem)
