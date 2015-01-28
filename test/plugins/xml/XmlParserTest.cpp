@@ -67,7 +67,7 @@ TEST(XmlParser, generic)
 	XmlStandaloneEnvironment env(logger);
 	env.parse("generic.oxm", "", "", RttiSet{&RttiTypes::Typesystem});
 #ifdef MANAGER_GRAPHVIZ_EXPORT
-	env.manager.exportGraphviz("xmlDocument.dot");
+//	env.manager.exportGraphviz("xmlDocument.dot");
 #endif
 }
 }

@@ -161,7 +161,7 @@ public:
 		const std::string &parent = args["parent"].asString();
 
 		// Fetch the current typesystem and create the struct node
-		Rooted<Typesystem> typesystem = scope().getLeaf().cast<Typesystem>();
+		Rooted<Typesystem> typesystem = scope().select<Typesystem>();
 		Rooted<StructType> structType = typesystem->createStructType(name);
 		structType->setLocation(location());
 
@@ -201,11 +201,11 @@ public:
 		// Read the argument values
 		const std::string &name = args["name"].asString();
 		const std::string &type = args["type"].asString();
-		const Variant &defaultValue = args["default"];
+		const Variant &defaultValue = args["default"];  // Build!
 		const bool optional =
 		    !(defaultValue.isObject() && defaultValue.asObject() == nullptr);
 
-		Rooted<StructType> structType = scope().getLeaf().cast<StructType>();
+		Rooted<StructType> structType = scope().select<StructType>();
 		Rooted<Attribute> attribute =
 		    structType->createAttribute(name, defaultValue, optional, logger());
 		attribute->setLocation(location());
@@ -224,6 +224,38 @@ public:
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new StructFieldHandler{handlerData};
+	}
+};
+
+class ConstantHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	void start(Variant::mapType &args) override
+	{
+		// Read the argument values
+		const std::string &name = args["name"].asString();
+		const std::string &type = args["type"].asString();
+		const Variant &value = args["value"];
+
+		Rooted<Typesystem> typesystem = scope().select<Typesystem>();
+		Rooted<Constant> constant = typesystem->createConstant(name, value);
+		constant->setLocation(location());
+
+		// Try to resolve the type
+		scope().resolve<Type>(
+		    type, logger(),
+		    [constant](Handle<Type> type, Logger &logger) mutable {
+			    constant->setType(type, logger);
+			},
+		    location());
+	}
+
+	void end() override {}
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new ConstantHandler{handlerData};
 	}
 };
 
@@ -289,7 +321,13 @@ static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
        Argument::Any("default", Variant::fromObject(nullptr))}}},
     {"constants",
      {{STATE_TYPESYSTEM}, DisableHeadHandler::create, STATE_CONSTANTS}},
-    {"constant", {{STATE_CONSTANTS}, nullptr, STATE_CONSTANT}}};
+    {"constant",
+     {{STATE_CONSTANTS},
+      ConstantHandler::create,
+      STATE_CONSTANT,
+      false,
+      {Argument::String("name"), Argument::String("type"),
+       Argument::Any("value")}}}};
 
 /**
  * Wrapper class around the XML_Parser pointer which safely frees it whenever
