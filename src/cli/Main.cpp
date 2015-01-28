@@ -28,6 +28,7 @@
 #include <unistd.h>  // Non-portable, needed for
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 
 #include <boost/filesystem.hpp>
@@ -41,16 +42,21 @@
 #include <core/model/Domain.hpp>
 #include <core/model/Project.hpp>
 #include <core/model/Typesystem.hpp>
+#include <core/parser/ParserContext.hpp>
+#include <core/parser/ParserScope.hpp>
+#include <core/resource/ResourceManager.hpp>
 #include <plugins/filesystem/FileLocator.hpp>
+#include <plugins/html/DemoOutput.hpp>
 #include <plugins/xml/XmlParser.hpp>
 
 const size_t ERROR_IN_COMMAND_LINE = 1;
 const size_t SUCCESS = 0;
 const size_t ERROR_UNHANDLED_EXCEPTION = 2;
 
+using namespace ousia;
+
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
-namespace o = ousia;
 
 const char *MSG_COPYING =
     "Ousía\n"
@@ -71,7 +77,7 @@ int main(int argc, char **argv)
 {
 	// Initialize terminal logger. Only use color if writing to a terminal (tty)
 	bool useColor = isatty(STDOUT_FILENO) && isatty(STDERR_FILENO);
-	o::TerminalLogger logger{std::cerr, useColor};
+	TerminalLogger logger{std::cerr, useColor};
 
 	// Program options
 	po::options_description desc(
@@ -161,17 +167,20 @@ int main(int argc, char **argv)
 	}
 
 	// initialize global instances.
-	o::Manager manager;
-	o::Registry registry;
-	o::Rooted<o::Project> project{new o::Project(manager)};
-	o::FileLocator fileLocator;
+	Manager manager;
+	Registry registry;
+	ResourceManager resourceManager;
+	ParserScope scope;
+	Rooted<Project> project{new Project(manager)};
+	FileLocator fileLocator;
+	ParserContext context{registry, resourceManager, scope, project, logger};
 
 	// fill registry
 	registry.registerDefaultExtensions();
-	o::XmlParser xmlParser;
+	XmlParser xmlParser;
 	registry.registerParser({"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
-	                        {&o::RttiTypes::Document, &o::RttiTypes::Domain,
-	                         &o::RttiTypes::Typesystem},
+	                        {&RttiTypes::Document, &RttiTypes::Domain,
+	                         &RttiTypes::Typesystem},
 	                        &xmlParser);
 	registry.registerResourceLocator(&fileLocator);
 
@@ -184,11 +193,21 @@ int main(int argc, char **argv)
 		for (auto &i : includes) {
 			// Adding the search path as "UNKNOWN" suffices, as this search path
 			// is automatically searched for all files.
-			fileLocator.addSearchPath(i, o::ResourceType::UNKNOWN);
+			fileLocator.addSearchPath(i, ResourceType::UNKNOWN);
 		}
 	}
 
-	// now all preparation is done and we can parse. TODO: But how?
+	// now all preparation is done and we can parse the input document.
+	Rooted<Node> doc = context.import(inputPath, "text/vnd.ousia.oxd", "",
+	                                      {&RttiTypes::Document});
+	if(logger.hasError() || doc == nullptr){
+		logger.fatalError("Document could not be parsed");
+		return 1;
+	}
+	// write output.
+	html::DemoHTMLTransformer outTransformer;
+	std::fstream out {outputPath};
+	outTransformer.writeHTML(doc.cast<Document>(), out);
 
 	return SUCCESS;
 }
