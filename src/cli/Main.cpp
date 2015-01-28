@@ -29,16 +29,29 @@
 
 #include <boost/program_options.hpp>
 
+#include <core/Registry.hpp>
+#include <core/common/Rtti.hpp>
+#include <core/frontend/TerminalLogger.hpp>
+#include <core/managed/Manager.hpp>
+#include <core/model/Document.hpp>
+#include <core/model/Domain.hpp>
+#include <core/model/Project.hpp>
+#include <core/model/Typesystem.hpp>
+#include <plugins/filesystem/FileLocator.hpp>
+#include <plugins/xml/XmlParser.hpp>
+
 const size_t ERROR_IN_COMMAND_LINE = 1;
 const size_t SUCCESS = 0;
 const size_t ERROR_UNHANDLED_EXCEPTION = 2;
 
 namespace po = boost::program_options;
+namespace o = ousia;
 
 int main(int argc, char **argv)
 {
 	// Program options
-	po::options_description desc("Options");
+	po::options_description desc(
+	    "Program usage\n./ousia [optional options] <-F format> <input path>\nProgram options");
 	std::string inputPath;
 	std::string outputPath;
 	std::string format;
@@ -58,11 +71,19 @@ int main(int argc, char **argv)
 	    "The output file name. Per default the input file name will be used.")(
 	    "format,F", po::value<std::string>(&format)->required(),
 	    "The output format that shall be produced.");
-
+	// "input" should be a positional option, such that we can write:
+	// ./ousia [some options] <my input file>
+	// without having to use -i or I
+	po::positional_options_description positional;
+	positional.add("input", 1);
 	po::variables_map vm;
 	try {
 		// try to read the values for each option to the variable map.
-		po::store(po::parse_command_line(argc, argv, desc), vm);
+		po::store(po::command_line_parser(argc, argv)
+		              .options(desc)
+		              .positional(positional)
+		              .run(),
+		          vm);
 
 		// first check the help option.
 		if (vm.count("help")) {
@@ -83,28 +104,68 @@ int main(int argc, char **argv)
 		std::cerr << desc << std::endl;
 		return ERROR_IN_COMMAND_LINE;
 	}
-	
-	if(!vm.count("output")){
-		// TODO: Handle this better.
+
+	// prepare output path
+	if (!vm.count("output")) {
 		outputPath = inputPath;
-		if(outputPath.find(".oxd") != std::string::npos){
-			outputPath.erase(outputPath.end()-3, outputPath.end());
+		auto pos = outputPath.find_last_of('.');
+		if (pos != std::string::npos) {
+			outputPath.erase(outputPath.begin() + pos + 1, outputPath.end());
 			outputPath += format;
+			std::cout << "Using " << outputPath << " as output path."
+			          << std::endl;
 		}
 	}
 
-	// TODO: Program logic.
+	// TODO: REMOVE diagnostic code.
 	std::cout << "input : " << vm["input"].as<std::string>() << std::endl;
 	std::cout << "output : " << outputPath << std::endl;
 	std::cout << "format : " << vm["format"].as<std::string>() << std::endl;
-	if(vm.count("include")){
-		std::vector<std::string> includes = vm["include"].as<std::vector<std::string>>();
+	if (vm.count("include")) {
+		std::vector<std::string> includes =
+		    vm["include"].as<std::vector<std::string>>();
 		std::cout << "includes : ";
-		for(auto& i : includes){
+		for (auto &i : includes) {
 			std::cout << i << ", ";
 		}
 		std::cout << std::endl;
 	}
+
+	// initialize global instances.
+	o::TerminalLogger logger{std::cerr, true};
+	o::Manager manager;
+	o::Registry registry;
+	o::Rooted<o::Project> project{new o::Project(manager)};
+	o::FileLocator fileLocator;
+
+	// fill registry
+	registry.registerDefaultExtensions();
+	o::XmlParser xmlParser;
+	registry.registerParser(
+	    {"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
+	    // TODO: Why don't we have domains here?
+	    {&o::RttiTypes::Document, &o::RttiTypes::Typesystem}, &xmlParser);
+	registry.registerResourceLocator(&fileLocator);
+
+	// register search paths
+	fileLocator.addDefaultSearchPaths();
+	// in user includes we allow every kind of resource.
+	if (vm.count("include")) {
+		std::vector<std::string> includes =
+		    vm["include"].as<std::vector<std::string>>();
+		for (auto &i : includes) {
+			fileLocator.addSearchPath(i, o::ResourceType::UNKNOWN);
+			fileLocator.addSearchPath(i, o::ResourceType::DOMAIN_DESC);
+			fileLocator.addSearchPath(i, o::ResourceType::TYPESYSTEM);
+			fileLocator.addSearchPath(i, o::ResourceType::DOCUMENT);
+			fileLocator.addSearchPath(i, o::ResourceType::ATTRIBUTES);
+			fileLocator.addSearchPath(i, o::ResourceType::STYLESHEET);
+			fileLocator.addSearchPath(i, o::ResourceType::SCRIPT);
+			fileLocator.addSearchPath(i, o::ResourceType::DATA);
+		}
+	}
+
+	// now all preparation is done and we can parse. TODO: But how?
 
 	return SUCCESS;
 }
