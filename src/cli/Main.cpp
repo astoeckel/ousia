@@ -25,7 +25,7 @@
  * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
  */
 
-#include <unistd.h>  // Non-portable, needed for
+#include <unistd.h>  // Non-portable, needed for isatty
 
 #include <algorithm>
 #include <fstream>
