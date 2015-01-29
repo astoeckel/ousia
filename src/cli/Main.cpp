@@ -52,6 +52,7 @@
 const size_t ERROR_IN_COMMAND_LINE = 1;
 const size_t SUCCESS = 0;
 const size_t ERROR_UNHANDLED_EXCEPTION = 2;
+const size_t ERROR_IN_DOCUMENT = 3;
 
 using namespace ousia;
 
@@ -177,16 +178,15 @@ int main(int argc, char **argv)
 
 	// Connect the Source Context Callback of the logger to provide the user
 	// with context information (line, column, filename, text) for log messages
-	logger.setSourceContextCallback(
-		    resourceManager.getSourceContextCallback());
+	logger.setSourceContextCallback(resourceManager.getSourceContextCallback());
 
 	// fill registry
 	registry.registerDefaultExtensions();
 	XmlParser xmlParser;
-	registry.registerParser({"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
-	                        {&RttiTypes::Document, &RttiTypes::Domain,
-	                         &RttiTypes::Typesystem},
-	                        &xmlParser);
+	registry.registerParser(
+	    {"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
+	    {&RttiTypes::Document, &RttiTypes::Domain, &RttiTypes::Typesystem},
+	    &xmlParser);
 	registry.registerResourceLocator(&fileLocator);
 
 	// register search paths
@@ -204,14 +204,15 @@ int main(int argc, char **argv)
 
 	// now all preparation is done and we can parse the input document.
 	Rooted<Node> doc = context.import(inputPath, "text/vnd.ousia.oxd", "",
-	                                      {&RttiTypes::Document});
-	if(logger.hasError() || doc == nullptr){
-		logger.fatalError("Document could not be parsed");
-		return 1;
+	                                  {&RttiTypes::Document});
+	if (logger.hasError() || doc == nullptr) {
+		logger.fatalError("Errors occured while parsing the document");
+		return ERROR_IN_DOCUMENT;
 	}
+
 	// write output.
 	html::DemoHTMLTransformer outTransformer;
-	std::fstream out {outputPath};
+	std::fstream out{outputPath};
 	outTransformer.writeHTML(doc.cast<Document>(), out);
 
 	return SUCCESS;
