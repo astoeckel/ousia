@@ -64,28 +64,37 @@ DeferredResolution::DeferredResolution(const NodeVector<Node> &nodes,
                                        const std::vector<std::string> &path,
                                        const Rtti &type,
                                        ResolutionResultCallback resultCallback,
-                                       const SourceLocation &location)
+                                       Handle<Node> owner)
     : scope(nodes),
       resultCallback(resultCallback),
       path(path),
       type(type),
-      location(location)
+      owner(owner)
 {
 }
 
-bool DeferredResolution::resolve(Logger &logger)
+bool DeferredResolution::resolve(
+    const std::unordered_multiset<const Node *> &ignore, Logger &logger)
 {
-	Rooted<Node> res = scope.resolve(path, type, logger);
+	// Fork the logger to prevent error messages from being shown if we actively
+	// ignore the resolution result
+	LoggerFork loggerFork = logger.fork();
+	Rooted<Node> res = scope.resolve(path, type, loggerFork);
 	if (res != nullptr) {
-		try {
-			// Push the location onto the logger default location stack
-			GuardedLogger localLogger(logger, location);
-			resultCallback(res, localLogger);
+		if (!ignore.count(res.get())) {
+			loggerFork.commit();
+			try {
+				// Push the location onto the logger default location stack
+				GuardedLogger loggerGuard(logger, *owner);
+				resultCallback(res, logger);
+			}
+			catch (LoggableException ex) {
+				logger.log(ex);
+			}
+			return true;
 		}
-		catch (LoggableException ex) {
-			logger.log(ex);
-		}
-		return true;
+	} else {
+		loggerFork.commit();
 	}
 	return false;
 }
@@ -111,7 +120,7 @@ bool ParserScope::checkUnwound(Logger &logger) const
 			logger.note(std::string("Element of interal type ") +
 			                nodes[i]->type().name +
 			                std::string(" defined here:"),
-			            nodes[i]->getLocation());
+			            *nodes[i]);
 		}
 		return false;
 	}
@@ -130,6 +139,8 @@ bool ParserScope::join(const ParserScope &fork, Logger &logger)
 	// Insert the deferred resolutions of the fork into our own deferred
 	// resolution list
 	deferred.insert(deferred.end(), fork.deferred.begin(), fork.deferred.end());
+	awaitingResolution.insert(fork.awaitingResolution.begin(),
+	                          fork.awaitingResolution.end());
 	return true;
 }
 
@@ -220,9 +231,9 @@ bool ParserScope::resolve(const std::vector<std::string> &path,
                           const Rtti &type, Logger &logger,
                           ResolutionImposterCallback imposterCallback,
                           ResolutionResultCallback resultCallback,
-                          const SourceLocation &location)
+                          Handle<Node> owner)
 {
-	if (!resolve(path, type, logger, resultCallback, location)) {
+	if (!resolve(path, type, logger, resultCallback, owner)) {
 		resultCallback(imposterCallback(), logger);
 		return false;
 	}
@@ -232,19 +243,26 @@ bool ParserScope::resolve(const std::vector<std::string> &path,
 bool ParserScope::resolve(const std::vector<std::string> &path,
                           const Rtti &type, Logger &logger,
                           ResolutionResultCallback resultCallback,
-                          const SourceLocation &location)
+                          Handle<Node> owner)
 {
+	// Try to directly resolve the node
 	Rooted<Node> res = ParserScopeBase::resolve(path, type, logger);
-	if (res != nullptr) {
+	if (res != nullptr && !awaitingResolution.count(res.get())) {
 		try {
 			resultCallback(res, logger);
 		}
 		catch (LoggableException ex) {
-			logger.log(ex, location);
+			logger.log(ex, *owner);
 		}
 		return true;
 	}
-	deferred.emplace_back(nodes, path, type, resultCallback, location);
+
+	// Mark the owner as "awaitingResolution", preventing it from being returned
+	// as resolution result
+	if (owner != nullptr) {
+		awaitingResolution.insert(owner.get());
+	}
+	deferred.emplace_back(nodes, path, type, resultCallback, owner);
 	return false;
 }
 
@@ -256,7 +274,10 @@ bool ParserScope::performDeferredResolution(Logger &logger)
 		// Iterate over all deferred resolution processes,
 		bool hasChange = false;
 		for (auto it = deferred.begin(); it != deferred.end();) {
-			if (it->resolve(logger)) {
+			if (it->resolve(awaitingResolution, logger)) {
+				if (it->owner != nullptr) {
+					awaitingResolution.erase(it->owner.get());
+				}
 				it = deferred.erase(it);
 				hasChange = true;
 			} else {
@@ -266,7 +287,13 @@ bool ParserScope::performDeferredResolution(Logger &logger)
 
 		// Abort if nothing has changed in the last iteration
 		if (!hasChange) {
-			break;
+			// In a last step, clear the "awaitingResolution" list to allow
+			// cyclical dependencies to be resolved
+			if (!awaitingResolution.empty()) {
+				awaitingResolution.clear();
+			} else {
+				break;
+			}
 		}
 	}
 
@@ -281,7 +308,7 @@ bool ParserScope::performDeferredResolution(Logger &logger)
 		logger.error(std::string("Could not resolve ") + failed.type.name +
 		                 std::string(" \"") + Utils::join(failed.path, ".") +
 		                 std::string("\""),
-		             failed.location);
+		             *failed.owner);
 	}
 	deferred.clear();
 	return false;

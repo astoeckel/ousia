@@ -173,7 +173,7 @@ public:
 				                            structType->setParentStructure(
 				                                parent, logger);
 				                        },
-			                            location());
+			                            structType);
 		}
 
 		// Descend into the struct type
@@ -216,7 +216,7 @@ public:
 		    [attribute](Handle<Type> type, Logger &logger) mutable {
 			    attribute->setType(type, logger);
 			},
-		    location());
+		    attribute);
 	}
 
 	void end() override {}
@@ -248,7 +248,7 @@ public:
 		    [constant](Handle<Type> type, Logger &logger) mutable {
 			    constant->setType(type, logger);
 			},
-		    location());
+		    constant);
 	}
 
 	void end() override {}

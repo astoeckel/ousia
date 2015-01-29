@@ -21,6 +21,7 @@
 
 #include <functional>
 #include <list>
+#include <unordered_set>
 #include <vector>
 
 #include <core/common/Logger.hpp>
@@ -131,9 +132,9 @@ public:
 	const Rtti &type;
 
 	/**
-	 * Position at which the resolution was triggered.
+	 * Node for which the resolution is taking place.
 	 */
-	const SourceLocation location;
+	Rooted<Node> owner;
 
 	/**
 	 * Constructor of the DeferredResolutionScope class. Copies the given
@@ -146,23 +147,26 @@ public:
 	 * @param type is the Rtti of the element that should be queried.
 	 * @param resultCallback is the callback function that should be called if
 	 * the desired element has indeed been found.
-	 * @param location is the location at which the resolution was triggered.
+	 * @param owner is the node for which the resolution takes place.
 	 */
 	DeferredResolution(const NodeVector<Node> &nodes,
 	                   const std::vector<std::string> &path, const Rtti &type,
 	                   ResolutionResultCallback resultCallback,
-	                   const SourceLocation &location = SourceLocation{});
+	                   Handle<Node> owner);
 
 	/**
 	 * Performs the actual deferred resolution and calls the resultCallback
 	 * callback function in case the resolution is sucessful. In this case
 	 * returns true, false otherwise.
 	 *
+	 * @param ignore is a set of nodes that should be ignored if returned as
+	 * resolution result as they are
 	 * @param logger is the logger instance to which error messages should be
 	 * logged.
 	 * @return true if the resolution was successful, false otherwise.
 	 */
-	bool resolve(Logger &logger);
+	bool resolve(const std::unordered_multiset<const Node *> &ignore,
+	             Logger &logger);
 };
 
 /**
@@ -228,6 +232,16 @@ private:
 	 * List containing all deferred resolution descriptors.
 	 */
 	std::list<DeferredResolution> deferred;
+
+	/**
+	 * Multiset storing the Nodes that are currently awaiting resolution. This
+	 * list has the purpose of forcing nodes to be resolved in the correct order
+	 * -- first nodes need to be returned as resolution result, that do
+	 * themselves not depend on other resolutions. However, if no further
+	 * resolutions are possible, this rule is ignored and all resolutions are
+	 * performed.
+	 */
+	std::unordered_multiset<const Node *> awaitingResolution;
 
 	/**
 	 * Vector containing all set flags. The vector contains triples of the
@@ -349,8 +363,9 @@ public:
 	 * @param maxDepth is the maximum number of stack entries the selection
 	 * function may ascend. A negative value indicates no limitation.
 	 */
-	template<class T>
-	Rooted<T> select(int maxDepth = -1) {
+	template <class T>
+	Rooted<T> select(int maxDepth = -1)
+	{
 		return select(RttiSet{&typeOf<T>()}, maxDepth).cast<T>();
 	}
 
@@ -395,8 +410,7 @@ public:
 	 * the resolved object directly when this function is called. If the
 	 * resolution was not successful the first time, it may be called another
 	 * time later in the context of the "performDeferredResolution" function.
-	 * @param location is the location in the current source file in which
-	 * the resolution was triggered.
+	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does
 	 * not mean, that the resolved object does not exist, as it may be resolved
 	 * later.
@@ -404,7 +418,7 @@ public:
 	bool resolve(const std::vector<std::string> &path, const Rtti &type,
 	             Logger &logger, ResolutionImposterCallback imposterCallback,
 	             ResolutionResultCallback resultCallback,
-	             const SourceLocation &location = SourceLocation{});
+	             Handle<Node> owner = nullptr);
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes
@@ -419,15 +433,14 @@ public:
 	 * @param resultCallback is the callback function to which the result of
 	 * the resolution process is passed. This function is called once the
 	 * resolution was successful.
-	 * @param location is the location in the current source file in which the
-	 * resolution was triggered.
+	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
 	bool resolve(const std::vector<std::string> &path, const Rtti &type,
 	             Logger &logger, ResolutionResultCallback resultCallback,
-	             const SourceLocation &location = SourceLocation{});
+	             Handle<Node> owner = nullptr);
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes
@@ -452,8 +465,7 @@ public:
 	 * resolved object directly when this function is called. If the resolution
 	 * was not successful the first time, it may be called another time later
 	 * in the context of the "performDeferredResolution" function.
-	 * @param location is the location in the current source file in which the
-	 * resolution was triggered.
+	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
@@ -462,7 +474,7 @@ public:
 	bool resolve(const std::vector<std::string> &path, Logger &logger,
 	             std::function<Rooted<T>()> imposterCallback,
 	             std::function<void(Handle<T>, Logger &)> resultCallback,
-	             const SourceLocation &location = SourceLocation{})
+	             Handle<Node> owner = nullptr)
 	{
 		return resolve(
 		    path, typeOf<T>(), logger,
@@ -470,7 +482,7 @@ public:
 		    [resultCallback](Handle<Node> node, Logger &logger) {
 			    resultCallback(node.cast<T>(), logger);
 			},
-		    location);
+		    owner);
 	}
 
 	/**
@@ -486,8 +498,7 @@ public:
 	 * @param resultCallback is the callback function to which the result of
 	 * the resolution process is passed. This function is called once the
 	 * resolution was successful.
-	 * @param location is the location in the current source file in which the
-	 * resolution was triggered.
+	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
@@ -495,13 +506,13 @@ public:
 	template <class T>
 	bool resolve(const std::vector<std::string> &path, Logger &logger,
 	             std::function<void(Handle<T>, Logger &)> resultCallback,
-	             const SourceLocation &location = SourceLocation{})
+	             Handle<Node> owner = nullptr)
 	{
 		return resolve(path, typeOf<T>(), logger,
 		               [resultCallback](Handle<Node> node, Logger &logger) {
 			               resultCallback(node.cast<T>(), logger);
 			           },
-		               location);
+		               owner);
 	}
 
 	/**
@@ -528,8 +539,7 @@ public:
 	 * resolved object directly when this function is called. If the resolution
 	 * was not successful the first time, it may be called another time later
 	 * in the context of the "performDeferredResolution" function.
-	 * @param location is the location in the current source file in which the
-	 * resolution was triggered.
+	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
@@ -538,10 +548,10 @@ public:
 	bool resolve(const std::string &name, Logger &logger,
 	             std::function<Rooted<T>()> imposterCallback,
 	             std::function<void(Handle<T>, Logger &)> resultCallback,
-	             const SourceLocation &location = SourceLocation{})
+	             Handle<Node> owner = nullptr)
 	{
 		return resolve<T>(Utils::split(name, '.'), logger, imposterCallback,
-		                  resultCallback, location);
+		                  resultCallback, owner);
 	}
 
 	/**
@@ -558,8 +568,7 @@ public:
 	 * @param resultCallback is the callback function to which the result of
 	 * the resolution process is passed. This function is called once the
 	 * resolution was successful.
-	 * @param location is the location in the current source file in which the
-	 * resolution was triggered.
+	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
@@ -567,10 +576,10 @@ public:
 	template <class T>
 	bool resolve(const std::string &name, Logger &logger,
 	             std::function<void(Handle<T>, Logger &)> resultCallback,
-	             const SourceLocation &location = SourceLocation{})
+	             Handle<Node> owner = nullptr)
 	{
 		return resolve<T>(Utils::split(name, '.'), logger, resultCallback,
-		                  location);
+		                  owner);
 	}
 
 	/**
