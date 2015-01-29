@@ -137,6 +137,40 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 #ifdef FILELOCATOR_DEBUG_PRINT
 	std::cout << "FileLocator: Searching for \"" << path << "\"" << std::endl;
 #endif
+
+	// TODO: Check if with ./book.oxm relative paths are used and otherwise
+	// global search paths take precedence.
+
+	// If the path is an absolute path, look at this exact point.
+	{
+		fs::path p{path};
+		if (p.is_absolute()) {
+			if (checkPath(resource, *this, p, type)) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+	// If the path starts with "./" or "../" only perform relative lookups!
+	if (path.substr(0, 2) != "./" && path.substr(0, 3) != "../") {
+		// Look in the search paths, search backwards, last defined search
+		// paths have a higher precedence
+		auto it = searchPaths.find(type);
+		if (it != searchPaths.end()) {
+			const auto &paths = it->second;
+			for (auto it = paths.rbegin(); it != paths.rend(); it++) {
+#ifdef FILELOCATOR_DEBUG_PRINT
+				std::cout << "FileLocator: Entering " << *it << std::endl;
+#endif
+				fs::path p{*it};
+				p /= path;
+				if (checkPath(resource, *this, p, type)) {
+					return true;
+				}
+			}
+		}
+	}
 	if (!relativeTo.empty()) {
 		fs::path base(relativeTo);
 		if (fs::exists(base)) {
@@ -156,39 +190,6 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 		}
 	}
 
-	// If the path starts with "./" or "../" only perform relative lookups!
-	if (path.substr(0, 2) == "./" || path.substr(0, 3) == "../") {
-		return false;
-	}
-
-	// If the path is an absolute path, look at this exact point.
-	{
-		fs::path p{path};
-		if (p.is_absolute()) {
-			if (checkPath(resource, *this, p, type)) {
-				return true;
-			} else {
-				return false;
-			}
-		}
-	}
-
-	// Otherwise look in the search paths, search backwards, last defined search
-	// paths have a higher precedence
-	auto it = searchPaths.find(type);
-	if (it != searchPaths.end()) {
-		const auto &paths = it->second;
-		for (auto it = paths.rbegin(); it != paths.rend(); it++) {
-#ifdef FILELOCATOR_DEBUG_PRINT
-			std::cout << "FileLocator: Entering " << *it << std::endl;
-#endif
-			fs::path p{*it};
-			p /= path;
-			if (checkPath(resource, *this, p, type)) {
-				return true;
-			}
-		}
-	}
 	return false;
 }
 
