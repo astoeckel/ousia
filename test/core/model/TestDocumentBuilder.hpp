@@ -48,7 +48,7 @@ static Rooted<Descriptor> resolveDescriptor(Handle<Document> doc,
                                             const Rtti &type)
 {
 	// use the actual resolve method.
-	std::vector<ResolutionResult> resolved = doc->resolve(path, type);
+	std::vector<ResolutionResult> resolved = doc->resolve(type, path);
 	// if we don't find anything, log an error
 	if (resolved.size() == 0) {
 		logger.error(std::string("Could not resolve ") + getPathString(path));

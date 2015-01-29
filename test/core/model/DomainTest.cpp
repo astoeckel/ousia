@@ -50,41 +50,41 @@ TEST(Domain, testDomainResolving)
 	std::vector<ResolutionResult> res;
 
 	// There is one domain called "book"
-	res = domain->resolve("book", typeOf<Domain>());
+	res = domain->resolve(RttiTypes::Domain, "book");
 	ASSERT_EQ(1U, res.size());
-	assert_path(res[0], typeOf<Domain>(), {"book"});
+	assert_path(res[0], RttiTypes::Domain, {"book"});
 
 	// There is one domain called "book"
-	res = domain->resolve("book", typeOf<StructuredClass>());
+	res = domain->resolve(RttiTypes::StructuredClass, "book");
 	ASSERT_EQ(1U, res.size());
-	assert_path(res[0], typeOf<StructuredClass>(), {"book", "book"});
+	assert_path(res[0], RttiTypes::StructuredClass, {"book", "book"});
 
 	// If we explicitly ask for the "book, book" path, then only the
 	// StructuredClass should be returned.
-	res = domain->resolve(std::vector<std::string>{"book", "book"},
-	                      typeOf<Domain>());
+	res = domain->resolve(RttiTypes::Domain,
+	                      std::vector<std::string>{"book", "book"});
 	ASSERT_EQ(0U, res.size());
 
-	res = domain->resolve(std::vector<std::string>{"book", "book"},
-	                      typeOf<StructuredClass>());
+	res = domain->resolve(RttiTypes::StructuredClass,
+	                      std::vector<std::string>{"book", "book"});
 	ASSERT_EQ(1U, res.size());
 
 	// If we ask for "section" the result should be unique as well.
-	res = domain->resolve("section", typeOf<StructuredClass>());
+	res = domain->resolve(RttiTypes::StructuredClass, "section");
 	ASSERT_EQ(1U, res.size());
-	assert_path(res[0], typeOf<StructuredClass>(), {"book", "section"});
+	assert_path(res[0], RttiTypes::StructuredClass, {"book", "section"});
 
 	// If we ask for "paragraph" it is referenced two times in the Domain graph,
 	// but should be returned only once.
-	res = domain->resolve("paragraph", typeOf<StructuredClass>());
+	res = domain->resolve(RttiTypes::StructuredClass, "paragraph");
 	ASSERT_EQ(1U, res.size());
-	assert_path(res[0], typeOf<StructuredClass>(), {"book", "paragraph"});
+	assert_path(res[0], RttiTypes::StructuredClass, {"book", "paragraph"});
 }
 
 Rooted<StructuredClass> getClass(const std::string name, Handle<Domain> dom)
 {
 	std::vector<ResolutionResult> res =
-	    dom->resolve(name, RttiTypes::StructuredClass);
+	    dom->resolve(RttiTypes::StructuredClass, name);
 	return res[0].node.cast<StructuredClass>();
 }
 

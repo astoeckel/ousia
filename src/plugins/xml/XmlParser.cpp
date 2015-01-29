@@ -167,13 +167,13 @@ public:
 
 		// Try to resolve the parent type and set it as parent structure
 		if (!parent.empty()) {
-			scope().resolve<StructType>(parent, logger(),
-			                            [structType](Handle<StructType> parent,
-			                                         Logger &logger) mutable {
-				                            structType->setParentStructure(
-				                                parent, logger);
-				                        },
-			                            structType);
+			scope().resolve<StructType>(
+			    parent, structType, logger(),
+			    [](Handle<Node> parent, Handle<Node> structType,
+			       Logger &logger) {
+				    structType.cast<StructType>()->setParentStructure(
+				        parent.cast<StructType>(), logger);
+				});
 		}
 
 		// Descend into the struct type
@@ -212,11 +212,10 @@ public:
 
 		// Try to resolve the type
 		scope().resolve<Type>(
-		    type, logger(),
-		    [attribute](Handle<Type> type, Logger &logger) mutable {
-			    attribute->setType(type, logger);
-			},
-		    attribute);
+		    type, attribute, logger(),
+		    [](Handle<Node> type, Handle<Node> attribute, Logger &logger) {
+			    attribute.cast<Attribute>()->setType(type.cast<Type>(), logger);
+			});
 	}
 
 	void end() override {}
@@ -244,11 +243,10 @@ public:
 
 		// Try to resolve the type
 		scope().resolve<Type>(
-		    type, logger(),
-		    [constant](Handle<Type> type, Logger &logger) mutable {
-			    constant->setType(type, logger);
-			},
-		    constant);
+		    type, constant, logger(),
+		    [](Handle<Node> type, Handle<Node> constant, Logger &logger) {
+			    constant.cast<Constant>()->setType(type.cast<Type>(), logger);
+			});
 	}
 
 	void end() override {}

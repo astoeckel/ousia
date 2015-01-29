@@ -31,12 +31,13 @@ ParserScopeBase::ParserScopeBase(const NodeVector<Node> &nodes) : nodes(nodes)
 {
 }
 
-Rooted<Node> ParserScopeBase::resolve(const std::vector<std::string> &path,
-                                      const Rtti &type, Logger &logger)
+Rooted<Node> ParserScopeBase::resolve(const Rtti &type,
+                                      const std::vector<std::string> &path,
+                                      Logger &logger)
 {
 	// Go up the stack and try to resolve the
 	for (auto it = nodes.rbegin(); it != nodes.rend(); it++) {
-		std::vector<ResolutionResult> res = (*it)->resolve(path, type);
+		std::vector<ResolutionResult> res = (*it)->resolve(type, path);
 
 		// Abort if the object could not be resolved
 		if (res.empty()) {
@@ -79,14 +80,14 @@ bool DeferredResolution::resolve(
 	// Fork the logger to prevent error messages from being shown if we actively
 	// ignore the resolution result
 	LoggerFork loggerFork = logger.fork();
-	Rooted<Node> res = scope.resolve(path, type, loggerFork);
+	Rooted<Node> res = scope.resolve(type, path, loggerFork);
 	if (res != nullptr) {
 		if (!ignore.count(res.get())) {
 			loggerFork.commit();
 			try {
 				// Push the location onto the logger default location stack
 				GuardedLogger loggerGuard(logger, *owner);
-				resultCallback(res, logger);
+				resultCallback(res, owner, logger);
 			}
 			catch (LoggableException ex) {
 				logger.log(ex);
@@ -227,29 +228,29 @@ bool ParserScope::getFlag(ParserFlag flag)
 	return false;
 }
 
-bool ParserScope::resolve(const std::vector<std::string> &path,
-                          const Rtti &type, Logger &logger,
+bool ParserScope::resolve(const Rtti &type,
+                          const std::vector<std::string> &path,
+                          Handle<Node> owner, Logger &logger,
                           ResolutionImposterCallback imposterCallback,
-                          ResolutionResultCallback resultCallback,
-                          Handle<Node> owner)
+                          ResolutionResultCallback resultCallback)
 {
-	if (!resolve(path, type, logger, resultCallback, owner)) {
-		resultCallback(imposterCallback(), logger);
+	if (!resolve(type, path, owner, logger, resultCallback)) {
+		resultCallback(imposterCallback(), owner, logger);
 		return false;
 	}
 	return true;
 }
 
-bool ParserScope::resolve(const std::vector<std::string> &path,
-                          const Rtti &type, Logger &logger,
-                          ResolutionResultCallback resultCallback,
-                          Handle<Node> owner)
+bool ParserScope::resolve(const Rtti &type,
+                          const std::vector<std::string> &path,
+                          Handle<Node> owner, Logger &logger,
+                          ResolutionResultCallback resultCallback)
 {
 	// Try to directly resolve the node
-	Rooted<Node> res = ParserScopeBase::resolve(path, type, logger);
+	Rooted<Node> res = ParserScopeBase::resolve(type, path, logger);
 	if (res != nullptr && !awaitingResolution.count(res.get())) {
 		try {
-			resultCallback(res, logger);
+			resultCallback(res, owner, logger);
 		}
 		catch (LoggableException ex) {
 			logger.log(ex, *owner);
