@@ -38,12 +38,11 @@
 namespace ousia {
 
 /**
- * A ResourceLocator is a class able to locate resources in some way, usually
- * on the hard drive.
+ * @file FileLocator.hpp
  *
- * We specify this as an abstract superclass to have an interface layer between
- * the program core and possible future extensions in terms of resource
- * locations (e.g. online resources, .zip files, etc.).
+ * This is a FileLocator employing the boost path class for file finding.
+ *
+ * @author Benjamin Paassen - bpaassen@techfak.uni-bielefeld.de
  */
 class FileLocator : public ResourceLocator {
 public:

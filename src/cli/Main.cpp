@@ -136,21 +136,24 @@ int main(int argc, char **argv)
 	}
 
 	// To comply with standard UNIX conventions the following should be changed:
-	// TODO: Always write to the working directory (not to the input directory!)
 	// TODO: Allow "-" for input and output files for reading from stdin and
 	//       writing to stdout
-	// TODO: Best use boost::filesystem for path operations
+	if (inputPath == "-") {
+		logger.error("Currently no reading from std::in is supported!");
+		return ERROR_IN_COMMAND_LINE;
+	} else{
+		inputPath = fs::canonical(inputPath).string();
+	}
 
 	// prepare output path
 	if (!vm.count("output")) {
-		outputPath = inputPath;
-		auto pos = outputPath.find_last_of('.');
-		if (pos != std::string::npos) {
-			outputPath.erase(outputPath.begin() + pos + 1, outputPath.end());
-			outputPath += format;
-			std::cout << "Using " << outputPath << " as output path."
-			          << std::endl;
-		}
+		// get the input filename.
+		fs::path in{inputPath};
+		// construct a working directory output path.
+		fs::path outP = fs::canonical(".");
+		outP /= (in.stem().string() + "." + format);
+		outputPath = outP.string();
+		std::cout << "Using " << outputPath << " as output path." << std::endl;
 	}
 
 	// TODO: REMOVE diagnostic code.
@@ -212,8 +215,12 @@ int main(int argc, char **argv)
 
 	// write output.
 	html::DemoHTMLTransformer outTransformer;
-	std::fstream out{outputPath};
-	outTransformer.writeHTML(doc.cast<Document>(), out);
+	if (outputPath == "-") {
+		outTransformer.writeHTML(doc.cast<Document>(), std::cout);
+	} else {
+		std::fstream out {outputPath};
+		outTransformer.writeHTML(doc.cast<Document>(), out);
+	}
 
 	return SUCCESS;
 }

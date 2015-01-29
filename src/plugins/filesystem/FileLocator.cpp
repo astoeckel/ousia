@@ -101,6 +101,11 @@ void FileLocator::addDefaultSearchPaths()
 #ifndef NDEBUG
 	addDefaultSearchPaths(SpecialPaths::getDebugDataDir());
 #endif
+	// also add working directory.
+	addSearchPath(".", {ResourceType::UNKNOWN, ResourceType::DOMAIN_DESC,
+	                    ResourceType::TYPESYSTEM, ResourceType::DOCUMENT,
+	                    ResourceType::ATTRIBUTES, ResourceType::STYLESHEET,
+	                    ResourceType::SCRIPT, ResourceType::DATA});
 }
 
 void FileLocator::addUnittestSearchPath(const std::string &subdir,
@@ -109,6 +114,20 @@ void FileLocator::addUnittestSearchPath(const std::string &subdir,
 	addSearchPath((fs::path{SpecialPaths::getDebugTestdataDir()} / subdir)
 	                  .generic_string(),
 	              type);
+}
+
+static bool checkPath(Resource &resource, const ResourceLocator &locator,
+                      fs::path p, const ResourceType type)
+{
+	if (fs::exists(p) && fs::is_regular_file(p)) {
+		std::string location = fs::canonical(p).generic_string();
+#ifdef FILELOCATOR_DEBUG_PRINT
+		std::cout << "FileLocator: Found at " << location << std::endl;
+#endif
+		resource = Resource(true, locator, type, location);
+		return true;
+	}
+	return false;
 }
 
 bool FileLocator::doLocate(Resource &resource, const std::string &path,
@@ -131,13 +150,7 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 			base /= path;
 
 			// If we already found a fitting resource there, use that.
-			if (fs::exists(base) && fs::is_regular_file(base)) {
-				std::string location = fs::canonical(base).generic_string();
-#ifdef FILELOCATOR_DEBUG_PRINT
-				std::cout << "FileLocator: Found \"" << path << "\" at "
-				          << location << std::endl;
-#endif
-				resource = Resource(true, *this, type, location);
+			if (checkPath(resource, *this, base, type)) {
 				return true;
 			}
 		}
@@ -146,6 +159,18 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 	// If the path starts with "./" or "../" only perform relative lookups!
 	if (path.substr(0, 2) == "./" || path.substr(0, 3) == "../") {
 		return false;
+	}
+
+	// If the path is an absolute path, look at this exact point.
+	{
+		fs::path p{path};
+		if (p.is_absolute()) {
+			if (checkPath(resource, *this, p, type)) {
+				return true;
+			} else {
+				return false;
+			}
+		}
 	}
 
 	// Otherwise look in the search paths, search backwards, last defined search
@@ -159,13 +184,7 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 #endif
 			fs::path p{*it};
 			p /= path;
-			if (fs::exists(p) && fs::is_regular_file(p)) {
-				std::string location = fs::canonical(p).generic_string();
-#ifdef FILELOCATOR_DEBUG_PRINT
-				std::cout << "FileLocator: Found \"" << path << "\" in "
-				          << location << std::endl;
-#endif
-				resource = Resource(true, *this, type, location);
+			if (checkPath(resource, *this, p, type)) {
 				return true;
 			}
 		}
