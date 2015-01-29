@@ -79,9 +79,6 @@ public:
 	 */
 	std::vector<ResolutionResult> result;
 
-	static std::vector<int> buildPrefixTable(
-	    const std::vector<std::string> &path);
-
 	/**
 	 * Constructor of the SharedResolutionState class.
 	 *
