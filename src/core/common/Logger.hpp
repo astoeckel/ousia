@@ -272,6 +272,21 @@ public:
 	}
 
 	/**
+	 * Logs the given loggable exception.
+	 *
+	 * @param ex is the exception that should be logged.
+	 * @param loc is a location which (if valid overrides the location given in
+	 * the exception.
+	 * @param mode specifies how the message should be displayed.
+	 */
+	template <class LocationType>
+	void log(const LoggableException &ex, LocationType loc,
+	         MessageMode mode = MessageMode::DEFAULT)
+	{
+		log(ex, SourceLocation::location(loc), mode);
+	}
+
+	/**
 	 * Logs the given message. The file name is set to the topmost file name on
 	 * the file name stack.
 	 *
@@ -649,6 +664,21 @@ public:
 	GuardedLogger(Logger &parent, SourceLocation loc = SourceLocation{});
 
 	/**
+	 * Constructor of the GuardedLogger class, pushes a first file instance onto
+	 * the file stack.
+	 *
+	 * @tparam LocationType is the type of the object pointing at the location.
+	 * @param parent is the parent logger instance to which all calls should
+	 * be relayed.
+	 * @param loc specifies the first source location.
+	 */
+	template <class LocationType>
+	GuardedLogger(Logger &parent, LocationType loc)
+	    : GuardedLogger(parent, SourceLocation::location(loc))
+	{
+	}
+
+	/**
 	 * Destructor of the GuardedLogger class, automatically unwinds the file
 	 * stack.
 	 */
@@ -788,7 +818,6 @@ public:
 	 */
 	bool hasFatalError();
 };
-
 }
 
 #endif /* _OUSIA_LOGGER_HPP_ */
