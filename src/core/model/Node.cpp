@@ -418,17 +418,22 @@ bool Node::validateIsAcyclic(const std::string &name,
 		             this);
 		logger.note("The following nodes are included in the cycle: ",
 		            SourceLocation{}, MessageMode::NO_CONTEXT);
-		for (const Node *node : path) {
+		for (size_t i = 0; i < path.size(); i++) {
+			auto node = path[i];
 			const std::string &name = node->getName();
 			const std::string &typeName = node->type().name;
+			const std::string suffix =
+			    i == path.size() - 1
+			        ? std::string{" (this node closes the cycle):"}
+			        : std::string{":"};
 			if (name.empty()) {
 				logger.note(std::string("Node of internal type ") + typeName +
-				                std::string(" declared here:"),
+				                std::string(" declared here") + suffix,
 				            node);
 			} else {
 				logger.note(std::string("Node \"") + name +
 				                std::string("\" of internal type ") + typeName +
-				                std::string(" declared here:"),
+				                std::string(" declared here") + suffix,
 				            node);
 			}
 		}
