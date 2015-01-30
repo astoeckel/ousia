@@ -167,13 +167,15 @@ public:
 
 		// Try to resolve the parent type and set it as parent structure
 		if (!parent.empty()) {
-			scope().resolve<StructType>(parent, logger(),
-			                            [structType](Handle<StructType> parent,
-			                                         Logger &logger) mutable {
-				                            structType->setParentStructure(
-				                                parent, logger);
-				                        },
-			                            structType);
+			scope().resolve<StructType>(
+			    parent, structType, logger(),
+			    [](Handle<Node> parent, Handle<Node> structType,
+			       Logger &logger) {
+				    if (parent != nullptr) {
+					    structType.cast<StructType>()->setParentStructure(
+					        parent.cast<StructType>(), logger);
+				    }
+				});
 		}
 
 		// Descend into the struct type
@@ -201,7 +203,7 @@ public:
 		// Read the argument values
 		const std::string &name = args["name"].asString();
 		const std::string &type = args["type"].asString();
-		const Variant &defaultValue = args["default"];  // Build!
+		const Variant &defaultValue = args["default"];
 		const bool optional =
 		    !(defaultValue.isObject() && defaultValue.asObject() == nullptr);
 
@@ -210,13 +212,24 @@ public:
 		    structType->createAttribute(name, defaultValue, optional, logger());
 		attribute->setLocation(location());
 
-		// Try to resolve the type
-		scope().resolve<Type>(
-		    type, logger(),
-		    [attribute](Handle<Type> type, Logger &logger) mutable {
-			    attribute->setType(type, logger);
-			},
-		    attribute);
+		// Try to resolve the type and default value
+		if (optional) {
+			scope().resolveTypeWithValue(type, attribute, attribute->getDefaultValue(), logger(),
+				                  [](Handle<Node> type, Handle<Node> attribute,
+				                     Logger &logger) {
+				if (type != nullptr) {
+					attribute.cast<Attribute>()->setType(type.cast<Type>(), logger);
+				}
+			});
+		} else {
+			scope().resolveType(type, attribute, logger(),
+				                  [](Handle<Node> type, Handle<Node> attribute,
+				                     Logger &logger) {
+				if (type != nullptr) {
+					attribute.cast<Attribute>()->setType(type.cast<Type>(), logger);
+				}
+			});
+		}
 	}
 
 	void end() override {}
@@ -243,12 +256,13 @@ public:
 		constant->setLocation(location());
 
 		// Try to resolve the type
-		scope().resolve<Type>(
-		    type, logger(),
-		    [constant](Handle<Type> type, Logger &logger) mutable {
-			    constant->setType(type, logger);
-			},
-		    constant);
+		scope().resolveTypeWithValue(type, constant, constant->getValue(), logger(),
+		                      [](Handle<Node> type, Handle<Node> constant,
+		                         Logger &logger) {
+			if (type != nullptr) {
+				constant.cast<Constant>()->setType(type.cast<Type>(), logger);
+			}
+		});
 	}
 
 	void end() override {}

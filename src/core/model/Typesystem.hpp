@@ -29,6 +29,7 @@
 #ifndef _OUSIA_MODEL_TYPESYSTEM_HPP_
 #define _OUSIA_MODEL_TYPESYSTEM_HPP_
 
+#include <functional>
 #include <map>
 #include <vector>
 
@@ -55,6 +56,21 @@ class SystemTypesystem;
  * definitions.
  */
 class Type : public Node {
+public:
+	/**
+	 * Callback function called when a variant with "magic" value is reached.
+	 * This callback allows to transform these magic values into something else.
+	 * This mechanism is used to resolve constants.
+	 *
+	 * @param data is the magic value that should be looked up.
+	 * @param isValid is set to true if the magic value does not necessarily
+	 * have to be looked up, in this case no error message has to be generated
+	 * if the lookup for a constant fails.
+	 * @param type is the managed uid of the underlying Type for which the magic
+	 * value should be looked up.
+	 */
+	using MagicCallback = std::function<void(Variant &data, bool isValid, ManagedUid Type)>;
+
 protected:
 	/**
 	 * Protected constructor to be called by the classes derived from the Type
@@ -82,9 +98,12 @@ protected:
 	 * -- if possible and necessary -- converted to a variant adhering to the
 	 * internal representation used by the Type class.
 	 * @param logger is the Logger instance into which errors should be written.
+	 * @param magicCallback is a callback that should be called to other "build"
+	 * functions.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	virtual bool doBuild(Variant &data, Logger &logger) const = 0;
+	virtual bool doBuild(Variant &data, Logger &logger,
+	                     const MagicCallback &magicCallback) const = 0;
 
 public:
 	/**
@@ -99,6 +118,22 @@ public:
 	 * requested but cannot be generated from the given user data.
 	 */
 	virtual Variant create() const = 0;
+
+	/**
+	 * Validates and completes the given variant which was read from a
+	 * user-supplied source.
+	 *
+	 * @param data is a variant containing the data that should be checked and
+	 * -- if possible and necessary -- converted to a variant adhering to the
+	 * internal representation used by the Type class.
+	 * @param logger is the Logger instance into which errors should be
+	 * written.
+	 * @param magicCallback is the callback function to be called whenever
+	 * a variant with "magic" value is reached.
+	 * @return true if the conversion was successful, false otherwise.
+	 */
+	bool build(Variant &data, Logger &logger,
+	           const MagicCallback &magicCallback) const;
 
 	/**
 	 * Validates and completes the given variant which was read from a
@@ -154,7 +189,8 @@ protected:
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &data, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger,
+	             const MagicCallback &magicCallback) const override;
 
 public:
 	/**
@@ -192,7 +228,8 @@ protected:
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &data, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger,
+	             const MagicCallback &magicCallback) const override;
 
 public:
 	/**
@@ -230,7 +267,8 @@ protected:
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &data, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger,
+	             const MagicCallback &magicCallback) const override;
 
 public:
 	/**
@@ -268,7 +306,8 @@ protected:
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &data, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger,
+	             const MagicCallback &magicCallback) const override;
 
 public:
 	/**
@@ -332,7 +371,8 @@ protected:
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &data, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger,
+	             const MagicCallback &magicCallback) const override;
 
 public:
 	/**
@@ -384,12 +424,6 @@ private:
 	Owned<Type> type;
 
 	/**
-	 * Initial default value passed to the constructor of the Attribute class
-	 * that has not been passed through the "build" method of the type.
-	 */
-	Variant rawDefaultValue;
-
-	/**
 	 * Default value of the attribute.
 	 */
 	Variant defaultValue;
@@ -400,11 +434,7 @@ private:
 	bool optional;
 
 	/**
-	 * Reinitializes the default value from the raw default value with the
-	 * current type.
-	 *
-	 * @param logger is the logger instance to which errors while building the
-	 * default value should be passed.
+	 * Function used to parse the Attribute default value with the current type.
 	 */
 	void initialize(Logger &logger);
 
@@ -473,7 +503,7 @@ public:
 	 * @return the default value of the attribute. If no default value has been
 	 * given a null variant is returned (the opposite does not hold).
 	 */
-	Variant getDefaultValue() const { return defaultValue; }
+	Variant& getDefaultValue() { return defaultValue; }
 
 	/**
 	 * Removes any default value from the attribute, making this attribute
@@ -589,7 +619,8 @@ private:
 	 * of attributes (as needed when casting from a derived type).
 	 * @return true if the operation is successful, false otherwise.
 	 */
-	bool buildFromArray(Variant &data, Logger &logger, bool trim) const;
+	bool buildFromArray(Variant &data, Logger &logger,
+	                    const MagicCallback &magicCallback, bool trim) const;
 
 	/**
 	 * Checks a map and its entries for validity and if possible updates its
@@ -601,7 +632,8 @@ private:
 	 * when casting from a derived type.
 	 * @return true if the operation is successful, false otherwise.
 	 */
-	bool buildFromMap(Variant &data, Logger &logger, bool trim) const;
+	bool buildFromMap(Variant &data, Logger &logger,
+	                  const MagicCallback &magicCallback, bool trim) const;
 
 	/**
 	 * Checks a map or an array for validity and if possible updates its content
@@ -613,7 +645,9 @@ private:
 	 * when casting from a derived type.
 	 * @return true if the operation is successful, false otherwise.
 	 */
-	bool buildFromArrayOrMap(Variant &data, Logger &logger, bool trim) const;
+	bool buildFromArrayOrMap(Variant &data, Logger &logger,
+	                         const MagicCallback &magicCallback,
+	                         bool trim) const;
 
 	/**
 	 * Rebuilds the internal index and attribute list depending on the parent
@@ -645,7 +679,8 @@ protected:
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &data, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger,
+	             const MagicCallback &magicCallback) const override;
 
 	/**
 	 * Checks the struct descriptor for being valid.
@@ -819,17 +854,18 @@ protected:
 	 * @param logger is the Logger instance into which errors should be written.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
-	bool doBuild(Variant &data, Logger &logger) const override;
+	bool doBuild(Variant &data, Logger &logger,
+	             const MagicCallback &magicCallback) const override;
 
 public:
 	/**
 	 * Constructor of the ArrayType class.
 	 *
-	 * @param mgr is the Manager instance to be used for the Node.
 	 * @param innerType is the type of the elements stored in the array.
 	 */
-	ArrayType(Manager &mgr, Handle<Type> innerType)
-	    : Type(mgr, "", innerType->getTypesystem(), false),
+	ArrayType(Handle<Type> innerType)
+	    : Type(innerType->getManager(), innerType->getName() + "[]",
+	           innerType->getTypesystem(), false),
 	      innerType(acquire(innerType))
 	{
 	}
@@ -869,7 +905,7 @@ protected:
 	 *
 	 * @return always true.
 	 */
-	bool doBuild(Variant &, Logger &) const override { return true; }
+	bool doBuild(Variant &, Logger &, const MagicCallback &) const override;
 
 public:
 	/**
@@ -878,14 +914,14 @@ public:
 	 *
 	 * @param mgr is the Manager instance to be used for the Node.
 	 */
-	UnknownType(Manager &mgr) : Type(mgr, "unknown", nullptr, false) {}
+	UnknownType(Manager &mgr);
 
 	/**
 	 * Returns a nullptr variant.
 	 *
 	 * @return a Variant instance with nullptr value.
 	 */
-	Variant create() const override { return Variant{nullptr}; }
+	Variant create() const override;
 };
 
 /**
@@ -900,22 +936,9 @@ private:
 	Owned<Type> type;
 
 	/**
-	 * Value of the value before a proper type was set.
-	 */
-	Variant rawValue;
-
-	/**
 	 * Actual value of the constant.
 	 */
 	Variant value;
-
-	/**
-	 * Reinitializes the value from the raw value with the current type.
-	 *
-	 * @param logger is the logger instance to which errors while building the
-	 * value should be passed.
-	 */
-	void initialize(Logger &logger);
 
 public:
 	/**
@@ -952,9 +975,10 @@ public:
 	Rooted<Type> getType() const;
 
 	/**
-	 * Sets the type of the constant to the given type. This will cause the raw
-	 * value of the variant to be reparsed and any error to be logged in the
-	 * given logger.
+	 * Sets the type of the constant to the given type. This will cause the
+	 * value of the variant to be built with the given type and any error to be
+	 * logged in the given logger. Note: This operation is possibly lossy and
+	 * will destroy values if the current variant value doesn't match the type.
 	 *
 	 * @param type is the new type of the constant.
 	 * @param logger is the logger instance to which errors that occur during
@@ -968,7 +992,7 @@ public:
 	 *
 	 * @return a const reference to the actual value of the constant.
 	 */
-	const Variant &getValue() const;
+	Variant &getValue();
 
 	/**
 	 * Sets the value of the constant. The value will be passed to the "build"

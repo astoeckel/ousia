@@ -774,7 +774,7 @@ TEST(ArrayType, rtti)
 {
 	Manager mgr;
 	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
-	Rooted<ArrayType> arrayType{new ArrayType(mgr, stringType)};
+	Rooted<ArrayType> arrayType{new ArrayType(stringType)};
 	ASSERT_TRUE(arrayType->isa(RttiTypes::ArrayType));
 	ASSERT_TRUE(arrayType->isa(typeOf<Type>()));
 	ASSERT_TRUE(arrayType->isa(typeOf<Node>()));
@@ -797,7 +797,7 @@ TEST(ArrayType, creation)
 {
 	Manager mgr;
 	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
-	Rooted<ArrayType> arrayType{new ArrayType(mgr, stringType)};
+	Rooted<ArrayType> arrayType{new ArrayType(stringType)};
 
 	Variant val = arrayType->create();
 	ASSERT_TRUE(val.isArray());
@@ -808,7 +808,7 @@ TEST(ArrayType, conversion)
 {
 	Manager mgr;
 	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
-	Rooted<ArrayType> arrayType{new ArrayType(mgr, stringType)};
+	Rooted<ArrayType> arrayType{new ArrayType(stringType)};
 
 	{
 		Variant val{{1, "test", false, 42.5}};

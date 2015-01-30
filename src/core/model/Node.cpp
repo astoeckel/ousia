@@ -60,14 +60,14 @@ using VisitorSet =
 class SharedResolutionState {
 public:
 	/**
-	 * Actual path (name pattern) that was requested for resolution.
-	 */
-	const std::vector<std::string> &path;
-
-	/**
 	 * Type of the node that was requested for resolution.
 	 */
 	const Rtti &type;
+
+	/**
+	 * Actual path (name pattern) that was requested for resolution.
+	 */
+	const std::vector<std::string> &path;
 
 	/**
 	 * Tracks all nodes that have already been visited.
@@ -82,13 +82,13 @@ public:
 	/**
 	 * Constructor of the SharedResolutionState class.
 	 *
+	 * @param type is the type of the node that should be resolved.
 	 * @param path is a const reference to the actual path that should be
 	 * resolved.
-	 * @param type is the type of the node that should be resolved.
 	 */
-	SharedResolutionState(const std::vector<std::string> &path,
-	                      const Rtti &type)
-	    : path(path), type(type)
+	SharedResolutionState(const Rtti &type,
+	                      const std::vector<std::string> &path)
+	    : type(type), path(path)
 	{
 	}
 };
@@ -329,10 +329,10 @@ bool Node::continueResolveReference(Handle<Node> h, ResolutionState &state)
 }
 
 std::vector<ResolutionResult> Node::resolve(
-    const std::vector<std::string> &path, const Rtti &type)
+    const Rtti &type, const std::vector<std::string> &path)
 {
 	// Create the state variables
-	SharedResolutionState sharedState(path, type);
+	SharedResolutionState sharedState(type, path);
 	ResolutionState state(sharedState, this);
 
 	// Kickstart the resolution process by treating this very node as compositum
@@ -344,11 +344,11 @@ std::vector<ResolutionResult> Node::resolve(
 	return sharedState.result;
 }
 
-std::vector<ResolutionResult> Node::resolve(const std::string &name,
-                                            const Rtti &type)
+std::vector<ResolutionResult> Node::resolve(const Rtti &type,
+                                            const std::string &name)
 {
 	// Place the name in a vector and call the corresponding resolve function
-	return resolve(std::vector<std::string>{name}, type);
+	return resolve(type, std::vector<std::string>{name});
 }
 
 bool Node::checkDuplicate(Handle<Node> elem,

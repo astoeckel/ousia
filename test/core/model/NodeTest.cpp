@@ -61,8 +61,8 @@ public:
 
 namespace RttiTypes {
 const Rtti TestNode = RttiBuilder<ousia::TestNode>("TestNode")
-                              .parent(&RttiTypes::Node)
-                              .composedOf(&TestNode);
+                          .parent(&RttiTypes::Node)
+                          .composedOf(&TestNode);
 }
 
 TEST(Node, isRoot)
@@ -85,18 +85,18 @@ TEST(Node, resolveCompositaSimple)
 	    child1->addCompositum(new TestNode(mgr, "child11"));
 
 	std::vector<ResolutionResult> res;
-	res = root->resolve(std::vector<std::string>{"root", "child1", "child11"},
-	                    RttiTypes::TestNode);
+	res = root->resolve(RttiTypes::TestNode,
+	                    std::vector<std::string>{"root", "child1", "child11"});
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child11 == res[0].node);
 
-	res = root->resolve(std::vector<std::string>{"child1", "child11"},
-	                    RttiTypes::TestNode);
+	res = root->resolve(RttiTypes::TestNode,
+	                    std::vector<std::string>{"child1", "child11"});
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child11 == res[0].node);
 
 	res =
-	    root->resolve(std::vector<std::string>{"child11"}, RttiTypes::TestNode);
+	    root->resolve(RttiTypes::TestNode, std::vector<std::string>{"child11"});
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child11 == res[0].node);
 }
@@ -111,18 +111,18 @@ TEST(Node, resolveCompositaDouble)
 	    child1->addCompositum(new TestNode(mgr, "child11"));
 
 	std::vector<ResolutionResult> res;
-	res = root->resolve(std::vector<std::string>{"root", "child1", "child11"},
-	                    RttiTypes::TestNode);
+	res = root->resolve(RttiTypes::TestNode,
+	                    std::vector<std::string>{"root", "child1", "child11"});
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child11 == res[0].node);
 
-	res = root->resolve(std::vector<std::string>{"child1", "child11"},
-	                    RttiTypes::TestNode);
+	res = root->resolve(RttiTypes::TestNode,
+	                    std::vector<std::string>{"child1", "child11"});
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child11 == res[0].node);
 
 	res =
-	    root->resolve(std::vector<std::string>{"child11"}, RttiTypes::TestNode);
+	    root->resolve(RttiTypes::TestNode, std::vector<std::string>{"child11"});
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child11 == res[0].node);
 }
@@ -141,14 +141,14 @@ TEST(Node, resolveAmbigousComposita)
 	    child12->addCompositum(new TestNode(mgr, "child11"));
 
 	std::vector<ResolutionResult> res;
-	res = root->resolve(std::vector<std::string>{"child1", "child11"},
-	                    RttiTypes::TestNode);
+	res = root->resolve(RttiTypes::TestNode,
+	                    std::vector<std::string>{"child1", "child11"});
 	ASSERT_EQ(2U, res.size());
 	ASSERT_TRUE(child11 == res[0].node || child11 == res[1].node);
 	ASSERT_TRUE(child112 == res[0].node || child112 == res[1].node);
 
 	res =
-	    root->resolve(std::vector<std::string>{"child11"}, RttiTypes::TestNode);
+	    root->resolve(RttiTypes::TestNode, std::vector<std::string>{"child11"});
 	ASSERT_EQ(2U, res.size());
 	ASSERT_TRUE(child11 == res[0].node || child11 == res[1].node);
 	ASSERT_TRUE(child112 == res[0].node || child112 == res[1].node);
@@ -168,30 +168,30 @@ TEST(Node, resolveReferences)
 	    child12->addCompositum(new TestNode(mgr, "child11"));
 
 	std::vector<ResolutionResult> res;
-	res = root->resolve(std::vector<std::string>{"a", "child1", "child11"},
-	                    RttiTypes::TestNode);
+	res = root->resolve(RttiTypes::TestNode,
+	                    std::vector<std::string>{"a", "child1", "child11"});
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child11 == res[0].node);
 
-	res = root->resolve(std::vector<std::string>{"b", "child1", "child11"},
-	                    RttiTypes::TestNode);
+	res = root->resolve(RttiTypes::TestNode,
+	                    std::vector<std::string>{"b", "child1", "child11"});
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child112 == res[0].node);
 
-	res = root->resolve(std::vector<std::string>{"child1", "child11"},
-	                    RttiTypes::TestNode);
+	res = root->resolve(RttiTypes::TestNode,
+	                    std::vector<std::string>{"child1", "child11"});
 	ASSERT_EQ(2U, res.size());
 	ASSERT_TRUE(child11 == res[0].node || child11 == res[1].node);
 	ASSERT_TRUE(child112 == res[0].node || child112 == res[1].node);
 
 	res =
-	    root->resolve(std::vector<std::string>{"child11"}, RttiTypes::TestNode);
+	    root->resolve(RttiTypes::TestNode, std::vector<std::string>{"child11"});
 	ASSERT_EQ(2U, res.size());
 	ASSERT_TRUE(child11 == res[0].node || child11 == res[1].node);
 	ASSERT_TRUE(child112 == res[0].node || child112 == res[1].node);
 
 	res =
-	    root->resolve(std::vector<std::string>{"child1"}, RttiTypes::TestNode);
+	    root->resolve(RttiTypes::TestNode, std::vector<std::string>{"child1"});
 	ASSERT_EQ(2U, res.size());
 	ASSERT_TRUE(child1 == res[0].node || child1 == res[1].node);
 	ASSERT_TRUE(child12 == res[0].node || child12 == res[1].node);
@@ -212,31 +212,31 @@ TEST(Node, resolveReferencesAndComposita)
 	Rooted<TestNode> child13 = root->addCompositum(new TestNode(mgr, "child1"));
 
 	std::vector<ResolutionResult> res;
-	res = root->resolve(std::vector<std::string>{"a", "child1", "child11"},
-	                    RttiTypes::TestNode);
+	res = root->resolve(RttiTypes::TestNode,
+	                    std::vector<std::string>{"a", "child1", "child11"});
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child11 == res[0].node);
 
-	res = root->resolve(std::vector<std::string>{"b", "child1", "child11"},
-	                    RttiTypes::TestNode);
+	res = root->resolve(RttiTypes::TestNode,
+	                    std::vector<std::string>{"b", "child1", "child11"});
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child112 == res[0].node);
 
-	res = root->resolve(std::vector<std::string>{"child1", "child11"},
-	                    RttiTypes::TestNode);
+	res = root->resolve(RttiTypes::TestNode,
+	                    std::vector<std::string>{"child1", "child11"});
 	ASSERT_EQ(2U, res.size());
 	ASSERT_TRUE(child11 == res[0].node || child11 == res[1].node);
 	ASSERT_TRUE(child112 == res[0].node || child112 == res[1].node);
 
 	res =
-	    root->resolve(std::vector<std::string>{"child11"}, RttiTypes::TestNode);
+	    root->resolve(RttiTypes::TestNode, std::vector<std::string>{"child11"});
 	ASSERT_EQ(2U, res.size());
 	ASSERT_TRUE(child11 == res[0].node || child11 == res[1].node);
 	ASSERT_TRUE(child112 == res[0].node || child112 == res[1].node);
 
 	// Resolving for "child1" should not descend into the referenced nodes
 	res =
-	    root->resolve(std::vector<std::string>{"child1"}, RttiTypes::TestNode);
+	    root->resolve(RttiTypes::TestNode, std::vector<std::string>{"child1"});
 	ASSERT_EQ(1U, res.size());
 	ASSERT_TRUE(child13 == res[0].node);
 }

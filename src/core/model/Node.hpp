@@ -223,7 +223,7 @@ private:
 	 * @param thisRef is the Node of which the reference should be returned.
 	 * @return the value of the reference.
 	 */
-	using NodeReferenceCallback = const Node* (const Node* thisRef);
+	using NodeReferenceCallback = const Node *(const Node *thisRef);
 
 	/**
 	 * Checks whether the a certain property is acyclic.
@@ -400,7 +400,8 @@ protected:
 	 * @return true if the parent reference is acyclic, false otherwise.
 	 */
 	bool validateIsAcyclic(const std::string &name,
-	                       NodeReferenceCallback callback, Logger &logger) const;
+	                       NodeReferenceCallback callback,
+	                       Logger &logger) const;
 
 	/**
 	 * Makes sure the "parent" reference is not cyclic.
@@ -538,26 +539,26 @@ public:
 	 * Function which resolves a name path to a list of possible nodes starting
 	 * from this node.
 	 *
+	 * @param type specifies the type of the node that should be located.
 	 * @param path is a list specifying a path of node names meant to specify a
 	 * certain named node.
-	 * @param type specifies the type of the node that should be located.
 	 * @return a vector containing ResolutionResult structures which describe
 	 * the resolved elements.
 	 */
-	std::vector<ResolutionResult> resolve(const std::vector<std::string> &path,
-	                                      const Rtti &type);
+	std::vector<ResolutionResult> resolve(const Rtti &type,
+	                                      const std::vector<std::string> &path);
 
 	/**
 	 * Function which resolves a single name to a list of possible nodes
 	 * starting from this node.
 	 *
-	 * @param name is the name which should be resolved.
 	 * @param type specifies the type of the node that should be located.
+	 * @param name is the name which should be resolved.
 	 * @return a vector containing ResolutionResult structures which describe
 	 * the resolved elements.
 	 */
-	std::vector<ResolutionResult> resolve(const std::string &name,
-	                                      const Rtti &type);
+	std::vector<ResolutionResult> resolve(const Rtti &type,
+	                                      const std::string &name);
 
 	/**
 	 * Checks whether this node is valid and returns true if it is and false

@@ -33,8 +33,7 @@
  * @file ParserScope.hpp
  *
  * Contains the ParserScope class used for resolving references based on the
- *current
- * parser state.
+ * current parser state.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
@@ -45,6 +44,7 @@ namespace ousia {
 class CharReader;
 class Logger;
 class ParserScope;
+class Variant;
 
 /**
  * Callback function type used for creating a dummy object while no correct
@@ -55,9 +55,13 @@ using ResolutionImposterCallback = std::function<Rooted<Node>()>;
 /**
  * Callback function type called whenever the result of a resolution is
  * available.
+ *
+ * @param resolved is the new, resolved node.
+ * @param owner is the node that was passed as "owner".
+ * @param logger is the logger to which errors should be logged.
  */
-using ResolutionResultCallback =
-    std::function<void(Handle<Node>, Logger &logger)>;
+using ResolutionResultCallback = std::function<void(Handle<Node> resolved,
+                                          Handle<Node> owner, Logger &logger)>;
 
 /**
  * Base class for the
@@ -90,14 +94,14 @@ public:
 	 * Tries to resolve a node for the given type and path for all nodes that
 	 * are currently in the stack, starting with the topmost node on the stack.
 	 *
-	 * @param path is the path for which a node should be resolved.
 	 * @param type is the type of the node that should be resolved.
+	 * @param path is the path for which a node should be resolved.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
 	 * @return a reference at a resolved node or nullptr if no node could be
 	 * found.
 	 */
-	Rooted<Node> resolve(const std::vector<std::string> &path, const Rtti &type,
+	Rooted<Node> resolve(const Rtti &type, const std::vector<std::string> &path,
 	                     Logger &logger);
 };
 
@@ -167,6 +171,15 @@ public:
 	 */
 	bool resolve(const std::unordered_multiset<const Node *> &ignore,
 	             Logger &logger);
+
+	/**
+	 * Inform the callee about the failure by calling the callback function with
+	 * "nullptr" as resolved element.
+	 *
+	 * @param logger is the logger instance to which error messages should be
+	 * logged.
+	 */
+	void fail(Logger &logger);
 };
 
 /**
@@ -396,8 +409,9 @@ public:
 	 * temporary) and another time if the resolution turned out to be
 	 * successful at a later point in time.
 	 *
-	 * @param path is the path for which a node should be resolved.
 	 * @param type is the type of the node that should be resolved.
+	 * @param path is the path for which a node should be resolved.
+	 * @param owner is the node for which the resolution takes place.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
 	 * @param imposterCallback is the callback function that is called if
@@ -410,15 +424,14 @@ public:
 	 * the resolved object directly when this function is called. If the
 	 * resolution was not successful the first time, it may be called another
 	 * time later in the context of the "performDeferredResolution" function.
-	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does
 	 * not mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
-	bool resolve(const std::vector<std::string> &path, const Rtti &type,
-	             Logger &logger, ResolutionImposterCallback imposterCallback,
-	             ResolutionResultCallback resultCallback,
-	             Handle<Node> owner = nullptr);
+	bool resolve(const Rtti &type, const std::vector<std::string> &path,
+	             Handle<Node> owner, Logger &logger,
+	             ResolutionImposterCallback imposterCallback,
+	             ResolutionResultCallback resultCallback);
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes
@@ -426,21 +439,21 @@ public:
 	 * The "resultCallback" is called when the resolution was successful, which
 	 * may be at a later point in time.
 	 *
-	 * @param path is the path for which a node should be resolved.
 	 * @param type is the type of the node that should be resolved.
+	 * @param path is the path for which a node should be resolved.
+	 * @param owner is the node for which the resolution takes place.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
 	 * @param resultCallback is the callback function to which the result of
 	 * the resolution process is passed. This function is called once the
 	 * resolution was successful.
-	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
-	bool resolve(const std::vector<std::string> &path, const Rtti &type,
-	             Logger &logger, ResolutionResultCallback resultCallback,
-	             Handle<Node> owner = nullptr);
+	bool resolve(const Rtti &type, const std::vector<std::string> &path,
+	             Handle<Node> owner, Logger &logger,
+	             ResolutionResultCallback resultCallback);
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes
@@ -453,6 +466,7 @@ public:
 	 *
 	 * @tparam T is the type of the node that should be resolved.
 	 * @param path is the path for which a node should be resolved.
+	 * @param owner is the node for which the resolution takes place.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
 	 * @param imposterCallback is the callback function that is called if
@@ -465,24 +479,17 @@ public:
 	 * resolved object directly when this function is called. If the resolution
 	 * was not successful the first time, it may be called another time later
 	 * in the context of the "performDeferredResolution" function.
-	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
 	template <class T>
-	bool resolve(const std::vector<std::string> &path, Logger &logger,
-	             std::function<Rooted<T>()> imposterCallback,
-	             std::function<void(Handle<T>, Logger &)> resultCallback,
-	             Handle<Node> owner = nullptr)
+	bool resolve(const std::vector<std::string> &path, Handle<Node> owner,
+	             Logger &logger, ResolutionImposterCallback imposterCallback,
+	             ResolutionResultCallback resultCallback)
 	{
-		return resolve(
-		    path, typeOf<T>(), logger,
-		    [imposterCallback]() -> Rooted<Node> { return imposterCallback(); },
-		    [resultCallback](Handle<Node> node, Logger &logger) {
-			    resultCallback(node.cast<T>(), logger);
-			},
-		    owner);
+		return resolve(typeOf<T>(), path, owner, logger, imposterCallback,
+		               resultCallback);
 	}
 
 	/**
@@ -493,26 +500,21 @@ public:
 	 *
 	 * @tparam T is the type of the node that should be resolved.
 	 * @param path is the path for which a node should be resolved.
+	 * @param owner is the node for which the resolution takes place.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
 	 * @param resultCallback is the callback function to which the result of
 	 * the resolution process is passed. This function is called once the
 	 * resolution was successful.
-	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
 	template <class T>
-	bool resolve(const std::vector<std::string> &path, Logger &logger,
-	             std::function<void(Handle<T>, Logger &)> resultCallback,
-	             Handle<Node> owner = nullptr)
+	bool resolve(const std::vector<std::string> &path, Handle<Node> owner,
+	             Logger &logger, ResolutionResultCallback resultCallback)
 	{
-		return resolve(path, typeOf<T>(), logger,
-		               [resultCallback](Handle<Node> node, Logger &logger) {
-			               resultCallback(node.cast<T>(), logger);
-			           },
-		               owner);
+		return resolve(typeOf<T>(), path, owner, logger, resultCallback);
 	}
 
 	/**
@@ -527,6 +529,7 @@ public:
 	 * @tparam T is the type of the node that should be resolved.
 	 * @param name is the path for which a node should be resolved. The name is
 	 * split at '.' to form a path.
+	 * @param owner is the node for which the resolution takes place.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
 	 * @param imposterCallback is the callback function that is called if
@@ -539,19 +542,17 @@ public:
 	 * resolved object directly when this function is called. If the resolution
 	 * was not successful the first time, it may be called another time later
 	 * in the context of the "performDeferredResolution" function.
-	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
 	template <class T>
-	bool resolve(const std::string &name, Logger &logger,
-	             std::function<Rooted<T>()> imposterCallback,
-	             std::function<void(Handle<T>, Logger &)> resultCallback,
-	             Handle<Node> owner = nullptr)
+	bool resolve(const std::string &name, Handle<Node> owner, Logger &logger,
+	             ResolutionImposterCallback imposterCallback,
+	             ResolutionResultCallback resultCallback)
 	{
-		return resolve<T>(Utils::split(name, '.'), logger, imposterCallback,
-		                  resultCallback, owner);
+		return resolve<T>(Utils::split(name, '.'), owner, logger,
+		                  imposterCallback, resultCallback);
 	}
 
 	/**
@@ -563,24 +564,117 @@ public:
 	 * @tparam T is the type of the node that should be resolved.
 	 * @param name is the path for which a node should be resolved. The name is
 	 * split at '.' to form a path.
+	 * @param owner is the node for which the resolution takes place.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
 	 * @param resultCallback is the callback function to which the result of
 	 * the resolution process is passed. This function is called once the
 	 * resolution was successful.
-	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
 	template <class T>
-	bool resolve(const std::string &name, Logger &logger,
-	             std::function<void(Handle<T>, Logger &)> resultCallback,
-	             Handle<Node> owner = nullptr)
+	bool resolve(const std::string &name, Handle<Node> owner, Logger &logger,
+	             ResolutionResultCallback resultCallback)
 	{
-		return resolve<T>(Utils::split(name, '.'), logger, resultCallback,
-		                  owner);
+		return resolve<T>(Utils::split(name, '.'), owner, logger,
+		                  resultCallback);
 	}
+
+	/**
+	 * Resolves a typesystem type. Makes sure an array type is returned if an
+	 * array type is requested.
+	 *
+	 * @param path is the path for which a node should be resolved.
+	 * @param owner is the node for which the resolution takes place.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolveType(const std::vector<std::string> &path, Handle<Node> owner,
+	                 Logger &logger, ResolutionResultCallback resultCallback);
+
+	/**
+	 * Resolves a typesystem type. Makes sure an array type is returned if an
+	 * array type is requested.
+	 *
+	 * @tparam T is the type of the node that should be resolved.
+	 * @param name is the path for which a node should be resolved. The name is
+	 * split at '.' to form a path.
+	 * @param owner is the node for which the resolution takes place.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolveType(const std::string &name, Handle<Node> owner,
+	                 Logger &logger, ResolutionResultCallback resultCallback);
+
+	/**
+	 * Resolves a type and makes sure the corresponding value is of the correct
+	 * type.
+	 *
+	 * <b>Warning:</b> This function is extremely dangerous as you have to make
+	 * sure that the "value" reference stays alife as long as the "owner" is
+	 * valid. This is especially problematic as internally references at parts
+	 * of "value" may be kept. Test usages of this function well!
+	 *
+	 * @tparam T is the type of the node that should be resolved.
+	 * @param path is the path for which a node should be resolved.
+	 * @param owner is the node for which the resolution takes place.
+	 * @param value is a reference at the Variant that represents the value for
+	 * which the type should be looked up. The value must be valid as long as
+	 * the owner node is valid (so it should be a part of the owner).
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolveTypeWithValue(const std::vector<std::string> &path,
+	                          Handle<Node> owner, Variant &value,
+	                          Logger &logger, ResolutionResultCallback resultCallback);
+
+	/**
+	 * Resolves a type and makes sure the corresponding value is of the correct
+	 * type.
+	 *
+	 * <b>Warning:</b> This function is extremely dangerous as you have to make
+	 * sure that the "value" reference stays alife as long as the "owner" is
+	 * valid. This is especially problematic as internally references at parts
+	 * of "value" may be kept. Test usages of this function well!
+	 *
+	 * @tparam T is the type of the node that should be resolved.
+	 * @param name is the path for which a node should be resolved. The name is
+	 * split at '.' to form a path.
+	 * @param owner is the node for which the resolution takes place.
+	 * @param value is a reference at the Variant that represents the value for
+	 * which the type should be looked up. The value must be valid as long as
+	 * the owner node is valid (so it should be a part of the owner).
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolveTypeWithValue(const std::string &name, Handle<Node> owner,
+	                          Variant &value, Logger &logger, ResolutionResultCallback resultCallback);
 
 	/**
 	 * Tries to resolve all currently deferred resolution steps. The list of

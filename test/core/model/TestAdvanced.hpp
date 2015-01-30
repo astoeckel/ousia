@@ -32,7 +32,7 @@ static Rooted<StructuredClass> resolveDescriptor(Handle<Domain> domain,
 {
 	// use the actual resolve method.
 	std::vector<ResolutionResult> resolved =
-	    domain->resolve(className, typeOf<StructuredClass>());
+	    domain->resolve(RttiTypes::StructuredClass, className);
 	// take the first valid result.
 	for (auto &r : resolved) {
 		return r.node.cast<StructuredClass>();
