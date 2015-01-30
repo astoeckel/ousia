@@ -150,7 +150,7 @@ public:
 	}
 };
 
-class StructHandler : public Handler {
+class TypesystemStructHandler : public Handler {
 public:
 	using Handler::Handler;
 
@@ -190,7 +190,7 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new StructHandler{handlerData};
+		return new TypesystemStructHandler{handlerData};
 	}
 };
 
@@ -276,6 +276,65 @@ public:
 	}
 };
 
+class DomainHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	void start(Variant::mapType &args) override
+	{
+		Rooted<Domain> domain =
+		    project()->createDomain(args["name"].asString());
+		domain->setLocation(location());
+
+		scope().push(domain);
+	}
+
+	void end() override { scope().pop(); }
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new DomainHandler{handlerData};
+	}
+};
+
+class DomainStructHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	void start(Variant::mapType &args) override
+	{
+		const std::string &isa = args["isa"].asString();
+
+		Rooted<Domain> domain = scope().select<Domain>();
+		Rooted<StructuredClass> structuredClass = domain->createStructuredClass(
+		    args["name"].asString(), args["cardinality"].asCardinality(),
+		    nullptr, nullptr, args["transparent"].asBool(),
+		    args["isRoot"].asBool());
+		structuredClass->setLocation(location());
+
+		if (!isa.empty()) {
+			scope().resolve<StructuredClass>(
+			    isa, structuredClass, logger(),
+			    [](Handle<Node> superclass, Handle<Node> structuredClass,
+			       Logger &logger) {
+				    if (superclass != nullptr) {
+					    structuredClass.cast<StructuredClass>()->setSuperclass(
+					        superclass.cast<StructuredClass>());
+				    }
+				});
+		}
+
+		scope().push(structuredClass);
+	}
+
+	void end() override { scope().pop(); }
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new DomainStructHandler{handlerData};
+	}
+};
+
 /* Document structure */
 static const State STATE_DOCUMENT = 0;
 static const State STATE_DOCUMENT_HEAD = 1;
@@ -297,6 +356,20 @@ static const State STATE_FIELD = 207;
 /* Domain definitions */
 static const State STATE_DOMAIN = 300;
 static const State STATE_DOMAIN_HEAD = 301;
+static const State STATE_DOMAIN_STRUCTS = 302;
+static const State STATE_DOMAIN_STRUCT = 303;
+static const State STATE_DOMAIN_FIELDS = 304;
+static const State STATE_DOMAIN_FIELD = 305;
+static const State STATE_DOMAIN_PRIMITIVE_FIELD = 306;
+static const State STATE_DOMAIN_CHILDREN = 307;
+static const State STATE_DOMAIN_CHILD = 308;
+static const State STATE_DOMAIN_CHILD_REF = 309;
+static const State STATE_DOMAIN_PARENTS = 310;
+static const State STATE_DOMAIN_PARENT = 311;
+static const State STATE_DOMAIN_PARENT_FIELD = 312;
+static const State STATE_DOMAIN_PARENT_FIELD_REF = 313;
+static const State STATE_DOMAIN_ANNOTATIONS = 314;
+static const State STATE_DOMAIN_ANNOTATION = 315;
 
 static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
     /* Document tags */
@@ -325,7 +398,7 @@ static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
     {"enum", {{STATE_TYPES}, nullptr, STATE_ENUM}},
     {"struct",
      {{STATE_TYPES},
-      StructHandler::create,
+      TypesystemStructHandler::create,
       STATE_STRUCT,
       false,
       {Argument::String("name"), Argument::String("parent", "")}}},
@@ -344,7 +417,63 @@ static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
       STATE_CONSTANT,
       false,
       {Argument::String("name"), Argument::String("type"),
-       Argument::Any("value")}}}};
+       Argument::Any("value")}}},
+
+    /* Domain */
+    {"domain",
+     {{STATE_NONE, STATE_DOCUMENT_HEAD},
+      DomainHandler::create,
+      STATE_DOMAIN,
+      false,
+      {Argument::String("name")}}},
+    {"head",
+     {{STATE_DOMAIN},
+      HeadHandler::create,
+      STATE_DOMAIN_HEAD,
+      false,
+      Arguments{}}},
+    {"structs",
+     {{STATE_DOMAIN},
+      DisableHeadHandler::create,
+      STATE_DOMAIN_STRUCTS,
+      false,
+      Arguments{}}},
+    {"struct",
+     {{STATE_DOMAIN_STRUCTS},
+      DomainStructHandler::create,
+      STATE_DOMAIN_STRUCT,
+      false,
+      Arguments{Argument::String("name"),
+                Argument::Cardinality("cardinality", AnyCardinality),
+                Argument::Bool("isRoot", false),
+                Argument::Bool("transparent", false),
+                Argument::String("isa", "")}}},
+    {"fields",
+     {{STATE_DOMAIN_STRUCT, STATE_DOMAIN_ANNOTATIONS},
+     nullptr,
+     STATE_DOMAIN_FIELDS,
+     false,
+     Arguments{}}},
+    {"field",
+     {{STATE_DOMAIN_FIELDS},
+     nullptr,
+     STATE_DOMAIN_FIELD,
+     false,
+     Arguments{Argument::String("name", ""), Argument::Bool("isSubtree", false),
+               Argument::Bool("optional", false)}}},
+    {"primitive",
+     {{STATE_DOMAIN_FIELDS},
+     nullptr,
+     STATE_DOMAIN_PRIMITIVE_FIELD,
+     false,
+     Arguments{Argument::String("name", ""), Argument::Bool("optional", false),
+               Argument::String("type")}}},
+    {"annotations",
+     {{STATE_DOMAIN},
+      DisableHeadHandler::create,
+      STATE_DOMAIN_ANNOTATIONS,
+      false,
+      Arguments{}}}};
 
 /**
  * Wrapper class around the XML_Parser pointer which safely frees it whenever
@@ -402,7 +531,8 @@ static SourceLocation syncLoggerPosition(XML_Parser p)
 	// Fetch the current location in the XML file
 	size_t offs = XML_GetCurrentByteIndex(p);
 
-	// Build the source location and update the default location of the current
+	// Build the source location and update the default location of the
+	// current
 	// logger instance
 	SourceLocation loc{stack->getContext().getSourceId(), offs};
 	stack->getContext().getLogger().setDefaultLocation(loc);

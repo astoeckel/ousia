@@ -33,6 +33,7 @@ namespace ousia {
 
 namespace RttiTypes {
 extern const Rtti Document;
+extern const Rtti Domain;
 extern const Rtti Typesystem;
 }
 
@@ -46,9 +47,10 @@ struct XmlStandaloneEnvironment : public StandaloneEnvironment {
 		fileLocator.addUnittestSearchPath("xmlparser");
 
 		registry.registerDefaultExtensions();
-		registry.registerParser({"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
-		                        {&RttiTypes::Document, &RttiTypes::Typesystem},
-		                        &xmlParser);
+		registry.registerParser(
+		    {"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
+		    {&RttiTypes::Document, &RttiTypes::Typesystem, &RttiTypes::Domain},
+		    &xmlParser);
 		registry.registerResourceLocator(&fileLocator);
 	}
 };
@@ -65,7 +67,7 @@ TEST(XmlParser, mismatchedTag)
 TEST(XmlParser, generic)
 {
 	XmlStandaloneEnvironment env(logger);
-	env.parse("generic.oxm", "", "", RttiSet{&RttiTypes::Typesystem});
+	env.parse("generic.oxm", "", "", RttiSet{&RttiTypes::Node});
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	env.manager.exportGraphviz("xmlDocument.dot");
 #endif

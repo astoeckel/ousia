@@ -1,5 +1,5 @@
-<!--<?xml version="1.0" standalone="yes"?>-->
-<typesystem name="color">
+<?xml version="1.0" standalone="yes"?>
+<!--<typesystem name="color">
 	<types>
 		<struct name="color">
 			<field name="r" type="int"/>
@@ -21,5 +21,16 @@
 	<constants>
 		<constant name="blackStructWithColor" value="[color=black]" type="structWithColor" />
 	</constants>
-</typesystem>
+</typesystem>-->
+<domain name="color">
+	<structs>
+		<struct name="bla" cardinality="{1,2}" isa="blub"/>
+		<struct name="blub" cardinality="{1-3,5,>7}">
+			<fields>
+				<field></field>
+				<primitive/>
+			</fields>
+		</struct>
+	</structs>
+</domain>
 
