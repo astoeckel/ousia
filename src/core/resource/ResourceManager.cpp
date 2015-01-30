@@ -118,21 +118,18 @@ NodeVector<Node> ResourceManager::parse(
 		newResource = true;
 		sourceId = allocateSourceId(resource);
 	}
+	// check for cycles.
+	GuardedSetInsertion<SourceId> cycleDetection{currentlyParsing, sourceId};
+	if (!cycleDetection.isSuccess()) {
+		throw LoggableException{std::string("Detected cyclic parse of ") +
+		                        resource.getLocation()};
+	}
 
 	if (!newResource && mode == ParseMode::IMPORT) {
 		// if a already imported resource should be imported we just use the
 		// cached node.
 		parsedNodes.push_back(getNode(ctx.getManager(), sourceId));
 	} else {
-		// check for cycles.
-		GuardedSetInsertion<SourceId> cycleDetection{currentlyParsing,
-		                                             sourceId};
-		if (!cycleDetection.isSuccess()) {
-			throw LoggableException{
-			    std::string("Detected cyclic inclusion of ") +
-			    resource.getLocation()};
-		}
-
 		// We can now try to parse the given file
 
 		// Set the current source id in the logger instance. Note that this
