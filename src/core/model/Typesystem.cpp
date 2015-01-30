@@ -26,7 +26,10 @@ namespace ousia {
 
 /* Static helper functions */
 
-static void NullMagicCallback(Variant &, bool, ManagedUid) {}
+static Type::MagicCallbackResult NullMagicCallback(Variant &, const Type *)
+{
+	return Type::MagicCallbackResult::NOT_FOUND;
+}
 
 /* Class Type */
 
@@ -35,13 +38,18 @@ bool Type::build(Variant &data, Logger &logger,
 {
 	// If the given variant is marked as "magic", try to resolve the real value
 	if (data.isMagic()) {
-		Variant strData = Variant::fromString(data.asString());
-		Logger nullLogger;
-		bool valid = isValid(strData, nullLogger);
-		magicCallback(data, valid,
-		              getUid());
-		build(strData, nullLogger);
-		return true;  // Just return true for now
+		switch (magicCallback(data, this)) {
+			case MagicCallbackResult::NOT_FOUND:
+				break;
+			case MagicCallbackResult::FOUND_INVALID: {
+				// The magic callback has probably already issued an error
+				// message -- do not print more errors
+				Logger nullLogger;
+				return build(data, nullLogger);
+			}
+			case MagicCallbackResult::FOUND_VALID:
+				return true;
+		}
 	}
 
 	try {
@@ -216,6 +224,10 @@ void Attribute::setDefaultValue(const Variant &defaultValue, Logger &logger)
 	initialize(logger);
 }
 
+const Variant &Attribute::getDefaultValue() const { return defaultValue; }
+
+Variant &Attribute::getDefaultValue() { return defaultValue; }
+
 void Attribute::removeDefaultValue()
 {
 	invalidate();
@@ -224,6 +236,8 @@ void Attribute::removeDefaultValue()
 	optional = false;
 }
 
+bool Attribute::isOptional() const { return optional; }
+
 void Attribute::setType(Handle<Type> type, Logger &logger)
 {
 	invalidate();
@@ -231,6 +245,8 @@ void Attribute::setType(Handle<Type> type, Logger &logger)
 	this->type = acquire(type);
 	initialize(logger);
 }
+
+Rooted<Type> Attribute::getType() const { return type; }
 
 /* Class StructType */
 
@@ -590,6 +606,8 @@ void Constant::setType(Handle<Type> type, Logger &logger)
 	this->type = acquire(type);
 	this->type->build(this->value, logger);
 }
+
+const Variant &Constant::getValue() const { return value; }
 
 Variant &Constant::getValue() { return value; }
 

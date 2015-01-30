@@ -214,21 +214,23 @@ public:
 
 		// Try to resolve the type and default value
 		if (optional) {
-			scope().resolveTypeWithValue(type, attribute, attribute->getDefaultValue(), logger(),
-				                  [](Handle<Node> type, Handle<Node> attribute,
-				                     Logger &logger) {
-				if (type != nullptr) {
-					attribute.cast<Attribute>()->setType(type.cast<Type>(), logger);
-				}
-			});
+			scope().resolveTypeWithValue(
+			    type, attribute, attribute->getDefaultValue(), logger(),
+			    [](Handle<Node> type, Handle<Node> attribute, Logger &logger) {
+				    if (type != nullptr) {
+					    attribute.cast<Attribute>()->setType(type.cast<Type>(),
+					                                         logger);
+				    }
+				});
 		} else {
-			scope().resolveType(type, attribute, logger(),
-				                  [](Handle<Node> type, Handle<Node> attribute,
-				                     Logger &logger) {
-				if (type != nullptr) {
-					attribute.cast<Attribute>()->setType(type.cast<Type>(), logger);
-				}
-			});
+			scope().resolveType(
+			    type, attribute, logger(),
+			    [](Handle<Node> type, Handle<Node> attribute, Logger &logger) {
+				    if (type != nullptr) {
+					    attribute.cast<Attribute>()->setType(type.cast<Type>(),
+					                                         logger);
+				    }
+				});
 		}
 	}
 
@@ -256,13 +258,14 @@ public:
 		constant->setLocation(location());
 
 		// Try to resolve the type
-		scope().resolveTypeWithValue(type, constant, constant->getValue(), logger(),
-		                      [](Handle<Node> type, Handle<Node> constant,
-		                         Logger &logger) {
-			if (type != nullptr) {
-				constant.cast<Constant>()->setType(type.cast<Type>(), logger);
-			}
-		});
+		scope().resolveTypeWithValue(
+		    type, constant, constant->getValue(), logger(),
+		    [](Handle<Node> type, Handle<Node> constant, Logger &logger) {
+			    if (type != nullptr) {
+				    constant.cast<Constant>()->setType(type.cast<Type>(),
+				                                       logger);
+			    }
+			});
 	}
 
 	void end() override {}

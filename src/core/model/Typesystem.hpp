@@ -57,19 +57,21 @@ class SystemTypesystem;
  */
 class Type : public Node {
 public:
+	enum class MagicCallbackResult { NOT_FOUND, FOUND_INVALID, FOUND_VALID };
+
 	/**
 	 * Callback function called when a variant with "magic" value is reached.
 	 * This callback allows to transform these magic values into something else.
 	 * This mechanism is used to resolve constants.
 	 *
-	 * @param data is the magic value that should be looked up.
-	 * @param isValid is set to true if the magic value does not necessarily
-	 * have to be looked up, in this case no error message has to be generated
-	 * if the lookup for a constant fails.
-	 * @param type is the managed uid of the underlying Type for which the magic
-	 * value should be looked up.
+	 * @param data is the magic value that should be looked up and the variant
+	 * to which the value of the looked up constant should be written.
+	 * @param type is a const pointer at the type. TODO: Replace this with a
+	 * "ConstHandle".
+	 * @return true if a constant was found, false otherwise.
 	 */
-	using MagicCallback = std::function<void(Variant &data, bool isValid, ManagedUid Type)>;
+	using MagicCallback =
+	    std::function<MagicCallbackResult(Variant &data, const Type *type)>;
 
 protected:
 	/**
@@ -503,7 +505,14 @@ public:
 	 * @return the default value of the attribute. If no default value has been
 	 * given a null variant is returned (the opposite does not hold).
 	 */
-	Variant& getDefaultValue() { return defaultValue; }
+	const Variant &getDefaultValue() const;
+
+	/**
+	 * Returns a reference at the default value.
+	 *
+	 * @return a reference at the default value of the attribute.
+	 */
+	Variant &getDefaultValue();
 
 	/**
 	 * Removes any default value from the attribute, making this attribute
@@ -517,7 +526,7 @@ public:
 	 *
 	 * @return true if the attribute is optional, false otherwise.
 	 */
-	bool isOptional() const { return optional; }
+	bool isOptional() const;
 
 	/**
 	 * Sets the type of the attribute to the specified value. This will
@@ -536,7 +545,7 @@ public:
 	 *
 	 * @return the underlying type of the Rooted object.
 	 */
-	Rooted<Type> getType() const { return type; }
+	Rooted<Type> getType() const;
 };
 
 /**
@@ -991,6 +1000,14 @@ public:
 	 * be interpreted with the help of the type of the constant.
 	 *
 	 * @return a const reference to the actual value of the constant.
+	 */
+	const Variant &getValue() const;
+
+	/**
+	 * Returns a reference pointing at the value of the constant. The value must
+	 * be interpreted with the help of the type of the constant.
+	 *
+	 * @return a reference to the actual value of the constant.
 	 */
 	Variant &getValue();
 

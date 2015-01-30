@@ -18,6 +18,7 @@
 
 #include <core/common/Exceptions.hpp>
 #include <core/common/Utils.hpp>
+#include <core/common/VariantWriter.hpp>
 #include <core/model/Typesystem.hpp>
 
 #include "ParserScope.hpp"
@@ -319,6 +320,44 @@ bool ParserScope::resolveType(const std::string &name, Handle<Node> owner,
 	return resolveType(Utils::split(name, '.'), owner, logger, resultCallback);
 }
 
+bool ParserScope::resolveValue(Variant &data, Handle<Type> type,
+                               Handle<Node> owner, Logger &logger)
+{
+	return type->build(
+	    data, logger,
+	    [&](Variant &innerData,
+	        const Type *innerType) mutable -> Type::MagicCallbackResult {
+		    // Try to resolve the node
+		    Rooted<Constant> constant =
+		        ParserScopeBase::resolve(RttiTypes::Constant,
+		                                 Utils::split(innerData.asMagic(), '.'),
+		                                 logger).cast<Constant>();
+
+		    // Abort if nothing was found
+		    if (constant == nullptr) {
+			    return Type::MagicCallbackResult::NOT_FOUND;
+		    }
+
+		    // Set the data to the value of the constant
+		    innerData = constant->getValue();
+
+		    // Check whether the inner type of the constant is correct
+		    // TODO: Use correct "isa" provided by Type
+		    Rooted<Type> constantType = constant->getType();
+		    if (innerType != constantType) {
+			    logger.error(std::string("Expected value of type \"") +
+			                     innerType->getName() +
+			                     std::string("\" but found constant \"") +
+			                     constant->getName() +
+			                     std::string("\" of type \"") +
+			                     constantType->getName() + "\" instead.",
+			                 *owner);
+			    return Type::MagicCallbackResult::FOUND_INVALID;
+		    }
+		    return Type::MagicCallbackResult::FOUND_VALID;
+		});
+}
+
 bool ParserScope::resolveTypeWithValue(const std::vector<std::string> &path,
                                        Handle<Node> owner, Variant &value,
                                        Logger &logger,
@@ -326,90 +365,20 @@ bool ParserScope::resolveTypeWithValue(const std::vector<std::string> &path,
 {
 	// Fork the parser scope -- constants need to be resolved in the same
 	// context as this resolve call
-	std::shared_ptr<ParserScope> scope = std::make_shared<ParserScope>(fork());
+	ParserScope scope = fork();
+	Variant *valuePtr = &value;
 
-	return resolveType(
-	    path, owner, logger,
-	    [=](Handle<Node> resolved, Handle<Node> owner, Logger &logger) mutable {
-		    // Abort if the lookup failed
-		    if (resolved == nullptr) {
-			    resultCallback(resolved, owner, logger);
-			    return;
-		    }
+	return resolveType(path, owner, logger,
+	                   [=](Handle<Node> resolved, Handle<Node> owner,
+	                       Logger &logger) mutable {
+		if (resolved != nullptr) {
+			Rooted<Type> type = resolved.cast<Type>();
+			scope.resolveValue(*valuePtr, type, owner, logger);
+		}
 
-		    // Fetch the type reference and the manager reference
-		    Rooted<Type> type = resolved.cast<Type>();
-		    Manager *mgr = &type->getManager();
-
-		    // The type has been resolved, try to resolve magic values as
-		    // constants and postpone calling the callback function until
-		    // all magic values have been resolved
-		    std::shared_ptr<bool> isAsync = std::make_shared<bool>(false);
-		    std::shared_ptr<int> magicCount = std::make_shared<int>(0);
-		    type->build(value, logger, [=](Variant &magicValue, bool isValid,
-		                                   ManagedUid innerTypeUid) mutable {
-			    // Fetch the inner type
-			    Rooted<Type> innerType =
-			        dynamic_cast<Type *>(mgr->getManaged(innerTypeUid));
-			    if (innerType == nullptr) {
-				    return;
-			    }
-
-			    // Fetch a pointer at the variant
-			    Variant *magicValuePtr = &magicValue;
-
-			    // Increment the number of encountered magic values
-			    (*magicCount)++;
-
-			    // Try to resolve the value as constant
-			    std::string constantName = magicValue.asMagic();
-			    scope->resolve<Constant>(constantName, owner, logger,
-			                             [=](Handle<Node> resolved,
-			                                 Handle<Node> owner,
-			                                 Logger &logger) mutable {
-				    if (resolved != nullptr) {
-					    // Make sure the constant is of the correct inner type
-					    Rooted<Constant> constant = resolved.cast<Constant>();
-					    Rooted<Type> constantType = constant->getType();
-					    if (constantType != innerType) {
-						    logger.error(
-						        std::string("Expected value of type \"") +
-						            innerType->getName() +
-						            std::string("\" but found constant \"") +
-						            constant->getName() +
-						            std::string(" of type \"") +
-						            constantType->getName() + "\" instead.",
-						        *owner);
-					    } else if (!isValid) {
-						    logger.error("Identifier \"" + constantName +
-						                     "\" is not a valid " +
-						                     innerType->getName(),
-						                 *owner);
-					    }
-
-					    // Nevertheless, no matter what happened, set the value
-					    // of the original magic variant to the given constant
-					    *magicValuePtr = constant->getValue();
-				    }
-
-				    // Decrement the number of magic values, call the callback
-				    // function if all magic values have been resolved
-				    (*magicCount)--;
-				    if ((*magicCount) == 0 && (*isAsync)) {
-					    resultCallback(resolved, owner, logger);
-				    }
-				});
-			});
-
-		    // Now we are asynchronous
-		    (*isAsync) = true;
-
-		    // Directly call the callback function if there were no magic values
-		    // involved
-		    if ((*magicCount) == 0) {
-			    resultCallback(resolved, owner, logger);
-		    }
-		});
+		// Call the result callback with the type
+		resultCallback(resolved, owner, logger);
+	});
 }
 
 bool ParserScope::resolveTypeWithValue(const std::string &name,

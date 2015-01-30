@@ -6,14 +6,20 @@
 			<field name="g" type="int"/>
 			<field name="b" type="int"/>
 		</struct>
+	</types>
+	<constants>
+		<constant name="zero" value="0" type="int" />
+		<constant name="zeros" value="[0, 0, 0]" type="int[]" />
+		<constant name="manyZeros" value="[[0, 0], [0, 0], [0, 0]]" type="int[][]" />
+		<constant name="black" value="[zero, zero, zero]" type="color" />
+	</constants>
+	<types>
 		<struct name="structWithColor">
 			<field name="color" type="color" default="black" />
 		</struct>
 	</types>
 	<constants>
-		<constant name="zero" value="42" type="string" />
-		<constant name="black" value="[0, zero, 0]" type="color" />
-		<constant name="err" value="0" type="int" />
+		<constant name="blackStructWithColor" value="[color=black]" type="structWithColor" />
 	</constants>
 </typesystem>
 

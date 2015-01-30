@@ -44,6 +44,7 @@ namespace ousia {
 class CharReader;
 class Logger;
 class ParserScope;
+class Type;
 class Variant;
 
 /**
@@ -60,8 +61,8 @@ using ResolutionImposterCallback = std::function<Rooted<Node>()>;
  * @param owner is the node that was passed as "owner".
  * @param logger is the logger to which errors should be logged.
  */
-using ResolutionResultCallback = std::function<void(Handle<Node> resolved,
-                                          Handle<Node> owner, Logger &logger)>;
+using ResolutionResultCallback = std::function<
+    void(Handle<Node> resolved, Handle<Node> owner, Logger &logger)>;
 
 /**
  * Base class for the
@@ -621,13 +622,24 @@ public:
 	                 Logger &logger, ResolutionResultCallback resultCallback);
 
 	/**
+	 * Build and resolves a (possibly) magic value with the given typesystem
+	 * type. This function does not perform any deferred lookups.
+	 *
+	 * @param data is a reference at a variant that may contain magic values
+	 * (even in inner structures). The data will be passed to the "build"
+	 * function of the given type.
+	 * @param type is the Typesystem type the data should be interpreted with.
+	 * @param owner is the node for which the resolution takes place.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @return true if the value was successfully built.
+	 */
+	bool resolveValue(Variant &data, Handle<Type> type, Handle<Node> owner,
+	                  Logger &logger);
+
+	/**
 	 * Resolves a type and makes sure the corresponding value is of the correct
 	 * type.
-	 *
-	 * <b>Warning:</b> This function is extremely dangerous as you have to make
-	 * sure that the "value" reference stays alife as long as the "owner" is
-	 * valid. This is especially problematic as internally references at parts
-	 * of "value" may be kept. Test usages of this function well!
 	 *
 	 * @tparam T is the type of the node that should be resolved.
 	 * @param path is the path for which a node should be resolved.
@@ -646,16 +658,12 @@ public:
 	 */
 	bool resolveTypeWithValue(const std::vector<std::string> &path,
 	                          Handle<Node> owner, Variant &value,
-	                          Logger &logger, ResolutionResultCallback resultCallback);
+	                          Logger &logger,
+	                          ResolutionResultCallback resultCallback);
 
 	/**
 	 * Resolves a type and makes sure the corresponding value is of the correct
 	 * type.
-	 *
-	 * <b>Warning:</b> This function is extremely dangerous as you have to make
-	 * sure that the "value" reference stays alife as long as the "owner" is
-	 * valid. This is especially problematic as internally references at parts
-	 * of "value" may be kept. Test usages of this function well!
 	 *
 	 * @tparam T is the type of the node that should be resolved.
 	 * @param name is the path for which a node should be resolved. The name is
@@ -674,7 +682,8 @@ public:
 	 * later.
 	 */
 	bool resolveTypeWithValue(const std::string &name, Handle<Node> owner,
-	                          Variant &value, Logger &logger, ResolutionResultCallback resultCallback);
+	                          Variant &value, Logger &logger,
+	                          ResolutionResultCallback resultCallback);
 
 	/**
 	 * Tries to resolve all currently deferred resolution steps. The list of
