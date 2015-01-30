@@ -616,19 +616,6 @@ public:
  */
 
 /**
- * This is the default cardinality.
- */
-
-static Variant::cardinalityType createAny()
-{
-	Variant::cardinalityType any;
-	any.merge(Range<size_t>::typeRangeFrom(0));
-	return std::move(any);
-}
-
-static const Variant AnyCardinality = createAny();
-
-/**
  * A StructuredClass specifies nodes in the StructureTree of a document that
  * implements this domain. For more information on the StructureTree please
  * consult the Header documentation above.

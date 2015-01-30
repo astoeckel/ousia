@@ -19,6 +19,7 @@
 #ifndef _OUSIA_RANGE_SET_HPP_
 #define _OUSIA_RANGE_SET_HPP_
 
+#include <cstddef>
 #include <limits>
 #include <set>
 
@@ -412,6 +413,13 @@ public:
 		return !(lhs == rhs);
 	}
 };
+
+/**
+ * This is the default cardinality.
+ */
+using Cardinality = RangeSet<size_t>;
+extern const Cardinality AnyCardinality;
+
 }
 
 #endif /* _OUSIA_RANGE_SET_HPP_ */

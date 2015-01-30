@@ -119,6 +119,7 @@ ADD_LIBRARY(ousia_core
 	src/core/Registry
 	src/core/Tokenizer
 	src/core/XML
+	src/core/RangeSet
 	src/core/common/Argument
 	src/core/common/CharReader
 	src/core/common/Exceptions

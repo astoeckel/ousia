@@ -113,7 +113,7 @@ public:
 	using arrayType = std::vector<Variant>;
 	using mapType = std::map<std::string, Variant>;
 	using objectType = Rooted<Managed>;
-	using cardinalityType = RangeSet<size_t>;
+	using cardinalityType = Cardinality;
 	using rangeType = Range<size_t>;
 	using functionType = std::shared_ptr<Function>;
 
