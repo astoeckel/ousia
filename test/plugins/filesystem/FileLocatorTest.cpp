@@ -26,7 +26,7 @@
 namespace fs = boost::filesystem;
 
 namespace ousia {
-TEST(FileLocator, testAddSearchPath)
+TEST(FileLocator, addSearchPath)
 {
 	FileLocator instance;
 	ASSERT_EQ(0U, instance.getSearchPaths().size());
@@ -61,9 +61,9 @@ TEST(FileLocator, testAddSearchPath)
 
 	// Adding the path another time should not increase the number of found
 	// paths, except for new resource types
-	instance.addSearchPath(canonicalPath,
-	                       {ResourceType::DOMAIN_DESC, ResourceType::SCRIPT,
-	                        ResourceType::TYPESYSTEM, ResourceType::ATTRIBUTES});
+	instance.addSearchPath(
+	    canonicalPath, {ResourceType::DOMAIN_DESC, ResourceType::SCRIPT,
+	                    ResourceType::TYPESYSTEM, ResourceType::ATTRIBUTES});
 
 	ASSERT_EQ(4U, instance.getSearchPaths().size());
 
@@ -122,7 +122,7 @@ void assert_not_located(const FileLocator &instance, const std::string &path,
 	ASSERT_FALSE(res.isValid());
 }
 
-TEST(FileLocator, testLocate)
+TEST(FileLocator, locate)
 {
 	FileLocator locator;
 	locator.addUnittestSearchPath("filesystem");
@@ -142,7 +142,7 @@ TEST(FileLocator, testLocate)
 	assert_not_located(locator, "c.txt", "", ResourceType::SCRIPT);
 }
 
-TEST(FileLocator, testLocateRelative)
+TEST(FileLocator, locateRelative)
 {
 	FileLocator locator;
 	locator.addUnittestSearchPath("filesystem");
@@ -160,6 +160,25 @@ TEST(FileLocator, testLocateRelative)
 	ASSERT_TRUE(locator.locate(resD, "d.txt", ResourceType::UNKNOWN, resC));
 	ASSERT_FALSE(locator.locate(resD, "./d.txt", ResourceType::UNKNOWN, resA));
 	ASSERT_TRUE(locator.locate(resD, "./d.txt", ResourceType::UNKNOWN, resC));
+
+	/*
+	 * There are two e.txt, one in filesystem, one in b. If we simply look for
+	 * e.txt, filesystem/b/e.txt will be returned, because search paths added
+	 * last take precedence. This will be the case even if we search relative
+	 * to a.txt, which is in filesystem. Only if we look for ./e.txt relative to
+	 * a.txt will e.txt be returned.
+	 */
+	Resource resE;
+	ASSERT_TRUE(locator.locate(resE, "e.txt", ResourceType::UNKNOWN));
+	fs::path ePath{resE.getLocation()};
+	ASSERT_EQ("b", ePath.parent_path().filename());
+	ASSERT_TRUE(locator.locate(resE, "e.txt", ResourceType::UNKNOWN, resA));
+	ePath = resE.getLocation();
+	ASSERT_EQ("b", ePath.parent_path().filename());
+	ASSERT_TRUE(locator.locate(resE, "./e.txt", ResourceType::UNKNOWN, resA));
+	ePath = resE.getLocation();
+	ASSERT_EQ("filesystem", ePath.parent_path().filename());
+	ASSERT_FALSE(locator.locate(resE, "../e.txt", ResourceType::UNKNOWN, resA));
 }
 
 TEST(FileLocator, testStream)
@@ -190,6 +209,4 @@ TEST(FileLocator, testDefaultSearchPaths)
 	assert_located(locator, "typesystem/color.oxm", "", ResourceType::UNKNOWN);
 	assert_located(locator, "color.oxm", "", ResourceType::TYPESYSTEM);
 }
-
-
 }
