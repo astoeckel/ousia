@@ -142,6 +142,17 @@ TEST(FileLocator, locate)
 	assert_not_located(locator, "c.txt", "", ResourceType::SCRIPT);
 }
 
+TEST(FileLocator, locateAbsolute){
+	FileLocator locator;
+	// construct the absolute path by utilizing SpecialPaths and 
+	fs::path testdataDir {SpecialPaths::getDebugTestdataDir()};
+	fs::path absolute = fs::canonical(testdataDir);
+	absolute /= "filesystem";
+	absolute /= "a.txt";
+	Resource resA;
+	ASSERT_TRUE(locator.locate(resA, absolute.string()));
+}
+
 TEST(FileLocator, locateRelative)
 {
 	FileLocator locator;
