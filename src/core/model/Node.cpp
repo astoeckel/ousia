@@ -501,7 +501,7 @@ bool Node::validate(Logger &logger) const
 			// properly validated, so return false
 			logger.error(
 			    "This validation run lead to a cycle. As a fallback it is set "
-			    "to invalid!");
+			    "to invalid!", *this);
 			return false;
 	}
 	return false;
