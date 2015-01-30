@@ -370,6 +370,27 @@ public:
 	                    const Variant::mapType &defaultValue);
 
 	/**
+	 * Named constructor for a cardinality argument with no default value.
+	 *
+	 * @param name is the name of the argument as used for error messages and in
+	 * case the arguments are given as a map.
+	 * @return a new Argument instance.
+	 */
+	static Argument Cardinality(std::string name);
+
+	/**
+	 * Named constructor for a Cardinality argument with default value.
+	 *
+	 * @param name is the name of the argument as used for error messages and in
+	 * case the arguments are given as a map.
+	 * @param defaultValue is the default value to be used in case this argument
+	 * is not supplied.
+	 * @return a new Argument instance.
+	 */
+	static Argument Cardinality(std::string name,
+	                            Variant::cardinalityType defaultValue);
+
+	/**
 	 * Makes sure the given variant is in the requested format and returns true
 	 * if the variant was valid. Logs any error to the given logger instance.
 	 * In case the validation was not successful, but the Argument instance was
@@ -409,7 +430,6 @@ private:
 	bool valid;
 
 public:
-
 	/**
 	 * Static Arguments instance with no explicit arguments set.
 	 */
@@ -418,7 +438,7 @@ public:
 	/**
 	 * Default constructor. Provides no arguments.
 	 */
-	Arguments() : valid(false) {};
+	Arguments() : valid(false){};
 
 	/**
 	 * Constructor of the Arguments class from a list of Argument instances.

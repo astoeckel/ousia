@@ -27,9 +27,8 @@ namespace ousia {
 
 /* Class Argument */
 
-Argument::Argument(std::string name, const Rtti &type,
-                   const Rtti &innerType, Variant defaultValue,
-                   bool hasDefault)
+Argument::Argument(std::string name, const Rtti &type, const Rtti &innerType,
+                   Variant defaultValue, bool hasDefault)
     : type(type),
       innerType(innerType),
       name(std::move(name)),
@@ -105,8 +104,7 @@ Argument Argument::Object(std::string name, const Rtti &type)
 	                Variant::fromObject(nullptr), false);
 }
 
-Argument Argument::Object(std::string name, const Rtti &type,
-                          std::nullptr_t)
+Argument Argument::Object(std::string name, const Rtti &type, std::nullptr_t)
 {
 	return Argument(std::move(name), type, RttiTypes::None,
 	                Variant::fromObject(nullptr), true);
@@ -168,6 +166,17 @@ Argument Argument::Map(std::string name, const Rtti &innerType,
 {
 	return Argument(std::move(name), RttiTypes::Map, innerType, defaultValue,
 	                true);
+}
+
+Argument Argument::Cardinality(std::string name)
+{
+	return Argument{name, RttiTypes::Cardinality};
+}
+
+Argument Argument::Cardinality(std::string name,
+                               Variant::cardinalityType defaultValue)
+{
+	return Argument{name, RttiTypes::Cardinality, defaultValue};
 }
 
 bool Argument::validate(Variant &var, Logger &logger) const
