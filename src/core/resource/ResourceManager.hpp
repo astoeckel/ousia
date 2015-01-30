@@ -82,6 +82,11 @@ private:
 	std::unordered_map<SourceId, ManagedUid> nodes;
 
 	/**
+	 * The set of SourceIds for which resources are currently being parsed.
+	 */
+	std::unordered_set<SourceId> currentlyParsing;
+
+	/**
 	 * Map containing SourceContextReader instances which are -- as their name
 	 * suggests -- used to produce SourceContext structures describing the
 	 * source code at a given SourceLocation.
@@ -132,8 +137,8 @@ private:
 	 * @return the parsed nodes or an empty list if something went wrong.
 	 */
 	NodeVector<Node> parse(ParserContext &ctx, const std::string &path,
-	                   const std::string &mimetype, const std::string &rel,
-	                   const RttiSet &supportedTypes, ParseMode mode);
+	                       const std::string &mimetype, const std::string &rel,
+	                       const RttiSet &supportedTypes, ParseMode mode);
 
 public:
 	/**
@@ -161,8 +166,8 @@ public:
 	 * @return the parsed node or nullptr if something went wrong.
 	 */
 	Rooted<Node> import(ParserContext &ctx, const std::string &path,
-	                  const std::string &mimetype, const std::string &rel,
-	                  const RttiSet &supportedTypes);
+	                    const std::string &mimetype, const std::string &rel,
+	                    const RttiSet &supportedTypes);
 
 	/**
 	 * Resolves the reference to the file specified by the given path and parses
@@ -192,8 +197,9 @@ public:
 	 * @return the parsed nodes or an empty list if something went wrong.
 	 */
 	NodeVector<Node> include(ParserContext &ctx, const std::string &path,
-	                     const std::string &mimetype, const std::string &rel,
-	                     const RttiSet &supportedTypes);
+	                         const std::string &mimetype,
+	                         const std::string &rel,
+	                         const RttiSet &supportedTypes);
 
 	/**
 	 * Creates and returns a SourceContext structure containing information

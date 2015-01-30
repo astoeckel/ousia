@@ -70,6 +70,25 @@ void ResourceManager::purgeResource(SourceId sourceId)
 	contextReaders.erase(sourceId);
 }
 
+template <class T>
+class GuardedSetInsertion {
+private:
+	std::unordered_set<T> &set;
+	T value;
+	bool success;
+
+public:
+	GuardedSetInsertion(std::unordered_set<T> &set, T value)
+	    : set(set), value(value)
+	{
+		success = set.insert(value).second;
+	}
+
+	~GuardedSetInsertion() { set.erase(value); }
+
+	bool isSuccess() { return success; }
+};
+
 NodeVector<Node> ResourceManager::parse(
     ParserContext &ctx, const std::string &path, const std::string &mimetype,
     const std::string &rel, const RttiSet &supportedTypes, ParseMode mode)
@@ -89,86 +108,111 @@ NodeVector<Node> ResourceManager::parse(
 		return NodeVector<Node>{};
 	}
 
-	// Allocate a new SourceId handle for this Resource
-	SourceId sourceId = allocateSourceId(resource);
-
-	// We can now try to parse the given file
+	// initialize the output vector.
 	NodeVector<Node> parsedNodes;
 
-	// Set the current source id in the logger instance. Note that this
-	// modifies the logger instance -- the GuardedLogger is just used to
-	// make sure the default location is popped from the stack again.
-	GuardedLogger guardedLogger(logger, SourceLocation{sourceId});
+	// Allocate a new SourceId handle for this Resource
+	bool newResource = false;
+	SourceId sourceId = getSourceId(resource);
+	if (sourceId == InvalidSourceId) {
+		newResource = true;
+		sourceId = allocateSourceId(resource);
+	}
 
-	try {
-		// Fetch the input stream and create a char reader
-		std::unique_ptr<std::istream> is = resource.stream();
-		CharReader reader(*is, sourceId);
+	if (!newResource && mode == ParseMode::IMPORT) {
+		// if a already imported resource should be imported we just use the
+		// cached node.
+		parsedNodes.push_back(getNode(ctx.getManager(), sourceId));
+	} else {
+		// check for cycles.
+		GuardedSetInsertion<SourceId> cycleDetection{currentlyParsing,
+		                                             sourceId};
+		if (!cycleDetection.isSuccess()) {
+			throw LoggableException{
+			    std::string("Detected cyclic inclusion of ") +
+			    resource.getLocation()};
+		}
 
-		// Actually parse the input stream, distinguish the IMPORT and the
-		// INCLUDE mode
-		switch (mode) {
-			case ParseMode::IMPORT: {
-				// Create a new, empty parser scope instance and a new parser
-				// context with this instance in place
-				ParserScope innerScope;
-				ParserContext childCtx = ctx.clone(innerScope, sourceId);
+		// We can now try to parse the given file
 
-				// Run the parser
-				req.getParser()->parse(reader, childCtx);
+		// Set the current source id in the logger instance. Note that this
+		// modifies the logger instance -- the GuardedLogger is just used to
+		// make sure the default location is popped from the stack again.
+		GuardedLogger guardedLogger(logger, SourceLocation{sourceId});
 
-				// Make sure the scope has been unwound and perform all
-				// deferred resolutions
-				innerScope.checkUnwound(logger);
-				innerScope.performDeferredResolution(logger);
+		try {
+			// Fetch the input stream and create a char reader
+			std::unique_ptr<std::istream> is = resource.stream();
+			CharReader reader(*is, sourceId);
 
-				// Fetch the nodes that were parsed by this parser instance and
-				// validate them
-				parsedNodes = innerScope.getTopLevelNodes();
-				for (auto parsedNode : parsedNodes) {
-					parsedNode->validate(logger);
+			// Actually parse the input stream, distinguish the IMPORT and the
+			// INCLUDE mode
+			switch (mode) {
+				case ParseMode::IMPORT: {
+					// Create a new, empty parser scope instance and a new
+					// parser
+					// context with this instance in place
+					ParserScope innerScope;
+					ParserContext childCtx = ctx.clone(innerScope, sourceId);
+
+					// Run the parser
+					req.getParser()->parse(reader, childCtx);
+
+					// Make sure the scope has been unwound and perform all
+					// deferred resolutions
+					innerScope.checkUnwound(logger);
+					innerScope.performDeferredResolution(logger);
+
+					// Fetch the nodes that were parsed by this parser instance
+					// and
+					// validate them
+					parsedNodes = innerScope.getTopLevelNodes();
+					for (auto parsedNode : parsedNodes) {
+						parsedNode->validate(logger);
+					}
+
+					// Make sure the number of elements is exactly one -- we can
+					// only store one element per top-level node.
+					if (parsedNodes.empty()) {
+						throw LoggableException{"Module is empty."};
+					}
+					if (parsedNodes.size() > 1) {
+						throw LoggableException{
+						    std::string(
+						        "Expected exactly one top-level node but "
+						        "got ") +
+						    std::to_string(parsedNodes.size())};
+					}
+
+					// Store the parsed node along with the sourceId
+					storeNode(sourceId, parsedNodes[0]);
+
+					break;
 				}
+				case ParseMode::INCLUDE: {
+					// Fork the scope instance and create a new parser context
+					// with this instance in place
+					ParserScope forkedScope = scope.fork();
+					ParserContext childCtx = ctx.clone(forkedScope, sourceId);
 
-				// Make sure the number of elements is exactly one -- we can
-				// only store one element per top-level node.
-				if (parsedNodes.empty()) {
-					throw LoggableException{"Module is empty."};
+					// Run the parser
+					req.getParser()->parse(reader, childCtx);
+
+					// Join the forked scope with the outer scope
+					scope.join(forkedScope, logger);
+
+					// Fetch the nodes that were parsed by this parser instance
+					parsedNodes = forkedScope.getTopLevelNodes();
+
+					break;
 				}
-				if (parsedNodes.size() > 1) {
-					throw LoggableException{
-					    std::string(
-					        "Expected exactly one top-level node but got ") +
-					    std::to_string(parsedNodes.size())};
-				}
-
-				// Store the parsed node along with the sourceId
-				storeNode(sourceId, parsedNodes[0]);
-
-				break;
-			}
-			case ParseMode::INCLUDE: {
-				// Fork the scope instance and create a new parser context with
-				// this instanc ein place
-				ParserScope forkedScope = scope.fork();
-				ParserContext childCtx = ctx.clone(forkedScope, sourceId);
-
-				// Run the parser
-				req.getParser()->parse(reader, childCtx);
-
-				// Join the forked scope with the outer scope
-				scope.join(forkedScope, logger);
-
-				// Fetch the nodes that were parsed by this parser instance
-				parsedNodes = forkedScope.getTopLevelNodes();
-
-				break;
 			}
 		}
-	}
-	catch (LoggableException ex) {
-		// Log the exception and return nullptr
-		logger.log(ex);
-		return NodeVector<Node>{};
+		catch (LoggableException ex) {
+			// Log the exception and return nullptr
+			logger.log(ex);
+			return NodeVector<Node>{};
+		}
 	}
 
 	// Make sure the parsed nodes fulfill the "supportedTypes" constraint,
