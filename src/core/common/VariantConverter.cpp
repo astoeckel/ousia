@@ -544,6 +544,8 @@ bool VariantConverter::convert(Variant &var, const Rtti &type,
 		return toArray(var, innerType, logger, mode);
 	} else if (&type == &RttiTypes::Map) {
 		return toMap(var, innerType, logger, mode);
+	} else if (&type == &RttiTypes::Cardinality) {
+		return toCardinality(var, logger, mode);
 	} else if (&type == &RttiTypes::Function) {
 		return toFunction(var, logger);
 	}
