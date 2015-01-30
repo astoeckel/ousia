@@ -178,7 +178,7 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 	}
 
 	// Limit the supportedTypes to those returned by the parser
-	supportedTypes = Rtti::setIntersection(supportedTypes, parserTypes);
+	supportedTypes = Rtti::setIntersection(parserTypes, supportedTypes);
 	if (supportedTypes.empty()) {
 		logger.error(std::string("Cannot include or link a file of type \"") +
 		             mimetype + std::string("\" here!"));
