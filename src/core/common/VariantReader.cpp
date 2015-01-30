@@ -133,6 +133,7 @@ static std::pair<bool, Variant> parseComplex(CharReader &reader, Logger &logger,
 	Variant key;
 
 	// Consume all whitespace
+	reader.consumePeek();
 	reader.consumeWhitespace();
 
 	// Iterate over the characters, use the parseGeneric function to read the
@@ -308,6 +309,7 @@ std::pair<bool, std::string> VariantReader::parseString(
 	std::stringstream res;
 
 	// Consume all whitespace
+	reader.consumePeek();
 	reader.consumeWhitespace();
 
 	// Statemachine whic iterates over each character in the stream
@@ -425,6 +427,7 @@ std::pair<bool, std::string> VariantReader::parseToken(
 	char c;
 
 	// Consume all whitespace
+	reader.consumePeek();
 	reader.consumeWhitespace();
 
 	// Copy all characters, skip whitespace at the end
@@ -451,6 +454,7 @@ std::pair<bool, std::string> VariantReader::parseUnescapedString(
 	char c;
 
 	// Consume all whitespace
+	reader.consumePeek();
 	reader.consumeWhitespace();
 
 	// Copy all characters, skip whitespace at the end
@@ -460,11 +464,13 @@ std::pair<bool, std::string> VariantReader::parseUnescapedString(
 			reader.resetPeek();
 			return std::make_pair(true, res.str());
 		} else if (Utils::isWhitespace(c)) {
-			// Do not add whitespace to the output buffer
+			// Do not add trailing whitespaces to the output buffer. We have
+			// a temporary store (buf) here which we only append to the output
+			// buffer (res) if another character follows.
 			state = STATE_WHITESPACE;
 			buf << c;
 		} else {
-			// If we just hat a sequence of whitespace, append it to the output
+			// If we just had a sequence of whitespace, append it to the output
 			// buffer and continue
 			if (state == STATE_WHITESPACE) {
 				res << buf.str();
@@ -524,6 +530,7 @@ std::pair<bool, Variant::cardinalityType> VariantReader::parseCardinality(
     CharReader &reader, Logger &logger)
 {
 	// first we consume all whitespaces.
+	reader.consumePeek();
 	reader.consumeWhitespace();
 	// then we expect curly braces.
 	char c;
@@ -698,15 +705,15 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 	char c;
 
 	// Skip all whitespace characters, read a character and abort if at the end
+	reader.consumePeek();
 	reader.consumeWhitespace();
 	if (!reader.peek(c) || delims.count(c)) {
-		reader.resetPeek();
 		return error(reader, logger, ERR_UNEXPECTED_END, nullptr);
 	}
+	reader.resetPeek();
 
 	// Parse a string if a quote is reached
 	if (c == '"' || c == '\'') {
-		reader.resetPeek();
 		auto res = parseString(reader, logger);
 		return std::make_pair(res.first, res.second.c_str());
 	}

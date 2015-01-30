@@ -863,6 +863,14 @@ TEST(VariantReader, parseGenericToken)
 
 TEST(VariantReader, parseGeneric)
 {
+	// Simple case, int.
+	{
+		CharReader reader("0");
+		auto res = VariantReader::parseGeneric(reader, logger, {';'});
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isInt());
+		ASSERT_EQ(0, res.second.asInt());
+	}
 	// Simple case, unescaped string
 	{
 		CharReader reader("hello");
