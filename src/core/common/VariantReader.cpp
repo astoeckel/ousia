@@ -737,6 +737,19 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 		reader.resetPeek();
 	}
 
+	// Try to parse a cardinality
+	if (c == '{') {
+		CharReaderFork readerFork = reader.fork();
+		LoggerFork loggerFork = logger.fork();
+		auto res = parseCardinality(readerFork, logger);
+		if (res.first) {
+			readerFork.commit();
+			loggerFork.commit();
+			return std::make_pair(true, Variant{res.second});
+		}
+		reader.resetPeek();
+	}
+
 	// Try to parse an object
 	if (c == '[') {
 		return parseComplex(reader, logger, 0, ComplexMode::BOTH);
