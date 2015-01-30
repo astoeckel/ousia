@@ -33,8 +33,7 @@
  * @file ParserScope.hpp
  *
  * Contains the ParserScope class used for resolving references based on the
- *current
- * parser state.
+ * current parser state.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
@@ -45,12 +44,13 @@ namespace ousia {
 class CharReader;
 class Logger;
 class ParserScope;
+class Variant;
 
 /**
  * Callback function type used for creating a dummy object while no correct
  * object is available for resolution.
  */
-using ResolutionImposterCallback = Rooted<Node>(*)();
+using ResolutionImposterCallback = std::function<Rooted<Node>()>;
 
 /**
  * Callback function type called whenever the result of a resolution is
@@ -60,8 +60,8 @@ using ResolutionImposterCallback = Rooted<Node>(*)();
  * @param owner is the node that was passed as "owner".
  * @param logger is the logger to which errors should be logged.
  */
-using ResolutionResultCallback = void (*)(Handle<Node> resolved,
-                                          Handle<Node> owner, Logger &logger);
+using ResolutionResultCallback = std::function<void(Handle<Node> resolved,
+                                          Handle<Node> owner, Logger &logger)>;
 
 /**
  * Base class for the
@@ -171,6 +171,15 @@ public:
 	 */
 	bool resolve(const std::unordered_multiset<const Node *> &ignore,
 	             Logger &logger);
+
+	/**
+	 * Inform the callee about the failure by calling the callback function with
+	 * "nullptr" as resolved element.
+	 *
+	 * @param logger is the logger instance to which error messages should be
+	 * logged.
+	 */
+	void fail(Logger &logger);
 };
 
 /**
@@ -555,12 +564,12 @@ public:
 	 * @tparam T is the type of the node that should be resolved.
 	 * @param name is the path for which a node should be resolved. The name is
 	 * split at '.' to form a path.
+	 * @param owner is the node for which the resolution takes place.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
 	 * @param resultCallback is the callback function to which the result of
 	 * the resolution process is passed. This function is called once the
 	 * resolution was successful.
-	 * @param owner is the node for which the resolution takes place.
 	 * @return true if the resolution was immediately successful. This does not
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
@@ -572,6 +581,100 @@ public:
 		return resolve<T>(Utils::split(name, '.'), owner, logger,
 		                  resultCallback);
 	}
+
+	/**
+	 * Resolves a typesystem type. Makes sure an array type is returned if an
+	 * array type is requested.
+	 *
+	 * @param path is the path for which a node should be resolved.
+	 * @param owner is the node for which the resolution takes place.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolveType(const std::vector<std::string> &path, Handle<Node> owner,
+	                 Logger &logger, ResolutionResultCallback resultCallback);
+
+	/**
+	 * Resolves a typesystem type. Makes sure an array type is returned if an
+	 * array type is requested.
+	 *
+	 * @tparam T is the type of the node that should be resolved.
+	 * @param name is the path for which a node should be resolved. The name is
+	 * split at '.' to form a path.
+	 * @param owner is the node for which the resolution takes place.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolveType(const std::string &name, Handle<Node> owner,
+	                 Logger &logger, ResolutionResultCallback resultCallback);
+
+	/**
+	 * Resolves a type and makes sure the corresponding value is of the correct
+	 * type.
+	 *
+	 * <b>Warning:</b> This function is extremely dangerous as you have to make
+	 * sure that the "value" reference stays alife as long as the "owner" is
+	 * valid. This is especially problematic as internally references at parts
+	 * of "value" may be kept. Test usages of this function well!
+	 *
+	 * @tparam T is the type of the node that should be resolved.
+	 * @param path is the path for which a node should be resolved.
+	 * @param owner is the node for which the resolution takes place.
+	 * @param value is a reference at the Variant that represents the value for
+	 * which the type should be looked up. The value must be valid as long as
+	 * the owner node is valid (so it should be a part of the owner).
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolveTypeWithValue(const std::vector<std::string> &path,
+	                          Handle<Node> owner, Variant &value,
+	                          Logger &logger, ResolutionResultCallback resultCallback);
+
+	/**
+	 * Resolves a type and makes sure the corresponding value is of the correct
+	 * type.
+	 *
+	 * <b>Warning:</b> This function is extremely dangerous as you have to make
+	 * sure that the "value" reference stays alife as long as the "owner" is
+	 * valid. This is especially problematic as internally references at parts
+	 * of "value" may be kept. Test usages of this function well!
+	 *
+	 * @tparam T is the type of the node that should be resolved.
+	 * @param name is the path for which a node should be resolved. The name is
+	 * split at '.' to form a path.
+	 * @param owner is the node for which the resolution takes place.
+	 * @param value is a reference at the Variant that represents the value for
+	 * which the type should be looked up. The value must be valid as long as
+	 * the owner node is valid (so it should be a part of the owner).
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolveTypeWithValue(const std::string &name, Handle<Node> owner,
+	                          Variant &value, Logger &logger, ResolutionResultCallback resultCallback);
 
 	/**
 	 * Tries to resolve all currently deferred resolution steps. The list of

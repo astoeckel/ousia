@@ -18,6 +18,7 @@
 
 #include <core/common/Exceptions.hpp>
 #include <core/common/Utils.hpp>
+#include <core/model/Typesystem.hpp>
 
 #include "ParserScope.hpp"
 
@@ -98,6 +99,16 @@ bool DeferredResolution::resolve(
 		loggerFork.commit();
 	}
 	return false;
+}
+
+void DeferredResolution::fail(Logger &logger)
+{
+	try {
+		resultCallback(nullptr, owner, logger);
+	}
+	catch (LoggableException ex) {
+		logger.log(ex);
+	}
 }
 
 /* Class ParserScope */
@@ -267,6 +278,149 @@ bool ParserScope::resolve(const Rtti &type,
 	return false;
 }
 
+bool ParserScope::resolveType(const std::vector<std::string> &path,
+                              Handle<Node> owner, Logger &logger,
+                              ResolutionResultCallback resultCallback)
+{
+	// Check whether the given path denotes an array, if yes recursively resolve
+	// the inner type and wrap it in an array type (this allows multi
+	// dimensional arrays).
+	if (!path.empty()) {
+		const std::string &last = path.back();
+		if (last.size() >= 2 && last.substr(last.size() - 2, 2) == "[]") {
+			// Type ends with "[]", remove this from the last element in the
+			// list
+			std::vector<std::string> p = path;
+			p.back() = p.back().substr(0, last.size() - 2);
+
+			// Resolve the rest of the type
+			return resolveType(p, owner, logger,
+			                   [resultCallback](Handle<Node> resolved,
+			                                    Handle<Node> owner,
+			                                    Logger &logger) {
+				if (resolved != nullptr) {
+					Rooted<ArrayType> arr{new ArrayType{resolved.cast<Type>()}};
+					resultCallback(arr, owner, logger);
+				} else {
+					resultCallback(nullptr, owner, logger);
+				}
+			});
+		}
+	}
+
+	// Requested type is not an array, call the usual resolve function
+	return resolve(RttiTypes::Type, path, owner, logger, resultCallback);
+}
+
+bool ParserScope::resolveType(const std::string &name, Handle<Node> owner,
+                              Logger &logger,
+                              ResolutionResultCallback resultCallback)
+{
+	return resolveType(Utils::split(name, '.'), owner, logger, resultCallback);
+}
+
+bool ParserScope::resolveTypeWithValue(const std::vector<std::string> &path,
+                                       Handle<Node> owner, Variant &value,
+                                       Logger &logger,
+                                       ResolutionResultCallback resultCallback)
+{
+	// Fork the parser scope -- constants need to be resolved in the same
+	// context as this resolve call
+	std::shared_ptr<ParserScope> scope = std::make_shared<ParserScope>(fork());
+
+	return resolveType(
+	    path, owner, logger,
+	    [=](Handle<Node> resolved, Handle<Node> owner, Logger &logger) mutable {
+		    // Abort if the lookup failed
+		    if (resolved == nullptr) {
+			    resultCallback(resolved, owner, logger);
+			    return;
+		    }
+
+		    // Fetch the type reference and the manager reference
+		    Rooted<Type> type = resolved.cast<Type>();
+		    Manager *mgr = &type->getManager();
+
+		    // The type has been resolved, try to resolve magic values as
+		    // constants and postpone calling the callback function until
+		    // all magic values have been resolved
+		    std::shared_ptr<bool> isAsync = std::make_shared<bool>(false);
+		    std::shared_ptr<int> magicCount = std::make_shared<int>(0);
+		    type->build(value, logger, [=](Variant &magicValue, bool isValid,
+		                                   ManagedUid innerTypeUid) mutable {
+			    // Fetch the inner type
+			    Rooted<Type> innerType =
+			        dynamic_cast<Type *>(mgr->getManaged(innerTypeUid));
+			    if (innerType == nullptr) {
+				    return;
+			    }
+
+			    // Fetch a pointer at the variant
+			    Variant *magicValuePtr = &magicValue;
+
+			    // Increment the number of encountered magic values
+			    (*magicCount)++;
+
+			    // Try to resolve the value as constant
+			    std::string constantName = magicValue.asMagic();
+			    scope->resolve<Constant>(constantName, owner, logger,
+			                             [=](Handle<Node> resolved,
+			                                 Handle<Node> owner,
+			                                 Logger &logger) mutable {
+				    if (resolved != nullptr) {
+					    // Make sure the constant is of the correct inner type
+					    Rooted<Constant> constant = resolved.cast<Constant>();
+					    Rooted<Type> constantType = constant->getType();
+					    if (constantType != innerType) {
+						    logger.error(
+						        std::string("Expected value of type \"") +
+						            innerType->getName() +
+						            std::string("\" but found constant \"") +
+						            constant->getName() +
+						            std::string(" of type \"") +
+						            constantType->getName() + "\" instead.",
+						        *owner);
+					    } else if (!isValid) {
+						    logger.error("Identifier \"" + constantName +
+						                     "\" is not a valid " +
+						                     innerType->getName(),
+						                 *owner);
+					    }
+
+					    // Nevertheless, no matter what happened, set the value
+					    // of the original magic variant to the given constant
+					    *magicValuePtr = constant->getValue();
+				    }
+
+				    // Decrement the number of magic values, call the callback
+				    // function if all magic values have been resolved
+				    (*magicCount)--;
+				    if ((*magicCount) == 0 && (*isAsync)) {
+					    resultCallback(resolved, owner, logger);
+				    }
+				});
+			});
+
+		    // Now we are asynchronous
+		    (*isAsync) = true;
+
+		    // Directly call the callback function if there were no magic values
+		    // involved
+		    if ((*magicCount) == 0) {
+			    resultCallback(resolved, owner, logger);
+		    }
+		});
+}
+
+bool ParserScope::resolveTypeWithValue(const std::string &name,
+                                       Handle<Node> owner, Variant &value,
+                                       Logger &logger,
+                                       ResolutionResultCallback resultCallback)
+{
+	return resolveTypeWithValue(Utils::split(name, '.'), owner, value, logger,
+	                            resultCallback);
+}
+
 bool ParserScope::performDeferredResolution(Logger &logger)
 {
 	// Repeat the resolution process as long as something has changed in the
@@ -305,7 +459,8 @@ bool ParserScope::performDeferredResolution(Logger &logger)
 
 	// Output error messages for all elements for which resolution did not
 	// succeed.
-	for (const auto &failed : deferred) {
+	for (auto &failed : deferred) {
+		failed.fail(logger);
 		logger.error(std::string("Could not resolve ") + failed.type.name +
 		                 std::string(" \"") + Utils::join(failed.path, ".") +
 		                 std::string("\""),

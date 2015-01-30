@@ -24,12 +24,28 @@
 
 namespace ousia {
 
+/* Static helper functions */
+
+static void NullMagicCallback(Variant &, bool, ManagedUid) {}
+
 /* Class Type */
 
-bool Type::build(Variant &data, Logger &logger) const
+bool Type::build(Variant &data, Logger &logger,
+                 const MagicCallback &magicCallback) const
 {
+	// If the given variant is marked as "magic", try to resolve the real value
+	if (data.isMagic()) {
+		Variant strData = Variant::fromString(data.asString());
+		Logger nullLogger;
+		bool valid = isValid(strData, nullLogger);
+		magicCallback(data, valid,
+		              getUid());
+		build(strData, nullLogger);
+		return true;  // Just return true for now
+	}
+
 	try {
-		return doBuild(data, logger);
+		return doBuild(data, logger, magicCallback);
 	}
 	catch (LoggableException ex) {
 		logger.log(ex);
@@ -38,37 +54,47 @@ bool Type::build(Variant &data, Logger &logger) const
 	}
 }
 
+bool Type::build(Variant &data, Logger &logger) const
+{
+	return build(data, logger, NullMagicCallback);
+}
+
 /* Class BoolType */
 
-bool BoolType::doBuild(Variant &data, Logger &logger) const
+bool BoolType::doBuild(Variant &data, Logger &logger,
+                       const MagicCallback &magicCallback) const
 {
 	return VariantConverter::toBool(data, logger);
 }
 
 /* Class IntType */
 
-bool IntType::doBuild(Variant &data, Logger &logger) const
+bool IntType::doBuild(Variant &data, Logger &logger,
+                      const MagicCallback &magicCallback) const
 {
 	return VariantConverter::toInt(data, logger);
 }
 
 /* Class DoubleType */
 
-bool DoubleType::doBuild(Variant &data, Logger &logger) const
+bool DoubleType::doBuild(Variant &data, Logger &logger,
+                         const MagicCallback &magicCallback) const
 {
 	return VariantConverter::toDouble(data, logger);
 }
 
 /* Class StringType */
 
-bool StringType::doBuild(Variant &data, Logger &logger) const
+bool StringType::doBuild(Variant &data, Logger &logger,
+                         const MagicCallback &magicCallback) const
 {
 	return VariantConverter::toString(data, logger);
 }
 
 /* Class EnumType */
 
-bool EnumType::doBuild(Variant &data, Logger &logger) const
+bool EnumType::doBuild(Variant &data, Logger &logger,
+                       const MagicCallback &magicCallback) const
 {
 	// If the variant is an int, check whether the value is in range
 	if (data.isInt()) {
@@ -152,7 +178,7 @@ Attribute::Attribute(Manager &mgr, std::string name, Handle<Type> type,
                      Variant defaultValue, bool optional)
     : Node(mgr, std::move(name)),
       type(acquire(type)),
-      rawDefaultValue(defaultValue),
+      defaultValue(std::move(defaultValue)),
       optional(optional)
 {
 	ExceptionLogger logger;
@@ -173,7 +199,6 @@ Attribute::Attribute(Manager &mgr, std::string name, Variant defaultValue,
 void Attribute::initialize(Logger &logger)
 {
 	if (optional) {
-		defaultValue = rawDefaultValue;
 		type->build(defaultValue, logger);
 	}
 }
@@ -187,7 +212,6 @@ void Attribute::setDefaultValue(const Variant &defaultValue, Logger &logger)
 {
 	invalidate();
 
-	rawDefaultValue = defaultValue;
 	optional = true;
 	initialize(logger);
 }
@@ -196,7 +220,6 @@ void Attribute::removeDefaultValue()
 {
 	invalidate();
 
-	rawDefaultValue = nullptr;
 	defaultValue = nullptr;
 	optional = false;
 }
@@ -264,7 +287,9 @@ bool StructType::insertDefaults(Variant &data, const std::vector<bool> &set,
 	return ok;
 }
 
-bool StructType::buildFromArray(Variant &data, Logger &logger, bool trim) const
+bool StructType::buildFromArray(Variant &data, Logger &logger,
+                                const MagicCallback &magicCallback,
+                                bool trim) const
 {
 	bool ok = true;
 	Variant::arrayType &arr = data.asArray();
@@ -286,14 +311,16 @@ bool StructType::buildFromArray(Variant &data, Logger &logger, bool trim) const
 	// Make sure the given attributes have to correct type
 	const size_t len = std::min(n, N);
 	for (size_t a = 0; a < len; a++) {
-		set[a] = attributes[a]->getType()->build(arr[a], logger);
+		set[a] = attributes[a]->getType()->build(arr[a], logger, magicCallback);
 		ok = ok && set[a];
 	}
 
 	return insertDefaults(data, set, logger) && ok;
 }
 
-bool StructType::buildFromMap(Variant &data, Logger &logger, bool trim) const
+bool StructType::buildFromMap(Variant &data, Logger &logger,
+                              const MagicCallback &magicCallback,
+                              bool trim) const
 {
 	bool ok = true;
 	const Variant::mapType &map = data.asMap();
@@ -323,7 +350,8 @@ bool StructType::buildFromMap(Variant &data, Logger &logger, bool trim) const
 
 			// Convert the value to the type of the attribute
 			arr[idx] = value;
-			set[idx] = attributes[idx]->getType()->build(arr[idx], logger);
+			set[idx] = attributes[idx]->getType()->build(arr[idx], logger,
+			                                             magicCallback);
 		} else if (!trim) {
 			ok = false;
 			logger.error(std::string("Invalid attribute key \"") + key +
@@ -337,13 +365,14 @@ bool StructType::buildFromMap(Variant &data, Logger &logger, bool trim) const
 }
 
 bool StructType::buildFromArrayOrMap(Variant &data, Logger &logger,
+                                     const MagicCallback &magicCallback,
                                      bool trim) const
 {
 	if (data.isArray()) {
-		return buildFromArray(data, logger, trim);
+		return buildFromArray(data, logger, magicCallback, trim);
 	}
 	if (data.isMap()) {
-		return buildFromMap(data, logger, trim);
+		return buildFromMap(data, logger, magicCallback, trim);
 	}
 	throw LoggableException(
 	    std::string(
@@ -375,9 +404,10 @@ void StructType::initialize(Logger &logger)
 	}
 }
 
-bool StructType::doBuild(Variant &data, Logger &logger) const
+bool StructType::doBuild(Variant &data, Logger &logger,
+                         const MagicCallback &magicCallback) const
 {
-	return buildFromArrayOrMap(data, logger, false);
+	return buildFromArrayOrMap(data, logger, magicCallback, false);
 }
 
 bool StructType::doValidate(Logger &logger) const
@@ -491,7 +521,7 @@ bool StructType::derivedFrom(Handle<StructType> other) const
 
 bool StructType::cast(Variant &data, Logger &logger) const
 {
-	return buildFromArrayOrMap(data, logger, true);
+	return buildFromArrayOrMap(data, logger, NullMagicCallback, true);
 }
 
 ssize_t StructType::indexOf(const std::string &name) const
@@ -510,7 +540,8 @@ bool StructType::hasAttribute(const std::string &name) const
 
 /* Class ArrayType */
 
-bool ArrayType::doBuild(Variant &data, Logger &logger) const
+bool ArrayType::doBuild(Variant &data, Logger &logger,
+                        const MagicCallback &magicCallback) const
 {
 	if (!data.isArray()) {
 		throw LoggableException(std::string("Expected array, but got ") +
@@ -518,23 +549,32 @@ bool ArrayType::doBuild(Variant &data, Logger &logger) const
 	}
 	bool res = true;
 	for (auto &v : data.asArray()) {
-		if (!innerType->build(v, logger)) {
+		if (!innerType->build(v, logger, magicCallback)) {
 			res = false;
 		}
 	}
 	return res;
 }
 
+/* Class UnknownType */
+
+bool UnknownType::doBuild(Variant &, Logger &, const MagicCallback &) const
+{
+	return true;
+}
+
+UnknownType::UnknownType(Manager &mgr) : Type(mgr, "unknown", nullptr, false) {}
+
+Variant UnknownType::create() const { return Variant{nullptr}; }
+
 /* Class Constant */
 
 Constant::Constant(Manager &mgr, std::string name, Handle<Typesystem> system,
                    Handle<Type> type, Variant value)
-    : Node(mgr, std::move(name), system),
-      type(acquire(type)),
-      rawValue(std::move(value))
+    : Node(mgr, std::move(name), system), type(acquire(type)), value(value)
 {
 	ExceptionLogger logger;
-	initialize(logger);
+	this->type->build(this->value, logger);
 }
 
 Constant::Constant(Manager &mgr, std::string name, Handle<Typesystem> system,
@@ -543,27 +583,20 @@ Constant::Constant(Manager &mgr, std::string name, Handle<Typesystem> system,
 {
 }
 
-void Constant::initialize(Logger &logger)
-{
-	value = rawValue;
-	type->build(value, logger);
-}
-
 Rooted<Type> Constant::getType() const { return type; }
 
 void Constant::setType(Handle<Type> type, Logger &logger)
 {
 	this->type = acquire(type);
-	initialize(logger);
+	this->type->build(this->value, logger);
 }
 
-const Variant &Constant::getValue() const { return value; }
+Variant &Constant::getValue() { return value; }
 
 void Constant::setValue(Variant value, Logger &logger)
 {
-	this->rawValue = value;
 	this->value = std::move(value);
-	initialize(logger);
+	this->type->build(this->value, logger);
 }
 
 /* Class Typesystem */
@@ -571,7 +604,7 @@ void Constant::setValue(Variant value, Logger &logger)
 void Typesystem::doResolve(ResolutionState &state)
 {
 	continueResolveComposita(constants, constants.getIndex(), state);
-	continueResolveComposita(types, constants.getIndex(), state);
+	continueResolveComposita(types, types.getIndex(), state);
 	continueResolveReferences(typesystems, state);
 }
 
