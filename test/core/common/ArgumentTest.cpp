@@ -55,7 +55,7 @@ TEST(Argument, validateAny)
 {
 	Argument a = Argument::Any("a");
 
-	ASSERT_FALSE(a.hasDefault);
+	ASSERT_FALSE(a.hasDefault());
 
 	{
 		Variant v{true};
@@ -83,8 +83,8 @@ TEST(Argument, validateAnyDefault)
 {
 	Argument a = Argument::Any("a", true);
 
-	ASSERT_TRUE(a.hasDefault);
-	ASSERT_TRUE(a.defaultValue.asBool());
+	ASSERT_TRUE(a.hasDefault());
+	ASSERT_TRUE(a.getDefaultValue().asBool());
 
 	{
 		Variant v{true};
@@ -112,7 +112,7 @@ TEST(Argument, validateBool)
 {
 	Argument a = Argument::Bool("a");
 
-	ASSERT_FALSE(a.hasDefault);
+	ASSERT_FALSE(a.hasDefault());
 
 	{
 		Variant v{true};
@@ -140,8 +140,8 @@ TEST(Argument, validateBoolDefault)
 {
 	Argument a = Argument::Bool("a", true);
 
-	ASSERT_TRUE(a.hasDefault);
-	ASSERT_TRUE(a.defaultValue.asBool());
+	ASSERT_TRUE(a.hasDefault());
+	ASSERT_TRUE(a.getDefaultValue().asBool());
 
 	{
 		Variant v{true};
@@ -169,7 +169,7 @@ TEST(Argument, validateInt)
 {
 	Argument a = Argument::Int("a");
 
-	ASSERT_FALSE(a.hasDefault);
+	ASSERT_FALSE(a.hasDefault());
 
 	{
 		Variant v{123};
@@ -190,8 +190,8 @@ TEST(Argument, validateIntDefault)
 {
 	Argument a = Argument::Int("a", 42);
 
-	ASSERT_TRUE(a.hasDefault);
-	ASSERT_EQ(42, a.defaultValue.asInt());
+	ASSERT_TRUE(a.hasDefault());
+	ASSERT_EQ(42, a.getDefaultValue().asInt());
 
 	{
 		Variant v{123};
@@ -212,7 +212,7 @@ TEST(Argument, validateDouble)
 {
 	Argument a = Argument::Double("a");
 
-	ASSERT_FALSE(a.hasDefault);
+	ASSERT_FALSE(a.hasDefault());
 
 	{
 		Variant v{123};
@@ -240,8 +240,8 @@ TEST(Argument, validateDoubleDefault)
 {
 	Argument a = Argument::Double("a", 42.0);
 
-	ASSERT_TRUE(a.hasDefault);
-	ASSERT_EQ(42.0, a.defaultValue.asDouble());
+	ASSERT_TRUE(a.hasDefault());
+	ASSERT_EQ(42.0, a.getDefaultValue().asDouble());
 
 	{
 		Variant v{123};
@@ -269,7 +269,7 @@ TEST(Argument, validateString)
 {
 	Argument a = Argument::String("a");
 
-	ASSERT_FALSE(a.hasDefault);
+	ASSERT_FALSE(a.hasDefault());
 
 	{
 		Variant v{"test"};
@@ -318,8 +318,8 @@ TEST(Argument, validateStringDefault)
 {
 	Argument a = Argument::String("a", "test2");
 
-	ASSERT_TRUE(a.hasDefault);
-	ASSERT_EQ("test2", a.defaultValue.asString());
+	ASSERT_TRUE(a.hasDefault());
+	ASSERT_EQ("test2", a.getDefaultValue().asString());
 
 	{
 		Variant v{"test"};
@@ -369,7 +369,7 @@ TEST(Argument, validateObject)
 	Manager mgr;
 	Argument a = Argument::Object("a", RttiTypes::TestManaged1);
 
-	ASSERT_FALSE(a.hasDefault);
+	ASSERT_FALSE(a.hasDefault());
 
 	{
 		Rooted<Managed> m{new Managed(mgr)};
@@ -421,9 +421,9 @@ TEST(Argument, validateObjectDefault)
 	Manager mgr;
 	Argument a = Argument::Object("a", RttiTypes::TestManaged1, nullptr);
 
-	ASSERT_TRUE(a.hasDefault);
-	ASSERT_TRUE(a.defaultValue.isObject());
-	ASSERT_EQ(nullptr, a.defaultValue.asObject());
+	ASSERT_TRUE(a.hasDefault());
+	ASSERT_TRUE(a.getDefaultValue().isObject());
+	ASSERT_EQ(nullptr, a.getDefaultValue().asObject());
 
 	{
 		Rooted<Managed> m{new Managed(mgr)};
@@ -481,7 +481,7 @@ TEST(Argument, validateFunction)
 {
 	Argument a = Argument::Function("a");
 
-	ASSERT_FALSE(a.hasDefault);
+	ASSERT_FALSE(a.hasDefault());
 
 	{
 		Variant v = Variant::fromFunction(helloWorldFun);
@@ -504,9 +504,9 @@ TEST(Argument, validateFunctionDefault)
 {
 	Argument a = Argument::Function("a", goodbyeWorldFun);
 
-	ASSERT_TRUE(a.hasDefault);
-	ASSERT_TRUE(a.defaultValue.isFunction());
-	ASSERT_EQ(goodbyeWorldFun, a.defaultValue.asFunction());
+	ASSERT_TRUE(a.hasDefault());
+	ASSERT_TRUE(a.getDefaultValue().isFunction());
+	ASSERT_EQ(goodbyeWorldFun, a.getDefaultValue().asFunction());
 
 	{
 		Variant v = Variant::fromFunction(helloWorldFun);
@@ -529,7 +529,7 @@ TEST(Argument, validateArray)
 {
 	Argument a = Argument::Array("a");
 
-	ASSERT_FALSE(a.hasDefault);
+	ASSERT_FALSE(a.hasDefault());
 
 	{
 		Variant::arrayType arr{1, "a", nullptr};
@@ -554,9 +554,9 @@ TEST(Argument, validateArrayDefault)
 	Variant::arrayType arrDefault{1, "a", nullptr};
 	Argument a = Argument::Array("a", arrDefault);
 
-	ASSERT_TRUE(a.hasDefault);
-	ASSERT_TRUE(a.defaultValue.isArray());
-	ASSERT_EQ(arrDefault, a.defaultValue.asArray());
+	ASSERT_TRUE(a.hasDefault());
+	ASSERT_TRUE(a.getDefaultValue().isArray());
+	ASSERT_EQ(arrDefault, a.getDefaultValue().asArray());
 
 	{
 		Variant::arrayType arr{"test1", 42.5};
@@ -580,7 +580,7 @@ TEST(Argument, validateArrayInner)
 {
 	Argument a = Argument::Array("a", RttiTypes::String);
 
-	ASSERT_FALSE(a.hasDefault);
+	ASSERT_FALSE(a.hasDefault());
 
 	{
 		Variant::arrayType arr{1, "a", nullptr};
@@ -614,9 +614,9 @@ TEST(Argument, validateArrayInnerDefault)
 	Variant::arrayType arrDefault{1, "a", nullptr};
 	Argument a = Argument::Array("a", RttiTypes::String, arrDefault);
 
-	ASSERT_TRUE(a.hasDefault);
-	ASSERT_TRUE(a.defaultValue.isArray());
-	ASSERT_EQ(arrDefault, a.defaultValue.asArray());
+	ASSERT_TRUE(a.hasDefault());
+	ASSERT_TRUE(a.getDefaultValue().isArray());
+	ASSERT_EQ(arrDefault, a.getDefaultValue().asArray());
 
 	{
 		Variant::arrayType arr{"test1", 42.5};
@@ -649,7 +649,7 @@ TEST(Argument, validateMap)
 {
 	Argument a = Argument::Map("a");
 
-	ASSERT_FALSE(a.hasDefault);
+	ASSERT_FALSE(a.hasDefault());
 
 	{
 		Variant::mapType map{{"key1", 1}, {"key2", "a"}, {"key3", nullptr}};
@@ -674,9 +674,9 @@ TEST(Argument, validateMapDefault)
 	Variant::mapType mapDefault{{"key1", 1}, {"key2", "a"}, {"key3", nullptr}};
 	Argument a = Argument::Map("a", mapDefault);
 
-	ASSERT_TRUE(a.hasDefault);
-	ASSERT_TRUE(a.defaultValue.isMap());
-	ASSERT_EQ(mapDefault, a.defaultValue.asMap());
+	ASSERT_TRUE(a.hasDefault());
+	ASSERT_TRUE(a.getDefaultValue().isMap());
+	ASSERT_EQ(mapDefault, a.getDefaultValue().asMap());
 
 	{
 		Variant::mapType map{{"a", true}, {"b", "a"}};
@@ -700,7 +700,7 @@ TEST(Argument, validateMapInnerType)
 {
 	Argument a = Argument::Map("a", RttiTypes::String);
 
-	ASSERT_FALSE(a.hasDefault);
+	ASSERT_FALSE(a.hasDefault());
 
 	{
 		Variant::mapType map{{"key1", 1}, {"key2", "a"}, {"key3", nullptr}};
@@ -739,9 +739,9 @@ TEST(Argument, validateMapInnerTypeDefault)
 	Variant::mapType mapDefault{{"key1", "1"}};
 	Argument a = Argument::Map("a", RttiTypes::String, mapDefault);
 
-	ASSERT_TRUE(a.hasDefault);
-	ASSERT_TRUE(a.defaultValue.isMap());
-	ASSERT_EQ(mapDefault, a.defaultValue.asMap());
+	ASSERT_TRUE(a.hasDefault());
+	ASSERT_TRUE(a.getDefaultValue().isMap());
+	ASSERT_EQ(mapDefault, a.getDefaultValue().asMap());
 
 	{
 		Variant::mapType map{{"key1", 1}, {"key2", "a"}, {"key3", nullptr}};

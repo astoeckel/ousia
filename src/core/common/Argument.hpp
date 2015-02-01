@@ -53,15 +53,33 @@ class Rtti;
 class Argument {
 private:
 	/**
+	 * Contains the name of the argument. Used for logging and in case the
+	 * arguments are presented as map.
+	 */
+	std::string name;
+
+	/**
 	 * Type that should be returned by the Variant rttiType function.
 	 */
-	const Rtti &type;
+	Rtti const* type;
 
 	/**
 	 * Describes the inner type of the variant -- e.g. the type of the elements
 	 * inside an array. Normally set to RttiTypes::None.
 	 */
-	const Rtti &innerType;
+	Rtti const* innerType;
+
+	/**
+	 * Default value. Note that a value of nullptr does not indicate that no
+	 * default value has been set. Use the "hasDefault" flag for this purpose.
+	 * Nullptr is a valid value for objects.
+	 */
+	Variant defaultValue;
+
+	/**
+	 * True if a default value is set, false otherwise.
+	 */
+	bool hasDefaultValue;
 
 	/**
 	 * Private constructor used for manually setting all internal data fields.
@@ -100,24 +118,6 @@ private:
 	Argument(std::string name, const Rtti &type);
 
 public:
-	/**
-	 * Contains the name of the argument. Used for logging and in case the
-	 * arguments are presented as map.
-	 */
-	const std::string name;
-
-	/**
-	 * Default value. Note that a value of nullptr does not indicate that no
-	 * default value has been set. Use the "hasDefault" flag for this purpose.
-	 * Nullptr is a valid value for objects.
-	 */
-	const Variant defaultValue;
-
-	/**
-	 * True if a default value is set, false otherwise.
-	 */
-	const bool hasDefault;
-
 	/**
 	 * Named constructor for an argument with any type.
 	 *
@@ -404,6 +404,31 @@ public:
 	 * @return true if the given variant was valid, false otherwise.
 	 */
 	bool validate(Variant &var, Logger &logger) const;
+
+	/**
+	 * Returns the name of the argument. The name is used for logging and in
+	 * case a map is presented as arguments.
+	 *
+	 * @return the name of the argument given in the constructor.
+	 */
+	const std::string &getName() const;
+
+	/**
+	 * Returns the default value. Note that a value of nullptr does not indicate
+	 * that no default value has been set. Use the "hasDefault" flag for this
+	 * purpose. Nullptr is a valid value for objects.
+	 *
+	 * @return the default value that was given in the constructor (may be
+	 * nullptr) and nullptr if no default value was given.
+	 */
+	const Variant& getDefaultValue() const;
+
+	/**
+	 * Returns true if a default value was set in the constructor.
+	 *
+	 * @return true if a default value is set, false otherwise.
+	 */
+	bool hasDefault() const;
 };
 
 /**

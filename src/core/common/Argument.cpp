@@ -28,12 +28,12 @@ namespace ousia {
 /* Class Argument */
 
 Argument::Argument(std::string name, const Rtti &type, const Rtti &innerType,
-                   Variant defaultValue, bool hasDefault)
-    : type(type),
-      innerType(innerType),
-      name(std::move(name)),
+                   Variant defaultValue, bool hasDefaultValue)
+    : name(std::move(name)),
+      type(&type),
+      innerType(&innerType),
       defaultValue(std::move(defaultValue)),
-      hasDefault(hasDefault)
+      hasDefaultValue(hasDefaultValue)
 {
 }
 
@@ -181,15 +181,21 @@ Argument Argument::Cardinality(std::string name,
 
 bool Argument::validate(Variant &var, Logger &logger) const
 {
-	if (!VariantConverter::convert(var, type, innerType, logger,
+	if (!VariantConverter::convert(var, *type, *innerType, logger,
 	                               VariantConverter::Mode::SAFE)) {
-		if (hasDefault) {
+		if (hasDefaultValue) {
 			var = defaultValue;
 		}
 		return false;
 	}
 	return true;
 }
+
+const std::string &Argument::getName() const { return name; }
+
+const Variant &Argument::getDefaultValue() const { return defaultValue; }
+
+bool Argument::hasDefault() const { return hasDefaultValue; }
 
 /* Class Arguments */
 
@@ -203,14 +209,14 @@ static std::unordered_map<std::string, size_t> buildArgumentNames(
 	std::unordered_map<std::string, size_t> res;
 	size_t i = 0;
 	for (const Argument &arg : arguments) {
-		if (!Utils::isIdentifier(arg.name)) {
-			throw OusiaException{std::string("Argument name ") + arg.name +
+		const std::string &name = arg.getName();
+		if (!Utils::isIdentifier(name)) {
+			throw OusiaException{std::string("Argument name ") + name +
 			                     std::string(" is not a valid identifier")};
 		}
-		if (!res.emplace(arg.name, i++).second) {
-			throw OusiaException{
-			    std::string("Argument names must be unique (") + arg.name +
-			    std::string(")")};
+		if (!res.emplace(name, i++).second) {
+			throw OusiaException{std::string("Argument name \"") + name +
+			                     std::string("\" is not unique")};
 		}
 	}
 	return res;
@@ -252,15 +258,15 @@ bool Arguments::validateArray(Variant::arrayType &arr, Logger &logger) const
 		if (a < n) {
 			ok = ok && arguments[a].validate(arr[a], logger);
 		} else {
-			if (arguments[a].hasDefault) {
-				arr[a] = arguments[a].defaultValue;
+			if (arguments[a].hasDefault()) {
+				arr[a] = arguments[a].getDefaultValue();
 			} else {
 				// Call "validate" to inject a standard value
 				arr[a] = Variant::fromObject(nullptr);
 				arguments[a].validate(arr[a], nullLogger);
 				logger.error(std::string("Missing argument ") +
 				             std::to_string(a + 1) + std::string(" \"") +
-				             arguments[a].name + std::string("\""));
+				             arguments[a].getName() + std::string("\""));
 				ok = false;
 			}
 		}
@@ -308,14 +314,15 @@ bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
 	// Insert all unset arguments
 	for (size_t a = 0; a < N; a++) {
 		if (!set[a]) {
-			if (arguments[a].hasDefault) {
-				map[arguments[a].name] = arguments[a].defaultValue;
+			const std::string &name = arguments[a].getName();
+			if (arguments[a].hasDefault()) {
+				map[name] = arguments[a].getDefaultValue();
 			} else {
 				// Call "validate" to inject a standard value
-				map[arguments[a].name] = Variant::fromObject(nullptr);
-				arguments[a].validate(map[arguments[a].name], nullLogger);
-				logger.error(std::string("Missing argument \"") +
-				             arguments[a].name + std::string("\""));
+				map[name] = Variant::fromObject(nullptr);
+				arguments[a].validate(map[name], nullLogger);
+				logger.error(std::string("Missing argument \"") + name +
+				             std::string("\""));
 				ok = false;
 			}
 		}
