@@ -20,6 +20,7 @@
 
 #include <core/managed/Managed.hpp>
 
+#include "Location.hpp"
 #include "Logger.hpp"
 #include "Utils.hpp"
 #include "Variant.hpp"
@@ -28,6 +29,42 @@
 #include "Rtti.hpp"
 
 namespace ousia {
+
+/* Struct VariantMetadata */
+
+bool VariantMetadata::hasLocation() const
+{
+	return locationSourceId != InvalidSourceId;
+}
+
+SourceLocation VariantMetadata::getLocation() const
+{
+	if (locationOffset == InvalidLocationOffset) {
+		return SourceLocation(locationSourceId);
+	}
+	if (locationLength == InvalidLocationLength) {
+		return SourceLocation(locationSourceId, locationOffset);
+	}
+	return SourceLocation(locationSourceId, locationOffset,
+	                      static_cast<size_t>(locationOffset) +
+	                          static_cast<size_t>(locationLength));
+}
+
+void VariantMetadata::setLocation(const SourceLocation &location)
+{
+	// Copy the location members
+	const SourceId sourceId = location.getSourceId();
+	const size_t offset = location.getStart();
+	const size_t length = location.getLength();
+
+	// Copy the location, mark values that cannot be stored as invalid
+	locationSourceId =
+	    sourceId < InvalidLocationSourceId ? sourceId : InvalidLocationSourceId;
+	locationOffset =
+	    offset < InvalidLocationOffset ? offset : InvalidLocationOffset;
+	locationLength =
+	    length < InvalidLocationLength ? length : InvalidLocationLength;
+}
 
 /* Class Variant::TypeException */
 
@@ -155,7 +192,7 @@ Variant::cardinalityType Variant::toCardinality() const
 
 const Rtti &Variant::getRtti() const
 {
-	switch (type) {
+	switch (meta.getType()) {
 		case VariantType::NULLPTR:
 			return RttiTypes::Nullptr;
 		case VariantType::BOOL:

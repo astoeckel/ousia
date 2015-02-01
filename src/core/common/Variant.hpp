@@ -50,23 +50,129 @@ namespace ousia {
 // Forward declarations
 class Function;
 class Rtti;
+class SourceLocation;
 
 /**
  * Enum containing the possible types a variant may have.
  */
-enum class VariantType : int16_t {
-	NULLPTR,
-	BOOL,
-	INT,
-	DOUBLE,
-	STRING,
-	MAGIC,
-	ARRAY,
-	MAP,
-	OBJECT,
-	CARDINALITY,
-	FUNCTION
+enum class VariantType : uint8_t {
+	BOOL = 1,
+	INT = 2,
+	DOUBLE = 3,
+	STRING = 4,
+	MAGIC = 5,
+	ARRAY = 6,
+	MAP = 7,
+	OBJECT = 8,
+	CARDINALITY = 9,
+	FUNCTION = 10,
+	NULLPTR = 15
 };
+
+#pragma pack(push, 1)
+/**
+ * Structure used to store the type of a variant and the location at which it
+ * was found in 8 Bytes.
+ */
+struct VariantMetadata {
+	/**
+	 * Field used to store the type of a Variant (4 Bit, space for 16 objects).
+	 */
+	uint8_t variantType : 4;
+
+	/**
+	 * Field used to store the location at which the Variant was found (30 Bit).
+	 */
+	uint32_t locationOffset : 30;  // Enough for 1GB
+
+	/**
+	 * Field used to store the length of the value from which the variant was
+	 * parsed (14 Bit).
+	 */
+	uint16_t locationLength : 14;  // 16.000 Bytes of context
+
+	/**
+	 * Unique id of the file from which the variant was parsed.
+	 */
+	uint16_t locationSourceId : 16;  // 65.000 Source files
+
+	/**
+	 * Maximum byte offset for locations that can be stored.
+	 */
+	static constexpr uint32_t InvalidLocationOffset = 0x3FFFFFFF;
+
+	/**
+	 * Maximum length for locations that can be sotred.
+	 */
+	static constexpr uint16_t InvalidLocationLength = 0x3FFF;
+
+	/**
+	 * Maximum source id that can be stored.
+	 */
+	static constexpr uint16_t InvalidLocationSourceId = 0xFFFF;
+
+	/**
+	 * Default constructor. Sets the type to nullptr and all other fields to
+	 * invalid.
+	 */
+	VariantMetadata()
+	{
+		*(reinterpret_cast<uint64_t *>(this)) = 0xFFFFFFFFFFFFFFFFull;
+	}
+
+	/**
+	 * Sets the type to the given type and all other fields to invalid.
+	 *
+	 * @param type is the type of the variant.
+	 */
+	VariantMetadata(VariantType type) : VariantMetadata()
+	{
+		variantType = static_cast<uint8_t>(type);
+	}
+
+	/**
+	 * Returns the internally stored type.
+	 *
+	 * @return the variant type.
+	 */
+	VariantType getType() const
+	{
+		return static_cast<VariantType>(variantType);
+	}
+
+	/**
+	 * Sets the type to the given value.
+	 *
+	 * @param type is the variant type that should be stored.
+	 */
+	void setType(VariantType type) { variantType = static_cast<uint8_t>(type); }
+
+	/**
+	 * Returns true if the stored source id is not invalid.
+	 *
+	 * @retun true if the
+	 */
+	bool hasLocation() const;
+
+	/**
+	 * Unpacks ans returns the stored source location. Note that the returned
+	 * location may differ from the one given in "setLocation", if the values
+	 * were too large to represent.
+	 *
+	 * @return the stored SourceLocation.
+	 */
+	SourceLocation getLocation() const;
+
+	/**
+	 * Packs the given source location and stores it in the metadata. Not all
+	 * SourceLocation values may be representable, as they are stored with fewer
+	 * bits as in the SourceLocation structure.
+	 *
+	 * @param location is the SourceLocation that should be stored.
+	 */
+	void setLocation(const SourceLocation &location);
+};
+#pragma pack(pop)
 
 /**
  * Instances of the Variant class represent any kind of data that is exchanged
@@ -119,9 +225,10 @@ public:
 
 private:
 	/**
-	 * Used to store the actual type of the variant.
+	 * Used to store the actual type of the variant and the location from which
+	 * the variant was parsed.
 	 */
-	VariantType type = VariantType::NULLPTR;
+	VariantMetadata meta;
 
 	/**
 	 * Anonymous union containing the possible value of the variant.
@@ -170,8 +277,8 @@ private:
 	void copy(const Variant &v)
 	{
 		destroy();
-		type = v.type;
-		switch (type) {
+		meta = v.meta;
+		switch (meta.getType()) {
 			case VariantType::NULLPTR:
 				break;
 			case VariantType::BOOL:
@@ -214,8 +321,8 @@ private:
 	void move(Variant &&v) noexcept
 	{
 		destroy();
-		type = v.type;
-		switch (type) {
+		meta = v.meta;
+		switch (meta.getType()) {
 			case VariantType::NULLPTR:
 				break;
 			case VariantType::BOOL:
@@ -238,7 +345,7 @@ private:
 				v.ptrVal = nullptr;
 				break;
 		}
-		v.type = VariantType::NULLPTR;
+		v.meta.setType(VariantType::NULLPTR);
 	}
 
 	/**
@@ -247,7 +354,7 @@ private:
 	void destroy()
 	{
 		if (ptrVal) {
-			switch (type) {
+			switch (meta.getType()) {
 				case VariantType::STRING:
 				case VariantType::MAGIC:
 					delete static_cast<stringType *>(ptrVal);
@@ -481,28 +588,28 @@ public:
 	 * @return true if the Variant instance represents the nullptr, false
 	 * otherwise.
 	 */
-	bool isNull() const { return type == VariantType::NULLPTR; }
+	bool isNull() const { return meta.getType() == VariantType::NULLPTR; }
 
 	/**
 	 * Checks whether this Variant instance is a boolean.
 	 *
 	 * @return true if the Variant instance is a boolean, false otherwise.
 	 */
-	bool isBool() const { return type == VariantType::BOOL; }
+	bool isBool() const { return meta.getType() == VariantType::BOOL; }
 
 	/**
 	 * Checks whether this Variant instance is an integer.
 	 *
 	 * @return true if the Variant instance is an integer, false otherwise.
 	 */
-	bool isInt() const { return type == VariantType::INT; }
+	bool isInt() const { return meta.getType() == VariantType::INT; }
 
 	/**
 	 * Checks whether this Variant instance is a double.
 	 *
 	 * @return true if the Variant instance is a double, false otherwise.
 	 */
-	bool isDouble() const { return type == VariantType::DOUBLE; }
+	bool isDouble() const { return meta.getType() == VariantType::DOUBLE; }
 
 	/**
 	 * Checks whether this Variant instance is a string or a magic string.
@@ -511,7 +618,8 @@ public:
 	 */
 	bool isString() const
 	{
-		return type == VariantType::STRING || type == VariantType::MAGIC;
+		return meta.getType() == VariantType::STRING ||
+		       meta.getType() == VariantType::MAGIC;
 	}
 
 	/**
@@ -521,42 +629,45 @@ public:
 	 *
 	 * @return true if the Variant instance is a string, false otherwise.
 	 */
-	bool isMagic() const { return type == VariantType::MAGIC; }
+	bool isMagic() const { return meta.getType() == VariantType::MAGIC; }
 
 	/**
 	 * Checks whether this Variant instance is an array.
 	 *
 	 * @return true if the Variant instance is an array, false otherwise.
 	 */
-	bool isArray() const { return type == VariantType::ARRAY; }
+	bool isArray() const { return meta.getType() == VariantType::ARRAY; }
 
 	/**
 	 * Checks whether this Variant instance is a map.
 	 *
 	 * @return true if the Variant instance is a map, false otherwise.
 	 */
-	bool isMap() const { return type == VariantType::MAP; }
+	bool isMap() const { return meta.getType() == VariantType::MAP; }
 
 	/**
 	 * Checks whether this Variant instance is an object.
 	 *
 	 * @return true if the Variant instance is an object, false otherwise.
 	 */
-	bool isObject() const { return type == VariantType::OBJECT; }
+	bool isObject() const { return meta.getType() == VariantType::OBJECT; }
 
 	/**
 	 * Checks whether this Variant instance is a cardinality.
 	 *
 	 * @return true if the Variant instance is an cardinality, false otherwise.
 	 */
-	bool isCardinality() const { return type == VariantType::CARDINALITY; }
+	bool isCardinality() const
+	{
+		return meta.getType() == VariantType::CARDINALITY;
+	}
 
 	/**
 	 * Checks whether this Variant instance is a function.
 	 *
 	 * @return true if the Variant instance is a function, false otherwise.
 	 */
-	bool isFunction() const { return type == VariantType::FUNCTION; }
+	bool isFunction() const { return meta.getType() == VariantType::FUNCTION; }
 
 	/**
 	 * Checks whether this Variant instance is a primitive type.
@@ -565,7 +676,7 @@ public:
 	 */
 	bool isPrimitive() const
 	{
-		switch (type) {
+		switch (meta.getType()) {
 			case VariantType::NULLPTR:
 			case VariantType::BOOL:
 			case VariantType::INT:
@@ -647,7 +758,7 @@ public:
 	 */
 	const stringType &asMagic() const
 	{
-		if (type == VariantType::MAGIC) {
+		if (meta.getType() == VariantType::MAGIC) {
 			return asObj<stringType>(VariantType::STRING);
 		}
 		throw TypeException{getType(), VariantType::MAGIC};
@@ -662,7 +773,7 @@ public:
 	 */
 	stringType &asMagic()
 	{
-		if (type == VariantType::MAGIC) {
+		if (meta.getType() == VariantType::MAGIC) {
 			return asObj<stringType>(VariantType::STRING);
 		}
 		throw TypeException{getType(), VariantType::MAGIC};
@@ -850,7 +961,7 @@ public:
 	void setNull()
 	{
 		destroy();
-		type = VariantType::NULLPTR;
+		meta.setType(VariantType::NULLPTR);
 		ptrVal = nullptr;
 	}
 
@@ -862,7 +973,7 @@ public:
 	void setBool(boolType b)
 	{
 		destroy();
-		type = VariantType::BOOL;
+		meta.setType(VariantType::BOOL);
 		boolVal = b;
 	}
 
@@ -874,7 +985,7 @@ public:
 	void setInt(intType i)
 	{
 		destroy();
-		type = VariantType::INT;
+		meta.setType(VariantType::INT);
 		intVal = i;
 	}
 
@@ -886,7 +997,7 @@ public:
 	void setDouble(doubleType d)
 	{
 		destroy();
-		type = VariantType::DOUBLE;
+		meta.setType(VariantType::DOUBLE);
 		doubleVal = d;
 	}
 
@@ -898,11 +1009,11 @@ public:
 	void setString(const char *s)
 	{
 		if (isString()) {
-			type = VariantType::STRING;
+			meta.setType(VariantType::STRING);
 			asString().assign(s);
 		} else {
 			destroy();
-			type = VariantType::STRING;
+			meta.setType(VariantType::STRING);
 			ptrVal = new stringType(s);
 		}
 	}
@@ -915,11 +1026,11 @@ public:
 	void setMagic(const char *s)
 	{
 		if (isString()) {
-			type = VariantType::MAGIC;
+			meta.setType(VariantType::MAGIC);
 			asString().assign(s);
 		} else {
 			destroy();
-			type = VariantType::MAGIC;
+			meta.setType(VariantType::MAGIC);
 			ptrVal = new stringType(s);
 		}
 	}
@@ -935,7 +1046,7 @@ public:
 			asArray().swap(a);
 		} else {
 			destroy();
-			type = VariantType::ARRAY;
+			meta.setType(VariantType::ARRAY);
 			ptrVal = new arrayType(std::move(a));
 		}
 	}
@@ -951,7 +1062,7 @@ public:
 			asMap().swap(m);
 		} else {
 			destroy();
-			type = VariantType::MAP;
+			meta.setType(VariantType::MAP);
 			ptrVal = new mapType(std::move(m));
 		}
 	}
@@ -964,7 +1075,7 @@ public:
 	void setObject(T o)
 	{
 		destroy();
-		type = VariantType::OBJECT;
+		meta.setType(VariantType::OBJECT);
 		ptrVal = new objectType(o);
 	}
 
@@ -976,7 +1087,7 @@ public:
 	void setCardinality(cardinalityType c)
 	{
 		destroy();
-		type = VariantType::CARDINALITY;
+		meta.setType(VariantType::CARDINALITY);
 		ptrVal = new cardinalityType(std::move(c));
 	}
 
@@ -989,7 +1100,7 @@ public:
 	void setFunction(functionType f)
 	{
 		destroy();
-		type = VariantType::FUNCTION;
+		meta.setType(VariantType::FUNCTION);
 		ptrVal = new functionType(f);
 	}
 
@@ -1003,7 +1114,7 @@ public:
 		if (isMagic()) {
 			return VariantType::STRING;
 		}
-		return type;
+		return meta.getType();
 	}
 
 	/**
@@ -1026,6 +1137,43 @@ public:
 	 */
 	const char *getTypeName() const { return Variant::getTypeName(getType()); }
 
+	/*
+	 * Source location
+	 */
+
+	/**
+	 * Returns true if the stored source id is not invalid.
+	 *
+	 * @retun true if the
+	 */
+	bool hasLocation() const
+	{
+		return meta.hasLocation();
+	}
+
+	/**
+	 * Unpacks ans returns the stored source location. Note that the returned
+	 * location may differ from the one given in "setLocation", if the values
+	 * were too large to represent.
+	 *
+	 * @return the stored SourceLocation.
+	 */
+	SourceLocation getLocation() const
+	{
+		return meta.getLocation();
+	}
+
+	/**
+	 * Packs the given source location and stores it in the metadata. Not all
+	 * SourceLocation values may be representable, as they are stored with fewer
+	 * bits as in the SourceLocation structure.
+	 *
+	 * @param location is the SourceLocation that should be stored.
+	 */
+	void setLocation(const SourceLocation &location)
+	{
+		return meta.setLocation(location);
+	}
 	/*
 	 * Output stream operator.
 	 */
@@ -1108,6 +1256,16 @@ public:
 	 */
 	friend bool operator!=(const Variant &lhs, const Variant &rhs);
 };
+
+/* Static Assertions */
+
+// Make sure VariantData has a length of 8 bytes
+static_assert(sizeof(VariantMetadata) == 8,
+              "VariantMetadata should have a length of 8 Bytes");
+
+// Make sure VariantData has a length of 16 bytes
+static_assert(sizeof(Variant) == 16,
+              "Variant should have a length of 16 bytes");
 }
 
 #endif /* _OUSIA_VARIANT_HPP_ */

@@ -38,7 +38,7 @@ namespace ousia {
 /**
  * Type used for referencing a source file currently opened in a Project.
  */
-using SourceId = uint32_t;
+using SourceId = uint16_t;
 
 /**
  * Maximum value for a SourceId. Indicates invalid entries.
