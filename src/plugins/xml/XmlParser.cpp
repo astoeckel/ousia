@@ -72,54 +72,6 @@ public:
 	}
 };
 
-class HeadHandler : public Handler {
-public:
-	using Handler::Handler;
-
-	void start(Variant::mapType &args) override
-	{
-		// Make sure the "HEAD" node is actually allowed here
-		if (scope().getFlag(ParserFlag::POST_HEAD)) {
-			throw LoggableException{
-			    "\"head\" tag not allowed here, head was already specified or "
-			    "another command was given first",
-			    location()};
-		}
-
-		// Insert a new HeadNode instance
-		scope().push(new HeadNode{manager()});
-	}
-
-	void end() override
-	{
-		// Remove the HeadNode instance from the stack
-		scope().pop();
-		scope().setFlag(ParserFlag::POST_HEAD, true);
-	}
-
-	static Handler *create(const HandlerData &handlerData)
-	{
-		return new HeadHandler{handlerData};
-	}
-};
-
-class DisableHeadHandler : public Handler {
-public:
-	using Handler::Handler;
-
-	void start(Variant::mapType &args) override
-	{
-		scope().setFlag(ParserFlag::POST_HEAD, true);
-	}
-
-	void end() override {}
-
-	static Handler *create(const HandlerData &handlerData)
-	{
-		return new DisableHeadHandler{handlerData};
-	}
-};
-
 class TypesystemHandler : public Handler {
 public:
 	using Handler::Handler;
@@ -194,7 +146,7 @@ public:
 	}
 };
 
-class StructFieldHandler : public Handler {
+class TypesystemStructFieldHandler : public Handler {
 public:
 	using Handler::Handler;
 
@@ -238,11 +190,11 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new StructFieldHandler{handlerData};
+		return new TypesystemStructFieldHandler{handlerData};
 	}
 };
 
-class ConstantHandler : public Handler {
+class TypesystemConstantHandler : public Handler {
 public:
 	using Handler::Handler;
 
@@ -272,7 +224,7 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new ConstantHandler{handlerData};
+		return new TypesystemConstantHandler{handlerData};
 	}
 };
 
@@ -335,146 +287,106 @@ public:
 	}
 };
 
-/* Document structure */
-static const State STATE_DOCUMENT = 0;
-static const State STATE_DOCUMENT_HEAD = 1;
+class ImportHandler : public Handler {
+public:
+	using Handler::Handler;
 
-/* Special commands */
-static const State STATE_IMPORT = 100;
-static const State STATE_INCLUDE = 101;
+	void start(Variant::mapType &args) override
+	{
+		//	scope().import();
+	}
 
-/* Type system definitions */
-static const State STATE_TYPESYSTEM = 200;
-static const State STATE_TYPESYSTEM_HEAD = 201;
-static const State STATE_TYPES = 202;
-static const State STATE_CONSTANTS = 203;
-static const State STATE_CONSTANT = 204;
-static const State STATE_ENUM = 205;
-static const State STATE_STRUCT = 206;
-static const State STATE_FIELD = 207;
+	void end() override {}
 
-/* Domain definitions */
-static const State STATE_DOMAIN = 300;
-static const State STATE_DOMAIN_HEAD = 301;
-static const State STATE_DOMAIN_STRUCTS = 302;
-static const State STATE_DOMAIN_STRUCT = 303;
-static const State STATE_DOMAIN_FIELDS = 304;
-static const State STATE_DOMAIN_FIELD = 305;
-static const State STATE_DOMAIN_PRIMITIVE_FIELD = 306;
-static const State STATE_DOMAIN_CHILDREN = 307;
-static const State STATE_DOMAIN_CHILD = 308;
-static const State STATE_DOMAIN_CHILD_REF = 309;
-static const State STATE_DOMAIN_PARENTS = 310;
-static const State STATE_DOMAIN_PARENT = 311;
-static const State STATE_DOMAIN_PARENT_FIELD = 312;
-static const State STATE_DOMAIN_PARENT_FIELD_REF = 313;
-static const State STATE_DOMAIN_ANNOTATIONS = 314;
-static const State STATE_DOMAIN_ANNOTATION = 315;
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new ImportHandler{handlerData};
+	}
+};
 
-static const std::multimap<std::string, HandlerDescriptor> XML_HANDLERS{
-    /* Document tags */
-    {"document",
-     {{STATE_NONE},
-      DocumentHandler::create,
-      STATE_DOCUMENT,
-      true,
-      {Argument::String("name", "")}}},
-    {"head", {{STATE_DOCUMENT}, HeadHandler::create, STATE_DOCUMENT_HEAD}},
+namespace ParserStates {
+/* Document states */
+static const ParserState Document =
+    ParserStateBuilder()
+        .parent(&None)
+        .elementHandler(DocumentHandler::create)
+        .arguments({Argument::String("name", "")});
 
-    /* Special commands */
-    {"import",
-     {{STATE_DOCUMENT_HEAD, STATE_TYPESYSTEM_HEAD}, nullptr, STATE_IMPORT}},
-    {"include", {{STATE_ALL}, nullptr, STATE_INCLUDE}},
+/* Domain states */
+static const ParserState Domain = ParserStateBuilder()
+                                      .parents({&None, &Document})
+                                      .elementHandler(DomainHandler::create)
+                                      .arguments({Argument::String("name")});
+static const ParserState DomainStruct =
+    ParserStateBuilder()
+        .parent(&Domain)
+        .elementHandler(DomainStructHandler::create)
+        .arguments({Argument::String("name"),
+                    Argument::Cardinality("cardinality", AnyCardinality),
+                    Argument::Bool("isRoot", false),
+                    Argument::Bool("transparent", false),
+                    Argument::String("isa", "")});
+static const ParserState DomainStructFields =
+    ParserStateBuilder().parent(&DomainStruct).arguments({});
+static const ParserState DomainStructField =
+    ParserStateBuilder().parent(&DomainStructFields).arguments(
+        {Argument::String("name", ""), Argument::Bool("isSubtree", false),
+         Argument::Bool("optional", false)});
+static const ParserState DomainStructPrimitive =
+    ParserStateBuilder().parent(&DomainStructFields).arguments(
+        {Argument::String("name", ""), Argument::Bool("optional", false),
+         Argument::String("type")});
 
-    /* Typesystem */
-    {"typesystem",
-     {{STATE_NONE, STATE_DOMAIN_HEAD},
-      TypesystemHandler::create,
-      STATE_TYPESYSTEM,
-      false,
-      {Argument::String("name")}}},
-    {"head", {{STATE_TYPESYSTEM}, HeadHandler::create, STATE_TYPESYSTEM}},
-    {"types", {{STATE_TYPESYSTEM}, DisableHeadHandler::create, STATE_TYPES}},
-    {"enum", {{STATE_TYPES}, nullptr, STATE_ENUM}},
-    {"struct",
-     {{STATE_TYPES},
-      TypesystemStructHandler::create,
-      STATE_STRUCT,
-      false,
-      {Argument::String("name"), Argument::String("parent", "")}}},
-    {"field",
-     {{STATE_STRUCT},
-      StructFieldHandler::create,
-      STATE_FIELD,
-      false,
-      {Argument::String("name"), Argument::String("type"),
-       Argument::Any("default", Variant::fromObject(nullptr))}}},
-    {"constants",
-     {{STATE_TYPESYSTEM}, DisableHeadHandler::create, STATE_CONSTANTS}},
-    {"constant",
-     {{STATE_CONSTANTS},
-      ConstantHandler::create,
-      STATE_CONSTANT,
-      false,
-      {Argument::String("name"), Argument::String("type"),
-       Argument::Any("value")}}},
+/* Typesystem states */
+static const ParserState Typesystem =
+    ParserStateBuilder()
+        .parents({&None, &Domain})
+        .elementHandler(TypesystemHandler::create)
+        .arguments({Argument::String("name", "")});
+static const ParserState TypesystemEnum =
+    ParserStateBuilder().parent(&Typesystem);
+static const ParserState TypesystemStruct =
+    ParserStateBuilder()
+        .parent(&Typesystem)
+        .elementHandler(TypesystemStructHandler::create)
+        .arguments({Argument::String("name"), Argument::String("parent", "")});
+static const ParserState TypesystemStructField =
+    ParserStateBuilder()
+        .parent(&TypesystemStruct)
+        .elementHandler(TypesystemStructFieldHandler::create)
+        .arguments({Argument::String("name"), Argument::String("type"),
+                    Argument::Any("default", Variant::fromObject(nullptr))});
+static const ParserState TypesystemConstant =
+    ParserStateBuilder()
+        .parent(&Typesystem)
+        .elementHandler(TypesystemConstantHandler::create)
+        .arguments({Argument::String("name"), Argument::String("type"),
+                    Argument::Any("value")});
 
-    /* Domain */
-    {"domain",
-     {{STATE_NONE, STATE_DOCUMENT_HEAD},
-      DomainHandler::create,
-      STATE_DOMAIN,
-      false,
-      {Argument::String("name")}}},
-    {"head",
-     {{STATE_DOMAIN},
-      HeadHandler::create,
-      STATE_DOMAIN_HEAD,
-      false,
-      Arguments{}}},
-    {"structs",
-     {{STATE_DOMAIN},
-      DisableHeadHandler::create,
-      STATE_DOMAIN_STRUCTS,
-      false,
-      Arguments{}}},
-    {"struct",
-     {{STATE_DOMAIN_STRUCTS},
-      DomainStructHandler::create,
-      STATE_DOMAIN_STRUCT,
-      false,
-      Arguments{Argument::String("name"),
-                Argument::Cardinality("cardinality", AnyCardinality),
-                Argument::Bool("isRoot", false),
-                Argument::Bool("transparent", false),
-                Argument::String("isa", "")}}},
-    {"fields",
-     {{STATE_DOMAIN_STRUCT, STATE_DOMAIN_ANNOTATIONS},
-     nullptr,
-     STATE_DOMAIN_FIELDS,
-     false,
-     Arguments{}}},
-    {"field",
-     {{STATE_DOMAIN_FIELDS},
-     nullptr,
-     STATE_DOMAIN_FIELD,
-     false,
-     Arguments{Argument::String("name", ""), Argument::Bool("isSubtree", false),
-               Argument::Bool("optional", false)}}},
-    {"primitive",
-     {{STATE_DOMAIN_FIELDS},
-     nullptr,
-     STATE_DOMAIN_PRIMITIVE_FIELD,
-     false,
-     Arguments{Argument::String("name", ""), Argument::Bool("optional", false),
-               Argument::String("type")}}},
-    {"annotations",
-     {{STATE_DOMAIN},
-      DisableHeadHandler::create,
-      STATE_DOMAIN_ANNOTATIONS,
-      false,
-      Arguments{}}}};
+/* Special states for import and include */
+static const ParserState Import =
+    ParserStateBuilder().parents({&Document, &Typesystem, &Domain}).arguments(
+        {Argument::String("rel", ""), Argument::String("type", ""),
+         Argument::String("src")});
+static const ParserState Include = ParserStateBuilder().parent(&All).arguments(
+    {Argument::String("rel", ""), Argument::String("type", ""),
+     Argument::String("src")});
 
+static const std::multimap<std::string, const ParserState *> XmlStates{
+    {"document", &Document},
+    {"domain", &Domain},
+    {"struct", &DomainStruct},
+    {"fields", &DomainStructFields},
+    {"field", &DomainStructField},
+    {"primitive", &DomainStructPrimitive},
+    {"typesystem", &Typesystem},
+    {"enum", &TypesystemEnum},
+    {"struct", &TypesystemStruct},
+    {"field", &TypesystemStructField},
+    {"constant", &TypesystemConstant},
+    {"import", &Import},
+    {"include", &Include}};
+}
 /**
  * Wrapper class around the XML_Parser pointer which safely frees it whenever
  * the scope is left (e.g. because an exception was thrown).
@@ -572,6 +484,7 @@ static void xmlCharacterDataHandler(void *p, const XML_Char *s, int len)
 	XML_Parser parser = static_cast<XML_Parser>(p);
 	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(parser));
 
+	syncLoggerPosition(parser);
 	const std::string data =
 	    Utils::trim(std::string{s, static_cast<size_t>(len)});
 	if (!data.empty()) {
@@ -588,7 +501,7 @@ void XmlParser::doParse(CharReader &reader, ParserContext &ctx)
 
 	// Create the parser stack instance and pass the reference to the state
 	// machine descriptor
-	ParserStack stack{ctx, XML_HANDLERS};
+	ParserStack stack{ctx, ParserStates::XmlStates};
 	XML_SetUserData(&p, &stack);
 	XML_UseParserAsHandlerArg(&p);
 

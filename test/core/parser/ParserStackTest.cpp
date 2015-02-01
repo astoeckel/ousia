@@ -27,14 +27,9 @@ namespace ousia {
 
 ConcreteLogger logger;
 
-static const State STATE_DOCUMENT = 0;
-static const State STATE_BODY = 1;
-static const State STATE_EMPTY = 2;
-
 static int startCount = 0;
 static int endCount = 0;
 static int dataCount = 0;
-static int childCount = 0;
 
 class TestHandler : public Handler {
 public:
@@ -46,105 +41,111 @@ public:
 
 	void data(const std::string &data, int field) override { dataCount++; }
 
-	void child(std::shared_ptr<Handler> handler) override { childCount++; }
+	static Handler *create(const HandlerData &data)
+	{
+		return new TestHandler(data);
+	}
 };
 
-static Handler *createTestHandler(const HandlerData &data)
-{
-	return new TestHandler(data);
+namespace ParserStates {
+static const ParserState Document =
+    ParserStateBuilder().parent(&None).elementHandler(TestHandler::create);
+static const ParserState Body = ParserStateBuilder()
+                                    .parent(&Document)
+                                    .elementHandler(TestHandler::create)
+                                    .childHandler(TestHandler::create);
+static const ParserState Empty =
+    ParserStateBuilder().parent(&Document).elementHandler(TestHandler::create);
+static const ParserState Special =
+    ParserStateBuilder().parent(&All).elementHandler(TestHandler::create);
+static const ParserState Arguments =
+    ParserStateBuilder()
+        .parent(&None)
+        .elementHandler(TestHandler::create)
+        .arguments({Argument::Int("a"), Argument::String("b")});
+
+static const std::multimap<std::string, const ParserState *> TestHandlers{
+    {"document", &Document},
+    {"body", &Body},
+    {"empty", &Empty},
+    {"special", &Special},
+    {"arguments", &Arguments}};
 }
-
-static const std::multimap<std::string, HandlerDescriptor> TEST_HANDLERS{
-    {"document", {{STATE_NONE}, createTestHandler, STATE_DOCUMENT}},
-    {"body", {{STATE_DOCUMENT}, createTestHandler, STATE_BODY, true}},
-    {"empty", {{STATE_DOCUMENT}, createTestHandler, STATE_EMPTY}},
-    {"special", {{STATE_ALL}, createTestHandler, STATE_EMPTY}},
-    {"arguments",
-     {{STATE_NONE},
-      createTestHandler,
-      STATE_EMPTY,
-      false,
-      {Argument::Int("a"), Argument::String("b")}}},
-};
 
 TEST(ParserStack, simpleTest)
 {
 	StandaloneEnvironment env(logger);
-	ParserStack s{env.context, TEST_HANDLERS};
+	ParserStack s{env.context, ParserStates::TestHandlers};
 
 	startCount = 0;
 	endCount = 0;
 	dataCount = 0;
-	childCount = 0;
 
-	ASSERT_EQ("", s.currentName());
-	ASSERT_EQ(STATE_NONE, s.currentState());
+	EXPECT_EQ("", s.currentCommandName());
+	EXPECT_EQ(&ParserStates::None, &s.currentState());
 
 	s.start("document", {});
 	s.data("test1");
 
-	ASSERT_EQ("document", s.currentName());
-	ASSERT_EQ(STATE_DOCUMENT, s.currentState());
-	ASSERT_EQ(1, startCount);
-	ASSERT_EQ(1, dataCount);
+	EXPECT_EQ("document", s.currentCommandName());
+	EXPECT_EQ(&ParserStates::Document, &s.currentState());
+	EXPECT_EQ(1, startCount);
+	EXPECT_EQ(1, dataCount);
 
 	s.start("body", {});
 	s.data("test2");
-	ASSERT_EQ("body", s.currentName());
-	ASSERT_EQ(STATE_BODY, s.currentState());
-	ASSERT_EQ(2, startCount);
-	ASSERT_EQ(2, dataCount);
+	EXPECT_EQ("body", s.currentCommandName());
+	EXPECT_EQ(&ParserStates::Body, &s.currentState());
+	EXPECT_EQ(2, startCount);
+	EXPECT_EQ(2, dataCount);
 
 	s.start("inner", {});
-	ASSERT_EQ("inner", s.currentName());
-	ASSERT_EQ(STATE_BODY, s.currentState());
+	EXPECT_EQ("inner", s.currentCommandName());
+	EXPECT_EQ(&ParserStates::Body, &s.currentState());
 	s.end();
-	ASSERT_EQ(3, startCount);
-	ASSERT_EQ(1, childCount);
-	ASSERT_EQ(1, endCount);
+	EXPECT_EQ(3, startCount);
+	EXPECT_EQ(1, endCount);
 
 	s.end();
-	ASSERT_EQ(2, childCount);
-	ASSERT_EQ(2, endCount);
+	EXPECT_EQ(2, endCount);
 
-	ASSERT_EQ("document", s.currentName());
-	ASSERT_EQ(STATE_DOCUMENT, s.currentState());
+	EXPECT_EQ("document", s.currentCommandName());
+	EXPECT_EQ(&ParserStates::Document, &s.currentState());
 
 	s.start("body", {});
 	s.data("test3");
-	ASSERT_EQ("body", s.currentName());
-	ASSERT_EQ(STATE_BODY, s.currentState());
+	EXPECT_EQ("body", s.currentCommandName());
+	EXPECT_EQ(&ParserStates::Body, &s.currentState());
 	s.end();
-	ASSERT_EQ(4, startCount);
-	ASSERT_EQ(3, dataCount);
-	ASSERT_EQ(3, childCount);
-	ASSERT_EQ(3, endCount);
+	EXPECT_EQ(4, startCount);
+	EXPECT_EQ(3, dataCount);
+	EXPECT_EQ(3, endCount);
 
-	ASSERT_EQ("document", s.currentName());
-	ASSERT_EQ(STATE_DOCUMENT, s.currentState());
+	EXPECT_EQ("document", s.currentCommandName());
+	EXPECT_EQ(&ParserStates::Document, &s.currentState());
 
 	s.end();
-	ASSERT_EQ(4, endCount);
+	EXPECT_EQ(4, endCount);
 
-	ASSERT_EQ("", s.currentName());
-	ASSERT_EQ(STATE_NONE, s.currentState());
+	EXPECT_EQ("", s.currentCommandName());
+	EXPECT_EQ(&ParserStates::None, &s.currentState());
 }
 
 TEST(ParserStack, errorHandling)
 {
 	StandaloneEnvironment env(logger);
-	ParserStack s{env.context, TEST_HANDLERS};
+	ParserStack s{env.context, ParserStates::TestHandlers};
 
-	ASSERT_THROW(s.start("body", {}), OusiaException);
+	EXPECT_THROW(s.start("body", {}), OusiaException);
 	s.start("document", {});
-	ASSERT_THROW(s.start("document", {}), OusiaException);
+	EXPECT_THROW(s.start("document", {}), OusiaException);
 	s.start("empty", {});
-	ASSERT_THROW(s.start("body", {}), OusiaException);
+	EXPECT_THROW(s.start("body", {}), OusiaException);
 	s.start("special", {});
 	s.end();
 	s.end();
 	s.end();
-	ASSERT_EQ(STATE_NONE, s.currentState());
+	EXPECT_EQ(&ParserStates::None, &s.currentState());
 	ASSERT_THROW(s.end(), OusiaException);
 	ASSERT_THROW(s.data("test", 1), OusiaException);
 }
@@ -152,20 +153,20 @@ TEST(ParserStack, errorHandling)
 TEST(ParserStack, validation)
 {
 	StandaloneEnvironment env(logger);
-	ParserStack s{env.context, TEST_HANDLERS};
+	ParserStack s{env.context, ParserStates::TestHandlers};
 
-	s.start("arguments", {});
-	ASSERT_TRUE(logger.hasError());
 	logger.reset();
+	s.start("arguments", {});
+	EXPECT_TRUE(logger.hasError());
 	s.end();
 
 	s.start("arguments", {{"a", 5}});
-	ASSERT_TRUE(logger.hasError());
-	logger.reset();
+	EXPECT_TRUE(logger.hasError());
 	s.end();
 
+	logger.reset();
 	s.start("arguments", {{"a", 5}, {"b", "test"}});
-	ASSERT_FALSE(logger.hasError());
+	EXPECT_FALSE(logger.hasError());
 	s.end();
 }
 }

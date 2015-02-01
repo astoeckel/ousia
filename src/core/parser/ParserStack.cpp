@@ -28,6 +28,10 @@ namespace ousia {
 
 /* A default handler */
 
+/**
+ * The DefaultHandler class is used in case no element handler is specified in
+ * the ParserState descriptor.
+ */
 class DefaultHandler : public Handler {
 public:
 	using Handler::Handler;
@@ -35,12 +39,12 @@ public:
 	void start(Variant::mapType &args) override {}
 
 	void end() override {}
-};
 
-static Handler *createDefaultHandler(const HandlerData &handlerData)
-{
-	return new DefaultHandler{handlerData};
-}
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new DefaultHandler{handlerData};
+	}
+};
 
 /* Class Handler */
 
@@ -54,40 +58,13 @@ void Handler::data(const std::string &data, int field)
 	}
 }
 
-void Handler::child(std::shared_ptr<Handler> handler)
-{
-	// Do nothing here
-}
-
-/* Class HandlerDescriptor */
-
-HandlerInstance HandlerDescriptor::create(const ParserContext &ctx,
-                                          std::string name, State parentState,
-                                          bool isChild, Variant::mapType &args,
-                                          const SourceLocation &location) const
-{
-	Handler *h;
-	HandlerData data{ctx, name, targetState, parentState, isChild, location};
-	if (ctor) {
-		h = ctor(data);
-	} else {
-		h = createDefaultHandler(data);
-	}
-
-	// Canonicalize the arguments
-	arguments.validateMap(args, ctx.getLogger(), true);
-
-	h->start(args);
-	return HandlerInstance(h, this);
-}
-
 /* Class ParserStack */
 
 /**
  * Returns an Exception that should be thrown when a currently invalid command
  * is thrown.
  */
-static LoggableException invalidCommand(const std::string &name,
+static LoggableException InvalidCommand(const std::string &name,
                                         const std::set<std::string> &expected)
 {
 	if (expected.empty()) {
@@ -104,47 +81,72 @@ static LoggableException invalidCommand(const std::string &name,
 	}
 }
 
-std::set<std::string> ParserStack::expectedCommands(State state)
+ParserStack::ParserStack(
+    ParserContext &ctx,
+    const std::multimap<std::string, const ParserState *> &states)
+    : ctx(ctx), states(states)
+{
+}
+
+std::set<std::string> ParserStack::expectedCommands(const ParserState &state)
 {
 	std::set<std::string> res;
-	for (const auto &v : handlers) {
-		if (v.second.parentStates.count(state)) {
+	for (const auto &v : states) {
+		if (v.second->parents.count(&state)) {
 			res.insert(v.first);
 		}
 	}
 	return res;
 }
 
+const ParserState &ParserStack::currentState()
+{
+	return stack.empty() ? ParserStates::None : stack.top()->state();
+}
+
+std::string ParserStack::currentCommandName()
+{
+	return stack.empty() ? std::string{} : stack.top()->name();
+}
+
 void ParserStack::start(std::string name, Variant::mapType &args,
                         const SourceLocation &location)
 {
 	// Fetch the current handler and the current state
-	const HandlerInstance *h = stack.empty() ? nullptr : &stack.top();
-	const State curState = currentState();
-	bool isChild = false;
+	ParserState const *currentState = &(this->currentState());
 
 	// Fetch the correct Handler descriptor for this
-	const HandlerDescriptor *descr = nullptr;
-	auto range = handlers.equal_range(name);
+	ParserState const *targetState = nullptr;
+	HandlerConstructor ctor = nullptr;
+	auto range = states.equal_range(name);
 	for (auto it = range.first; it != range.second; it++) {
-		const std::set<State> &parentStates = it->second.parentStates;
-		if (parentStates.count(curState) || parentStates.count(STATE_ALL)) {
-			descr = &(it->second);
+		const ParserStateSet &parents = it->second->parents;
+		if (parents.count(currentState) || parents.count(&ParserStates::All)) {
+			targetState = it->second;
+			ctor = targetState->elementHandler ? targetState->elementHandler
+			                                   : DefaultHandler::create;
 			break;
 		}
 	}
-	if (!descr && currentArbitraryChildren()) {
-		isChild = true;
-		descr = h->descr;
+
+	// Try to use the child handler if one was given
+	if (!targetState && currentState->childHandler) {
+		targetState = currentState;
+		ctor = targetState->childHandler;
 	}
 
 	// No descriptor found, throw an exception.
-	if (!descr) {
-		throw invalidCommand(name, expectedCommands(curState));
+	if (!targetState || !ctor) {
+		throw InvalidCommand(name, expectedCommands(*currentState));
 	}
 
+	// Canonicalize the arguments, allow additional arguments
+	targetState->arguments.validateMap(args, ctx.getLogger(), true);
+
 	// Instantiate the handler and call its start function
-	stack.emplace(descr->create(ctx, name, curState, isChild, args, location));
+	Handler *handler = ctor({ctx, name, *targetState, *currentState, location});
+	handler->start(args);
+	stack.emplace(handler);
 }
 
 void ParserStack::start(std::string name, const Variant::mapType &args,
@@ -162,17 +164,11 @@ void ParserStack::end()
 	}
 
 	// Remove the current HandlerInstance from the stack
-	HandlerInstance inst{stack.top()};
+	std::shared_ptr<Handler> inst{stack.top()};
 	stack.pop();
 
 	// Call the end function of the last Handler
-	inst.handler->end();
-
-	// Call the "child" function of the parent Handler in the stack
-	// (if one exists).
-	if (!stack.empty()) {
-		stack.top().handler->child(inst.handler);
-	}
+	inst->end();
 }
 
 void ParserStack::data(const std::string &data, int field)
@@ -183,7 +179,7 @@ void ParserStack::data(const std::string &data, int field)
 	}
 
 	// Pass the data to the current Handler instance
-	stack.top().handler->data(data, field);
+	stack.top()->data(data, field);
 }
 }
 

@@ -43,16 +43,9 @@
 
 #include "Parser.hpp"
 #include "ParserContext.hpp"
+#include "ParserState.hpp"
 
 namespace ousia {
-
-/**
- * The State type alias is used to
- */
-using State = int16_t;
-
-static const State STATE_ALL = -2;
-static const State STATE_NONE = -1;
 
 /**
  * Struct collecting all the data that is being passed to a Handler instance.
@@ -72,18 +65,12 @@ struct HandlerData {
 	/**
 	 * Contains the current state of the state machine.
 	 */
-	const State state;
+	const ParserState &state;
 
 	/**
 	 * Contains the state of the state machine when the parent node was handled.
 	 */
-	const State parentState;
-
-	/**
-	 * Set to true if the tag that is being handled is not the tag that was
-	 * specified in the state machine but a child tag of that tag.
-	 */
-	const bool isChild;
+	const ParserState &parentState;
 
 	/**
 	 * Current source code location.
@@ -97,17 +84,14 @@ struct HandlerData {
 	 * @param name is the name of the string.
 	 * @param state is the state this handler was called for.
 	 * @param parentState is the state of the parent command.
-	 * @param isChild specifies whether this handler was called not for the
-	 * command that was specified in the state machine but a child command.
 	 * @param location is the location at which the handler is created.
 	 */
-	HandlerData(const ParserContext &ctx, std::string name, State state,
-	            State parentState, bool isChild, const SourceLocation location)
+	HandlerData(const ParserContext &ctx, std::string name, const ParserState &state,
+	            const ParserState &parentState, const SourceLocation location)
 	    : ctx(ctx),
 	      name(std::move(name)),
 	      state(state),
 	      parentState(parentState),
-	      isChild(isChild),
 	      location(location){};
 };
 
@@ -137,23 +121,67 @@ public:
 	 */
 	virtual ~Handler(){};
 
+	/**
+	 * Returns the command name for which the handler was created.
+	 *
+	 * @return a const reference at the command name.
+	 */
 	const std::string &name() { return handlerData.name; }
 
+	/**
+	 * Returns a reference at the ParserScope instance.
+	 *
+	 * @return a reference at the ParserScope instance.
+	 */
 	ParserScope &scope() { return handlerData.ctx.getScope(); }
 
+	/**
+	 * Returns a reference at the Manager instance which manages all nodes.
+	 *
+	 * @return a referance at the Manager instance.
+	 */
 	Manager &manager() { return handlerData.ctx.getManager(); }
 
+	/**
+	 * Returns a reference at the Logger instance used for logging error
+	 * messages.
+	 *
+	 * @return a reference at the Logger instance.
+	 */
 	Logger &logger() { return handlerData.ctx.getLogger(); }
 
+	/**
+	 * Returns a reference at the Project Node, representing the project into
+	 * which the file is currently being parsed.
+	 *
+	 * @return a referance at the Project Node.
+	 */
 	Rooted<Project> project() { return handlerData.ctx.getProject(); }
 
-	State state() { return handlerData.state; }
+	/**
+	 * Reference at the ParserState descriptor for which this Handler was
+	 * created.
+	 *
+	 * @return a const reference at the constructing ParserState descriptor.
+	 */
+	const ParserState &state() { return handlerData.state; }
 
-	State parentState() { return handlerData.parentState; }
+	/**
+	 * Reference at the ParserState descriptor of the parent state of the state
+	 * for which this Handler was created. Set to ParserStates::None if there
+	 * is no parent state.
+	 *
+	 * @return a const reference at the parent state of the constructing
+	 * ParserState descriptor.
+	 */
+	const ParserState &parentState() { return handlerData.parentState; }
 
+	/**
+	 * Returns the current location in the source file.
+	 *
+	 * @return the current location in the source file.
+	 */
 	SourceLocation location() { return handlerData.location; }
-
-	bool isChild() { return handlerData.isChild; }
 
 	/**
 	 * Called when the command that was specified in the constructor is
@@ -179,13 +207,6 @@ public:
 	 * depends on the format that is being parsed).
 	 */
 	virtual void data(const std::string &data, int field);
-
-	/**
-	 * Called whenever a direct child element was created and has ended.
-	 *
-	 * @param handler is a reference at the child Handler instance.
-	 */
-	virtual void child(std::shared_ptr<Handler> handler);
 };
 
 /**
@@ -197,99 +218,6 @@ public:
  * @return a newly created handler instance.
  */
 using HandlerConstructor = Handler *(*)(const HandlerData &handlerData);
-
-struct HandlerDescriptor;
-
-/**
- * Used internlly by StateStack to store Handler instances and parameters
- * from HandlerDescriptor that are not stored in the Handler instance
- * itself. Instances of the HandlerInstance class can be created using the
- * HandlerDescriptor "create" method.
- */
-struct HandlerInstance {
-	/**
-	 * Pointer at the actual handler instance.
-	 */
-	std::shared_ptr<Handler> handler;
-
-	/**
-	 * Pointer pointing at the descriptor from which the handler instance was
-	 * derived.
-	 */
-	const HandlerDescriptor *descr;
-
-	HandlerInstance(Handler *handler, const HandlerDescriptor *descr)
-	    : handler(handler), descr(descr)
-	{
-	}
-};
-
-/**
- * Used internally by StateStack to store the pushdown automaton
- * description.
- */
-struct HandlerDescriptor {
-	/**
-	 * The valid parent states.
-	 */
-	const std::set<State> parentStates;
-
-	/**
-	 * Pointer at a function which creates a new concrete Handler instance.
-	 */
-	const HandlerConstructor ctor;
-
-	/**
-	 * The target state for the registered handler.
-	 */
-	const State targetState;
-
-	/**
-	 * Set to true if this handler instance allows arbitrary children as
-	 * tags.
-	 */
-	const bool arbitraryChildren;
-
-	/**
-	 * Reference at an argument descriptor that should be used for validating
-	 * the incomming arguments.
-	 */
-	const Arguments arguments;
-
-	/**
-	 * Constructor of the HandlerDescriptor class.
-	 *
-	 * @param parentStates is a set of states in which a new handler of this
-	 * type may be instantiated.
-	 * @param ctor is a function pointer pointing at a function that
-	 * instantiates the acutal Handler instance.
-	 * @param targetState is the state the ParserStack switches to after
-	 * instantiating an in instance of the described Handler instances.
-	 * @param arbitraryChildren allows the Handler instance to handle any child
-	 * node.
-	 * @param arguments is an optional argument descriptor used for validating
-	 * the arguments that are passed to the instantiation of a handler function.
-	 */
-	HandlerDescriptor(std::set<State> parentStates, HandlerConstructor ctor,
-	                  State targetState, bool arbitraryChildren = false,
-	                  Arguments arguments = Arguments::None)
-	    : parentStates(std::move(parentStates)),
-	      ctor(ctor),
-	      targetState(targetState),
-	      arbitraryChildren(arbitraryChildren),
-	      arguments(std::move(arguments))
-	{
-	}
-
-	/**
-	 * Creates an instance of the concrete Handler class represented by the
-	 * HandlerDescriptor and calls its start function.
-	 */
-	HandlerInstance create(const ParserContext &ctx, std::string name,
-	                       State parentState, bool isChild,
-	                       Variant::mapType &args,
-	                       const SourceLocation &location) const;
-};
 
 /**
  * The ParserStack class is a pushdown automaton responsible for turning a
@@ -303,21 +231,15 @@ private:
 	ParserContext &ctx;
 
 	/**
-	 * Current location in the source code.
-	 */
-	SourceLocation location;
-
-	/**
 	 * Map containing all registered command names and the corresponding
-	 * handler
-	 * descriptor.
+	 * state descriptors.
 	 */
-	const std::multimap<std::string, HandlerDescriptor> &handlers;
+	const std::multimap<std::string, const ParserState *> &states;
 
 	/**
 	 * Internal stack used for managing the currently active Handler instances.
 	 */
-	std::stack<HandlerInstance> stack;
+	std::stack<std::shared_ptr<Handler>> stack;
 
 	/**
 	 * Used internally to get all expected command names for the given state
@@ -327,19 +249,18 @@ private:
 	 * @param state is the state for which all expected command names should be
 	 * returned.
 	 */
-	std::set<std::string> expectedCommands(State state);
+	std::set<std::string> expectedCommands(const ParserState &state);
 
 public:
 	/**
 	 * Creates a new instance of the ParserStack class.
 	 *
 	 * @param ctx is the parser context the parser stack is working on.
-	 * @param handlers is a map containing the command names and the
-	 * corresponding HandlerDescriptor instances.
+	 * @param states is a map containing the command names and pointers at the
+	 * corresponding ParserState instances.
 	 */
 	ParserStack(ParserContext &ctx,
-	            const std::multimap<std::string, HandlerDescriptor> &handlers)
-	    : ctx(ctx), handlers(handlers){};
+	            const std::multimap<std::string, const ParserState*> &states);
 
 	/**
 	 * Returns the state the ParserStack instance currently is in.
@@ -347,10 +268,7 @@ public:
 	 * @return the state of the currently active Handler instance or STATE_NONE
 	 * if no handler is on the stack.
 	 */
-	State currentState()
-	{
-		return stack.empty() ? STATE_NONE : stack.top().handler->state();
-	}
+	const ParserState &currentState();
 
 	/**
 	 * Returns the command name that is currently being handled.
@@ -358,26 +276,14 @@ public:
 	 * @return the name of the command currently being handled by the active
 	 * Handler instance or an empty string if no handler is currently active.
 	 */
-	std::string currentName()
-	{
-		return stack.empty() ? std::string{} : stack.top().handler->name();
-	}
-
-	/**
-	 * Returns whether the current command handler allows arbitrary children.
-	 *
-	 * @return true if the handler allows arbitrary children, false otherwise.
-	 */
-	bool currentArbitraryChildren()
-	{
-		return stack.empty() ? false : stack.top().descr->arbitraryChildren;
-	}
+	std::string currentCommandName();
 
 	/**
 	 * Function that should be called whenever a new command starts.
 	 *
 	 * @param name is the name of the command.
 	 * @param args is a map from strings to variants (argument name and value).
+	 * Note that the passed map will be modified.
 	 * @param location is the location in the source file at which the command
 	 * starts.
 	 */
@@ -392,7 +298,8 @@ public:
 	 * @param location is the location in the source file at which the command
 	 * starts.
 	 */
-	void start(std::string name, const Variant::mapType &args,
+	void start(std::string name,
+	           const Variant::mapType &args = Variant::mapType{},
 	           const SourceLocation &location = SourceLocation{});
 
 	/**
