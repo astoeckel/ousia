@@ -25,12 +25,10 @@ namespace ousia {
 ParserState::ParserState() : elementHandler(nullptr), childHandler(nullptr) {}
 
 ParserState::ParserState(ParserStateSet parents, Arguments arguments,
-                         RttiSet supportedTypes,
                          HandlerConstructor elementHandler,
                          HandlerConstructor childHandler)
     : parents(parents),
       arguments(arguments),
-      supportedTypes(supportedTypes),
       elementHandler(elementHandler),
       childHandler(childHandler)
 {
@@ -51,31 +49,19 @@ ParserStateBuilder &ParserStateBuilder::copy(const ParserState &state)
 
 ParserStateBuilder &ParserStateBuilder::parent(const ParserState *parent)
 {
-	state.parents.insert(parent);
+	state.parents = ParserStateSet{parent};
 	return *this;
 }
 
 ParserStateBuilder &ParserStateBuilder::parents(const ParserStateSet &parents)
 {
-	state.parents.insert(parents.begin(), parents.end());
+	state.parents = parents;
 	return *this;
 }
 
 ParserStateBuilder &ParserStateBuilder::arguments(const Arguments &arguments)
 {
 	state.arguments = arguments;
-	return *this;
-}
-
-ParserStateBuilder &ParserStateBuilder::supportedType(const Rtti *type)
-{
-	state.supportedTypes.insert(type);
-	return *this;
-}
-
-ParserStateBuilder &ParserStateBuilder::supportedTypes(const RttiSet &types)
-{
-	state.supportedTypes.insert(types.begin(), types.end());
 	return *this;
 }
 

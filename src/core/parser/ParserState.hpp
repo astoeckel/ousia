@@ -65,13 +65,6 @@ struct ParserState {
 	Arguments arguments;
 
 	/**
-	 * Rtti types that are reported as supported when including or importing new
-	 * files while in this state. This value is passed as "supportedTypes" to
-	 * either the "import" or "include" function.
-	 */
-	RttiSet supportedTypes;
-
-	/**
 	 * Pointer at a function which creates a new concrete Handler instance for
 	 * the elements described by this state. May be nullptr in which case no
 	 * handler instance is created.
@@ -97,8 +90,6 @@ struct ParserState {
 	 * @param parents is a vector containing all possible parent states.
 	 * @param arguments is a descriptor of arguments that should be passed to
 	 * the handler.
-	 * @param supportedTypes is a set of Rtti types that are reported as
-	 * supported when including or importing new files while in this state.
 	 * @param elementHandler is a pointer at a function which creates a new
 	 * concrete Handler instance for the elements described by this state. May
 	 * be nullptr in which case no handler instance is created.
@@ -108,7 +99,6 @@ struct ParserState {
 	 * allowed.
 	 */
 	ParserState(ParserStateSet parents, Arguments arguments = Arguments{},
-	            RttiSet supportedTypes = RttiSet{},
 	            HandlerConstructor elementHandler = nullptr,
 	            HandlerConstructor childHandler = nullptr);
 
@@ -142,21 +132,21 @@ public:
 	ParserStateBuilder &copy(const ParserState &state);
 
 	/**
-	 * Adds the given ParserState to the list of supported parent states.
+	 * Sets the possible parent states to the single given parent element.
 	 *
 	 * @param parent is a pointer at the parent ParserState instance that should
-	 * be added as possible parent state.
+	 * be the possible parent state.
 	 * @return a reference at this ParserStateBuilder instance for method
 	 * chaining.
 	 */
 	ParserStateBuilder &parent(const ParserState *parent);
 
 	/**
-	 * Adds the ParserState instances in the given ParserStateSet to the list of
+	 * Sets the ParserState instances in the given ParserStateSet as the list of
 	 * supported parent states.
 	 *
 	 * @param parents is a set of pointers at ParserState instances that should
-	 * be added as possible parent states.
+	 * be the possible parent states.
 	 * @return a reference at this ParserStateBuilder instance for method
 	 * chaining.
 	 */
@@ -172,30 +162,6 @@ public:
 	 * chaining.
 	 */
 	ParserStateBuilder &arguments(const Arguments &arguments);
-
-	/**
-	 * Adds the type described by the given Rtti pointer to the set of supported
-	 * types. These "supported types" describe a set of Rtti types that are
-	 * reported as supported when including or importing new files while in this
-	 * state.
-	 *
-	 * @param type is the type that should be added to the SupportedTypes list.
-	 * @return a reference at this ParserStateBuilder instance for method
-	 * chaining.
-	 */
-	ParserStateBuilder &supportedType(const Rtti *type);
-
-	/**
-	 * Adds the type described by the given Rtti pointer to the set of supported
-	 * types. These "supported types" describe a set of Rtti types that are
-	 * reported as supported when including or importing new files while in this
-	 * state.
-	 *
-	 * @param type is the type that should be added to the SupportedTypes list.
-	 * @return a reference at this ParserStateBuilder instance for method
-	 * chaining.
-	 */
-	ParserStateBuilder &supportedTypes(const RttiSet &types);
 
 	/**
 	 * Sets the constructor for the element handler. The constructor creates a
