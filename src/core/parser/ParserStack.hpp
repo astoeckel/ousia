@@ -55,7 +55,7 @@ struct HandlerData {
 	 * Reference to the ParserContext instance that should be used to resolve
 	 * references to nodes in the Graph.
 	 */
-	const ParserContext &ctx;
+	ParserContext &ctx;
 
 	/**
 	 * Contains the name of the tag that is being handled.
@@ -86,8 +86,9 @@ struct HandlerData {
 	 * @param parentState is the state of the parent command.
 	 * @param location is the location at which the handler is created.
 	 */
-	HandlerData(const ParserContext &ctx, std::string name, const ParserState &state,
-	            const ParserState &parentState, const SourceLocation location)
+	HandlerData(ParserContext &ctx, std::string name,
+	            const ParserState &state, const ParserState &parentState,
+	            const SourceLocation location)
 	    : ctx(ctx),
 	      name(std::move(name)),
 	      state(state),
@@ -120,6 +121,13 @@ public:
 	 * Virtual destructor.
 	 */
 	virtual ~Handler(){};
+
+	/**
+	 * Returns a reference at the ParserContext.
+	 *
+	 * @return a reference at the ParserContext.
+	 */
+	ParserContext &context() { return handlerData.ctx; }
 
 	/**
 	 * Returns the command name for which the handler was created.
@@ -260,7 +268,7 @@ public:
 	 * corresponding ParserState instances.
 	 */
 	ParserStack(ParserContext &ctx,
-	            const std::multimap<std::string, const ParserState*> &states);
+	            const std::multimap<std::string, const ParserState *> &states);
 
 	/**
 	 * Returns the state the ParserStack instance currently is in.
