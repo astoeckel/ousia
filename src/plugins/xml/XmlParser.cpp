@@ -30,6 +30,7 @@
 #include <core/model/Document.hpp>
 #include <core/model/Domain.hpp>
 #include <core/model/Project.hpp>
+#include <core/model/RootNode.hpp>
 #include <core/model/Typesystem.hpp>
 
 #include "XmlParser.hpp"
@@ -108,6 +109,8 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
+		scope().setFlag(ParserFlag::POST_HEAD, true);
+
 		// Fetch the arguments used for creating this type
 		const std::string &name = args["name"].asString();
 		const std::string &parent = args["parent"].asString();
@@ -200,6 +203,8 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
+		scope().setFlag(ParserFlag::POST_HEAD, true);
+
 		// Read the argument values
 		const std::string &name = args["name"].asString();
 		const std::string &type = args["type"].asString();
@@ -255,6 +260,8 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
+		scope().setFlag(ParserFlag::POST_HEAD, true);
+
 		const std::string &isa = args["isa"].asString();
 
 		Rooted<Domain> domain = scope().select<Domain>();
@@ -293,7 +300,37 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
-		//	scope().import();
+		// Make sure imports are still possible
+		if (scope().getFlag(ParserFlag::POST_HEAD)) {
+			logger().error("Imports must be listed before other commands.",
+			               location());
+			return;
+		}
+
+		// Fetch the last node and check whether an import is valid at this
+		// position
+		Rooted<Node> leaf = scope().getLeaf();
+		if (leaf == nullptr || !leaf->isa(RttiTypes::RootNode)) {
+			logger().error(
+			    "Import not supported here, must be inside a document, domain "
+			    "or typesystem command.",
+			    location());
+			return;
+		}
+		Rooted<RootNode> leafRootNode = leaf.cast<RootNode>();
+
+		// Fetch the parameters
+		const std::string &rel = args["rel"].asString();
+		const std::string &type = args["type"].asString();
+		const std::string &src = args["src"].asString();
+
+		// Perform the actual import, register the imported node within the leaf
+		// node
+		Rooted<Node> imported =
+		    context().import(src, type, rel, leafRootNode->getImportTypes());
+		if (imported != nullptr) {
+			leafRootNode->import(imported);
+		}
 	}
 
 	void end() override {}
@@ -365,9 +402,11 @@ static const ParserState TypesystemConstant =
 
 /* Special states for import and include */
 static const ParserState Import =
-    ParserStateBuilder().parents({&Document, &Typesystem, &Domain}).arguments(
-        {Argument::String("rel", ""), Argument::String("type", ""),
-         Argument::String("src")});
+    ParserStateBuilder()
+        .parents({&Document, &Typesystem, &Domain})
+        .elementHandler(ImportHandler::create)
+        .arguments({Argument::String("rel", ""), Argument::String("type", ""),
+                    Argument::String("src")});
 static const ParserState Include = ParserStateBuilder().parent(&All).arguments(
     {Argument::String("rel", ""), Argument::String("type", ""),
      Argument::String("src")});
@@ -435,7 +474,7 @@ public:
 
 /* Adapter Expat -> ParserStack */
 
-static SourceLocation syncLoggerPosition(XML_Parser p)
+static SourceLocation syncLoggerPosition(XML_Parser p, size_t len = 0)
 {
 	// Fetch the parser stack and the associated user data
 	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(p));
@@ -446,7 +485,7 @@ static SourceLocation syncLoggerPosition(XML_Parser p)
 	// Build the source location and update the default location of the
 	// current
 	// logger instance
-	SourceLocation loc{stack->getContext().getSourceId(), offs};
+	SourceLocation loc{stack->getContext().getSourceId(), offs, offs + len};
 	stack->getContext().getLogger().setDefaultLocation(loc);
 	return loc;
 }
@@ -484,9 +523,9 @@ static void xmlCharacterDataHandler(void *p, const XML_Char *s, int len)
 	XML_Parser parser = static_cast<XML_Parser>(p);
 	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(parser));
 
-	syncLoggerPosition(parser);
-	const std::string data =
-	    Utils::trim(std::string{s, static_cast<size_t>(len)});
+	size_t ulen = len > 0 ? static_cast<size_t>(len) : 0;
+	syncLoggerPosition(parser, ulen);
+	const std::string data = Utils::trim(std::string{s, ulen});
 	if (!data.empty()) {
 		stack->data(data);
 	}
