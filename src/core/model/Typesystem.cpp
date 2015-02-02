@@ -633,6 +633,18 @@ bool Typesystem::doValidate(Logger &logger) const
 	       continueValidationCheckDuplicates(types, logger);
 }
 
+void Typesystem::doReference(Handle<Node> node)
+{
+	if (node->isa(RttiTypes::Typesystem)) {
+		referenceTypesystem(node.cast<Typesystem>());
+	}
+}
+
+RttiSet Typesystem::doGetReferenceTypes() const
+{
+	return RttiSet{&RttiTypes::Typesystem};
+}
+
 Rooted<StructType> Typesystem::createStructType(const std::string &name)
 {
 	Rooted<StructType> structType{new StructType(getManager(), name, this)};
@@ -688,7 +700,7 @@ const Rtti UnknownType =
 const Rtti Constant = RttiBuilder<ousia::Constant>("Constant").parent(&Node);
 const Rtti Attribute = RttiBuilder<ousia::Attribute>("Attribute").parent(&Node);
 const Rtti Typesystem =
-    RttiBuilder<ousia::Typesystem>("Typesystem").parent(&Node).composedOf(
+    RttiBuilder<ousia::Typesystem>("Typesystem").parent(&RootNode).composedOf(
         {&StringType, &IntType, &DoubleType, &BoolType, &EnumType, &StructType,
          &Constant});
 const Rtti SystemTypesystem = RttiBuilder<ousia::SystemTypesystem>(

@@ -206,6 +206,7 @@
 #include <core/RangeSet.hpp>
 
 #include "Node.hpp"
+#include "RootNode.hpp"
 #include "Typesystem.hpp"
 
 namespace ousia {
@@ -879,7 +880,7 @@ public:
  * are part of this domain. TODO: Do we want to be able to restrict Annotations
  * to certain Structures?
  */
-class Domain : public Node {
+class Domain : public RootNode {
 	friend StructuredClass;
 	friend AnnotationClass;
 
@@ -890,8 +891,9 @@ private:
 
 protected:
 	void doResolve(ResolutionState &state) override;
-
 	bool doValidate(Logger &logger) const override;
+	void doReference(Handle<Node> node) override;
+	RttiSet doGetReferenceTypes() const override;
 
 public:
 	/**
@@ -903,7 +905,7 @@ public:
 	 *             references to this Domain.
 	 */
 	Domain(Manager &mgr, std::string name = "")
-	    : Node(mgr, std::move(name), nullptr),
+	    : RootNode(mgr, std::move(name), nullptr),
 	      structuredClasses(this),
 	      annotationClasses(this),
 	      typesystems(this)

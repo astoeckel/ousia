@@ -653,6 +653,18 @@ bool Document::doValidate(Logger &logger) const
 	return valid & continueValidation(annotations, logger);
 }
 
+void Document::doReference(Handle<Node> node)
+{
+	if (node->isa(RttiTypes::Domain)) {
+		referenceDomain(node.cast<Domain>());
+	}
+}
+
+RttiSet Document::doGetReferenceTypes() const
+{
+	return RttiSet{&RttiTypes::Domain};
+}
+
 Rooted<StructuredEntity> Document::createRootStructuredEntity(
     Handle<StructuredClass> descriptor, Variant attributes, std::string name)
 {
@@ -723,7 +735,7 @@ bool Document::hasChild(Handle<StructureNode> s) const
 /* Type registrations */
 namespace RttiTypes {
 const Rtti Document = RttiBuilder<ousia::Document>("Document")
-                          .parent(&Node)
+                          .parent(&RootNode)
                           .composedOf({&AnnotationEntity, &StructuredEntity});
 const Rtti StructureNode =
     RttiBuilder<ousia::StructureNode>("StructureNode").parent(&Node);

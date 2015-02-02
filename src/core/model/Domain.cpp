@@ -469,6 +469,18 @@ bool Domain::doValidate(Logger &logger) const
 	       continueValidationCheckDuplicates(typesystems, logger);
 }
 
+void Domain::doReference(Handle<Node> node)
+{
+	if (node->isa(RttiTypes::Domain)) {
+		referenceTypesystem(node.cast<Typesystem>());
+	}
+}
+
+RttiSet Domain::doGetReferenceTypes() const
+{
+	return RttiSet{&RttiTypes::Domain};
+}
+
 void Domain::addStructuredClass(Handle<StructuredClass> s)
 {
 	// only add it if we need to.
@@ -559,7 +571,7 @@ const Rtti StructuredClass =
 const Rtti AnnotationClass =
     RttiBuilder<ousia::AnnotationClass>("AnnotationClass").parent(&Descriptor);
 const Rtti Domain = RttiBuilder<ousia::Domain>("Domain")
-                        .parent(&Node)
+                        .parent(&RootNode)
                         .composedOf({&StructuredClass, &AnnotationClass});
 }
 }

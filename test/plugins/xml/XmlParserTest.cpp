@@ -44,6 +44,7 @@ struct XmlStandaloneEnvironment : public StandaloneEnvironment {
 	XmlStandaloneEnvironment(ConcreteLogger &logger)
 	    : StandaloneEnvironment(logger)
 	{
+		fileLocator.addDefaultSearchPaths();
 		fileLocator.addUnittestSearchPath("xmlparser");
 
 		registry.registerDefaultExtensions();

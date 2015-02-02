@@ -146,6 +146,12 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 {
 	bool ok = true;
 
+	// Make sure the given file name is not empty
+	if (path.empty()) {
+		logger.error("Filename may not be empty");
+		return false;
+	}
+
 	// Try to deduce the mimetype if none was given
 	if (mimetype.empty()) {
 		mimetype = registry.getMimetypeForFilename(path);
@@ -206,10 +212,10 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 	if (resourceType != ResourceType::UNKNOWN) {
 		supportedTypes = limitSupportedTypes(resourceType, supportedTypes);
 		if (supportedTypes.empty()) {
-			logger.error(
-			    std::string("File of type \"") + mimetype +
-			    std::string("\" cannot be included with relationship ") +
-			    Resource::getResourceTypeName(resourceType));
+			logger.error(std::string("Resource of type \"") + mimetype +
+			             std::string("\" and relationship \"") +
+			             Resource::getResourceTypeName(resourceType) +
+			             std::string("\" cannot be included here"));
 			ok = false;
 		}
 	} else {

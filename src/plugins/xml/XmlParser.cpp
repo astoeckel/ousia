@@ -327,9 +327,9 @@ public:
 		// Perform the actual import, register the imported node within the leaf
 		// node
 		Rooted<Node> imported =
-		    context().import(src, type, rel, leafRootNode->getImportTypes());
+		    context().import(src, type, rel, leafRootNode->getReferenceTypes());
 		if (imported != nullptr) {
-			leafRootNode->import(imported);
+			leafRootNode->reference(imported);
 		}
 	}
 

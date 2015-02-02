@@ -1,18 +1,19 @@
 <?xml version="1.0" standalone="yes"?>
-<typesystem name="color">
-	<struct name="color">
+<typesystem name="bla">
+	<import>color</import>
+	<!--<struct name="color">
 		<field name="r" type="int"/>
 		<field name="g" type="int"/>
 		<field name="b" type="int"/>
-	</struct>
+	</struct>-->
 	<constant name="zero" value="0" type="int" />
 	<constant name="zeros" value="[0, 0, 0]" type="int[]" />
-	<constant name="manyZeros" value="[[0, 0], [0, 0], [0, 0]]" type="int[][][]" />
+	<constant name="manyZeros" value="[[0, 0], [0, 0], [0, 0]]" type="int[][]" />
 	<constant name="black" value="[zero, zero, zero]" type="color" />
 	<struct name="structWithColor">
 		<field name="color" type="color" default="black" />
 	</struct>
-	<constant name="blackStructWithColor" value="[color=black]" type="structWithColor" />
+	<constant name="blackStructWithColor" value="[color=aquamarine]" type="structWithColor" />
 </typesystem>
 <!--<domain name="color">
 	<struct name="bla" cardinality="{1,2}" isa="blub"/>

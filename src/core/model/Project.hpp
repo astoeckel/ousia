@@ -28,13 +28,14 @@
 #ifndef _OUSIA_PROJECT_HPP_
 #define _OUSIA_PROJECT_HPP_
 
-#include "Node.hpp"
+#include <core/common/Rtti.hpp>
+
+#include "RootNode.hpp"
 
 namespace ousia {
 
 // Forward declarations
 class Logger;
-class Rtti;
 class Registry;
 class SystemTypesystem;
 class Typesystem;
@@ -46,7 +47,7 @@ class Domain;
  * documents are stored. It also contains an instance of the SystemTypesystem
  * and allows for simple creation of new Typesystem and Domain instances.
  */
-class Project : public Node {
+class Project : public RootNode {
 private:
 	/**
 	 * Private instance of the system typesystem which is distributed as a
@@ -62,6 +63,8 @@ private:
 protected:
 	bool doValidate(Logger &loger) const override;
 	void doResolve(ResolutionState &state) override;
+	void doReference(Handle<Node> node) override;
+	RttiSet doGetReferenceTypes() const override;
 
 public:
 	/**
@@ -108,7 +111,7 @@ public:
 	 *
 	 * @param document is the document that should be added to the project.
 	 */
-	void addDocument(Handle<Document> document);
+	void referenceDocument(Handle<Document> document);
 
 	/**
 	 * Returns all documents of this project.

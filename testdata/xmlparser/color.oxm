@@ -1,0 +1,18 @@
+<?xml version="1.0" standalone="yes"?>
+<typesystem name="color">
+	<struct name="color">
+		<field name="r" type="int"/>
+		<field name="g" type="int"/>
+		<field name="b" type="int"/>
+	</struct>
+
+	<constant name="aquamarine1" type="color" value="[127,255,212]"/>
+	<constant name="aquamarine2" type="color" value="[118,238,198]"/>
+	<constant name="aquamarine3" type="color" value="[102,205,170]"/>
+	<constant name="aquamarine" type="color" value="[127,255,212]"/>
+	<constant name="azure1" type="color" value="[240,255,255]"/>
+	<constant name="azure2" type="color" value="[224,238,238]"/>
+	<constant name="azure3" type="color" value="[193,205,205]"/>
+	<constant name="azure4" type="color" value="[131,139,139]"/>
+	<constant name="azure" type="color" value="[240,255,255]"/>
+</typesystem>

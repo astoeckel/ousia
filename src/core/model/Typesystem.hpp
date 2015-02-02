@@ -38,6 +38,7 @@
 #include <core/common/Variant.hpp>
 
 #include "Node.hpp"
+#include "RootNode.hpp"
 
 namespace ousia {
 
@@ -1025,7 +1026,7 @@ public:
 /**
  * The Typesystem class represents a collection of types and constants.
  */
-class Typesystem : public Node {
+class Typesystem : public RootNode {
 private:
 	/**
 	 * List containing all types.
@@ -1044,8 +1045,9 @@ private:
 
 protected:
 	void doResolve(ResolutionState &state) override;
-
 	bool doValidate(Logger &logger) const override;
+	void doReference(Handle<Node> node) override;
+	RttiSet doGetReferenceTypes() const override;
 
 public:
 	/**
@@ -1055,7 +1057,7 @@ public:
 	 * @param name is the name of the typesystem.
 	 */
 	Typesystem(Manager &mgr, std::string name)
-	    : Node(mgr, std::move(name)),
+	    : RootNode(mgr, std::move(name)),
 	      types(this),
 	      constants(this),
 	      typesystems(this)

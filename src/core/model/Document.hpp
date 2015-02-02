@@ -115,6 +115,7 @@
 
 #include "Node.hpp"
 #include "Domain.hpp"
+#include "RootNode.hpp"
 #include "Typesystem.hpp"
 
 namespace ousia {
@@ -719,17 +720,18 @@ public:
  * Graph. It also references the domains that have been used within this
  * document and the AnnotationEntities that span over Anchors in this Document.
  */
-class Document : public Node {
+class Document : public RootNode {
 private:
 	// TODO: Might there be several roots? E.g. metadata?
 	Owned<StructuredEntity> root;
 	NodeVector<AnnotationEntity> annotations;
 	NodeVector<Domain> domains;
 
-	void doResolve(ResolutionState &state) override;
-
 protected:
+	void doResolve(ResolutionState &state) override;
 	bool doValidate(Logger &logger) const override;
+	void doReference(Handle<Node> node) override;
+	RttiSet doGetReferenceTypes() const override;
 
 public:
 	/**
@@ -739,7 +741,7 @@ public:
 	 * @param name is a name for this Document.
 	 */
 	Document(Manager &mgr, std::string name)
-	    : Node(mgr, std::move(name), nullptr), annotations(this)
+	    : RootNode(mgr, std::move(name), nullptr), annotations(this)
 	{
 	}
 

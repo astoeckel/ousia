@@ -22,17 +22,17 @@
 
 namespace ousia {
 
-void RootNode::import(Handle<Node> node)
+void RootNode::reference(Handle<Node> node)
 {
-	if (!node->type().isOneOf(doGetImportTypes())) {
+	if (!node->type().isOneOf(getReferenceTypes())) {
 		throw OusiaException(
 		    std::string("Node with type ") + node->type().name +
-		    std::string(" cannot be imported in a ") + type().name);
+		    std::string(" cannot be referenced in a ") + type().name);
 	}
-	doImport(node);
+	doReference(node);
 }
 
-RttiSet RootNode::getImportTypes() { return doGetImportTypes(); }
+RttiSet RootNode::getReferenceTypes() const { return doGetReferenceTypes(); }
 
 namespace RttiTypes {
 const Rtti RootNode = RttiBuilder<ousia::RootNode>("RootNode").parent(&Node);

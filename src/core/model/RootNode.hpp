@@ -28,6 +28,9 @@
 #ifndef _OUSIA_ROOT_NODE_HPP_
 #define _OUSIA_ROOT_NODE_HPP_
 
+#include <core/managed/Managed.hpp>
+#include <core/common/Rtti.hpp>
+
 #include "Node.hpp"
 
 namespace ousia {
@@ -43,16 +46,16 @@ protected:
 	 * Imports the given node. The node was checked to be one of the supported
 	 * types.
 	 *
-	 * @param node is the node that should be imported.
+	 * @param node is the node that should be referenced.
 	 */
-	virtual void doImport(Handle<Node> node) = 0;
+	virtual void doReference(Handle<Node> node) = 0;
 
 	/**
-	 * Should return a set of types that can be imported by this Node.
+	 * Should return a set of types that can be referenced by this Node.
 	 *
-	 * @return a set of Node types that may be imported by this Node.
+	 * @return a set of Node types that may be referenced by this Node.
 	 */
-	virtual RttiSet doGetImportTypes() = 0;
+	virtual RttiSet doGetReferenceTypes() const = 0;
 
 public:
 	using Node::Node;
@@ -63,14 +66,14 @@ public:
 	 *
 	 * @param node is the node that should be imported.
 	 */
-	void import(Handle<Node> node);
+	void reference(Handle<Node> node);
 
 	/**
-	 * Returns a set of types that can be imported by this Node.
+	 * Returns a set of types that can be referenced by this Node.
 	 *
-	 * @return a set of types that can be imported.
+	 * @return a set of types that can be referenced.
 	 */
-	RttiSet getImportTypes();
+	RttiSet getReferenceTypes() const;
 };
 
 namespace RttiTypes {

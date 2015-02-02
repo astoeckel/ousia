@@ -26,7 +26,7 @@
 namespace ousia {
 
 Project::Project(Manager &mgr)
-    : Node(mgr),
+    : RootNode(mgr),
       systemTypesystem(acquire(new SystemTypesystem(mgr))),
       documents(this)
 {
@@ -39,6 +39,16 @@ bool Project::doValidate(Logger &logger) const
 
 void Project::doResolve(ResolutionState &state){
 	continueResolveComposita(documents, documents.getIndex(), state);
+}
+
+void Project::doReference(Handle<Node> node) {
+	if (node->isa(RttiTypes::Document)) {
+		referenceDocument(node.cast<Document>());
+	}
+}
+
+RttiSet Project::doGetReferenceTypes() const {
+	return RttiSet{&RttiTypes::Document};
 }
 
 Rooted<SystemTypesystem> Project::getSystemTypesystem()
@@ -55,7 +65,7 @@ Rooted<Typesystem> Project::createTypesystem(const std::string &name)
 Rooted<Document> Project::createDocument(const std::string &name)
 {
 	Rooted<Document> document{new Document(getManager(), name)};
-	addDocument(document);
+	referenceDocument(document);
 	return document;
 }
 
@@ -64,7 +74,7 @@ Rooted<Domain> Project::createDomain(const std::string &name)
 	return Rooted<Domain>{new Domain(getManager(), systemTypesystem, name)};
 }
 
-void Project::addDocument(Handle<Document> document)
+void Project::referenceDocument(Handle<Document> document)
 {
 	invalidate();
 	documents.push_back(document);
@@ -74,7 +84,7 @@ const NodeVector<Document> &Project::getDocuments() const { return documents; }
 
 namespace RttiTypes {
 const Rtti Project = RttiBuilder<ousia::Project>("Project")
-                         .parent(&Node)
+                         .parent(&RootNode)
                          .composedOf(&Document)
                          .composedOf(&SystemTypesystem);
 }
