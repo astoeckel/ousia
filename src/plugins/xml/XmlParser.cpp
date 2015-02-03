@@ -294,19 +294,55 @@ public:
 	}
 };
 
-class ImportHandler : public Handler {
+class ImportIncludeHandler : public Handler {
 public:
 	using Handler::Handler;
 
+	bool srcInArgs = false;
+	std::string rel;
+	std::string type;
+	std::string src;
+
 	void start(Variant::mapType &args) override
 	{
+		rel = args["rel"].asString();
+		type = args["type"].asString();
+		src = args["src"].asString();
+		srcInArgs = !src.empty();
+	}
+
+	void data(const std::string &data, int field) override
+	{
+		if (srcInArgs) {
+			logger().error("\"src\" attribute has already been set");
+			return;
+		}
+		if (field != 0) {
+			logger().error("Command has only one field.");
+			return;
+		}
+		src.append(data);
+	}
+};
+
+class ImportHandler : public ImportIncludeHandler {
+public:
+	using ImportIncludeHandler::ImportIncludeHandler;
+
+	void start(Variant::mapType &args) override
+	{
+		ImportIncludeHandler::start(args);
+
 		// Make sure imports are still possible
 		if (scope().getFlag(ParserFlag::POST_HEAD)) {
 			logger().error("Imports must be listed before other commands.",
 			               location());
 			return;
 		}
+	}
 
+	void end() override
+	{
 		// Fetch the last node and check whether an import is valid at this
 		// position
 		Rooted<Node> leaf = scope().getLeaf();
@@ -319,11 +355,6 @@ public:
 		}
 		Rooted<RootNode> leafRootNode = leaf.cast<RootNode>();
 
-		// Fetch the parameters
-		const std::string &rel = args["rel"].asString();
-		const std::string &type = args["type"].asString();
-		const std::string &src = args["src"].asString();
-
 		// Perform the actual import, register the imported node within the leaf
 		// node
 		Rooted<Node> imported =
@@ -333,11 +364,29 @@ public:
 		}
 	}
 
-	void end() override {}
-
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new ImportHandler{handlerData};
+	}
+};
+
+class IncludeHandler : public ImportIncludeHandler {
+public:
+	using ImportIncludeHandler::ImportIncludeHandler;
+
+	void start(Variant::mapType &args) override
+	{
+		ImportIncludeHandler::start(args);
+	}
+
+	void end() override
+	{
+		context().include(src, type, rel, {&RttiTypes::Node});
+	}
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new IncludeHandler{handlerData};
 	}
 };
 
@@ -346,17 +395,20 @@ namespace ParserStates {
 static const ParserState Document =
     ParserStateBuilder()
         .parent(&None)
+        .createdNodeType(&RttiTypes::Document)
         .elementHandler(DocumentHandler::create)
         .arguments({Argument::String("name", "")});
 
 /* Domain states */
 static const ParserState Domain = ParserStateBuilder()
                                       .parents({&None, &Document})
+                                      .createdNodeType(&RttiTypes::Domain)
                                       .elementHandler(DomainHandler::create)
                                       .arguments({Argument::String("name")});
 static const ParserState DomainStruct =
     ParserStateBuilder()
         .parent(&Domain)
+        .createdNodeType(&RttiTypes::StructuredClass)
         .elementHandler(DomainStructHandler::create)
         .arguments({Argument::String("name"),
                     Argument::Cardinality("cardinality", AnyCardinality),
@@ -366,9 +418,12 @@ static const ParserState DomainStruct =
 static const ParserState DomainStructFields =
     ParserStateBuilder().parent(&DomainStruct).arguments({});
 static const ParserState DomainStructField =
-    ParserStateBuilder().parent(&DomainStructFields).arguments(
-        {Argument::String("name", ""), Argument::Bool("isSubtree", false),
-         Argument::Bool("optional", false)});
+    ParserStateBuilder()
+        .parent(&DomainStructFields)
+        .createdNodeType(&RttiTypes::FieldDescriptor)
+        .arguments({Argument::String("name", ""),
+                    Argument::Bool("isSubtree", false),
+                    Argument::Bool("optional", false)});
 static const ParserState DomainStructPrimitive =
     ParserStateBuilder().parent(&DomainStructFields).arguments(
         {Argument::String("name", ""), Argument::Bool("optional", false),
@@ -378,13 +433,17 @@ static const ParserState DomainStructPrimitive =
 static const ParserState Typesystem =
     ParserStateBuilder()
         .parents({&None, &Domain})
+        .createdNodeType(&RttiTypes::Typesystem)
         .elementHandler(TypesystemHandler::create)
         .arguments({Argument::String("name", "")});
 static const ParserState TypesystemEnum =
-    ParserStateBuilder().parent(&Typesystem);
+    ParserStateBuilder().createdNodeType(&RttiTypes::EnumType).parent(
+        &Typesystem);
 static const ParserState TypesystemStruct =
     ParserStateBuilder()
         .parent(&Typesystem)
+        .createdNodeType(&RttiTypes::StructType)
+
         .elementHandler(TypesystemStructHandler::create)
         .arguments({Argument::String("name"), Argument::String("parent", "")});
 static const ParserState TypesystemStructField =
@@ -396,6 +455,8 @@ static const ParserState TypesystemStructField =
 static const ParserState TypesystemConstant =
     ParserStateBuilder()
         .parent(&Typesystem)
+        .createdNodeType(&RttiTypes::Constant)
+
         .elementHandler(TypesystemConstantHandler::create)
         .arguments({Argument::String("name"), Argument::String("type"),
                     Argument::Any("value")});
@@ -406,10 +467,13 @@ static const ParserState Import =
         .parents({&Document, &Typesystem, &Domain})
         .elementHandler(ImportHandler::create)
         .arguments({Argument::String("rel", ""), Argument::String("type", ""),
-                    Argument::String("src")});
-static const ParserState Include = ParserStateBuilder().parent(&All).arguments(
-    {Argument::String("rel", ""), Argument::String("type", ""),
-     Argument::String("src")});
+                    Argument::String("src", "")});
+static const ParserState Include =
+    ParserStateBuilder()
+        .parent(&All)
+        .elementHandler(IncludeHandler::create)
+        .arguments({Argument::String("rel", ""), Argument::String("type", ""),
+                    Argument::String("src", "")});
 
 static const std::multimap<std::string, const ParserState *> XmlStates{
     {"document", &Document},
@@ -424,8 +488,35 @@ static const std::multimap<std::string, const ParserState *> XmlStates{
     {"field", &TypesystemStructField},
     {"constant", &TypesystemConstant},
     {"import", &Import},
-    {"include", &Include}};
+    {"include", &Include}
+   };
 }
+
+/**
+ * Structue containing the private data that is being passed to the
+ * XML-Handlers.
+ */
+struct XMLUserData {
+	/**
+	 * Containing the depth of the current XML file
+	 */
+	size_t depth;
+
+	/**
+	 * Reference at the ParserStack instance.
+	 */
+	ParserStack *stack;
+
+	/**
+	 * Constructor of the XMLUserData struct.
+	 *
+	 * @param stack is a pointer at the ParserStack instance.
+	 */
+	XMLUserData(ParserStack *stack) : depth(0), stack(stack){
+		
+	}
+};
+
 /**
  * Wrapper class around the XML_Parser pointer which safely frees it whenever
  * the scope is left (e.g. because an exception was thrown).
@@ -477,7 +568,8 @@ public:
 static SourceLocation syncLoggerPosition(XML_Parser p, size_t len = 0)
 {
 	// Fetch the parser stack and the associated user data
-	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(p));
+	XMLUserData *userData = static_cast<XMLUserData *>(XML_GetUserData(p));
+	ParserStack *stack = userData->stack;
 
 	// Fetch the current location in the XML file
 	size_t offs = XML_GetCurrentByteIndex(p);
@@ -494,10 +586,12 @@ static void xmlStartElementHandler(void *p, const XML_Char *name,
                                    const XML_Char **attrs)
 {
 	XML_Parser parser = static_cast<XML_Parser>(p);
+	XMLUserData *userData = static_cast<XMLUserData *>(XML_GetUserData(p));
+	ParserStack *stack = userData->stack;
+
 	SourceLocation loc = syncLoggerPosition(parser);
 
-	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(parser));
-
+	// Assemble the arguments
 	Variant::mapType args;
 	const XML_Char **attr = attrs;
 	while (*attr) {
@@ -506,22 +600,40 @@ static void xmlStartElementHandler(void *p, const XML_Char *name,
 		    *(attr++), stack->getContext().getLogger());
 		args.emplace(std::make_pair(key, value.second));
 	}
-	stack->start(std::string(name), args, loc);
+
+	// Call the start function
+	std::string nameStr(name);
+	if (nameStr != "ousia" || userData->depth > 0) {
+		stack->start(std::string(name), args, loc);
+	}
+
+	// Increment the current depth
+	userData->depth++;
 }
 
 static void xmlEndElementHandler(void *p, const XML_Char *name)
 {
 	XML_Parser parser = static_cast<XML_Parser>(p);
-	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(parser));
+	XMLUserData *userData = static_cast<XMLUserData *>(XML_GetUserData(p));
+	ParserStack *stack = userData->stack;
 
 	syncLoggerPosition(parser);
-	stack->end();
+
+	// Decrement the current depth
+	userData->depth--;
+
+	// Call the end function
+	std::string nameStr(name);
+	if (nameStr != "ousia" || userData->depth > 0) {
+		stack->end();
+	}
 }
 
 static void xmlCharacterDataHandler(void *p, const XML_Char *s, int len)
 {
 	XML_Parser parser = static_cast<XML_Parser>(p);
-	ParserStack *stack = static_cast<ParserStack *>(XML_GetUserData(parser));
+	XMLUserData *userData = static_cast<XMLUserData *>(XML_GetUserData(p));
+	ParserStack *stack = userData->stack;
 
 	size_t ulen = len > 0 ? static_cast<size_t>(len) : 0;
 	syncLoggerPosition(parser, ulen);
@@ -538,10 +650,18 @@ void XmlParser::doParse(CharReader &reader, ParserContext &ctx)
 	// Create the parser object
 	ScopedExpatXmlParser p{"UTF-8"};
 
-	// Create the parser stack instance and pass the reference to the state
-	// machine descriptor
-	ParserStack stack{ctx, ParserStates::XmlStates};
-	XML_SetUserData(&p, &stack);
+	// Create the parser stack instance, if we're starting on a non-empty scope,
+	// try to deduce the parser state
+	ParserStack stack(ctx, ParserStates::XmlStates);
+	if (!ctx.getScope().isEmpty()) {
+		if (!stack.deduceState()) {
+			return;
+		}
+	}
+
+	// Pass the reference to the ParserStack to the XML handler
+	XMLUserData data(&stack);
+	XML_SetUserData(&p, &data);
 	XML_UseParserAsHandlerArg(&p);
 
 	// Set the callback functions

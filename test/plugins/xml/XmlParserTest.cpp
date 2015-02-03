@@ -50,7 +50,7 @@ struct XmlStandaloneEnvironment : public StandaloneEnvironment {
 		registry.registerDefaultExtensions();
 		registry.registerParser(
 		    {"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
-		    {&RttiTypes::Document, &RttiTypes::Typesystem, &RttiTypes::Domain},
+		    {&RttiTypes::Node},
 		    &xmlParser);
 		registry.registerResourceLocator(&fileLocator);
 	}

@@ -1,5 +1,5 @@
 <?xml version="1.0" standalone="yes"?>
-<typesystem name="color">
+<ousia>
 	<struct name="color">
 		<field name="r" type="int"/>
 		<field name="g" type="int"/>
@@ -15,4 +15,4 @@
 	<constant name="azure3" type="color" value="[193,205,205]"/>
 	<constant name="azure4" type="color" value="[131,139,139]"/>
 	<constant name="azure" type="color" value="[240,255,255]"/>
-</typesystem>
+</ousia>
