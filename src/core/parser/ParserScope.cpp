@@ -352,11 +352,10 @@ bool ParserScope::resolveValue(Variant &data, Handle<Type> type,
 			    return Type::MagicCallbackResult::NOT_FOUND;
 		    }
 
-		    // Set the data to the value of the constant
-		    innerData = constant->getValue();
 
 		    // Check whether the inner type of the constant is correct
 		    // TODO: Use correct "isa" provided by Type
+		    Type::MagicCallbackResult res = Type::MagicCallbackResult::FOUND_VALID;
 		    Rooted<Type> constantType = constant->getType();
 		    if (innerType != constantType) {
 			    logger.error(std::string("Expected value of type \"") +
@@ -365,10 +364,16 @@ bool ParserScope::resolveValue(Variant &data, Handle<Type> type,
 			                     constant->getName() +
 			                     std::string("\" of type \"") +
 			                     constantType->getName() + "\" instead.",
-			                 *owner);
-			    return Type::MagicCallbackResult::FOUND_INVALID;
+			                 innerData);
+			    logger.note("Constant was defined here:", *constant);
+			    res = Type::MagicCallbackResult::FOUND_INVALID;
 		    }
-		    return Type::MagicCallbackResult::FOUND_VALID;
+
+		    // Set the data to the value of the constant (even if an error
+		    // happend -- probably the type is was not that wrong -- who knows?
+		    innerData = constant->getValue();
+
+		    return res;
 		});
 }
 
