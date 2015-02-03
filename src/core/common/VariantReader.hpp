@@ -277,6 +277,10 @@ public:
 	 * @param str is the string from which the value should be read.
 	 * @param logger is the logger instance to which errors or warnings will be
 	 * written.
+	 * @param sourceId is an optional descriptor of the source file from which
+	 * the element is being read.
+	 * @param offs is the by offset in the source file at which the string
+	 * starts.
 	 * @return a pair indicating whether the operation was successful and the
 	 * extracted variant value. Note that the variant value most times contains
 	 * some meaningful data that can be worked with even if the operation was
@@ -285,8 +289,9 @@ public:
 	 * variant.) Information on why the operation has failed is passed to the
 	 * logger.
 	 */
-	static std::pair<bool, Variant> parseGenericString(const std::string &str,
-	                                                   Logger &logger);
+	static std::pair<bool, Variant> parseGenericString(
+	    const std::string &str, Logger &logger,
+	    SourceId sourceId = InvalidSourceId, size_t offs = 0);
 };
 }
 

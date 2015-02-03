@@ -728,97 +728,146 @@ TEST(VariantReader, parseGenericToken)
 	// Simple case, unescaped string
 	{
 		CharReader reader("hello world");
+		//                 01234567890
+		//                 0         1
 		auto res =
 		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
 		ASSERT_FALSE(res.second.isMagic());
 		ASSERT_EQ("hello world", res.second.asString());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(11U, loc.getEnd());
 	}
 
 	// Simple case, double quoted string
 	{
 		CharReader reader(" \"hello world\"    ");
+		//                 0 123456789012 34567
+		//                 0          1
 		auto res =
 		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
 		ASSERT_FALSE(res.second.isMagic());
 		ASSERT_EQ("hello world", res.second.asString());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(1U, loc.getStart());
+		ASSERT_EQ(14U, loc.getEnd());
 	}
 
 	// Simple case, single quoted string
 	{
 		CharReader reader(" 'hello world'    ");
+		//                 012345678901234567
+		//                 0         1
 		auto res =
 		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
 		ASSERT_FALSE(res.second.isMagic());
 		ASSERT_EQ("hello world", res.second.asString());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(1U, loc.getStart());
+		ASSERT_EQ(14U, loc.getEnd());
 	}
 
 	// String with whitespaces at the beginning.
 	{
-		CharReader reader("   \' test\'");
+		CharReader reader("   ' test'");
+		//                 0123456789
 		auto res =
 		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_EQ(" test", res.second);
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(3U, loc.getStart());
+		ASSERT_EQ(10U, loc.getEnd());
 	}
 
 	// Integer
 	{
 		CharReader reader("1234");
+		//                 0123
 		auto res =
 		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isInt());
 		ASSERT_EQ(1234, res.second.asInt());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(4U, loc.getEnd());
 	}
 
 	// Double
 	{
 		CharReader reader("1234.5");
+		//                 012345
 		auto res =
 		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isDouble());
 		ASSERT_EQ(1234.5, res.second.asDouble());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(6U, loc.getEnd());
 	}
 
 	// Boolean (true)
 	{
 		CharReader reader("true");
+		//                 0123
 		auto res =
 		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isBool());
 		ASSERT_TRUE(res.second.asBool());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(4U, loc.getEnd());
 	}
 
 	// Boolean (false)
 	{
 		CharReader reader("false");
+		//                 01234
 		auto res =
 		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isBool());
 		ASSERT_FALSE(res.second.asBool());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(5U, loc.getEnd());
 	}
 
 	// Nullptr
 	{
 		CharReader reader("null");
+		//                 0123
 		auto res =
 		    VariantReader::parseGenericToken(reader, logger, {';'}, true);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isNull());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(4U, loc.getEnd());
 	}
 
 	// Simple case, unescaped string
 	{
 		CharReader reader("hello world");
-
+		//                 01234567890
+		//                 0         1
 		{
 			auto res =
 			    VariantReader::parseGenericToken(reader, logger, {';'}, false);
@@ -826,6 +875,10 @@ TEST(VariantReader, parseGenericToken)
 			ASSERT_TRUE(res.second.isString());
 			ASSERT_TRUE(res.second.isMagic());
 			ASSERT_EQ("hello", res.second.asString());
+
+			SourceLocation loc = res.second.getLocation();
+			ASSERT_EQ(0U, loc.getStart());
+			ASSERT_EQ(5U, loc.getEnd());
 		}
 
 		{
@@ -835,29 +888,45 @@ TEST(VariantReader, parseGenericToken)
 			ASSERT_TRUE(res.second.isString());
 			ASSERT_TRUE(res.second.isMagic());
 			ASSERT_EQ("world", res.second.asString());
+
+			SourceLocation loc = res.second.getLocation();
+			ASSERT_EQ(6U, loc.getStart());
+			ASSERT_EQ(11U, loc.getEnd());
 		}
 	}
 
 	// Simple case, double quoted string
 	{
 		CharReader reader(" \"hello world\"    ");
+		//                 0 123456789012 34567
+		//                 0          1
 		auto res =
 		    VariantReader::parseGenericToken(reader, logger, {';'}, false);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
 		ASSERT_FALSE(res.second.isMagic());
 		ASSERT_EQ("hello world", res.second.asString());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(1U, loc.getStart());
+		ASSERT_EQ(14U, loc.getEnd());
 	}
 
 	// Simple case, single quoted string
 	{
 		CharReader reader(" 'hello world'    ");
+		//                 012345678901234567
+		//                 0         1
 		auto res =
 		    VariantReader::parseGenericToken(reader, logger, {';'}, false);
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
 		ASSERT_FALSE(res.second.isMagic());
 		ASSERT_EQ("hello world", res.second.asString());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(1U, loc.getStart());
+		ASSERT_EQ(14U, loc.getEnd());
 	}
 }
 
@@ -866,23 +935,35 @@ TEST(VariantReader, parseGeneric)
 	// Simple case, int.
 	{
 		CharReader reader("0");
+		//                 0
 		auto res = VariantReader::parseGeneric(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isInt());
 		ASSERT_EQ(0, res.second.asInt());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(1U, loc.getEnd());
 	}
 	// Simple case, unescaped string
 	{
 		CharReader reader("hello");
+		//                 01234
 		auto res = VariantReader::parseGeneric(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isMagic());
 		ASSERT_EQ("hello", res.second.asMagic());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(5U, loc.getEnd());
 	}
 
 	// Simple case, unescaped string with multiple array entries
 	{
 		CharReader reader("hello world");
+		//                 01234567890
+		//                 0         1
 		auto res = VariantReader::parseGeneric(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isArray());
@@ -893,11 +974,17 @@ TEST(VariantReader, parseGeneric)
 		ASSERT_TRUE(arr[1].isMagic());
 		ASSERT_EQ("hello", arr[0].asMagic());
 		ASSERT_EQ("world", arr[1].asMagic());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(11U, loc.getEnd());
 	}
 
 	// Delimiter test
 	{
 		CharReader reader("hello; world");
+		//                 012345678901
+		//                 0         1
 		auto res = VariantReader::parseGeneric(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isMagic());
@@ -906,11 +993,17 @@ TEST(VariantReader, parseGeneric)
 		char c;
 		ASSERT_TRUE(reader.peek(c));
 		ASSERT_EQ(';', c);
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(5U, loc.getEnd());
 	}
 
 	// More complex CSS-like case
 	{
 		CharReader reader("1px solid blue");
+		//                 01234567890123
+		//                 0         1
 		auto res = VariantReader::parseGeneric(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isArray());
@@ -923,6 +1016,30 @@ TEST(VariantReader, parseGeneric)
 		ASSERT_EQ("1px", arr[0].asString());
 		ASSERT_EQ("solid", arr[1].asMagic());
 		ASSERT_EQ("blue", arr[2].asMagic());
+
+		{
+			SourceLocation loc = res.second.getLocation();
+			ASSERT_EQ(0U, loc.getStart());
+			ASSERT_EQ(14U, loc.getEnd());
+		}
+
+		{
+			SourceLocation loc = arr[0].getLocation();
+			ASSERT_EQ(0U, loc.getStart());
+			ASSERT_EQ(3U, loc.getEnd());
+		}
+
+		{
+			SourceLocation loc = arr[1].getLocation();
+			ASSERT_EQ(4U, loc.getStart());
+			ASSERT_EQ(9U, loc.getEnd());
+		}
+
+		{
+			SourceLocation loc = arr[2].getLocation();
+			ASSERT_EQ(10U, loc.getStart());
+			ASSERT_EQ(14U, loc.getEnd());
+		}
 	}
 }
 
@@ -931,34 +1048,55 @@ TEST(VariantReader, parseGenericString)
 	// Simple case, unescaped string
 	{
 		auto res = VariantReader::parseGenericString("foo", logger);
+		//                                            012
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isMagic());
 		ASSERT_EQ("foo", res.second.asMagic());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(3U, loc.getEnd());
 	}
 
 	// Simple case, unescaped string with space
 	{
 		auto res = VariantReader::parseGenericString("foo bar", logger);
+		//                                            0123456
 		ASSERT_TRUE(res.first);
 		ASSERT_FALSE(res.second.isMagic());
 		ASSERT_TRUE(res.second.isString());
 		ASSERT_EQ("foo bar", res.second.asString());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(7U, loc.getEnd());
 	}
 
 	// Parse double
 	{
 		auto res = VariantReader::parseGenericString("12.3", logger);
+		//                                            0123
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isDouble());
 		ASSERT_EQ(12.3, res.second.asDouble());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(4U, loc.getEnd());
 	}
 
 	// Parse string
 	{
 		auto res = VariantReader::parseGenericString("6 times 7 is 42", logger);
+		//                                            012345678901234
+		//                                            0         1
 		ASSERT_TRUE(res.first);
 		ASSERT_TRUE(res.second.isString());
 		ASSERT_EQ("6 times 7 is 42", res.second.asString());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(15U, loc.getEnd());
 	}
 }
 

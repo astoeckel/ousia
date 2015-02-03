@@ -674,6 +674,12 @@ std::pair<bool, Variant> VariantReader::parseGeneric(
 	char c;
 	bool hadError = false;
 
+	// Skip all peeked characters
+	reader.consumePeek();
+
+	// Read the start offset
+	const SourceOffset start = reader.getOffset();
+
 	// Parse generic tokens until the end of the stream or the delimiter is
 	// reached
 	while (reader.peek(c) && !delims.count(c)) {
@@ -694,7 +700,9 @@ std::pair<bool, Variant> VariantReader::parseGeneric(
 	if (arr.size() == 1) {
 		return std::make_pair(!hadError, arr[0]);
 	} else {
-		return std::make_pair(!hadError, Variant{arr});
+		Variant res{arr};
+		res.setLocation({reader.getSourceId(), start, reader.getOffset()});
+		return std::make_pair(!hadError, res);
 	}
 }
 
@@ -712,10 +720,15 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 	}
 	reader.resetPeek();
 
+	// Fetch the start offset
+	const SourceOffset start = reader.getOffset();
+
 	// Parse a string if a quote is reached
 	if (c == '"' || c == '\'') {
 		auto res = parseString(reader, logger);
-		return std::make_pair(res.first, res.second.c_str());
+		Variant v = Variant::fromString(res.second);
+		v.setLocation({reader.getSourceId(), start, reader.getOffset()});
+		return std::make_pair(res.first, v);
 	}
 
 	// Try to parse everything that looks like a number as number
@@ -727,12 +740,15 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 		if (n.parse(readerFork, loggerFork, delims)) {
 			readerFork.commit();
 			loggerFork.commit();
+
+			Variant v;
 			if (n.isInt()) {
-				return std::make_pair(
-				    true, Variant{static_cast<Variant::intType>(n.intValue())});
+				v = Variant{static_cast<Variant::intType>(n.intValue())};
 			} else {
-				return std::make_pair(true, n.doubleValue());
+				v = Variant{n.doubleValue()};
 			}
+			v.setLocation({reader.getSourceId(), start, reader.getOffset()});
+			return std::make_pair(true, v);
 		}
 		reader.resetPeek();
 	}
@@ -745,14 +761,19 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 		if (res.first) {
 			readerFork.commit();
 			loggerFork.commit();
-			return std::make_pair(true, Variant{res.second});
+			Variant v{res.second};
+			v.setLocation({reader.getSourceId(), start, reader.getOffset()});
+			return std::make_pair(true, v);
 		}
 		reader.resetPeek();
 	}
 
 	// Try to parse an object
 	if (c == '[') {
-		return parseComplex(reader, logger, 0, ComplexMode::BOTH);
+		auto res = parseComplex(reader, logger, 0, ComplexMode::BOTH);
+		res.second.setLocation(
+		    {reader.getSourceId(), start, reader.getOffset()});
+		return res;
 	}
 
 	// Otherwise parse a single token
@@ -764,41 +785,55 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 	}
 
 	// Handling for special primitive values
+	bool isSpecial = false;
+	Variant v;
 	if (res.first) {
 		if (res.second == "true") {
-			return std::make_pair(true, Variant{true});
-		}
-		if (res.second == "false") {
-			return std::make_pair(true, Variant{false});
-		}
-		if (res.second == "null") {
-			return std::make_pair(true, Variant{nullptr});
+			v = Variant{true};
+			isSpecial = true;
+		} else if (res.second == "false") {
+			v = Variant{false};
+			isSpecial = true;
+		} else if (res.second == "null") {
+			v = Variant{nullptr};
+			isSpecial = true;
 		}
 	}
 
 	// Check whether the parsed string is a valid identifier -- if yes, flag it
 	// as "magic" string
-	if (Utils::isIdentifier(res.second)) {
-		Variant v;
-		v.setMagic(res.second.c_str());
-		return std::make_pair(res.first, v);
-	} else {
-		return std::make_pair(res.first, Variant::fromString(res.second));
+	if (!isSpecial) {
+		if (Utils::isIdentifier(res.second)) {
+			v.setMagic(res.second.c_str());
+		} else {
+			v = Variant::fromString(res.second);
+		}
 	}
+	v.setLocation({reader.getSourceId(), start, reader.getOffset()});
+	return std::make_pair(res.first, v);
 }
 
 std::pair<bool, Variant> VariantReader::parseGenericString(
-    const std::string &str, Logger &logger)
+    const std::string &str, Logger &logger, SourceId sourceId, size_t offs)
 {
-	CharReader reader{str};
+	CharReader reader{str, sourceId, offs};
 	LoggerFork loggerFork = logger.fork();
+
+	// Try to parse a single token
 	std::pair<bool, Variant> res =
 	    parseGenericToken(reader, loggerFork, std::unordered_set<char>{}, true);
+
+	// If the string was actually consisted of a single token, return that token
 	if (reader.atEnd()) {
 		loggerFork.commit();
 		return res;
 	}
-	return std::make_pair(true, Variant::fromString(str));
+
+	// Otherwise return the given string as a string, set the location of the
+	// string correctly
+	Variant v = Variant::fromString(str);
+	v.setLocation({sourceId, offs, offs + str.size()});
+	return std::make_pair(true, v);
 }
 }
 
