@@ -65,6 +65,13 @@ struct ParserState {
 	Arguments arguments;
 
 	/**
+	 * Set containing the types of the nodes that may be created in this
+	 * ParserState. This information is needed for Parsers to reconstruct the
+	 * current ParserState from a given ParserScope when a file is included.
+	 */
+	RttiSet createdNodeTypes;
+
+	/**
 	 * Pointer at a function which creates a new concrete Handler instance for
 	 * the elements described by this state. May be nullptr in which case no
 	 * handler instance is created.
@@ -90,6 +97,10 @@ struct ParserState {
 	 * @param parents is a vector containing all possible parent states.
 	 * @param arguments is a descriptor of arguments that should be passed to
 	 * the handler.
+	 * @param createdNodeTypes is a set containing the types of the nodes tha
+	 * may be created in this ParserState. This information is needed for
+	 * Parsers to reconstruct the current ParserState from a given ParserScope
+	 * when a file is included.
 	 * @param elementHandler is a pointer at a function which creates a new
 	 * concrete Handler instance for the elements described by this state. May
 	 * be nullptr in which case no handler instance is created.
@@ -99,6 +110,7 @@ struct ParserState {
 	 * allowed.
 	 */
 	ParserState(ParserStateSet parents, Arguments arguments = Arguments{},
+	            RttiSet createdNodeTypes = RttiSet{},
 	            HandlerConstructor elementHandler = nullptr,
 	            HandlerConstructor childHandler = nullptr);
 
@@ -164,6 +176,26 @@ public:
 	ParserStateBuilder &arguments(const Arguments &arguments);
 
 	/**
+	 * Sets the Node types this state may produce to the given Rtti descriptor.
+	 *
+	 * @param type is the Rtti descriptor of the Type that may be produced by
+	 * this state.
+	 * @return a reference at this ParserStateBuilder instance for method
+	 * chaining.
+	 */
+	ParserStateBuilder &createdNodeType(const Rtti *type);
+
+	/**
+	 * Sets the Node types this state may produce to the given Rtti descriptors.
+	 *
+	 * @param types is a set of Rtti descriptors of the Types that may be
+	 * produced by this state.
+	 * @return a reference at this ParserStateBuilder instance for method
+	 * chaining.
+	 */
+	ParserStateBuilder &createdNodeTypes(const RttiSet &types);
+
+	/**
 	 * Sets the constructor for the element handler. The constructor creates a
 	 * new concrete Handler instance for the elements described by this state.
 	 * May be nullptr in which case no handler instance is created (this is
@@ -199,6 +231,64 @@ public:
 };
 
 /**
+ * Class used to deduce the ParserState a Parser is currently in based on the
+ * types of the Nodes that currently are on the ParserStack. Uses dynamic
+ * programming in order to solve this problem.
+ */
+class ParserStateDeductor {
+public:
+	/**
+	 * Type containing the dynamic programming table.
+	 */
+	using Table = std::vector<std::unordered_map<const ParserState *, bool>>;
+
+private:
+	/**
+	 * Dynamic programming table.
+	 */
+	Table tbl;
+
+	/**
+	 * Signature given in the constructor.
+	 */
+	const std::vector<const Rtti *> signature;
+
+	/**
+	 * List of states that should be checked for being active.
+	 */
+	const std::vector<const ParserState *> states;
+
+	/**
+	 * Used internally to check whether the given parser stack s may have been
+	 * active for signature element d.
+	 *
+	 * @param d is the signature element.
+	 * @param s is the parser state.
+	 * @return true if the the given ParserState may have been active.
+	 */
+	bool isActive(size_t d, const ParserState *s);
+
+public:
+	/**
+	 * Constructor of the ParserStateDeductor class.
+	 *
+	 * @param signature a Node type signature describing the types of the nodes
+	 * which currently reside on e.g. the ParserScope stack.
+	 * @param states is a list of states that should be checked.
+	 */
+	ParserStateDeductor(std::vector<const Rtti *> signature,
+	                    std::vector<const ParserState *> states);
+
+	/**
+	 * Selects all active states from the given states. Only considers those
+	 * states that may have produced the last signature element.
+	 *
+	 * @return a list of states that may actually have been active.
+	 */
+	std::vector<const ParserState *> deduce();
+};
+
+/**
  * The ParserStates namespace contains all the global state constants used
  * in the ParserStack class.
  */
@@ -213,7 +303,6 @@ extern const ParserState All;
  */
 extern const ParserState None;
 }
-
 }
 
 #endif /* _OUSIA_PARSER_STATE_HPP_ */
