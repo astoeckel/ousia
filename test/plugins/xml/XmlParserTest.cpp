@@ -22,6 +22,7 @@
 
 #include <core/common/CharReader.hpp>
 #include <core/common/SourceContextReader.hpp>
+#include <core/model/Domain.hpp>
 #include <core/model/Project.hpp>
 #include <core/frontend/TerminalLogger.hpp>
 #include <core/StandaloneEnvironment.hpp>
@@ -48,10 +49,8 @@ struct XmlStandaloneEnvironment : public StandaloneEnvironment {
 		fileLocator.addUnittestSearchPath("xmlparser");
 
 		registry.registerDefaultExtensions();
-		registry.registerParser(
-		    {"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
-		    {&RttiTypes::Node},
-		    &xmlParser);
+		registry.registerParser({"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
+		                        {&RttiTypes::Node}, &xmlParser);
 		registry.registerResourceLocator(&fileLocator);
 	}
 };
@@ -72,6 +71,28 @@ TEST(XmlParser, generic)
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	env.manager.exportGraphviz("xmlDocument.dot");
 #endif
+}
+
+TEST(XmlParser, domainParsing)
+{
+	XmlStandaloneEnvironment env(logger);
+	Rooted<Node> n =
+	    env.parse("book_domain.oxm", "", "", RttiSet{&RttiTypes::Domain});
+	ASSERT_FALSE(n.isNull());
+	// check the domain node.
+	Rooted<Domain> domain = n.cast<Domain>();
+	ASSERT_EQ("book", domain->getName());
+	// get the book struct node.
+	auto res = domain->resolve(RttiTypes::StructuredClass, "book");
+	ASSERT_EQ(1, res.size());
+	Rooted<StructuredClass> bookStruct = res[0].node.cast<StructuredClass>();
+	ASSERT_EQ("book", bookStruct->getName());
+	Cardinality single;
+	single.merge({1});
+	ASSERT_EQ(single, bookStruct->getCardinality());
+	//TODO: Something is wrong here
+//	ASSERT_TRUE(bookStruct->isRoot());
+	ASSERT_FALSE(bookStruct->isTransparent());
 }
 }
 

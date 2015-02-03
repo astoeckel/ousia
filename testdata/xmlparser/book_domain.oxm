@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+<!-- The domain node is the root node of a single domain definition -->
+<domain name="book">
+	<!-- We start by declaring the structured classes. This implicitly defines
+	     a context free grammar, which specifies the language of documents that
+	     may be constructed using this domain. Note that this grammar may be
+	     influenced by other domains depending on this one. -->
+	<!-- Note that we specify neither attributes, 
+	     nor parent, nor transparency, meaning that we refer to the default
+	     values. Also note that we need to specify explicitly, which classes
+	     are allowed as root nodes. -->
+	<struct name="book" cardinality="1" isRoot="true">
+	<!-- implicitly:
+	<struct name="book" cardinality="1" isRoot="true" 
+	                 transparent="false" isa="" attributesDescriptor="">
+	-->
+		<!-- Note that we assume that, if not specified, a
+		     field is assumed to have no name, be of type TREE
+		     and not optional. -->
+		<field>
+		<!-- implicitly:
+		<field name="" isSubtree="false" optional="false">
+		-->
+			<!-- Using such child references might be problematic if
+			     multiple nodes are matched. This should probably
+			     result in an exception.
+			     Also note that we only reference the child classes.
+			     We do _not_ declare them here. This might lead to
+			     some difficulties in the parsing process as I
+			     effectively use forward declarations here. So the
+			     resolve() process may only be started _after_ all
+			     delcarations are read. -->
+			<child ref="book.chapter"/>
+			<!-- The dot notation as path separator might be changed
+			     but I think it to be intuitive. If we want a more
+			     CSS like style we can use whitespaces here. -->
+			<child ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="chapter">
+	<!-- implicitly:
+	<struct name="chapter" isRoot="false" cardinality="*"
+	                 transparent="false" isa="" attributesDescriptor="">
+	-->
+		<field>
+		<!-- implicitly:
+		<field name="" isSubtree="false" optional="false">
+		-->
+			<child ref="book.section"/>
+			<child ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="section">
+	<!-- implicitly:
+	<struct name="section" isRoot="false" cardinality="*"
+	                 transparent="false" isa="" attributesDescriptor="">
+	-->
+		<field>
+		<!-- implicitly:
+		<field name="" isSubtree="false" optional="false">
+		-->
+			<child ref="book.subsection"/>
+			<child ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="subsection">
+	<!-- implicitly:
+	<struct name="subsection" isRoot="false" cardinality="*"
+	                 transparent="false" isa="" attributesDescriptor="">
+	-->
+		<field>
+		<!-- implicitly:
+		<field name="" isSubtree="false" optional="false">
+		-->
+			<child ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="paragraph" transparent="true" role="paragraph">
+	<!-- implicitly:
+	<struct name="subsection" isRoot="false" cardinality="*"
+	                 transparent="true" isa="" attributesDescriptor="">
+	-->
+		<field>
+		<!-- implicitly:
+		<field name="" type="TREE" optional="false">
+		-->
+			<child ref="book.text"/>
+		</field>
+	</struct>
+	<struct name="text" transparent="true" role="text">
+	<!-- implicitly:
+	<struct name="text" isRoot="false" cardinality="*"
+	                 transparent="true" isa="" attributesDescriptor="">
+	-->
+		<!-- we might want to specify std.string here -->
+		<primitive name="content" type="string"/>
+	</struct>
+</domain>
