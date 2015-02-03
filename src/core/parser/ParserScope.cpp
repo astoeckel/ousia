@@ -61,6 +61,38 @@ Rooted<Node> ParserScopeBase::resolve(const Rtti &type,
 	return nullptr;
 }
 
+bool ParserScopeBase::isEmpty() const { return nodes.empty(); }
+
+Rooted<Node> ParserScopeBase::getRoot() const { return nodes.front(); }
+
+Rooted<Node> ParserScopeBase::getLeaf() const { return nodes.back(); }
+
+const NodeVector<Node> &ParserScopeBase::getStack() const { return nodes; }
+
+std::vector<Rtti const *> ParserScopeBase::getStackTypeSignature() const
+{
+	std::vector<Rtti const *> res;
+	res.reserve(nodes.size());
+	for (size_t i = 0; i < nodes.size(); i++) {
+		res.push_back(&(nodes[i]->type()));
+	}
+	return res;
+}
+
+Rooted<Node> ParserScopeBase::select(RttiSet types, int maxDepth)
+{
+	ssize_t minDepth = 0;
+	if (maxDepth >= 0) {
+		minDepth = static_cast<ssize_t>(nodes.size()) - (maxDepth + 1);
+	}
+	for (ssize_t i = nodes.size() - 1; i >= minDepth; i--) {
+		if (nodes[i]->type().isOneOf(types)) {
+			return nodes[i];
+		}
+	}
+	return nullptr;
+}
+
 /* Class DeferredResolution */
 
 DeferredResolution::DeferredResolution(const NodeVector<Node> &nodes,
@@ -189,24 +221,6 @@ void ParserScope::pop()
 }
 
 NodeVector<Node> ParserScope::getTopLevelNodes() const { return topLevelNodes; }
-
-Rooted<Node> ParserScope::getRoot() const { return nodes.front(); }
-
-Rooted<Node> ParserScope::getLeaf() const { return nodes.back(); }
-
-Rooted<Node> ParserScope::select(RttiSet types, int maxDepth)
-{
-	ssize_t minDepth = 0;
-	if (maxDepth >= 0) {
-		minDepth = static_cast<ssize_t>(nodes.size()) - (maxDepth + 1);
-	}
-	for (ssize_t i = nodes.size() - 1; i >= minDepth; i--) {
-		if (nodes[i]->type().isOneOf(types)) {
-			return nodes[i];
-		}
-	}
-	return nullptr;
-}
 
 void ParserScope::setFlag(ParserFlag flag, bool value)
 {
@@ -368,17 +382,17 @@ bool ParserScope::resolveTypeWithValue(const std::vector<std::string> &path,
 	ParserScope scope = fork();
 	Variant *valuePtr = &value;
 
-	return resolveType(path, owner, logger,
-	                   [=](Handle<Node> resolved, Handle<Node> owner,
-	                       Logger &logger) mutable {
-		if (resolved != nullptr) {
-			Rooted<Type> type = resolved.cast<Type>();
-			scope.resolveValue(*valuePtr, type, owner, logger);
-		}
+	return resolveType(
+	    path, owner, logger,
+	    [=](Handle<Node> resolved, Handle<Node> owner, Logger &logger) mutable {
+		    if (resolved != nullptr) {
+			    Rooted<Type> type = resolved.cast<Type>();
+			    scope.resolveValue(*valuePtr, type, owner, logger);
+		    }
 
-		// Call the result callback with the type
-		resultCallback(resolved, owner, logger);
-	});
+		    // Call the result callback with the type
+		    resultCallback(resolved, owner, logger);
+		});
 }
 
 bool ParserScope::resolveTypeWithValue(const std::string &name,

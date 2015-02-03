@@ -104,6 +104,69 @@ public:
 	 */
 	Rooted<Node> resolve(const Rtti &type, const std::vector<std::string> &path,
 	                     Logger &logger);
+
+	/**
+	 * Returns true if the stack is empty.
+	 *
+	 * @return true if there is no element on the stack.
+	 */
+	bool isEmpty() const;
+
+	/**
+	 * Returns a reference at the internal node stack.
+	 *
+	 * @return a const reference at the internal node stack.
+	 */
+	const NodeVector<Node> &getStack() const;
+
+	/**
+	 * Returns a list containing the Rtti type of each Node that is currently
+	 * in the stack.
+	 *
+	 * @return the type signature of the current node stack.
+	 */
+	std::vector<Rtti const *> getStackTypeSignature() const;
+
+	/**
+	 * Returns the top-most Node instance in the ParserScopeBase hirarchy.
+	 *
+	 * @return a reference at the root node.
+	 */
+	Rooted<Node> getRoot() const;
+
+	/**
+	 * Returns the bottom-most Node instance in the ParserScopeBase hirarchy,
+	 * e.g. the node that was pushed last onto the stack.
+	 *
+	 * @return a reference at the leaf node.
+	 */
+	Rooted<Node> getLeaf() const;
+
+	/**
+	 * Ascends in the stack starting with the leaf node, returns the first node
+	 * that matches the type given in the RttiSet or nullptr if none matches.
+	 *
+	 * @param types is a set of Rtti types for which should be searched in the
+	 * stack.
+	 * @param maxDepth is the maximum number of stack entries the selection
+	 * function may ascend. A negative value indicates no limitation.
+	 */
+	Rooted<Node> select(RttiSet types, int maxDepth = -1);
+
+	/**
+	 * Ascends in the stack starting with the leaf node, returns the first node
+	 * that matches the given type or nullptr if none matches.
+	 *
+	 * @tparam T is the type that should be searched in the stack.
+	 * @param maxDepth is the maximum number of stack entries the selection
+	 * function may ascend. A negative value indicates no limitation.
+	 */
+	template <class T>
+	Rooted<T> select(int maxDepth = -1)
+	{
+		return select(RttiSet{&typeOf<T>()}, maxDepth).cast<T>();
+	}
+
 };
 
 /**
@@ -342,46 +405,6 @@ public:
 	 * @return a node vector containing the top-level nodes.
 	 */
 	NodeVector<Node> getTopLevelNodes() const;
-
-	/**
-	 * Returns the top-most Node instance in the ParserScope hirarchy.
-	 *
-	 * @return a reference at the root node.
-	 */
-	Rooted<Node> getRoot() const;
-
-	/**
-	 * Returns the bottom-most Node instance in the ParserScope hirarchy, e.g.
-	 * the node that was pushed last onto the stack.
-	 *
-	 * @return a reference at the leaf node.
-	 */
-	Rooted<Node> getLeaf() const;
-
-	/**
-	 * Ascends in the stack starting with the leaf node, returns the first node
-	 * that matches the type given in the RttiSet or nullptr if none matches.
-	 *
-	 * @param types is a set of Rtti types for which should be searched in the
-	 * stack.
-	 * @param maxDepth is the maximum number of stack entries the selection
-	 * function may ascend. A negative value indicates no limitation.
-	 */
-	Rooted<Node> select(RttiSet types, int maxDepth = -1);
-
-	/**
-	 * Ascends in the stack starting with the leaf node, returns the first node
-	 * that matches the given type or nullptr if none matches.
-	 *
-	 * @tparam T is the type that should be searched in the stack.
-	 * @param maxDepth is the maximum number of stack entries the selection
-	 * function may ascend. A negative value indicates no limitation.
-	 */
-	template <class T>
-	Rooted<T> select(int maxDepth = -1)
-	{
-		return select(RttiSet{&typeOf<T>()}, maxDepth).cast<T>();
-	}
 
 	/**
 	 * Sets a parser flag for the current stack depth.
