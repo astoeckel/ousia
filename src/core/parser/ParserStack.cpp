@@ -18,11 +18,12 @@
 
 #include <sstream>
 
-#include "ParserStack.hpp"
-
 #include <core/common/Utils.hpp>
 #include <core/common/Exceptions.hpp>
 #include <core/model/Project.hpp>
+
+#include "ParserScope.hpp"
+#include "ParserStack.hpp"
 
 namespace ousia {
 
@@ -86,6 +87,33 @@ ParserStack::ParserStack(
     const std::multimap<std::string, const ParserState *> &states)
     : ctx(ctx), states(states)
 {
+}
+
+bool ParserStack::deduceState()
+{
+	// Assemble all states
+	std::vector<const ParserState *> states;
+	for (const auto &e : this->states) {
+		states.push_back(e.second);
+	}
+
+	// Fetch the type signature of the scope and derive all possible states,
+	// abort if no unique parser state was found
+	std::vector<const ParserState *> possibleStates =
+	    ParserStateDeductor(ctx.getScope().getStackTypeSignature(), states)
+	        .deduce();
+	if (possibleStates.size() != 1) {
+		ctx.getLogger().error(
+		    "Error while including file: Cannot deduce parser state.");
+		return false;
+	}
+
+	// Switch to this state by creating a dummy handler
+	const ParserState *state = possibleStates[0];
+	Handler *handler =
+	    DefaultHandler::create({ctx, "", *state, *state, SourceLocation{}});
+	stack.emplace(handler);
+	return true;
 }
 
 std::set<std::string> ParserStack::expectedCommands(const ParserState &state)

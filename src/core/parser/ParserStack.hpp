@@ -271,6 +271,20 @@ public:
 	            const std::multimap<std::string, const ParserState *> &states);
 
 	/**
+	 * Tries to reconstruct the parser state from the Scope instance of the
+	 * ParserContext given in the constructor. This functionality is needed for
+	 * including files,as the Parser of the included file needs to be brought to
+	 + an equivalent state as the one in the including file.
+	 *
+	 * @param scope is the ParserScope instance from which the ParserState
+	 * should be reconstructed.
+	 * @param logger is the logger instance to which error messages should be
+	 * written.
+	 * @return true if the operation was sucessful, false otherwise.
+	 */
+	bool deduceState();
+
+	/**
 	 * Returns the state the ParserStack instance currently is in.
 	 *
 	 * @return the state of the currently active Handler instance or STATE_NONE
