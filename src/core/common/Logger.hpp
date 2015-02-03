@@ -260,15 +260,15 @@ public:
 	 * Logs the given loggable exception.
 	 *
 	 * @param ex is the exception that should be logged.
-	 * @param loc is a location which (if valid overrides the location given in
-	 * the exception.
+	 * @param loc is a location which is used in case the exception has no valid
+	 * location attached.
 	 * @param mode specifies how the message should be displayed.
 	 */
 	void log(const LoggableException &ex,
 	         const SourceLocation &loc = SourceLocation{},
 	         MessageMode mode = MessageMode::DEFAULT)
 	{
-		log(Severity::ERROR, ex.msg, loc.isValid() ? loc : ex.getLocation());
+		log(Severity::ERROR, ex.msg, ex.getLocation().isValid() ? ex.getLocation() : loc);
 	}
 
 	/**
