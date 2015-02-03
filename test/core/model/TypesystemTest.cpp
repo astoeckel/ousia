@@ -674,6 +674,19 @@ TEST(StructType, cast)
 	ASSERT_EQ(0, arr[3].asInt());
 }
 
+TEST(StructType, isa)
+{
+	Manager mgr;
+	Rooted<StructType> s1 = createStructType(mgr, logger);
+	Rooted<StructType> s2 = createStructTypeWithParent(s1, mgr, logger);
+
+	ASSERT_TRUE(s1->checkIsa(s1));
+	ASSERT_FALSE(s1->checkIsa(s2));
+
+	ASSERT_TRUE(s2->checkIsa(s1));
+	ASSERT_TRUE(s2->checkIsa(s2));
+}
+
 TEST(StructType, indexOf)
 {
 	Manager mgr;
@@ -802,6 +815,62 @@ TEST(ArrayType, creation)
 	Variant val = arrayType->create();
 	ASSERT_TRUE(val.isArray());
 	ASSERT_TRUE(val.asArray().empty());
+}
+
+TEST(ArrayType, isa)
+{
+	Manager mgr;
+	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
+	Rooted<IntType> intType{new IntType(mgr, nullptr)};
+
+	Rooted<ArrayType> a1{new ArrayType(stringType)};
+	Rooted<ArrayType> a2{new ArrayType(stringType)};
+	Rooted<ArrayType> a3{new ArrayType(intType)};
+	Rooted<ArrayType> a4{new ArrayType(a1)};
+	Rooted<ArrayType> a5{new ArrayType(a2)};
+	Rooted<ArrayType> a6{new ArrayType(a3)};
+
+	ASSERT_TRUE(a1->checkIsa(a1));
+	ASSERT_TRUE(a1->checkIsa(a2));
+	ASSERT_FALSE(a1->checkIsa(a3));
+	ASSERT_FALSE(a1->checkIsa(a4));
+	ASSERT_FALSE(a1->checkIsa(a5));
+	ASSERT_FALSE(a1->checkIsa(a6));
+
+	ASSERT_TRUE(a2->checkIsa(a1));
+	ASSERT_TRUE(a2->checkIsa(a2));
+	ASSERT_FALSE(a2->checkIsa(a3));
+	ASSERT_FALSE(a2->checkIsa(a4));
+	ASSERT_FALSE(a2->checkIsa(a5));
+	ASSERT_FALSE(a2->checkIsa(a6));
+
+	ASSERT_FALSE(a3->checkIsa(a1));
+	ASSERT_FALSE(a3->checkIsa(a2));
+	ASSERT_TRUE(a3->checkIsa(a3));
+	ASSERT_FALSE(a3->checkIsa(a4));
+	ASSERT_FALSE(a3->checkIsa(a5));
+	ASSERT_FALSE(a3->checkIsa(a6));
+
+	ASSERT_FALSE(a4->checkIsa(a1));
+	ASSERT_FALSE(a4->checkIsa(a2));
+	ASSERT_FALSE(a4->checkIsa(a3));
+	ASSERT_TRUE(a4->checkIsa(a4));
+	ASSERT_TRUE(a4->checkIsa(a5));
+	ASSERT_FALSE(a4->checkIsa(a6));
+
+	ASSERT_FALSE(a5->checkIsa(a1));
+	ASSERT_FALSE(a5->checkIsa(a2));
+	ASSERT_FALSE(a5->checkIsa(a3));
+	ASSERT_TRUE(a5->checkIsa(a4));
+	ASSERT_TRUE(a5->checkIsa(a5));
+	ASSERT_FALSE(a5->checkIsa(a6));
+
+	ASSERT_FALSE(a6->checkIsa(a1));
+	ASSERT_FALSE(a6->checkIsa(a2));
+	ASSERT_FALSE(a6->checkIsa(a3));
+	ASSERT_FALSE(a6->checkIsa(a4));
+	ASSERT_FALSE(a6->checkIsa(a5));
+	ASSERT_TRUE(a6->checkIsa(a6));
 }
 
 TEST(ArrayType, conversion)

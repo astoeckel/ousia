@@ -67,6 +67,19 @@ bool Type::build(Variant &data, Logger &logger) const
 	return build(data, logger, NullMagicCallback);
 }
 
+bool Type::doCheckIsa(Handle<const Type> type) const
+{
+	return false;
+}
+
+bool Type::checkIsa(Handle<const Type> type) const
+{
+	if (type.get() == this) {
+		return true;
+	}
+	return doCheckIsa(type);
+}
+
 /* Class BoolType */
 
 bool BoolType::doBuild(Variant &data, Logger &logger,
@@ -445,6 +458,19 @@ bool StructType::doValidate(Logger &logger) const
 	       continueValidationCheckDuplicates(attributes, logger);
 }
 
+bool StructType::doCheckIsa(Handle<const Type> type) const
+{
+	Handle<StructType> parent = parentStructure;
+	while (parent != nullptr) {
+		if (parent == type) {
+			return true;
+		}
+		parent = parent->parentStructure;
+	}
+	return false;
+}
+
+
 Rooted<StructType> StructType::createValidated(
     Manager &mgr, std::string name, Handle<Typesystem> system,
     Handle<StructType> parentStructure, const NodeVector<Attribute> &attributes,
@@ -578,6 +604,27 @@ bool ArrayType::doBuild(Variant &data, Logger &logger,
 	}
 	return res;
 }
+
+bool ArrayType::doCheckIsa(Handle<const Type> type) const
+{
+	Handle<const Type> t1{this};
+	Handle<const Type> t2{type};
+
+	// Unwrap the array types until only the innermost type is left
+	while (t1->isa(RttiTypes::ArrayType) && t2->isa(RttiTypes::ArrayType)) {
+		t1 = t1.cast<const ArrayType>()->innerType;
+		t2 = t2.cast<const ArrayType>()->innerType;
+	}
+
+	// Abort if only one of the to types is an array type
+	if (t1->isa(RttiTypes::ArrayType) || t2->isa(RttiTypes::ArrayType)) {
+		return false;
+	}
+
+	// Run the isa test on the inntermost type
+	return t1->checkIsa(t2);
+}
+
 
 /* Class UnknownType */
 

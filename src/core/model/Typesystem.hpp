@@ -108,6 +108,18 @@ protected:
 	virtual bool doBuild(Variant &data, Logger &logger,
 	                     const MagicCallback &magicCallback) const = 0;
 
+	/**
+	 * May be overriden to check whether an instance of this type logically is
+	 * an instance of the given type. Default implementation always returns
+	 * false.
+	 *
+	 * @param type is the type that should be checked for the "isa"
+	 * relationship.
+	 * @return true if an instance of this type also is an instance of the given
+	 * type, false otherwise.
+	 */
+	virtual bool doCheckIsa(Handle<const Type> type) const;
+
 public:
 	/**
 	 * Set to true, if this type descriptor is a primitive type.
@@ -121,6 +133,10 @@ public:
 	 * requested but cannot be generated from the given user data.
 	 */
 	virtual Variant create() const = 0;
+
+	/**
+	 * Pure virtual function
+	 */
 
 	/**
 	 * Validates and completes the given variant which was read from a
@@ -164,6 +180,18 @@ public:
 	{
 		return build(data, logger);
 	}
+
+	/**
+	 * May be overriden to check whether an instance of this type logically is
+	 * an instance of the given type. This always evaluates to true if the given
+	 * type points at this type descriptor.
+	 *
+	 * @param type is the type that should be checked for the "isa"
+	 * relationship.
+	 * @return true if an instance of this type also is an instance of the given
+	 * type, false otherwise.
+	 */
+	bool checkIsa(Handle<const Type> type) const;
 
 	/**
 	 * Returns the underlying Typesystem instance.
@@ -700,6 +728,16 @@ protected:
 	 */
 	bool doValidate(Logger &logger) const override;
 
+	/**
+	 * Returns true if this type has the given type as parent (directly or
+	 * indirectly).
+	 *
+	 * @param type is the type that should be checked for the "isa"
+	 * relationship.
+	 * @return true if the given type is a parent of this type, false otherwise.
+	 */
+	bool doCheckIsa(Handle<const Type> type) const override;
+
 public:
 	/**
 	 * Constructor of the StructType class, creates a new instance
@@ -866,6 +904,16 @@ protected:
 	 */
 	bool doBuild(Variant &data, Logger &logger,
 	             const MagicCallback &magicCallback) const override;
+
+	/**
+	 * Returns true if this type is equivalent to another given ArrayType.
+	 *
+	 * @param type is the type that should be checked for the "isa"
+	 * relationship.
+	 * @return true if the given type is equivalent to this type, false
+	 * otherwise.
+	 */
+	bool doCheckIsa(Handle<const Type> type) const override;
 
 public:
 	/**
