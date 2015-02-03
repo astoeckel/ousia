@@ -145,22 +145,25 @@ public:
 
 	/**
 	 * Ascends in the stack starting with the leaf node, returns the first node
-	 * that matches the type given in the RttiSet or nullptr if none matches.
+	 * that matches the type given in the RttiSet. Throws an exception if no
+	 * node matches.
 	 *
 	 * @param types is a set of Rtti types for which should be searched in the
 	 * stack.
 	 * @param maxDepth is the maximum number of stack entries the selection
 	 * function may ascend. A negative value indicates no limitation.
+	 * @return the matching node.
 	 */
 	Rooted<Node> select(RttiSet types, int maxDepth = -1);
 
 	/**
 	 * Ascends in the stack starting with the leaf node, returns the first node
-	 * that matches the given type or nullptr if none matches.
+	 * that matches the given type. Throws an exception if no node matches.
 	 *
 	 * @tparam T is the type that should be searched in the stack.
 	 * @param maxDepth is the maximum number of stack entries the selection
 	 * function may ascend. A negative value indicates no limitation.
+	 * @return the matching node.
 	 */
 	template <class T>
 	Rooted<T> select(int maxDepth = -1)

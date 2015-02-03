@@ -90,7 +90,10 @@ Rooted<Node> ParserScopeBase::select(RttiSet types, int maxDepth)
 			return nodes[i];
 		}
 	}
-	return nullptr;
+	throw LoggableException{
+	    std::string(
+	        "Expected be inside an element of one of the internal types ") +
+	    Utils::join(types, "\", \"", "\"", "\"")};
 }
 
 /* Class DeferredResolution */
@@ -352,9 +355,9 @@ bool ParserScope::resolveValue(Variant &data, Handle<Type> type,
 			    return Type::MagicCallbackResult::NOT_FOUND;
 		    }
 
-
 		    // Check whether the inner type of the constant is correct
-		    Type::MagicCallbackResult res = Type::MagicCallbackResult::FOUND_VALID;
+		    Type::MagicCallbackResult res =
+		        Type::MagicCallbackResult::FOUND_VALID;
 		    Rooted<Type> constantType = constant->getType();
 		    if (!constantType->checkIsa(innerType)) {
 			    logger.error(std::string("Expected value of type \"") +
