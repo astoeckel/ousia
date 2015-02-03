@@ -17,6 +17,8 @@
 */
 
 #include <iostream>
+#include <map>
+#include <sstream>
 #include <vector>
 
 #include <expat.h>
@@ -488,8 +490,7 @@ static const std::multimap<std::string, const ParserState *> XmlStates{
     {"field", &TypesystemStructField},
     {"constant", &TypesystemConstant},
     {"import", &Import},
-    {"include", &Include}
-   };
+    {"include", &Include}};
 }
 
 /**
@@ -508,12 +509,19 @@ struct XMLUserData {
 	ParserStack *stack;
 
 	/**
+	 * Reference at the CharReader instance.
+	 */
+	CharReader *reader;
+
+	/**
 	 * Constructor of the XMLUserData struct.
 	 *
 	 * @param stack is a pointer at the ParserStack instance.
+	 * @param reader is a pointer at the CharReader instance.
 	 */
-	XMLUserData(ParserStack *stack) : depth(0), stack(stack){
-		
+	XMLUserData(ParserStack *stack, CharReader *reader)
+	    : depth(0), stack(stack), reader(reader)
+	{
 	}
 };
 
@@ -582,6 +590,111 @@ static SourceLocation syncLoggerPosition(XML_Parser p, size_t len = 0)
 	return loc;
 }
 
+enum class XMLAttributeState {
+	IN_TAG_NAME,
+	SEARCH_ATTR,
+	IN_ATTR_NAME,
+	HAS_ATTR_NAME,
+	HAS_ATTR_EQUALS,
+	IN_ATTR_DATA
+};
+
+static std::map<std::string, SourceLocation> reconstructXMLAttributeOffsets(
+    CharReader &reader, SourceLocation location)
+{
+	std::map<std::string, SourceLocation> res;
+
+	// Fork the reader, we don't want to mess up the XML parsing process, do we?
+	CharReaderFork readerFork = reader.fork();
+
+	// Move the read cursor to the start location, abort if this does not work
+	size_t offs = location.getStart();
+	if (!location.isValid() || offs != readerFork.seek(offs)) {
+		return res;
+	}
+
+	// Now all we need to do is to implement one half of an XML parser. As this
+	// is inherently complicated we'll totaly fail at it. Don't care. All we
+	// want to get is those darn offsets for pretty error messages... (and we
+	// can assume the XML is valid as it was already read by expat)
+	XMLAttributeState state = XMLAttributeState::IN_TAG_NAME;
+	char c;
+	std::stringstream attrName;
+	while (readerFork.read(c)) {
+		// Abort at the end of the tag
+		if (c == '>' && state != XMLAttributeState::IN_ATTR_DATA) {
+			return res;
+		}
+
+		// One state machine to rule them all, one state machine to find them,
+		// One state machine to bring them all and in the darkness bind them
+		// (the byte offsets)
+		switch (state) {
+			case XMLAttributeState::IN_TAG_NAME:
+				if (Utils::isWhitespace(c)) {
+					state = XMLAttributeState::SEARCH_ATTR;
+				}
+				break;
+			case XMLAttributeState::SEARCH_ATTR:
+				if (!Utils::isWhitespace(c)) {
+					state = XMLAttributeState::IN_ATTR_NAME;
+					attrName << c;
+				}
+				break;
+			case XMLAttributeState::IN_ATTR_NAME:
+				if (Utils::isWhitespace(c)) {
+					state = XMLAttributeState::HAS_ATTR_NAME;
+				} else if (c == '=') {
+					state = XMLAttributeState::HAS_ATTR_EQUALS;
+				} else {
+					attrName << c;
+				}
+				break;
+			case XMLAttributeState::HAS_ATTR_NAME:
+				if (!Utils::isWhitespace(c)) {
+					if (c == '=') {
+						state = XMLAttributeState::HAS_ATTR_EQUALS;
+						break;
+					}
+					// Well, this is a strange XML file... We expected to
+					// see a '=' here! Try to continue with the
+					// "HAS_ATTR_EQUALS" state as this state will hopefully
+					// inlcude some error recovery
+				} else {
+					// Skip whitespace here
+					break;
+				}
+			// Fallthrough
+			case XMLAttributeState::HAS_ATTR_EQUALS:
+				if (!Utils::isWhitespace(c)) {
+					if (c == '"') {
+						// Here we are! We have found the beginning of an
+						// attribute. Let's quickly lock the current offset away
+						// in the result map
+						res.emplace(attrName.str(),
+						            SourceLocation{reader.getSourceId(),
+						                           readerFork.getOffset()});
+						attrName.str(std::string{});
+						state = XMLAttributeState::IN_ATTR_DATA;
+					} else {
+						// No, this XML file is not well formed. Assume we're in
+						// an attribute name once again
+						attrName.str(std::string{&c, 1});
+						state = XMLAttributeState::IN_ATTR_NAME;
+					}
+				}
+				break;
+			case XMLAttributeState::IN_ATTR_DATA:
+				if (c == '"') {
+					// We're at the end of the attribute data, start anew
+					state = XMLAttributeState::SEARCH_ATTR;
+				}
+				break;
+		}
+	}
+	return res;
+}
+
 static void xmlStartElementHandler(void *p, const XML_Char *name,
                                    const XML_Char **attrs)
 {
@@ -591,14 +704,31 @@ static void xmlStartElementHandler(void *p, const XML_Char *name,
 
 	SourceLocation loc = syncLoggerPosition(parser);
 
+	// Read the argument locations -- this is only a stupid and slow hack,
+	// but it is necessary, as expat doesn't give use the byte offset of the
+	// arguments.
+	std::map<std::string, SourceLocation> offs =
+	    reconstructXMLAttributeOffsets(*userData->reader, loc);
+
 	// Assemble the arguments
 	Variant::mapType args;
 	const XML_Char **attr = attrs;
 	while (*attr) {
+		// Convert the C string to a std::string
 		const std::string key{*(attr++)};
+
+		// Search the location of the key
+		SourceLocation keyLoc;
+		auto it = offs.find(key);
+		if (it != offs.end()) {
+			keyLoc = it->second;
+		}
+
+		// Parse the string, pass the location of the key
 		std::pair<bool, Variant> value = VariantReader::parseGenericString(
-		    *(attr++), stack->getContext().getLogger());
-		args.emplace(std::make_pair(key, value.second));
+		    *(attr++), stack->getContext().getLogger(), keyLoc.getSourceId(),
+		    keyLoc.getStart());
+		args.emplace(key, value.second);
 	}
 
 	// Call the start function
@@ -660,7 +790,7 @@ void XmlParser::doParse(CharReader &reader, ParserContext &ctx)
 	}
 
 	// Pass the reference to the ParserStack to the XML handler
-	XMLUserData data(&stack);
+	XMLUserData data(&stack, &reader);
 	XML_SetUserData(&p, &data);
 	XML_UseParserAsHandlerArg(&p);
 
