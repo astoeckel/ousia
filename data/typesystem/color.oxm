@@ -21,6 +21,7 @@
 	<constant name="bisque3" type="color" value="[205,183,158]"/>
 	<constant name="bisque4" type="color" value="[139,125,107]"/>
 	<constant name="bisque" type="color" value="[255,228,196]"/>
+	<constant name="black" type="color" value="[0,0,0]"/>
 	<constant name="brown" type="color" value="[165,42,42]"/>
 	<constant name="burlywood1" type="color" value="[255,211,155]"/>
 	<constant name="burlywood2" type="color" value="[238,197,145]"/>
