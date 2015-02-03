@@ -354,10 +354,9 @@ bool ParserScope::resolveValue(Variant &data, Handle<Type> type,
 
 
 		    // Check whether the inner type of the constant is correct
-		    // TODO: Use correct "isa" provided by Type
 		    Type::MagicCallbackResult res = Type::MagicCallbackResult::FOUND_VALID;
 		    Rooted<Type> constantType = constant->getType();
-		    if (innerType != constantType) {
+		    if (!constantType->checkIsa(innerType)) {
 			    logger.error(std::string("Expected value of type \"") +
 			                     innerType->getName() +
 			                     std::string("\" but found constant \"") +
