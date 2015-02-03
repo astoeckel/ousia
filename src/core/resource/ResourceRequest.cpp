@@ -15,6 +15,9 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+#include <iostream>
+
 #include <string>
 
 #include <core/common/Logger.hpp>
@@ -73,7 +76,8 @@ supportedResourceTypes(const RttiSet &supportedTypes)
  */
 static std::string supportedResourceTypesString(const RttiSet &supportedTypes)
 {
-	return Utils::join(supportedResourceTypes(supportedTypes), ", ", "{", "}");
+	return Utils::join(supportedResourceTypes(supportedTypes), "\", \"", "\"",
+	                   "\"");
 }
 
 /**
@@ -183,14 +187,6 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 		}
 	}
 
-	// Limit the supportedTypes to those returned by the parser
-	supportedTypes = Rtti::setIntersection(parserTypes, supportedTypes);
-	if (supportedTypes.empty()) {
-		logger.error(std::string("Cannot include or link a file of type \"") +
-		             mimetype + std::string("\" here!"));
-		ok = false;
-	}
-
 	// Try to deduce the ResourceType from the "rel" string
 	if (!rel.empty()) {
 		resourceType = Resource::getResourceTypeByName(rel);
@@ -218,8 +214,8 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 			             std::string("\" cannot be included here"));
 			ok = false;
 		}
-	} else {
-		// Issue a warning if the resource type is unknown
+	} else if (supportedTypes.size() != 1 ||
+	           *supportedTypes.begin() != &RttiTypes::Node) {
 		logger.warning(std::string(
 		                   "Ambiguous resource relationship, consider "
 		                   "specifying one of ") +
