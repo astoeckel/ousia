@@ -180,7 +180,7 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 			logger.error(std::string("Cannot parse files of type \"") +
 			             mimetype + std::string("\""));
 			ok = false;
-		} else if (!Rtti::setIsOneOf(parserTypes, supportedTypes)) {
+		} else if (!Rtti::setIsOneOf(supportedTypes, parserTypes)) {
 			logger.error(std::string("Resource of type \"") + mimetype +
 			             std::string("\" cannot be included here!"));
 			ok = false;
