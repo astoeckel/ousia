@@ -151,30 +151,28 @@ TEST(Descriptor, pathToAdvanced)
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Construct the domain
 	Rooted<Domain> domain{new Domain(mgr, sys, "nasty")};
-	Variant::cardinalityType any;
-	any.merge(Range<size_t>::typeRange());
 
 	// Let's create the classes that we need first
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, any, {nullptr}, {nullptr}, false, true)};
+	    mgr, "A", domain, AnyCardinality, {nullptr}, {nullptr}, false, true)};
 
 	Rooted<StructuredClass> start{new StructuredClass(
-	    mgr, "start", domain, any, {nullptr}, A, false, false)};
+	    mgr, "start", domain, AnyCardinality, {nullptr}, A, false, false)};
 
 	Rooted<StructuredClass> B{new StructuredClass(
-	    mgr, "B", domain, any, {nullptr}, {nullptr}, true, false)};
+	    mgr, "B", domain, AnyCardinality, {nullptr}, {nullptr}, true, false)};
 
-	Rooted<StructuredClass> C{
-	    new StructuredClass(mgr, "C", domain, any, {nullptr}, B, true, false)};
+	Rooted<StructuredClass> C{new StructuredClass(
+	    mgr, "C", domain, AnyCardinality, {nullptr}, B, true, false)};
 
 	Rooted<StructuredClass> D{new StructuredClass(
-	    mgr, "D", domain, any, {nullptr}, {nullptr}, true, false)};
+	    mgr, "D", domain, AnyCardinality, {nullptr}, {nullptr}, true, false)};
 
 	Rooted<StructuredClass> E{new StructuredClass(
-	    mgr, "E", domain, any, {nullptr}, {nullptr}, true, false)};
+	    mgr, "E", domain, AnyCardinality, {nullptr}, {nullptr}, true, false)};
 
 	Rooted<StructuredClass> target{
-	    new StructuredClass(mgr, "target", domain, any)};
+	    new StructuredClass(mgr, "target", domain, AnyCardinality)};
 
 	// We create two fields for A
 	Rooted<FieldDescriptor> A_field{new FieldDescriptor(mgr, A)};
@@ -224,22 +222,20 @@ TEST(StructuredClass, isSubclassOf)
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	Rooted<Domain> domain{new Domain(mgr, sys, "inheritance")};
-	Variant::cardinalityType any;
-	any.merge(Range<size_t>::typeRange());
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, any, {nullptr}, {nullptr}, false, true)};
+	    mgr, "A", domain, AnyCardinality, {nullptr}, {nullptr}, false, true)};
 	// first branch
 	Rooted<StructuredClass> B{
-	    new StructuredClass(mgr, "B", domain, any, {nullptr}, A)};
+	    new StructuredClass(mgr, "B", domain, AnyCardinality, {nullptr}, A)};
 	Rooted<StructuredClass> C{
-	    new StructuredClass(mgr, "C", domain, any, {nullptr}, B)};
+	    new StructuredClass(mgr, "C", domain, AnyCardinality, {nullptr}, B)};
 	// second branch
 	Rooted<StructuredClass> D{
-	    new StructuredClass(mgr, "D", domain, any, {nullptr}, A)};
+	    new StructuredClass(mgr, "D", domain, AnyCardinality, {nullptr}, A)};
 	Rooted<StructuredClass> E{
-	    new StructuredClass(mgr, "E", domain, any, {nullptr}, D)};
+	    new StructuredClass(mgr, "E", domain, AnyCardinality, {nullptr}, D)};
 	Rooted<StructuredClass> F{
-	    new StructuredClass(mgr, "F", domain, any, {nullptr}, D)};
+	    new StructuredClass(mgr, "F", domain, AnyCardinality, {nullptr}, D)};
 
 	// check function results
 	ASSERT_FALSE(A->isSubclassOf(A));

@@ -52,7 +52,7 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 	// set up domain node.
 	Rooted<Domain> domain{new Domain(mgr, sys, "headings")};
 	// set up cardinality (every section may have at most one heading).
-	Variant::cardinalityType card;
+	Cardinality card;
 	card.merge({0, 1});
 	// set up heading StructuredClass.
 	Rooted<StructuredClass> heading{new StructuredClass(
@@ -82,14 +82,11 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 {
 	// set up domain node.
 	Rooted<Domain> domain{new Domain(mgr, sys, "list")};
-	// set up cardinality
-	Variant::cardinalityType any;
-	any.merge(Range<size_t>::typeRange());
 	// get book.paragraph
 	Rooted<StructuredClass> p = resolveDescriptor(bookDomain, "paragraph");
 	// set up item StructuredClass;
 	Rooted<StructuredClass> item{new StructuredClass(
-	    mgr, "item", domain, any, {nullptr}, {nullptr}, false)};
+	    mgr, "item", domain, AnyCardinality, {nullptr}, {nullptr}, false)};
 
 	// as field we want to copy the field of paragraph.
 	item->copyFieldDescriptor(p->getFieldDescriptors()[0]);
@@ -97,7 +94,7 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 	std::vector<std::string> listTypes{"ol", "ul"};
 	for (auto &listType : listTypes) {
 		Rooted<StructuredClass> list{new StructuredClass(
-		    mgr, listType, domain, any, {nullptr}, p, false)};
+		    mgr, listType, domain, AnyCardinality, {nullptr}, p, false)};
 		Rooted<FieldDescriptor> list_field{new FieldDescriptor(mgr, list)};
 		list_field->addChild(item);
 	}

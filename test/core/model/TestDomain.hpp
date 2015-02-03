@@ -34,10 +34,8 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	// Start with the Domain itself.
 	Rooted<Domain> domain{new Domain(mgr, sys, "book")};
 	// Set up the cardinalities we'll need.
-	Variant::cardinalityType single;
+	Cardinality single;
 	single.merge({1});
-	Variant::cardinalityType any;
-	any.merge(Range<size_t>::typeRange());
 
 	// Set up the "book" node.
 	Rooted<StructuredClass> book{new StructuredClass(
@@ -48,7 +46,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// From there on the "section".
 	Rooted<StructuredClass> section{
-	    new StructuredClass(mgr, "section", domain, any)};
+	    new StructuredClass(mgr, "section", domain, AnyCardinality)};
 	book_field->addChild(section);
 
 	// And the field of it.
@@ -56,7 +54,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// We also add the "paragraph", which is transparent.
 	Rooted<StructuredClass> paragraph{new StructuredClass(
-	    mgr, "paragraph", domain, any, {nullptr}, {nullptr}, true)};
+	    mgr, "paragraph", domain, AnyCardinality, {nullptr}, {nullptr}, true)};
 	section_field->addChild(paragraph);
 	book_field->addChild(paragraph);
 
@@ -66,7 +64,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// We append "subsection" to section.
 	Rooted<StructuredClass> subsection{
-	    new StructuredClass(mgr, "subsection", domain, any)};
+	    new StructuredClass(mgr, "subsection", domain, AnyCardinality)};
 	section_field->addChild(subsection);
 
 	// And the field of it.
@@ -78,7 +76,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// Finally we add the "text" node, which is transparent as well.
 	Rooted<StructuredClass> text{new StructuredClass(
-	    mgr, "text", domain, any, {nullptr}, {nullptr}, true)};
+	    mgr, "text", domain, AnyCardinality, {nullptr}, {nullptr}, true)};
 	paragraph_field->addChild(text);
 
 	// ... and has a primitive field.
