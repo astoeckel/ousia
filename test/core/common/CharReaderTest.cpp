@@ -482,7 +482,7 @@ TEST(CharReader, simplePeek)
 	ASSERT_EQ(testStr, res);
 
 	// We must now be at line 1, column 1 and NOT at the end of the stream
-	ASSERT_EQ(0, reader.getOffset());
+	ASSERT_EQ(0U, reader.getOffset());
 	ASSERT_FALSE(reader.atEnd());
 
 	reader.consumePeek();
@@ -546,7 +546,7 @@ TEST(CharReader, fork)
 	{
 		CharReaderFork fork = reader.fork();
 
-		ASSERT_EQ(4, fork.getOffset());
+		ASSERT_EQ(4U, fork.getOffset());
 
 		fork.peek(c);
 		ASSERT_EQ('i', c);
@@ -554,7 +554,7 @@ TEST(CharReader, fork)
 		fork.read(c);
 		ASSERT_EQ('t', c);
 
-		ASSERT_EQ(5, fork.getOffset());
+		ASSERT_EQ(5U, fork.getOffset());
 
 		reader.read(c);
 		reader.read(c);
@@ -562,7 +562,7 @@ TEST(CharReader, fork)
 
 		fork.commit();
 	}
-	ASSERT_EQ(5, reader.getOffset());
+	ASSERT_EQ(5U, reader.getOffset());
 }
 
 }

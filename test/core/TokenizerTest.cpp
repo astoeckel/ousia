@@ -28,37 +28,37 @@ TEST(TokenTreeNode, testConstructor)
 	TokenTreeNode root{{{"a", 1}, {"aab", 2}, {"aac", 3}, {"abd", 4}}};
 
 	ASSERT_EQ(-1, root.tokenId);
-	ASSERT_EQ(1, root.children.size());
+	ASSERT_EQ(1U, root.children.size());
 	ASSERT_TRUE(root.children.find('a') != root.children.end());
 
 	const TokenTreeNode &a = root.children.at('a');
 	ASSERT_EQ(1, a.tokenId);
-	ASSERT_EQ(2, a.children.size());
+	ASSERT_EQ(2U, a.children.size());
 	ASSERT_TRUE(a.children.find('a') != a.children.end());
 	ASSERT_TRUE(a.children.find('b') != a.children.end());
 
 	const TokenTreeNode &aa = a.children.at('a');
 	ASSERT_EQ(-1, aa.tokenId);
-	ASSERT_EQ(2, aa.children.size());
+	ASSERT_EQ(2U, aa.children.size());
 	ASSERT_TRUE(aa.children.find('b') != aa.children.end());
 	ASSERT_TRUE(aa.children.find('c') != aa.children.end());
 
 	const TokenTreeNode &aab = aa.children.at('b');
 	ASSERT_EQ(2, aab.tokenId);
-	ASSERT_EQ(0, aab.children.size());
+	ASSERT_EQ(0U, aab.children.size());
 
 	const TokenTreeNode &aac = aa.children.at('c');
 	ASSERT_EQ(3, aac.tokenId);
-	ASSERT_EQ(0, aac.children.size());
+	ASSERT_EQ(0U, aac.children.size());
 
 	const TokenTreeNode &ab = a.children.at('b');
 	ASSERT_EQ(-1, ab.tokenId);
-	ASSERT_EQ(1, ab.children.size());
+	ASSERT_EQ(1U, ab.children.size());
 	ASSERT_TRUE(ab.children.find('d') != ab.children.end());
 
 	const TokenTreeNode &abd = ab.children.at('d');
 	ASSERT_EQ(4, abd.tokenId);
-	ASSERT_EQ(0, abd.children.size());
+	ASSERT_EQ(0U, abd.children.size());
 }
 
 TEST(Tokenizer, testTokenization)
