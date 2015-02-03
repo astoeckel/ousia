@@ -65,7 +65,8 @@ using ResolutionResultCallback = std::function<
     void(Handle<Node> resolved, Handle<Node> owner, Logger &logger)>;
 
 /**
- * Base class for the
+ * Base class for the ParserScope, does not contain the mechanisms for deferred
+ * lookup, only maintains the stack of nodes.
  */
 class ParserScopeBase {
 protected:
