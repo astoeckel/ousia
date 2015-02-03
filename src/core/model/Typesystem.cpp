@@ -56,7 +56,7 @@ bool Type::build(Variant &data, Logger &logger,
 		return doBuild(data, logger, magicCallback);
 	}
 	catch (LoggableException ex) {
-		logger.log(ex);
+		logger.log(ex, data);
 		data = create();
 		return false;
 	}
@@ -108,7 +108,7 @@ bool EnumType::doBuild(Variant &data, Logger &logger,
 	if (data.isInt()) {
 		int i = data.asInt();
 		if (i < 0 || i >= (int)values.size()) {
-			throw LoggableException("Value is out of range.");
+			throw LoggableException("Value is out of range.", data);
 		}
 		return true;
 	}
@@ -123,12 +123,13 @@ bool EnumType::doBuild(Variant &data, Logger &logger,
 		// Throw an execption if the given string value is not found
 		if (it == values.end()) {
 			throw LoggableException(std::string("Unknown enum constant: \"") +
-			                        name + std::string("\""));
+			                            name + std::string("\""),
+			                        data);
 		}
 		data = it->second;
 		return true;
 	}
-	throw LoggableException{"Expected integer or identifier"};
+	throw LoggableException{"Expected integer or identifier", data};
 }
 
 Rooted<EnumType> EnumType::createValidated(
@@ -296,7 +297,8 @@ bool StructType::insertDefaults(Variant &data, const std::vector<bool> &set,
 				arr[a] = attributes[a]->getType()->create();
 				logger.error(
 				    std::string("No value given for mandatory attribute \"") +
-				    attributes[a]->getName() + std::string("\""));
+				        attributes[a]->getName() + std::string("\""),
+				    data);
 			}
 		}
 	}
@@ -321,7 +323,9 @@ bool StructType::buildFromArray(Variant &data, Logger &logger,
 	if (n > N && !trim) {
 		ok = false;
 		logger.error(std::string("Expected at most ") + std::to_string(N) +
-		             std::string(" attributes, but got ") + std::to_string(n));
+		                 std::string(" attributes, but got ") +
+		                 std::to_string(n),
+		             data);
 	}
 
 	// Make sure the given attributes have to correct type
@@ -361,7 +365,8 @@ bool StructType::buildFromMap(Variant &data, Logger &logger,
 			if (set[idx]) {
 				logger.warning(
 				    std::string("Attribute \"") + key +
-				    std::string("\" set multiple times, overriding!"));
+				        std::string("\" set multiple times, overriding!"),
+				    value);
 			}
 
 			// Convert the value to the type of the attribute
@@ -371,7 +376,8 @@ bool StructType::buildFromMap(Variant &data, Logger &logger,
 		} else if (!trim) {
 			ok = false;
 			logger.error(std::string("Invalid attribute key \"") + key +
-			             std::string("\""));
+			                 std::string("\""),
+			             value);
 		}
 	}
 
@@ -393,7 +399,8 @@ bool StructType::buildFromArrayOrMap(Variant &data, Logger &logger,
 	throw LoggableException(
 	    std::string(
 	        "Expected array or map for building a struct type, but got ") +
-	    data.getTypeName());
+	        data.getTypeName(),
+	    data);
 }
 
 void StructType::initialize(Logger &logger)
@@ -560,8 +567,8 @@ bool ArrayType::doBuild(Variant &data, Logger &logger,
                         const MagicCallback &magicCallback) const
 {
 	if (!data.isArray()) {
-		throw LoggableException(std::string("Expected array, but got ") +
-		                        data.getTypeName());
+		throw LoggableException(
+		    std::string("Expected array, but got ") + data.getTypeName(), data);
 	}
 	bool res = true;
 	for (auto &v : data.asArray()) {
