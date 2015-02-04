@@ -144,30 +144,31 @@ static void checkFieldDescriptor(
 TEST(XmlParser, domainParsing)
 {
 	XmlStandaloneEnvironment env(logger);
-	Rooted<Node> n =
+	Rooted<Node> book_domain_node =
 	    env.parse("book_domain.oxm", "", "", RttiSet{&RttiTypes::Domain});
-	ASSERT_FALSE(n == nullptr);
+	ASSERT_FALSE(book_domain_node == nullptr);
 	ASSERT_FALSE(logger.hasError());
 	// check the domain node.
-	Rooted<Domain> domain = n.cast<Domain>();
-	ASSERT_EQ("book", domain->getName());
+	Rooted<Domain> book_domain = book_domain_node.cast<Domain>();
+	ASSERT_EQ("book", book_domain->getName());
 	// get the book struct node.
 	Cardinality single;
 	single.merge({1});
 	Rooted<StructuredClass> book = checkStructuredClass(
-	    "book", "book", domain, single, nullptr, nullptr, false, true);
+	    "book", "book", book_domain, single, nullptr, nullptr, false, true);
 	// get the chapter struct node.
 	Rooted<StructuredClass> chapter =
-	    checkStructuredClass("chapter", "chapter", domain);
+	    checkStructuredClass("chapter", "chapter", book_domain);
 	Rooted<StructuredClass> section =
-	    checkStructuredClass("section", "section", domain);
+	    checkStructuredClass("section", "section", book_domain);
 	Rooted<StructuredClass> subsection =
-	    checkStructuredClass("subsection", "subsection", domain);
+	    checkStructuredClass("subsection", "subsection", book_domain);
 	Rooted<StructuredClass> paragraph =
-	    checkStructuredClass("paragraph", "paragraph", domain, AnyCardinality,
+	    checkStructuredClass("paragraph", "paragraph", book_domain,
+	                         AnyCardinality, nullptr, nullptr, true, false);
+	Rooted<StructuredClass> text =
+	    checkStructuredClass("text", "text", book_domain, AnyCardinality,
 	                         nullptr, nullptr, true, false);
-	Rooted<StructuredClass> text = checkStructuredClass(
-	    "text", "text", domain, AnyCardinality, nullptr, nullptr, true, false);
 
 	// check the FieldDescriptors.
 	checkFieldDescriptor(book, {chapter, paragraph});
@@ -178,6 +179,13 @@ TEST(XmlParser, domainParsing)
 	checkFieldDescriptor(
 	    text, {}, "content", FieldDescriptor::FieldType::PRIMITIVE,
 	    env.project->getSystemTypesystem()->getStringType(), false);
+
+	// check parent handling.
+	Rooted<Node> headings_domain_node =
+	    env.parse("headings_domain.oxm", "", "", RttiSet{&RttiTypes::Domain});
+	//TODO: Unfortunately this does not work yet.
+	//ASSERT_FALSE(headings_domain_node == nullptr);
+	//ASSERT_FALSE(logger.hasError());
 }
 }
 
