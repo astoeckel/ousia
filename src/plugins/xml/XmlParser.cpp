@@ -718,7 +718,7 @@ static const ParserState DomainStructField =
         .parent(&DomainStruct)
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainFieldHandler::create)
-        .arguments({Argument::String("name", ""),
+        .arguments({Argument::String("name", DEFAULT_FIELD_NAME),
                     Argument::Bool("isSubtree", false),
                     Argument::Bool("optional", false)});
 static const ParserState DomainStructFieldRef =
@@ -726,13 +726,13 @@ static const ParserState DomainStructFieldRef =
         .parent(&DomainStruct)
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainFieldRefHandler::create)
-        .arguments({Argument::String("name", "")});
+        .arguments({Argument::String("name", DEFAULT_FIELD_NAME)});
 static const ParserState DomainStructPrimitive =
     ParserStateBuilder()
         .parent(&DomainStruct)
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainPrimitiveHandler::create)
-        .arguments({Argument::String("name", ""),
+        .arguments({Argument::String("name", DEFAULT_FIELD_NAME),
                     Argument::Bool("optional", false),
                     Argument::String("type")});
 static const ParserState DomainStructChild =
@@ -751,7 +751,7 @@ static const ParserState DomainStructParentField =
         .parent(&DomainStructParent)
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainParentFieldHandler::create)
-        .arguments({Argument::String("name", ""),
+        .arguments({Argument::String("name", DEFAULT_FIELD_NAME),
                     Argument::Bool("isSubtree", false),
                     Argument::Bool("optional", false)});
 static const ParserState DomainStructParentFieldRef =
@@ -759,7 +759,7 @@ static const ParserState DomainStructParentFieldRef =
         .parent(&DomainStructParent)
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainParentFieldRefHandler::create)
-        .arguments({Argument::String("name", "")});
+        .arguments({Argument::String("name", DEFAULT_FIELD_NAME)});
 
 /* Typesystem states */
 static const ParserState Typesystem =
