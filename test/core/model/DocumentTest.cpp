@@ -65,11 +65,13 @@ TEST(Document, construct)
 			    foreword->getField()[0].cast<StructuredEntity>();
 			ASSERT_FALSE(text.isNull());
 			ASSERT_EQ("text", text->getDescriptor()->getName());
-			ASSERT_TRUE(text->hasField());
-			ASSERT_EQ(1U, text->getField().size());
-			ASSERT_TRUE(text->getField()[0]->isa(typeOf<DocumentPrimitive>()));
-			Variant content =
-			    text->getField()[0].cast<DocumentPrimitive>()->getContent();
+			ASSERT_TRUE(text->hasField("content"));
+			ASSERT_EQ(1U, text->getField("content").size());
+			ASSERT_TRUE(
+			    text->getField("content")[0]->isa(typeOf<DocumentPrimitive>()));
+			Variant content = text->getField("content")[0]
+			                      .cast<DocumentPrimitive>()
+			                      ->getContent();
 			ASSERT_EQ("Some introductory text", content.asString());
 		}
 	}
@@ -97,12 +99,13 @@ TEST(Document, construct)
 				    par->getField()[0].cast<StructuredEntity>();
 				ASSERT_FALSE(text.isNull());
 				ASSERT_EQ("text", text->getDescriptor()->getName());
-				ASSERT_TRUE(text->hasField());
-				ASSERT_EQ(1U, text->getField().size());
-				ASSERT_TRUE(
-				    text->getField()[0]->isa(typeOf<DocumentPrimitive>()));
-				Variant content =
-				    text->getField()[0].cast<DocumentPrimitive>()->getContent();
+				ASSERT_TRUE(text->hasField("content"));
+				ASSERT_EQ(1U, text->getField("content").size());
+				ASSERT_TRUE(text->getField("content")[0]->isa(
+				    typeOf<DocumentPrimitive>()));
+				Variant content = text->getField("content")[0]
+				                      .cast<DocumentPrimitive>()
+				                      ->getContent();
 				ASSERT_EQ("Some actual text", content.asString());
 			}
 		}

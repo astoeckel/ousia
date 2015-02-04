@@ -219,27 +219,20 @@ public:
 
 	/**
 	 * This returns true if there is a FieldDescriptor in the Descriptor for
-	 * this DocumentEntity which has the given name. If an empty name is
-	 * given it is assumed that the 'default' FieldDescriptor is referenced,
-	 * where 'default' means either:
-	 * 1.) The only TREE typed FieldDescriptor (if present) or
-	 * 2.) the only FieldDescriptor (if only one is specified).
+	 * this DocumentEntity which has the given name.
 	 *
 	 * @param fieldName is the name of a field as specified in the
 	 *                  FieldDescriptor in the Domain description.
 	 * @return          true if this FieldDescriptor exists.
 	 */
-	bool hasField(const std::string &fieldName = "") const
+	bool hasField(const std::string &fieldName = DEFAULT_FIELD_NAME) const
 	{
 		return getFieldDescriptorIndex(fieldName, false) != -1;
 	}
 
 	/**
 	 * This returns the vector of entities containing all members of the field
-	 * with the given name.  If an empty name is given it is assumed that the
-	 * 'default' FieldDescriptor is referenced, where 'default' means either:
-	 * 1.) The only TREE typed FieldDescriptor (if present) or
-	 * 2.) the only FieldDescriptor (if only one is specified).
+	 * with the given name.
 	 *
 	 * If the name is unknown an exception is thrown.
 	 *
@@ -248,7 +241,7 @@ public:
 	 * @return          a NodeVector of all StructuredEntities in that field.
 	 */
 	const NodeVector<StructureNode> &getField(
-	    const std::string &fieldName = "") const
+	    const std::string &fieldName = DEFAULT_FIELD_NAME) const
 	{
 		return fields[getFieldDescriptorIndex(fieldName, true)];
 	}
@@ -272,11 +265,7 @@ public:
 	}
 
 	/**
-	 * This adds a StructureNode to the field with the given name. If an
-	 * empty name is given it is assumed that the 'default' FieldDescriptor is
-	 * referenced, where 'default' means either:
-	 * 1.) The only TREE typed FieldDescriptor (if present) or
-	 * 2.) the only FieldDescriptor (if only one is specified).
+	 * This adds a StructureNode to the field with the given name.
 	 *
 	 * If the name is unknown an exception is thrown.
 	 *
@@ -289,14 +278,10 @@ public:
 	 *                  FieldDescriptor in the Domain description.
 	 */
 	void addStructureNode(Handle<StructureNode> s,
-	                      const std::string &fieldName = "");
+	                      const std::string &fieldName = DEFAULT_FIELD_NAME);
 
 	/**
 	 * This adds multiple StructureNodes to the field with the given name.
-	 * If an empty name is given it is assumed that the 'default'
-	 * FieldDescriptor is referenced, where 'default' means either:
-	 * 1.) The only TREE typed FieldDescriptor (if present) or
-	 * 2.) the only FieldDescriptor (if only one is specified).
 	 *
 	 * If the name is unknown an exception is thrown.
 	 *
@@ -309,13 +294,9 @@ public:
 	 *                  FieldDescriptor in the Domain description.
 	 */
 	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
-	                       const std::string &fieldName = "");
+	                       const std::string &fieldName = DEFAULT_FIELD_NAME);
 	/**
-	 * This removes a StructureNode from the field with the given name. If an
-	 * empty name is given it is assumed that the 'default' FieldDescriptor is
-	 * referenced, where 'default' means either:
-	 * 1.) The only TREE typed FieldDescriptor (if present) or
-	 * 2.) the only FieldDescriptor (if only one is specified).
+	 * This removes a StructureNode from the field with the given name.
 	 *
 	 * If the name is unknown an exception is thrown.
 	 *
@@ -327,8 +308,9 @@ public:
 	 * @return          true if this StructureNode was a child here and false if
 	 *                  if was not found.
 	 */
-	bool removeStructureNodeFromField(Handle<StructureNode> s,
-	                                  const std::string &fieldName = "");
+	bool removeStructureNodeFromField(
+	    Handle<StructureNode> s,
+	    const std::string &fieldName = DEFAULT_FIELD_NAME);
 
 	/**
 	 * This adds a StructureNode to the field with the given FieldDescriptor.
@@ -409,7 +391,8 @@ public:
 	 */
 	Rooted<StructuredEntity> createChildStructuredEntity(
 	    Handle<StructuredClass> descriptor, Variant attributes = {},
-	    const std::string &fieldName = "", std::string name = "");
+	    const std::string &fieldName = DEFAULT_FIELD_NAME,
+	    std::string name = "");
 	/*
 	 * Creates a new DocumentPrimitive as child of this DocumentEntity.
 	 *
@@ -423,7 +406,8 @@ public:
 	 * @return          the newly created DocumentPrimitive.
 	 */
 	Rooted<DocumentPrimitive> createChildDocumentPrimitive(
-	    Variant content = {}, const std::string &fieldName = "");
+	    Variant content = {},
+	    const std::string &fieldName = DEFAULT_FIELD_NAME);
 
 	/**
 	 * Creates a new Anchor as child of this DocumentEntity.
@@ -434,8 +418,8 @@ public:
 	 *
 	 * @return          the newly created Anchor.
 	 */
-	Rooted<Anchor> createChildAnchor(std::string name,
-	                                 const std::string &fieldName = "");
+	Rooted<Anchor> createChildAnchor(
+	    std::string name, const std::string &fieldName = DEFAULT_FIELD_NAME);
 };
 
 /**
@@ -488,14 +472,14 @@ public:
 	 * @param attributes is a Map Variant containing attribute fillings for this
 	 *                   StructuredEntity. It is empty per default.
 	 * @param fieldName  is the name of the field in the parent DocumentEntity
-	 *                   where this StructuredEntity shall be added. It is empty
-	 *                   per default, referring to the default field.
+	 *                   where this StructuredEntity shall be added.
 	 * @param name       is some name for this StructuredEntity that may be used
 	 *                   for later reference. It is empty per default.
 	 */
 	StructuredEntity(Manager &mgr, Handle<Node> parent,
 	                 Handle<StructuredClass> descriptor,
-	                 Variant attributes = {}, const std::string &fieldName = "",
+	                 Variant attributes = {},
+	                 const std::string &fieldName = DEFAULT_FIELD_NAME,
 	                 std::string name = "")
 	    : StructureNode(mgr, std::move(name), parent, fieldName),
 	      DocumentEntity(this, descriptor, std::move(attributes))
@@ -560,11 +544,10 @@ public:
 	 *                  specified at the parents Descriptor for the given
 	 *                  fieldName.
 	 * @param fieldName is the name of the field in the parent DocumentEntity
-	 *                  where this DocumentPrimitive shall be added. It is empty
-	 *                  per default, referring to the default field.
+	 *                  where this DocumentPrimitive shall be added.
 	 */
 	DocumentPrimitive(Manager &mgr, Handle<Node> parent, Variant content = {},
-	                  const std::string &fieldName = "")
+	                  const std::string &fieldName = DEFAULT_FIELD_NAME)
 	    : StructureNode(mgr, "", parent, fieldName), content(content)
 	{
 	}
@@ -609,11 +592,10 @@ public:
 	 *                  as child of the given parent.
 	 * @param name      is the Anchor id.
 	 * @param fieldName is the name of the field in the parent DocumentEntity
-	 *                  where this Anchor shall be added. It is empty
-	 *                  per default, referring to the default field.
+	 *                  where this Anchor shall be added.
 	 */
 	Anchor(Manager &mgr, std::string name, Handle<Node> parent,
-	       const std::string &fieldName = "")
+	       const std::string &fieldName = DEFAULT_FIELD_NAME)
 	    : StructureNode(mgr, std::move(name), parent, fieldName)
 	{
 	}

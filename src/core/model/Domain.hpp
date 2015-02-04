@@ -217,6 +217,9 @@ class Descriptor;
 class StructuredClass;
 class Domain;
 
+
+static const std::string DEFAULT_FIELD_NAME = "$default";
+
 /**
  * As mentioned in the description above a FieldDescriptor specifies the
  * StructuredClasses that are allowed as children of a StructuredClass or
@@ -289,7 +292,7 @@ public:
 	 *                      Descriptor to be valid.
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
-	                Handle<Type> primitiveType, std::string name = "",
+	                Handle<Type> primitiveType, std::string name = DEFAULT_FIELD_NAME,
 	                bool optional = false);
 
 	/**
@@ -309,7 +312,7 @@ public:
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent = nullptr,
 	                FieldType fieldType = FieldType::TREE,
-	                std::string name = "", bool optional = false);
+	                std::string name = DEFAULT_FIELD_NAME, bool optional = false);
 
 	/**
 	 * Returns a const reference to the NodeVector of StructuredClasses whose
@@ -559,7 +562,7 @@ public:
 	 * @return              the newly created FieldDescriptor.
 	 */
 	Rooted<FieldDescriptor> createPrimitiveFieldDescriptor(
-	    Handle<Type> primitiveType, std::string name = "",
+	    Handle<Type> primitiveType, std::string name = DEFAULT_FIELD_NAME,
 	    bool optional = false);
 
 	/**
@@ -578,7 +581,8 @@ public:
 	 */
 	Rooted<FieldDescriptor> createFieldDescriptor(
 	    FieldDescriptor::FieldType fieldType = FieldDescriptor::FieldType::TREE,
-	    std::string name = "", bool optional = false);
+	    std::string name = DEFAULT_FIELD_NAME,
+	    bool optional = false);
 
 	/**
 	 * This tries to construct the shortest possible path of this Descriptor
@@ -739,7 +743,7 @@ public:
 	 * @param root                 specifies whether this StructuredClass is
 	 *                             allowed to be at the root of a Document.
 	 */
-	StructuredClass(Manager &mgr, std::string name = "",
+	StructuredClass(Manager &mgr, std::string name,
 	                Handle<Domain> domain = nullptr,
 	                Variant cardinality = AnyCardinality,
 	                Handle<StructType> attributesDescriptor = nullptr,

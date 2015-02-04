@@ -318,7 +318,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 		std::string childDescriptorName = t->getDescriptor()->getName();
 		if (childDescriptorName == "text") {
 			Handle<DocumentPrimitive> primitive =
-			    t->getField()[0].cast<DocumentPrimitive>();
+			    t->getField("content")[0].cast<DocumentPrimitive>();
 			if (primitive.isNull()) {
 				throw OusiaException("Text field is not primitive!");
 			}

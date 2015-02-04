@@ -66,7 +66,7 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 		valid = false;
 	}
 	// check name
-	if (!getName().empty()) {
+	if (getName() != DEFAULT_FIELD_NAME) {
 		valid = valid & validateName(logger);
 	}
 	// check consistency of FieldType with the rest of the FieldDescriptor.

@@ -34,31 +34,15 @@ int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName,
 	const NodeVector<FieldDescriptor> &fds = descriptor->getFieldDescriptors();
 	unsigned int f = 0;
 
-	// look if we have an empty name.
-	if (fieldName == "") {
-		// in that case we look for a default field.
-		// First: Do we only have one field?
-		if (fds.size() == 1) {
-			// if so we return that one.
+	// otherwise we return the FieldDescriptor with the correct name (if
+	// such a descriptor exists).
+	for (auto &fd : fds) {
+		if (fd->getName() == fieldName) {
 			return f;
 		}
-		// Second: Do we have a TREE field?
-		for (auto &fd : fds) {
-			if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
-				return f;
-			}
-			f++;
-		}
-	} else {
-		// otherwise we return the FieldDescriptor with the correct name (if
-		// such a descriptor exists).
-		for (auto &fd : fds) {
-			if (fd->getName() == fieldName) {
-				return f;
-			}
-			f++;
-		}
+		f++;
 	}
+
 	if (enforce) {
 		throw OusiaException(std::string("\"") + descriptor->getName() +
 		                     "\" has no field with name \"" + fieldName + "\"");
