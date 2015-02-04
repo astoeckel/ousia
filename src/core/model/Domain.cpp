@@ -155,19 +155,6 @@ bool Descriptor::doValidate(Logger &logger) const
 	} else {
 		valid = valid & validateName(logger);
 	}
-	// check if all FieldDescriptors have this Descriptor as parent.
-	for (Handle<FieldDescriptor> fd : fieldDescriptors) {
-		if (fd->getParent() != this) {
-			logger.error(std::string("Descriptor \"") + getName() +
-			                 "\" has "
-			                 "field \"" +
-			                 fd->getName() +
-			                 "\" as child but the field does not "
-			                 "have the Descriptor as parent.",
-			             *this);
-			valid = false;
-		}
-	}
 	// check the FieldDescriptors themselves.
 	return valid & continueValidationCheckDuplicates(fieldDescriptors, logger);
 }
@@ -248,7 +235,20 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 	return found;
 }
 
+
 void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd)
+{
+	// only add it if we need to.
+	if (fieldDescriptors.find(fd) == fieldDescriptors.end()) {
+		invalidate();
+		fieldDescriptors.push_back(fd);
+	}
+	if (fd->getParent() == nullptr) {
+		fd->setParent(this);
+	}
+}
+
+void Descriptor::moveFieldDescriptor(Handle<FieldDescriptor> fd)
 {
 	// only add it if we need to.
 	if (fieldDescriptors.find(fd) == fieldDescriptors.end()) {

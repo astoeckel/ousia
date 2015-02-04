@@ -509,12 +509,33 @@ public:
 
 	/**
 	 * Adds the given FieldDescriptor to this Descriptor. This also sets the
+	 * parent of the given FieldDescriptor if it is not set yet.
+	 *
+	 * @param fd is a FieldDescriptor.
+	 */
+	void addFieldDescriptor(Handle<FieldDescriptor> fd);
+
+	/**
+	 * Adds the given FieldDescriptors to this Descriptor. This also sets the
+	 * parent of each given FieldDescriptor if it is not set yet.
+	 *
+	 * @param fds are FieldDescriptors.
+	 */
+	void addFieldDescriptors(const std::vector<Handle<FieldDescriptor>> &fds)
+	{
+		for (Handle<FieldDescriptor> fd : fds) {
+			addFieldDescriptor(fd);
+		}
+	}
+
+	/**
+	 * Adds the given FieldDescriptor to this Descriptor. This also sets the
 	 * parent of the given FieldDescriptor if it is not set to this Descriptor
 	 * already and removes it from the old parent Descriptor.
 	 *
 	 * @param fd is a FieldDescriptor.
 	 */
-	void addFieldDescriptor(Handle<FieldDescriptor> fd);
+	void moveFieldDescriptor(Handle<FieldDescriptor> fd);
 
 	/**
 	 * Adds the given FieldDescriptors to this Descriptor. This also sets the
@@ -523,10 +544,10 @@ public:
 	 *
 	 * @param fds are FieldDescriptors.
 	 */
-	void addFieldDescriptors(const std::vector<Handle<FieldDescriptor>> &fds)
+	void moveFieldDescriptors(const std::vector<Handle<FieldDescriptor>> &fds)
 	{
 		for (Handle<FieldDescriptor> fd : fds) {
-			addFieldDescriptor(fd);
+			moveFieldDescriptor(fd);
 		}
 	}
 

@@ -411,7 +411,7 @@ public:
 		    name, parent, logger(),
 		    [](Handle<Node> field, Handle<Node> parent, Logger &logger) {
 			    if (field != nullptr) {
-				    parent.cast<StructuredClass>()->copyFieldDescriptor(
+				    parent.cast<StructuredClass>()->addFieldDescriptor(
 				        field.cast<FieldDescriptor>());
 			    }
 			});

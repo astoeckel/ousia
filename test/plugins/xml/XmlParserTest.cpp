@@ -156,14 +156,25 @@ static void checkFieldDescriptor(
 }
 
 static void checkFieldDescriptor(
-    Handle<Descriptor> desc, NodeVector<StructuredClass> children,
+    Handle<Descriptor> desc, Handle<Descriptor> parent,
+    NodeVector<StructuredClass> children,
     const std::string &name = DEFAULT_FIELD_NAME,
     FieldDescriptor::FieldType type = FieldDescriptor::FieldType::TREE,
     Handle<Type> primitiveType = nullptr, bool optional = false)
 {
 	auto res = desc->resolve(RttiTypes::FieldDescriptor, name);
 	ASSERT_EQ(1, res.size());
-	checkFieldDescriptor(res[0].node, name, desc, children, type, primitiveType,
+	checkFieldDescriptor(res[0].node, name, parent, children, type,
+	                     primitiveType, optional);
+}
+
+static void checkFieldDescriptor(
+    Handle<Descriptor> desc, NodeVector<StructuredClass> children,
+    const std::string &name = DEFAULT_FIELD_NAME,
+    FieldDescriptor::FieldType type = FieldDescriptor::FieldType::TREE,
+    Handle<Type> primitiveType = nullptr, bool optional = false)
+{
+	checkFieldDescriptor(desc, desc, children, name, type, primitiveType,
 	                     optional);
 }
 
@@ -216,8 +227,8 @@ TEST(XmlParser, domainParsing)
 	Rooted<StructuredClass> heading =
 	    checkStructuredClass("heading", "heading", headings_domain, single,
 	                         nullptr, nullptr, true, false);
-	// which should allow text content
-	checkFieldDescriptor(heading, {text});
+	// which should be a reference to the paragraph descriptor.
+	checkFieldDescriptor(heading, paragraph, {text});
 	// and each struct in the book domain (except for text) should have a
 	// heading field now.
 	checkFieldDescriptor(book, {heading}, "heading",
@@ -261,9 +272,7 @@ TEST(XmlParser, domainParsing)
 	// paragraph should have comment as child now as well.
 	checkFieldDescriptor(paragraph, {text, comment});
 	// as should heading, because it references the paragraph default field.
-	// TODO: This does not work as of now, because in fact fields get copied,
-	// not referenced. Should we reference fields, though?
-	//checkFieldDescriptor(heading, {text, comment});
+	checkFieldDescriptor(heading, paragraph, {text, comment});
 }
 }
 
