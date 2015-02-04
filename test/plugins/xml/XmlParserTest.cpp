@@ -114,7 +114,7 @@ static void checkFieldDescriptor(
     FieldDescriptor::FieldType type = FieldDescriptor::FieldType::TREE,
     Handle<Type> primitiveType = nullptr, bool optional = false)
 {
-	ASSERT_FALSE(n.isNull());
+	ASSERT_FALSE(n == nullptr);
 	Handle<FieldDescriptor> field = n.cast<FieldDescriptor>();
 	ASSERT_FALSE(field.isNull());
 	ASSERT_EQ(name, field->getName());
@@ -131,7 +131,7 @@ static void checkFieldDescriptor(
 
 static void checkFieldDescriptor(
     Handle<Descriptor> desc, NodeVector<StructuredClass> children,
-    const std::string &name = "",
+    const std::string &name = DEFAULT_FIELD_NAME,
     FieldDescriptor::FieldType type = FieldDescriptor::FieldType::TREE,
     Handle<Type> primitiveType = nullptr, bool optional = false)
 {
@@ -183,9 +183,27 @@ TEST(XmlParser, domainParsing)
 	// check parent handling.
 	Rooted<Node> headings_domain_node =
 	    env.parse("headings_domain.oxm", "", "", RttiSet{&RttiTypes::Domain});
-	//TODO: Unfortunately this does not work yet.
-	//ASSERT_FALSE(headings_domain_node == nullptr);
-	//ASSERT_FALSE(logger.hasError());
+	ASSERT_FALSE(headings_domain_node == nullptr);
+	ASSERT_FALSE(logger.hasError());
+	Rooted<Domain> headings_domain = headings_domain_node.cast<Domain>();
+	// now there should be a heading struct.
+	Rooted<StructuredClass> heading =
+	    checkStructuredClass("heading", "heading", headings_domain, single,
+	                         nullptr, nullptr, true, false);
+	// which should allow text content
+	checkFieldDescriptor(heading, {text});
+	// and each struct in the book domain (except for text) should have a
+	// heading field now.
+	checkFieldDescriptor(book, {heading}, "heading",
+	                     FieldDescriptor::FieldType::SUBTREE, nullptr, true);
+	checkFieldDescriptor(chapter, {heading}, "heading",
+	                     FieldDescriptor::FieldType::SUBTREE, nullptr, true);
+	checkFieldDescriptor(section, {heading}, "heading",
+	                     FieldDescriptor::FieldType::SUBTREE, nullptr, true);
+	checkFieldDescriptor(subsection, {heading}, "heading",
+	                     FieldDescriptor::FieldType::SUBTREE, nullptr, true);
+	checkFieldDescriptor(paragraph, {heading}, "heading",
+	                     FieldDescriptor::FieldType::SUBTREE, nullptr, true);
 }
 }
 
