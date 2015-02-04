@@ -67,10 +67,7 @@ bool Type::build(Variant &data, Logger &logger) const
 	return build(data, logger, NullMagicCallback);
 }
 
-bool Type::doCheckIsa(Handle<const Type> type) const
-{
-	return false;
-}
+bool Type::doCheckIsa(Handle<const Type> type) const { return false; }
 
 bool Type::checkIsa(Handle<const Type> type) const
 {
@@ -114,6 +111,11 @@ bool StringType::doBuild(Variant &data, Logger &logger,
 
 /* Class EnumType */
 
+EnumType::EnumType(Manager &mgr, std::string name, Handle<Typesystem> system)
+    : Type(mgr, std::move(name), system, false), nextOrdinalValue(0)
+{
+}
+
 bool EnumType::doBuild(Variant &data, Logger &logger,
                        const MagicCallback &magicCallback) const
 {
@@ -145,32 +147,45 @@ bool EnumType::doBuild(Variant &data, Logger &logger,
 	throw LoggableException{"Expected integer or identifier", data};
 }
 
+bool EnumType::doValidate(Logger &logger) const{
+	bool ok = true;
+	if (values.empty()) {
+		logger.error("Enum type must have at least one entry", *this);
+		ok = false;
+	}
+	return ok & validateName(logger);
+}
+
+void EnumType::addEntry(const std::string &entry, Logger &logger)
+{
+	if (!Utils::isIdentifier(entry)) {
+		logger.error(std::string("\"") + entry +
+		             "\" is not a valid identifier.");
+		return;
+	}
+
+	if (!values.emplace(entry, nextOrdinalValue).second) {
+			logger.error(std::string("The enumeration entry ") +entry +
+			             std::string(" was duplicated"));
+			return;
+	}
+	nextOrdinalValue++;
+}
+
+void EnumType::addEntries(const std::vector<std::string> &entries, Logger &logger)
+{
+	for (const std::string &entry: entries) {
+		addEntry(entry, logger);
+	}
+}
+
 Rooted<EnumType> EnumType::createValidated(
     Manager &mgr, std::string name, Handle<Typesystem> system,
-    const std::vector<std::string> &values, Logger &logger)
+    const std::vector<std::string> &entries, Logger &logger)
 {
-	// Map used to store the unique values of the enum
-	std::map<std::string, Ordinal> unique_values;
-
-	// The given vector may not be empty
-	if (values.empty()) {
-		logger.error("Enumeration constants may not be empty.");
-	}
-
-	// Iterate over the input vector, check the constant names for validity and
-	// uniqueness and insert them into the internal values map
-	for (size_t i = 0; i < values.size(); i++) {
-		if (!Utils::isIdentifier(values[i])) {
-			logger.error(std::string("\"") + values[i] +
-			             "\" is no valid identifier.");
-		}
-
-		if (!(unique_values.insert(std::make_pair(values[i], i))).second) {
-			logger.error(std::string("The value ") + values[i] +
-			             " was duplicated.");
-		}
-	}
-	return new EnumType{mgr, name, system, unique_values};
+	Rooted<EnumType> type = new EnumType{mgr, name, system};
+	type->addEntries(entries, logger);
+	return type;
 }
 
 std::string EnumType::nameOf(Ordinal i) const
@@ -390,12 +405,15 @@ bool StructType::buildFromMap(Variant &data, Logger &logger,
 			ok = false;
 			logger.error(std::string("Invalid attribute key \"") + key +
 			                 std::string("\""),
-			             value);
+			             data);
 		}
 	}
 
 	// Copy the built array to the result and insert missing default values
+	// TODO: Nicer way of assigning a new variant value and keeping location?
+	SourceLocation loc = data.getLocation();
 	data = arr;
+	data.setLocation(loc);
 	return insertDefaults(data, set, logger) && ok;
 }
 
@@ -469,7 +487,6 @@ bool StructType::doCheckIsa(Handle<const Type> type) const
 	}
 	return false;
 }
-
 
 Rooted<StructType> StructType::createValidated(
     Manager &mgr, std::string name, Handle<Typesystem> system,
@@ -625,7 +642,6 @@ bool ArrayType::doCheckIsa(Handle<const Type> type) const
 	return t1->checkIsa(t2);
 }
 
-
 /* Class UnknownType */
 
 bool UnknownType::doBuild(Variant &, Logger &, const MagicCallback &) const
@@ -704,6 +720,13 @@ Rooted<StructType> Typesystem::createStructType(const std::string &name)
 	Rooted<StructType> structType{new StructType(getManager(), name, this)};
 	addType(structType);
 	return structType;
+}
+
+Rooted<EnumType> Typesystem::createEnumType(const std::string &name)
+{
+	Rooted<EnumType> enumType{new EnumType(getManager(), name, this)};
+	addType(enumType);
+	return enumType;
 }
 
 Rooted<Constant> Typesystem::createConstant(const std::string &name,

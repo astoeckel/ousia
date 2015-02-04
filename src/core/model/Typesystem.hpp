@@ -371,26 +371,16 @@ public:
 
 private:
 	/**
+	 * Value holding the next ordinal value that is to be used when adding a new
+	 * type.
+	 */
+	Ordinal nextOrdinalValue;
+
+	/**
 	 * Map containing the enumeration type values and the associated integer
 	 * representation.
 	 */
-	const std::map<std::string, Ordinal> values;
-
-	/**
-	 * Private constructor of the EnumType class used to create a new EnumType
-	 * instance from a previously created name to value map. The parameters are
-	 * not checked for validity.
-	 *
-	 * @param mgr is the underlying Manager instance.
-	 * @param name is the name of the EnumType instance. Should be a valid
-	 * identifier.
-	 * @param values is a vector containing the enumeration type constants.
-	 */
-	EnumType(Manager &mgr, std::string name, Handle<Typesystem> system,
-	         std::map<std::string, Ordinal> values)
-	    : Type(mgr, std::move(name), system, false), values(std::move(values))
-	{
-	}
+	std::map<std::string, Ordinal> values;
 
 protected:
 	/**
@@ -405,7 +395,46 @@ protected:
 	bool doBuild(Variant &data, Logger &logger,
 	             const MagicCallback &magicCallback) const override;
 
+	/**
+	 * Returns true if the internal value list is non-empty.
+	 *
+	 * @param logger is the logger instance to which validation errors are
+	 * logged.
+	 */
+	bool doValidate(Logger &logger) const override;
+
 public:
+	/**
+	 * Constructor of the EnumType class.
+	 *
+	 * @param mgr is the underlying Manager instance.
+	 * @param name is the name of the EnumType instance. Should be a valid
+	 * identifier.
+	 * @param system is the parent typesystem.
+	 */
+	EnumType(Manager &mgr, std::string name, Handle<Typesystem> system);
+
+	/**
+	 * Adds a new entry to the enum. The enum element is validated, errors
+	 * are logged in the given logger instance.
+	 *
+	 * @param entry is the name of the enum element that should be added.
+	 * @param logger is the logger instance that should be used to write error
+	 * messages.
+	 */
+	void addEntry(const std::string &entry, Logger &logger);
+
+	/**
+	 * Adds a new entry to the enum. The enum element is validated, errors
+	 * are logged in the given logger instance.
+	 *
+	 * @param entires is a list containing the enum elements that should be
+	 * added.
+	 * @param logger is the logger instance that should be used to write error
+	 * messages.
+	 */
+	void addEntries(const std::vector<std::string> &entries, Logger &logger);
+
 	/**
 	 * Creates a new enum instance and validates the incomming value vector.
 	 *
@@ -413,14 +442,14 @@ public:
 	 * @param name is the name of the EnumType instance. Should be a valid
 	 * identifier.
 	 * @param system is a reference to the parent Typesystem instance.
-	 * @param values is a vector containing the enumeration type constants.
+	 * @param entries is a vector containing the enumeration type constants.
 	 * The constants are checked for validity (must be a valid identifier) and
 	 * uniqueness (each value must exist exactly once).
 	 * @param logger is the Logger instance into which errors should be written.
 	 */
 	static Rooted<EnumType> createValidated(
 	    Manager &mgr, std::string name, Handle<Typesystem> system,
-	    const std::vector<std::string> &values, Logger &logger);
+	    const std::vector<std::string> &entries, Logger &logger);
 
 	/**
 	 * Creates a Variant containing a valid representation of a variable of this
@@ -1133,6 +1162,15 @@ public:
 	 * @return the new StructType instance.
 	 */
 	Rooted<StructType> createStructType(const std::string &name);
+
+	/**
+	 * Creates a new EnumType instance with the given name. Adds the new
+	 * EnumType as member to the typesystem.
+	 *
+	 * @param name is the name of the structure that should be created.
+	 * @return the new EnumType instance.
+	 */
+	Rooted<EnumType> createEnumType(const std::string &name);
 
 	/**
 	 * Creates a new Constant instance with the given name. Adds the new

@@ -1,21 +1,28 @@
 <?xml version="1.0" standalone="yes"?>
-<typesystem name="bla">
-	<import>color.oxm</import>
-	<!--<struct name="color">
-		<field name="r" type="int"/>
-		<field name="g" type="int"/>
-		<field name="b" type="int"/>
-	</struct>-->
-	<!--<include>color.oxm</include>-->
+<typesystem name="border">
+	<import>./color.oxm</import>
+
+	<enum name="border-style">
+		<entry>none</entry>
+		<entry>dotted</entry>
+		<entry>dashed</entry>
+		<entry>solid</entry>
+		<entry>double</entry>
+		<entry>groove</entry>
+		<entry>ridge</entry>
+		<entry>inset</entry>
+		<entry>outset</entry>
+	</enum>
 
 	<constant name="zero" value="0" type="int" />
-	<constant name="zeros" value="[0, 0, 0]" type="int[]" />
-	<constant name="manyZeros" value="[[eeeee, [2, 5], zeros], [42, 1000], [0, {3-5}]]" type="int[][][]" />
-	<!--<constant name="black" value="[zero, zero, zero]" type="color" />-->
-	<struct name="structWithColor">
+	<constant name="black" value="[zero, zero, zero]" type="color" />
+
+	<struct name="border">
 		<field name="color" type="color" default="black" />
+		<field name="style" type="border-style"/>
 	</struct>
-	<constant name="aquamarineStructWithColor" value="[color=aquamarine]" type="structWithColor" />
+
+	<constant name="beautifulBorder" type="border" value="[color=aquamarine,style=solid]" />
 </typesystem>
 <!--<domain name="color">
 	<struct name="bla" cardinality="{1,2}" isa="blub"/>
