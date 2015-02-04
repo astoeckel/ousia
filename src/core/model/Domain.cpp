@@ -74,20 +74,23 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 		if (children.size() > 0) {
 			logger.error(
 			    "This field is supposed to be primitive but has "
-			    "registered child classes!", *this);
+			    "registered child classes!",
+			    *this);
 			valid = false;
 		}
 		if (primitiveType == nullptr) {
 			logger.error(
 			    "This field is supposed to be primitive but has "
-			    "no primitive type!", *this);
+			    "no primitive type!",
+			    *this);
 			valid = false;
 		}
 	} else {
 		if (primitiveType != nullptr) {
 			logger.error(
 			    "This field is supposed to be non-primitive but has "
-			    "a primitive type!", *this);
+			    "a primitive type!",
+			    *this);
 			valid = false;
 		}
 	}
@@ -100,8 +103,9 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	for (Handle<StructuredClass> c : children) {
 		if (!names.insert(c->getName()).second) {
 			logger.error(std::string("Field \"") + getName() +
-			             "\" had multiple children with the name \"" +
-			             c->getName() + "\"", *this);
+			                 "\" had multiple children with the name \"" +
+			                 c->getName() + "\"",
+			             *this);
 			valid = false;
 		}
 	}
@@ -155,11 +159,12 @@ bool Descriptor::doValidate(Logger &logger) const
 	for (Handle<FieldDescriptor> fd : fieldDescriptors) {
 		if (fd->getParent() != this) {
 			logger.error(std::string("Descriptor \"") + getName() +
-			             "\" has "
-			             "field \"" +
-			             fd->getName() +
-			             "\" as child but the field does not "
-			             "have the Descriptor as parent.", *this);
+			                 "\" has "
+			                 "field \"" +
+			                 fd->getName() +
+			                 "\" as child but the field does not "
+			                 "have the Descriptor as parent.",
+			             *this);
 			valid = false;
 		}
 	}
@@ -271,8 +276,16 @@ void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd)
 		new FieldDescriptor(getManager(), this, fd->getPrimitiveType(),
 		                    fd->getName(), fd->isOptional());
 	} else {
-		new FieldDescriptor(getManager(), this, fd->getFieldType(),
-		                    fd->getName(), fd->isOptional());
+		/*
+		 * In case of non-primitive FieldDescriptors we also want to copy the
+		 * child references.
+		 */
+		Rooted<FieldDescriptor> copy = {
+		    new FieldDescriptor(getManager(), this, fd->getFieldType(),
+		                        fd->getName(), fd->isOptional())};
+		for (auto &c : fd->getChildren()) {
+			copy->addChild(c);
+		}
 	}
 }
 
@@ -331,13 +344,14 @@ bool StructuredClass::doValidate(Logger &logger) const
 	for (Handle<StructuredClass> sub : subclasses) {
 		if (sub->getSuperclass() != this) {
 			logger.error(std::string("Struct \"") + sub->getName() +
-			             "\" is registered as subclass of \"" + getName() +
-			             "\" but does not have it as superclass!", *this);
+			                 "\" is registered as subclass of \"" + getName() +
+			                 "\" but does not have it as superclass!",
+			             *this);
 			valid = false;
 		}
 	}
 	// check the cardinality.
-	if(!cardinality.isCardinality()){
+	if (!cardinality.isCardinality()) {
 		logger.error(cardinality.toString() + " is not a cardinality!", *this);
 		valid = false;
 	}
