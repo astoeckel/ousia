@@ -89,6 +89,7 @@ static void checkStructuredClass(
 	ASSERT_EQ(cardinality, sc->getCardinality());
 	ASSERT_EQ(transparent, sc->isTransparent());
 	ASSERT_EQ(root, sc->hasRootPermission());
+	ASSERT_EQ(attributesDescriptor, sc->getAttributesDescriptor());
 }
 
 static Rooted<StructuredClass> checkStructuredClass(
@@ -106,6 +107,31 @@ static Rooted<StructuredClass> checkStructuredClass(
 	checkStructuredClass(sc, name, domain, cardinality, attributesDescriptor,
 	                     superclass, transparent, root);
 	return sc;
+}
+
+static void checkAnnotationClass(
+    Handle<Node> n, const std::string &name, Handle<Domain> domain,
+    Handle<StructType> attributesDescriptor = nullptr)
+{
+	ASSERT_FALSE(n == nullptr);
+	Handle<AnnotationClass> ac = n.cast<AnnotationClass>();
+	ASSERT_FALSE(ac == nullptr);
+	ASSERT_EQ(name, ac->getName());
+	ASSERT_EQ(domain, ac->getParent());
+	ASSERT_EQ(attributesDescriptor, ac->getAttributesDescriptor());
+}
+
+static Rooted<AnnotationClass> checkAnnotationClass(
+    const std::string &resolve, const std::string &name, Handle<Domain> domain,
+    Handle<StructType> attributesDescriptor = nullptr)
+{
+	auto res = domain->resolve(RttiTypes::AnnotationClass, resolve);
+	if (res.size() != 1) {
+		throw OusiaException("resolution error!");
+	}
+	Handle<AnnotationClass> ac = res[0].node.cast<AnnotationClass>();
+	checkAnnotationClass(ac, name, domain, attributesDescriptor);
+	return ac;
 }
 
 static void checkFieldDescriptor(
@@ -180,7 +206,7 @@ TEST(XmlParser, domainParsing)
 	    text, {}, "content", FieldDescriptor::FieldType::PRIMITIVE,
 	    env.project->getSystemTypesystem()->getStringType(), false);
 
-	// check parent handling.
+	// check parent handling using the headings domain.
 	Rooted<Node> headings_domain_node =
 	    env.parse("headings_domain.oxm", "", "", RttiSet{&RttiTypes::Domain});
 	ASSERT_FALSE(headings_domain_node == nullptr);
@@ -204,6 +230,40 @@ TEST(XmlParser, domainParsing)
 	                     FieldDescriptor::FieldType::SUBTREE, nullptr, true);
 	checkFieldDescriptor(paragraph, {heading}, "heading",
 	                     FieldDescriptor::FieldType::SUBTREE, nullptr, true);
+
+	// check annotation handling using the comments domain.
+	Rooted<Node> comments_domain_node =
+	    env.parse("comments_domain.oxm", "", "", RttiSet{&RttiTypes::Domain});
+	ASSERT_FALSE(comments_domain_node == nullptr);
+	ASSERT_FALSE(logger.hasError());
+	Rooted<Domain> comments_domain = comments_domain_node.cast<Domain>();
+	// now we should be able to find a comment annotation.
+	Rooted<AnnotationClass> comment_anno =
+	    checkAnnotationClass("comment", "comment", comments_domain);
+	// as well as a comment struct
+	Rooted<StructuredClass> comment =
+	    checkStructuredClass("comment", "comment", comments_domain);
+	// and a reply struct
+	Rooted<StructuredClass> reply =
+	    checkStructuredClass("reply", "reply", comments_domain);
+	// check the fields for each of them.
+	{
+		std::vector<Rooted<Descriptor>> descs{comment_anno, comment, reply};
+		for (auto &d : descs) {
+			checkFieldDescriptor(d, {paragraph}, "content",
+			                     FieldDescriptor::FieldType::SUBTREE, nullptr,
+			                     false);
+			checkFieldDescriptor(d, {reply}, "replies",
+			                     FieldDescriptor::FieldType::SUBTREE, nullptr,
+			                     false);
+		}
+	}
+	// paragraph should have comment as child now as well.
+	checkFieldDescriptor(paragraph, {text, comment});
+	// as should heading, because it references the paragraph default field.
+	// TODO: This does not work as of now, because in fact fields get copied,
+	// not referenced. Should we reference fields, though?
+	//checkFieldDescriptor(heading, {text, comment});
 }
 }
 

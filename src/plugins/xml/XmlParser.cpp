@@ -343,6 +343,31 @@ public:
 	}
 };
 
+class DomainAnnotationHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	void start(Variant::mapType &args) override
+	{
+		scope().setFlag(ParserFlag::POST_HEAD, true);
+
+		Rooted<Domain> domain = scope().selectOrThrow<Domain>();
+
+		Rooted<AnnotationClass> annotationClass =
+		    domain->createAnnotationClass(args["name"].asString(), nullptr);
+		annotationClass->setLocation(location());
+
+		scope().push(annotationClass);
+	}
+
+	void end() override { scope().pop(); }
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new DomainAnnotationHandler{handlerData};
+	}
+};
+
 class DomainFieldHandler : public Handler {
 public:
 	using Handler::Handler;
@@ -356,7 +381,6 @@ public:
 			type = FieldDescriptor::FieldType::TREE;
 		}
 
-		// TODO: Is inheritance possible here?
 		Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
 		Rooted<FieldDescriptor> field = parent->createFieldDescriptor(
@@ -380,7 +404,6 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
-		// TODO: Is inheritance possible here?
 		Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
 		const std::string &name = args["name"].asString();
@@ -408,7 +431,6 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
-		// TODO: Is inheritance possible here?
 		Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
 		Rooted<FieldDescriptor> field = parent->createPrimitiveFieldDescriptor(
@@ -565,11 +587,13 @@ public:
 		                                          Handle<Node> strct,
 		                                          Logger &logger) {
 			if (parent != nullptr) {
-				auto res = parent->resolve(RttiTypes::FieldDescriptor, name);
+				auto res = parent.cast<Descriptor>()->resolve(
+				    RttiTypes::FieldDescriptor, name);
 				if (res.size() != 1) {
 					logger.error(
 					    std::string("Could not find referenced field ") + name,
 					    loc);
+					return;
 				}
 				Rooted<FieldDescriptor> field =
 				    res[0].node.cast<FieldDescriptor>();
@@ -585,8 +609,6 @@ public:
 		return new DomainParentFieldRefHandler{handlerData};
 	}
 };
-
-// TODO: Add annotation handler
 
 /*
  * Import and Include Handler
@@ -703,6 +725,7 @@ static const ParserState Domain = ParserStateBuilder()
                                       .createdNodeType(&RttiTypes::Domain)
                                       .elementHandler(DomainHandler::create)
                                       .arguments({Argument::String("name")});
+
 static const ParserState DomainStruct =
     ParserStateBuilder()
         .parent(&Domain)
@@ -713,39 +736,54 @@ static const ParserState DomainStruct =
                     Argument::Bool("isRoot", false),
                     Argument::Bool("transparent", false),
                     Argument::String("isa", "")});
-static const ParserState DomainStructField =
+// TODO: What about attributes?
+
+static const ParserState DomainAnnotation =
     ParserStateBuilder()
-        .parent(&DomainStruct)
+        .parent(&Domain)
+        .createdNodeType(&RttiTypes::AnnotationClass)
+        .elementHandler(DomainAnnotationHandler::create)
+        .arguments({Argument::String("name")});
+// TODO: What about attributes?
+
+static const ParserState DomainField =
+    ParserStateBuilder()
+        .parents({&DomainStruct, &DomainAnnotation})
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainFieldHandler::create)
         .arguments({Argument::String("name", DEFAULT_FIELD_NAME),
                     Argument::Bool("isSubtree", false),
                     Argument::Bool("optional", false)});
-static const ParserState DomainStructFieldRef =
+
+static const ParserState DomainFieldRef =
     ParserStateBuilder()
-        .parent(&DomainStruct)
+        .parents({&DomainStruct, &DomainAnnotation})
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainFieldRefHandler::create)
         .arguments({Argument::String("name", DEFAULT_FIELD_NAME)});
+
 static const ParserState DomainStructPrimitive =
     ParserStateBuilder()
-        .parent(&DomainStruct)
+        .parents({&DomainStruct, &DomainAnnotation})
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainPrimitiveHandler::create)
         .arguments({Argument::String("name", DEFAULT_FIELD_NAME),
                     Argument::Bool("optional", false),
                     Argument::String("type")});
+
 static const ParserState DomainStructChild =
     ParserStateBuilder()
-        .parent(&DomainStructField)
+        .parent(&DomainField)
         .elementHandler(DomainChildHandler::create)
         .arguments({Argument::String("ref")});
+
 static const ParserState DomainStructParent =
     ParserStateBuilder()
         .parent(&DomainStruct)
         .createdNodeType(&RttiTypes::DummyParentNode)
         .elementHandler(DomainParentHandler::create)
         .arguments({Argument::String("name")});
+
 static const ParserState DomainStructParentField =
     ParserStateBuilder()
         .parent(&DomainStructParent)
@@ -754,6 +792,7 @@ static const ParserState DomainStructParentField =
         .arguments({Argument::String("name", DEFAULT_FIELD_NAME),
                     Argument::Bool("isSubtree", false),
                     Argument::Bool("optional", false)});
+
 static const ParserState DomainStructParentFieldRef =
     ParserStateBuilder()
         .parent(&DomainStructParent)
@@ -768,29 +807,34 @@ static const ParserState Typesystem =
         .createdNodeType(&RttiTypes::Typesystem)
         .elementHandler(TypesystemHandler::create)
         .arguments({Argument::String("name", "")});
+
 static const ParserState TypesystemEnum =
     ParserStateBuilder()
         .parent(&Typesystem)
         .createdNodeType(&RttiTypes::EnumType)
         .elementHandler(TypesystemEnumHandler::create)
         .arguments({Argument::String("name")});
+
 static const ParserState TypesystemEnumEntry =
     ParserStateBuilder()
         .parent(&TypesystemEnum)
         .elementHandler(TypesystemEnumEntryHandler::create)
         .arguments({});
+
 static const ParserState TypesystemStruct =
     ParserStateBuilder()
         .parent(&Typesystem)
         .createdNodeType(&RttiTypes::StructType)
         .elementHandler(TypesystemStructHandler::create)
         .arguments({Argument::String("name"), Argument::String("parent", "")});
+
 static const ParserState TypesystemStructField =
     ParserStateBuilder()
         .parent(&TypesystemStruct)
         .elementHandler(TypesystemStructFieldHandler::create)
         .arguments({Argument::String("name"), Argument::String("type"),
                     Argument::Any("default", Variant::fromObject(nullptr))});
+
 static const ParserState TypesystemConstant =
     ParserStateBuilder()
         .parent(&Typesystem)
@@ -806,6 +850,7 @@ static const ParserState Import =
         .elementHandler(ImportHandler::create)
         .arguments({Argument::String("rel", ""), Argument::String("type", ""),
                     Argument::String("src", "")});
+
 static const ParserState Include =
     ParserStateBuilder()
         .parent(&All)
@@ -817,8 +862,9 @@ static const std::multimap<std::string, const ParserState *> XmlStates{
     {"document", &Document},
     {"domain", &Domain},
     {"struct", &DomainStruct},
-    {"field", &DomainStructField},
-    {"fieldRef", &DomainStructFieldRef},
+    {"annotation", &DomainAnnotation},
+    {"field", &DomainField},
+    {"fieldRef", &DomainFieldRef},
     {"primitive", &DomainStructPrimitive},
     {"child", &DomainStructChild},
     {"parent", &DomainStructParent},

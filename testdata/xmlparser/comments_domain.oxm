@@ -1,0 +1,40 @@
+<?xml version="1.0" standalone="yes"?>
+<domain name="comments">
+	<import rel="domain" src="./book_domain.oxm"/>
+
+	<!-- an annotation comment -->
+	<annotation name="comment">
+		<field name="content" isSubtree="true">
+			<child ref="book.paragraph"/>
+		</field>
+		<field name="replies" isSubtree="true">
+			<child ref="reply"/>
+		</field>
+	</annotation>
+
+	<!-- an point-like structure comment. -->
+	<struct name="comment">
+		<!-- Is there a chance to prevent users from having to redefine these
+		     two fields in comment and reply? Could we use a fieldRef here?
+		     Or would that be circular? -->
+		<field name="content" isSubtree="true">
+			<child ref="book.paragraph"/>
+		</field>
+		<field name="replies" isSubtree="true">
+			<child ref="reply"/>
+		</field>
+		<parent name="book.paragraph">
+			<fieldRef name="$default"/>
+		</parent>
+	</struct>
+	<!-- note that replies are organized in a tree fashion: One can also reply
+	     to a reply -->
+	<struct name="reply">
+		<field name="content" isSubtree="true">
+			<child ref="book.paragraph"/>
+		</field>
+		<field name="replies" isSubtree="true">
+			<child ref="reply"/>
+		</field>
+	</struct>
+</domain>
