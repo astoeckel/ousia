@@ -18,11 +18,12 @@
 	<constant name="black" value="[zero, zero, zero]" type="color" />
 
 	<struct name="border">
-		<field name="color" type="color" default="black" />
 		<field name="style" type="border-style"/>
+		<field name="color" type="color" default="black" />
 	</struct>
 
 	<constant name="beautifulBorder" type="border" value="[color=aquamarine,style=solid]" />
+	<constant name="moreBeautifulBorder" type="border" value="[dotted, azure]" />
 </typesystem>
 <!--<domain name="color">
 	<struct name="bla" cardinality="{1,2}" isa="blub"/>

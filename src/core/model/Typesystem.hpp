@@ -461,6 +461,11 @@ public:
 	Variant create() const override { return Variant{0}; }
 
 	/**
+	 * Returns the names of all enum entries.
+	 */
+	std::vector<std::string> names() const;
+
+	/**
 	 * Returns the name of the given ordinal number. Throws a LoggableException
 	 * if the ordinal number is out of range.
 	 */

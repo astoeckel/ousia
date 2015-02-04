@@ -138,16 +138,25 @@ bool EnumType::doBuild(Variant &data, Logger &logger,
 		// Throw an execption if the given string value is not found
 		if (it == values.end()) {
 			throw LoggableException(std::string("Unknown enum constant: \"") +
-			                            name + std::string("\""),
+			                            name +
+			                            std::string("\", expected one of ") +
+			                            Utils::join(names(), ", ", "{", "}"),
 			                        data);
 		}
 		data = it->second;
 		return true;
 	}
-	throw LoggableException{"Expected integer or identifier", data};
+
+	// Throw an exception, list possible enum types
+	throw LoggableException{
+	    std::string(
+	        "Expected integer or one of the following enum constants: ") +
+	        Utils::join(names(), ", ", "{", "}"),
+	    data};
 }
 
-bool EnumType::doValidate(Logger &logger) const{
+bool EnumType::doValidate(Logger &logger) const
+{
 	bool ok = true;
 	if (values.empty()) {
 		logger.error("Enum type must have at least one entry", *this);
@@ -165,16 +174,17 @@ void EnumType::addEntry(const std::string &entry, Logger &logger)
 	}
 
 	if (!values.emplace(entry, nextOrdinalValue).second) {
-			logger.error(std::string("The enumeration entry ") +entry +
-			             std::string(" was duplicated"));
-			return;
+		logger.error(std::string("The enumeration entry ") + entry +
+		             std::string(" was duplicated"));
+		return;
 	}
 	nextOrdinalValue++;
 }
 
-void EnumType::addEntries(const std::vector<std::string> &entries, Logger &logger)
+void EnumType::addEntries(const std::vector<std::string> &entries,
+                          Logger &logger)
 {
-	for (const std::string &entry: entries) {
+	for (const std::string &entry : entries) {
 		addEntry(entry, logger);
 	}
 }
@@ -186,6 +196,16 @@ Rooted<EnumType> EnumType::createValidated(
 	Rooted<EnumType> type = new EnumType{mgr, name, system};
 	type->addEntries(entries, logger);
 	return type;
+}
+
+std::vector<std::string> EnumType::names() const
+{
+	std::vector<std::string> res;
+	res.reserve(values.size());
+	for (const auto &v : values) {
+		res.emplace_back(v.first);
+	}
+	return res;
 }
 
 std::string EnumType::nameOf(Ordinal i) const
