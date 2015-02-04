@@ -90,10 +90,23 @@ Rooted<Node> ParserScopeBase::select(RttiSet types, int maxDepth)
 			return nodes[i];
 		}
 	}
-	throw LoggableException{
-	    std::string(
-	        "Expected be inside an element of one of the internal types ") +
-	    Utils::join(types, "\", \"", "\"", "\"")};
+	return nullptr;
+}
+
+Rooted<Node> ParserScopeBase::selectOrThrow(RttiSet types, int maxDepth)
+{
+	Rooted<Node> res = select(types, maxDepth);
+	if (res == nullptr) {
+		std::vector<std::string> typenames;
+		for (auto type : types) {
+			typenames.push_back(type->name);
+		}
+		throw LoggableException{std::string(
+		                            "Expected to be inside an element of one "
+		                            "of the internal types ") +
+		                        Utils::join(typenames, "\", \"", "\"", "\"")};
+	}
+	return res;
 }
 
 /* Class DeferredResolution */

@@ -86,12 +86,6 @@ public:
 		    project()->createTypesystem(args["name"].asString());
 		typesystem->setLocation(location());
 
-		// Check whether this typesystem is a direct child of a domain
-		Handle<Node> parent = scope().select({&RttiTypes::Domain});
-		if (parent != nullptr) {
-			parent.cast<Domain>()->referenceTypesystem(typesystem);
-		}
-
 		// Push the typesystem onto the scope, set the POST_HEAD flag to true
 		scope().push(typesystem);
 		scope().setFlag(ParserFlag::POST_HEAD, false);
@@ -102,6 +96,61 @@ public:
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new TypesystemHandler{handlerData};
+	}
+};
+
+class TypesystemEnumHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	void start(Variant::mapType &args) override
+	{
+		scope().setFlag(ParserFlag::POST_HEAD, true);
+
+		// Fetch the current typesystem and create the enum node
+		Rooted<Typesystem> typesystem = scope().selectOrThrow<Typesystem>();
+		Rooted<EnumType> enumType =
+		    typesystem->createEnumType(args["name"].asString());
+		enumType->setLocation(location());
+
+		scope().push(enumType);
+	}
+
+	void end() override { scope().pop(); }
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new TypesystemEnumHandler{handlerData};
+	}
+};
+
+class TypesystemEnumEntryHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	std::string entry;
+
+	void start(Variant::mapType &args) override {}
+
+	void end() override
+	{
+		Rooted<EnumType> enumType = scope().selectOrThrow<EnumType>();
+		enumType->addEntry(entry, logger());
+	}
+
+	void data(const std::string &data, int field) override
+	{
+		if (field != 0) {
+			// TODO: This should be stored in the HandlerData
+			logger().error("Enum entry only has one field.");
+			return;
+		}
+		entry.append(data);
+	}
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new TypesystemEnumEntryHandler{handlerData};
 	}
 };
 
@@ -118,7 +167,7 @@ public:
 		const std::string &parent = args["parent"].asString();
 
 		// Fetch the current typesystem and create the struct node
-		Rooted<Typesystem> typesystem = scope().select<Typesystem>();
+		Rooted<Typesystem> typesystem = scope().selectOrThrow<Typesystem>();
 		Rooted<StructType> structType = typesystem->createStructType(name);
 		structType->setLocation(location());
 
@@ -134,16 +183,10 @@ public:
 				    }
 				});
 		}
-
-		// Descend into the struct type
 		scope().push(structType);
 	}
 
-	void end() override
-	{
-		// Descend from the struct type
-		scope().pop();
-	}
+	void end() override { scope().pop(); }
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -164,7 +207,7 @@ public:
 		const bool optional =
 		    !(defaultValue.isObject() && defaultValue.asObject() == nullptr);
 
-		Rooted<StructType> structType = scope().select<StructType>();
+		Rooted<StructType> structType = scope().selectOrThrow<StructType>();
 		Rooted<Attribute> attribute =
 		    structType->createAttribute(name, defaultValue, optional, logger());
 		attribute->setLocation(location());
@@ -212,7 +255,7 @@ public:
 		const std::string &type = args["type"].asString();
 		const Variant &value = args["value"];
 
-		Rooted<Typesystem> typesystem = scope().select<Typesystem>();
+		Rooted<Typesystem> typesystem = scope().selectOrThrow<Typesystem>();
 		Rooted<Constant> constant = typesystem->createConstant(name, value);
 		constant->setLocation(location());
 
@@ -268,7 +311,8 @@ public:
 	{
 		scope().setFlag(ParserFlag::POST_HEAD, true);
 
-		Rooted<Domain> domain = scope().select<Domain>();
+		Rooted<Domain> domain = scope().selectOrThrow<Domain>();
+
 		Rooted<StructuredClass> structuredClass = domain->createStructuredClass(
 		    args["name"].asString(), args["cardinality"].asCardinality(),
 		    nullptr, nullptr, args["transparent"].asBool(),
@@ -391,8 +435,8 @@ public:
 	}
 };
 
-//TODO: Add parent handler
-//TODO: Add annotation handler
+// TODO: Add parent handler
+// TODO: Add annotation handler
 
 /*
  * Import and Include Handler
@@ -549,13 +593,20 @@ static const ParserState Typesystem =
         .elementHandler(TypesystemHandler::create)
         .arguments({Argument::String("name", "")});
 static const ParserState TypesystemEnum =
-    ParserStateBuilder().createdNodeType(&RttiTypes::EnumType).parent(
-        &Typesystem);
+    ParserStateBuilder()
+        .parent(&Typesystem)
+        .createdNodeType(&RttiTypes::EnumType)
+        .elementHandler(TypesystemEnumHandler::create)
+        .arguments({Argument::String("name")});
+static const ParserState TypesystemEnumEntry =
+    ParserStateBuilder()
+        .parent(&TypesystemEnum)
+        .elementHandler(TypesystemEnumEntryHandler::create)
+        .arguments({});
 static const ParserState TypesystemStruct =
     ParserStateBuilder()
         .parent(&Typesystem)
         .createdNodeType(&RttiTypes::StructType)
-
         .elementHandler(TypesystemStructHandler::create)
         .arguments({Argument::String("name"), Argument::String("parent", "")});
 static const ParserState TypesystemStructField =
@@ -568,7 +619,6 @@ static const ParserState TypesystemConstant =
     ParserStateBuilder()
         .parent(&Typesystem)
         .createdNodeType(&RttiTypes::Constant)
-
         .elementHandler(TypesystemConstantHandler::create)
         .arguments({Argument::String("name"), Argument::String("type"),
                     Argument::Any("value")});
@@ -596,6 +646,7 @@ static const std::multimap<std::string, const ParserState *> XmlStates{
     {"child", &DomainStructChild},
     {"typesystem", &Typesystem},
     {"enum", &TypesystemEnum},
+    {"entry", &TypesystemEnumEntry},
     {"struct", &TypesystemStruct},
     {"field", &TypesystemStructField},
     {"constant", &TypesystemConstant},

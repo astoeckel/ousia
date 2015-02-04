@@ -400,6 +400,7 @@ TEST(EnumType, createValidated)
 		logger.reset();
 		Rooted<EnumType> enumType{
 		    EnumType::createValidated(mgr, "enum", nullptr, {}, logger)};
+		ASSERT_FALSE(enumType->validate(logger));
 		ASSERT_EQ(Severity::ERROR, logger.getMaxEncounteredSeverity());
 	}
 
