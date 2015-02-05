@@ -196,6 +196,15 @@ TARGET_LINK_LIBRARIES(ousia_xml
 	${EXPAT_LIBRARIES}
 )
 
+ADD_LIBRARY(ousia_plain
+	src/plugins/plain/PlainFormatStreamReader
+)
+
+TARGET_LINK_LIBRARIES(ousia_plain
+	ousia_core
+)
+
+
 #ADD_LIBRARY(ousia_mozjs
 #	src/plugins/mozjs/MozJsScriptEngine
 #)
@@ -313,6 +322,16 @@ IF(TEST)
 		ousia_filesystem
 	)
 
+	ADD_EXECUTABLE(ousia_test_plain
+		test/plugins/plain/PlainFormatStreamReaderTest
+	)
+
+	TARGET_LINK_LIBRARIES(ousia_test_plain
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_plain
+	)
+
 #	ADD_EXECUTABLE(ousia_test_mozjs
 #		test/plugins/mozjs/MozJsScriptEngineTest
 #	)
@@ -329,6 +348,7 @@ IF(TEST)
 	ADD_TEST(ousia_test_css ousia_test_css)
 	ADD_TEST(ousia_test_html ousia_test_html)
 	ADD_TEST(ousia_test_xml ousia_test_xml)
+	ADD_TEST(ousia_test_plain ousia_test_plain)
 #	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
 ENDIF()
 
