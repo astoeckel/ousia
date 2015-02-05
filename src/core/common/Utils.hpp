@@ -71,6 +71,14 @@ public:
 	}
 
 	/**
+	 * Returns true if the given string has a non-whitespace character.
+	 *
+	 * @param s is the string that should be checked.
+	 * @return true if the string contains a non-whitespace character.
+	 */
+	static bool hasNonWhitepaceChar(const std::string &s);
+
+	/**
 	 * Returns true if the given character is a whitespace character.
 	 */
 	static bool isLinebreak(const char c) { return (c == '\n') || (c == '\r'); }

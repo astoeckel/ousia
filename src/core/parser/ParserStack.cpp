@@ -51,11 +51,8 @@ public:
 
 void Handler::data(const std::string &data, int field)
 {
-	for (auto &c : data) {
-		if (!Utils::isWhitespace(c)) {
-			logger().error("Expected command but found character data.");
-			return;
-		}
+	if (Utils::hasNonWhitepaceChar(data)) {
+		logger().error("Expected command but found character data.");
 	}
 }
 

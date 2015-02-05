@@ -46,6 +46,16 @@ bool Utils::isIdentifier(const std::string &name)
 	return true;
 }
 
+bool Utils::hasNonWhitepaceChar(const std::string &s)
+{
+	for (char c : s) {
+		if (!isWhitespace(c)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 std::vector<std::string> Utils::split(const std::string &s, char delim)
 {
 	std::vector<std::string> res;
@@ -84,6 +94,5 @@ std::string Utils::extractFileExtension(const std::string &filename)
 	}
 	return std::string{};
 }
-
 }
 
