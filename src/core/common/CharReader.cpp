@@ -526,7 +526,7 @@ size_t CharReader::getOffset() const
 
 size_t CharReader::getPeekOffset() const
 {
-	return buffer->offset(readCursor) + offs;
+	return buffer->offset(peekCursor) + offs;
 }
 
 SourceLocation CharReader::getLocation() const
