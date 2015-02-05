@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+ This file is part of GtkSourceView
+
+ Authors: Andreas Stöckel, Benjamin Paaßen
+ Copyright (C) 2015 Andreas Stöckel <astoecke@techfak.uni-bielefeld.de>
+
+ GtkSourceView is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+
+ GtkSourceView is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+-->
+<language id="ousia" _name="Ousia" version="2.0" _section="Source">
+  <metadata>
+    <property name="mimetypes">text/vnd.ousia</property>
+    <property name="globs">*.opd;*.opm</property>
+    <property name="line-comment-start">%</property>
+    <property name="block-comment-start">%{</property>
+    <property name="block-comment-end">}%</property>
+  </metadata>
+  <styles>
+    <style id="comment" _name="Comment" map-to="def:comment"/>
+    <style id="common-commands" _name="Command" map-to="def:keyword"/>
+    <style id="command" _name="Command" map-to="def:keyword"/>
+    <style id="name" _name="Name" map-to="def:identifier"/>
+  </styles>
+  <definitions>
+    <!-- An ousia command -->
+    <define-regex id="builtin">\\(include|import|begin|end)</define-regex>
+    <define-regex id="command">\\[^#[{\s]*</define-regex>
+    <define-regex id="name">#[^#[{}\s]*</define-regex>
+    <context id="ousia">
+      <include>
+        <!-- Keywords -->
+        <context id="common-commands" style-ref="common-commands" class="no-spell-check">
+          <match>\%{builtin}</match>
+        </context>
+
+        <!-- Any command -->
+        <context id="command" style-ref="command" class="no-spell-check">
+          <match>\%{command}</match>
+        </context>
+
+        <!-- Name -->
+        <context id="name" style-ref="name" class="no-spell-check">
+          <match>\%{name}</match>
+        </context>
+
+
+      	<!-- Multiline comments -->
+        <context id="comment-multiline" style-ref="comment">
+          <start>%{</start>
+          <end>}%</end>
+          <include>
+            <context ref="comment-multiline"/>
+          </include>
+        </context>
+
+        <!-- Single line comments -->
+        <context id="comment" style-ref="comment">
+          <start>%</start>
+          <end>$</end>
+        </context>
+      </include>
+    </context>
+  </definitions>
+</language>
+
