@@ -75,6 +75,129 @@ public:
 	}
 };
 
+class DocumentField : public Node {
+public:
+	DocumentField(Manager &mgr, std::string name, Handle<Node> parent,
+	              Handle<FieldDescriptor> descriptor)
+	    : Node(mgr, name, parent)
+	{
+	}
+};
+
+namespace RttiTypes {
+const Rtti DocumentField =
+    RttiBuilder<ousia::DocumentField>("DocumentField").parent(&Node);
+}
+
+class DocumentChildHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	void preamble(Hanlde<Node> parentNode, std::string &fieldName,
+	              DocumentEntity *&parent, bool &inField)
+	{
+		// check if the parent in the structure tree was an explicit field
+		// reference.
+		inField = parentNode->isa(RttiTypes::DocumentField);
+		if (inField) {
+			fieldName = parentNode->getName();
+			parentNode = scope().selectOrThrow(
+			    {&RttiTypes::StructuredEntity, &RttiTypes::AnnotationEntity});
+		} else {
+			// if it wasn't an explicit reference, we use the default field.
+			fieldName = DEFAULT_FIELD_NAME;
+		}
+		// reference the parent entity explicitly.
+		parent = nullptr;
+		if (parentNode->isa(RttiTypes::StructuredEntity)) {
+			parent = static_cast<DocumentEntity *>(
+			    parentNode.cast<StructuredEntity>().get());
+		} else if (parentNode->isa(RttiTypes::AnnotationEntity)) {
+			parent = static_cast<DocumentEntity *>(
+			    parentNode.cast<AnnotationEntity>().get());
+		}
+	}
+
+	void start(Variant::mapType &args) override
+	{
+		scope().setFlag(ParserFlag::POST_HEAD, true);
+		Rooted<Node> parentNode = scope().selectOrThrow(
+		    {&RttiTypes::Document, &RttiTypes::StructuredEntity,
+		     &RttiTypes::AnnotationEntity, &RttiTypes::DocumentField});
+
+		std::string fieldName;
+		DocumentEntity *parent;
+		bool inField;
+
+		preamble(parentNode, fieldName, parent, inField);
+
+		// try to find a FieldDescriptor for the given tag if we are not in a
+		// field already.
+		if (!inField && parent != nullptr && parent->hasField(fieldName)) {
+			Rooted<DocumentField> field{new DocumentField(
+			    parentNode->getManager(), fieldName, parentNode)};
+			field->setLocation(location());
+			scope().push(field);
+			return;
+		}
+
+		// Otherwise create a new StructuredEntity
+		// TODO: Consider Anchors and AnnotationEntities
+		Rooted<StructuredClass> strct = scope().resolve<StructuredClass>(
+		    Utils::split(name(), ':'), logger());
+		if (strct == nullptr) {
+			// if we could not resolve the name, throw an exception.
+			throw LoggableException(
+			    std::string("\"") + name() + "\" could not be resolved.",
+			    location());
+		}
+		std::string name;
+		auto it = args.find("name");
+		if (it != args.end()) {
+			name = it->second.asString();
+			args.erase(it);
+		}
+		Rooted<StructuredEntity> entity;
+		if (parentNode->isa(RttiTypes::Document)) {
+			entity = parentNode.cast<Document>()->createRootStructuredEntity(
+			    strct, args, name);
+		} else {
+			entity = parent->createChildStructuredEntity(strct, args, fieldName,
+			                                             name);
+		}
+		entity->setLocation(location());
+		scope().push(entity);
+	}
+
+	void end() override { scope().pop(); }
+
+	void data(const std::string &data, int field) override
+	{
+		//		Rooted<Node> parentNode = scope().selectOrThrow(
+		//		    { &RttiTypes::StructuredEntity,
+		//		     &RttiTypes::AnnotationEntity, &RttiTypes::DocumentField});
+
+		//		std::string fieldName;
+		//		DocumentEntity *parent;
+		//		bool inField;
+		//
+		//		preamble(parentNode, fieldName, parent, inField);
+		//
+		//		// retrieve the correct FieldDescriptor.
+		//
+		//
+		//		CharReader reader{data, location().getSourceId(),
+		//		                  location().getStart()};
+		//		auto res = VariantReader::parseGeneric(reader, logger(),
+		//		                                       std::unordered_set<char>{});
+	}
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new DocumentChildHandler{handlerData};
+	}
+};
+
 class TypesystemHandler : public Handler {
 public:
 	using Handler::Handler;
@@ -315,8 +438,7 @@ public:
 
 		Rooted<StructuredClass> structuredClass = domain->createStructuredClass(
 		    args["name"].asString(), args["cardinality"].asCardinality(),
-		    nullptr, nullptr, args["transparent"].asBool(),
-		    args["isRoot"].asBool());
+		    nullptr, args["transparent"].asBool(), args["isRoot"].asBool());
 		structuredClass->setLocation(location());
 
 		const std::string &isa = args["isa"].asString();
@@ -327,7 +449,7 @@ public:
 			       Logger &logger) {
 				    if (superclass != nullptr) {
 					    structuredClass.cast<StructuredClass>()->setSuperclass(
-					        superclass.cast<StructuredClass>());
+					        superclass.cast<StructuredClass>(), logger);
 				    }
 				});
 		}
@@ -354,7 +476,7 @@ public:
 		Rooted<Domain> domain = scope().selectOrThrow<Domain>();
 
 		Rooted<AnnotationClass> annotationClass =
-		    domain->createAnnotationClass(args["name"].asString(), nullptr);
+		    domain->createAnnotationClass(args["name"].asString());
 		annotationClass->setLocation(location());
 
 		scope().push(annotationClass);
@@ -365,6 +487,29 @@ public:
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new DomainAnnotationHandler{handlerData};
+	}
+};
+
+class DomainAttributesHandler : public Handler {
+public:
+	using Handler::Handler;
+
+	void start(Variant::mapType &args) override
+	{
+		// Fetch the current typesystem and create the struct node
+		Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
+
+		Rooted<StructType> attrDesc = parent->getAttributesDescriptor();
+		attrDesc->setLocation(location());
+
+		scope().push(attrDesc);
+	}
+
+	void end() override { scope().pop(); }
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new DomainAttributesHandler{handlerData};
 	}
 };
 
@@ -486,17 +631,17 @@ public:
 	}
 };
 
-class DummyParentNode : public Node {
+class DomainParent : public Node {
 public:
-	DummyParentNode(Manager &mgr, std::string name, Handle<Node> parent)
+	DomainParent(Manager &mgr, std::string name, Handle<Node> parent)
 	    : Node(mgr, name, parent)
 	{
 	}
 };
 
 namespace RttiTypes {
-const Rtti DummyParentNode =
-    RttiBuilder<ousia::DummyParentNode>("DummyParentNode").parent(&Node);
+const Rtti DomainParent =
+    RttiBuilder<ousia::DomainParent>("DomainParent").parent(&Node);
 }
 
 class DomainParentHandler : public Handler {
@@ -508,11 +653,10 @@ public:
 		Rooted<StructuredClass> strct =
 		    scope().selectOrThrow<StructuredClass>();
 
-		// TODO: Is there a better way for this?
-		Rooted<DummyParentNode> dummy{new DummyParentNode(
+		Rooted<DomainParent> parent{new DomainParent(
 		    strct->getManager(), args["name"].asString(), strct)};
-		dummy->setLocation(location());
-		scope().push(dummy);
+		parent->setLocation(location());
+		scope().push(parent);
 	}
 
 	void end() override { scope().pop(); }
@@ -529,8 +673,8 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
-		Rooted<DummyParentNode> dummy =
-		    scope().selectOrThrow<DummyParentNode>();
+		Rooted<DomainParent> parentNameNode =
+		    scope().selectOrThrow<DomainParent>();
 		FieldDescriptor::FieldType type;
 		if (args["isSubtree"].asBool()) {
 			type = FieldDescriptor::FieldType::SUBTREE;
@@ -541,12 +685,12 @@ public:
 		const std::string &name = args["name"].asString();
 		const bool optional = args["optional"].asBool();
 		Rooted<StructuredClass> strct =
-		    dummy->getParent().cast<StructuredClass>();
+		    parentNameNode->getParent().cast<StructuredClass>();
 
 		// resolve the parent, create the declared field and add the declared
 		// StructuredClass as child to it.
 		scope().resolve<Descriptor>(
-		    dummy->getName(), strct, logger(),
+		    parentNameNode->getName(), strct, logger(),
 		    [&type, &name, &optional](Handle<Node> parent, Handle<Node> strct,
 		                              Logger &logger) {
 			    if (parent != nullptr) {
@@ -572,17 +716,17 @@ public:
 
 	void start(Variant::mapType &args) override
 	{
-		Rooted<DummyParentNode> dummy =
-		    scope().selectOrThrow<DummyParentNode>();
+		Rooted<DomainParent> parentNameNode =
+		    scope().selectOrThrow<DomainParent>();
 
 		const std::string &name = args["name"].asString();
 		Rooted<StructuredClass> strct =
-		    dummy->getParent().cast<StructuredClass>();
+		    parentNameNode->getParent().cast<StructuredClass>();
 		auto loc = location();
 
 		// resolve the parent, get the referenced field and add the declared
 		// StructuredClass as child to it.
-		scope().resolve<Descriptor>(dummy->getName(), strct, logger(),
+		scope().resolve<Descriptor>(parentNameNode->getName(), strct, logger(),
 		                            [&name, &loc](Handle<Node> parent,
 		                                          Handle<Node> strct,
 		                                          Logger &logger) {
@@ -717,6 +861,7 @@ static const ParserState Document =
         .parent(&None)
         .createdNodeType(&RttiTypes::Document)
         .elementHandler(DocumentHandler::create)
+        .childHandler(DocumentChildHandler::create)
         .arguments({Argument::String("name", "")});
 
 /* Domain states */
@@ -736,7 +881,6 @@ static const ParserState DomainStruct =
                     Argument::Bool("isRoot", false),
                     Argument::Bool("transparent", false),
                     Argument::String("isa", "")});
-// TODO: What about attributes?
 
 static const ParserState DomainAnnotation =
     ParserStateBuilder()
@@ -744,7 +888,20 @@ static const ParserState DomainAnnotation =
         .createdNodeType(&RttiTypes::AnnotationClass)
         .elementHandler(DomainAnnotationHandler::create)
         .arguments({Argument::String("name")});
-// TODO: What about attributes?
+
+static const ParserState DomainAttributes =
+    ParserStateBuilder()
+        .parents({&DomainStruct, &DomainAnnotation})
+        .createdNodeType(&RttiTypes::StructType)
+        .elementHandler(DomainAttributesHandler::create)
+        .arguments({});
+
+static const ParserState DomainAttribute =
+    ParserStateBuilder()
+        .parent(&DomainAttributes)
+        .elementHandler(TypesystemStructFieldHandler::create)
+        .arguments({Argument::String("name"), Argument::String("type"),
+                    Argument::Any("default", Variant::fromObject(nullptr))});
 
 static const ParserState DomainField =
     ParserStateBuilder()
@@ -780,7 +937,7 @@ static const ParserState DomainStructChild =
 static const ParserState DomainStructParent =
     ParserStateBuilder()
         .parent(&DomainStruct)
-        .createdNodeType(&RttiTypes::DummyParentNode)
+        .createdNodeType(&RttiTypes::DomainParent)
         .elementHandler(DomainParentHandler::create)
         .arguments({Argument::String("name")});
 
@@ -863,6 +1020,8 @@ static const std::multimap<std::string, const ParserState *> XmlStates{
     {"domain", &Domain},
     {"struct", &DomainStruct},
     {"annotation", &DomainAnnotation},
+    {"attributes", &DomainAttributes},
+    {"attribute", &DomainAttribute},
     {"field", &DomainField},
     {"fieldRef", &DomainFieldRef},
     {"primitive", &DomainStructPrimitive},
