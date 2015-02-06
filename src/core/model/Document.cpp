@@ -207,17 +207,18 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			 * if it is not optional we have to check if zero is a valid
 			 * cardinality.
 			 */
-			for (auto &ac : fieldDescs[f]->getChildren()) {
-				const size_t min = ac->getCardinality().asCardinality().min();
+			for (auto childClass : fieldDescs[f]->getChildren()) {
+				const size_t min =
+				    childClass->getCardinality().asCardinality().min();
 				if (min > 0) {
-					logger.error(std::string("Field \"") +
-					                 fieldDescs[f]->getName() +
-					                 "\" was empty but needs at least " +
-					                 std::to_string(min) +
-					                 " elements of class \"" + ac->getName() +
-					                 "\" according to the definition of \"" +
-					                 descriptor->getName() + "\"",
-					             *subInst);
+					logger.error(
+					    std::string("Field \"") + fieldDescs[f]->getName() +
+					        "\" was empty but needs at least " +
+					        std::to_string(min) + " elements of class \"" +
+					        childClass->getName() +
+					        "\" according to the definition of \"" +
+					        descriptor->getName() + "\"",
+					    *subInst);
 					valid = false;
 				}
 			}
@@ -225,52 +226,52 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		}
 
 		// create a set of allowed classes identified by their unique id.
-		std::set<ManagedUid> accs;
-		for (auto &ac : fieldDescs[f]->getChildren()) {
-			accs.insert(ac->getUid());
+		std::set<ManagedUid> childClasses;
+		for (auto &childClass : fieldDescs[f]->getChildren()) {
+			childClasses.insert(childClass->getUid());
 		}
 		// store the actual numbers of children for each child class in a map
 		std::map<ManagedUid, unsigned int> nums;
 
 		// iterate over every actual child of this DocumentEntity
-		for (auto &rc : fields[f]) {
+		for (auto child : fields[f]) {
 			// check if the parent reference is correct.
-			if (rc->getParent() != subInst) {
+			if (child->getParent() != subInst) {
 				logger.error(std::string("A child of field \"") +
 				                 fieldDescs[f]->getName() +
 				                 "\" has the wrong parent reference!",
-				             *rc);
+				             *child);
 				valid = false;
 			}
-			if (rc->isa(RttiTypes::Anchor)) {
+			if (child->isa(RttiTypes::Anchor)) {
 				// Anchors are uninteresting and can be ignored.
 				continue;
 			}
-			if (rc->isa(RttiTypes::DocumentPrimitive)) {
+			if (child->isa(RttiTypes::DocumentPrimitive)) {
 				logger.error(std::string("Non-primitive Field \"") +
 				                 fieldDescs[f]->getName() +
 				                 "\" had primitive content!",
-				             *rc);
+				             *child);
 				valid = false;
 				continue;
 			}
 			// otherwise this is a StructuredEntity
-			Handle<StructuredEntity> c = rc.cast<StructuredEntity>();
+			Handle<StructuredEntity> c = child.cast<StructuredEntity>();
 
 			ManagedUid id = c->getDescriptor()->getUid();
 			// check if its class is allowed.
-			bool allowed = accs.find(id) != accs.end();
+			bool allowed = childClasses.find(id) != childClasses.end();
 			/*
 			 * if it is not allowed directly, we have to check if the class is a
 			 * child of a permitted class.
 			 */
 			if (!allowed) {
-				for (auto &ac : fieldDescs[f]->getChildren()) {
+				for (auto childClass : fieldDescs[f]->getChildren()) {
 					if (c->getDescriptor()
 					        .cast<StructuredClass>()
-					        ->isSubclassOf(ac)) {
+					        ->isSubclassOf(childClass)) {
 						allowed = true;
-						id = ac->getUid();
+						id = childClass->getUid();
 					}
 				}
 			}
@@ -281,7 +282,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				        "\" is not allowed as child of an instance of \"" +
 				        descriptor->getName() + "\" in field \"" +
 				        fieldDescs[f]->getName() + "\"",
-				    *rc);
+				    *child);
 				valid = false;
 				continue;
 			}
@@ -295,17 +296,17 @@ bool DocumentEntity::doValidate(Logger &logger) const
 		}
 
 		// now check if the cardinalities are right.
-		for (auto &ac : fieldDescs[f]->getChildren()) {
-			const auto &n = nums.find(ac->getUid());
+		for (auto childClass : fieldDescs[f]->getChildren()) {
+			const auto &n = nums.find(childClass->getUid());
 			unsigned int num = 0;
 			if (n != nums.end()) {
 				num = n->second;
 			}
-			if (!ac->getCardinality().asCardinality().contains(num)) {
+			if (!childClass->getCardinality().asCardinality().contains(num)) {
 				logger.error(std::string("Field \"") +
 				                 fieldDescs[f]->getName() + "\" had " +
 				                 std::to_string(num) + " elements of class \"" +
-				                 ac->getName() +
+				                 childClass->getName() +
 				                 "\", which is invalid according to the "
 				                 "definition of \"" +
 				                 descriptor->getName() + "\"",
@@ -317,8 +318,8 @@ bool DocumentEntity::doValidate(Logger &logger) const
 	}
 
 	// go into recursion.
-	for (auto &f : fields) {
-		for (auto &n : f) {
+	for (auto f : fields) {
+		for (auto n : f) {
 			valid = valid & n->validate(logger);
 		}
 	}
@@ -716,11 +717,12 @@ bool Document::hasChild(Handle<StructureNode> s) const
 	return false;
 }
 
-void Document::setRoot(Handle<StructuredEntity> rt){
-	if(rt == nullptr || root == rt){
+void Document::setRoot(Handle<StructuredEntity> rt)
+{
+	if (rt == nullptr || root == rt) {
 		return;
 	}
-	if(root != nullptr){
+	if (root != nullptr) {
 		root->setParent(nullptr);
 	}
 	root = acquire(rt);
