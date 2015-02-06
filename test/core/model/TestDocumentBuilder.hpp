@@ -84,11 +84,9 @@ static Rooted<Descriptor> resolveDescriptor(Handle<Document> doc,
  *                   input handle was empty or the given domains did not
  *                   contain a StructuredClass with the given name.
  */
-Rooted<StructuredEntity> buildRootStructuredEntity(Handle<Document> document,
-                                                   Logger &logger,
-                                                   const Path &path,
-                                                   Variant attributes = {},
-                                                   std::string name = "")
+Rooted<StructuredEntity> buildRootStructuredEntity(
+    Handle<Document> document, Logger &logger, const Path &path,
+    Variant attributes = Variant::mapType{}, std::string name = "")
 {
 	// If the parent is not set, we can not build the entity.
 	if (document == nullptr) {
@@ -134,7 +132,7 @@ Rooted<StructuredEntity> buildRootStructuredEntity(Handle<Document> document,
 Rooted<StructuredEntity> buildStructuredEntity(
     Handle<Document> document, Logger &logger, Handle<StructuredEntity> parent,
     Path path, const std::string &fieldName = DEFAULT_FIELD_NAME,
-    Variant attributes = {}, std::string name = "")
+    Variant attributes = Variant::mapType{}, std::string name = "")
 {
 	// If the input handles are not set, we can not build the entity.
 	if (parent == nullptr) {
@@ -184,12 +182,10 @@ Rooted<StructuredEntity> buildStructuredEntity(
  *                   input handle was empty or the given domains did not
  *                   contain a AnnotationClass with the given name.
  */
-Rooted<AnnotationEntity> buildAnnotationEntity(Handle<Document> document,
-                                               Logger &logger, const Path &path,
-                                               Handle<Anchor> start,
-                                               Handle<Anchor> end,
-                                               Variant attributes = {},
-                                               std::string name = "")
+Rooted<AnnotationEntity> buildAnnotationEntity(
+    Handle<Document> document, Logger &logger, const Path &path,
+    Handle<Anchor> start, Handle<Anchor> end,
+    Variant attributes = Variant::mapType{}, std::string name = "")
 {
 	// If the input handles are not set, we can not build the entity.
 	if (document == nullptr) {

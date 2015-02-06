@@ -183,7 +183,7 @@ public:
 	 *                   in the given descriptor.
 	 */
 	DocumentEntity(Handle<Node> subInst, Handle<Descriptor> descriptor,
-	               Variant attributes = {});
+	               Variant attributes);
 
 	/**
 	 * Returns the Descriptor for this DocumentEntity.
@@ -390,7 +390,8 @@ public:
 	 * @return           the newly created StructuredEntity.
 	 */
 	Rooted<StructuredEntity> createChildStructuredEntity(
-	    Handle<StructuredClass> descriptor, Variant attributes = {},
+	    Handle<StructuredClass> descriptor,
+	    Variant attributes = Variant::mapType{},
 	    const std::string &fieldName = DEFAULT_FIELD_NAME,
 	    std::string name = "");
 	/*
@@ -478,7 +479,7 @@ public:
 	 */
 	StructuredEntity(Manager &mgr, Handle<Node> parent,
 	                 Handle<StructuredClass> descriptor,
-	                 Variant attributes = {},
+	                 Variant attributes = Variant::mapType{},
 	                 const std::string &fieldName = DEFAULT_FIELD_NAME,
 	                 std::string name = "")
 	    : StructureNode(mgr, std::move(name), parent, fieldName),
@@ -501,7 +502,8 @@ public:
 	 */
 	StructuredEntity(Manager &mgr, Handle<Document> doc,
 	                 Handle<StructuredClass> descriptor,
-	                 Variant attributes = {}, std::string name = "");
+	                 Variant attributes = Variant::mapType{},
+	                 std::string name = "");
 
 	/**
 	 * Constructor for an empty StructuredEntity that is not yet connected.
@@ -518,7 +520,8 @@ public:
 	 */
 	StructuredEntity(Manager &mgr, Handle<Node> parent = nullptr,
 	                 Handle<StructuredClass> descriptor = nullptr,
-	                 Variant attributes = {}, std::string name = "");
+	                 Variant attributes = Variant::mapType{},
+	                 std::string name = "");
 };
 
 /**
@@ -657,7 +660,8 @@ public:
 	AnnotationEntity(Manager &mgr, Handle<Document> parent = nullptr,
 	                 Handle<AnnotationClass> descriptor = nullptr,
 	                 Handle<Anchor> start = nullptr,
-	                 Handle<Anchor> end = nullptr, Variant attributes = {},
+	                 Handle<Anchor> end = nullptr,
+	                 Variant attributes = Variant::mapType{},
 	                 std::string name = "");
 
 	/**
@@ -753,8 +757,8 @@ public:
 	 * @return           the newly constructed StructuredEntity.
 	 */
 	Rooted<StructuredEntity> createRootStructuredEntity(
-	    Handle<StructuredClass> descriptor, Variant attributes = {},
-	    std::string name = "");
+	    Handle<StructuredClass> descriptor,
+	    Variant attributes = Variant::mapType{}, std::string name = "");
 
 	/**
 	 * Returns a const reference to the NodeVector of AnnotationEntities that
@@ -812,7 +816,8 @@ public:
 	 */
 	Rooted<AnnotationEntity> createChildAnnotation(
 	    Handle<AnnotationClass> descriptor, Handle<Anchor> start,
-	    Handle<Anchor> end, Variant attributes = {}, std::string name = "");
+	    Handle<Anchor> end, Variant attributes = Variant::mapType{},
+	    std::string name = "");
 
 	/**
 	 * Returns a const reference to the NodeVector of Domains that are used
