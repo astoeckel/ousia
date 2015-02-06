@@ -547,7 +547,7 @@ public:
 		// StructuredClass as child to it.
 		scope().resolve<Descriptor>(
 		    dummy->getName(), strct, logger(),
-		    [&type, &name, &optional](Handle<Node> parent, Handle<Node> strct,
+		    [type, name, optional](Handle<Node> parent, Handle<Node> strct,
 		                              Logger &logger) {
 			    if (parent != nullptr) {
 				    Rooted<FieldDescriptor> field =
@@ -583,7 +583,7 @@ public:
 		// resolve the parent, get the referenced field and add the declared
 		// StructuredClass as child to it.
 		scope().resolve<Descriptor>(dummy->getName(), strct, logger(),
-		                            [&name, &loc](Handle<Node> parent,
+		                            [name, loc](Handle<Node> parent,
 		                                          Handle<Node> strct,
 		                                          Logger &logger) {
 			if (parent != nullptr) {
