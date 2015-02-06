@@ -154,22 +154,22 @@ TEST(Descriptor, pathToAdvanced)
 
 	// Let's create the classes that we need first
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, AnyCardinality, {nullptr}, {nullptr}, false, true)};
+	    mgr, "A", domain, AnyCardinality, {nullptr}, false, true)};
 
 	Rooted<StructuredClass> start{new StructuredClass(
-	    mgr, "start", domain, AnyCardinality, {nullptr}, A, false, false)};
+	    mgr, "start", domain, AnyCardinality, A, false, false)};
 
 	Rooted<StructuredClass> B{new StructuredClass(
-	    mgr, "B", domain, AnyCardinality, {nullptr}, {nullptr}, true, false)};
+	    mgr, "B", domain, AnyCardinality, {nullptr}, true, false)};
 
-	Rooted<StructuredClass> C{new StructuredClass(
-	    mgr, "C", domain, AnyCardinality, {nullptr}, B, true, false)};
+	Rooted<StructuredClass> C{
+	    new StructuredClass(mgr, "C", domain, AnyCardinality, B, true, false)};
 
 	Rooted<StructuredClass> D{new StructuredClass(
-	    mgr, "D", domain, AnyCardinality, {nullptr}, {nullptr}, true, false)};
+	    mgr, "D", domain, AnyCardinality, {nullptr}, true, false)};
 
 	Rooted<StructuredClass> E{new StructuredClass(
-	    mgr, "E", domain, AnyCardinality, {nullptr}, {nullptr}, true, false)};
+	    mgr, "E", domain, AnyCardinality, {nullptr}, true, false)};
 
 	Rooted<StructuredClass> target{
 	    new StructuredClass(mgr, "target", domain, AnyCardinality)};
@@ -223,19 +223,19 @@ TEST(StructuredClass, isSubclassOf)
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	Rooted<Domain> domain{new Domain(mgr, sys, "inheritance")};
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, AnyCardinality, {nullptr}, {nullptr}, false, true)};
+	    mgr, "A", domain, AnyCardinality, {nullptr}, false, true)};
 	// first branch
 	Rooted<StructuredClass> B{
-	    new StructuredClass(mgr, "B", domain, AnyCardinality, {nullptr}, A)};
+	    new StructuredClass(mgr, "B", domain, AnyCardinality, A)};
 	Rooted<StructuredClass> C{
-	    new StructuredClass(mgr, "C", domain, AnyCardinality, {nullptr}, B)};
+	    new StructuredClass(mgr, "C", domain, AnyCardinality, B)};
 	// second branch
 	Rooted<StructuredClass> D{
-	    new StructuredClass(mgr, "D", domain, AnyCardinality, {nullptr}, A)};
+	    new StructuredClass(mgr, "D", domain, AnyCardinality, A)};
 	Rooted<StructuredClass> E{
-	    new StructuredClass(mgr, "E", domain, AnyCardinality, {nullptr}, D)};
+	    new StructuredClass(mgr, "E", domain, AnyCardinality, D)};
 	Rooted<StructuredClass> F{
-	    new StructuredClass(mgr, "F", domain, AnyCardinality, {nullptr}, D)};
+	    new StructuredClass(mgr, "F", domain, AnyCardinality, D)};
 
 	// check function results
 	ASSERT_FALSE(A->isSubclassOf(A));
@@ -335,16 +335,16 @@ TEST(Domain, validate)
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
 		// and still if we add a superclass.
-		sub->setSuperclass(base);
+		sub->setSuperclass(base, logger);
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
 		// and still we we remove the subclass from the base class.
-		base->removeSubclass(sub);
+		base->removeSubclass(sub, logger);
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
 		ASSERT_EQ(nullptr, sub->getSuperclass());
 		// and still if we re-add it.
-		base->addSubclass(sub);
+		base->addSubclass(sub, logger);
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
 		ASSERT_EQ(base, sub->getSuperclass());

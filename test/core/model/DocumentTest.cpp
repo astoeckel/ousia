@@ -123,7 +123,7 @@ TEST(Document, validate)
 	single.merge({1});
 	// Set up the "root" StructuredClass.
 	Rooted<StructuredClass> rootClass{new StructuredClass(
-	    mgr, "root", domain, single, {nullptr}, {nullptr}, false, true)};
+	    mgr, "root", domain, single, {nullptr}, false, true)};
 
 	// set up a document for it.
 	{
@@ -177,8 +177,8 @@ TEST(Document, validate)
 	/*
 	 * Add a further extension to the domain: We add a subclass to child.
 	 */
-	Rooted<StructuredClass> childSubClass{new StructuredClass(
-	    mgr, "childSub", domain, single, {nullptr}, childClass)};
+	Rooted<StructuredClass> childSubClass{
+	    new StructuredClass(mgr, "childSub", domain, single, childClass)};
 	{
 		/*
 		 * A document with one instance of the Child subclass should be valid.
@@ -284,23 +284,19 @@ TEST(Document, validate)
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 		// add an attribute to the root, which should make it invalid.
-		root->setAttributes({2});
+		root->setAttributes(Variant::mapType{{"bla", 2}});
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_FALSE(doc->validate(logger));
-		// if we reset it to null it should be valid again
-		root->setAttributes({});
+		// if we reset it to an empty map it should be valid again
+		root->setAttributes(Variant::mapType{});
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 		// let's set an attribute descriptor.
-		Rooted<StructType> structType{StructType::createValidated(
-		    mgr, "attributes", nullptr, nullptr,
-		    NodeVector<Attribute>{
-		        new Attribute{mgr, "myAttr", sys->getStringType(), "default"}},
-		    logger)};
-		childSubClass->setAttributesDescriptor(structType);
+		childSubClass->getAttributesDescriptor()->addAttribute(
+		    new Attribute{mgr, "myAttr", sys->getStringType(), "default"},
+		    logger);
 		// the right map content should be valid now.
-		child->setAttributes(
-		    std::map<std::string, Variant>{{"myAttr", "content"}});
+		child->setAttributes(Variant::mapType{{"myAttr", "content"}});
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 		// but an empty map as well

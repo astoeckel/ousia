@@ -74,6 +74,27 @@ TEST(XmlParser, generic)
 #endif
 }
 
+static void checkAttributes(Handle<StructType> expected,
+                            Handle<Descriptor> desc)
+{
+	if (expected == nullptr) {
+		ASSERT_TRUE(desc->getAttributesDescriptor()->getAttributes().empty());
+	} else {
+		ASSERT_EQ(expected->getName(),
+		          desc->getAttributesDescriptor()->getName());
+		auto &attrs_exp = expected->getAttributes();
+		auto &attrs = desc->getAttributesDescriptor()->getAttributes();
+		ASSERT_EQ(attrs_exp.size(), attrs.size());
+		for (size_t i = 0; i < attrs_exp.size(); i++) {
+			ASSERT_EQ(attrs_exp[i]->getName(), attrs[i]->getName());
+			ASSERT_EQ(attrs_exp[i]->getType(), attrs[i]->getType());
+			ASSERT_EQ(attrs_exp[i]->isOptional(), attrs[i]->isOptional());
+			ASSERT_EQ(attrs_exp[i]->getDefaultValue(),
+			          attrs[i]->getDefaultValue());
+		}
+	}
+}
+
 static void checkStructuredClass(
     Handle<Node> n, const std::string &name, Handle<Domain> domain,
     Variant cardinality = AnyCardinality,
@@ -89,7 +110,7 @@ static void checkStructuredClass(
 	ASSERT_EQ(cardinality, sc->getCardinality());
 	ASSERT_EQ(transparent, sc->isTransparent());
 	ASSERT_EQ(root, sc->hasRootPermission());
-	ASSERT_EQ(attributesDescriptor, sc->getAttributesDescriptor());
+	checkAttributes(attributesDescriptor, sc);
 }
 
 static Rooted<StructuredClass> checkStructuredClass(
@@ -118,7 +139,7 @@ static void checkAnnotationClass(
 	ASSERT_FALSE(ac == nullptr);
 	ASSERT_EQ(name, ac->getName());
 	ASSERT_EQ(domain, ac->getParent());
-	ASSERT_EQ(attributesDescriptor, ac->getAttributesDescriptor());
+	checkAttributes(attributesDescriptor, ac);
 }
 
 static Rooted<AnnotationClass> checkAnnotationClass(
@@ -191,8 +212,15 @@ TEST(XmlParser, domainParsing)
 	// get the book struct node.
 	Cardinality single;
 	single.merge({1});
+	Rooted<StructType> bookAuthor{
+	    new StructType(book_domain->getManager(), "", nullptr)};
+	bookAuthor->addAttribute(
+	    {new Attribute(book_domain->getManager(), "author",
+	                   env.project->getSystemTypesystem()->getStringType(),
+	                   "")},
+	    logger);
 	Rooted<StructuredClass> book = checkStructuredClass(
-	    "book", "book", book_domain, single, nullptr, nullptr, false, true);
+	    "book", "book", book_domain, single, bookAuthor, nullptr, false, true);
 	// get the chapter struct node.
 	Rooted<StructuredClass> chapter =
 	    checkStructuredClass("chapter", "chapter", book_domain);
@@ -273,6 +301,13 @@ TEST(XmlParser, domainParsing)
 	checkFieldDescriptor(paragraph, {text, comment});
 	// as should heading, because it references the paragraph default field.
 	checkFieldDescriptor(heading, paragraph, {text, comment});
+}
+
+TEST(XmlParser, documentParsing)
+{
+	XmlStandaloneEnvironment env(logger);
+	Rooted<Node> book_domain_node =
+	    env.parse("simple_book.oxd", "", "", RttiSet{&RttiTypes::Document});
 }
 }
 

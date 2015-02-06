@@ -217,7 +217,6 @@ class Descriptor;
 class StructuredClass;
 class Domain;
 
-
 static const std::string DEFAULT_FIELD_NAME = "$default";
 
 /**
@@ -292,7 +291,8 @@ public:
 	 *                      Descriptor to be valid.
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
-	                Handle<Type> primitiveType, std::string name = DEFAULT_FIELD_NAME,
+	                Handle<Type> primitiveType,
+	                std::string name = DEFAULT_FIELD_NAME,
 	                bool optional = false);
 
 	/**
@@ -312,7 +312,8 @@ public:
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent = nullptr,
 	                FieldType fieldType = FieldType::TREE,
-	                std::string name = DEFAULT_FIELD_NAME, bool optional = false);
+	                std::string name = DEFAULT_FIELD_NAME,
+	                bool optional = false);
 
 	/**
 	 * Returns a const reference to the NodeVector of StructuredClasses whose
@@ -464,10 +465,9 @@ protected:
 	bool doValidate(Logger &logger) const override;
 
 public:
-	Descriptor(Manager &mgr, std::string name, Handle<Domain> domain,
-	           Handle<StructType> attributesDescriptor)
+	Descriptor(Manager &mgr, std::string name, Handle<Domain> domain)
 	    : Node(mgr, std::move(name), domain),
-	      attributesDescriptor(acquire(attributesDescriptor)),
+	      attributesDescriptor(acquire(new StructType(mgr, "", nullptr))),
 	      fieldDescriptors(this)
 	{
 	}
@@ -482,17 +482,6 @@ public:
 	Rooted<StructType> getAttributesDescriptor() const
 	{
 		return attributesDescriptor;
-	}
-
-	/**
-	 * Sets the StructType that specifies the attributes of this Descriptor.
-	 *
-	 * @param t some StructType.
-	 */
-	void setAttributesDescriptor(Handle<StructType> t)
-	{
-		invalidate();
-		attributesDescriptor = acquire(t);
 	}
 
 	/**
@@ -602,8 +591,7 @@ public:
 	 */
 	Rooted<FieldDescriptor> createFieldDescriptor(
 	    FieldDescriptor::FieldType fieldType = FieldDescriptor::FieldType::TREE,
-	    std::string name = DEFAULT_FIELD_NAME,
-	    bool optional = false);
+	    std::string name = DEFAULT_FIELD_NAME, bool optional = false);
 
 	/**
 	 * This tries to construct the shortest possible path of this Descriptor
@@ -748,9 +736,6 @@ public:
 	 *                             have at least one author. This is set to *
 	 *                             per default, meaning that any number of
 	 *                             of instances is valid, including zero.
-	 * @param attributesDescriptor is a StructType that specifies the attribute
-	 *                             keys as well as value domains for this
-	 *                             Descriptor.
 	 * @param superclass           references a parent StructuredClass. Please
 	 *                             look for more information on inheritance in
 	 *                             the class documentation above. The default is
@@ -767,7 +752,6 @@ public:
 	StructuredClass(Manager &mgr, std::string name,
 	                Handle<Domain> domain = nullptr,
 	                Variant cardinality = AnyCardinality,
-	                Handle<StructType> attributesDescriptor = nullptr,
 	                Handle<StructuredClass> superclass = nullptr,
 	                bool transparent = false, bool root = false);
 
@@ -793,10 +777,15 @@ public:
 	 * This will also register this class as a subclass at the given superclass
 	 * and unregister it at the previous superclass.
 	 *
-	 * @parem sup some StructuredClass that shall be the new superclass of this
-	 *            StructuredClass.
+	 * It will also set the parent for this Descriptors AttributesDescriptor.
+	 *
+	 * @param sup    some StructuredClass that shall be the new superclass of
+	 *               this StructuredClass.
+	 * @param logger is some logger. Errors during setting the parent for this
+	 *               Descriptors AttributesDescriptor will be written into this
+	 *               logger.
 	 */
-	void setSuperclass(Handle<StructuredClass> sup);
+	void setSuperclass(Handle<StructuredClass> sup, Logger &logger);
 
 	/**
 	 * Returns true if this class is a subclass of the given class. It does not
@@ -832,16 +821,22 @@ public:
 	 * on the given subclass.
 	 *
 	 * @param sc is some StructuredClass.
+	 * @param logger is some logger. Errors during setting the parent for the
+	 *               new subclasses AttributesDescriptor will be written into
+	 *               this logger.
 	 */
-	void addSubclass(Handle<StructuredClass> sc);
+	void addSubclass(Handle<StructuredClass> sc, Logger& logger);
 
 	/**
 	 * Removes a subclass from this StructuredClass. This also calls
 	 * setSuperclass(nullptr) on the given subclass.
 	 *
 	 * @param sc is some StructuredClass.
+	 * @param logger is some logger. Errors during setting the parent for the
+	 *               removed subclasses AttributesDescriptor will be written
+	 *               into this logger.
 	 */
-	void removeSubclass(Handle<StructuredClass> sc);
+	void removeSubclass(Handle<StructuredClass> sc, Logger& logger);
 
 	/**
 	 * Returns a const reference to the NodeVector of all FieldDescriptors of
@@ -891,13 +886,8 @@ public:
 	 *                             AnnotationClass.
 	 * @param domain               is the Domain this AnnotationClass belongs
 	 *                             to.
-	 * @param attributesDescriptor is a StructType that specifies the attribute
-	 *                             keys as well as value domains for this
-	 *                             Descriptor.
 	 */
-	AnnotationClass(Manager &mgr, std::string name, Handle<Domain> domain,
-	                // TODO: What would be a wise default value for attributes?
-	                Handle<StructType> attributesDescriptor = nullptr);
+	AnnotationClass(Manager &mgr, std::string name, Handle<Domain> domain);
 };
 
 /**
@@ -1004,9 +994,6 @@ public:
 	 *                             have at least one author. This is set to *
 	 *                             per default, meaning that any number of
 	 *                             of instances is valid, including zero.
-	 * @param attributesDescriptor is a StructType that specifies the attribute
-	 *                             keys as well as value domains for this
-	 *                             Descriptor.
 	 * @param superclass           references a parent StructuredClass. Please
 	 *                             look for more information on inheritance in
 	 *                             the class documentation above. The default is
@@ -1024,7 +1011,6 @@ public:
 	 */
 	Rooted<StructuredClass> createStructuredClass(
 	    std::string name, Variant cardinality = AnyCardinality,
-	    Handle<StructType> attributesDescriptor = nullptr,
 	    Handle<StructuredClass> superclass = nullptr, bool transparent = false,
 	    bool root = false);
 
@@ -1064,12 +1050,8 @@ public:
 	 * @param name                 is a name for this AnnotationClass that will
 	 *                             be used for later references to this
 	 *                             AnnotationClass.
-	 * @param attributesDescriptor is a StructType that specifies the attribute
-	 *                             keys as well as value domains for this
-	 *                             Descriptor.
 	 */
-	Rooted<AnnotationClass> createAnnotationClass(
-	    std::string name, Handle<StructType> attributesDescriptor = nullptr);
+	Rooted<AnnotationClass> createAnnotationClass(std::string name);
 
 	/**
 	 * Returns a const reference to the NodeVector of TypeSystems that are

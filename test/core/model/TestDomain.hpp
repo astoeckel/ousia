@@ -39,7 +39,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// Set up the "book" node.
 	Rooted<StructuredClass> book{new StructuredClass(
-	    mgr, "book", domain, single, {nullptr}, {nullptr}, false, true)};
+	    mgr, "book", domain, single, {nullptr}, false, true)};
 
 	// The structure field of it.
 	Rooted<FieldDescriptor> book_field{new FieldDescriptor(mgr, book)};
@@ -54,7 +54,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// We also add the "paragraph", which is transparent.
 	Rooted<StructuredClass> paragraph{new StructuredClass(
-	    mgr, "paragraph", domain, AnyCardinality, {nullptr}, {nullptr}, true)};
+	    mgr, "paragraph", domain, AnyCardinality, {nullptr}, true)};
 	section_field->addChild(paragraph);
 	book_field->addChild(paragraph);
 
@@ -76,7 +76,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// Finally we add the "text" node, which is transparent as well.
 	Rooted<StructuredClass> text{new StructuredClass(
-	    mgr, "text", domain, AnyCardinality, {nullptr}, {nullptr}, true)};
+	    mgr, "text", domain, AnyCardinality, {nullptr}, true)};
 	paragraph_field->addChild(text);
 
 	// ... and has a primitive field.

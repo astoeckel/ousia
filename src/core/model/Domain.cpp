@@ -128,11 +128,9 @@ bool FieldDescriptor::removeChild(Handle<StructuredClass> c)
 
 void Descriptor::doResolve(ResolutionState &state)
 {
-	if (attributesDescriptor != nullptr) {
-		const NodeVector<Attribute> &attributes =
-		    attributesDescriptor->getAttributes();
-		continueResolveComposita(attributes, attributes.getIndex(), state);
-	}
+	const NodeVector<Attribute> &attributes =
+	    attributesDescriptor->getAttributes();
+	continueResolveComposita(attributes, attributes.getIndex(), state);
 	continueResolveComposita(fieldDescriptors, fieldDescriptors.getIndex(),
 	                         state);
 }
@@ -155,8 +153,9 @@ bool Descriptor::doValidate(Logger &logger) const
 	} else {
 		valid = valid & validateName(logger);
 	}
-	// check the FieldDescriptors themselves.
-	return valid & continueValidationCheckDuplicates(fieldDescriptors, logger);
+	// check attributes and the FieldDescriptors
+	return valid & attributesDescriptor->validate(logger) &
+	       continueValidationCheckDuplicates(fieldDescriptors, logger);
 }
 
 std::vector<Rooted<Node>> Descriptor::pathTo(
@@ -234,7 +233,6 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 	// return if we found something.
 	return found;
 }
-
 
 void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd)
 {
@@ -319,18 +317,18 @@ Rooted<FieldDescriptor> Descriptor::createFieldDescriptor(
 
 StructuredClass::StructuredClass(Manager &mgr, std::string name,
                                  Handle<Domain> domain, Variant cardinality,
-                                 Handle<StructType> attributesDescriptor,
                                  Handle<StructuredClass> superclass,
                                  bool transparent, bool root)
-    : Descriptor(mgr, std::move(name), domain, attributesDescriptor),
+    : Descriptor(mgr, std::move(name), domain),
       cardinality(std::move(cardinality)),
       superclass(acquire(superclass)),
       subclasses(this),
       transparent(transparent),
       root(root)
 {
+	ExceptionLogger logger;
 	if (superclass != nullptr) {
-		superclass->addSubclass(this);
+		superclass->addSubclass(this, logger);
 	}
 	if (domain != nullptr) {
 		domain->addStructuredClass(this);
@@ -368,21 +366,26 @@ bool StructuredClass::doValidate(Logger &logger) const
 	return valid & Descriptor::doValidate(logger);
 }
 
-void StructuredClass::setSuperclass(Handle<StructuredClass> sup)
+void StructuredClass::setSuperclass(Handle<StructuredClass> sup, Logger &logger)
 {
 	if (superclass == sup) {
 		return;
 	}
 	// remove this subclass from the old superclass.
 	if (superclass != nullptr) {
-		superclass->removeSubclass(this);
+		superclass->removeSubclass(this, logger);
 	}
 	// set the new superclass
 	superclass = acquire(sup);
 	invalidate();
 	// add this class as new subclass of the new superclass.
 	if (sup != nullptr) {
-		sup->addSubclass(this);
+		sup->addSubclass(this, logger);
+		// set the attribute descriptor supertype
+		getAttributesDescriptor()->setParentStructure(
+		    sup->getAttributesDescriptor(), logger);
+	} else {
+		getAttributesDescriptor()->setParentStructure(nullptr, logger);
 	}
 }
 
@@ -397,17 +400,20 @@ bool StructuredClass::isSubclassOf(Handle<StructuredClass> c) const
 	return superclass->isSubclassOf(c);
 }
 
-void StructuredClass::addSubclass(Handle<StructuredClass> sc)
+void StructuredClass::addSubclass(Handle<StructuredClass> sc, Logger &logger)
 {
+	if (sc == nullptr) {
+		return;
+	}
 	// check if we already have that class.
 	if (subclasses.find(sc) == subclasses.end()) {
 		invalidate();
 		subclasses.push_back(sc);
 	}
-	sc->setSuperclass(this);
+	sc->setSuperclass(this, logger);
 }
 
-void StructuredClass::removeSubclass(Handle<StructuredClass> sc)
+void StructuredClass::removeSubclass(Handle<StructuredClass> sc, Logger &logger)
 {
 	// if we don't have this subclass we can return directly.
 	if (sc == nullptr) {
@@ -420,7 +426,7 @@ void StructuredClass::removeSubclass(Handle<StructuredClass> sc)
 	// otherwise we have to erase it.
 	invalidate();
 	subclasses.erase(it);
-	sc->setSuperclass(nullptr);
+	sc->setSuperclass(nullptr, logger);
 }
 
 const void StructuredClass::gatherFieldDescriptors(
@@ -450,13 +456,11 @@ NodeVector<FieldDescriptor> StructuredClass::getEffectiveFieldDescriptors()
 
 /* Class AnnotationClass */
 
-AnnotationClass::AnnotationClass(
-    Manager &mgr, std::string name, Handle<Domain> domain,
-    // TODO: What would be a wise default value for attributes?
-    Handle<StructType> attributesDescriptor)
-    : Descriptor(mgr, std::move(name), domain, attributesDescriptor)
+AnnotationClass::AnnotationClass(Manager &mgr, std::string name,
+                                 Handle<Domain> domain)
+    : Descriptor(mgr, std::move(name), domain)
 {
-	if (!domain.isNull()) {
+	if (domain != nullptr) {
 		domain->addAnnotationClass(this);
 	}
 }
@@ -525,14 +529,12 @@ bool Domain::removeStructuredClass(Handle<StructuredClass> s)
 }
 
 Rooted<StructuredClass> Domain::createStructuredClass(
-    std::string name, Variant cardinality,
-    Handle<StructType> attributesDescriptor, Handle<StructuredClass> superclass,
+    std::string name, Variant cardinality, Handle<StructuredClass> superclass,
     bool transparent, bool root)
 {
 	return Rooted<StructuredClass>{new StructuredClass(
-	    getManager(), std::move(name), this, std::move(cardinality),
-	    attributesDescriptor, superclass, std::move(transparent),
-	    std::move(root))};
+	    getManager(), std::move(name), this, std::move(cardinality), superclass,
+	    std::move(transparent), std::move(root))};
 }
 
 void Domain::addAnnotationClass(Handle<AnnotationClass> a)
@@ -564,11 +566,10 @@ bool Domain::removeAnnotationClass(Handle<AnnotationClass> a)
 	return false;
 }
 
-Rooted<AnnotationClass> Domain::createAnnotationClass(
-    std::string name, Handle<StructType> attributesDescriptor)
+Rooted<AnnotationClass> Domain::createAnnotationClass(std::string name)
 {
-	return Rooted<AnnotationClass>{new AnnotationClass(
-	    getManager(), std::move(name), this, attributesDescriptor)};
+	return Rooted<AnnotationClass>{
+	    new AnnotationClass(getManager(), std::move(name), this)};
 }
 
 /* Type registrations */
