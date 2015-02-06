@@ -153,10 +153,11 @@ void ParserStack::start(const std::string &name, Variant::mapType &args,
                         const SourceLocation &location)
 {
 	ParserState const *targetState = findTargetState(name);
-	if (!Utils::isIdentifier(name)) {
-		throw LoggableException(std::string("Invalid identifier \"") + name +
-		                        std::string("\""));
-	}
+// TODO: Andreas, please improve this.
+//	if (!Utils::isIdentifier(name)) {
+//		throw LoggableException(std::string("Invalid identifier \"") + name +
+//		                        std::string("\""));
+//	}
 
 	if (targetState == nullptr) {
 		targetState = findTargetState("*");
