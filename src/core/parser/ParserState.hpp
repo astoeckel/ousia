@@ -79,13 +79,6 @@ struct ParserState {
 	HandlerConstructor elementHandler;
 
 	/**
-	 * Pointer at a function which creates a new concrete Handler instance for
-	 * all child elements for which no matching state is defined. May be nullptr
-	 * in which case no such elements are allowed.
-	 */
-	HandlerConstructor childHandler;
-
-	/**
 	 * Default constructor, initializes the handlers with nullptr.
 	 */
 	ParserState();
@@ -104,15 +97,10 @@ struct ParserState {
 	 * @param elementHandler is a pointer at a function which creates a new
 	 * concrete Handler instance for the elements described by this state. May
 	 * be nullptr in which case no handler instance is created.
-	 * @param childHandler is a pointer at a function which creates a new
-	 * concrete Handler instance for all child elements for which no matching
-	 * state is defined. May be nullptr in which case no such elements are
-	 * allowed.
 	 */
 	ParserState(ParserStateSet parents, Arguments arguments = Arguments{},
 	            RttiSet createdNodeTypes = RttiSet{},
-	            HandlerConstructor elementHandler = nullptr,
-	            HandlerConstructor childHandler = nullptr);
+	            HandlerConstructor elementHandler = nullptr);
 
 	/**
 	 * Creates this ParserState from the given ParserStateBuilder instance.
@@ -207,19 +195,6 @@ public:
 	 * chaining.
 	 */
 	ParserStateBuilder &elementHandler(HandlerConstructor elementHandler);
-
-	/**
-	 * Sets the constructor for the child handler. The constructor creates a new
-	 * concrete Handler instance for all child elements for which no matching
-	 * state is defined. May be nullptr in which case no such elements are
-	 * allowed.
-	 *
-	 * @param childHandler is the HandlerConstructor that should point at the
-	 * constructor of the Handler instance for child elements.
-	 * @return a reference at this ParserStateBuilder instance for method
-	 * chaining.
-	 */
-	ParserStateBuilder &childHandler(HandlerConstructor childHandler);
 
 	/**
 	 * Returns a reference at the internal ParserState instance that was built
