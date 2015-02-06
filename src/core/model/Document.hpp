@@ -732,14 +732,7 @@ public:
 	 * parent of the given StructuredEntity if it is not set to this Document
 	 * already.
 	 */
-	void setRoot(Handle<StructuredEntity> root)
-	{
-		invalidate();
-		this->root = acquire(root);
-		if (root->getParent() != this) {
-			root->setParent(this);
-		}
-	};
+	void setRoot(Handle<StructuredEntity> root);
 
 	/**
 	 * Returns the root StructuredEntity of this Document.

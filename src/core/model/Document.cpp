@@ -716,6 +716,20 @@ bool Document::hasChild(Handle<StructureNode> s) const
 	return false;
 }
 
+void Document::setRoot(Handle<StructuredEntity> rt){
+	if(rt == nullptr || root == rt){
+		return;
+	}
+	if(root != nullptr){
+		root->setParent(nullptr);
+	}
+	root = acquire(rt);
+	if (rt->getParent() != this) {
+		rt->setParent(this);
+	}
+	invalidate();
+}
+
 /* Type registrations */
 namespace RttiTypes {
 const Rtti Document = RttiBuilder<ousia::Document>("Document")
