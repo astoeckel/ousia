@@ -883,7 +883,7 @@ static const ParserState DomainStruct =
         .createdNodeType(&RttiTypes::StructuredClass)
         .elementHandler(DomainStructHandler::create)
         .arguments({Argument::String("name"),
-                    Argument::Cardinality("cardinality", AnyCardinality),
+                    Argument::Cardinality("cardinality", Cardinality::any()),
                     Argument::Bool("isRoot", false),
                     Argument::Bool("transparent", false),
                     Argument::String("isa", "")});

@@ -417,9 +417,10 @@ public:
 /**
  * This is the default cardinality.
  */
-using Cardinality = RangeSet<size_t>;
-extern const Cardinality AnyCardinality;
-
+class Cardinality : public RangeSet<size_t> {
+public:
+	static Cardinality any();
+};
 }
 
 #endif /* _OUSIA_RANGE_SET_HPP_ */

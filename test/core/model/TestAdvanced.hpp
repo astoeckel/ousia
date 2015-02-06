@@ -86,7 +86,7 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 	Rooted<StructuredClass> p = resolveDescriptor(bookDomain, "paragraph");
 	// set up item StructuredClass;
 	Rooted<StructuredClass> item{new StructuredClass(
-	    mgr, "item", domain, AnyCardinality, {nullptr}, false)};
+	    mgr, "item", domain, Cardinality::any(), {nullptr}, false)};
 
 	// as field we want to copy the field of paragraph.
 	item->copyFieldDescriptor(p->getFieldDescriptors()[0]);
@@ -94,7 +94,7 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 	std::vector<std::string> listTypes{"ol", "ul"};
 	for (auto &listType : listTypes) {
 		Rooted<StructuredClass> list{new StructuredClass(
-		    mgr, listType, domain, AnyCardinality, p, false)};
+		    mgr, listType, domain, Cardinality::any(), p, false)};
 		Rooted<FieldDescriptor> list_field{new FieldDescriptor(mgr, list)};
 		list_field->addChild(item);
 	}

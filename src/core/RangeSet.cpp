@@ -20,13 +20,11 @@
 
 namespace ousia {
 
-static Cardinality createAny()
+Cardinality Cardinality::any()
 {
 	Cardinality any;
-	any.merge(Range<size_t>::typeRangeFrom(0));
+	any.merge(Range<size_t>::typeRange());
 	return std::move(any);
 }
-
-const Cardinality AnyCardinality = createAny();
 }
 

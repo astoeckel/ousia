@@ -320,7 +320,7 @@ StructuredClass::StructuredClass(Manager &mgr, std::string name,
                                  Handle<StructuredClass> superclass,
                                  bool transparent, bool root)
     : Descriptor(mgr, std::move(name), domain),
-      cardinality(std::move(cardinality)),
+      cardinality(cardinality),
       superclass(acquire(superclass)),
       subclasses(this),
       transparent(transparent),
@@ -533,7 +533,7 @@ Rooted<StructuredClass> Domain::createStructuredClass(
     bool transparent, bool root)
 {
 	return Rooted<StructuredClass>{new StructuredClass(
-	    getManager(), std::move(name), this, std::move(cardinality), superclass,
+	    getManager(), std::move(name), this, cardinality, superclass,
 	    std::move(transparent), std::move(root))};
 }
 

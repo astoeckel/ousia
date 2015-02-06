@@ -154,25 +154,25 @@ TEST(Descriptor, pathToAdvanced)
 
 	// Let's create the classes that we need first
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, AnyCardinality, {nullptr}, false, true)};
+	    mgr, "A", domain, Cardinality::any(), {nullptr}, false, true)};
 
 	Rooted<StructuredClass> start{new StructuredClass(
-	    mgr, "start", domain, AnyCardinality, A, false, false)};
+	    mgr, "start", domain, Cardinality::any(), A, false, false)};
 
 	Rooted<StructuredClass> B{new StructuredClass(
-	    mgr, "B", domain, AnyCardinality, {nullptr}, true, false)};
+	    mgr, "B", domain, Cardinality::any(), {nullptr}, true, false)};
 
 	Rooted<StructuredClass> C{
-	    new StructuredClass(mgr, "C", domain, AnyCardinality, B, true, false)};
+	    new StructuredClass(mgr, "C", domain, Cardinality::any(), B, true, false)};
 
 	Rooted<StructuredClass> D{new StructuredClass(
-	    mgr, "D", domain, AnyCardinality, {nullptr}, true, false)};
+	    mgr, "D", domain, Cardinality::any(), {nullptr}, true, false)};
 
 	Rooted<StructuredClass> E{new StructuredClass(
-	    mgr, "E", domain, AnyCardinality, {nullptr}, true, false)};
+	    mgr, "E", domain, Cardinality::any(), {nullptr}, true, false)};
 
 	Rooted<StructuredClass> target{
-	    new StructuredClass(mgr, "target", domain, AnyCardinality)};
+	    new StructuredClass(mgr, "target", domain, Cardinality::any())};
 
 	// We create two fields for A
 	Rooted<FieldDescriptor> A_field{new FieldDescriptor(mgr, A)};
@@ -223,19 +223,19 @@ TEST(StructuredClass, isSubclassOf)
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	Rooted<Domain> domain{new Domain(mgr, sys, "inheritance")};
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, AnyCardinality, {nullptr}, false, true)};
+	    mgr, "A", domain, Cardinality::any(), {nullptr}, false, true)};
 	// first branch
 	Rooted<StructuredClass> B{
-	    new StructuredClass(mgr, "B", domain, AnyCardinality, A)};
+	    new StructuredClass(mgr, "B", domain, Cardinality::any(), A)};
 	Rooted<StructuredClass> C{
-	    new StructuredClass(mgr, "C", domain, AnyCardinality, B)};
+	    new StructuredClass(mgr, "C", domain, Cardinality::any(), B)};
 	// second branch
 	Rooted<StructuredClass> D{
-	    new StructuredClass(mgr, "D", domain, AnyCardinality, A)};
+	    new StructuredClass(mgr, "D", domain, Cardinality::any(), A)};
 	Rooted<StructuredClass> E{
-	    new StructuredClass(mgr, "E", domain, AnyCardinality, D)};
+	    new StructuredClass(mgr, "E", domain, Cardinality::any(), D)};
 	Rooted<StructuredClass> F{
-	    new StructuredClass(mgr, "F", domain, AnyCardinality, D)};
+	    new StructuredClass(mgr, "F", domain, Cardinality::any(), D)};
 
 	// check function results
 	ASSERT_FALSE(A->isSubclassOf(A));

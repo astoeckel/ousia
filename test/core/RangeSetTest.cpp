@@ -216,5 +216,11 @@ TEST(RangeSet, Contains)
 	ASSERT_TRUE(s.contains(Range<int>(70, 74)));
 }
 
+TEST(RangeSet, AnyCardinality){
+	RangeSet<size_t> expected;
+	expected.merge(Range<size_t>::typeRange());
+	ASSERT_EQ(expected, Cardinality::any());
+}
+
 }
 

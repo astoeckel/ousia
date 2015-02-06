@@ -97,7 +97,7 @@ static void checkAttributes(Handle<StructType> expected,
 
 static void checkStructuredClass(
     Handle<Node> n, const std::string &name, Handle<Domain> domain,
-    Variant cardinality = AnyCardinality,
+    Variant cardinality = Cardinality::any(),
     Handle<StructType> attributesDescriptor = nullptr,
     Handle<StructuredClass> superclass = nullptr, bool transparent = false,
     bool root = false)
@@ -115,7 +115,7 @@ static void checkStructuredClass(
 
 static Rooted<StructuredClass> checkStructuredClass(
     const std::string &resolve, const std::string &name, Handle<Domain> domain,
-    Variant cardinality = AnyCardinality,
+    Variant cardinality = Cardinality::any(),
     Handle<StructType> attributesDescriptor = nullptr,
     Handle<StructuredClass> superclass = nullptr, bool transparent = false,
     bool root = false)
@@ -230,9 +230,9 @@ TEST(XmlParser, domainParsing)
 	    checkStructuredClass("subsection", "subsection", book_domain);
 	Rooted<StructuredClass> paragraph =
 	    checkStructuredClass("paragraph", "paragraph", book_domain,
-	                         AnyCardinality, nullptr, nullptr, true, false);
+	                         Cardinality::any(), nullptr, nullptr, true, false);
 	Rooted<StructuredClass> text =
-	    checkStructuredClass("text", "text", book_domain, AnyCardinality,
+	    checkStructuredClass("text", "text", book_domain, Cardinality::any(),
 	                         nullptr, nullptr, true, false);
 
 	// check the FieldDescriptors.

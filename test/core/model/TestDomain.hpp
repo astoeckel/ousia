@@ -46,7 +46,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// From there on the "section".
 	Rooted<StructuredClass> section{
-	    new StructuredClass(mgr, "section", domain, AnyCardinality)};
+	    new StructuredClass(mgr, "section", domain, Cardinality::any())};
 	book_field->addChild(section);
 
 	// And the field of it.
@@ -54,7 +54,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// We also add the "paragraph", which is transparent.
 	Rooted<StructuredClass> paragraph{new StructuredClass(
-	    mgr, "paragraph", domain, AnyCardinality, {nullptr}, true)};
+	    mgr, "paragraph", domain, Cardinality::any(), {nullptr}, true)};
 	section_field->addChild(paragraph);
 	book_field->addChild(paragraph);
 
@@ -64,7 +64,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// We append "subsection" to section.
 	Rooted<StructuredClass> subsection{
-	    new StructuredClass(mgr, "subsection", domain, AnyCardinality)};
+	    new StructuredClass(mgr, "subsection", domain, Cardinality::any())};
 	section_field->addChild(subsection);
 
 	// And the field of it.
@@ -76,7 +76,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// Finally we add the "text" node, which is transparent as well.
 	Rooted<StructuredClass> text{new StructuredClass(
-	    mgr, "text", domain, AnyCardinality, {nullptr}, true)};
+	    mgr, "text", domain, Cardinality::any(), {nullptr}, true)};
 	paragraph_field->addChild(text);
 
 	// ... and has a primitive field.

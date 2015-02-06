@@ -751,7 +751,7 @@ public:
 	 */
 	StructuredClass(Manager &mgr, std::string name,
 	                Handle<Domain> domain = nullptr,
-	                Variant cardinality = AnyCardinality,
+	                Variant cardinality = Cardinality::any(),
 	                Handle<StructuredClass> superclass = nullptr,
 	                bool transparent = false, bool root = false);
 
@@ -1010,7 +1010,7 @@ public:
 	 * @return                     the newly created StructuredClass.
 	 */
 	Rooted<StructuredClass> createStructuredClass(
-	    std::string name, Variant cardinality = AnyCardinality,
+	    std::string name, Variant cardinality = Cardinality::any(),
 	    Handle<StructuredClass> superclass = nullptr, bool transparent = false,
 	    bool root = false);
 
