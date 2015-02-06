@@ -124,12 +124,11 @@ Manager::~Manager()
 	// Perform a final sweep
 	sweep();
 
-	// All objects should have been deleted! TODO: Andreas will have a look.
-//	assert(objects.empty());
+	// All objects should have been deleted!
+	assert(objects.empty());
 
 	// Free all objects managed by the Managed manager (we'll get here if
-	// assertions
-	// are disabled)
+	// assertions are disabled)
 	if (!objects.empty()) {
 		ScopedIncrement incr{deletionRecursionDepth};
 		for (auto &e : objects) {
@@ -214,8 +213,7 @@ void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 			deleteObject(tar, dTar);
 		} else if (dTar->rootRefCount == 0) {
 			// Insert the Managed into the list of objects to be inspected by
-			// garbage
-			// collection
+			// garbage collection
 			marked.insert(tar);
 		}
 	}
