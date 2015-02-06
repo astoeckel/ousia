@@ -14,20 +14,17 @@
 		 referenced by their key-value pairs as defined in the according
 		 StructType. For an example please refer to the more complex book
 		 domain. -->
-		<!--<book:paragraph>
+		<paragraph>
 		<text>
-		This might be some introductory text or a dedication. Ideally, of
-		course, such elements would be semantically specified as such in
-		additional domains (or in this one).
+		This might be some introductory text or a dedication.
 		</text>
-		</book:paragraph>-->
+		</paragraph>
 		<!-- Note that a better version of the book domain might specify
 			 headings here. -->
 		<chapter name="myFirstChapter">
-			<!--<paragraph>
+			<paragraph>
 			<text>
-			Here we might have an introduction to the chapter, including some
-			overview of the chapters structure.
+			Here we might have an introduction to the chapter.
 			</text>
 			</paragraph>
 			<section name="myFirstSection">
@@ -43,7 +40,7 @@
 				Here we might find the actual section content.
 				</text>
 				</paragraph>
-			</section>-->
+			</section>
 		</chapter>
 	</book>
 </document>

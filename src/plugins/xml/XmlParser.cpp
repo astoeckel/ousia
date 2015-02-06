@@ -132,7 +132,7 @@ public:
 
 		// try to find a FieldDescriptor for the given tag if we are not in a
 		// field already.
-		if (!inField && parent != nullptr && parent->hasField(fieldName)) {
+		if (!inField && parent != nullptr && parent->hasField(name())) {
 			Rooted<DocumentField> field{new DocumentField(
 			    parentNode->getManager(), fieldName, parentNode)};
 			field->setLocation(location());
@@ -170,25 +170,56 @@ public:
 
 	void end() override { scope().pop(); }
 
-	void data(const std::string &data, int field) override
+	void data(const std::string &data, int fieldIdx) override
 	{
-		//		Rooted<Node> parentNode = scope().selectOrThrow(
-		//		    { &RttiTypes::StructuredEntity,
-		//		     &RttiTypes::AnnotationEntity, &RttiTypes::DocumentField});
+		Rooted<Node> parentNode = scope().selectOrThrow(
+		    {&RttiTypes::StructuredEntity, &RttiTypes::AnnotationEntity,
+		     &RttiTypes::DocumentField});
 
-		//		std::string fieldName;
-		//		DocumentEntity *parent;
-		//		bool inField;
-		//
-		//		preamble(parentNode, fieldName, parent, inField);
-		//
-		//		// retrieve the correct FieldDescriptor.
-		//
-		//
-		//		CharReader reader{data, location().getSourceId(),
-		//		                  location().getStart()};
-		//		auto res = VariantReader::parseGeneric(reader, logger(),
-		//		                                       std::unordered_set<char>{});
+		std::string fieldName;
+		DocumentEntity *parent;
+		bool inField;
+
+		preamble(parentNode, fieldName, parent, inField);
+
+		// retrieve the correct FieldDescriptor.
+		Rooted<Descriptor> desc = parent->getDescriptor();
+		Rooted<FieldDescriptor> field = nullptr;
+		// TODO: Use more convenient mechanism once possible.
+		for (auto &fd : desc->getFieldDescriptors()) {
+			if (fd->getName() == fieldName) {
+				field = fd;
+				break;
+			}
+		}
+		if (field == nullptr) {
+			logger().error(
+			    std::string("Can't handle data because no field with name \"") +
+			        fieldName + "\" exists in descriptor\"" + desc->getName() +
+			        "\".",
+			    location());
+			return;
+		}
+		if (!field->isPrimitive()) {
+			logger().error(std::string("Can't handle data because field \"") +
+			                   fieldName + "\" of descriptor \"" +
+			                   desc->getName() + "\" is not primitive!",
+			               location());
+			return;
+		}
+
+		// try to parse the content.
+		auto res = VariantReader::parseGenericString(
+		    data, logger(), location().getSourceId(), location().getStart());
+		if (!res.first) {
+			return;
+		}
+		// try to convert it to the correct type.
+		if (!field->getPrimitiveType()->build(res.second, logger())) {
+			return;
+		}
+		// add it as primitive content.
+		parent->createChildDocumentPrimitive(res.second, fieldName);
 	}
 
 	static Handler *create(const HandlerData &handlerData)
@@ -864,7 +895,7 @@ static const ParserState Document =
 
 static const ParserState DocumentChild =
     ParserStateBuilder()
-        .parent(&Document)
+        .parents({&Document, &DocumentChild})
         .createdNodeTypes({&RttiTypes::StructureNode,
                            &RttiTypes::AnnotationEntity,
                            &RttiTypes::DocumentField})
@@ -1265,6 +1296,7 @@ static void xmlStartElementHandler(void *p, const XML_Char *name,
 
 	// Assemble the arguments
 	Variant::mapType args;
+
 	const XML_Char **attr = attrs;
 	while (*attr) {
 		// Convert the C string to a std::string
@@ -1283,6 +1315,7 @@ static void xmlStartElementHandler(void *p, const XML_Char *name,
 		    keyLoc.getStart());
 		args.emplace(key, value.second);
 	}
+	
 
 	// Call the start function
 	std::string nameStr(name);
