@@ -60,7 +60,7 @@ static Rooted<Document> constructBookDocument(Manager &mgr, Logger &logger,
 	// And its primitive content
 	Variant text{"Some introductory text"};
 	Rooted<DocumentPrimitive> foreword_primitive{
-	    new DocumentPrimitive(mgr, foreword_text, text, "content")};
+	    new DocumentPrimitive(mgr, foreword_text, text, DEFAULT_FIELD_NAME)};
 	// Add a section.
 	Rooted<StructuredEntity> section =
 	    buildStructuredEntity(doc, logger, root, {"section"});
@@ -79,7 +79,7 @@ static Rooted<Document> constructBookDocument(Manager &mgr, Logger &logger,
 	// And its primitive content
 	text = Variant{"Some actual text"};
 	Rooted<DocumentPrimitive> main_primitive{
-	    new DocumentPrimitive(mgr, main_text, text, "content")};
+	    new DocumentPrimitive(mgr, main_text, text, DEFAULT_FIELD_NAME)};
 	if (main_primitive.isNull()) {
 		return {nullptr};
 	}

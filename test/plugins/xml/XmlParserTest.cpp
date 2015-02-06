@@ -242,7 +242,7 @@ TEST(XmlParser, domainParsing)
 	checkFieldDescriptor(subsection, {paragraph});
 	checkFieldDescriptor(paragraph, {text});
 	checkFieldDescriptor(
-	    text, {}, "content", FieldDescriptor::FieldType::PRIMITIVE,
+	    text, {}, DEFAULT_FIELD_NAME, FieldDescriptor::FieldType::PRIMITIVE,
 	    env.project->getSystemTypesystem()->getStringType(), false);
 
 	// check parent handling using the headings domain.
@@ -308,6 +308,7 @@ TEST(XmlParser, documentParsing)
 	XmlStandaloneEnvironment env(logger);
 	Rooted<Node> book_domain_node =
 	    env.parse("simple_book.oxd", "", "", RttiSet{&RttiTypes::Document});
+	//TODO: Check result
 }
 }
 

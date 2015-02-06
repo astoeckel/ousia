@@ -96,6 +96,6 @@
 	                 transparent="true" isa="" attributesDescriptor="">
 	-->
 		<!-- we might want to specify std.string here -->
-		<primitive name="content" type="string"/>
+		<primitive type="string"/>
 	</struct>
 </domain>

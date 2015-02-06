@@ -81,8 +81,8 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// ... and has a primitive field.
 	Rooted<FieldDescriptor> text_field{new FieldDescriptor(
-	    mgr, text, domain->getTypesystems()[0]->getTypes()[0], "content",
-	    false)};
+	    mgr, text, domain->getTypesystems()[0]->getTypes()[0],
+	    DEFAULT_FIELD_NAME, false)};
 
 	return domain;
 }

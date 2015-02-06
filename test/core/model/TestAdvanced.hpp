@@ -130,7 +130,7 @@ static bool addText(Logger &logger, Handle<Document> doc,
 	// And the primitive content
 	Variant content_var{content.c_str()};
 	Rooted<DocumentPrimitive> primitive{new DocumentPrimitive(
-	    parent->getManager(), text, content_var, "content")};
+	    parent->getManager(), text, content_var, DEFAULT_FIELD_NAME)};
 	return true;
 }
 

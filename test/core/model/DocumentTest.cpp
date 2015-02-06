@@ -65,11 +65,11 @@ TEST(Document, construct)
 			    foreword->getField()[0].cast<StructuredEntity>();
 			ASSERT_FALSE(text.isNull());
 			ASSERT_EQ("text", text->getDescriptor()->getName());
-			ASSERT_TRUE(text->hasField("content"));
-			ASSERT_EQ(1U, text->getField("content").size());
+			ASSERT_TRUE(text->hasField());
+			ASSERT_EQ(1U, text->getField().size());
 			ASSERT_TRUE(
-			    text->getField("content")[0]->isa(typeOf<DocumentPrimitive>()));
-			Variant content = text->getField("content")[0]
+			    text->getField()[0]->isa(typeOf<DocumentPrimitive>()));
+			Variant content = text->getField()[0]
 			                      .cast<DocumentPrimitive>()
 			                      ->getContent();
 			ASSERT_EQ("Some introductory text", content.asString());
@@ -99,11 +99,11 @@ TEST(Document, construct)
 				    par->getField()[0].cast<StructuredEntity>();
 				ASSERT_FALSE(text.isNull());
 				ASSERT_EQ("text", text->getDescriptor()->getName());
-				ASSERT_TRUE(text->hasField("content"));
-				ASSERT_EQ(1U, text->getField("content").size());
-				ASSERT_TRUE(text->getField("content")[0]->isa(
+				ASSERT_TRUE(text->hasField());
+				ASSERT_EQ(1U, text->getField().size());
+				ASSERT_TRUE(text->getField()[0]->isa(
 				    typeOf<DocumentPrimitive>()));
-				Variant content = text->getField("content")[0]
+				Variant content = text->getField()[0]
 				                      .cast<DocumentPrimitive>()
 				                      ->getContent();
 				ASSERT_EQ("Some actual text", content.asString());
@@ -296,7 +296,7 @@ TEST(Document, validate)
 		    new Attribute{mgr, "myAttr", sys->getStringType(), "default"},
 		    logger);
 		// the right map content should be valid now.
-		child->setAttributes(Variant::mapType{{"myAttr", "content"}});
+		child->setAttributes(Variant::mapType{{"myAttr", "bla"}});
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 		// but an empty map as well
