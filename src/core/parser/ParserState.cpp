@@ -22,17 +22,15 @@ namespace ousia {
 
 /* Class ParserState */
 
-ParserState::ParserState() : elementHandler(nullptr), childHandler(nullptr) {}
+ParserState::ParserState() : elementHandler(nullptr) {}
 
 ParserState::ParserState(ParserStateSet parents, Arguments arguments,
                          RttiSet createdNodeTypes,
-                         HandlerConstructor elementHandler,
-                         HandlerConstructor childHandler)
+                         HandlerConstructor elementHandler)
     : parents(parents),
       arguments(arguments),
       createdNodeTypes(createdNodeTypes),
-      elementHandler(elementHandler),
-      childHandler(childHandler)
+      elementHandler(elementHandler)
 {
 }
 
@@ -83,13 +81,6 @@ ParserStateBuilder &ParserStateBuilder::elementHandler(
     HandlerConstructor elementHandler)
 {
 	state.elementHandler = elementHandler;
-	return *this;
-}
-
-ParserStateBuilder &ParserStateBuilder::childHandler(
-    HandlerConstructor childHandler)
-{
-	state.childHandler = childHandler;
 	return *this;
 }
 

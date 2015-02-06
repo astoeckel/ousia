@@ -77,8 +77,7 @@ public:
 
 class DocumentField : public Node {
 public:
-	DocumentField(Manager &mgr, std::string name, Handle<Node> parent,
-	              Handle<FieldDescriptor> descriptor)
+	DocumentField(Manager &mgr, std::string name, Handle<Node> parent)
 	    : Node(mgr, name, parent)
 	{
 	}
@@ -93,7 +92,7 @@ class DocumentChildHandler : public Handler {
 public:
 	using Handler::Handler;
 
-	void preamble(Hanlde<Node> parentNode, std::string &fieldName,
+	void preamble(Handle<Node> parentNode, std::string &fieldName,
 	              DocumentEntity *&parent, bool &inField)
 	{
 		// check if the parent in the structure tree was an explicit field
@@ -691,8 +690,8 @@ public:
 		// StructuredClass as child to it.
 		scope().resolve<Descriptor>(
 		    parentNameNode->getName(), strct, logger(),
-		    [&type, &name, &optional](Handle<Node> parent, Handle<Node> strct,
-		                              Logger &logger) {
+		    [type, name, optional](Handle<Node> parent, Handle<Node> strct,
+		                           Logger &logger) {
 			    if (parent != nullptr) {
 				    Rooted<FieldDescriptor> field =
 				        parent.cast<Descriptor>()->createFieldDescriptor(
@@ -727,9 +726,9 @@ public:
 		// resolve the parent, get the referenced field and add the declared
 		// StructuredClass as child to it.
 		scope().resolve<Descriptor>(parentNameNode->getName(), strct, logger(),
-		                            [&name, &loc](Handle<Node> parent,
-		                                          Handle<Node> strct,
-		                                          Logger &logger) {
+		                            [name, loc](Handle<Node> parent,
+		                                        Handle<Node> strct,
+		                                        Logger &logger) {
 			if (parent != nullptr) {
 				auto res = parent.cast<Descriptor>()->resolve(
 				    RttiTypes::FieldDescriptor, name);
@@ -861,8 +860,15 @@ static const ParserState Document =
         .parent(&None)
         .createdNodeType(&RttiTypes::Document)
         .elementHandler(DocumentHandler::create)
-        .childHandler(DocumentChildHandler::create)
         .arguments({Argument::String("name", "")});
+
+static const ParserState DocumentChild =
+    ParserStateBuilder()
+        .parent(&Document)
+        .createdNodeTypes({&RttiTypes::StructureNode,
+                           &RttiTypes::AnnotationEntity,
+                           &RttiTypes::DocumentField})
+        .elementHandler(DocumentChildHandler::create);
 
 /* Domain states */
 static const ParserState Domain = ParserStateBuilder()
@@ -1017,6 +1023,7 @@ static const ParserState Include =
 
 static const std::multimap<std::string, const ParserState *> XmlStates{
     {"document", &Document},
+    {"*", &DocumentChild},
     {"domain", &Domain},
     {"struct", &DomainStruct},
     {"annotation", &DomainAnnotation},

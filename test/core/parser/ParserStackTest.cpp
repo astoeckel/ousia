@@ -52,8 +52,7 @@ static const ParserState Document =
     ParserStateBuilder().parent(&None).elementHandler(TestHandler::create);
 static const ParserState Body = ParserStateBuilder()
                                     .parent(&Document)
-                                    .elementHandler(TestHandler::create)
-                                    .childHandler(TestHandler::create);
+                                    .elementHandler(TestHandler::create);
 static const ParserState Empty =
     ParserStateBuilder().parent(&Document).elementHandler(TestHandler::create);
 static const ParserState Special =
@@ -63,13 +62,18 @@ static const ParserState Arguments =
         .parent(&None)
         .elementHandler(TestHandler::create)
         .arguments({Argument::Int("a"), Argument::String("b")});
+static const ParserState BodyChildren =
+    ParserStateBuilder()
+        .parent(&Body)
+        .elementHandler(TestHandler::create);
 
 static const std::multimap<std::string, const ParserState *> TestHandlers{
     {"document", &Document},
     {"body", &Body},
     {"empty", &Empty},
     {"special", &Special},
-    {"arguments", &Arguments}};
+    {"arguments", &Arguments},
+    {"*", &BodyChildren}};
 }
 
 TEST(ParserStack, simpleTest)
@@ -101,7 +105,7 @@ TEST(ParserStack, simpleTest)
 
 	s.start("inner", {});
 	EXPECT_EQ("inner", s.currentCommandName());
-	EXPECT_EQ(&ParserStates::Body, &s.currentState());
+	EXPECT_EQ(&ParserStates::BodyChildren, &s.currentState());
 	s.end();
 	EXPECT_EQ(3, startCount);
 	EXPECT_EQ(1, endCount);

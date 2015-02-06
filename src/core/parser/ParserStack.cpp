@@ -113,11 +113,12 @@ bool ParserStack::deduceState()
 	return true;
 }
 
-std::set<std::string> ParserStack::expectedCommands(const ParserState &state)
+std::set<std::string> ParserStack::expectedCommands()
 {
+	const ParserState *currentState = &(this->currentState());
 	std::set<std::string> res;
 	for (const auto &v : states) {
-		if (v.second->parents.count(&state)) {
+		if (v.second->parents.count(currentState)) {
 			res.insert(v.first);
 		}
 	}
@@ -134,42 +135,46 @@ std::string ParserStack::currentCommandName()
 	return stack.empty() ? std::string{} : stack.top()->name();
 }
 
-void ParserStack::start(std::string name, Variant::mapType &args,
-                        const SourceLocation &location)
+const ParserState *ParserStack::findTargetState(const std::string &name)
 {
-	// Fetch the current handler and the current state
-	ParserState const *currentState = &(this->currentState());
-
-	// Fetch the correct Handler descriptor for this
-	ParserState const *targetState = nullptr;
-	HandlerConstructor ctor = nullptr;
+	const ParserState *currentState = &(this->currentState());
 	auto range = states.equal_range(name);
 	for (auto it = range.first; it != range.second; it++) {
 		const ParserStateSet &parents = it->second->parents;
 		if (parents.count(currentState) || parents.count(&ParserStates::All)) {
-			targetState = it->second;
-			ctor = targetState->elementHandler ? targetState->elementHandler
-			                                   : DefaultHandler::create;
-			break;
+			return it->second;
 		}
 	}
 
-	// Try to use the child handler if one was given
-	if (!targetState && currentState->childHandler) {
-		targetState = currentState;
-		ctor = targetState->childHandler;
+	return nullptr;
+}
+
+void ParserStack::start(const std::string &name, Variant::mapType &args,
+                        const SourceLocation &location)
+{
+	ParserState const *targetState = findTargetState(name);
+	if (!Utils::isIdentifier(name)) {
+		throw LoggableException(std::string("Invalid identifier \"") + name +
+		                        std::string("\""));
 	}
 
-	// No descriptor found, throw an exception.
-	if (!targetState || !ctor) {
-		throw InvalidCommand(name, expectedCommands(*currentState));
+	if (targetState == nullptr) {
+		targetState = findTargetState("*");
 	}
+	if (targetState == nullptr) {
+		throw InvalidCommand(name, expectedCommands());
+	}
+
+	// Fetch the associated constructor
+	HandlerConstructor ctor = targetState->elementHandler
+	                              ? targetState->elementHandler
+	                              : DefaultHandler::create;
 
 	// Canonicalize the arguments, allow additional arguments
 	targetState->arguments.validateMap(args, ctx.getLogger(), true);
 
 	// Instantiate the handler and call its start function
-	Handler *handler = ctor({ctx, name, *targetState, *currentState, location});
+	Handler *handler = ctor({ctx, name, *targetState, currentState(), location});
 	handler->start(args);
 	stack.emplace(handler);
 }

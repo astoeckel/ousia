@@ -86,9 +86,8 @@ struct HandlerData {
 	 * @param parentState is the state of the parent command.
 	 * @param location is the location at which the handler is created.
 	 */
-	HandlerData(ParserContext &ctx, std::string name,
-	            const ParserState &state, const ParserState &parentState,
-	            const SourceLocation location)
+	HandlerData(ParserContext &ctx, std::string name, const ParserState &state,
+	            const ParserState &parentState, const SourceLocation location)
 	    : ctx(ctx),
 	      name(std::move(name)),
 	      state(state),
@@ -250,14 +249,23 @@ private:
 	std::stack<std::shared_ptr<Handler>> stack;
 
 	/**
-	 * Used internally to get all expected command names for the given state
-	 * (does not work if the current Handler instance allows arbitrary
-	 * children). This function is used to build error messages.
+	 * Used internally to get all expected command names for the current state.
+	 * This function is used to build error messages.
 	 *
-	 * @param state is the state for which all expected command names should be
-	 * returned.
+	 * @return a set of strings containing the names of the expected commands.
 	 */
-	std::set<std::string> expectedCommands(const ParserState &state);
+	std::set<std::string> expectedCommands();
+
+	/**
+	 * Returns the targetState for a command with the given name that can be
+	 * reached from for the current state.
+	 *
+	 * @param name is the name of the requested command.
+	 * @return nullptr if no target state was found, a pointer at the target
+	 *state
+	 * otherwise.
+	 */
+	const ParserState *findTargetState(const std::string &name);
 
 public:
 	/**
@@ -309,7 +317,7 @@ public:
 	 * @param location is the location in the source file at which the command
 	 * starts.
 	 */
-	void start(std::string name, Variant::mapType &args,
+	void start(const std::string &name, Variant::mapType &args,
 	           const SourceLocation &location = SourceLocation{});
 
 	/**
