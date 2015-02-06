@@ -263,9 +263,6 @@ void Manager::deleteObject(Managed *o, ObjectDescriptor *descr)
 		uids.erase(descr->uid);
 		store.erase(o);
 		events.erase(o);
-
-		// Remove the Managed from the "marked" set
-		marked.erase(o);
 	}
 
 	purgeDeleted();
