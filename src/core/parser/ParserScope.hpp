@@ -197,7 +197,6 @@ public:
 	{
 		return selectOrThrow(RttiSet{&typeOf<T>()}, maxDepth).cast<T>();
 	}
-
 };
 
 /**
@@ -635,6 +634,27 @@ public:
 	{
 		return resolve<T>(Utils::split(name, '.'), owner, logger,
 		                  resultCallback);
+	}
+
+	/**
+	 * Tries to resolve a node for the given type and path for all nodes that
+	 * are currently in the stack, starting with the topmost node on the stack.
+	 *
+	 * @tparam T is the type of the node that should be resolved.
+	 * @param path is the path for which a node should be resolved.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @return a reference at a resolved node or nullptr if no node could be
+	 * found.
+	 */
+	template <class T>
+	Rooted<T> resolve(const std::vector<std::string> &path, Logger &logger)
+	{
+		// TODO: Rooted<Node> res = resolve(typeOf<T>(), path,
+		// logger).cast<T>();
+		// does not work. Why? Bother stackoverflow with this.
+		Rooted<Node> res = ParserScopeBase::resolve(typeOf<T>(), path, logger);
+		return res.cast<T>();
 	}
 
 	/**
