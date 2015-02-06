@@ -82,12 +82,14 @@ void DemoHTMLTransformer::writeHTML(Handle<Document> doc,
 /**
  * This is just for easier internal handling.
  */
-enum class SectionType { BOOK, SECTION, SUBSECTION, NONE };
+enum class SectionType { BOOK, CHAPTER, SECTION, SUBSECTION, NONE };
 
 SectionType getSectionType(const std::string &name)
 {
 	if (name == "book") {
 		return SectionType::BOOK;
+	} else if (name == "chapter") {
+		return SectionType::CHAPTER;
 	} else if (name == "section") {
 		return SectionType::SECTION;
 	} else if (name == "subsection") {
@@ -122,11 +124,14 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 			case SectionType::BOOK:
 				headingclass = "h1";
 				break;
-			case SectionType::SECTION:
+			case SectionType::CHAPTER:
 				headingclass = "h2";
 				break;
-			case SectionType::SUBSECTION:
+			case SectionType::SECTION:
 				headingclass = "h3";
+				break;
+			case SectionType::SUBSECTION:
+				headingclass = "h4";
 				break;
 			case SectionType::NONE:
 				// this can not happen;
