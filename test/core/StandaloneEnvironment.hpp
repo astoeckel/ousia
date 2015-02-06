@@ -41,7 +41,7 @@ struct StandaloneEnvironment {
 	ParserContext context;
 
 	StandaloneEnvironment(ConcreteLogger &logger)
-	    : logger(logger), project(new Project(manager)),
+	    : logger(logger), manager(1), project(new Project(manager)),
 	      context(registry, resourceManager, scope, project, logger)
 	{
 		logger.reset();
