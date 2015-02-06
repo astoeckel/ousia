@@ -727,7 +727,9 @@ public:
 	 * @param name is a name for this Document.
 	 */
 	Document(Manager &mgr, std::string name)
-	    : RootNode(mgr, std::move(name), nullptr), annotations(this)
+	    : RootNode(mgr, std::move(name), nullptr),
+	      annotations(this),
+	      domains(this)
 	{
 	}
 
