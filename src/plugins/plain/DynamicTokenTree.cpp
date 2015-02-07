@@ -42,7 +42,8 @@ bool DynamicTokenTree::registerToken(const std::string &token,
 		const char c = token[i];
 		auto it = node->children.find(c);
 		if (it == node->children.end()) {
-			it = node->children.emplace(c, std::unique_ptr<Node>(new Node{})).first;
+			it = node->children.emplace(c, std::unique_ptr<Node>(new Node{}))
+			         .first;
 		}
 		node = it->second.get();
 	}
@@ -69,7 +70,7 @@ bool DynamicTokenTree::unregisterToken(const std::string &token) noexcept
 	Node *subtreeRoot = &root;
 	char subtreeKey = token[0];
 	Node *node = &root;
-	for (size_t i = 0; i < token.size() - 1; i++) {
+	for (size_t i = 0; i < token.size(); i++) {
 		// Go to the next node, abort if the tree ends unexpectedly
 		auto it = node->children.find(token[i]);
 		if (it == node->children.end()) {
@@ -77,15 +78,20 @@ bool DynamicTokenTree::unregisterToken(const std::string &token) noexcept
 		}
 
 		// Reset the subtree handler if this node has another descriptor
-		Node *child = it->second.get();
-		if ((child->descriptor != nullptr || child->children.size() > 1)) {
-			subtreeRoot = child;
+		node = it->second.get();
+		if ((node->descriptor != nullptr || node->children.size() > 1) &&
+		    (i + 1 != token.size())) {
+			subtreeRoot = node;
 			subtreeKey = token[i + 1];
 		}
-		node = child;
 	}
 
-	// If the leaf node, we cannot delete the subtree. Set the
+	// If the node descriptor is already nullptr, we cannot do anything here
+	if (node->descriptor == nullptr) {
+		return false;
+	}
+
+	// If the target node has children, we cannot delete the subtree. Set the
 	// descriptor to nullptr instead
 	if (!node->children.empty()) {
 		node->descriptor = nullptr;
