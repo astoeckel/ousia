@@ -21,9 +21,8 @@
 #include "Managed.hpp"
 #include "Manager.hpp"
 
-//#define MANAGER_DEBUG_PRINT
-
-#if defined(MANAGER_DEBUG_PRINT) || defined(MANAGER_GRAPHVIZ_EXPORT)
+#if defined(MANAGER_DEBUG_PRINT) || defined(MANAGER_GRAPHVIZ_EXPORT) || \
+    defined(MANAGER_DEBUG_HIDDEN_ROOTED)
 #include <iostream>
 #include <fstream>
 #include <core/common/Rtti.hpp>
@@ -193,6 +192,15 @@ void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 {
 #ifdef MANAGER_DEBUG_PRINT
 	std::cout << "deleteRef " << tar << " <- " << src << std::endl;
+#endif
+
+#ifdef MANAGER_DEBUG_HIDDEN_ROOTED
+	if (deletionRecursionDepth > 0 && src == 0) {
+		std::cerr << "\x1b[41;30mManager:\x1b[0m A managed object contains a rooted reference, "
+		             "this may cause memory leaks!" << std::endl;
+		std::cerr << "\x1b[41;30mManager:\x1b[0m Referenced object is " << tar << " of type "
+		          << tar->type().name << std::endl;
+	}
 #endif
 
 	// Fetch the Managed descriptors for the two objects
@@ -700,7 +708,8 @@ void Manager::exportGraphviz(const char *filename)
 						break;
 				}
 				edgeCount -= c;
-				fs << "labeldistance=\"2\",headlabel=\"" << std::dec << c << "\"]" << std::endl;
+				fs << "labeldistance=\"2\",headlabel=\"" << std::dec << c
+				   << "\"]" << std::endl;
 			}
 		}
 
@@ -711,10 +720,10 @@ void Manager::exportGraphviz(const char *filename)
 				continue;
 			}
 			uintptr_t pTar = reinterpret_cast<uintptr_t>(owner);
-			fs << "\tn" << std::hex << std::noshowbase << p << ":ev_" << d.getEventTypeName() << " -> n"
-			   << std::hex << std::noshowbase << pTar
-			   << " [weight=0,penwidth=0.5,color=darkolivegreen4,style=dashed,arrowhead=vee]"
-			   << std::endl;
+			fs << "\tn" << std::hex << std::noshowbase << p << ":ev_"
+			   << d.getEventTypeName() << " -> n" << std::hex << std::noshowbase
+			   << pTar << " [weight=0,penwidth=0.5,color=darkolivegreen4,style="
+			              "dashed,arrowhead=vee]" << std::endl;
 		}
 
 		// Display root edges
