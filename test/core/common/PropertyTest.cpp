@@ -62,7 +62,7 @@ TEST(Getter, construction)
 TEST(Getter, validation)
 {
 	std::shared_ptr<PropertyType> type =
-	    std::make_shared<PropertyType>(RttiTypes::Int);
+	    std::make_shared<PropertyType>(&RttiTypes::Int);
 	TestObject obj{123};
 
 	{
@@ -111,7 +111,7 @@ TEST(Setter, construction)
 TEST(Setter, validation)
 {
 	std::shared_ptr<PropertyType> type =
-	    std::make_shared<PropertyType>(RttiTypes::Int);
+	    std::make_shared<PropertyType>(&RttiTypes::Int);
 	TestObject obj{123};
 
 	Setter<TestObject> setter{TestObject::setA};
@@ -164,7 +164,7 @@ TEST(Property, construction)
 	}
 
 	{
-		Property<TestObject> property{RttiTypes::Int, TestObject::getA,
+		Property<TestObject> property{&RttiTypes::Int, TestObject::getA,
 		                              TestObject::setA};
 		ASSERT_FALSE(property.isReadonly());
 

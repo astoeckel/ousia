@@ -28,7 +28,7 @@
 
 namespace ousia {
 
-void assert_path(const ResolutionResult &res, const Rtti &expected_type,
+void assert_path(const ResolutionResult &res, const Rtti *expected_type,
                  std::vector<std::string> expected_path)
 {
 	// Check class/type
@@ -50,41 +50,41 @@ TEST(Domain, testDomainResolving)
 	std::vector<ResolutionResult> res;
 
 	// There is one domain called "book"
-	res = domain->resolve(RttiTypes::Domain, "book");
+	res = domain->resolve(&RttiTypes::Domain, "book");
 	ASSERT_EQ(1U, res.size());
-	assert_path(res[0], RttiTypes::Domain, {"book"});
+	assert_path(res[0], &RttiTypes::Domain, {"book"});
 
 	// There is one domain called "book"
-	res = domain->resolve(RttiTypes::StructuredClass, "book");
+	res = domain->resolve(&RttiTypes::StructuredClass, "book");
 	ASSERT_EQ(1U, res.size());
-	assert_path(res[0], RttiTypes::StructuredClass, {"book", "book"});
+	assert_path(res[0], &RttiTypes::StructuredClass, {"book", "book"});
 
 	// If we explicitly ask for the "book, book" path, then only the
 	// StructuredClass should be returned.
-	res = domain->resolve(RttiTypes::Domain,
+	res = domain->resolve(&RttiTypes::Domain,
 	                      std::vector<std::string>{"book", "book"});
 	ASSERT_EQ(0U, res.size());
 
-	res = domain->resolve(RttiTypes::StructuredClass,
+	res = domain->resolve(&RttiTypes::StructuredClass,
 	                      std::vector<std::string>{"book", "book"});
 	ASSERT_EQ(1U, res.size());
 
 	// If we ask for "section" the result should be unique as well.
-	res = domain->resolve(RttiTypes::StructuredClass, "section");
+	res = domain->resolve(&RttiTypes::StructuredClass, "section");
 	ASSERT_EQ(1U, res.size());
-	assert_path(res[0], RttiTypes::StructuredClass, {"book", "section"});
+	assert_path(res[0], &RttiTypes::StructuredClass, {"book", "section"});
 
 	// If we ask for "paragraph" it is referenced two times in the Domain graph,
 	// but should be returned only once.
-	res = domain->resolve(RttiTypes::StructuredClass, "paragraph");
+	res = domain->resolve(&RttiTypes::StructuredClass, "paragraph");
 	ASSERT_EQ(1U, res.size());
-	assert_path(res[0], RttiTypes::StructuredClass, {"book", "paragraph"});
+	assert_path(res[0], &RttiTypes::StructuredClass, {"book", "paragraph"});
 }
 
 Rooted<StructuredClass> getClass(const std::string name, Handle<Domain> dom)
 {
 	std::vector<ResolutionResult> res =
-	    dom->resolve(RttiTypes::StructuredClass, name);
+	    dom->resolve(&RttiTypes::StructuredClass, name);
 	return res[0].node.cast<StructuredClass>();
 }
 
@@ -103,17 +103,17 @@ TEST(Descriptor, pathTo)
 	// get the path in between.
 	std::vector<Rooted<Node>> path = book->pathTo(section);
 	ASSERT_EQ(1U, path.size());
-	ASSERT_TRUE(path[0]->isa(RttiTypes::FieldDescriptor));
+	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
 
 	// get the text node.
 	Rooted<StructuredClass> text = getClass("text", domain);
 	// get the path between book and text via paragraph.
 	path = book->pathTo(text);
 	ASSERT_EQ(3U, path.size());
-	ASSERT_TRUE(path[0]->isa(RttiTypes::FieldDescriptor));
-	ASSERT_TRUE(path[1]->isa(RttiTypes::StructuredClass));
+	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
+	ASSERT_TRUE(path[1]->isa(&RttiTypes::StructuredClass));
 	ASSERT_EQ("paragraph", path[1]->getName());
-	ASSERT_TRUE(path[2]->isa(RttiTypes::FieldDescriptor));
+	ASSERT_TRUE(path[2]->isa(&RttiTypes::FieldDescriptor));
 
 	// get the subsection node.
 	Rooted<StructuredClass> subsection = getClass("subsection", domain);
@@ -208,11 +208,11 @@ TEST(Descriptor, pathToAdvanced)
 	// and now we should be able to find the shortest path as suggested
 	std::vector<Rooted<Node>> path = start->pathTo(target);
 	ASSERT_EQ(3U, path.size());
-	ASSERT_TRUE(path[0]->isa(RttiTypes::FieldDescriptor));
+	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
 	ASSERT_EQ("second", path[0]->getName());
-	ASSERT_TRUE(path[1]->isa(RttiTypes::StructuredClass));
+	ASSERT_TRUE(path[1]->isa(&RttiTypes::StructuredClass));
 	ASSERT_EQ("B", path[1]->getName());
-	ASSERT_TRUE(path[2]->isa(RttiTypes::FieldDescriptor));
+	ASSERT_TRUE(path[2]->isa(&RttiTypes::FieldDescriptor));
 	ASSERT_EQ("$default", path[2]->getName());
 }
 

@@ -215,9 +215,9 @@ NodeVector<Node> ResourceManager::parse(
 	// Make sure the parsed nodes fulfill the "supportedTypes" constraint,
 	// remove nodes that do not the result
 	for (auto it = parsedNodes.begin(); it != parsedNodes.end();) {
-		const Rtti &type = (*it)->type();
-		if (!type.isOneOf(supportedTypes)) {
-			logger.error(std::string("Node of internal type ") + type.name +
+		const Rtti *type = (*it)->type();
+		if (!type->isOneOf(supportedTypes)) {
+			logger.error(std::string("Node of internal type ") + type->name +
 			                 std::string(" not supported here"),
 			             **it);
 			it = parsedNodes.erase(it);

@@ -103,7 +103,7 @@ public:
 	 * @return a reference at a resolved node or nullptr if no node could be
 	 * found.
 	 */
-	Rooted<Node> resolve(const Rtti &type, const std::vector<std::string> &path,
+	Rooted<Node> resolve(const Rtti *type, const std::vector<std::string> &path,
 	                     Logger &logger);
 
 	/**
@@ -167,7 +167,7 @@ public:
 	template <class T>
 	Rooted<T> select(int maxDepth = -1)
 	{
-		return select(RttiSet{&typeOf<T>()}, maxDepth).cast<T>();
+		return select(RttiSet{typeOf<T>()}, maxDepth).cast<T>();
 	}
 
 	/**
@@ -195,7 +195,7 @@ public:
 	template <class T>
 	Rooted<T> selectOrThrow(int maxDepth = -1)
 	{
-		return selectOrThrow(RttiSet{&typeOf<T>()}, maxDepth).cast<T>();
+		return selectOrThrow(RttiSet{typeOf<T>()}, maxDepth).cast<T>();
 	}
 };
 
@@ -227,7 +227,7 @@ public:
 	/**
 	 * Reference at the type of the object that should be resolved.
 	 */
-	const Rtti &type;
+	const Rtti *type;
 
 	/**
 	 * Node for which the resolution is taking place.
@@ -248,7 +248,7 @@ public:
 	 * @param owner is the node for which the resolution takes place.
 	 */
 	DeferredResolution(const NodeVector<Node> &nodes,
-	                   const std::vector<std::string> &path, const Rtti &type,
+	                   const std::vector<std::string> &path, const Rtti *type,
 	                   ResolutionResultCallback resultCallback,
 	                   Handle<Node> owner);
 
@@ -482,7 +482,7 @@ public:
 	 * not mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
-	bool resolve(const Rtti &type, const std::vector<std::string> &path,
+	bool resolve(const Rtti *type, const std::vector<std::string> &path,
 	             Handle<Node> owner, Logger &logger,
 	             ResolutionImposterCallback imposterCallback,
 	             ResolutionResultCallback resultCallback);
@@ -505,7 +505,7 @@ public:
 	 * mean, that the resolved object does not exist, as it may be resolved
 	 * later.
 	 */
-	bool resolve(const Rtti &type, const std::vector<std::string> &path,
+	bool resolve(const Rtti *type, const std::vector<std::string> &path,
 	             Handle<Node> owner, Logger &logger,
 	             ResolutionResultCallback resultCallback);
 

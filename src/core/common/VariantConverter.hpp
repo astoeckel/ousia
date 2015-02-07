@@ -161,7 +161,7 @@ public:
 	 * @return true if the operation was successful, false otherwise. In any
 	 * case the input/output parameter "var" will have the requested type.
 	 */
-	static bool toArray(Variant &var, const Rtti &innerType, Logger &logger,
+	static bool toArray(Variant &var, const Rtti *innerType, Logger &logger,
 	                    Mode mode = Mode::SAFE);
 
 	/**
@@ -180,7 +180,7 @@ public:
 	 * @return true if the operation was successful, false otherwise. In any
 	 * case the input/output parameter "var" will have the requested type.
 	 */
-	static bool toMap(Variant &var, const Rtti &innerType, Logger &logger,
+	static bool toMap(Variant &var, const Rtti *innerType, Logger &logger,
 	                  Mode mode = Mode::SAFE);
 
 	/**
@@ -242,7 +242,7 @@ public:
 	 * @return true if the operation was successful, false otherwise. In any
 	 * case the input/output parameter "var" will have the requested type.
 	 */
-	static bool convert(Variant &var, const Rtti &type, const Rtti &innerType,
+	static bool convert(Variant &var, const Rtti *type, const Rtti *innerType,
 	                    Logger &logger, Mode mode = Mode::SAFE);
 
 	/**
@@ -261,7 +261,7 @@ public:
 	 * @return true if the operation was successful, false otherwise. In any
 	 * case the input/output parameter "var" will have the requested type.
 	 */
-	static bool convert(Variant &var, const Rtti &type, Logger &logger,
+	static bool convert(Variant &var, const Rtti *type, Logger &logger,
 	                    Mode mode = Mode::SAFE);
 };
 }

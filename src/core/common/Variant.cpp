@@ -148,12 +148,12 @@ Variant::arrayType Variant::toArray() const
 {
 	ExceptionLogger logger;
 	Variant res{*this};
-	VariantConverter::toArray(res, RttiTypes::None, logger,
+	VariantConverter::toArray(res, &RttiTypes::None, logger,
 	                          VariantConverter::Mode::ALL);
 	return res.asArray();
 }
 
-Variant::arrayType Variant::toArray(const Rtti &innerType) const
+Variant::arrayType Variant::toArray(const Rtti *innerType) const
 {
 	ExceptionLogger logger;
 	Variant res{*this};
@@ -166,12 +166,12 @@ Variant::mapType Variant::toMap() const
 {
 	ExceptionLogger logger;
 	Variant res{*this};
-	VariantConverter::toMap(res, RttiTypes::None, logger,
+	VariantConverter::toMap(res, &RttiTypes::None, logger,
 	                        VariantConverter::Mode::ALL);
 	return res.asMap();
 }
 
-Variant::mapType Variant::toMap(const Rtti &innerType) const
+Variant::mapType Variant::toMap(const Rtti *innerType) const
 {
 	ExceptionLogger logger;
 	Variant res{*this};
@@ -190,34 +190,34 @@ Variant::cardinalityType Variant::toCardinality() const
 
 /* Type management */
 
-const Rtti &Variant::getRtti() const
+const Rtti *Variant::getRtti() const
 {
 	switch (meta.getType()) {
 		case VariantType::NULLPTR:
-			return RttiTypes::Nullptr;
+			return &RttiTypes::Nullptr;
 		case VariantType::BOOL:
-			return RttiTypes::Bool;
+			return &RttiTypes::Bool;
 		case VariantType::INT:
-			return RttiTypes::Int;
+			return &RttiTypes::Int;
 		case VariantType::DOUBLE:
-			return RttiTypes::Double;
+			return &RttiTypes::Double;
 		case VariantType::STRING:
 		case VariantType::MAGIC:
-			return RttiTypes::String;
+			return &RttiTypes::String;
 		case VariantType::ARRAY:
-			return RttiTypes::Array;
+			return &RttiTypes::Array;
 		case VariantType::MAP:
-			return RttiTypes::Map;
+			return &RttiTypes::Map;
 		case VariantType::CARDINALITY:
-			return RttiTypes::Cardinality;
+			return &RttiTypes::Cardinality;
 		case VariantType::FUNCTION:
-			return RttiTypes::Function;
+			return &RttiTypes::Function;
 		case VariantType::OBJECT: {
 			Variant::objectType o = asObject();
-			return (o == nullptr) ? RttiTypes::Nullptr : o->type();
+			return (o == nullptr) ? &RttiTypes::Nullptr : o->type();
 		}
 	}
-	return RttiTypes::None;
+	return &RttiTypes::None;
 }
 
 /* Output stream operators */

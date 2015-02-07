@@ -249,7 +249,7 @@ TEST(VariantConverter, toString)
 }
 
 static void assertArrayConversion(Variant conv, Variant expected,
-                                  bool expectedSuccess, const Rtti &innerType,
+                                  bool expectedSuccess, const Rtti *innerType,
                                   VariantConverter::Mode mode, Logger &logger)
 {
 	EXPECT_EQ(expectedSuccess,
@@ -276,48 +276,48 @@ TEST(VariantConverter, toArray)
 	Variant C = card;
 
 	// in safe mode only array to array conversion should be possible.
-	assertArrayConversion(n, nullptr, false, RttiTypes::None,
+	assertArrayConversion(n, nullptr, false, &RttiTypes::None,
 	                      VariantConverter::Mode::SAFE, logger);
-	assertArrayConversion(b, nullptr, false, RttiTypes::None,
+	assertArrayConversion(b, nullptr, false, &RttiTypes::None,
 	                      VariantConverter::Mode::SAFE, logger);
-	assertArrayConversion(i, nullptr, false, RttiTypes::None,
+	assertArrayConversion(i, nullptr, false, &RttiTypes::None,
 	                      VariantConverter::Mode::SAFE, logger);
-	assertArrayConversion(d, nullptr, false, RttiTypes::None,
+	assertArrayConversion(d, nullptr, false, &RttiTypes::None,
 	                      VariantConverter::Mode::SAFE, logger);
-	assertArrayConversion(s, nullptr, false, RttiTypes::None,
+	assertArrayConversion(s, nullptr, false, &RttiTypes::None,
 	                      VariantConverter::Mode::SAFE, logger);
-	assertArrayConversion(A, A, true, RttiTypes::None,
+	assertArrayConversion(A, A, true, &RttiTypes::None,
 	                      VariantConverter::Mode::SAFE, logger);
-	assertArrayConversion(M, nullptr, false, RttiTypes::None,
+	assertArrayConversion(M, nullptr, false, &RttiTypes::None,
 	                      VariantConverter::Mode::SAFE, logger);
-	assertArrayConversion(C, nullptr, false, RttiTypes::None,
+	assertArrayConversion(C, nullptr, false, &RttiTypes::None,
 	                      VariantConverter::Mode::SAFE, logger);
 
 	// in all mode more should be possible.
-	assertArrayConversion(n, Variant::arrayType{n}, true, RttiTypes::None,
+	assertArrayConversion(n, Variant::arrayType{n}, true, &RttiTypes::None,
 	                      VariantConverter::Mode::ALL, logger);
-	assertArrayConversion(b, Variant::arrayType{b}, true, RttiTypes::None,
+	assertArrayConversion(b, Variant::arrayType{b}, true, &RttiTypes::None,
 	                      VariantConverter::Mode::ALL, logger);
-	assertArrayConversion(i, Variant::arrayType{i}, true, RttiTypes::None,
+	assertArrayConversion(i, Variant::arrayType{i}, true, &RttiTypes::None,
 	                      VariantConverter::Mode::ALL, logger);
-	assertArrayConversion(d, Variant::arrayType{d}, true, RttiTypes::None,
+	assertArrayConversion(d, Variant::arrayType{d}, true, &RttiTypes::None,
 	                      VariantConverter::Mode::ALL, logger);
-	assertArrayConversion(s, Variant::arrayType{s}, true, RttiTypes::None,
+	assertArrayConversion(s, Variant::arrayType{s}, true, &RttiTypes::None,
 	                      VariantConverter::Mode::ALL, logger);
-	assertArrayConversion(A, A, true, RttiTypes::None,
+	assertArrayConversion(A, A, true, &RttiTypes::None,
 	                      VariantConverter::Mode::ALL, logger);
-	assertArrayConversion(M, Variant::arrayType{M}, true, RttiTypes::None,
+	assertArrayConversion(M, Variant::arrayType{M}, true, &RttiTypes::None,
 	                      VariantConverter::Mode::ALL, logger);
-	assertArrayConversion(C, Variant::arrayType{C}, true, RttiTypes::None,
+	assertArrayConversion(C, Variant::arrayType{C}, true, &RttiTypes::None,
 	                      VariantConverter::Mode::ALL, logger);
 	// as an example also check the inner type converion
 	assertArrayConversion(
 	    A, Variant::arrayType{Variant(1), Variant(6), Variant(2), Variant(9)},
-	    true, RttiTypes::Int, VariantConverter::Mode::ALL, logger);
+	    true, &RttiTypes::Int, VariantConverter::Mode::ALL, logger);
 }
 
 static void assertMapConversion(Variant conv, Variant expected,
-                                bool expectedSuccess, const Rtti &innerType,
+                                bool expectedSuccess, const Rtti *innerType,
                                 VariantConverter::Mode mode, Logger &logger)
 {
 	EXPECT_EQ(expectedSuccess,
@@ -344,39 +344,39 @@ TEST(VariantConverter, toMap)
 	Variant C = card;
 
 	// in safe mode only map to map conversion should be possible.
-	assertMapConversion(n, nullptr, false, RttiTypes::None,
+	assertMapConversion(n, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::SAFE, logger);
-	assertMapConversion(b, nullptr, false, RttiTypes::None,
+	assertMapConversion(b, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::SAFE, logger);
-	assertMapConversion(i, nullptr, false, RttiTypes::None,
+	assertMapConversion(i, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::SAFE, logger);
-	assertMapConversion(d, nullptr, false, RttiTypes::None,
+	assertMapConversion(d, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::SAFE, logger);
-	assertMapConversion(s, nullptr, false, RttiTypes::None,
+	assertMapConversion(s, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::SAFE, logger);
-	assertMapConversion(A, nullptr, false, RttiTypes::None,
+	assertMapConversion(A, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::SAFE, logger);
-	assertMapConversion(M, M, true, RttiTypes::None,
+	assertMapConversion(M, M, true, &RttiTypes::None,
 	                    VariantConverter::Mode::SAFE, logger);
-	assertMapConversion(C, nullptr, false, RttiTypes::None,
+	assertMapConversion(C, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::SAFE, logger);
 
 	// in all mode that should be the same.
-	assertMapConversion(n, nullptr, false, RttiTypes::None,
+	assertMapConversion(n, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::ALL, logger);
-	assertMapConversion(b, nullptr, false, RttiTypes::None,
+	assertMapConversion(b, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::ALL, logger);
-	assertMapConversion(i, nullptr, false, RttiTypes::None,
+	assertMapConversion(i, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::ALL, logger);
-	assertMapConversion(d, nullptr, false, RttiTypes::None,
+	assertMapConversion(d, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::ALL, logger);
-	assertMapConversion(s, nullptr, false, RttiTypes::None,
+	assertMapConversion(s, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::ALL, logger);
-	assertMapConversion(A, nullptr, false, RttiTypes::None,
+	assertMapConversion(A, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::ALL, logger);
-	assertMapConversion(M, M, true, RttiTypes::None,
+	assertMapConversion(M, M, true, &RttiTypes::None,
 	                    VariantConverter::Mode::ALL, logger);
-	assertMapConversion(C, nullptr, false, RttiTypes::None,
+	assertMapConversion(C, nullptr, false, &RttiTypes::None,
 	                    VariantConverter::Mode::ALL, logger);
 
 	// but we should be able to convert the inner type.
@@ -384,14 +384,14 @@ TEST(VariantConverter, toMap)
 	                                        {"i", Variant(6)},
 	                                        {"d", Variant(2)},
 	                                        {"s", Variant(9)}},
-	                    true, RttiTypes::Int, VariantConverter::Mode::ALL,
+	                    true, &RttiTypes::Int, VariantConverter::Mode::ALL,
 	                    logger);
 	// which should not work in SAFE mode.
 	assertMapConversion(M, Variant::mapType{{"b", Variant(1)},
 	                                        {"i", Variant(6)},
 	                                        {"d", Variant(2)},
 	                                        {"s", Variant(9)}},
-	                    false, RttiTypes::Int, VariantConverter::Mode::SAFE,
+	                    false, &RttiTypes::Int, VariantConverter::Mode::SAFE,
 	                    logger);
 }
 

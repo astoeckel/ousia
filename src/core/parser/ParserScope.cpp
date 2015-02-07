@@ -33,7 +33,7 @@ ParserScopeBase::ParserScopeBase(const NodeVector<Node> &nodes) : nodes(nodes)
 {
 }
 
-Rooted<Node> ParserScopeBase::resolve(const Rtti &type,
+Rooted<Node> ParserScopeBase::resolve(const Rtti *type,
                                       const std::vector<std::string> &path,
                                       Logger &logger)
 {
@@ -74,7 +74,7 @@ std::vector<Rtti const *> ParserScopeBase::getStackTypeSignature() const
 	std::vector<Rtti const *> res;
 	res.reserve(nodes.size());
 	for (size_t i = 0; i < nodes.size(); i++) {
-		res.push_back(&(nodes[i]->type()));
+		res.push_back(nodes[i]->type());
 	}
 	return res;
 }
@@ -86,7 +86,7 @@ Rooted<Node> ParserScopeBase::select(RttiSet types, int maxDepth)
 		minDepth = static_cast<ssize_t>(nodes.size()) - (maxDepth + 1);
 	}
 	for (ssize_t i = nodes.size() - 1; i >= minDepth; i--) {
-		if (nodes[i]->type().isOneOf(types)) {
+		if (nodes[i]->type()->isOneOf(types)) {
 			return nodes[i];
 		}
 	}
@@ -113,7 +113,7 @@ Rooted<Node> ParserScopeBase::selectOrThrow(RttiSet types, int maxDepth)
 
 DeferredResolution::DeferredResolution(const NodeVector<Node> &nodes,
                                        const std::vector<std::string> &path,
-                                       const Rtti &type,
+                                       const Rtti *type,
                                        ResolutionResultCallback resultCallback,
                                        Handle<Node> owner)
     : scope(nodes),
@@ -179,7 +179,7 @@ bool ParserScope::checkUnwound(Logger &logger) const
 		            MessageMode::NO_CONTEXT);
 		for (size_t i = topLevelDepth + 1; i < nodes.size(); i++) {
 			logger.note(std::string("Element of interal type ") +
-			                nodes[i]->type().name +
+			                nodes[i]->type()->name +
 			                std::string(" defined here:"),
 			            *nodes[i]);
 		}
@@ -270,7 +270,7 @@ bool ParserScope::getFlag(ParserFlag flag)
 	return false;
 }
 
-bool ParserScope::resolve(const Rtti &type,
+bool ParserScope::resolve(const Rtti *type,
                           const std::vector<std::string> &path,
                           Handle<Node> owner, Logger &logger,
                           ResolutionImposterCallback imposterCallback,
@@ -283,7 +283,7 @@ bool ParserScope::resolve(const Rtti &type,
 	return true;
 }
 
-bool ParserScope::resolve(const Rtti &type,
+bool ParserScope::resolve(const Rtti *type,
                           const std::vector<std::string> &path,
                           Handle<Node> owner, Logger &logger,
                           ResolutionResultCallback resultCallback)
@@ -340,7 +340,7 @@ bool ParserScope::resolveType(const std::vector<std::string> &path,
 	}
 
 	// Requested type is not an array, call the usual resolve function
-	return resolve(RttiTypes::Type, path, owner, logger, resultCallback);
+	return resolve(&RttiTypes::Type, path, owner, logger, resultCallback);
 }
 
 bool ParserScope::resolveType(const std::string &name, Handle<Node> owner,
@@ -359,7 +359,7 @@ bool ParserScope::resolveValue(Variant &data, Handle<Type> type,
 	        const Type *innerType) mutable -> Type::MagicCallbackResult {
 		    // Try to resolve the node
 		    Rooted<Constant> constant =
-		        ParserScopeBase::resolve(RttiTypes::Constant,
+		        ParserScopeBase::resolve(&RttiTypes::Constant,
 		                                 Utils::split(innerData.asMagic(), '.'),
 		                                 logger).cast<Constant>();
 
@@ -464,7 +464,7 @@ bool ParserScope::performDeferredResolution(Logger &logger)
 	// succeed.
 	for (auto &failed : deferred) {
 		failed.fail(logger);
-		logger.error(std::string("Could not resolve ") + failed.type.name +
+		logger.error(std::string("Could not resolve ") + failed.type->name +
 		                 std::string(" \"") + Utils::join(failed.path, ".") +
 		                 std::string("\""),
 		             *failed.owner);

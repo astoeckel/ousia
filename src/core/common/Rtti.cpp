@@ -34,14 +34,14 @@ void RttiStore::store(const std::type_info &native, const Rtti *rtti)
 	table().emplace(std::type_index{native}, rtti);
 }
 
-const Rtti &RttiStore::lookup(const std::type_info &native)
+const Rtti *RttiStore::lookup(const std::type_info &native)
 {
 	const auto &tbl = table();
 	auto it = tbl.find(std::type_index{native});
 	if (it == tbl.end()) {
-		return RttiTypes::None;
+		return &RttiTypes::None;
 	} else {
-		return *(it->second);
+		return it->second;
 	}
 }
 
@@ -120,10 +120,10 @@ void Rtti::initialize() const
 	}
 }
 
-bool Rtti::isa(const Rtti &other) const
+bool Rtti::isa(const Rtti *other) const
 {
 	initialize();
-	return parents.count(&other) > 0;
+	return parents.count(other) > 0;
 }
 
 bool Rtti::isOneOf(const RttiSet &others) const
@@ -158,10 +158,10 @@ RttiSet Rtti::setIntersection(const RttiSet &s1, const RttiSet &s2)
 	return res;
 }
 
-bool Rtti::composedOf(const Rtti &other) const
+bool Rtti::composedOf(const Rtti *other) const
 {
 	initialize();
-	return compositeTypes.count(&other) > 0;
+	return compositeTypes.count(other) > 0;
 }
 
 const RttiMethodMap &Rtti::getMethods() const

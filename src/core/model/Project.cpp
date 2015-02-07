@@ -42,7 +42,7 @@ void Project::doResolve(ResolutionState &state){
 }
 
 void Project::doReference(Handle<Node> node) {
-	if (node->isa(RttiTypes::Document)) {
+	if (node->isa(&RttiTypes::Document)) {
 		referenceDocument(node.cast<Document>());
 	}
 }

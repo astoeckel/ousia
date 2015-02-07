@@ -62,7 +62,7 @@ public:
 	/**
 	 * Type of the node that was requested for resolution.
 	 */
-	const Rtti &type;
+	const Rtti *type;
 
 	/**
 	 * Actual path (name pattern) that was requested for resolution.
@@ -86,7 +86,7 @@ public:
 	 * @param path is a const reference to the actual path that should be
 	 * resolved.
 	 */
-	SharedResolutionState(const Rtti &type,
+	SharedResolutionState(const Rtti *type,
 	                      const std::vector<std::string> &path)
 	    : type(type), path(path)
 	{
@@ -182,35 +182,86 @@ public:
 	/**
 	 * Returns true if the given type matches the type given in the query.
 	 *
+	 * @param type is the type that should be checked.
 	 * @return true if the type matches, false otherwise.
 	 */
-	bool typeMatches(const Rtti &type) { return type.isa(shared.type); }
+	bool typeMatches(const Rtti *type) { return type->isa(shared.type); }
 
-	bool canContainType(const Rtti &type)
+	/**
+	 * Returns true if the given type can contain the node that is currently
+	 * being resolved.
+	 *
+	 * @param type is the type that should be checked.
+	 * @return true if the given type can contain the node that is currently
+	 * begin resolved, false otherwise.
+	 */
+	bool canContainType(const Rtti *type)
 	{
-		return type.composedOf(shared.type);
+		return type->composedOf(shared.type);
 	}
 
-	const std::string &currentName() { return shared.path[idx]; }
-
-	ResolutionState advance()
-	{
-		return ResolutionState{shared, resolutionRoot, idx + 1, false};
-	}
-
-	ResolutionState fork(Node *newResolutionRoot)
-	{
-		return ResolutionState{shared, newResolutionRoot, 0, false};
-	}
-
+	/**
+	 * Returns true if the resolution process is still allowed to follow
+	 * references. This is only the case if we are at the beginning of the
+	 * resolution process and have not entered another start tree.
+	 *
+	 * @return true if references can still be followed, false if only composita
+	 * may be examined.
+	 */
 	bool canFollowReferences()
 	{
 		return idx == 0 && inStartTree && !foundCompositum;
 	}
 
+	/**
+	 * Returns true if we can still descend into new composita. This is only
+	 * the case if we have not yet descended into another compositum beforehand.
+	 *
+	 * @return true if composita can be followed, false otherwise.
+	 */
 	bool canFollowComposita() { return idx == 0; }
 
+	/**
+	 * Returns the number of matching nodes that were found until now.
+	 *
+	 * @return the number of matching nodes.
+	 */
 	size_t resultCount() { return shared.result.size(); }
+
+	/**
+	 * Returns the name that is currently being search for (at the current path
+	 * position).
+	 *
+	 * @return the current name.
+	 */
+	const std::string &currentName() { return shared.path[idx]; }
+
+	/**
+	 * Returns a new ResolutionState instance where the path position is moved
+	 * on by one element.
+	 *
+	 * @return a copy of the current ResolutionState instance with the path
+	 * position being incremented by one.
+	 */
+	ResolutionState advance()
+	{
+		return ResolutionState{shared, resolutionRoot, idx + 1, false};
+	}
+
+	/**
+	 * Forks current ResolutionState instance with the resolution starting at
+	 * the given node. This function is used when a reference is being followed.
+	 *
+	 * @param newResolutionRoot is the root node of the new subtree in which
+	 * resolution takes place.
+	 * @return a copy of this ResolutionState instance with the resolution root
+	 * begin set to the new root instance and the path position being set to
+	 * zero.
+	 */
+	ResolutionState fork(Node *newResolutionRoot)
+	{
+		return ResolutionState{shared, newResolutionRoot, 0, false};
+	}
 };
 
 /* Class ResolutionResult */
@@ -329,7 +380,7 @@ bool Node::continueResolveReference(Handle<Node> h, ResolutionState &state)
 }
 
 std::vector<ResolutionResult> Node::resolve(
-    const Rtti &type, const std::vector<std::string> &path)
+    const Rtti *type, const std::vector<std::string> &path)
 {
 	// Create the state variables
 	SharedResolutionState sharedState(type, path);
@@ -344,7 +395,7 @@ std::vector<ResolutionResult> Node::resolve(
 	return sharedState.result;
 }
 
-std::vector<ResolutionResult> Node::resolve(const Rtti &type,
+std::vector<ResolutionResult> Node::resolve(const Rtti *type,
                                             const std::string &name)
 {
 	// Place the name in a vector and call the corresponding resolve function
@@ -359,7 +410,7 @@ bool Node::checkDuplicate(Handle<Node> elem,
 	if (!names.emplace(name).second) {
 		logger.error(std::string("Element with name \"") + name +
 		                 std::string("\" defined multiple times in parent ") +
-		                 type().name + std::string(" \"") +
+		                 type()->name + std::string(" \"") +
 		                 Utils::join(path(), ".") + std::string("\""),
 		             *elem);
 		return false;
@@ -398,7 +449,7 @@ bool Node::doValidate(Logger &logger) const { return true; }
 bool Node::validateName(Logger &logger) const
 {
 	if (!Utils::isIdentifier(name)) {
-		logger.error(type().name + std::string(" name \"") + name +
+		logger.error(type()->name + std::string(" name \"") + name +
 		                 std::string("\" is not a valid identifier"),
 		             this);
 		return false;
@@ -421,7 +472,7 @@ bool Node::validateIsAcyclic(const std::string &name,
 		for (size_t i = 0; i < path.size(); i++) {
 			auto node = path[i];
 			const std::string &name = node->getName();
-			const std::string &typeName = node->type().name;
+			const std::string &typeName = node->type()->name;
 			const std::string suffix =
 			    i == path.size() - 1
 			        ? std::string{" (this node closes the cycle):"}
@@ -517,14 +568,14 @@ void Node::setParent(Handle<Node> p)
 namespace RttiTypes {
 const Rtti Node =
     RttiBuilder<ousia::Node>("Node")
-        .property("name", {RttiTypes::String,
+        .property("name", {&RttiTypes::String,
                            {[](const ousia::Node *obj) {
 	                           return Variant::fromString(obj->getName());
 	                       }},
                            {[](const Variant &value, ousia::Node *obj) {
 	                           obj->setName(value.asString());
 	                       }}})
-        .property("parent", {Node,
+        .property("parent", {&Node,
                              {[](const ousia::Node *obj) {
 	                             return Variant::fromObject(obj->getParent());
 	                         }}});

@@ -45,7 +45,7 @@ static std::string getPathString(const Path &path)
 
 static Rooted<Descriptor> resolveDescriptor(Handle<Document> doc,
                                             Logger &logger, const Path &path,
-                                            const Rtti &type)
+                                            const Rtti *type)
 {
 	// use the actual resolve method.
 	std::vector<ResolutionResult> resolved = doc->resolve(type, path);
@@ -96,7 +96,7 @@ Rooted<StructuredEntity> buildRootStructuredEntity(
 	// If we can not find the correct descriptor, we can not build the entity
 	// either.
 	Rooted<Descriptor> descriptor =
-	    resolveDescriptor(document, logger, path, RttiTypes::StructuredClass);
+	    resolveDescriptor(document, logger, path, &RttiTypes::StructuredClass);
 	if (descriptor == nullptr) {
 		return {nullptr};
 	}
@@ -146,11 +146,11 @@ Rooted<StructuredEntity> buildStructuredEntity(
 	// If we can not find the correct descriptor, we can not build the entity
 	// either.
 	Rooted<Descriptor> descriptor =
-	    resolveDescriptor(document, logger, path, RttiTypes::StructuredClass);
+	    resolveDescriptor(document, logger, path, &RttiTypes::StructuredClass);
 	if (descriptor == nullptr) {
 		return {nullptr};
 	}
-	if (!descriptor->isa(RttiTypes::StructuredClass)) {
+	if (!descriptor->isa(&RttiTypes::StructuredClass)) {
 		return {nullptr};
 		logger.error("The descriptor was not an AnnotationClass!");
 	}
@@ -195,11 +195,11 @@ Rooted<AnnotationEntity> buildAnnotationEntity(
 	// If we can not find the correct descriptor, we can not build the
 	// entity either.
 	Rooted<Descriptor> descriptor =
-	    resolveDescriptor(document, logger, path, RttiTypes::AnnotationClass);
+	    resolveDescriptor(document, logger, path, &RttiTypes::AnnotationClass);
 	if (descriptor == nullptr) {
 		return {nullptr};
 	}
-	if (!descriptor->isa(RttiTypes::AnnotationClass)) {
+	if (!descriptor->isa(&RttiTypes::AnnotationClass)) {
 		return {nullptr};
 		logger.error("The descriptor was not an AnnotationClass!");
 	}

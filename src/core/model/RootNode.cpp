@@ -24,10 +24,10 @@ namespace ousia {
 
 void RootNode::reference(Handle<Node> node)
 {
-	if (!node->type().isOneOf(getReferenceTypes())) {
+	if (!node->type()->isOneOf(getReferenceTypes())) {
 		throw OusiaException(
-		    std::string("Node with type ") + node->type().name +
-		    std::string(" cannot be referenced in a ") + type().name);
+		    std::string("Node with type ") + node->type()->name +
+		    std::string(" cannot be referenced in a ") + type()->name);
 	}
 	doReference(node);
 }

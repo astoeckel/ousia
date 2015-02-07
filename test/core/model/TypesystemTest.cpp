@@ -37,20 +37,20 @@ TEST(StringType, rtti)
 	Rooted<StringType> strType{new StringType(mgr, nullptr)};
 	ASSERT_TRUE(strType->isa(typeOf<Type>()));
 	ASSERT_TRUE(strType->isa(typeOf<Node>()));
-	ASSERT_TRUE(strType->isa(RttiTypes::StringType));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::Type));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::StringType));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::IntType));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::DoubleType));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::BoolType));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::EnumType));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::StructType));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::ArrayType));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::UnknownType));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::Constant));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::Attribute));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::Typesystem));
-	ASSERT_FALSE(strType->composedOf(RttiTypes::SystemTypesystem));
+	ASSERT_TRUE(strType->isa(&RttiTypes::StringType));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::Type));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::StringType));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::IntType));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::DoubleType));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::BoolType));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::EnumType));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::StructType));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::ArrayType));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::UnknownType));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::Constant));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::Attribute));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::Typesystem));
+	ASSERT_FALSE(strType->composedOf(&RttiTypes::SystemTypesystem));
 }
 
 TEST(StringType, creation)
@@ -124,22 +124,22 @@ TEST(IntType, rtti)
 {
 	Manager mgr;
 	Rooted<IntType> intType{new IntType(mgr, nullptr)};
-	ASSERT_TRUE(intType->isa(RttiTypes::IntType));
+	ASSERT_TRUE(intType->isa(&RttiTypes::IntType));
 	ASSERT_TRUE(intType->isa(typeOf<Type>()));
 	ASSERT_TRUE(intType->isa(typeOf<Node>()));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::Type));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::StringType));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::IntType));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::DoubleType));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::BoolType));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::EnumType));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::StructType));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::ArrayType));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::UnknownType));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::Constant));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::Attribute));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::Typesystem));
-	ASSERT_FALSE(intType->composedOf(RttiTypes::SystemTypesystem));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::Type));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::StringType));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::IntType));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::DoubleType));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::BoolType));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::EnumType));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::StructType));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::ArrayType));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::UnknownType));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::Constant));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::Attribute));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::Typesystem));
+	ASSERT_FALSE(intType->composedOf(&RttiTypes::SystemTypesystem));
 }
 
 TEST(IntType, creation)
@@ -177,22 +177,22 @@ TEST(DoubleType, rtti)
 {
 	Manager mgr;
 	Rooted<DoubleType> doubleType{new DoubleType(mgr, nullptr)};
-	ASSERT_TRUE(doubleType->isa(RttiTypes::DoubleType));
+	ASSERT_TRUE(doubleType->isa(&RttiTypes::DoubleType));
 	ASSERT_TRUE(doubleType->isa(typeOf<Type>()));
 	ASSERT_TRUE(doubleType->isa(typeOf<Node>()));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::Type));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::StringType));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::IntType));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::DoubleType));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::BoolType));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::EnumType));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::StructType));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::ArrayType));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::UnknownType));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::Constant));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::Attribute));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::Typesystem));
-	ASSERT_FALSE(doubleType->composedOf(RttiTypes::SystemTypesystem));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::Type));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::StringType));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::IntType));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::DoubleType));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::BoolType));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::EnumType));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::StructType));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::ArrayType));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::UnknownType));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::Constant));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::Attribute));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::Typesystem));
+	ASSERT_FALSE(doubleType->composedOf(&RttiTypes::SystemTypesystem));
 }
 
 TEST(DoubleType, creation)
@@ -237,22 +237,22 @@ TEST(BoolType, rtti)
 {
 	Manager mgr;
 	Rooted<BoolType> boolType{new BoolType(mgr, nullptr)};
-	ASSERT_TRUE(boolType->isa(RttiTypes::BoolType));
+	ASSERT_TRUE(boolType->isa(&RttiTypes::BoolType));
 	ASSERT_TRUE(boolType->isa(typeOf<Type>()));
 	ASSERT_TRUE(boolType->isa(typeOf<Node>()));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::Type));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::StringType));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::IntType));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::DoubleType));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::BoolType));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::EnumType));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::StructType));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::ArrayType));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::UnknownType));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::Constant));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::Attribute));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::Typesystem));
-	ASSERT_FALSE(boolType->composedOf(RttiTypes::SystemTypesystem));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::Type));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::StringType));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::IntType));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::DoubleType));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::BoolType));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::EnumType));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::StructType));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::ArrayType));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::UnknownType));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::Constant));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::Attribute));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::Typesystem));
+	ASSERT_FALSE(boolType->composedOf(&RttiTypes::SystemTypesystem));
 }
 
 TEST(BoolType, creation)
@@ -298,22 +298,22 @@ TEST(EnumType, rtti)
 	Manager mgr;
 	Rooted<EnumType> enumType{EnumType::createValidated(
 	    mgr, "enum", nullptr, {"a", "b", "c"}, logger)};
-	ASSERT_TRUE(enumType->isa(RttiTypes::EnumType));
+	ASSERT_TRUE(enumType->isa(&RttiTypes::EnumType));
 	ASSERT_TRUE(enumType->isa(typeOf<Type>()));
 	ASSERT_TRUE(enumType->isa(typeOf<Node>()));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::Type));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::StringType));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::IntType));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::DoubleType));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::BoolType));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::EnumType));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::StructType));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::ArrayType));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::UnknownType));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::Constant));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::Attribute));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::Typesystem));
-	ASSERT_FALSE(enumType->composedOf(RttiTypes::SystemTypesystem));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::Type));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::StringType));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::IntType));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::DoubleType));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::BoolType));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::EnumType));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::StructType));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::ArrayType));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::UnknownType));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::Constant));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::Attribute));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::Typesystem));
+	ASSERT_FALSE(enumType->composedOf(&RttiTypes::SystemTypesystem));
 }
 
 TEST(EnumType, creation)
@@ -476,22 +476,22 @@ TEST(StructType, rtti)
 {
 	Manager mgr;
 	Rooted<StructType> structType = createStructType(mgr, logger);
-	ASSERT_TRUE(structType->isa(RttiTypes::StructType));
+	ASSERT_TRUE(structType->isa(&RttiTypes::StructType));
 	ASSERT_TRUE(structType->isa(typeOf<Type>()));
 	ASSERT_TRUE(structType->isa(typeOf<Node>()));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::Type));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::StringType));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::IntType));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::DoubleType));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::BoolType));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::EnumType));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::StructType));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::ArrayType));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::UnknownType));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::Constant));
-	ASSERT_TRUE(structType->composedOf(RttiTypes::Attribute));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::Typesystem));
-	ASSERT_FALSE(structType->composedOf(RttiTypes::SystemTypesystem));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::Type));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::StringType));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::IntType));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::DoubleType));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::BoolType));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::EnumType));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::StructType));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::ArrayType));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::UnknownType));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::Constant));
+	ASSERT_TRUE(structType->composedOf(&RttiTypes::Attribute));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::Typesystem));
+	ASSERT_FALSE(structType->composedOf(&RttiTypes::SystemTypesystem));
 }
 
 TEST(StructType, creation)
@@ -789,22 +789,22 @@ TEST(ArrayType, rtti)
 	Manager mgr;
 	Rooted<StringType> stringType{new StringType(mgr, nullptr)};
 	Rooted<ArrayType> arrayType{new ArrayType(stringType)};
-	ASSERT_TRUE(arrayType->isa(RttiTypes::ArrayType));
+	ASSERT_TRUE(arrayType->isa(&RttiTypes::ArrayType));
 	ASSERT_TRUE(arrayType->isa(typeOf<Type>()));
 	ASSERT_TRUE(arrayType->isa(typeOf<Node>()));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::Type));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::StringType));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::IntType));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::DoubleType));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::BoolType));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::EnumType));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::StructType));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::ArrayType));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::UnknownType));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::Constant));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::Attribute));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::Typesystem));
-	ASSERT_FALSE(arrayType->composedOf(RttiTypes::SystemTypesystem));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::Type));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::StringType));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::IntType));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::DoubleType));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::BoolType));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::EnumType));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::StructType));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::ArrayType));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::UnknownType));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::Constant));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::Attribute));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::Typesystem));
+	ASSERT_FALSE(arrayType->composedOf(&RttiTypes::SystemTypesystem));
 }
 
 TEST(ArrayType, creation)
@@ -910,22 +910,22 @@ TEST(UnknownType, rtti)
 {
 	Manager mgr;
 	Rooted<UnknownType> unknownType{new UnknownType(mgr)};
-	ASSERT_TRUE(unknownType->isa(RttiTypes::UnknownType));
+	ASSERT_TRUE(unknownType->isa(&RttiTypes::UnknownType));
 	ASSERT_TRUE(unknownType->isa(typeOf<Type>()));
 	ASSERT_TRUE(unknownType->isa(typeOf<Node>()));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::Type));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::StringType));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::IntType));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::DoubleType));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::BoolType));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::EnumType));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::StructType));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::ArrayType));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::UnknownType));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::Constant));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::Attribute));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::Typesystem));
-	ASSERT_FALSE(unknownType->composedOf(RttiTypes::SystemTypesystem));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::Type));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::StringType));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::IntType));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::DoubleType));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::BoolType));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::EnumType));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::StructType));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::ArrayType));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::UnknownType));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::Constant));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::Attribute));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::Typesystem));
+	ASSERT_FALSE(unknownType->composedOf(&RttiTypes::SystemTypesystem));
 }
 
 TEST(UnknownType, creation)
@@ -956,19 +956,19 @@ TEST(Typesystem, rtti)
 {
 	Manager mgr{1};
 	Rooted<Typesystem> typesystem{new Typesystem{mgr, "typesystem"}};
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::Type));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::StringType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::IntType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::DoubleType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::BoolType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::EnumType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::StructType));
-	ASSERT_FALSE(typesystem->composedOf(RttiTypes::ArrayType));
-	ASSERT_FALSE(typesystem->composedOf(RttiTypes::UnknownType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::Constant));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::Attribute));
-	ASSERT_FALSE(typesystem->composedOf(RttiTypes::Typesystem));
-	ASSERT_FALSE(typesystem->composedOf(RttiTypes::SystemTypesystem));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::Type));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::StringType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::IntType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::DoubleType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::BoolType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::EnumType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::StructType));
+	ASSERT_FALSE(typesystem->composedOf(&RttiTypes::ArrayType));
+	ASSERT_FALSE(typesystem->composedOf(&RttiTypes::UnknownType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::Constant));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::Attribute));
+	ASSERT_FALSE(typesystem->composedOf(&RttiTypes::Typesystem));
+	ASSERT_FALSE(typesystem->composedOf(&RttiTypes::SystemTypesystem));
 }
 
 /* Class SystemTypesystem */
@@ -977,18 +977,18 @@ TEST(SystemTypesystem, rtti)
 {
 	Manager mgr{1};
 	Rooted<SystemTypesystem> typesystem{new SystemTypesystem{mgr}};
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::Type));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::StringType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::IntType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::DoubleType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::BoolType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::EnumType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::StructType));
-	ASSERT_FALSE(typesystem->composedOf(RttiTypes::ArrayType));
-	ASSERT_FALSE(typesystem->composedOf(RttiTypes::UnknownType));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::Constant));
-	ASSERT_TRUE(typesystem->composedOf(RttiTypes::Attribute));
-	ASSERT_FALSE(typesystem->composedOf(RttiTypes::Typesystem));
-	ASSERT_FALSE(typesystem->composedOf(RttiTypes::SystemTypesystem));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::Type));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::StringType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::IntType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::DoubleType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::BoolType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::EnumType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::StructType));
+	ASSERT_FALSE(typesystem->composedOf(&RttiTypes::ArrayType));
+	ASSERT_FALSE(typesystem->composedOf(&RttiTypes::UnknownType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::Constant));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::Attribute));
+	ASSERT_FALSE(typesystem->composedOf(&RttiTypes::Typesystem));
+	ASSERT_FALSE(typesystem->composedOf(&RttiTypes::SystemTypesystem));
 }
 }

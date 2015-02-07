@@ -127,7 +127,7 @@ public:
 	 * Looks up the type information stored for the given native type
 	 * information.
 	 */
-	static const Rtti &lookup(const std::type_info &native);
+	static const Rtti *lookup(const std::type_info &native);
 };
 
 /**
@@ -381,7 +381,7 @@ public:
 	 * @return true if this type (directly or indirectly) has the given other
 	 * type as parent or equals the other type.
 	 */
-	bool isa(const Rtti &other) const;
+	bool isa(const Rtti *other) const;
 
 	/**
 	 * Returns true if this Rtti instance is one of the given types.
@@ -421,7 +421,7 @@ public:
 	 * @param other is the other type for which should be checked whether this
 	 * type is directly or indirectly composed of it.
 	 */
-	bool composedOf(const Rtti &other) const;
+	bool composedOf(const Rtti *other) const;
 
 	/**
 	 * Returns all methods that are registered for this type (and the parent
@@ -489,7 +489,7 @@ public:
  * @tparam T is the C++ type for which the type information should be returned.
  */
 template <typename T>
-inline const Rtti &typeOf()
+inline const Rtti *typeOf()
 {
 	return RttiStore::lookup(typeid(T));
 }
@@ -505,7 +505,7 @@ inline const Rtti &typeOf()
  * returned.
  */
 template <typename T>
-inline const Rtti &typeOf(const T &obj)
+inline const Rtti *typeOf(const T &obj)
 {
 	return RttiStore::lookup(typeid(obj));
 }

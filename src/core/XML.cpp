@@ -123,7 +123,7 @@ namespace RttiTypes
 	    RttiBuilder<xml::Element>("XMLElement")
 	        .parent(&XMLNode)
 	        .composedOf(&XMLNode)
-	        .property("name", {RttiTypes::String,
+	        .property("name", {&RttiTypes::String,
 	                           {[](const xml::Element *obj) {
 		                           return Variant::fromString(obj->name);
 		                       }}});

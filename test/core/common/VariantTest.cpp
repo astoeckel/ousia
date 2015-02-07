@@ -40,7 +40,7 @@ TEST(Variant, nullValue)
 	ASSERT_TRUE(v.isNull());
 
 	ASSERT_EQ(VariantType::NULLPTR, v.getType());
-	ASSERT_EQ(&RttiTypes::Nullptr, &v.getRtti());
+	ASSERT_EQ(&RttiTypes::Nullptr, v.getRtti());
 }
 
 TEST(Variant, booleanValue)
@@ -57,7 +57,7 @@ TEST(Variant, booleanValue)
 	ASSERT_TRUE(v.isBool());
 	ASSERT_TRUE(v.asBool());
 	ASSERT_EQ(VariantType::BOOL, v.getType());
-	ASSERT_EQ(&RttiTypes::Bool, &v.getRtti());
+	ASSERT_EQ(&RttiTypes::Bool, v.getRtti());
 
 	v = nullptr;
 	ASSERT_FALSE(v.isBool());
@@ -73,7 +73,7 @@ TEST(Variant, intValue)
 	ASSERT_TRUE(v.isInt());
 	ASSERT_EQ(43, v.asInt());
 	ASSERT_EQ(VariantType::INT, v.getType());
-	ASSERT_EQ(&RttiTypes::Int, &v.getRtti());
+	ASSERT_EQ(&RttiTypes::Int, v.getRtti());
 
 	v = false;
 	ASSERT_FALSE(v.isInt());
@@ -92,7 +92,7 @@ TEST(Variant, doubleValue)
 	ASSERT_TRUE(v.isDouble());
 	ASSERT_EQ(43.5, v.asDouble());
 	ASSERT_EQ(VariantType::DOUBLE, v.getType());
-	ASSERT_EQ(&RttiTypes::Double, &v.getRtti());
+	ASSERT_EQ(&RttiTypes::Double, v.getRtti());
 }
 
 TEST(Variant, stringValue)
@@ -105,7 +105,7 @@ TEST(Variant, stringValue)
 	ASSERT_TRUE(v.isString());
 	ASSERT_EQ("Goodbye Cruel World", v.asString());
 	ASSERT_EQ(VariantType::STRING, v.getType());
-	ASSERT_EQ(&RttiTypes::String, &v.getRtti());
+	ASSERT_EQ(&RttiTypes::String, v.getRtti());
 
 	v = 42;
 	ASSERT_FALSE(v.isString());
@@ -134,7 +134,7 @@ TEST(Variant, cardinalityValue)
 
 	ASSERT_TRUE(v.isCardinality());
 	ASSERT_EQ(VariantType::CARDINALITY, v.getType());
-	ASSERT_EQ(&RttiTypes::Cardinality, &v.getRtti());
+	ASSERT_EQ(&RttiTypes::Cardinality, v.getRtti());
 }
 
 
@@ -147,7 +147,7 @@ TEST(Variant, arrayValue)
 
 	ASSERT_TRUE(v.isArray());
 	ASSERT_EQ(VariantType::ARRAY, v.getType());
-	ASSERT_EQ(&RttiTypes::Array, &v.getRtti());
+	ASSERT_EQ(&RttiTypes::Array, v.getRtti());
 }
 
 TEST(Variant, mapValue)
@@ -165,7 +165,7 @@ TEST(Variant, mapValue)
 
 	ASSERT_TRUE(v.isMap());
 	ASSERT_EQ(VariantType::MAP, v.getType());
-	ASSERT_EQ(&RttiTypes::Map, &v.getRtti());
+	ASSERT_EQ(&RttiTypes::Map, v.getRtti());
 }
 
 TEST(Variant, relationalOperators)

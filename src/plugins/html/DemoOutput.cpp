@@ -151,7 +151,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 
 	// Then we get all the children.
 	for (auto &n : section->getField()) {
-		if (!n->isa(RttiTypes::StructuredEntity)) {
+		if (!n->isa(&RttiTypes::StructuredEntity)) {
 			continue;
 		}
 		Handle<StructuredEntity> s = n.cast<StructuredEntity>();
@@ -266,7 +266,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 	// this is a handle for our current XML element for annotation handling.
 	Rooted<xml::Element> current = p;
 	for (auto &n : par->getField()) {
-		if (n->isa(RttiTypes::Anchor)) {
+		if (n->isa(&RttiTypes::Anchor)) {
 			// check if this is a start Anchor.
 			// here we assume, again, that the ids/names of anchors are unique.
 			auto it = startMap.find(n->getName());
@@ -315,7 +315,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 			continue;
 		}
 		// if this is not an anchor, we can only handle text.
-		if (!n->isa(RttiTypes::StructuredEntity)) {
+		if (!n->isa(&RttiTypes::StructuredEntity)) {
 			continue;
 		}
 		Handle<StructuredEntity> t = n.cast<StructuredEntity>();

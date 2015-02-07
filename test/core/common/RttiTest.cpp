@@ -59,63 +59,63 @@ const Rtti Type7 = RttiBuilder<RttiTestClass7>{"Type7"}.parent(&Type6);
 
 TEST(Rtti, isa)
 {
-	ASSERT_TRUE(Type1.isa(Type1));
-	ASSERT_FALSE(Type1.isa(Type2));
-	ASSERT_FALSE(Type1.isa(Type3));
-	ASSERT_FALSE(Type1.isa(Type4));
+	ASSERT_TRUE(Type1.isa(&Type1));
+	ASSERT_FALSE(Type1.isa(&Type2));
+	ASSERT_FALSE(Type1.isa(&Type3));
+	ASSERT_FALSE(Type1.isa(&Type4));
 
-	ASSERT_FALSE(Type2.isa(Type1));
-	ASSERT_TRUE(Type2.isa(Type2));
-	ASSERT_FALSE(Type2.isa(Type3));
-	ASSERT_FALSE(Type2.isa(Type4));
+	ASSERT_FALSE(Type2.isa(&Type1));
+	ASSERT_TRUE(Type2.isa(&Type2));
+	ASSERT_FALSE(Type2.isa(&Type3));
+	ASSERT_FALSE(Type2.isa(&Type4));
 
-	ASSERT_TRUE(Type3.isa(Type1));
-	ASSERT_FALSE(Type3.isa(Type2));
-	ASSERT_TRUE(Type3.isa(Type3));
-	ASSERT_FALSE(Type3.isa(Type4));
+	ASSERT_TRUE(Type3.isa(&Type1));
+	ASSERT_FALSE(Type3.isa(&Type2));
+	ASSERT_TRUE(Type3.isa(&Type3));
+	ASSERT_FALSE(Type3.isa(&Type4));
 
-	ASSERT_TRUE(Type4.isa(Type1));
-	ASSERT_TRUE(Type4.isa(Type2));
-	ASSERT_TRUE(Type4.isa(Type3));
-	ASSERT_TRUE(Type4.isa(Type4));
+	ASSERT_TRUE(Type4.isa(&Type1));
+	ASSERT_TRUE(Type4.isa(&Type2));
+	ASSERT_TRUE(Type4.isa(&Type3));
+	ASSERT_TRUE(Type4.isa(&Type4));
 }
 
 TEST(Rtti, composedOf)
 {
 	std::vector<const Rtti *> types{&Type1, &Type2, &Type3, &Type4};
 	for (auto t : types) {
-		ASSERT_FALSE(t->composedOf(Type1));
-		ASSERT_FALSE(t->composedOf(Type2));
-		ASSERT_FALSE(t->composedOf(Type3));
-		ASSERT_FALSE(t->composedOf(Type4));
-		ASSERT_FALSE(t->composedOf(Type5));
-		ASSERT_FALSE(t->composedOf(Type6));
-		ASSERT_FALSE(t->composedOf(Type7));
+		ASSERT_FALSE(t->composedOf(&Type1));
+		ASSERT_FALSE(t->composedOf(&Type2));
+		ASSERT_FALSE(t->composedOf(&Type3));
+		ASSERT_FALSE(t->composedOf(&Type4));
+		ASSERT_FALSE(t->composedOf(&Type5));
+		ASSERT_FALSE(t->composedOf(&Type6));
+		ASSERT_FALSE(t->composedOf(&Type7));
 	}
 
-	ASSERT_TRUE(Type5.composedOf(Type1));
-	ASSERT_FALSE(Type5.composedOf(Type2));
-	ASSERT_FALSE(Type5.composedOf(Type3));
-	ASSERT_FALSE(Type5.composedOf(Type4));
-	ASSERT_FALSE(Type5.composedOf(Type5));
-	ASSERT_TRUE(Type5.composedOf(Type6));
-	ASSERT_TRUE(Type5.composedOf(Type7));
+	ASSERT_TRUE(Type5.composedOf(&Type1));
+	ASSERT_FALSE(Type5.composedOf(&Type2));
+	ASSERT_FALSE(Type5.composedOf(&Type3));
+	ASSERT_FALSE(Type5.composedOf(&Type4));
+	ASSERT_FALSE(Type5.composedOf(&Type5));
+	ASSERT_TRUE(Type5.composedOf(&Type6));
+	ASSERT_TRUE(Type5.composedOf(&Type7));
 
-	ASSERT_TRUE(Type6.composedOf(Type1));
-	ASSERT_FALSE(Type6.composedOf(Type2));
-	ASSERT_FALSE(Type6.composedOf(Type3));
-	ASSERT_FALSE(Type6.composedOf(Type4));
-	ASSERT_FALSE(Type6.composedOf(Type5));
-	ASSERT_FALSE(Type6.composedOf(Type6));
-	ASSERT_FALSE(Type6.composedOf(Type7));
+	ASSERT_TRUE(Type6.composedOf(&Type1));
+	ASSERT_FALSE(Type6.composedOf(&Type2));
+	ASSERT_FALSE(Type6.composedOf(&Type3));
+	ASSERT_FALSE(Type6.composedOf(&Type4));
+	ASSERT_FALSE(Type6.composedOf(&Type5));
+	ASSERT_FALSE(Type6.composedOf(&Type6));
+	ASSERT_FALSE(Type6.composedOf(&Type7));
 
-	ASSERT_TRUE(Type7.composedOf(Type1));
-	ASSERT_FALSE(Type7.composedOf(Type2));
-	ASSERT_FALSE(Type7.composedOf(Type3));
-	ASSERT_FALSE(Type7.composedOf(Type4));
-	ASSERT_FALSE(Type7.composedOf(Type5));
-	ASSERT_FALSE(Type7.composedOf(Type6));
-	ASSERT_FALSE(Type7.composedOf(Type7));
+	ASSERT_TRUE(Type7.composedOf(&Type1));
+	ASSERT_FALSE(Type7.composedOf(&Type2));
+	ASSERT_FALSE(Type7.composedOf(&Type3));
+	ASSERT_FALSE(Type7.composedOf(&Type4));
+	ASSERT_FALSE(Type7.composedOf(&Type5));
+	ASSERT_FALSE(Type7.composedOf(&Type6));
+	ASSERT_FALSE(Type7.composedOf(&Type7));
 }
 
 class RttiMethodTestClass1 {
@@ -218,12 +218,12 @@ public:
 };
 
 static const Rtti PType1 = RttiBuilder<RttiPropertyTestClass1>{
-    "PType1"}.property("a", {RttiTypes::Int, RttiPropertyTestClass1::getA,
+    "PType1"}.property("a", {&RttiTypes::Int, RttiPropertyTestClass1::getA,
                              RttiPropertyTestClass1::setA});
 
 static const Rtti PType2 =
     RttiBuilder<RttiPropertyTestClass2>{"PType2"}.parent(&PType1).property(
-        "b", {RttiTypes::Int, RttiPropertyTestClass2::getB,
+        "b", {&RttiTypes::Int, RttiPropertyTestClass2::getB,
               RttiPropertyTestClass2::setB});
 
 TEST(Rtti, properties)

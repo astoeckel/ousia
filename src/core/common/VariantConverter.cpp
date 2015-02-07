@@ -305,7 +305,7 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 				std::stringstream ss;
 				ss << "<object " << obj.get();
 				if (obj.get() != nullptr) {
-					ss << " (" << obj->type().name << ")";
+					ss << " (" << obj->type()->name << ")";
 				}
 				ss << ">";
 				var = ss.str().c_str();
@@ -330,7 +330,7 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 	return false;
 }
 
-bool VariantConverter::toArray(Variant &var, const Rtti &innerType,
+bool VariantConverter::toArray(Variant &var, const Rtti *innerType,
                                Logger &logger, Mode mode)
 {
 	// If unsafe conversions are allowed, encapsulate the given variant in an
@@ -343,7 +343,7 @@ bool VariantConverter::toArray(Variant &var, const Rtti &innerType,
 	if (var.isArray()) {
 		// If no specific inner type is given, conversion is successful at this
 		// point
-		if (&innerType == &RttiTypes::None) {
+		if (innerType == &RttiTypes::None) {
 			return true;
 		}
 
@@ -351,7 +351,7 @@ bool VariantConverter::toArray(Variant &var, const Rtti &innerType,
 		// failures to do so
 		bool res = true;
 		for (Variant &v : var.asArray()) {
-			res = convert(v, innerType, RttiTypes::None, logger, mode) & res;
+			res = convert(v, innerType, &RttiTypes::None, logger, mode) & res;
 		}
 		return res;
 	}
@@ -362,14 +362,14 @@ bool VariantConverter::toArray(Variant &var, const Rtti &innerType,
 	return false;
 }
 
-bool VariantConverter::toMap(Variant &var, const Rtti &innerType,
+bool VariantConverter::toMap(Variant &var, const Rtti *innerType,
                              Logger &logger, Mode mode)
 {
 	// Make sure the variant is a map
 	if (var.isMap()) {
 		// If no specific inner type is given, conversion is successful at this
 		// point
-		if (&innerType == &RttiTypes::None) {
+		if (innerType == &RttiTypes::None) {
 			return true;
 		}
 
@@ -377,7 +377,7 @@ bool VariantConverter::toMap(Variant &var, const Rtti &innerType,
 		// all failures to do so
 		bool res = true;
 		for (auto &e : var.asMap()) {
-			res = convert(e.second, innerType, RttiTypes::None, logger, mode) &
+			res = convert(e.second, innerType, &RttiTypes::None, logger, mode) &
 			      res;
 		}
 		return res;
@@ -517,14 +517,14 @@ bool VariantConverter::toFunction(Variant &var, Logger &logger)
 	return false;
 }
 
-bool VariantConverter::convert(Variant &var, const Rtti &type,
-                               const Rtti &innerType, Logger &logger, Mode mode)
+bool VariantConverter::convert(Variant &var, const Rtti *type,
+                               const Rtti *innerType, Logger &logger, Mode mode)
 {
 	// Check for simple Variant types
-	if (&type == &RttiTypes::None) {
+	if (type == &RttiTypes::None) {
 		return true;  // Everything is fine if no specific type was
 		              // requested
-	} else if (&type == &RttiTypes::Nullptr) {
+	} else if (type == &RttiTypes::Nullptr) {
 		// Make sure the variant is set to null
 		if (!var.isNull()) {
 			logger.error(msgUnexpectedType(var, VariantType::NULLPTR));
@@ -532,21 +532,21 @@ bool VariantConverter::convert(Variant &var, const Rtti &type,
 			return false;
 		}
 		return true;
-	} else if (&type == &RttiTypes::Bool) {
+	} else if (type == &RttiTypes::Bool) {
 		return toBool(var, logger, mode);
-	} else if (&type == &RttiTypes::Int) {
+	} else if (type == &RttiTypes::Int) {
 		return toInt(var, logger, mode);
-	} else if (&type == &RttiTypes::Double) {
+	} else if (type == &RttiTypes::Double) {
 		return toDouble(var, logger, mode);
-	} else if (&type == &RttiTypes::String) {
+	} else if (type == &RttiTypes::String) {
 		return toString(var, logger, mode);
-	} else if (&type == &RttiTypes::Array) {
+	} else if (type == &RttiTypes::Array) {
 		return toArray(var, innerType, logger, mode);
-	} else if (&type == &RttiTypes::Map) {
+	} else if (type == &RttiTypes::Map) {
 		return toMap(var, innerType, logger, mode);
-	} else if (&type == &RttiTypes::Cardinality) {
+	} else if (type == &RttiTypes::Cardinality) {
 		return toCardinality(var, logger, mode);
-	} else if (&type == &RttiTypes::Function) {
+	} else if (type == &RttiTypes::Function) {
 		return toFunction(var, logger);
 	}
 
@@ -559,19 +559,19 @@ bool VariantConverter::convert(Variant &var, const Rtti &type,
 	}
 
 	// Make sure the object type is correct
-	if (!var.getRtti().isa(type)) {
-		logger.error(std::string("Expected object of type ") + type.name +
-		             " but got object of type " + var.getRtti().name);
+	if (!var.getRtti()->isa(type)) {
+		logger.error(std::string("Expected object of type ") + type->name +
+		             " but got object of type " + var.getRtti()->name);
 		var.setObject(nullptr);
 		return false;
 	}
 	return true;
 }
 
-bool VariantConverter::convert(Variant &var, const Rtti &type, Logger &logger,
+bool VariantConverter::convert(Variant &var, const Rtti *type, Logger &logger,
                                Mode mode)
 {
-	return convert(var, type, RttiTypes::None, logger, mode);
+	return convert(var, type, &RttiTypes::None, logger, mode);
 }
 }
 

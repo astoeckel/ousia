@@ -93,7 +93,7 @@ private:
 	 * @param hasDefault indicates whether the defaultValue actually should be
 	 * used.
 	 */
-	Argument(std::string name, const Rtti &type, const Rtti &innerType,
+	Argument(std::string name, const Rtti *type, const Rtti *innerType,
 	         Variant defaultValue, bool hasDefault);
 
 	/**
@@ -105,7 +105,7 @@ private:
 	 * expected.
 	 * @param defaultValue is the default value to be used.
 	 */
-	Argument(std::string name, const Rtti &type, Variant defaultValue);
+	Argument(std::string name, const Rtti *type, Variant defaultValue);
 
 	/**
 	 * Private constructor used to build an argument describing a primitive type
@@ -115,7 +115,7 @@ private:
 	 * @param variantType is the variant type of the argument that is to be
 	 * expected.
 	 */
-	Argument(std::string name, const Rtti &type);
+	Argument(std::string name, const Rtti *type);
 
 public:
 	/**
@@ -230,7 +230,7 @@ public:
 	 * "isa" function returns true for the given type are be accepted.
 	 * @return a new Argument instance.
 	 */
-	static Argument Object(std::string name, const Rtti &type);
+	static Argument Object(std::string name, const Rtti *type);
 
 	/**
 	 * Named constructor for an object argument with default value. The default
@@ -246,7 +246,7 @@ public:
 	 * cannot be stored.
 	 * @return a new Argument instance.
 	 */
-	static Argument Object(std::string name, const Rtti &type,
+	static Argument Object(std::string name, const Rtti *type,
 	                       std::nullptr_t defaultValue);
 
 	/**
@@ -303,7 +303,7 @@ public:
 	 * forced to be of this type.
 	 * @return a new Argument instance.
 	 */
-	static Argument Array(std::string name, const Rtti &innerType);
+	static Argument Array(std::string name, const Rtti *innerType);
 
 	/**
 	 * Named constructor for an array argument of objects of the given RTTI
@@ -317,7 +317,7 @@ public:
 	 * @param defaultValue is the default value to be used in case this argument
 	 * is not supplied.
 	 */
-	static Argument Array(std::string name, const Rtti &innerType,
+	static Argument Array(std::string name, const Rtti *innerType,
 	                      const Variant::arrayType &defaultValue);
 
 	/**
@@ -352,7 +352,7 @@ public:
 	 * to be of this type.
 	 * @return a new Argument instance.
 	 */
-	static Argument Map(std::string name, const Rtti &innerType);
+	static Argument Map(std::string name, const Rtti *innerType);
 
 	/**
 	 * Named constructor for a map argument with default value and a given inner
@@ -366,7 +366,7 @@ public:
 	 * is not supplied.
 	 * @return a new Argument instance.
 	 */
-	static Argument Map(std::string name, const Rtti &innerType,
+	static Argument Map(std::string name, const Rtti *innerType,
 	                    const Variant::mapType &defaultValue);
 
 	/**

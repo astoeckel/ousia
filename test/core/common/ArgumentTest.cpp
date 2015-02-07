@@ -367,7 +367,7 @@ TEST(Argument, validateStringDefault)
 TEST(Argument, validateObject)
 {
 	Manager mgr;
-	Argument a = Argument::Object("a", RttiTypes::TestManaged1);
+	Argument a = Argument::Object("a", &RttiTypes::TestManaged1);
 
 	ASSERT_FALSE(a.hasDefault());
 
@@ -419,7 +419,7 @@ TEST(Argument, validateObject)
 TEST(Argument, validateObjectDefault)
 {
 	Manager mgr;
-	Argument a = Argument::Object("a", RttiTypes::TestManaged1, nullptr);
+	Argument a = Argument::Object("a", &RttiTypes::TestManaged1, nullptr);
 
 	ASSERT_TRUE(a.hasDefault());
 	ASSERT_TRUE(a.getDefaultValue().isObject());
@@ -578,7 +578,7 @@ TEST(Argument, validateArrayDefault)
 
 TEST(Argument, validateArrayInner)
 {
-	Argument a = Argument::Array("a", RttiTypes::String);
+	Argument a = Argument::Array("a", &RttiTypes::String);
 
 	ASSERT_FALSE(a.hasDefault());
 
@@ -612,7 +612,7 @@ TEST(Argument, validateArrayInner)
 TEST(Argument, validateArrayInnerDefault)
 {
 	Variant::arrayType arrDefault{1, "a", nullptr};
-	Argument a = Argument::Array("a", RttiTypes::String, arrDefault);
+	Argument a = Argument::Array("a", &RttiTypes::String, arrDefault);
 
 	ASSERT_TRUE(a.hasDefault());
 	ASSERT_TRUE(a.getDefaultValue().isArray());
@@ -698,7 +698,7 @@ TEST(Argument, validateMapDefault)
 
 TEST(Argument, validateMapInnerType)
 {
-	Argument a = Argument::Map("a", RttiTypes::String);
+	Argument a = Argument::Map("a", &RttiTypes::String);
 
 	ASSERT_FALSE(a.hasDefault());
 
@@ -737,7 +737,7 @@ TEST(Argument, validateMapInnerType)
 TEST(Argument, validateMapInnerTypeDefault)
 {
 	Variant::mapType mapDefault{{"key1", "1"}};
-	Argument a = Argument::Map("a", RttiTypes::String, mapDefault);
+	Argument a = Argument::Map("a", &RttiTypes::String, mapDefault);
 
 	ASSERT_TRUE(a.hasDefault());
 	ASSERT_TRUE(a.getDefaultValue().isMap());

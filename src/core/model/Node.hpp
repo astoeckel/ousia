@@ -545,7 +545,7 @@ public:
 	 * @return a vector containing ResolutionResult structures which describe
 	 * the resolved elements.
 	 */
-	std::vector<ResolutionResult> resolve(const Rtti &type,
+	std::vector<ResolutionResult> resolve(const Rtti *type,
 	                                      const std::vector<std::string> &path);
 
 	/**
@@ -557,7 +557,7 @@ public:
 	 * @return a vector containing ResolutionResult structures which describe
 	 * the resolved elements.
 	 */
-	std::vector<ResolutionResult> resolve(const Rtti &type,
+	std::vector<ResolutionResult> resolve(const Rtti *type,
 	                                      const std::string &name);
 
 	/**

@@ -67,21 +67,21 @@ struct PropertyType {
 	 * Outer type, may be any Rtti instance. If set to RttiTypes::None, any
 	 * outer type is acceptable.
 	 */
-	const Rtti &type;
+	const Rtti *type;
 
 	/**
 	 * Describes the inner type of the property used when the outer type is a
 	 * container type such as RttiTypes::Array or RttiTypes::Map. If set to
 	 * RttiTypes::None any inner type is acceptable.
 	 */
-	const Rtti &innerType;
+	const Rtti *innerType;
 
 	/**
 	 * Creates a new instance of the PropertyType class with both inner and
 	 * outer type being set to RttiTypes::None and thus allowing any type to be
 	 * represented by this property.
 	 */
-	PropertyType() : type(RttiTypes::None), innerType(RttiTypes::None){};
+	PropertyType() : type(&RttiTypes::None), innerType(&RttiTypes::None){};
 
 	/**
 	 * Creates a new instance of the PropertyType class with the given outer
@@ -91,8 +91,8 @@ struct PropertyType {
 	 * be any Rtti instances or RttiTypes::None, in which case all types are
 	 * allowed.
 	 */
-	PropertyType(const Rtti &type)
-	    : type(type), innerType(RttiTypes::None){};
+	PropertyType(const Rtti *type)
+	    : type(type), innerType(&RttiTypes::None){};
 
 	/**
 	 * Creates a new instance of the PropertyType class with the given outer and
@@ -105,7 +105,7 @@ struct PropertyType {
 	 * relevant if the outer type is set to a basic container type, namely
 	 * RttiTypes::Array or RttiTypes::Map.
 	 */
-	PropertyType(const Rtti &type, const Rtti &innerType)
+	PropertyType(const Rtti *type, const Rtti *innerType)
 	    : type(type), innerType(innerType){};
 };
 
@@ -396,7 +396,7 @@ public:
 	 *
 	 * @return the PropertyType instance describing the type of this property.
 	 */
-	const PropertyType &getType() const { return *type; }
+	const PropertyType *getType() const { return type.get(); }
 
 	/**
 	 * Returns the value of the property for the given object.
@@ -454,7 +454,7 @@ public:
 	 * @param setter is a Setter for writing the described property for objects
 	 * of type T.
 	 */
-	Property(const Rtti &type, const Getter<T> &getter,
+	Property(const Rtti *type, const Getter<T> &getter,
 	         const Setter<T> &setter = Setter<T>{})
 	    : PropertyDescriptor(
 	          PropertyType{type},
@@ -477,7 +477,7 @@ public:
 	 * @param setter is a Setter for writing the described property for objects
 	 * of type T.
 	 */
-	Property(const Rtti &type, const Rtti &innerType,
+	Property(const Rtti *type, const Rtti *innerType,
 	         const Getter<T> &getter, const Setter<T> &setter = Setter<T>{})
 	    : PropertyDescriptor(
 	          PropertyType{type, innerType},

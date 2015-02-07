@@ -77,7 +77,7 @@ int DocumentEntity::getFieldDescriptorIndex(
 
 void DocumentEntity::invalidateSubInstance()
 {
-	if (subInst->isa(RttiTypes::StructuredEntity)) {
+	if (subInst->isa(&RttiTypes::StructuredEntity)) {
 		subInst.cast<StructuredEntity>()->invalidate();
 	} else {
 		subInst.cast<AnnotationEntity>()->invalidate();
@@ -107,7 +107,7 @@ void DocumentEntity::setDescriptor(Handle<Descriptor> d)
 	descriptor = subInst->acquire(d);
 	// get the effective field descriptors in the descriptor.
 	NodeVector<FieldDescriptor> fieldDescs;
-	if (descriptor->isa(RttiTypes::StructuredClass)) {
+	if (descriptor->isa(&RttiTypes::StructuredClass)) {
 		fieldDescs =
 		    descriptor.cast<StructuredClass>()->getEffectiveFieldDescriptors();
 	} else {
@@ -149,7 +149,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 	 * overridden in the subclasses.
 	 */
 	NodeVector<FieldDescriptor> fieldDescs;
-	if (descriptor->isa(RttiTypes::StructuredClass)) {
+	if (descriptor->isa(&RttiTypes::StructuredClass)) {
 		fieldDescs =
 		    descriptor.cast<StructuredClass>()->getEffectiveFieldDescriptors();
 	} else {
@@ -181,7 +181,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 					continue;
 			}
 			// if we are here we know that exactly one child exists.
-			if (!fields[f][0]->isa(RttiTypes::DocumentPrimitive)) {
+			if (!fields[f][0]->isa(&RttiTypes::DocumentPrimitive)) {
 				logger.error(std::string("Primitive Field \"") +
 				                 fieldDescs[f]->getName() +
 				                 "\" has non primitive content!",
@@ -243,11 +243,11 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				             *child);
 				valid = false;
 			}
-			if (child->isa(RttiTypes::Anchor)) {
+			if (child->isa(&RttiTypes::Anchor)) {
 				// Anchors are uninteresting and can be ignored.
 				continue;
 			}
-			if (child->isa(RttiTypes::DocumentPrimitive)) {
+			if (child->isa(&RttiTypes::DocumentPrimitive)) {
 				logger.error(std::string("Non-primitive Field \"") +
 				                 fieldDescs[f]->getName() +
 				                 "\" had primitive content!",
@@ -344,7 +344,7 @@ void DocumentEntity::addStructureNode(Handle<StructureNode> s, const int &i)
 	if (par != subInst) {
 		// if a previous parent existed, remove the StructureNode from it
 		if (par != nullptr) {
-			if (par->isa(RttiTypes::StructuredEntity)) {
+			if (par->isa(&RttiTypes::StructuredEntity)) {
 				par.cast<StructuredEntity>()->removeStructureNode(s);
 			} else {
 				par.cast<AnnotationEntity>()->removeStructureNode(s);
@@ -464,9 +464,9 @@ bool StructureNode::doValidate(Logger &logger) const
 		logger.error("The parent is not set!", *this);
 		valid = false;
 	}
-	if (!getParent()->isa(RttiTypes::StructuredEntity) &&
-	    !getParent()->isa(RttiTypes::AnnotationEntity) &&
-	    !getParent()->isa(RttiTypes::Document)) {
+	if (!getParent()->isa(&RttiTypes::StructuredEntity) &&
+	    !getParent()->isa(&RttiTypes::AnnotationEntity) &&
+	    !getParent()->isa(&RttiTypes::Document)) {
 		logger.error("The parent does not have a valid type!", *this);
 		valid = false;
 	}
@@ -477,9 +477,9 @@ StructureNode::StructureNode(Manager &mgr, std::string name,
                              Handle<Node> parent, const std::string &fieldName)
     : Node(mgr, std::move(name), parent)
 {
-	if (parent->isa(RttiTypes::StructuredEntity)) {
+	if (parent->isa(&RttiTypes::StructuredEntity)) {
 		parent.cast<StructuredEntity>()->addStructureNode(this, fieldName);
-	} else if (parent->isa(RttiTypes::AnnotationEntity)) {
+	} else if (parent->isa(&RttiTypes::AnnotationEntity)) {
 		parent.cast<AnnotationEntity>()->addStructureNode(this, fieldName);
 	} else {
 		throw OusiaException("The proposed parent was no DocumentEntity!");
@@ -552,7 +552,7 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 	if (getParent() == nullptr) {
 		logger.error("The parent is not set!", *this);
 		valid = false;
-	} else if (!getParent()->isa(RttiTypes::Document)) {
+	} else if (!getParent()->isa(&RttiTypes::Document)) {
 		logger.error("The parent is not a document!", *this);
 		valid = false;
 	} else {
@@ -640,7 +640,7 @@ bool Document::doValidate(Logger &logger) const
 
 void Document::doReference(Handle<Node> node)
 {
-	if (node->isa(RttiTypes::Domain)) {
+	if (node->isa(&RttiTypes::Domain)) {
 		referenceDomain(node.cast<Domain>());
 	}
 }
@@ -706,12 +706,12 @@ Rooted<AnnotationEntity> Document::createChildAnnotation(
 bool Document::hasChild(Handle<StructureNode> s) const
 {
 	Rooted<Managed> parent = s->getParent();
-	if (parent->isa(RttiTypes::StructureNode)) {
+	if (parent->isa(&RttiTypes::StructureNode)) {
 		return hasChild(parent.cast<StructureNode>());
-	} else if (parent->isa(RttiTypes::AnnotationEntity)) {
+	} else if (parent->isa(&RttiTypes::AnnotationEntity)) {
 		Handle<AnnotationEntity> a = parent.cast<AnnotationEntity>();
 		return this == a->getParent();
-	} else if (parent->isa(RttiTypes::Document)) {
+	} else if (parent->isa(&RttiTypes::Document)) {
 		return this == parent;
 	}
 	return false;

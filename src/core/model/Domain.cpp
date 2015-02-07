@@ -61,7 +61,7 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	if (getParent() == nullptr) {
 		logger.error("This field has no parent!", *this);
 		valid = false;
-	} else if (!getParent()->isa(RttiTypes::Descriptor)) {
+	} else if (!getParent()->isa(&RttiTypes::Descriptor)) {
 		logger.error("The parent of this field is not a descriptor!", *this);
 		valid = false;
 	}
@@ -142,7 +142,7 @@ bool Descriptor::doValidate(Logger &logger) const
 	if (getParent() == nullptr) {
 		logger.error("This Descriptor has no parent!", *this);
 		valid = false;
-	} else if (!getParent()->isa(RttiTypes::Domain)) {
+	} else if (!getParent()->isa(&RttiTypes::Domain)) {
 		logger.error("The parent of this Descriptor is not a Domain!", *this);
 		valid = false;
 	}
@@ -180,7 +180,7 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 	// use recursive depth-first search from the top to reach the given child
 	// get the list of effective FieldDescriptors.
 	NodeVector<FieldDescriptor> fields;
-	if (isa(RttiTypes::StructuredClass)) {
+	if (isa(&RttiTypes::StructuredClass)) {
 		const StructuredClass *tis = static_cast<const StructuredClass *>(this);
 		fields = tis->getEffectiveFieldDescriptors();
 	} else {
@@ -212,7 +212,7 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 		}
 	}
 
-	if (isa(RttiTypes::StructuredClass)) {
+	if (isa(&RttiTypes::StructuredClass)) {
 		const StructuredClass *tis = static_cast<const StructuredClass *>(this);
 		// if this is a StructuredClass we also can call the subclasses.
 		for (auto &c : tis->getSubclasses()) {
@@ -489,7 +489,7 @@ bool Domain::doValidate(Logger &logger) const
 
 void Domain::doReference(Handle<Node> node)
 {
-	if (node->isa(RttiTypes::Domain)) {
+	if (node->isa(&RttiTypes::Domain)) {
 		referenceTypesystem(node.cast<Typesystem>());
 	}
 }

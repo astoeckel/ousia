@@ -120,7 +120,7 @@ static Rooted<StructuredClass> checkStructuredClass(
     Handle<StructuredClass> superclass = nullptr, bool transparent = false,
     bool root = false)
 {
-	auto res = domain->resolve(RttiTypes::StructuredClass, resolve);
+	auto res = domain->resolve(&RttiTypes::StructuredClass, resolve);
 	if (res.size() != 1) {
 		throw OusiaException("resolution error!");
 	}
@@ -146,7 +146,7 @@ static Rooted<AnnotationClass> checkAnnotationClass(
     const std::string &resolve, const std::string &name, Handle<Domain> domain,
     Handle<StructType> attributesDescriptor = nullptr)
 {
-	auto res = domain->resolve(RttiTypes::AnnotationClass, resolve);
+	auto res = domain->resolve(&RttiTypes::AnnotationClass, resolve);
 	if (res.size() != 1) {
 		throw OusiaException("resolution error!");
 	}
@@ -183,7 +183,7 @@ static void checkFieldDescriptor(
     FieldDescriptor::FieldType type = FieldDescriptor::FieldType::TREE,
     Handle<Type> primitiveType = nullptr, bool optional = false)
 {
-	auto res = desc->resolve(RttiTypes::FieldDescriptor, name);
+	auto res = desc->resolve(&RttiTypes::FieldDescriptor, name);
 	ASSERT_EQ(1, res.size());
 	checkFieldDescriptor(res[0].node, name, parent, children, type,
 	                     primitiveType, optional);

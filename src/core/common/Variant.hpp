@@ -929,7 +929,7 @@ public:
 	 * to.
 	 * @return the value of the variant as array.
 	 */
-	arrayType toArray(const Rtti &innerType) const;
+	arrayType toArray(const Rtti *innerType) const;
 
 	/**
 	 * Returns the value of the Variant as map.
@@ -946,7 +946,7 @@ public:
 	 * to.
 	 * @return the value of the variant as map.
 	 */
-	mapType toMap(const Rtti &innerType) const;
+	mapType toMap(const Rtti *innerType) const;
 
 	/**
 	 * Returns the value of the Variant as cardinality.
@@ -1125,7 +1125,7 @@ public:
 	 * or RttiTypes::Function or -- in case an object is stored inside the
 	 * variant -- the Rtti of that object.
 	 */
-	const Rtti &getRtti() const;
+	const Rtti *getRtti() const;
 
 	/**
 	 * Returns the name of the given variant type as C-style string.

@@ -245,7 +245,7 @@ public:
 	 * @return a reference to the registered Rtti for this particular
 	 * Managed class.
 	 */
-	const Rtti &type() const;
+	const Rtti *type() const;
 
 	/**
 	 * Returns true if this Managed instance is of the type described by the
@@ -255,7 +255,7 @@ public:
 	 * class is of the given type or one of the registered parent types is of
 	 * the given type.
 	 */
-	bool isa(const Rtti &t) const;
+	bool isa(const Rtti *t) const;
 
 	/**
 	 * Returns true if this Managed instance may contain instances of the type
@@ -264,7 +264,7 @@ public:
 	 * @param true if the Rtti registered for this particular Managed class
 	 * may contain instance of the given type.
 	 */
-	bool composedOf(const Rtti &t) const;
+	bool composedOf(const Rtti *t) const;
 };
 
 /**

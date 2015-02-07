@@ -97,7 +97,7 @@ public:
 	{
 		// check if the parent in the structure tree was an explicit field
 		// reference.
-		inField = parentNode->isa(RttiTypes::DocumentField);
+		inField = parentNode->isa(&RttiTypes::DocumentField);
 		if (inField) {
 			fieldName = parentNode->getName();
 			parentNode = scope().selectOrThrow(
@@ -108,10 +108,10 @@ public:
 		}
 		// reference the parent entity explicitly.
 		parent = nullptr;
-		if (parentNode->isa(RttiTypes::StructuredEntity)) {
+		if (parentNode->isa(&RttiTypes::StructuredEntity)) {
 			parent = static_cast<DocumentEntity *>(
 			    parentNode.cast<StructuredEntity>().get());
-		} else if (parentNode->isa(RttiTypes::AnnotationEntity)) {
+		} else if (parentNode->isa(&RttiTypes::AnnotationEntity)) {
 			parent = static_cast<DocumentEntity *>(
 			    parentNode.cast<AnnotationEntity>().get());
 		}
@@ -157,7 +157,7 @@ public:
 			args.erase(it);
 		}
 		Rooted<StructuredEntity> entity;
-		if (parentNode->isa(RttiTypes::Document)) {
+		if (parentNode->isa(&RttiTypes::Document)) {
 			entity = parentNode.cast<Document>()->createRootStructuredEntity(
 			    strct, args, name);
 		} else {
@@ -762,7 +762,7 @@ public:
 		                                        Logger &logger) {
 			if (parent != nullptr) {
 				auto res = parent.cast<Descriptor>()->resolve(
-				    RttiTypes::FieldDescriptor, name);
+				    &RttiTypes::FieldDescriptor, name);
 				if (res.size() != 1) {
 					logger.error(
 					    std::string("Could not find referenced field ") + name,
@@ -840,7 +840,7 @@ public:
 		// Fetch the last node and check whether an import is valid at this
 		// position
 		Rooted<Node> leaf = scope().getLeaf();
-		if (leaf == nullptr || !leaf->isa(RttiTypes::RootNode)) {
+		if (leaf == nullptr || !leaf->isa(&RttiTypes::RootNode)) {
 			logger().error(
 			    "Import not supported here, must be inside a document, domain "
 			    "or typesystem command.",

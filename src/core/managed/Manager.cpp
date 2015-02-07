@@ -199,7 +199,7 @@ void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 		std::cerr << "\x1b[41;30mManager:\x1b[0m A managed object contains a rooted reference, "
 		             "this may cause memory leaks!" << std::endl;
 		std::cerr << "\x1b[41;30mManager:\x1b[0m Referenced object is " << tar << " of type "
-		          << tar->type().name << std::endl;
+		          << tar->type()->name << std::endl;
 	}
 #endif
 
@@ -595,13 +595,13 @@ void Manager::exportGraphviz(const char *filename)
 		                                : std::vector<EventHandlerDescriptor>{};
 
 		// Read type information and Node name (if available)
-		const Rtti &type = objectPtr->type();
-		const std::string &typeName = type.name;
+		const Rtti *type = objectPtr->type();
+		const std::string &typeName = type->name;
 
 		// Fetch the name of the object if the object has a "name" property
 		std::string name;
-		if (type.hasProperty("name")) {
-			name = type.getProperty("name")->get(objectPtr).toString();
+		if (type->hasProperty("name")) {
+			name = type->getProperty("name")->get(objectPtr).toString();
 		}
 
 		// Print the node
@@ -662,7 +662,7 @@ void Manager::exportGraphviz(const char *filename)
 			while (edgeCount > 0) {
 				// Get the type of the target element
 				uintptr_t pTar = reinterpret_cast<uintptr_t>(e.first);
-				const Rtti &typeTar = e.first->type();
+				const Rtti *typeTar = e.first->type();
 
 				// Get some information about the edge
 				std::string port = "";
@@ -679,7 +679,7 @@ void Manager::exportGraphviz(const char *filename)
 						}
 					}
 				}
-				if (et == EdgeType::NORMAL && type.composedOf(typeTar)) {
+				if (et == EdgeType::NORMAL && type->composedOf(typeTar)) {
 					et = EdgeType::AGGREGATE;
 				}
 

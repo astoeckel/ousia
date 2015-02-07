@@ -27,161 +27,161 @@ namespace ousia {
 
 /* Class Argument */
 
-Argument::Argument(std::string name, const Rtti &type, const Rtti &innerType,
+Argument::Argument(std::string name, const Rtti *type, const Rtti *innerType,
                    Variant defaultValue, bool hasDefaultValue)
     : name(std::move(name)),
-      type(&type),
-      innerType(&innerType),
+      type(type),
+      innerType(innerType),
       defaultValue(std::move(defaultValue)),
       hasDefaultValue(hasDefaultValue)
 {
 }
 
-Argument::Argument(std::string name, const Rtti &type, Variant defaultValue)
-    : Argument(std::move(name), type, RttiTypes::None, defaultValue, true)
+Argument::Argument(std::string name, const Rtti *type, Variant defaultValue)
+    : Argument(std::move(name), type, &RttiTypes::None, defaultValue, true)
 {
 }
 
-Argument::Argument(std::string name, const Rtti &type)
-    : Argument(std::move(name), type, RttiTypes::None, nullptr, false)
+Argument::Argument(std::string name, const Rtti *type)
+    : Argument(std::move(name), type, &RttiTypes::None, nullptr, false)
 {
 }
 
 Argument Argument::Any(std::string name)
 {
-	return Argument{name, RttiTypes::None, RttiTypes::None, nullptr, false};
+	return Argument{name, &RttiTypes::None, &RttiTypes::None, nullptr, false};
 }
 
 Argument Argument::Any(std::string name, Variant defaultValue)
 {
-	return Argument{name, RttiTypes::None, RttiTypes::None, defaultValue, true};
+	return Argument{name, &RttiTypes::None, &RttiTypes::None, defaultValue, true};
 }
 
 Argument Argument::Bool(std::string name)
 {
-	return Argument{name, RttiTypes::Bool};
+	return Argument{name, &RttiTypes::Bool};
 }
 
 Argument Argument::Bool(std::string name, Variant::boolType defaultValue)
 {
-	return Argument{name, RttiTypes::Bool, defaultValue};
+	return Argument{name, &RttiTypes::Bool, defaultValue};
 }
 
 Argument Argument::Int(std::string name)
 {
-	return Argument{name, RttiTypes::Int};
+	return Argument{name, &RttiTypes::Int};
 }
 
 Argument Argument::Int(std::string name, Variant::intType defaultValue)
 {
-	return Argument{name, RttiTypes::Int, defaultValue};
+	return Argument{name, &RttiTypes::Int, defaultValue};
 }
 
 Argument Argument::Double(std::string name)
 {
-	return Argument{name, RttiTypes::Double};
+	return Argument{name, &RttiTypes::Double};
 }
 
 Argument Argument::Double(std::string name, Variant::doubleType defaultValue)
 {
-	return Argument{name, RttiTypes::Double, defaultValue};
+	return Argument{name, &RttiTypes::Double, defaultValue};
 }
 
 Argument Argument::String(std::string name)
 {
-	return Argument{name, RttiTypes::String};
+	return Argument{name, &RttiTypes::String};
 }
 
 Argument Argument::String(std::string name,
                           const Variant::stringType &defaultValue)
 {
-	return Argument{name, RttiTypes::String, Variant::fromString(defaultValue)};
+	return Argument{name, &RttiTypes::String, Variant::fromString(defaultValue)};
 }
 
-Argument Argument::Object(std::string name, const Rtti &type)
+Argument Argument::Object(std::string name, const Rtti *type)
 {
-	return Argument(std::move(name), type, RttiTypes::None,
+	return Argument(std::move(name), type, &RttiTypes::None,
 	                Variant::fromObject(nullptr), false);
 }
 
-Argument Argument::Object(std::string name, const Rtti &type, std::nullptr_t)
+Argument Argument::Object(std::string name, const Rtti *type, std::nullptr_t)
 {
-	return Argument(std::move(name), type, RttiTypes::None,
+	return Argument(std::move(name), type, &RttiTypes::None,
 	                Variant::fromObject(nullptr), true);
 }
 
 Argument Argument::Function(std::string name)
 {
-	return Argument(std::move(name), RttiTypes::Function);
+	return Argument(std::move(name), &RttiTypes::Function);
 }
 
 Argument Argument::Function(std::string name,
                             Variant::functionType defaultValue)
 {
-	return Argument(std::move(name), RttiTypes::Function,
+	return Argument(std::move(name), &RttiTypes::Function,
 	                Variant::fromFunction(defaultValue));
 }
 
 Argument Argument::Array(std::string name)
 {
-	return Argument(std::move(name), RttiTypes::Array);
+	return Argument(std::move(name), &RttiTypes::Array);
 }
 
 Argument Argument::Array(std::string name,
                          const Variant::arrayType &defaultValue)
 {
-	return Argument(std::move(name), RttiTypes::Array, defaultValue);
+	return Argument(std::move(name), &RttiTypes::Array, defaultValue);
 }
 
-Argument Argument::Array(std::string name, const Rtti &innerType)
+Argument Argument::Array(std::string name, const Rtti *innerType)
 {
-	return Argument(std::move(name), RttiTypes::Array, innerType, nullptr,
+	return Argument(std::move(name), &RttiTypes::Array, innerType, nullptr,
 	                false);
 }
 
-Argument Argument::Array(std::string name, const Rtti &innerType,
+Argument Argument::Array(std::string name, const Rtti *innerType,
                          const Variant::arrayType &defaultValue)
 {
-	return Argument(std::move(name), RttiTypes::Array, innerType, defaultValue,
+	return Argument(std::move(name), &RttiTypes::Array, innerType, defaultValue,
 	                true);
 }
 
 Argument Argument::Map(std::string name)
 {
-	return Argument(std::move(name), RttiTypes::Map);
+	return Argument(std::move(name), &RttiTypes::Map);
 }
 
 Argument Argument::Map(std::string name, const Variant::mapType &defaultValue)
 {
-	return Argument(std::move(name), RttiTypes::Map, defaultValue);
+	return Argument(std::move(name), &RttiTypes::Map, defaultValue);
 }
 
-Argument Argument::Map(std::string name, const Rtti &innerType)
+Argument Argument::Map(std::string name, const Rtti *innerType)
 {
-	return Argument(std::move(name), RttiTypes::Map, innerType, nullptr, false);
+	return Argument(std::move(name), &RttiTypes::Map, innerType, nullptr, false);
 }
 
-Argument Argument::Map(std::string name, const Rtti &innerType,
+Argument Argument::Map(std::string name, const Rtti *innerType,
                        const Variant::mapType &defaultValue)
 {
-	return Argument(std::move(name), RttiTypes::Map, innerType, defaultValue,
+	return Argument(std::move(name), &RttiTypes::Map, innerType, defaultValue,
 	                true);
 }
 
 Argument Argument::Cardinality(std::string name)
 {
-	return Argument{name, RttiTypes::Cardinality};
+	return Argument{name, &RttiTypes::Cardinality};
 }
 
 Argument Argument::Cardinality(std::string name,
                                Variant::cardinalityType defaultValue)
 {
-	return Argument{name, RttiTypes::Cardinality, defaultValue};
+	return Argument{name, &RttiTypes::Cardinality, defaultValue};
 }
 
 bool Argument::validate(Variant &var, Logger &logger) const
 {
-	if (!VariantConverter::convert(var, *type, *innerType, logger,
+	if (!VariantConverter::convert(var, type, innerType, logger,
 	                               VariantConverter::Mode::SAFE)) {
 		if (hasDefaultValue) {
 			var = defaultValue;

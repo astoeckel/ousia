@@ -648,13 +648,13 @@ bool ArrayType::doCheckIsa(Handle<const Type> type) const
 	Handle<const Type> t2{type};
 
 	// Unwrap the array types until only the innermost type is left
-	while (t1->isa(RttiTypes::ArrayType) && t2->isa(RttiTypes::ArrayType)) {
+	while (t1->isa(&RttiTypes::ArrayType) && t2->isa(&RttiTypes::ArrayType)) {
 		t1 = t1.cast<const ArrayType>()->innerType;
 		t2 = t2.cast<const ArrayType>()->innerType;
 	}
 
 	// Abort if only one of the to types is an array type
-	if (t1->isa(RttiTypes::ArrayType) || t2->isa(RttiTypes::ArrayType)) {
+	if (t1->isa(&RttiTypes::ArrayType) || t2->isa(&RttiTypes::ArrayType)) {
 		return false;
 	}
 
@@ -725,7 +725,7 @@ bool Typesystem::doValidate(Logger &logger) const
 
 void Typesystem::doReference(Handle<Node> node)
 {
-	if (node->isa(RttiTypes::Typesystem)) {
+	if (node->isa(&RttiTypes::Typesystem)) {
 		referenceTypesystem(node.cast<Typesystem>());
 	}
 }
