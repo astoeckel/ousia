@@ -302,6 +302,15 @@ public:
 	ssize_t moveCursor(CursorId cursor, ssize_t relativeOffs);
 
 	/**
+	 * Moves the cursor to the given position.
+	 *
+	 * @param cursor is the cursor that should be moved.
+	 * @param offs is the offset to which the cursor should be moved.
+	 * @return the actual location that was reached.
+	 */
+	size_t seekCursor(CursorId cursor, size_t offs);
+
+	/**
 	 * Returns the current byte offset of the given cursor relative to the
 	 * beginning of the stream.
 	 *
@@ -531,6 +540,17 @@ public:
 	 * the requested and reached offset are equal.
 	 */
 	size_t seek(size_t requestedOffset);
+
+	/**
+	 * Moves the peek cursor to the requested offset. Returns the offse that wa
+	 * actually reached.
+	 *
+	 * @param requestedOffset is the requested offset. This offset may no longer
+	 * be reachable by the CharReader.
+	 * @return the actually reached offset. The operation was successful, if
+	 * the requested and reached offset are equal.
+	 */
+	size_t seekPeekCursor(size_t requestedOffset);
 
 	/**
 	 * Returns true if there are no more characters as the stream was closed.
