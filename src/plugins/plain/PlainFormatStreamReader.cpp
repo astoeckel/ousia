@@ -25,16 +25,49 @@
 namespace ousia {
 
 namespace {
-struct DataHandler {
+
+/**
+ * Class used internally to collect data issued via "DATA" event.
+ */
+class DataHandler {
+private:
+	/**
+	 * Internal character buffer.
+	 */
 	std::vector<char> buf;
 
+	/**
+	 * Start location of the character data.
+	 */
 	SourceOffset start;
+
+	/**
+	 * End location of the character data.
+	 */
 	SourceOffset end;
 
+public:
+
+	/**
+	 * Default constructor, initializes start and end with zeros.
+	 */
 	DataHandler() : start(0), end(0) {}
 
+	/**
+	 * Returns true if the internal buffer is empty.
+	 *
+	 * @return true if no characters were added to the internal buffer, false
+	 * otherwise.
+	 */
 	bool isEmpty() { return buf.empty(); }
 
+	/**
+	 * Appends a single character to the internal buffer.
+	 *
+	 * @param c is the character that should be added to the internal buffer.
+	 * @param charStart is the start position of the character.
+	 * @param charEnd is the end position of the character.
+	 */
 	void append(char c, SourceOffset charStart, SourceOffset charEnd)
 	{
 		if (isEmpty()) {
@@ -44,6 +77,13 @@ struct DataHandler {
 		end = charEnd;
 	}
 
+	/**
+	 * Appends a string to the internal buffer.
+	 *
+	 * @param s is the string that should be added to the internal buffer.
+	 * @param stringStart is the start position of the string.
+	 * @param stringEnd is the end position of the string.
+	 */
 	void append(const std::string &s, SourceOffset stringStart,
 	            SourceOffset stringEnd)
 	{
@@ -54,6 +94,15 @@ struct DataHandler {
 		end = stringEnd;
 	}
 
+	/**
+	 * Converts the internal buffer to a variant with attached location
+	 * information.
+	 *
+	 * @param sourceId is the source id which is needed for building the
+	 * location information.
+	 * @return a Variant with the internal buffer content as string and
+	 * the correct start and end location.
+	 */
 	Variant toVariant(SourceId sourceId)
 	{
 		Variant res = Variant::fromString(std::string(buf.data(), buf.size()));
