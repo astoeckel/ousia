@@ -345,14 +345,13 @@ public:
 
 /* Class DynamicTokenizer */
 
-DynamicTokenizer::DynamicTokenizer(CharReader &reader,
-                                   WhitespaceMode whitespaceMode)
-    : reader(reader), whitespaceMode(whitespaceMode), nextTokenTypeId(0)
+DynamicTokenizer::DynamicTokenizer(WhitespaceMode whitespaceMode)
+    : whitespaceMode(whitespaceMode), nextTokenTypeId(0)
 {
 }
 
 template <typename TextHandler, bool read>
-bool DynamicTokenizer::next(DynamicToken &token)
+bool DynamicTokenizer::next(CharReader &reader, DynamicToken &token)
 {
 	// If we're in the read mode, reset the char reader peek position to the
 	// current read position
@@ -437,28 +436,28 @@ bool DynamicTokenizer::next(DynamicToken &token)
 	return match.hasMatch();
 }
 
-bool DynamicTokenizer::read(DynamicToken &token)
+bool DynamicTokenizer::read(CharReader &reader,DynamicToken &token)
 {
 	switch (whitespaceMode) {
 		case WhitespaceMode::PRESERVE:
-			return next<PreservingTextHandler, true>(token);
+			return next<PreservingTextHandler, true>(reader, token);
 		case WhitespaceMode::TRIM:
-			return next<TrimmingTextHandler, true>(token);
+			return next<TrimmingTextHandler, true>(reader, token);
 		case WhitespaceMode::COLLAPSE:
-			return next<CollapsingTextHandler, true>(token);
+			return next<CollapsingTextHandler, true>(reader, token);
 	}
 	return false;
 }
 
-bool DynamicTokenizer::peek(DynamicToken &token)
+bool DynamicTokenizer::peek(CharReader &reader,DynamicToken &token)
 {
 	switch (whitespaceMode) {
 		case WhitespaceMode::PRESERVE:
-			return next<PreservingTextHandler, false>(token);
+			return next<PreservingTextHandler, false>(reader, token);
 		case WhitespaceMode::TRIM:
-			return next<TrimmingTextHandler, false>(token);
+			return next<TrimmingTextHandler, false>(reader, token);
 		case WhitespaceMode::COLLAPSE:
-			return next<CollapsingTextHandler, false>(token);
+			return next<CollapsingTextHandler, false>(reader, token);
 	}
 	return false;
 }
@@ -530,16 +529,16 @@ WhitespaceMode DynamicTokenizer::getWhitespaceMode() { return whitespaceMode; }
 /* Explicitly instantiate all possible instantiations of the "next" member
    function */
 template bool DynamicTokenizer::next<PreservingTextHandler, false>(
-    DynamicToken &token);
+    CharReader &reader, DynamicToken &token);
 template bool DynamicTokenizer::next<TrimmingTextHandler, false>(
-    DynamicToken &token);
+    CharReader &reader, DynamicToken &token);
 template bool DynamicTokenizer::next<CollapsingTextHandler, false>(
-    DynamicToken &token);
+    CharReader &reader,DynamicToken &token);
 template bool DynamicTokenizer::next<PreservingTextHandler, true>(
-    DynamicToken &token);
+    CharReader &reader,DynamicToken &token);
 template bool DynamicTokenizer::next<TrimmingTextHandler, true>(
-    DynamicToken &token);
+    CharReader &reader,DynamicToken &token);
 template bool DynamicTokenizer::next<CollapsingTextHandler, true>(
-    DynamicToken &token);
+    CharReader &reader,DynamicToken &token);
 }
 

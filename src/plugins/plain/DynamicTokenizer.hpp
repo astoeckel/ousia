@@ -119,11 +119,6 @@ enum class WhitespaceMode {
 class DynamicTokenizer {
 private:
 	/**
-	 * CharReader instance from which the tokens should be read.
-	 */
-	CharReader &reader;
-
-	/**
 	 * Internally used token trie. This object holds all registered tokens.
 	 */
 	TokenTrie trie;
@@ -151,23 +146,22 @@ private:
 	 * @tparam TextHandler is the type to be used for the textHandler instance.
 	 * @tparam read specifies whether the function should start from and advance
 	 * the read pointer of the char reader.
+	 * @param reader is the CharReader instance from which the data should be
+	 * read.
 	 * @param token is the token structure into which the token information
 	 * should be written.
 	 * @return false if the end of the stream has been reached, true otherwise.
 	 */
 	template <typename TextHandler, bool read>
-	bool next(DynamicToken &token);
+	bool next(CharReader &reader, DynamicToken &token);
 
 public:
 	/**
 	 * Constructor of the DynamicTokenizer class.
 	 *
-	 * @param reader is the CharReader that should be used for reading the
-	 * tokens.
 	 * @param whitespaceMode specifies how whitespace should be handled.
 	 */
-	DynamicTokenizer(CharReader &reader,
-	                 WhitespaceMode whitespaceMode = WhitespaceMode::COLLAPSE);
+	DynamicTokenizer(WhitespaceMode whitespaceMode = WhitespaceMode::COLLAPSE);
 
 	/**
 	 * Registers the given string as a token. Returns a const pointer at a
@@ -222,23 +216,27 @@ public:
 	 * Reads a new token from the CharReader and stores it in the given
 	 * DynamicToken instance.
 	 *
+	 * @param reader is the CharReader instance from which the data should be
+	 * read.
 	 * @param token is a reference at the token instance into which the Token
 	 * information should be written.
 	 * @return true if a token could be read, false if the end of the stream
 	 * has been reached.
 	 */
-	bool read(DynamicToken &token);
+	bool read(CharReader &reader, DynamicToken &token);
 
 	/**
 	 * The peek method does not advance the read position of the char reader,
 	 * but reads the next token from the current char reader peek position.
 	 *
+	 * @param reader is the CharReader instance from which the data should be
+	 * read.
 	 * @param token is a reference at the token instance into which the Token
 	 * information should be written.
 	 * @return true if a token could be read, false if the end of the stream
 	 * has been reached.
 	 */
-	bool peek(DynamicToken &token);
+	bool peek(CharReader &reader, DynamicToken &token);
 };
 }
 
