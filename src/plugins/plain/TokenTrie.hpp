@@ -17,54 +17,61 @@
 */
 
 /**
- * @file DynamicTokenTree.hpp
+ * @file TokenTrie.hpp
  *
- * Class representing a token tree that can be updated dynamically.
+ * Class representing a token trie that can be updated dynamically.
  *
  * @author Benjamin Paaßen (astoecke@techfak.uni-bielefeld.de)
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_DYNAMIC_TOKEN_TREE_HPP_
-#define _OUSIA_DYNAMIC_TOKEN_TREE_HPP_
+#ifndef _OUSIA_TOKEN_TRIE_HPP_
+#define _OUSIA_TOKEN_TRIE_HPP_
 
+#include <cstdint>
 #include <memory>
+#include <limits>
 #include <unordered_map>
 
 namespace ousia {
 
-class TokenDescriptor;
+/**
+ * The TokenTypeId is used to give each token type a unique id.
+ */
+using TokenTypeId = uint32_t;
 
 /**
- * The Tokenizer internally uses a DynamicTokenTree to be efficiently able to
- * identify the longest consecutive token in the text. This is equivalent to a
- * prefix trie.
+ * Token which is not a token.
+ */
+constexpr TokenTypeId EmptyToken = std::numeric_limits<TokenTypeId>::max();
+
+/**
+ * Token which represents a text token.
+ */
+constexpr TokenTypeId TextToken = std::numeric_limits<TokenTypeId>::max() - 1;
+
+/**
+ * The Tokenizer internally uses a TokenTrie to be efficiently able to identify
+ * the longest consecutive token in the text. This is equivalent to a prefix
+ * trie.
  *
- * A token tree is a construct that structures all special tokens a
- * Tokenizer recognizes. Consider the tokens "aab", "a" and "aac". Then
- * the token tree would look like this:
+ * A token trie is a construct that structures all special tokens a Tokenizer
+ * recognizes. Consider the tokens "aab", "a" and "bac" numbered as one, two and
+ * three. Then the token tree would look like this:
  *
  * \code{*.txt}
- * a
- * | \
- * a $
- * | \
- * b c
- * | |
- * $ $
+ *        ~ (0)
+ *       /     \
+ *      a (2)  b (0)
+ *      |      |
+ *      a (0)  a (0)
+ *      |      |
+ *      b (1)  c (0)
  * \endcode
  *
- * Every node in the token tree is a valid end state that has a $ attached to
- * it. During the search algorithm the Tokenizer goes through the tree and
- * stores the last valid position. If a character follows that does not lead to
- * a new node in the TokenTree the search ends (and starts again at this
- * character). The token corresponding to the last valid position is returned.
- *
- * This allows us to uniquely identify the matching token given a certain
- * input text. Note that this is a greedy matching approach that does not
- * work if you're using truly ambiguous tokens (that have the same text).
+ * Where the number indicates the corresponding token descriptor identifier.
  */
-class DynamicTokenTree {
+class TokenTrie {
 public:
 	/**
 	 * Structure used to build the node tree.
@@ -73,7 +80,7 @@ public:
 		/**
 		 * Type used for the child map.
 		 */
-		using ChildMap = std::unordered_map<char, std::unique_ptr<Node>>;
+		using ChildMap = std::unordered_map<char, std::shared_ptr<Node>>;
 
 		/**
 		 * Map from single characters at the corresponding child nodes.
@@ -84,7 +91,7 @@ public:
 		 * Reference at the corresponding token descriptor. Set to nullptr if
 		 * no token is attached to this node.
 		 */
-		TokenDescriptor const *descriptor;
+		TokenTypeId type;
 
 		/**
 		 * Default constructor, initializes the descriptor with nullptr.
@@ -105,11 +112,10 @@ public:
 	 *
 	 * @param token is the character sequence that should be registered as
 	 * token.
-	 * @param descriptor is the descriptor that should be set for this token.
+	 * @param type is the descriptor that should be set for this token.
 	 * @return true if the operation is successful, false otherwise.
 	 */
-	bool registerToken(const std::string &token,
-	                   const TokenDescriptor *descriptor) noexcept;
+	bool registerToken(const std::string &token, TokenTypeId type) noexcept;
 
 	/**
 	 * Unregisters the token from the token tree. Returns true if the token was
@@ -128,9 +134,17 @@ public:
 	 * @return the attached token descriptor or nullptr if the given token is
 	 * not found.
 	 */
-	const TokenDescriptor* hasToken(const std::string &token) const noexcept;
+	TokenTypeId hasToken(const std::string &token) const noexcept;
+
+	/**
+	 * Returns a reference at the root node to be used for traversing the token
+	 * tree.
+	 *
+	 * @return a reference at the root node.
+	 */
+	const Node *getRoot() const noexcept { return &root; }
 };
 }
 
-#endif /* _OUSIA_DYNAMIC_TOKEN_TREE_HPP_ */
+#endif /* _OUSIA_TOKEN_TRIE_HPP_ */
 

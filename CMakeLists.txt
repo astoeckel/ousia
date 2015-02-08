@@ -197,7 +197,8 @@ TARGET_LINK_LIBRARIES(ousia_xml
 )
 
 ADD_LIBRARY(ousia_plain
-	src/plugins/plain/DynamicTokenTree
+	src/plugins/plain/DynamicTokenizer
+	src/plugins/plain/TokenTrie
 	src/plugins/plain/PlainFormatStreamReader
 )
 
@@ -324,7 +325,8 @@ IF(TEST)
 	)
 
 	ADD_EXECUTABLE(ousia_test_plain
-		test/plugins/plain/DynamicTokenTreeTest
+		test/plugins/plain/TokenTrieTest
+		test/plugins/plain/DynamicTokenizerTest
 		test/plugins/plain/PlainFormatStreamReaderTest
 	)
 

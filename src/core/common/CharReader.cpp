@@ -329,6 +329,19 @@ ssize_t Buffer::moveCursor(CursorId cursor, ssize_t relativeOffs)
 	}
 }
 
+size_t Buffer::seekCursor(CursorId cursor, size_t offs)
+{
+	// Fetch the current offset
+	const ssize_t currentOffs = offset(cursor);
+	const ssize_t relativeOffs = offs - currentOffs;
+
+	// Perform the actual seeking, move the peek cursor to the read cursor
+	const ssize_t reachedOffs =  currentOffs + moveCursor(cursor, relativeOffs);
+
+	// Clamp to values larger or equal to zero
+	return reachedOffs < 0 ? 0 : reachedOffs;
+}
+
 bool Buffer::atEnd(Buffer::CursorId cursor) const
 {
 	const Cursor &c = cursors[cursor];
@@ -504,17 +517,17 @@ size_t CharReader::readRaw(char *buf, size_t size)
 
 size_t CharReader::seek(size_t requestedOffset)
 {
-	// Fetch the current offset
-	const ssize_t currentOffs = getOffset();
-	const ssize_t relativeOffs = requestedOffset - currentOffs;
-
-	// Perform the actual seeking, move the peek cursor to the read cursor
-	const ssize_t reachedOffs =  currentOffs + buffer->moveCursor(readCursor, relativeOffs);
+	const size_t res =  buffer->seekCursor(readCursor, requestedOffset);
 	buffer->copyCursor(readCursor, peekCursor);
 	coherent = true;
+	return res;
+}
 
-	// Clamp to values larger or equal to zero
-	return reachedOffs < 0 ? 0 : reachedOffs;
+size_t CharReader::seekPeekCursor(size_t requestedOffset)
+{
+	const size_t res =  buffer->seekCursor(peekCursor, requestedOffset);
+	coherent = (res == getOffset());
+	return res;
 }
 
 bool CharReader::atEnd() const { return buffer->atEnd(readCursor); }
@@ -526,6 +539,9 @@ size_t CharReader::getOffset() const
 
 size_t CharReader::getPeekOffset() const
 {
+	if (coherent) {
+		return getOffset();
+	}
 	return buffer->offset(peekCursor) + offs;
 }
 
