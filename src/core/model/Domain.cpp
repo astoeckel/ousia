@@ -265,6 +265,17 @@ ssize_t Descriptor::getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const
 	return -1;
 }
 
+Rooted<FieldDescriptor> Descriptor::getFieldDescriptor(
+    const std::string &name) const
+{
+	for (auto &fd : getFieldDescriptors()) {
+		if (fd->getName() == name) {
+			return fd;
+		}
+	}
+	return nullptr;
+}
+
 void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd)
 {
 	// only add it if we need to.
