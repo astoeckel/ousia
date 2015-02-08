@@ -153,9 +153,22 @@ bool Descriptor::doValidate(Logger &logger) const
 	} else {
 		valid = valid & validateName(logger);
 	}
+	// ensure that no attribute with the key "name" exists.
+	if (attributesDescriptor == nullptr) {
+		logger.error("This Descriptor has no Attribute specification!");
+		valid = false;
+	} else {
+		if (attributesDescriptor->hasAttribute("name")) {
+			logger.error(
+			    "This Descriptor has an attribute \"name\" which is a reserved "
+			    "word!");
+			valid = false;
+		}
+		valid = valid & attributesDescriptor->validate(logger);
+	}
+
 	// check attributes and the FieldDescriptors
-	return valid & attributesDescriptor->validate(logger) &
-	       continueValidationCheckDuplicates(fieldDescriptors, logger);
+	return valid & continueValidationCheckDuplicates(fieldDescriptors, logger);
 }
 
 std::vector<Rooted<Node>> Descriptor::pathTo(
