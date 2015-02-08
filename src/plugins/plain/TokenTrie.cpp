@@ -16,18 +16,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "DynamicTokenTree.hpp"
+#include "TokenTrie.hpp"
 
 namespace ousia {
 
 /* Class DynamicTokenTree::Node */
 
-DynamicTokenTree::Node::Node() : descriptor(nullptr) {}
+TokenTrie::Node::Node() : type(EmptyToken) {}
 
 /* Class DynamicTokenTree */
 
-bool DynamicTokenTree::registerToken(const std::string &token,
-                                     const TokenDescriptor *descriptor) noexcept
+bool TokenTrie::registerToken(const std::string &token,
+                              TokenTypeId type) noexcept
 {
 	// Abort if the token is empty -- this would taint the root node
 	if (token.empty()) {
@@ -42,23 +42,22 @@ bool DynamicTokenTree::registerToken(const std::string &token,
 		const char c = token[i];
 		auto it = node->children.find(c);
 		if (it == node->children.end()) {
-			it = node->children.emplace(c, std::unique_ptr<Node>(new Node{}))
-			         .first;
+			it = node->children.emplace(c, std::make_shared<Node>()).first;
 		}
 		node = it->second.get();
 	}
 
-	// If the resulting node already has a descriptor set, we're screwed.
-	if (node->descriptor != nullptr) {
+	// If the resulting node already has a type set, we're screwed.
+	if (node->type != EmptyToken) {
 		return false;
 	}
 
-	// Otherwise just set the descriptor to the given descriptor.
-	node->descriptor = descriptor;
+	// Otherwise just set the type to the given type.
+	node->type = type;
 	return true;
 }
 
-bool DynamicTokenTree::unregisterToken(const std::string &token) noexcept
+bool TokenTrie::unregisterToken(const std::string &token) noexcept
 {
 	// We cannot remove empty tokens as we need to access the fist character
 	// upfront
@@ -77,24 +76,24 @@ bool DynamicTokenTree::unregisterToken(const std::string &token) noexcept
 			return false;
 		}
 
-		// Reset the subtree handler if this node has another descriptor
+		// Reset the subtree handler if this node has another type
 		node = it->second.get();
-		if ((node->descriptor != nullptr || node->children.size() > 1) &&
+		if ((node->type != EmptyToken || node->children.size() > 1) &&
 		    (i + 1 != token.size())) {
 			subtreeRoot = node;
 			subtreeKey = token[i + 1];
 		}
 	}
 
-	// If the node descriptor is already nullptr, we cannot do anything here
-	if (node->descriptor == nullptr) {
+	// If the node type is already EmptyToken, we cannot do anything here
+	if (node->type == EmptyToken) {
 		return false;
 	}
 
 	// If the target node has children, we cannot delete the subtree. Set the
-	// descriptor to nullptr instead
+	// type to EmptyToken instead
 	if (!node->children.empty()) {
-		node->descriptor = nullptr;
+		node->type = EmptyToken;
 		return true;
 	}
 
@@ -103,19 +102,18 @@ bool DynamicTokenTree::unregisterToken(const std::string &token) noexcept
 	return true;
 }
 
-const TokenDescriptor *DynamicTokenTree::hasToken(
-    const std::string &token) const noexcept
+TokenTypeId TokenTrie::hasToken(const std::string &token) const noexcept
 {
 	Node const *node = &root;
 	for (size_t i = 0; i < token.size(); i++) {
 		const char c = token[i];
 		auto it = node->children.find(c);
 		if (it == node->children.end()) {
-			return nullptr;
+			return EmptyToken;
 		}
 		node = it->second.get();
 	}
-	return node->descriptor;
+	return node->type;
 }
 }
 
