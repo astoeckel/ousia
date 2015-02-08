@@ -58,15 +58,23 @@ public:
 	}
 
 	/**
-	 * Returns true if the given character is in [A-Za-z_]
+	 * Returns true if the given character is in [A-Za-z].
 	 */
-	static bool isIdentifierStart(const char c)
+	static bool isIdentifierStartCharacter(const char c)
 	{
-		return isAlphabetic(c) || (c == '_');
+		return isAlphabetic(c);
 	}
 
 	/**
-	 * Returns true if the given character is in [A-Za-z_][A-Za-z0-9_-]*
+	 * Returns true if the given character is in [A-Za-z0-9_-].
+	 */
+	static bool isIdentifierCharacter(const char c)
+	{
+		return isAlphanumeric(c) || (c == '_') || (c == '-');
+	}
+
+	/**
+	 * Returns true if the given character is in [A-Za-z][A-Za-z0-9_-]*
 	 */
 	static bool isIdentifier(const std::string &name);
 
