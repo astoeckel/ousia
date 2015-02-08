@@ -233,7 +233,136 @@ TEST(PlainFormatStreamReader, nestedMultilineComment)
 	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
 }
 
+TEST(PlainFormatStreamReader, simpleCommand)
+{
+	const char *testString = "\\test";
+	//                        0 12345
+	CharReader charReader(testString);
+	PlainFormatStreamReader reader(charReader, logger);
+	ASSERT_EQ(PlainFormatStreamReader::State::COMMAND, reader.parse());
 
+	Variant commandName = reader.getCommandName();
+	ASSERT_EQ("test", commandName.asString());
 
+	SourceLocation loc = commandName.getLocation();
+	ASSERT_EQ(0U, loc.getStart());
+	ASSERT_EQ(5U, loc.getEnd());
+
+	ASSERT_EQ(0U, reader.getCommandArguments().asMap().size());
+	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+}
+
+TEST(PlainFormatStreamReader, simpleCommandWithName)
+{
+	const char *testString = "\\test#bla";
+	//                        0 12345678
+	CharReader charReader(testString);
+	PlainFormatStreamReader reader(charReader, logger);
+	ASSERT_EQ(PlainFormatStreamReader::State::COMMAND, reader.parse());
+
+	Variant commandName = reader.getCommandName();
+	ASSERT_EQ("test", commandName.asString());
+	SourceLocation loc = commandName.getLocation();
+	ASSERT_EQ(0U, loc.getStart());
+	ASSERT_EQ(5U, loc.getEnd());
+
+	Variant commandArguments = reader.getCommandArguments();
+	ASSERT_TRUE(commandArguments.isMap());
+	ASSERT_EQ(1U, commandArguments.asMap().size());
+	ASSERT_EQ(1U, commandArguments.asMap().count("name"));
+	ASSERT_EQ("bla", commandArguments.asMap()["name"].asString());
+
+	loc = commandArguments.asMap()["name"].getLocation();
+	ASSERT_EQ(5U, loc.getStart());
+	ASSERT_EQ(9U, loc.getEnd());
+
+	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+}
+
+TEST(PlainFormatStreamReader, simpleCommandWithArguments)
+{
+	const char *testString = "\\test[a=1,b=2,c=\"test\"]";
+	//                        0 123456789012345 678901 2
+	//                        0          1          2
+	CharReader charReader(testString);
+	PlainFormatStreamReader reader(charReader, logger);
+	ASSERT_EQ(PlainFormatStreamReader::State::COMMAND, reader.parse());
+
+	Variant commandName = reader.getCommandName();
+	ASSERT_EQ("test", commandName.asString());
+	SourceLocation loc = commandName.getLocation();
+	ASSERT_EQ(0U, loc.getStart());
+	ASSERT_EQ(5U, loc.getEnd());
+
+	Variant commandArguments = reader.getCommandArguments();
+	ASSERT_TRUE(commandArguments.isMap());
+	ASSERT_EQ(3U, commandArguments.asMap().size());
+	ASSERT_EQ(1U, commandArguments.asMap().count("a"));
+	ASSERT_EQ(1U, commandArguments.asMap().count("b"));
+	ASSERT_EQ(1U, commandArguments.asMap().count("c"));
+	ASSERT_EQ(1, commandArguments.asMap()["a"].asInt());
+	ASSERT_EQ(2, commandArguments.asMap()["b"].asInt());
+	ASSERT_EQ("test", commandArguments.asMap()["c"].asString());
+
+	loc = commandArguments.asMap()["a"].getLocation();
+	ASSERT_EQ(8U, loc.getStart());
+	ASSERT_EQ(9U, loc.getEnd());
+
+	loc = commandArguments.asMap()["b"].getLocation();
+	ASSERT_EQ(12U, loc.getStart());
+	ASSERT_EQ(13U, loc.getEnd());
+
+	loc = commandArguments.asMap()["c"].getLocation();
+	ASSERT_EQ(16U, loc.getStart());
+	ASSERT_EQ(22U, loc.getEnd());
+
+	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+}
+
+TEST(PlainFormatStreamReader, simpleCommandWithArgumentsAndName)
+{
+	const char *testString = "\\test#bla[a=1,b=2,c=\"test\"]";
+	//                        0 1234567890123456789 01234 56
+	//                        0          1          2
+	CharReader charReader(testString);
+	PlainFormatStreamReader reader(charReader, logger);
+	ASSERT_EQ(PlainFormatStreamReader::State::COMMAND, reader.parse());
+
+	Variant commandName = reader.getCommandName();
+	ASSERT_EQ("test", commandName.asString());
+	SourceLocation loc = commandName.getLocation();
+	ASSERT_EQ(0U, loc.getStart());
+	ASSERT_EQ(5U, loc.getEnd());
+
+	Variant commandArguments = reader.getCommandArguments();
+	ASSERT_TRUE(commandArguments.isMap());
+	ASSERT_EQ(4U, commandArguments.asMap().size());
+	ASSERT_EQ(1U, commandArguments.asMap().count("a"));
+	ASSERT_EQ(1U, commandArguments.asMap().count("b"));
+	ASSERT_EQ(1U, commandArguments.asMap().count("c"));
+	ASSERT_EQ(1U, commandArguments.asMap().count("name"));
+	ASSERT_EQ(1, commandArguments.asMap()["a"].asInt());
+	ASSERT_EQ(2, commandArguments.asMap()["b"].asInt());
+	ASSERT_EQ("test", commandArguments.asMap()["c"].asString());
+	ASSERT_EQ("bla", commandArguments.asMap()["name"].asString());
+
+	loc = commandArguments.asMap()["a"].getLocation();
+	ASSERT_EQ(12U, loc.getStart());
+	ASSERT_EQ(13U, loc.getEnd());
+
+	loc = commandArguments.asMap()["b"].getLocation();
+	ASSERT_EQ(16U, loc.getStart());
+	ASSERT_EQ(17U, loc.getEnd());
+
+	loc = commandArguments.asMap()["c"].getLocation();
+	ASSERT_EQ(20U, loc.getStart());
+	ASSERT_EQ(26U, loc.getEnd());
+
+	loc = commandArguments.asMap()["name"].getLocation();
+	ASSERT_EQ(5U, loc.getStart());
+	ASSERT_EQ(9U, loc.getEnd());
+
+	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+}
 }
 

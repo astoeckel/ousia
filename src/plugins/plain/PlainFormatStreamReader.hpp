@@ -178,6 +178,22 @@ private:
 	size_t fieldIdx;
 
 	/**
+	 * Function used internall to parse an identifier.
+	 *
+	 * @param start is the start byte offset of the identifier (including the
+	 * backslash).
+	 */
+	Variant parseIdentifier(size_t start);
+
+	/**
+	 * Function used internally to parse a command.
+	 *
+	 * @param start is the start byte offset of the command (including the
+	 * backslash).
+	 */
+	void parseCommand(size_t start);
+
+	/**
 	 * Function used internally to parse a block comment.
 	 */
 	void parseBlockComment();
@@ -208,10 +224,32 @@ public:
 	 */
 	State parse();
 
-	/**
-	 * Returns a reference at the internally stored data.
+	/** 
+	 * Returns a reference at the internally stored data. Only valid if
+	 * State::DATA was returned by the "parse" function.
+	 *
+	 * @return a reference at a variant containing the data parsed by the
+	 * "parse" function.
 	 */
 	const Variant& getData() {return data;}
+
+	/**
+	 * Returns a reference at the internally stored command name. Only valid if
+	 * State::COMMAND was returned by the "parse" function.
+	 *
+	 * @return a reference at a variant containing name and location of the
+	 * parsed command.
+	 */
+	const Variant& getCommandName() {return commandName;}
+
+	/**
+	 * Returns a reference at the internally stored command name. Only valid if
+	 * State::COMMAND was returned by the "parse" function.
+	 *
+	 * @return a reference at a variant containing arguments given to the
+	 * command.
+	 */
+	const Variant& getCommandArguments() {return commandArguments;}
 };
 }
 

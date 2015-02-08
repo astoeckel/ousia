@@ -19,6 +19,7 @@
 #include <core/common/CharReader.hpp>
 #include <core/common/Logger.hpp>
 #include <core/common/Utils.hpp>
+#include <core/common/VariantReader.hpp>
 
 #include "PlainFormatStreamReader.hpp"
 
@@ -47,7 +48,6 @@ private:
 	SourceOffset end;
 
 public:
-
 	/**
 	 * Default constructor, initializes start and end with zeros.
 	 */
@@ -123,6 +123,72 @@ PlainFormatStreamReader::PlainFormatStreamReader(CharReader &reader,
 	tokenBlockCommentEnd = tokenizer.registerToken("}%");
 }
 
+Variant PlainFormatStreamReader::parseIdentifier(size_t start)
+{
+	bool first = true;
+	std::vector<char> identifier;
+	size_t end = reader.getPeekOffset();
+	char c;
+	while (reader.peek(c)) {
+		// Abort if this character is not a valid identifer character
+		if ((first && Utils::isIdentifierStartCharacter(c)) ||
+		    (!first && Utils::isIdentifierCharacter(c))) {
+			identifier.push_back(c);
+		} else {
+			reader.resetPeek();
+			break;
+		}
+
+		// This is no longer the first character
+		first = false;
+		end = reader.getPeekOffset();
+		reader.consumePeek();
+	}
+
+	// Return the identifier at its location
+	Variant res =
+	    Variant::fromString(std::string(identifier.data(), identifier.size()));
+	res.setLocation({reader.getSourceId(), start, end});
+	return res;
+}
+
+void PlainFormatStreamReader::parseCommand(size_t start)
+{
+	// Parse the commandName as a first identifier
+	commandName = parseIdentifier(start);
+
+	// Check whether the next character is a '#', indicating the start of the
+	// command name
+	Variant commandArgName;
+	start = reader.getOffset();
+	if (reader.expect('#')) {
+		commandArgName = parseIdentifier(start);
+		if (commandArgName.asString().empty()) {
+			logger.error("Expected identifier after '#'", commandArgName);
+		}
+	}
+
+	// Read the arguments (if they are available), otherwise reset them
+	if (reader.expect('[')) {
+		auto res = VariantReader::parseObject(reader, logger, ']');
+		commandArguments = res.second;
+	} else {
+		commandArguments = Variant::mapType{};
+	}
+
+	// Insert the parsed name, make sure "name" was not specified in the
+	// arguments
+	if (commandArgName.isString()) {
+		auto res = commandArguments.asMap().emplace("name", commandArgName);
+		if (!res.second) {
+			logger.error("Name argument specified multiple times",
+			             SourceLocation{}, MessageMode::NO_CONTEXT);
+			logger.note("First occurance is here: ", commandArgName);
+			logger.note("Second occurance is here: ", res.first->second);
+		}
+	}
+}
+
 void PlainFormatStreamReader::parseBlockComment()
 {
 	DynamicToken token;
@@ -184,9 +250,10 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parse()
 			char c;
 			reader.consumePeek();
 			reader.peek(c);
-			if (Utils::isIdentifierStart(c)) {
+			if (Utils::isIdentifierStartCharacter(c)) {
 				CHECK_ISSUE_DATA();
-				// TODO: Parse a command
+				reader.resetPeek();
+				parseCommand(token.location.getStart());
 				return State::COMMAND;
 			}
 
