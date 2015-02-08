@@ -274,7 +274,7 @@ void DocumentEntity::setAttributes(const Variant &a)
 static int enforceGetFieldDescriptorIndex(Handle<Descriptor> desc,
                                           const std::string &fieldName)
 {
-	int idx = desc->getFieldDescriptorIndex(fieldName);
+	ssize_t idx = desc->getFieldDescriptorIndex(fieldName);
 	if (idx == -1) {
 		throw OusiaException(
 		    std::string("Descriptor \"") + desc->getName() +
@@ -286,7 +286,7 @@ static int enforceGetFieldDescriptorIndex(Handle<Descriptor> desc,
 static int enforceGetFieldDescriptorIndex(
     Handle<Descriptor> desc, Handle<FieldDescriptor> fieldDescriptor)
 {
-	int idx = desc->getFieldDescriptorIndex(fieldDescriptor);
+	ssize_t idx = desc->getFieldDescriptorIndex(fieldDescriptor);
 	if (idx == -1) {
 		throw OusiaException(std::string("Descriptor \"") +
 		                     desc->getName() +

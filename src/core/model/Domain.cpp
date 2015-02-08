@@ -228,9 +228,9 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 	return found;
 }
 
-int Descriptor::getFieldDescriptorIndex(const std::string &name) const
+ssize_t Descriptor::getFieldDescriptorIndex(const std::string &name) const
 {
-	int f = 0;
+	size_t f = 0;
 	for (auto &fd : getFieldDescriptors()) {
 		if (fd->getName() == name) {
 			return f;
@@ -240,9 +240,9 @@ int Descriptor::getFieldDescriptorIndex(const std::string &name) const
 	return -1;
 }
 
-int Descriptor::getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const
+ssize_t Descriptor::getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const
 {
-	int f = 0;
+	size_t f = 0;
 	for (auto &fd2 : getFieldDescriptors()) {
 		if (fd == fd2) {
 			return f;

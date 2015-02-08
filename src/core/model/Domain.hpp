@@ -503,7 +503,7 @@ public:
 	 * @return     the index of the FieldDescriptor with the given name or -1 if
 	 *             no such FieldDescriptor was found.
 	 */
-	int getFieldDescriptorIndex(
+	ssize_t getFieldDescriptorIndex(
 	    const std::string &name = DEFAULT_FIELD_NAME) const;
 	/**
 	 * Returns the index of the given FieldDescriptor or -1 of the given
@@ -514,7 +514,7 @@ public:
 	 * @return   the index of the given FieldDescriptor or -1 of the given
 	 *           FieldDescriptor is not registered at this Descriptor.
 	 */
-	int getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const;
+	ssize_t getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const;
 
 	/**
 	 * This returns true if this Descriptor has a FieldDescriptor with the
