@@ -14,11 +14,11 @@
 		 referenced by their key-value pairs as defined in the according
 		 StructType. For an example please refer to the more complex book
 		 domain. -->
-		<paragraph>
+		<!--<paragraph>-->
 		<text>
 		This might be some introductory text or a dedication.
 		</text>
-		</paragraph>
+		<!--</paragraph>-->
 		<!-- Note that a better version of the book domain might specify
 			 headings here. -->
 		<chapter name="myFirstChapter">
