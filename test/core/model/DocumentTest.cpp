@@ -47,7 +47,7 @@ TEST(Document, construct)
 	Rooted<StructuredEntity> root = doc->getRoot();
 	ASSERT_FALSE(root.isNull());
 	ASSERT_EQ("book", root->getDescriptor()->getName());
-	ASSERT_TRUE(root->hasField());
+	ASSERT_TRUE(root->getDescriptor()->hasField());
 	ASSERT_EQ(2U, root->getField().size());
 	// get foreword (paragraph)
 	{
@@ -56,7 +56,7 @@ TEST(Document, construct)
 		ASSERT_FALSE(foreword.isNull());
 		ASSERT_EQ("paragraph", foreword->getDescriptor()->getName());
 		// it should contain one text node
-		ASSERT_TRUE(foreword->hasField());
+		ASSERT_TRUE(foreword->getDescriptor()->hasField());
 		ASSERT_EQ(1U, foreword->getField().size());
 		// which in turn should have a primitive content field containing the
 		// right text.
@@ -65,7 +65,7 @@ TEST(Document, construct)
 			    foreword->getField()[0].cast<StructuredEntity>();
 			ASSERT_FALSE(text.isNull());
 			ASSERT_EQ("text", text->getDescriptor()->getName());
-			ASSERT_TRUE(text->hasField());
+			ASSERT_TRUE(text->getDescriptor()->hasField());
 			ASSERT_EQ(1U, text->getField().size());
 			ASSERT_TRUE(
 			    text->getField()[0]->isa(typeOf<DocumentPrimitive>()));
@@ -82,7 +82,7 @@ TEST(Document, construct)
 		ASSERT_FALSE(section.isNull());
 		ASSERT_EQ("section", section->getDescriptor()->getName());
 		// it should contain one paragraph
-		ASSERT_TRUE(section->hasField());
+		ASSERT_TRUE(section->getDescriptor()->hasField());
 		ASSERT_EQ(1U, section->getField().size());
 		{
 			Rooted<StructuredEntity> par =
@@ -90,7 +90,7 @@ TEST(Document, construct)
 			ASSERT_FALSE(par.isNull());
 			ASSERT_EQ("paragraph", par->getDescriptor()->getName());
 			// it should contain one text node
-			ASSERT_TRUE(par->hasField());
+			ASSERT_TRUE(par->getDescriptor()->hasField());
 			ASSERT_EQ(1U, par->getField().size());
 			// which in turn should have a primitive content field containing
 			// the right text.
@@ -99,7 +99,7 @@ TEST(Document, construct)
 				    par->getField()[0].cast<StructuredEntity>();
 				ASSERT_FALSE(text.isNull());
 				ASSERT_EQ("text", text->getDescriptor()->getName());
-				ASSERT_TRUE(text->hasField());
+				ASSERT_TRUE(text->getDescriptor()->hasField());
 				ASSERT_EQ(1U, text->getField().size());
 				ASSERT_TRUE(text->getField()[0]->isa(
 				    typeOf<DocumentPrimitive>()));

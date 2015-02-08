@@ -132,7 +132,8 @@ public:
 
 		// try to find a FieldDescriptor for the given tag if we are not in a
 		// field already.
-		if (!inField && parent != nullptr && parent->hasField(name())) {
+		if (!inField && parent != nullptr &&
+		    parent->getDescriptor()->hasField(name())) {
 			Rooted<DocumentField> field{new DocumentField(
 			    parentNode->getManager(), fieldName, parentNode)};
 			field->setLocation(location());
@@ -1315,7 +1316,6 @@ static void xmlStartElementHandler(void *p, const XML_Char *name,
 		    keyLoc.getStart());
 		args.emplace(key, value.second);
 	}
-	
 
 	// Call the start function
 	std::string nameStr(name);

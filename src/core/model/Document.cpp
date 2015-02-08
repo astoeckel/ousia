@@ -28,53 +28,6 @@ namespace ousia {
 
 /* Class DocumentEntity */
 
-int DocumentEntity::getFieldDescriptorIndex(const std::string &fieldName,
-                                            bool enforce) const
-{
-	const NodeVector<FieldDescriptor> &fds = descriptor->getFieldDescriptors();
-	unsigned int f = 0;
-
-	// otherwise we return the FieldDescriptor with the correct name (if
-	// such a descriptor exists).
-	for (auto &fd : fds) {
-		if (fd->getName() == fieldName) {
-			return f;
-		}
-		f++;
-	}
-
-	if (enforce) {
-		throw OusiaException(std::string("\"") + descriptor->getName() +
-		                     "\" has no field with name \"" + fieldName + "\"");
-	} else {
-		return -1;
-	}
-}
-
-int DocumentEntity::getFieldDescriptorIndex(
-    Handle<FieldDescriptor> fieldDescriptor, bool enforce) const
-{
-	if (fieldDescriptor.isNull()) {
-		throw OusiaException("The given FieldDescriptor handle is null!");
-	}
-	const NodeVector<FieldDescriptor> &fds = descriptor->getFieldDescriptors();
-	int f = 0;
-	for (auto &fd : fds) {
-		if (fd->getName() == fieldDescriptor->getName() &&
-		    fd->getFieldType() == fieldDescriptor->getFieldType()) {
-			return f;
-		}
-		f++;
-	}
-	if (enforce) {
-		throw OusiaException(std::string("\"") + descriptor->getName() +
-		                     "\" has no field with name \"" +
-		                     fieldDescriptor->getName() + "\"");
-	} else {
-		return -1;
-	}
-}
-
 void DocumentEntity::invalidateSubInstance()
 {
 	if (subInst->isa(&RttiTypes::StructuredEntity)) {
@@ -105,18 +58,10 @@ void DocumentEntity::setDescriptor(Handle<Descriptor> d)
 	}
 	invalidateSubInstance();
 	descriptor = subInst->acquire(d);
-	// get the effective field descriptors in the descriptor.
-	NodeVector<FieldDescriptor> fieldDescs;
-	if (descriptor->isa(&RttiTypes::StructuredClass)) {
-		fieldDescs =
-		    descriptor.cast<StructuredClass>()->getEffectiveFieldDescriptors();
-	} else {
-		fieldDescs = descriptor->getFieldDescriptors();
-	}
 	// clear the fields vector.
 	fields.clear();
 	// fill it again.
-	for (size_t f = 0; f < fieldDescs.size(); f++) {
+	for (size_t f = 0; f < descriptor->getFieldDescriptors().size(); f++) {
 		fields.push_back(NodeVector<StructureNode>(subInst));
 	}
 }
@@ -148,13 +93,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 	 * gather all fields of superclasses as well, that have not been
 	 * overridden in the subclasses.
 	 */
-	NodeVector<FieldDescriptor> fieldDescs;
-	if (descriptor->isa(&RttiTypes::StructuredClass)) {
-		fieldDescs =
-		    descriptor.cast<StructuredClass>()->getEffectiveFieldDescriptors();
-	} else {
-		fieldDescs = descriptor->getFieldDescriptors();
-	}
+	NodeVector<FieldDescriptor> fieldDescs = descriptor->getFieldDescriptors();
 	// iterate over every field
 	for (unsigned int f = 0; f < fields.size(); f++) {
 		// we have a special check for primitive fields.
@@ -332,6 +271,43 @@ void DocumentEntity::setAttributes(const Variant &a)
 	attributes = a;
 }
 
+static int enforceGetFieldDescriptorIndex(Handle<Descriptor> desc,
+                                          const std::string &fieldName)
+{
+	int idx = desc->getFieldDescriptorIndex(fieldName);
+	if (idx == -1) {
+		throw OusiaException(
+		    std::string("Descriptor \"") + desc->getName() +
+		    "\" has no field with the name \"" + fieldName + "\"");
+	}
+	return idx;
+}
+
+static int enforceGetFieldDescriptorIndex(
+    Handle<Descriptor> desc, Handle<FieldDescriptor> fieldDescriptor)
+{
+	int idx = desc->getFieldDescriptorIndex(fieldDescriptor);
+	if (idx == -1) {
+		throw OusiaException(std::string("Descriptor \"") +
+		                     desc->getName() +
+		                     "\" does not reference the given field \"" +
+		                     fieldDescriptor->getName() + "\"");
+	}
+	return idx;
+}
+
+const NodeVector<StructureNode> &DocumentEntity::getField(
+    const std::string &fieldName) const
+{
+	return fields[enforceGetFieldDescriptorIndex(descriptor, fieldName)];
+}
+
+const NodeVector<StructureNode> &DocumentEntity::getField(
+    Handle<FieldDescriptor> fieldDescriptor) const
+{
+	return fields[enforceGetFieldDescriptorIndex(descriptor, fieldDescriptor)];
+}
+
 void DocumentEntity::addStructureNode(Handle<StructureNode> s, const int &i)
 {
 	// only add the new node if we don't have it already.
@@ -354,6 +330,38 @@ void DocumentEntity::addStructureNode(Handle<StructureNode> s, const int &i)
 	}
 }
 
+void DocumentEntity::addStructureNode(Handle<StructureNode> s,
+                                      Handle<FieldDescriptor> fieldDescriptor)
+{
+	addStructureNode(
+	    s, enforceGetFieldDescriptorIndex(descriptor, fieldDescriptor));
+}
+
+void DocumentEntity::addStructureNodes(
+    const std::vector<Handle<StructureNode>> &ss,
+    Handle<FieldDescriptor> fieldDescriptor)
+{
+	const int i = enforceGetFieldDescriptorIndex(descriptor, fieldDescriptor);
+	for (Handle<StructureNode> s : ss) {
+		addStructureNode(s, i);
+	}
+}
+
+void DocumentEntity::addStructureNode(Handle<StructureNode> s,
+                                      const std::string &fieldName)
+{
+	addStructureNode(s, enforceGetFieldDescriptorIndex(descriptor, fieldName));
+}
+
+void DocumentEntity::addStructureNodes(
+    const std::vector<Handle<StructureNode>> &ss, const std::string &fieldName)
+{
+	const int idx = enforceGetFieldDescriptorIndex(descriptor, fieldName);
+	for (Handle<StructureNode> s : ss) {
+		addStructureNode(s, idx);
+	}
+}
+
 bool DocumentEntity::removeStructureNodeFromField(Handle<StructureNode> s,
                                                   const int &i)
 {
@@ -367,49 +375,18 @@ bool DocumentEntity::removeStructureNodeFromField(Handle<StructureNode> s,
 	return false;
 }
 
-void DocumentEntity::addStructureNode(Handle<StructureNode> s,
-                                      const std::string &fieldName)
-{
-	addStructureNode(s, getFieldDescriptorIndex(fieldName, true));
-}
-
-void DocumentEntity::addStructureNodes(
-    const std::vector<Handle<StructureNode>> &ss, const std::string &fieldName)
-{
-	const int i = getFieldDescriptorIndex(fieldName, true);
-	for (Handle<StructureNode> s : ss) {
-		addStructureNode(s, i);
-	}
-}
-
 bool DocumentEntity::removeStructureNodeFromField(Handle<StructureNode> s,
                                                   const std::string &fieldName)
 {
 	return removeStructureNodeFromField(
-	    s, getFieldDescriptorIndex(fieldName, true));
-}
-
-void DocumentEntity::addStructureNode(Handle<StructureNode> s,
-                                      Handle<FieldDescriptor> fieldDescriptor)
-{
-	addStructureNode(s, getFieldDescriptorIndex(fieldDescriptor, true));
-}
-
-void DocumentEntity::addStructureNodes(
-    const std::vector<Handle<StructureNode>> &ss,
-    Handle<FieldDescriptor> fieldDescriptor)
-{
-	const int i = getFieldDescriptorIndex(fieldDescriptor, true);
-	for (Handle<StructureNode> s : ss) {
-		addStructureNode(s, i);
-	}
+	    s, enforceGetFieldDescriptorIndex(descriptor, fieldName));
 }
 
 bool DocumentEntity::removeStructureNodeFromField(
     Handle<StructureNode> s, Handle<FieldDescriptor> fieldDescriptor)
 {
 	return removeStructureNodeFromField(
-	    s, getFieldDescriptorIndex(fieldDescriptor, true));
+	    s, enforceGetFieldDescriptorIndex(descriptor, fieldDescriptor));
 }
 
 bool DocumentEntity::removeStructureNode(Handle<StructureNode> s)

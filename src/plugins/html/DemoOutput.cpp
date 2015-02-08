@@ -27,8 +27,8 @@
 namespace ousia {
 namespace html {
 
-void DemoHTMLTransformer::writeHTML(Handle<Document> doc,
-                                    std::ostream &out, bool pretty)
+void DemoHTMLTransformer::writeHTML(Handle<Document> doc, std::ostream &out,
+                                    bool pretty)
 {
 	Manager &mgr = doc->getManager();
 	// Create an XML object tree for the document first.
@@ -115,7 +115,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 	Rooted<xml::Element> sec{
 	    new xml::Element{mgr, parent, "section", {{"class", secclass}}}};
 	// check if we have a heading.
-	if (section->hasField("heading") &&
+	if (section->getDescriptor()->hasField("heading") &&
 	    section->getField("heading").size() > 0) {
 		Handle<StructuredEntity> heading =
 		    section->getField("heading")[0].cast<StructuredEntity>();
@@ -188,8 +188,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformList(
 	Rooted<xml::Element> l{new xml::Element{mgr, parent, listclass}};
 	// iterate through list items.
 	for (auto &it : list->getField()) {
-		Handle<StructuredEntity> item =
-		    it.cast<StructuredEntity>();
+		Handle<StructuredEntity> item = it.cast<StructuredEntity>();
 		std::string itDescrName = item->getDescriptor()->getName();
 		if (itDescrName == "item") {
 			// create the list item.
@@ -210,9 +209,9 @@ Rooted<xml::Element> DemoHTMLTransformer::transformList(
 
 typedef std::stack<Rooted<AnnotationEntity>> AnnoStack;
 
-static Rooted<xml::Element> openAnnotation(
-    Manager &mgr, AnnoStack &opened, Handle<AnnotationEntity> entity,
-    Handle<xml::Element> current)
+static Rooted<xml::Element> openAnnotation(Manager &mgr, AnnoStack &opened,
+                                           Handle<AnnotationEntity> entity,
+                                           Handle<xml::Element> current)
 {
 	// we push the newly opened entity on top of the stack.
 	opened.push(entity);
@@ -238,7 +237,8 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 	Rooted<xml::Element> p{new xml::Element{mgr, parent, "p"}};
 
 	// check if we have a heading.
-	if (par->hasField("heading") && par->getField("heading").size() > 0) {
+	if (par->getDescriptor()->hasField("heading") &&
+	    par->getField("heading").size() > 0) {
 		Handle<StructuredEntity> heading =
 		    par->getField("heading")[0].cast<StructuredEntity>();
 		// put the heading in a strong xml::Element.

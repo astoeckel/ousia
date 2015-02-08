@@ -179,13 +179,7 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 	std::vector<Rooted<Node>> optimum;
 	// use recursive depth-first search from the top to reach the given child
 	// get the list of effective FieldDescriptors.
-	NodeVector<FieldDescriptor> fields;
-	if (isa(&RttiTypes::StructuredClass)) {
-		const StructuredClass *tis = static_cast<const StructuredClass *>(this);
-		fields = tis->getEffectiveFieldDescriptors();
-	} else {
-		fields = getFieldDescriptors();
-	}
+	NodeVector<FieldDescriptor> fields = getFieldDescriptors();
 
 	for (auto &fd : fields) {
 		for (auto &c : fd->getChildren()) {
@@ -232,6 +226,30 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 
 	// return if we found something.
 	return found;
+}
+
+int Descriptor::getFieldDescriptorIndex(const std::string &name) const
+{
+	int f = 0;
+	for (auto &fd : getFieldDescriptors()) {
+		if (fd->getName() == name) {
+			return f;
+		}
+		f++;
+	}
+	return -1;
+}
+
+int Descriptor::getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const
+{
+	int f = 0;
+	for (auto &fd2 : getFieldDescriptors()) {
+		if (fd == fd2) {
+			return f;
+		}
+		f++;
+	}
+	return -1;
 }
 
 void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd)
@@ -444,14 +462,13 @@ const void StructuredClass::gatherFieldDescriptors(
 	}
 }
 
-NodeVector<FieldDescriptor> StructuredClass::getEffectiveFieldDescriptors()
-    const
+NodeVector<FieldDescriptor> StructuredClass::getFieldDescriptors() const
 {
 	// in this case we return a NodeVector of Rooted entries without owner.
 	NodeVector<FieldDescriptor> vec;
 	std::set<std::string> overriddenFields;
 	gatherFieldDescriptors(vec, overriddenFields);
-	return std::move(vec);
+	return vec;
 }
 
 /* Class AnnotationClass */

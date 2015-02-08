@@ -485,15 +485,49 @@ public:
 	}
 
 	/**
-	 * Returns a const reference to the NodeVector of all FieldDescriptors of
-	 * this Descriptor.
+	 * Returns the NodeVector of all FieldDescriptors of this Descriptor.
 	 *
-	 * @return a const reference to the NodeVector of all FieldDescriptors of
-	 * this Descriptor.
+	 * @return the NodeVector of all FieldDescriptors of this Descriptor.
 	 */
-	const NodeVector<FieldDescriptor> &getFieldDescriptors() const
+	virtual NodeVector<FieldDescriptor> getFieldDescriptors() const
 	{
 		return fieldDescriptors;
+	}
+
+	/**
+	 * Returns the index of the FieldDescriptor with the given name or -1 if no
+	 * such FieldDescriptor was found.
+	 *
+	 * @param name the name of a FieldDescriptor.
+
+	 * @return     the index of the FieldDescriptor with the given name or -1 if
+	 *             no such FieldDescriptor was found.
+	 */
+	int getFieldDescriptorIndex(
+	    const std::string &name = DEFAULT_FIELD_NAME) const;
+	/**
+	 * Returns the index of the given FieldDescriptor or -1 of the given
+	 * FieldDescriptor is not registered at this Descriptor.
+	 *
+	 * @param fd a FieldDescriptor.
+
+	 * @return   the index of the given FieldDescriptor or -1 of the given
+	 *           FieldDescriptor is not registered at this Descriptor.
+	 */
+	int getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const;
+
+	/**
+	 * This returns true if this Descriptor has a FieldDescriptor with the
+	 * given name.
+	 *
+	 * @param name the name of a FieldDescriptor.
+
+	 * @return     true if this Descriptor has a FieldDescriptor with the given
+	 *             name
+	 */
+	bool hasField(const std::string &fieldName = DEFAULT_FIELD_NAME) const
+	{
+		return getFieldDescriptorIndex(fieldName) != -1;
 	}
 
 	/**
@@ -697,10 +731,7 @@ public:
  * Finally we allow StructuredClasses to inherit attributes of other
  * StructuredClasses. Inheritance also implies that instance of the inheriting
  * class can be used wherever an instance of the inherited class is allowed.
- * Inheritance therefore also goes for fields. TODO: What is the specification
- * for field inheritance? Is the child allowed to specify children at all?
- * Is that interpreted as overriding the parent fields or constructing a union?
- * What about the cardinality?
+ * Inheritance therefore also goes for fields.
  */
 class StructuredClass : public Descriptor {
 	friend Domain;
@@ -825,7 +856,7 @@ public:
 	 *               new subclasses AttributesDescriptor will be written into
 	 *               this logger.
 	 */
-	void addSubclass(Handle<StructuredClass> sc, Logger& logger);
+	void addSubclass(Handle<StructuredClass> sc, Logger &logger);
 
 	/**
 	 * Removes a subclass from this StructuredClass. This also calls
@@ -836,18 +867,17 @@ public:
 	 *               removed subclasses AttributesDescriptor will be written
 	 *               into this logger.
 	 */
-	void removeSubclass(Handle<StructuredClass> sc, Logger& logger);
+	void removeSubclass(Handle<StructuredClass> sc, Logger &logger);
 
 	/**
 	 * Returns a const reference to the NodeVector of all FieldDescriptors of
-	 * this StructuredClass. This does more than the getter for FieldDescriptor,
-	 * because in this method we gather the FieldDescriptors of all superclasses
-	 * as well that have not been overridden in child classes.
+	 * this StructuredClass. This also merges the FieldDescriptors directly
+	 * belonging to this StructuredClass with all FieldDescritptors of its
+	 * Superclass (and so on recurvively).
 	 *
-	 * @return a const reference to the NodeVector of all FieldDescriptors of
-	 * this StructuredClass.
+	 * @return a NodeVector of all FieldDescriptors of this StructuredClass.
 	 */
-	NodeVector<FieldDescriptor> getEffectiveFieldDescriptors() const;
+	NodeVector<FieldDescriptor> getFieldDescriptors() const override;
 
 	bool isTransparent() const { return transparent; }
 

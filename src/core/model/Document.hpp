@@ -153,17 +153,7 @@ private:
 	Variant attributes;
 	std::vector<NodeVector<StructureNode>> fields;
 
-	int getFieldDescriptorIndex(const std::string &fieldName,
-	                            bool enforce) const;
-
-	int getFieldDescriptorIndex(Handle<FieldDescriptor> fieldDescriptor,
-	                            bool enforce) const;
-
 	void invalidateSubInstance();
-
-	void addStructureNode(Handle<StructureNode> s, const int &i);
-
-	bool removeStructureNodeFromField(Handle<StructureNode> s, const int &i);
 
 protected:
 	bool doValidate(Logger &logger) const;
@@ -218,19 +208,6 @@ public:
 	void setAttributes(const Variant &a);
 
 	/**
-	 * This returns true if there is a FieldDescriptor in the Descriptor for
-	 * this DocumentEntity which has the given name.
-	 *
-	 * @param fieldName is the name of a field as specified in the
-	 *                  FieldDescriptor in the Domain description.
-	 * @return          true if this FieldDescriptor exists.
-	 */
-	bool hasField(const std::string &fieldName = DEFAULT_FIELD_NAME) const
-	{
-		return getFieldDescriptorIndex(fieldName, false) != -1;
-	}
-
-	/**
 	 * This returns the vector of entities containing all members of the field
 	 * with the given name.
 	 *
@@ -241,10 +218,7 @@ public:
 	 * @return          a NodeVector of all StructuredEntities in that field.
 	 */
 	const NodeVector<StructureNode> &getField(
-	    const std::string &fieldName = DEFAULT_FIELD_NAME) const
-	{
-		return fields[getFieldDescriptorIndex(fieldName, true)];
-	}
+	    const std::string &fieldName = DEFAULT_FIELD_NAME) const;
 
 	/**
 	 * This returns the vector of entities containing all members of the field
@@ -259,11 +233,20 @@ public:
 	 *                        field.
 	 */
 	const NodeVector<StructureNode> &getField(
-	    Handle<FieldDescriptor> fieldDescriptor) const
-	{
-		return fields[getFieldDescriptorIndex(fieldDescriptor, true)];
-	}
+	    Handle<FieldDescriptor> fieldDescriptor) const;
 
+	/**
+	 * This adds a StructureNode to the field with the given index.
+	 *
+	 * This method also changes the parent of the newly added StructureNode if
+	 * it is not set to this DocumentEntity already and removes it from the
+	 * old parent.
+	 *
+	 * @param s         is the StructureNode that shall be added.
+	 * @param fieldIdx  is the index of a field as specified in the
+	 *                  FieldDescriptor in the Domain description.
+	 */
+	void addStructureNode(Handle<StructureNode> s, const int &fieldIdx);
 	/**
 	 * This adds a StructureNode to the field with the given name.
 	 *
@@ -295,6 +278,19 @@ public:
 	 */
 	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
 	                       const std::string &fieldName = DEFAULT_FIELD_NAME);
+	/**
+	 * This removes a StructureNode from the field with the given index.
+	 *
+	 * This method also changes the parent of the removed StructureNode to null.
+	 *
+	 * @param s         is the StructureNode that shall be removed.
+	 * @param fieldIdx  is the index of a field as specified in the
+	 *                  FieldDescriptor in the Domain description.
+	 * @return          true if this StructureNode was a child here and false if
+	 *                  if was not found.
+	 */
+	bool removeStructureNodeFromField(Handle<StructureNode> s,
+	                                  const int &fieldIdx);
 	/**
 	 * This removes a StructureNode from the field with the given name.
 	 *
