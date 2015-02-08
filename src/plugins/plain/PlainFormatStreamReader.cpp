@@ -16,9 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sstream>
-#include <unordered_set>
-
 #include <core/common/CharReader.hpp>
 #include <core/common/Logger.hpp>
 #include <core/common/Utils.hpp>
@@ -27,123 +24,40 @@
 
 namespace ousia {
 
-/* Internally used types, protected from spilling the exports by a namespace */
-
 namespace {
-/**
- * Enum used to specify the state of the parseBlockComment state machine.
- */
-enum class BlockCommentState { DEFAULT, HAS_CURLY_CLOSE, HAS_PERCENT };
+struct DataHandler {
+	std::vector<char> buf;
 
-/**
- * Class taking care of recording plain text data found withing the file.
- */
-class DataHandler {
-private:
-	/**
-	 * Const reference at the reader, used for reading the current location.
-	 */
-	const CharReader &reader;
+	SourceOffset start;
+	SourceOffset end;
 
-	/**
-	 * Flag defining whether whitespaces should be preserved or not.
-	 */
-	const bool preserveWhitespaces;
+	DataHandler() : start(0), end(0) {}
 
-	/**
-	 * Current source range of the data in the buffer.
-	 */
-	SourceLocation location;
+	bool isEmpty() { return buf.empty(); }
 
-	/**
-	 * Current buffer containing all read characters.
-	 */
-	std::stringstream buffer;
-
-	/**
-	 * Set to false, once a non-whitespace character was reached.
-	 */
-	bool empty;
-
-	/**
-	 * Set to true if a whitespace was found -- these are normalized to a single
-	 * space.
-	 */
-	bool hasWhitespace;
-
-public:
-	/**
-	 * Constructor of the DataHandler class.
-	 *
-	 * @param reader is the CharReader that should be used for reading the data
-	 * location.
-	 * @param preserveWhitespaces should be set to true if all whitespaces
-	 * should be preserved (for preformated environments).
-	 */
-	DataHandler(const CharReader &reader, bool preserveWhitespaces = false)
-	    : reader(reader),
-	      preserveWhitespaces(preserveWhitespaces),
-	      location(reader.getSourceId()),
-	      empty(true),
-	      hasWhitespace(false)
+	void append(char c, SourceOffset charStart, SourceOffset charEnd)
 	{
-	}
-
-	/**
-	 * Appends the given character to the internal buffer.
-	 *
-	 * @param c is the character that should be appended.
-	 * @param wasEscaped is set to true if the character was escaped (prepended
-	 * with a backslash), this allows whitespace characters to be explicitly
-	 * included.
-	 */
-	void append(char c, bool wasEscaped = false)
-	{
-		// Check whether the character is a whitespace
-		const bool isWhitespace =
-		    !wasEscaped && !preserveWhitespaces && Utils::isWhitespace(c);
-
-		// Trim leading and trailing whitespaces
-		if (isWhitespace) {
-			if (!empty) {
-				hasWhitespace = true;
-			}
-		} else {
-			// Compress whitespaces to a single space
-			if (hasWhitespace) {
-				buffer << ' ';
-				hasWhitespace = false;
-			}
-
-			// Append the character
-			buffer << c;
-
-			// Update the "empty" flag and set the start and end offset
-			if (empty) {
-				location.setStart(reader.getOffset());
-				empty = false;
-			}
-			location.setEnd(reader.getPeekOffset());
+		if (isEmpty()) {
+			start = charStart;
 		}
+		buf.push_back(c);
+		end = charEnd;
 	}
 
-	/**
-	 * Returns true if no non-whitespace character has been found until now.
-	 *
-	 * @return true if the internal buffer is still empty.
-	 */
-	bool isEmpty() { return empty; }
-
-	/**
-	 * Returns a variant containg the read data and its location.
-	 *
-	 * @return a variant with a string value containing the read data and the
-	 * location being set to
-	 */
-	Variant getData()
+	void append(const std::string &s, SourceOffset stringStart,
+	            SourceOffset stringEnd)
 	{
-		Variant res = Variant::fromString(buffer.str());
-		res.setLocation(location);
+		if (isEmpty()) {
+			start = stringStart;
+		}
+		std::copy(s.c_str(), s.c_str() + s.size(), back_inserter(buf));
+		end = stringEnd;
+	}
+
+	Variant toVariant(SourceId sourceId)
+	{
+		Variant res = Variant::fromString(std::string(buf.data(), buf.size()));
+		res.setLocation({sourceId, start, end});
 		return res;
 	}
 };
@@ -153,35 +67,26 @@ PlainFormatStreamReader::PlainFormatStreamReader(CharReader &reader,
                                                  Logger &logger)
     : reader(reader), logger(logger), fieldIdx(0)
 {
+	tokenBackslash = tokenizer.registerToken("\\");
+	tokenLinebreak = tokenizer.registerToken("\n");
+	tokenLineComment = tokenizer.registerToken("%");
+	tokenBlockCommentStart = tokenizer.registerToken("%{");
+	tokenBlockCommentEnd = tokenizer.registerToken("}%");
 }
-
-/* Comment handling */
 
 void PlainFormatStreamReader::parseBlockComment()
 {
-	char c;
-	BlockCommentState state = BlockCommentState::DEFAULT;
-	while (reader.read(c)) {
-		switch (state) {
-			case BlockCommentState::DEFAULT:
-				if (c == '%') {
-					state = BlockCommentState::HAS_PERCENT;
-				} else if (c == '}') {
-					state = BlockCommentState::HAS_CURLY_CLOSE;
-				}
-				break;
-			case BlockCommentState::HAS_PERCENT:
-				if (c == '{') {
-					parseBlockComment();
-				}
-				state = BlockCommentState::DEFAULT;
-				break;
-			case BlockCommentState::HAS_CURLY_CLOSE:
-				if (c == '%') {
-					return;
-				}
-				state = BlockCommentState::DEFAULT;
-				break;
+	DynamicToken token;
+	size_t depth = 1;
+	while (tokenizer.read(reader, token)) {
+		if (token.type == tokenBlockCommentEnd) {
+			depth--;
+			if (depth == 0) {
+				return;
+			}
+		}
+		if (token.type == tokenBlockCommentStart) {
+			depth++;
 		}
 	}
 
@@ -189,102 +94,84 @@ void PlainFormatStreamReader::parseBlockComment()
 	logger.error("File ended while being in a block comment", reader);
 }
 
-void PlainFormatStreamReader::parseComment()
+void PlainFormatStreamReader::parseLineComment()
 {
 	char c;
-	bool first = true;
 	reader.consumePeek();
 	while (reader.read(c)) {
-		// Continue parsing a block comment if a '{' is found
-		if (c == '{' && first) {
-			parseBlockComment();
-			return;
-		}
 		if (c == '\n') {
 			return;
 		}
-		first = false;
 	}
 }
-
-/* Top level parse function */
-
-static const std::unordered_set<char> EscapeableCharacters{'\\', '<', '>',
-                                                    '{',  '}', '%'};
 
 PlainFormatStreamReader::State PlainFormatStreamReader::parse()
 {
 // Macro (sorry for that) used for checking whether there is data to issue, and
 // if yes, aborting the loop, allowing for a reentry on a later parse call by
 // resetting the peek cursor
-#define CHECK_ISSUE_DATA()      \
-	{                           \
-		if (!dataHandler.isEmpty()) {   \
-			reader.resetPeek(); \
-			abort = true;       \
-			break;              \
-		}                       \
+#define CHECK_ISSUE_DATA()            \
+	{                                 \
+		if (!dataHandler.isEmpty()) { \
+			reader.resetPeek();       \
+			abort = true;             \
+			break;                    \
+		}                             \
 	}
 
-	// Data handler
-	DataHandler dataHandler(reader);
+	// Handler for incomming data
+	DataHandler dataHandler;
 
 	// Variable set to true if the parser loop should be left
 	bool abort = false;
 
-	// Happily add characters to the dataHandler and handle escaping until a
-	// special character is reached. Then go to a specialiced parsing routine
-	char c;
-	while (!abort && reader.peek(c)) {
-		switch (c) {
-			case '\\':
-				reader.peek(c);
-				// Check whether this backslash just escaped some special or
-				// whitespace character or was the beginning of a command
-				if (EscapeableCharacters.count(c) == 0 &&
-				    !Utils::isWhitespace(c)) {
-					CHECK_ISSUE_DATA();
-					// TODO: Parse command (starting from the backslash)
-					return State::COMMAND;
-				}
-				// A character was escaped, add it to the buffer, with the
-				// wasEscaped flag set to true
-				dataHandler.append(c, true);
-				break;
-			case '<':
-				// TODO: Annotations
-				break;
-			case '>':
-				// TODO: Annotations
-				break;
-			case '{':
-				// TODO: Issue start of field
-				break;
-			case '}':
-			// TODO: Issue end of field
-			case '%':
+	// Read tokens until the outer loop should be left
+	DynamicToken token;
+	while (!abort && tokenizer.peek(reader, token)) {
+		// Check whether this backslash just escaped some special or
+		// whitespace character or was the beginning of a command
+		if (token.type == tokenBackslash) {
+			// Check whether this character could be the start of a command
+			char c;
+			reader.consumePeek();
+			reader.peek(c);
+			if (Utils::isIdentifierStart(c)) {
 				CHECK_ISSUE_DATA();
-				parseComment();
-				break;
-			case '\n':
-				CHECK_ISSUE_DATA();
-				reader.consumePeek();
-				return State::LINEBREAK;
-			default:
-				dataHandler.append(c, false);
+				// TODO: Parse a command
+				return State::COMMAND;
+			}
+
+			// This was not a special character, just append the given character
+			// to the data buffer, use the escape character start as start
+			// location and the peek offset as end location
+			dataHandler.append(c, token.location.getStart(),
+			                   reader.getPeekOffset());
+		} else if (token.type == tokenLineComment) {
+			CHECK_ISSUE_DATA();
+			reader.consumePeek();
+			parseLineComment();
+		} else if (token.type == tokenBlockCommentStart) {
+			CHECK_ISSUE_DATA();
+			reader.consumePeek();
+			parseBlockComment();
+		} else if (token.type == tokenLinebreak) {
+			CHECK_ISSUE_DATA();
+			reader.consumePeek();
+			return State::LINEBREAK;
+		} else if (token.type == TextToken) {
+			dataHandler.append(token.content, token.location.getStart(),
+			                   token.location.getEnd());
 		}
 
 		// Consume the peeked character if we did not abort, otherwise abort
 		if (!abort) {
 			reader.consumePeek();
-		} else {
-			break;
 		}
 	}
 
 	// Send out pending output data, otherwise we are at the end of the stream
 	if (!dataHandler.isEmpty()) {
-		data = dataHandler.getData();
+		data = dataHandler.toVariant(reader.getSourceId());
 		return State::DATA;
 	}
 	return State::END;

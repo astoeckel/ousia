@@ -31,6 +31,8 @@
 
 #include <core/common/Variant.hpp>
 
+#include "DynamicTokenizer.hpp"
+
 namespace ousia {
 
 // Forward declarations
@@ -123,6 +125,11 @@ private:
 	Logger &logger;
 
 	/**
+	 * Tokenizer instance used to read individual tokens from the text.
+	 */
+	DynamicTokenizer tokenizer;
+
+	/**
 	 * Variant containing the current command name (always is a string variant,
 	 * but additionally contains the correct locatino of the name).
 	 */
@@ -141,6 +148,31 @@ private:
 	Variant data;
 
 	/**
+	 * Id of the backslash token.
+	 */
+	TokenTypeId tokenBackslash;
+
+	/**
+	 * Id of the linebreak token.
+	 */
+	TokenTypeId tokenLinebreak;
+
+	/**
+	 * Id of the line comment token.
+	 */
+	TokenTypeId tokenLineComment;
+
+	/**
+	 * Id of the block comment start token.
+	 */
+	TokenTypeId tokenBlockCommentStart;
+
+	/**
+	 * If of the block comment end token.
+	 */
+	TokenTypeId tokenBlockCommentEnd;
+
+	/**
 	 * Contains the field index of the current command.
 	 */
 	size_t fieldIdx;
@@ -153,7 +185,7 @@ private:
 	/**
 	 * Function used internally to parse a generic comment.
 	 */
-	void parseComment();
+	void parseLineComment();
 
 public:
 	/**
