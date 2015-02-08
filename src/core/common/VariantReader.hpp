@@ -195,6 +195,7 @@ public:
 	static std::pair<bool, Variant::mapType> parseObject(CharReader &reader,
 	                                                     Logger &logger,
 	                                                     char delim = 0);
+
 	/**
 	 * Parses a Cardinality. A Cardinality is specified as a list of Ranges,
 	 * separated by commas and enclosed in curly braces. The ranges can be

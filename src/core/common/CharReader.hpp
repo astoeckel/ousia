@@ -490,6 +490,15 @@ public:
 	bool read(char &c);
 
 	/**
+	 * Peeks a character, checks whether this character equals the given
+	 * character -- and if yes -- consumes the peek, otherwise resets it.
+	 *
+	 * @param c is the character that is expected.
+	 * @return true if this character is actually next.
+	 */
+	bool expect(char c);
+
+	/**
 	 * Resets the peek pointer to the "read" pointer.
 	 */
 	void resetPeek();

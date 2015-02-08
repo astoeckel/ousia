@@ -35,10 +35,10 @@ bool Utils::isIdentifier(const std::string &name)
 {
 	bool first = true;
 	for (char c : name) {
-		if (first && !(isAlphabetic(c) || c == '_')) {
+		if (first && !isIdentifierStartCharacter(c)) {
 			return false;
 		}
-		if (!first && !(isAlphanumeric(c) || c == '_' || c == '-')) {
+		if (!first && !isIdentifierCharacter(c)) {
 			return false;
 		}
 		first = false;

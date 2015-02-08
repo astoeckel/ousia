@@ -468,6 +468,18 @@ bool CharReader::read(char &c)
 	return res;
 }
 
+bool CharReader::expect(char c)
+{
+	char actual = 0;
+	peek(actual);
+	if (c == actual) {
+		consumePeek();
+		return true;
+	}
+	resetPeek();
+	return false;
+}
+
 void CharReader::resetPeek()
 {
 	if (!coherent) {
