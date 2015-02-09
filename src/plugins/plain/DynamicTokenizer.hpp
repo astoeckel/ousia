@@ -85,6 +85,14 @@ struct DynamicToken {
 	 * @param type is the id corresponding to the type of the token.
 	 */
 	DynamicToken(TokenTypeId type) : type(type) {}
+
+	/**
+	 * The getLocation function allows the tokens to be directly passed as
+	 * parameter to Logger or LoggableException instances.
+	 *
+	 * @return a reference at the location field
+	 */
+	const SourceLocation &getLocation() const { return location; }
 };
 
 /**
