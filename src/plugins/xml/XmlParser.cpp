@@ -132,6 +132,7 @@ public:
 
 		// try to find a FieldDescriptor for the given tag if we are not in a
 		// field already.
+		// TODO: Consider fields of transparent classes
 		if (!inField && parent != nullptr &&
 		    parent->getDescriptor()->hasField(name())) {
 			Rooted<DocumentField> field{new DocumentField(
@@ -151,17 +152,37 @@ public:
 			    std::string("\"") + name() + "\" could not be resolved.",
 			    location());
 		}
+
 		std::string name;
 		auto it = args.find("name");
 		if (it != args.end()) {
 			name = it->second.asString();
 			args.erase(it);
 		}
+
 		Rooted<StructuredEntity> entity;
 		if (parentNode->isa(&RttiTypes::Document)) {
 			entity = parentNode.cast<Document>()->createRootStructuredEntity(
 			    strct, args, name);
 		} else {
+			// calculate a path if transparent entities are needed in between.
+			auto path = parent->getDescriptor()->pathTo(strct);
+			if (path.empty()) {
+				throw LoggableException(
+				    std::string("An instance of \"") + strct->getName() +
+				        "\" is not allowed as child of an instance of \"" +
+				        parent->getDescriptor()->getName() + "\"",
+				    location());
+			}
+
+			// create all transparent entities until the last field.
+			for (size_t p = 1; p < path.size() - 1; p = p + 2) {
+				parent = static_cast<DocumentEntity *>(
+				    parent->createChildStructuredEntity(
+				                path[p].cast<StructuredClass>(),
+				                Variant::mapType{}, path[p - 1]->getName(),
+				                "").get());
+			}
 			entity = parent->createChildStructuredEntity(strct, args, fieldName,
 			                                             name);
 		}
@@ -184,15 +205,9 @@ public:
 		preamble(parentNode, fieldName, parent, inField);
 
 		// retrieve the correct FieldDescriptor.
+		// TODO: Consider fields of transparent classes
 		Rooted<Descriptor> desc = parent->getDescriptor();
-		Rooted<FieldDescriptor> field = nullptr;
-		// TODO: Use more convenient mechanism once possible.
-		for (auto &fd : desc->getFieldDescriptors()) {
-			if (fd->getName() == fieldName) {
-				field = fd;
-				break;
-			}
-		}
+		Rooted<FieldDescriptor> field = desc->getFieldDescriptor(fieldName);
 		if (field == nullptr) {
 			logger().error(
 			    std::string("Can't handle data because no field with name \"") +

@@ -515,6 +515,16 @@ public:
 	 *           FieldDescriptor is not registered at this Descriptor.
 	 */
 	ssize_t getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const;
+	/**
+	 * Returns the FieldDescriptor with the given name.
+	 *
+	 * @param name the name of a FieldDescriptor.
+
+	 * @return     the FieldDescriptor with the given name or a nullptr if no
+	 *             such FieldDescriptor was found.
+	 */
+	Rooted<FieldDescriptor> getFieldDescriptor(
+	    const std::string &name = DEFAULT_FIELD_NAME) const;
 
 	/**
 	 * This returns true if this Descriptor has a FieldDescriptor with the
