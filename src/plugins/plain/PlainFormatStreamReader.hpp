@@ -16,9 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_PLAIN_FORMAT_STREAM_READER_HPP_
-#define _OUSIA_PLAIN_FORMAT_STREAM_READER_HPP_
-
 /**
  * @file PlainFormatStreamReader.hpp
  *
@@ -29,6 +26,11 @@
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
+#ifndef _OUSIA_PLAIN_FORMAT_STREAM_READER_HPP_
+#define _OUSIA_PLAIN_FORMAT_STREAM_READER_HPP_
+
+#include <stack>
+
 #include <core/common/Variant.hpp>
 
 #include "DynamicTokenizer.hpp"
@@ -38,6 +40,7 @@ namespace ousia {
 // Forward declarations
 class CharReader;
 class Logger;
+class DataHandler;
 
 /**
  * The PlainFormatStreamReader class provides a low-level reader for the plain
@@ -67,11 +70,6 @@ public:
 	     * has been removed. Only called if the data is non-empty.
 	     */
 		DATA,
-
-		/**
-		 * State returned if a linebreak has been reached (outside of comments).
-		 */
-		LINEBREAK,
 
 		/**
 	     * A user-defined entity has been found. The entity sequence is stored
@@ -112,6 +110,66 @@ public:
 		END
 	};
 
+	/**
+	 * Entry used for the command stack.
+	 */
+	struct Command {
+		/**
+		 * Name and location of the current command.
+		 */
+		Variant name;
+
+		/**
+		 * Arguments that were passed to the command.
+		 */
+		Variant arguments;
+
+		/**
+		 * Set to true if this is a command with clear begin and end.
+		 */
+		bool hasRange;
+
+		/**
+		 * Set to true if we are currently inside a field of this command.
+		 */
+		bool inField;
+
+		/**
+		 * Set to true if we are currently in the range field of the command
+		 * (implies inField being set to true).
+		 */
+		bool inRangeField;
+
+		/**
+		 * Default constructor.
+		 */
+		Command() : hasRange(false), inField(false), inRangeField(false) {}
+
+		/**
+		 * Constructor of the Command class.
+		 *
+		 * @param name is a string variant with name and location of the
+		 * command.
+		 * @param arguments is a map variant with the arguments given to the
+		 * command.
+		 * @param hasRange should be set to true if this is a command with
+		 * explicit range.
+		 * @param inField is set to true if we currently are inside a field
+		 * of this command.
+		 * @param inRangeField is set to true if we currently inside the outer
+		 * field of the command.
+		 */
+		Command(const Variant &name, const Variant &arguments, bool hasRange,
+		        bool inField, bool inRangeField)
+		    : name(name),
+		      arguments(arguments),
+		      hasRange(hasRange),
+		      inField(inField),
+		      inRangeField(inRangeField)
+		{
+		}
+	};
+
 private:
 	/**
 	 * Reference to the CharReader instance from which the incomming bytes are
@@ -130,16 +188,9 @@ private:
 	DynamicTokenizer tokenizer;
 
 	/**
-	 * Variant containing the current command name (always is a string variant,
-	 * but additionally contains the correct locatino of the name).
+	 * Stack containing the current commands.
 	 */
-	Variant commandName;
-
-	/**
-	 * Variant containing the command arguments (always is a map or array
-	 * variant, but additionally contains the source location of the arguments).
-	 */
-	Variant commandArguments;
+	std::stack<Command> commands;
 
 	/**
 	 * Variant containing the data that has been read (always is a string,
@@ -148,29 +199,9 @@ private:
 	Variant data;
 
 	/**
-	 * Id of the backslash token.
+	 * Contains the location of the last token.
 	 */
-	TokenTypeId tokenBackslash;
-
-	/**
-	 * Id of the linebreak token.
-	 */
-	TokenTypeId tokenLinebreak;
-
-	/**
-	 * Id of the line comment token.
-	 */
-	TokenTypeId tokenLineComment;
-
-	/**
-	 * Id of the block comment start token.
-	 */
-	TokenTypeId tokenBlockCommentStart;
-
-	/**
-	 * If of the block comment end token.
-	 */
-	TokenTypeId tokenBlockCommentEnd;
+	SourceLocation location;
 
 	/**
 	 * Contains the field index of the current command.
@@ -189,7 +220,7 @@ private:
 	 * Function used internally to parse a command.
 	 *
 	 * @param start is the start byte offset of the command (including the
-	 * backslash).
+	 * backslash)
 	 */
 	void parseCommand(size_t start);
 
@@ -202,6 +233,24 @@ private:
 	 * Function used internally to parse a generic comment.
 	 */
 	void parseLineComment();
+
+	/**
+	 * Checks whether there is any data pending to be issued, if yes, issues it.
+	 *
+	 * @param handler is the data handler that contains the data that may be
+	 * returned to the user.
+	 * @return true if there was any data and DATA should be returned by the
+	 * parse function, false otherwise.
+	 */
+	bool checkIssueData(DataHandler &handler);
+
+	/**
+	 * Called before any data is appended to the internal data handler. Checks
+	 * whether a new field should be started or implicitly ended.
+	 *
+	 * @return true if FIELD_START should be returned by the parse function.
+	 */
+	bool checkIssueFieldStart();
 
 public:
 	/**
@@ -224,14 +273,14 @@ public:
 	 */
 	State parse();
 
-	/** 
+	/**
 	 * Returns a reference at the internally stored data. Only valid if
 	 * State::DATA was returned by the "parse" function.
 	 *
 	 * @return a reference at a variant containing the data parsed by the
 	 * "parse" function.
 	 */
-	const Variant& getData() {return data;}
+	const Variant &getData() { return data; }
 
 	/**
 	 * Returns a reference at the internally stored command name. Only valid if
@@ -240,7 +289,7 @@ public:
 	 * @return a reference at a variant containing name and location of the
 	 * parsed command.
 	 */
-	const Variant& getCommandName() {return commandName;}
+	const Variant &getCommandName();
 
 	/**
 	 * Returns a reference at the internally stored command name. Only valid if
@@ -249,7 +298,14 @@ public:
 	 * @return a reference at a variant containing arguments given to the
 	 * command.
 	 */
-	const Variant& getCommandArguments() {return commandArguments;}
+	const Variant &getCommandArguments();
+
+	/**
+	 * Returns a reference at the char reader.
+	 *
+	 * @return the last internal token location.
+	 */
+	SourceLocation &getLocation() {return location;}
 };
 }
 

@@ -25,7 +25,56 @@
 
 namespace ousia {
 
-namespace {
+/**
+ * Plain format default tokenizer.
+ */
+class PlainFormatTokens : public DynamicTokenizer {
+public:
+	/**
+	 * Id of the backslash token.
+	 */
+	TokenTypeId Backslash;
+
+	/**
+	 * Id of the line comment token.
+	 */
+	TokenTypeId LineComment;
+
+	/**
+	 * Id of the block comment start token.
+	 */
+	TokenTypeId BlockCommentStart;
+
+	/**
+	 * Id of the block comment end token.
+	 */
+	TokenTypeId BlockCommentEnd;
+
+	/**
+	 * Id of the field start token.
+	 */
+	TokenTypeId FieldStart;
+
+	/**
+	 * Id of the field end token.
+	 */
+	TokenTypeId FieldEnd;
+
+	/**
+	 * Registers the plain format tokens in the internal tokenizer.
+	 */
+	PlainFormatTokens()
+	{
+		Backslash = registerToken("\\");
+		LineComment = registerToken("%");
+		BlockCommentStart = registerToken("%{");
+		BlockCommentEnd = registerToken("}%");
+		FieldStart = registerToken("{");
+		FieldEnd = registerToken("}");
+	}
+};
+
+static const PlainFormatTokens Tokens;
 
 /**
  * Class used internally to collect data issued via "DATA" event.
@@ -110,17 +159,13 @@ public:
 		return res;
 	}
 };
-}
 
 PlainFormatStreamReader::PlainFormatStreamReader(CharReader &reader,
                                                  Logger &logger)
-    : reader(reader), logger(logger), fieldIdx(0)
+    : reader(reader), logger(logger), tokenizer(Tokens)
 {
-	tokenBackslash = tokenizer.registerToken("\\");
-	tokenLinebreak = tokenizer.registerToken("\n");
-	tokenLineComment = tokenizer.registerToken("%");
-	tokenBlockCommentStart = tokenizer.registerToken("%{");
-	tokenBlockCommentEnd = tokenizer.registerToken("}%");
+	// Place an intial command representing the complete file on the stack
+	commands.push(Command{"", Variant::mapType{}, true, true, true});
 }
 
 Variant PlainFormatStreamReader::parseIdentifier(size_t start)
@@ -155,7 +200,7 @@ Variant PlainFormatStreamReader::parseIdentifier(size_t start)
 void PlainFormatStreamReader::parseCommand(size_t start)
 {
 	// Parse the commandName as a first identifier
-	commandName = parseIdentifier(start);
+	Variant commandName = parseIdentifier(start);
 
 	// Check whether the next character is a '#', indicating the start of the
 	// command name
@@ -169,6 +214,7 @@ void PlainFormatStreamReader::parseCommand(size_t start)
 	}
 
 	// Read the arguments (if they are available), otherwise reset them
+	Variant commandArguments;
 	if (reader.expect('[')) {
 		auto res = VariantReader::parseObject(reader, logger, ']');
 		commandArguments = res.second;
@@ -187,6 +233,13 @@ void PlainFormatStreamReader::parseCommand(size_t start)
 			logger.note("Second occurance is here: ", res.first->second);
 		}
 	}
+
+	// Place the command on the command stack, remove the last commands if we're
+	// not currently inside a field of these commands
+	while (!commands.top().inField) {
+		commands.pop();
+	}
+	commands.push(Command{commandName, commandArguments, false, false, false});
 }
 
 void PlainFormatStreamReader::parseBlockComment()
@@ -194,13 +247,13 @@ void PlainFormatStreamReader::parseBlockComment()
 	DynamicToken token;
 	size_t depth = 1;
 	while (tokenizer.read(reader, token)) {
-		if (token.type == tokenBlockCommentEnd) {
+		if (token.type == Tokens.BlockCommentEnd) {
 			depth--;
 			if (depth == 0) {
 				return;
 			}
 		}
-		if (token.type == tokenBlockCommentStart) {
+		if (token.type == Tokens.BlockCommentStart) {
 			depth++;
 		}
 	}
@@ -212,7 +265,6 @@ void PlainFormatStreamReader::parseBlockComment()
 void PlainFormatStreamReader::parseLineComment()
 {
 	char c;
-	reader.consumePeek();
 	while (reader.read(c)) {
 		if (c == '\n') {
 			return;
@@ -220,78 +272,171 @@ void PlainFormatStreamReader::parseLineComment()
 	}
 }
 
+bool PlainFormatStreamReader::checkIssueData(DataHandler &handler)
+{
+	if (!handler.isEmpty()) {
+		data = handler.toVariant(reader.getSourceId());
+		location = data.getLocation();
+		reader.resetPeek();
+		return true;
+	}
+	return false;
+}
+
+bool PlainFormatStreamReader::checkIssueFieldStart()
+{
+	// Fetch the current command, and check whether we're currently inside a
+	// field of this command
+	Command &cmd = commands.top();
+	if (!cmd.inField) {
+		// If this is a range command, we're now implicitly inside the field of
+		// this command -- we'll have to issue a field start command!
+		if (cmd.hasRange) {
+			cmd.inField = true;
+			reader.resetPeek();
+			return true;
+		}
+
+		// This was not a range command, so obviously we're now inside within
+		// a field of some command -- so unroll the commands stack until a
+		// command with open field is reached
+		while (!commands.top().inField) {
+			commands.pop();
+		}
+	}
+	return false;
+}
+
 PlainFormatStreamReader::State PlainFormatStreamReader::parse()
 {
-// Macro (sorry for that) used for checking whether there is data to issue, and
-// if yes, aborting the loop, allowing for a reentry on a later parse call by
-// resetting the peek cursor
-#define CHECK_ISSUE_DATA()            \
-	{                                 \
-		if (!dataHandler.isEmpty()) { \
-			reader.resetPeek();       \
-			abort = true;             \
-			break;                    \
-		}                             \
-	}
-
 	// Handler for incomming data
-	DataHandler dataHandler;
-
-	// Variable set to true if the parser loop should be left
-	bool abort = false;
+	DataHandler handler;
 
 	// Read tokens until the outer loop should be left
 	DynamicToken token;
-	while (!abort && tokenizer.peek(reader, token)) {
-		// Check whether this backslash just escaped some special or
-		// whitespace character or was the beginning of a command
-		if (token.type == tokenBackslash) {
-			// Check whether this character could be the start of a command
+	while (tokenizer.peek(reader, token)) {
+		const TokenTypeId type = token.type;
+
+		// Special handling for Backslash and Text
+		if (type == Tokens.Backslash) {
+			// Check whether a command starts now, without advancing the peek
+			// cursor
 			char c;
-			reader.consumePeek();
-			reader.peek(c);
+			if (!reader.fetchPeek(c)) {
+				logger.error("Trailing backslash at the end of the file.",
+				             token);
+				return State::END;
+			}
+
+			// Try to parse a command
 			if (Utils::isIdentifierStartCharacter(c)) {
-				CHECK_ISSUE_DATA();
-				reader.resetPeek();
 				parseCommand(token.location.getStart());
+				if (checkIssueData(handler)) {
+					return State::DATA;
+				}
+				location = commands.top().name.getLocation();
 				return State::COMMAND;
+			}
+
+			// Before appending anything to the output data, check whether
+			// FIELD_START has to be issued, as the current command is a command
+			// with range
+			if (checkIssueFieldStart()) {
+				location = token.location;
+				return State::FIELD_START;
 			}
 
 			// This was not a special character, just append the given character
 			// to the data buffer, use the escape character start as start
 			// location and the peek offset as end location
-			dataHandler.append(c, token.location.getStart(),
-			                   reader.getPeekOffset());
-		} else if (token.type == tokenLineComment) {
-			CHECK_ISSUE_DATA();
+			reader.peek(c);  // Peek the previously fetched character
+			handler.append(c, token.location.getStart(),
+			               reader.getPeekOffset());
 			reader.consumePeek();
-			parseLineComment();
-		} else if (token.type == tokenBlockCommentStart) {
-			CHECK_ISSUE_DATA();
+			continue;
+		} else if (type == TextToken) {
+			// Check whether FIELD_START has to be issued before appending text
+			if (checkIssueFieldStart()) {
+				location = token.location;
+				return State::FIELD_START;
+			}
+
+			// Append the text to the data handler
+			handler.append(token.content, token.location.getStart(),
+			               token.location.getEnd());
+
 			reader.consumePeek();
-			parseBlockComment();
-		} else if (token.type == tokenLinebreak) {
-			CHECK_ISSUE_DATA();
-			reader.consumePeek();
-			return State::LINEBREAK;
-		} else if (token.type == TextToken) {
-			dataHandler.append(token.content, token.location.getStart(),
-			                   token.location.getEnd());
+			continue;
 		}
 
-		// Consume the peeked character if we did not abort, otherwise abort
-		if (!abort) {
-			reader.consumePeek();
+		// A non-text token was reached, make sure all pending data commands
+		// have been issued
+		if (checkIssueData(handler)) {
+			return State::DATA;
+		}
+
+		// We will handle the token now, consume the peeked characters
+		reader.consumePeek();
+
+		// Update the location to the current token location
+		location = token.location;
+
+		if (token.type == Tokens.LineComment) {
+			parseLineComment();
+		} else if (token.type == Tokens.BlockCommentStart) {
+			parseBlockComment();
+		} else if (token.type == Tokens.FieldStart) {
+			Command &cmd = commands.top();
+			if (!cmd.inField) {
+				cmd.inField = true;
+				return State::FIELD_START;
+			}
+			logger.error(
+			    "Got field start token \"{\", but no command for which to "
+			    "start the field. Did you mean to write \"\\{\"?",
+			    token);
+		} else if (token.type == Tokens.FieldEnd) {
+			// Try to end an open field of the current command -- if the current
+			// command is not inside an open field, end this command and try to
+			// close the next one
+			for (int i = 0; i < 2 && commands.size() > 1; i++) {
+				Command &cmd = commands.top();
+				if (!cmd.inRangeField) {
+					if (cmd.inField) {
+						cmd.inField = false;
+						return State::FIELD_END;
+					}
+					commands.pop();
+				} else {
+					break;
+				}
+			}
+			logger.error(
+			    "Got field end token \"}\" but there is no field to end. Did you "
+			    "mean to write \"\\}\"?",
+			    token);
+		} else {
+			logger.error("Unexpected token \"" + token.content + "\"", token);
 		}
 	}
 
-	// Send out pending output data, otherwise we are at the end of the stream
-	if (!dataHandler.isEmpty()) {
-		data = dataHandler.toVariant(reader.getSourceId());
+	// Issue available data
+	if (checkIssueData(handler)) {
 		return State::DATA;
 	}
+
+	location = SourceLocation{reader.getSourceId(), reader.getOffset()};
 	return State::END;
-#undef CHECK_ISSUE_DATA
+}
+
+const Variant &PlainFormatStreamReader::getCommandName()
+{
+	return commands.top().name;
+}
+
+const Variant &PlainFormatStreamReader::getCommandArguments()
+{
+	return commands.top().arguments;
 }
 }
 

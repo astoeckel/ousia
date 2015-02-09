@@ -80,50 +80,30 @@ TEST(PlainFormatStreamReader, whitespaceEliminationWithLinebreak)
 	PlainFormatStreamReader reader(charReader, logger);
 
 	ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
-	{
-		ASSERT_EQ("hello", reader.getData().asString());
+	ASSERT_EQ("hello world", reader.getData().asString());
 
-		SourceLocation loc = reader.getData().getLocation();
-		ASSERT_EQ(1U, loc.getStart());
-		ASSERT_EQ(6U, loc.getEnd());
-	}
-	ASSERT_EQ(PlainFormatStreamReader::State::LINEBREAK, reader.parse());
-	ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
-	{
-		ASSERT_EQ("world", reader.getData().asString());
-
-		SourceLocation loc = reader.getData().getLocation();
-		ASSERT_EQ(9U, loc.getStart());
-		ASSERT_EQ(14U, loc.getEnd());
-	}
+	SourceLocation loc = reader.getData().getLocation();
+	ASSERT_EQ(1U, loc.getStart());
+	ASSERT_EQ(14U, loc.getEnd());
+	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
 }
 
 TEST(PlainFormatStreamReader, escapeWhitespace)
 {
-	const char *testString = " hello \n\\ world ";
-	//                        0123456 7 89012345
+	const char *testString = " hello\\ \\ world ";
+	//                        012345 67 89012345
 	//                        0           1
 	CharReader charReader(testString);
 
 	PlainFormatStreamReader reader(charReader, logger);
 
 	ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
-	{
-		ASSERT_EQ("hello", reader.getData().asString());
+	ASSERT_EQ("hello  world", reader.getData().asString());
 
-		SourceLocation loc = reader.getData().getLocation();
-		ASSERT_EQ(1U, loc.getStart());
-		ASSERT_EQ(6U, loc.getEnd());
-	}
-	ASSERT_EQ(PlainFormatStreamReader::State::LINEBREAK, reader.parse());
-	ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
-	{
-		ASSERT_EQ(" world", reader.getData().asString());
-
-		SourceLocation loc = reader.getData().getLocation();
-		ASSERT_EQ(8U, loc.getStart());
-		ASSERT_EQ(15U, loc.getEnd());
-	}
+	SourceLocation loc = reader.getData().getLocation();
+	ASSERT_EQ(1U, loc.getStart());
+	ASSERT_EQ(15U, loc.getEnd());
+	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
 }
 
 static void testEscapeSpecialCharacter(const std::string &c)
@@ -364,5 +344,295 @@ TEST(PlainFormatStreamReader, simpleCommandWithArgumentsAndName)
 
 	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
 }
+
+static void assertCommand(PlainFormatStreamReader &reader,
+                          const std::string &name,
+                          SourceOffset start = InvalidSourceOffset,
+                          SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(PlainFormatStreamReader::State::COMMAND, reader.parse());
+	EXPECT_EQ(name, reader.getCommandName().asString());
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getCommandName().getLocation().getStart());
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getCommandName().getLocation().getEnd());
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
+
+static void assertData(PlainFormatStreamReader &reader, const std::string &data,
+                       SourceOffset start = InvalidSourceOffset,
+                       SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+	EXPECT_EQ(data, reader.getData().asString());
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getData().getLocation().getStart());
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getData().getLocation().getEnd());
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
+
+static void assertFieldStart(PlainFormatStreamReader &reader,
+                       SourceOffset start = InvalidSourceOffset,
+                       SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(PlainFormatStreamReader::State::FIELD_START, reader.parse());
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
+
+static void assertFieldEnd(PlainFormatStreamReader &reader,
+                       SourceOffset start = InvalidSourceOffset,
+                       SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(PlainFormatStreamReader::State::FIELD_END, reader.parse());
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
+
+static void assertEnd(PlainFormatStreamReader &reader,
+                       SourceOffset start = InvalidSourceOffset,
+                       SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
+
+TEST(PlainFormatStreamReader, fields)
+{
+	const char *testString = "\\test{a}{b}{c}";
+	//                         01234567890123
+	//                         0         1
+	CharReader charReader(testString);
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "test", 0, 5);
+	assertFieldStart(reader, 5, 6);
+	assertData(reader, "a", 6, 7);
+	assertFieldEnd(reader, 7, 8);
+
+	assertFieldStart(reader, 8, 9);
+	assertData(reader, "b", 9, 10);
+	assertFieldEnd(reader, 10, 11);
+
+	assertFieldStart(reader, 11, 12);
+	assertData(reader, "c", 12, 13);
+	assertFieldEnd(reader, 13, 14);
+	assertEnd(reader, 14, 14);
+}
+
+TEST(PlainFormatStreamReader, dataOutsideField)
+{
+	const char *testString = "\\test{a}{b} c";
+	//                         0123456789012
+	//                         0         1
+	CharReader charReader(testString);
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "test", 0, 5);
+	assertFieldStart(reader, 5, 6);
+	assertData(reader, "a", 6, 7);
+	assertFieldEnd(reader, 7, 8);
+
+	assertFieldStart(reader, 8, 9);
+	assertData(reader, "b", 9, 10);
+	assertFieldEnd(reader, 10, 11);
+
+	assertData(reader, "c", 12, 13);
+	assertEnd(reader, 13, 13);
+}
+
+TEST(PlainFormatStreamReader, nestedCommand)
+{
+	const char *testString = "\\test{a}{\\test2{b} c} d";
+	//                         012345678 90123456789012
+	//                         0          1         2
+	CharReader charReader(testString);
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "test", 0, 5);
+
+	assertFieldStart(reader, 5, 6);
+	assertData(reader, "a", 6, 7);
+	assertFieldEnd(reader, 7, 8);
+
+	assertFieldStart(reader, 8, 9);
+	{
+		assertCommand(reader, "test2", 9, 15);
+		assertFieldStart(reader, 15, 16);
+		assertData(reader, "b", 16, 17);
+		assertFieldEnd(reader, 17, 18);
+	}
+	assertData(reader, "c", 19, 20);
+	assertFieldEnd(reader, 20, 21);
+	assertData(reader, "d", 22, 23);
+	assertEnd(reader, 23, 23);
+}
+
+TEST(PlainFormatStreamReader, nestedCommandImmediateEnd)
+{
+	const char *testString = "\\test{\\test2{b}} d";
+	//                         012345 678901234567
+	//                         0          1
+	CharReader charReader(testString);
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "test", 0, 5);
+	assertFieldStart(reader, 5, 6);
+	{
+		assertCommand(reader, "test2", 6, 12);
+		assertFieldStart(reader, 12, 13);
+		assertData(reader, "b", 13, 14);
+		assertFieldEnd(reader, 14, 15);
+	}
+	assertFieldEnd(reader, 15, 16);
+	assertData(reader, "d", 17, 18);
+	assertEnd(reader, 18, 18);
+}
+
+TEST(PlainFormatStreamReader, nestedCommandNoData)
+{
+	const char *testString = "\\test{\\test2}";
+	//                         012345 6789012
+	CharReader charReader(testString);
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "test", 0, 5);
+	assertFieldStart(reader, 5, 6);
+	assertCommand(reader, "test2", 6, 12);
+	assertFieldEnd(reader, 12, 13);
+	assertEnd(reader, 13, 13);
+}
+
+TEST(PlainFormatStreamReader, multipleCommands)
+{
+	const char *testString = "\\a \\b \\c \\d";
+	//                         012 345 678 90
+	//                         0            1
+	CharReader charReader(testString);
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "a", 0, 2);
+	assertCommand(reader, "b", 3, 5);
+	assertCommand(reader, "c", 6, 8);
+	assertCommand(reader, "d", 9, 11);
+	assertEnd(reader, 11, 11);
+}
+
+TEST(PlainFormatStreamReader, fieldsWithSpaces)
+{
+	const char *testString = "\\a {\\b \\c}   \n\n {\\d}";
+	//                         0123 456 789012 3 456 789
+	//                         0           1
+	CharReader charReader(testString);
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "a", 0, 2);
+	assertFieldStart(reader, 3, 4);
+	assertCommand(reader, "b", 4, 6);
+	assertCommand(reader, "c", 7, 9);
+	assertFieldEnd(reader, 9, 10);
+	assertFieldStart(reader, 16, 17);
+	assertCommand(reader, "d", 17, 19);
+	assertFieldEnd(reader, 19, 20);
+	assertEnd(reader, 20, 20);
+}
+
+TEST(PlainFormatStreamReader, errorNoFieldToStart)
+{
+	const char *testString = "\\a b {";
+	//                         012345
+	//                         0
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	assertCommand(reader, "a", 0, 2);
+	assertData(reader, "b", 3, 4);
+	ASSERT_FALSE(logger.hasError());
+	assertEnd(reader, 6, 6);
+	ASSERT_TRUE(logger.hasError());
+}
+
+TEST(PlainFormatStreamReader, errorNoFieldToEnd)
+{
+	const char *testString = "\\a b }";
+	//                         012345
+	//                         0
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	assertCommand(reader, "a", 0, 2);
+	assertData(reader, "b", 3, 4);
+	ASSERT_FALSE(logger.hasError());
+	assertEnd(reader, 6, 6);
+	ASSERT_TRUE(logger.hasError());
+}
+
+TEST(PlainFormatStreamReader, errorNoFieldEndNested)
+{
+	const char *testString = "\\test{\\test2{}}}";
+	//                         012345 6789012345
+	//                         0          1
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	assertCommand(reader, "test", 0, 5);
+	assertFieldStart(reader, 5, 6);
+	assertCommand(reader, "test2", 6, 12);
+	assertFieldStart(reader, 12, 13);
+	assertFieldEnd(reader, 13, 14);
+	assertFieldEnd(reader, 14, 15);
+	ASSERT_FALSE(logger.hasError());
+	assertEnd(reader, 16, 16);
+	ASSERT_TRUE(logger.hasError());
+}
+
+TEST(PlainFormatStreamReader, errorNoFieldEndNestedData)
+{
+	const char *testString = "\\test{\\test2{}}a}";
+	//                         012345 67890123456
+	//                         0          1
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	assertCommand(reader, "test", 0, 5);
+	assertFieldStart(reader, 5, 6);
+	assertCommand(reader, "test2", 6, 12);
+	assertFieldStart(reader, 12, 13);
+	assertFieldEnd(reader, 13, 14);
+	assertFieldEnd(reader, 14, 15);
+	assertData(reader, "a", 15, 16);
+	ASSERT_FALSE(logger.hasError());
+	assertEnd(reader, 17, 17);
+	ASSERT_TRUE(logger.hasError());
+}
+
 }
 
