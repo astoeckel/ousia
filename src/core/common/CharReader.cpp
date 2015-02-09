@@ -468,15 +468,27 @@ bool CharReader::read(char &c)
 	return res;
 }
 
+bool CharReader::fetch(char &c)
+{
+	return buffer->fetch(readCursor, c);
+}
+
+bool CharReader::fetchPeek(char &c)
+{
+	if (coherent) {
+		return fetch(c);
+	}
+	return buffer->fetch(peekCursor, c);
+}
+
 bool CharReader::expect(char c)
 {
-	char actual = 0;
-	peek(actual);
-	if (c == actual) {
+	char actual;
+	if (fetch(actual) && (actual == c)) {
+		peek(actual);
 		consumePeek();
 		return true;
 	}
-	resetPeek();
 	return false;
 }
 

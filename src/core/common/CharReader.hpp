@@ -490,6 +490,26 @@ public:
 	bool read(char &c);
 
 	/**
+	 * Returns the current character at the read cursor without advancing it.
+	 *
+	 * @param c is a reference to the character into which the result should be
+	 * written.
+	 * @return true if the operation was successful, false if the cursor is at
+	 * the end of the file.
+	 */
+	bool fetch(char &c);
+
+	/**
+	 * Returns the current character at the peek cursor without advancing it.
+	 *
+	 * @param c is a reference to the character into which the result should be
+	 * written.
+	 * @return true if the operation was successful, false if the cursor is at
+	 * the end of the file.
+	 */
+	bool fetchPeek(char &c);
+
+	/**
 	 * Peeks a character, checks whether this character equals the given
 	 * character -- and if yes -- consumes the peek, otherwise resets it.
 	 *
