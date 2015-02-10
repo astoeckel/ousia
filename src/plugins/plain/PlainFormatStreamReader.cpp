@@ -197,23 +197,126 @@ Variant PlainFormatStreamReader::parseIdentifier(size_t start)
 	return res;
 }
 
-void PlainFormatStreamReader::parseCommand(size_t start)
+PlainFormatStreamReader::State PlainFormatStreamReader::parseBeginCommand()
 {
-	// Parse the commandName as a first identifier
-	Variant commandName = parseIdentifier(start);
+	// Expect a '{' after the command
+	reader.consumeWhitespace();
+	if (!reader.expect('{')) {
+		logger.error("Expected \"{\" after \\begin", reader);
+		return State::NONE;
+	}
+
+	// Parse the name of the command that should be opened
+	Variant commandName = parseIdentifier(reader.getOffset());
+	if (commandName.asString().empty()) {
+		logger.error("Expected identifier", commandName);
+		return State::ERROR;
+	}
 
 	// Check whether the next character is a '#', indicating the start of the
 	// command name
 	Variant commandArgName;
-	start = reader.getOffset();
+	SourceOffset start = reader.getOffset();
 	if (reader.expect('#')) {
 		commandArgName = parseIdentifier(start);
 		if (commandArgName.asString().empty()) {
-			logger.error("Expected identifier after '#'", commandArgName);
+			logger.error("Expected identifier after \"#\"", commandArgName);
 		}
 	}
 
-	// Read the arguments (if they are available), otherwise reset them
+	if (!reader.expect('}')) {
+		logger.error("Expected \"}\"", reader);
+		return State::ERROR;
+	}
+
+	// Parse the arguments
+	Variant commandArguments = parseCommandArguments(std::move(commandArgName));
+
+	// Push the command onto the command stack
+	pushCommand(std::move(commandName), std::move(commandArguments), true);
+
+	return State::COMMAND;
+}
+
+static bool checkStillInField(const PlainFormatStreamReader::Command &cmd,
+                              const Variant &endName, Logger &logger)
+{
+	if (cmd.inField && !cmd.inRangeField) {
+		logger.error(std::string("\\end in open field of command \"") +
+		                 cmd.name.asString() + std::string("\""),
+		             endName);
+		logger.note(std::string("Open command started here:"), cmd.name);
+		return true;
+	}
+	return false;
+}
+
+PlainFormatStreamReader::State PlainFormatStreamReader::parseEndCommand()
+{
+	// Expect a '{' after the command
+	if (!reader.expect('{')) {
+		logger.error("Expected \"{\" after \\end", reader);
+		return State::NONE;
+	}
+
+	// Fetch the name of the command that should be ended here
+	Variant name = parseIdentifier(reader.getOffset());
+
+	// Make sure the given command name is not empty
+	if (name.asString().empty()) {
+		logger.error("Expected identifier", name);
+		return State::ERROR;
+	}
+
+	// Make sure the command name is terminated with a '}'
+	if (!reader.expect('}')) {
+		logger.error("Expected \"}\"", reader);
+		return State::ERROR;
+	}
+
+	// Unroll the command stack up to the last range command
+	while (!commands.top().hasRange) {
+		if (checkStillInField(commands.top(), name, logger)) {
+			return State::ERROR;
+		}
+		commands.pop();
+	}
+
+	// Make sure we're not in an open field of this command
+	if (checkStillInField(commands.top(), name, logger)) {
+		return State::ERROR;
+	}
+
+	// Special error message if the top-level command is reached
+	if (commands.size() == 1) {
+		logger.error(std::string("Cannot end command \"") + name.asString() +
+		                 std::string("\" here, no command open"),
+		             name);
+		return State::ERROR;
+	}
+
+	// Inform the about command mismatches
+	const Command &cmd = commands.top();
+	if (commands.top().name.asString() != name.asString()) {
+		logger.error(std::string("Trying to end command \"") +
+		                 cmd.name.asString() +
+		                 std::string(", but open command is \"") +
+		                 name.asString() + std::string("\""),
+		             name);
+		logger.note("Last command was opened here:", cmd.name);
+		return State::ERROR;
+	}
+
+	// Set the location to the location of the command that was ended, then end
+	// the current command
+	location = name.getLocation();
+	commands.pop();
+	return cmd.inRangeField ? State::FIELD_END : State::NONE;
+}
+
+Variant PlainFormatStreamReader::parseCommandArguments(Variant commandArgName)
+{
+	// Parse the arguments using the universal VariantReader
 	Variant commandArguments;
 	if (reader.expect('[')) {
 		auto res = VariantReader::parseObject(reader, logger, ']');
@@ -225,7 +328,8 @@ void PlainFormatStreamReader::parseCommand(size_t start)
 	// Insert the parsed name, make sure "name" was not specified in the
 	// arguments
 	if (commandArgName.isString()) {
-		auto res = commandArguments.asMap().emplace("name", commandArgName);
+		auto res =
+		    commandArguments.asMap().emplace("name", std::move(commandArgName));
 		if (!res.second) {
 			logger.error("Name argument specified multiple times",
 			             SourceLocation{}, MessageMode::NO_CONTEXT);
@@ -233,13 +337,56 @@ void PlainFormatStreamReader::parseCommand(size_t start)
 			logger.note("Second occurance is here: ", res.first->second);
 		}
 	}
+	return commandArguments;
+}
+
+void PlainFormatStreamReader::pushCommand(Variant commandName,
+                                          Variant commandArguments,
+                                          bool hasRange)
+{
+	// Store the location on the stack
+	location = commandName.getLocation();
 
 	// Place the command on the command stack, remove the last commands if we're
 	// not currently inside a field of these commands
 	while (!commands.top().inField) {
 		commands.pop();
 	}
-	commands.push(Command{commandName, commandArguments, false, false, false});
+	commands.push(Command{std::move(commandName), std::move(commandArguments),
+	                      hasRange, false, false});
+}
+
+PlainFormatStreamReader::State PlainFormatStreamReader::parseCommand(
+    size_t start)
+{
+	// Parse the commandName as a first identifier
+	Variant commandName = parseIdentifier(start);
+
+	// Handle the special "begin" and "end" commands
+	if (commandName.asString() == "begin") {
+		return parseBeginCommand();
+	} else if (commandName.asString() == "end") {
+		return parseEndCommand();
+	}
+
+	// Check whether the next character is a '#', indicating the start of the
+	// command name
+	Variant commandArgName;
+	start = reader.getOffset();
+	if (reader.expect('#')) {
+		commandArgName = parseIdentifier(start);
+		if (commandArgName.asString().empty()) {
+			logger.error("Expected identifier after \"#\"", commandArgName);
+		}
+	}
+
+	// Parse the arugments
+	Variant commandArguments = parseCommandArguments(std::move(commandArgName));
+
+	// Push the command onto the command stack
+	pushCommand(std::move(commandName), std::move(commandArguments), false);
+
+	return State::COMMAND;
 }
 
 void PlainFormatStreamReader::parseBlockComment()
@@ -293,6 +440,7 @@ bool PlainFormatStreamReader::checkIssueFieldStart()
 		// this command -- we'll have to issue a field start command!
 		if (cmd.hasRange) {
 			cmd.inField = true;
+			cmd.inRangeField = true;
 			reader.resetPeek();
 			return true;
 		}
@@ -319,6 +467,14 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parse()
 
 		// Special handling for Backslash and Text
 		if (type == Tokens.Backslash) {
+			// Before appending anything to the output data or starting a new
+			// command, check whether FIELD_START has to be issued, as the
+			// current command is a command with range
+			if (checkIssueFieldStart()) {
+				location = token.location;
+				return State::FIELD_START;
+			}
+
 			// Check whether a command starts now, without advancing the peek
 			// cursor
 			char c;
@@ -330,20 +486,23 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parse()
 
 			// Try to parse a command
 			if (Utils::isIdentifierStartCharacter(c)) {
-				parseCommand(token.location.getStart());
+				// Make sure to issue any data before it is to late
 				if (checkIssueData(handler)) {
 					return State::DATA;
 				}
-				location = commands.top().name.getLocation();
-				return State::COMMAND;
-			}
 
-			// Before appending anything to the output data, check whether
-			// FIELD_START has to be issued, as the current command is a command
-			// with range
-			if (checkIssueFieldStart()) {
-				location = token.location;
-				return State::FIELD_START;
+				// Parse the actual command
+				State res = parseCommand(token.location.getStart());
+				switch (res) {
+					case State::ERROR:
+						throw LoggableException(
+						    "Last error was irrecoverable, ending parsing "
+						    "process");
+					case State::NONE:
+						continue;
+					default:
+						return res;
+				}
 			}
 
 			// This was not a special character, just append the given character
@@ -393,7 +552,7 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parse()
 			}
 			logger.error(
 			    "Got field start token \"{\", but no command for which to "
-			    "start the field. Did you mean to write \"\\{\"?",
+			    "start the field. Did you mean \"\\{\"?",
 			    token);
 		} else if (token.type == Tokens.FieldEnd) {
 			// Try to end an open field of the current command -- if the current
@@ -412,8 +571,8 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parse()
 				}
 			}
 			logger.error(
-			    "Got field end token \"}\" but there is no field to end. Did you "
-			    "mean to write \"\\}\"?",
+			    "Got field end token \"}\" but there is no field to end. Did "
+			    "you mean \"\\}\"?",
 			    token);
 		} else {
 			logger.error("Unexpected token \"" + token.content + "\"", token);
@@ -423,6 +582,18 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parse()
 	// Issue available data
 	if (checkIssueData(handler)) {
 		return State::DATA;
+	}
+
+	// Make sure all open commands and fields have been ended at the end of the
+	// stream
+	while (commands.size() > 1) {
+		Command &cmd = commands.top();
+		if (cmd.inField || cmd.hasRange) {
+			logger.error("Reached end of stream, but command \"" +
+			                 cmd.name.asString() + "\" has not been ended",
+			             cmd.name);
+		}
+		commands.pop();
 	}
 
 	location = SourceLocation{reader.getSourceId(), reader.getOffset()};

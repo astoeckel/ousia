@@ -362,6 +362,15 @@ static void assertCommand(PlainFormatStreamReader &reader,
 	}
 }
 
+static void assertCommand(PlainFormatStreamReader &reader,
+                          const std::string &name, const Variant::mapType &args,
+                          SourceOffset start = InvalidSourceOffset,
+                          SourceOffset end = InvalidSourceOffset)
+{
+	assertCommand(reader, name, start, end);
+	EXPECT_EQ(args, reader.getCommandArguments());
+}
+
 static void assertData(PlainFormatStreamReader &reader, const std::string &data,
                        SourceOffset start = InvalidSourceOffset,
                        SourceOffset end = InvalidSourceOffset)
@@ -379,8 +388,8 @@ static void assertData(PlainFormatStreamReader &reader, const std::string &data,
 }
 
 static void assertFieldStart(PlainFormatStreamReader &reader,
-                       SourceOffset start = InvalidSourceOffset,
-                       SourceOffset end = InvalidSourceOffset)
+                             SourceOffset start = InvalidSourceOffset,
+                             SourceOffset end = InvalidSourceOffset)
 {
 	ASSERT_EQ(PlainFormatStreamReader::State::FIELD_START, reader.parse());
 	if (start != InvalidSourceOffset) {
@@ -392,8 +401,8 @@ static void assertFieldStart(PlainFormatStreamReader &reader,
 }
 
 static void assertFieldEnd(PlainFormatStreamReader &reader,
-                       SourceOffset start = InvalidSourceOffset,
-                       SourceOffset end = InvalidSourceOffset)
+                           SourceOffset start = InvalidSourceOffset,
+                           SourceOffset end = InvalidSourceOffset)
 {
 	ASSERT_EQ(PlainFormatStreamReader::State::FIELD_END, reader.parse());
 	if (start != InvalidSourceOffset) {
@@ -405,8 +414,8 @@ static void assertFieldEnd(PlainFormatStreamReader &reader,
 }
 
 static void assertEnd(PlainFormatStreamReader &reader,
-                       SourceOffset start = InvalidSourceOffset,
-                       SourceOffset end = InvalidSourceOffset)
+                      SourceOffset start = InvalidSourceOffset,
+                      SourceOffset end = InvalidSourceOffset)
 {
 	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
 	if (start != InvalidSourceOffset) {
@@ -633,6 +642,246 @@ TEST(PlainFormatStreamReader, errorNoFieldEndNestedData)
 	assertEnd(reader, 17, 17);
 	ASSERT_TRUE(logger.hasError());
 }
+
+TEST(PlainFormatStreamReader, beginEnd)
+{
+	const char *testString = "\\begin{book}\\end{book}";
+	//                         012345678901 2345678901
+	//                         0         1          2
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "book", 7, 11);
+	assertFieldStart(reader, 12, 13);
+	assertFieldEnd(reader, 17, 21);
+	assertEnd(reader, 22, 22);
+}
+
+TEST(PlainFormatStreamReader, beginEndWithName)
+{
+	const char *testString = "\\begin{book#a}\\end{book}";
+	//                         01234567890123 4567890123
+	//                         0         1          2
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "book", {{"name", "a"}}, 7, 11);
+	assertFieldStart(reader, 14, 15);
+	assertFieldEnd(reader, 19, 23);
+	assertEnd(reader, 24, 24);
+}
+
+TEST(PlainFormatStreamReader, beginEndWithNameAndArgs)
+{
+	const char *testString = "\\begin{book#a}[a=1,b=2,c=\"test\"]\\end{book}";
+	//                         0123456789012345678901234 56789 01 2345678901
+	//                         0         1         2           3          4
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "book",
+	              {{"name", "a"}, {"a", 1}, {"b", 2}, {"c", "test"}}, 7, 11);
+	assertFieldStart(reader, 32, 33);
+	assertFieldEnd(reader, 37, 41);
+	assertEnd(reader, 42, 42);
+}
+
+TEST(PlainFormatStreamReader, beginEndWithNameAndArgsMultipleFields)
+{
+	const char *testString =
+	    "\\begin{book#a}[a=1,b=2,c=\"test\"]{a \\test}{b \\test{}}\\end{book}";
+	//    0123456789012345678901234 56789 01234 567890123 45678901 2345678901
+	//    0         1         2           3          4          5          6
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "book",
+	              {{"name", "a"}, {"a", 1}, {"b", 2}, {"c", "test"}}, 7, 11);
+	assertFieldStart(reader, 32, 33);
+	assertData(reader, "a", 33, 34);
+	assertCommand(reader, "test", Variant::mapType{}, 35, 40);
+	assertFieldEnd(reader, 40, 41);
+	assertFieldStart(reader, 41, 42);
+	assertData(reader, "b", 42, 43);
+	assertCommand(reader, "test", Variant::mapType{}, 44, 49);
+	assertFieldStart(reader, 49, 50);
+	assertFieldEnd(reader, 50, 51);
+	assertFieldEnd(reader, 51, 52);
+	assertFieldStart(reader, 52, 53);
+	assertFieldEnd(reader, 57, 61);
+	assertEnd(reader, 62, 62);
+}
+
+TEST(PlainFormatStreamReader, beginEndWithData)
+{
+	const char *testString = "\\begin{book}a\\end{book}";
+	//                         0123456789012 3456789012
+	//                         0         1          2
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "book", 7, 11);
+	assertFieldStart(reader, 12, 13);
+	assertData(reader, "a", 12, 13);
+	assertFieldEnd(reader, 18, 22);
+	assertEnd(reader, 23, 23);
+}
+
+TEST(PlainFormatStreamReader, beginEndWithCommand)
+{
+	const char *testString = "\\begin{book}\\a{test}\\end{book}";
+	//                         012345678901 23456789 0123456789
+	//                         0         1           2
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "book", 7, 11);
+	assertFieldStart(reader, 12, 13);
+	assertCommand(reader, "a", 12, 14);
+	assertFieldStart(reader, 14, 15);
+	assertData(reader, "test", 15, 19);
+	assertFieldEnd(reader, 19, 20);
+	assertFieldEnd(reader, 25, 29);
+	assertEnd(reader, 30, 30);
+}
+
+TEST(PlainFormatStreamReader, errorBeginNoBraceOpen)
+{
+	const char *testString = "\\begin a";
+	//                         01234567
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	assertData(reader, "a", 7, 8);
+	ASSERT_TRUE(logger.hasError());
+}
+
+TEST(PlainFormatStreamReader, errorBeginNoIdentifier)
+{
+	const char *testString = "\\begin{!";
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	ASSERT_THROW(reader.parse(), LoggableException);
+	ASSERT_TRUE(logger.hasError());
+}
+
+TEST(PlainFormatStreamReader, errorBeginNoBraceClose)
+{
+	const char *testString = "\\begin{a";
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	ASSERT_THROW(reader.parse(), LoggableException);
+	ASSERT_TRUE(logger.hasError());
+}
+
+TEST(PlainFormatStreamReader, errorBeginNoName)
+{
+	const char *testString = "\\begin{a#}";
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	assertCommand(reader, "a");
+	ASSERT_TRUE(logger.hasError());
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	assertEnd(reader);
+	ASSERT_TRUE(logger.hasError());
+}
+
+TEST(PlainFormatStreamReader, errorEndNoBraceOpen)
+{
+	const char *testString = "\\end a";
+	//                         012345
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	assertData(reader, "a", 5, 6);
+	ASSERT_TRUE(logger.hasError());
+}
+
+TEST(PlainFormatStreamReader, errorEndNoIdentifier)
+{
+	const char *testString = "\\end{!";
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	ASSERT_THROW(reader.parse(), LoggableException);
+	ASSERT_TRUE(logger.hasError());
+}
+
+TEST(PlainFormatStreamReader, errorEndNoBraceClose)
+{
+	const char *testString = "\\end{a";
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	ASSERT_THROW(reader.parse(), LoggableException);
+	ASSERT_TRUE(logger.hasError());
+}
+
+TEST(PlainFormatStreamReader, errorEndNoBegin)
+{
+	const char *testString = "\\end{a}";
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	ASSERT_THROW(reader.parse(), LoggableException);
+	ASSERT_TRUE(logger.hasError());
+}
+
+
+TEST(PlainFormatStreamReader, errorBeginEndMismatch)
+{
+	const char *testString = "\\begin{a} \\begin{b} test \\end{a}";
+	//                         0123456789 012345678901234 5678901
+	//                         0          1         2          3
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	assertCommand(reader, "a", 7, 8);
+	assertFieldStart(reader, 10, 11);
+	assertCommand(reader, "b", 17, 18);
+	assertFieldStart(reader, 20, 24);
+	assertData(reader, "test", 20, 24);
+	ASSERT_FALSE(logger.hasError());
+	ASSERT_THROW(reader.parse(), LoggableException);
+	ASSERT_TRUE(logger.hasError());
+}
+
 
 }
 

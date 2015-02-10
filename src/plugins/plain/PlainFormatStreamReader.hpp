@@ -107,7 +107,17 @@ public:
 		/**
 	     * The end of the stream has been reached.
 	     */
-		END
+		END,
+
+		/**
+		 * Returned from internal functions if nothing should be done.
+		 */
+		NONE,
+
+		/**
+		 * Returned from internal function to indicate irrecoverable errors.
+		 */
+		ERROR
 	};
 
 	/**
@@ -159,10 +169,10 @@ public:
 		 * @param inRangeField is set to true if we currently inside the outer
 		 * field of the command.
 		 */
-		Command(const Variant &name, const Variant &arguments, bool hasRange,
+		Command(Variant name, Variant arguments, bool hasRange,
 		        bool inField, bool inRangeField)
-		    : name(name),
-		      arguments(arguments),
+		    : name(std::move(name)),
+		      arguments(std::move(arguments)),
 		      hasRange(hasRange),
 		      inField(inField),
 		      inRangeField(inRangeField)
@@ -217,12 +227,33 @@ private:
 	Variant parseIdentifier(size_t start);
 
 	/**
+	 * Function used internally to handle the special "\begin" command.
+	 */
+	State parseBeginCommand();
+
+	/**
+	 * Function used internally to handle the special "\end" command.
+	 */
+	State parseEndCommand();
+
+	/**
+	 * Pushes the parsed command onto the command stack.
+	 */
+	void pushCommand(Variant commandName, Variant commandArguments, bool hasRange);
+
+	/**
+	 * Parses the command arguments.
+	 */
+	Variant parseCommandArguments(Variant commandArgName);
+
+	/**
 	 * Function used internally to parse a command.
 	 *
 	 * @param start is the start byte offset of the command (including the
 	 * backslash)
+	 * @return true if a command was actuall parsed, false otherwise.
 	 */
-	void parseCommand(size_t start);
+	State parseCommand(size_t start);
 
 	/**
 	 * Function used internally to parse a block comment.
