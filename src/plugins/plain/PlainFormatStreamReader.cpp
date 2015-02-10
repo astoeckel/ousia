@@ -168,24 +168,36 @@ PlainFormatStreamReader::PlainFormatStreamReader(CharReader &reader,
 	commands.push(Command{"", Variant::mapType{}, true, true, true});
 }
 
-Variant PlainFormatStreamReader::parseIdentifier(size_t start)
+Variant PlainFormatStreamReader::parseIdentifier(size_t start, bool allowNSSep)
 {
 	bool first = true;
+	bool hasCharSiceNSSep = false;
 	std::vector<char> identifier;
 	size_t end = reader.getPeekOffset();
-	char c;
+	char c, c2;
 	while (reader.peek(c)) {
 		// Abort if this character is not a valid identifer character
 		if ((first && Utils::isIdentifierStartCharacter(c)) ||
 		    (!first && Utils::isIdentifierCharacter(c))) {
 			identifier.push_back(c);
+		} else if (c == ':' && hasCharSiceNSSep && reader.fetchPeek(c2) && Utils::isIdentifierStartCharacter(c2)) {
+			identifier.push_back(c);
 		} else {
+			if (c == ':' && allowNSSep) {
+				logger.error(
+				    "Expected character before and after namespace separator \":\"",
+				    reader);
+			}
 			reader.resetPeek();
 			break;
 		}
 
 		// This is no longer the first character
 		first = false;
+
+		// Advance the hasCharSiceNSSep flag
+		hasCharSiceNSSep = allowNSSep && (c != ':');
+
 		end = reader.getPeekOffset();
 		reader.consumePeek();
 	}
@@ -207,7 +219,7 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parseBeginCommand()
 	}
 
 	// Parse the name of the command that should be opened
-	Variant commandName = parseIdentifier(reader.getOffset());
+	Variant commandName = parseIdentifier(reader.getOffset(), true);
 	if (commandName.asString().empty()) {
 		logger.error("Expected identifier", commandName);
 		return State::ERROR;
@@ -260,7 +272,7 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parseEndCommand()
 	}
 
 	// Fetch the name of the command that should be ended here
-	Variant name = parseIdentifier(reader.getOffset());
+	Variant name = parseIdentifier(reader.getOffset(), true);
 
 	// Make sure the given command name is not empty
 	if (name.asString().empty()) {
@@ -300,7 +312,7 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parseEndCommand()
 	if (commands.top().name.asString() != name.asString()) {
 		logger.error(std::string("Trying to end command \"") +
 		                 cmd.name.asString() +
-		                 std::string(", but open command is \"") +
+		                 std::string("\", but open command is \"") +
 		                 name.asString() + std::string("\""),
 		             name);
 		logger.note("Last command was opened here:", cmd.name);
@@ -360,13 +372,29 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parseCommand(
     size_t start)
 {
 	// Parse the commandName as a first identifier
-	Variant commandName = parseIdentifier(start);
+	Variant commandName = parseIdentifier(start, true);
+	if (commandName.asString().empty()) {
+		logger.error("Empty command name", reader);
+		return State::NONE;
+	}
 
 	// Handle the special "begin" and "end" commands
-	if (commandName.asString() == "begin") {
-		return parseBeginCommand();
-	} else if (commandName.asString() == "end") {
-		return parseEndCommand();
+	const auto commandNameComponents =
+	    Utils::split(commandName.asString(), ':');
+	const bool isBegin = commandNameComponents[0] == "begin";
+	const bool isEnd = commandNameComponents[0] == "end";
+	if (isBegin || isEnd) {
+		if (commandNameComponents.size() > 1) {
+			logger.error(
+			    "Special commands \"\\begin\" and \"\\end\" may not contain a "
+			    "namespace separator \":\"",
+			    commandName);
+		}
+		if (isBegin) {
+			return parseBeginCommand();
+		} else if (isEnd) {
+			return parseEndCommand();
+		}
 	}
 
 	// Check whether the next character is a '#', indicating the start of the
@@ -571,7 +599,7 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parse()
 				}
 			}
 			logger.error(
-			    "Got field end token \"}\" but there is no field to end. Did "
+			    "Got field end token \"}\", but there is no field to end. Did "
 			    "you mean \"\\}\"?",
 			    token);
 		} else {

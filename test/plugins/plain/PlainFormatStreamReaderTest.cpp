@@ -882,6 +882,94 @@ TEST(PlainFormatStreamReader, errorBeginEndMismatch)
 	ASSERT_TRUE(logger.hasError());
 }
 
+TEST(PlainFormatStreamReader, commandWithNSSep)
+{
+	const char *testString = "\\test1:test2";
+	//                         012345678901
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "test1:test2", 0, 12);
+	assertEnd(reader, 12, 12);
+}
+
+TEST(PlainFormatStreamReader, beginEndWithNSSep)
+{
+	const char *testString = "\\begin{test1:test2}\\end{test1:test2}";
+	//                         0123456789012345678 90123456789012345
+	//                         0         1          2         3
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	assertCommand(reader, "test1:test2", 7, 18);
+	assertFieldStart(reader, 19, 20);
+	assertFieldEnd(reader, 24 , 35);
+	assertEnd(reader, 36, 36);
+}
+
+TEST(PlainFormatStreamReader, errorBeginNSSep)
+{
+	const char *testString = "\\begin:test{blub}\\end{blub}";
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	assertCommand(reader, "blub");
+	ASSERT_TRUE(logger.hasError());
+	assertFieldStart(reader);
+	assertFieldEnd(reader);
+	assertEnd(reader);
+}
+
+TEST(PlainFormatStreamReader, errorEndNSSep)
+{
+	const char *testString = "\\begin{blub}\\end:test{blub}";
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	assertCommand(reader, "blub");
+	assertFieldStart(reader);
+	ASSERT_FALSE(logger.hasError());
+	assertFieldEnd(reader);
+	ASSERT_TRUE(logger.hasError());
+	assertEnd(reader);
+}
+
+TEST(PlainFormatStreamReader, errorEmptyNs)
+{
+	const char *testString = "\\test:";
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	assertCommand(reader, "test");
+	ASSERT_TRUE(logger.hasError());
+	assertData(reader, ":");
+	assertEnd(reader);
+}
+
+TEST(PlainFormatStreamReader, errorRepeatedNs)
+{
+	const char *testString = "\\test::";
+	CharReader charReader(testString);
+
+	PlainFormatStreamReader reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	assertCommand(reader, "test");
+	ASSERT_TRUE(logger.hasError());
+	assertData(reader, "::");
+	assertEnd(reader);
+}
 
 }
 

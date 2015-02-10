@@ -223,8 +223,11 @@ private:
 	 *
 	 * @param start is the start byte offset of the identifier (including the
 	 * backslash).
+	 * @param allowNSSep should be set to true if the namespace separator is
+	 * allowed in the identifier name. Issues error if the namespace separator
+	 * is placed incorrectly.
 	 */
-	Variant parseIdentifier(size_t start);
+	Variant parseIdentifier(size_t start, bool allowNSSep = false);
 
 	/**
 	 * Function used internally to handle the special "\begin" command.
