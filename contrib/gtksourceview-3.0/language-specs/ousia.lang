@@ -21,42 +21,62 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 -->
-<language id="ousia" _name="Ousia" version="2.0" _section="Source">
+<language id="ousia" _name="Ousia" version="2.0" _section="Markup">
   <metadata>
     <property name="mimetypes">text/vnd.ousia</property>
-    <property name="globs">*.opd;*.opm</property>
+    <property name="globs">*.osdm</property>
     <property name="line-comment-start">%</property>
     <property name="block-comment-start">%{</property>
     <property name="block-comment-end">}%</property>
   </metadata>
   <styles>
     <style id="comment" _name="Comment" map-to="def:comment"/>
-    <style id="common-commands" _name="Command" map-to="def:keyword"/>
-    <style id="command" _name="Command" map-to="def:keyword"/>
+    <style id="common-commands" _name="Command" map-to="latex:common-commands"/>
+    <style id="command" _name="Command" map-to="latex:command"/>
     <style id="name" _name="Name" map-to="def:identifier"/>
   </styles>
   <definitions>
     <!-- An ousia command -->
-    <define-regex id="builtin">\\(include|import|begin|end)</define-regex>
-    <define-regex id="command">\\[^#[{\s]*</define-regex>
-    <define-regex id="name">#[^#[{}\s]*</define-regex>
+    <define-regex id="identifier">[a-zA-z][a-zA-z_-]*</define-regex>
+    <define-regex id="identifierWithNS">\%{identifier}(:\%{identifier})*</define-regex>
+    <define-regex id="command">(?P&lt;command_cmd&gt;\\\%{identifierWithNS})(?P&lt;command_name&gt;#\%{identifier})?</define-regex>
+    <define-regex id="begin_command">(?P&lt;begin&gt;\\begin){(?P&lt;begin_cmd&gt;\%{identifierWithNS})(?P&lt;begin_name&gt;#\%{identifier})?}</define-regex>
+    <define-regex id="end_command">(?P&lt;end&gt;\\end){(?P&lt;end_cmd&gt;\%{identifierWithNS})}</define-regex>
+    <define-regex id="builtin">\\(begin|end|import|include)</define-regex>
     <context id="ousia">
       <include>
+        <!-- Begin command -->
+        <context id="begin-command" class="no-spell-check">
+          <match>\%{begin_command}</match>
+          <include>
+            <context sub-pattern="begin" style-ref="common-commands"/>
+            <context sub-pattern="begin_cmd" style-ref="command"/>
+            <context sub-pattern="begin_name" style-ref="name"/>
+          </include>
+        </context>
+
+        <!-- End command -->
+        <context id="end-command" class="no-spell-check">
+          <match>\%{end_command}</match>
+          <include>
+            <context sub-pattern="end" style-ref="common-commands"/>
+            <context sub-pattern="end_cmd" style-ref="command"/>
+          </include>
+        </context>
+
         <!-- Keywords -->
         <context id="common-commands" style-ref="common-commands" class="no-spell-check">
           <match>\%{builtin}</match>
         </context>
 
         <!-- Any command -->
-        <context id="command" style-ref="command" class="no-spell-check">
+        <context id="command" class="no-spell-check">
           <match>\%{command}</match>
+          <include>
+            <context sub-pattern="command_cmd" style-ref="command"/>
+            <context sub-pattern="command_name" style-ref="name"/>
+          </include>
         </context>
-
-        <!-- Name -->
-        <context id="name" style-ref="name" class="no-spell-check">
-          <match>\%{name}</match>
-        </context>
-
 
       	<!-- Multiline comments -->
         <context id="comment-multiline" style-ref="comment">

@@ -1,0 +1,29 @@
+%{
+	We're currently inside a block comment.
+	%{
+		Note that block comments can be nested, easily allowing you to comment
+		out blocks which already contain comments.
+	}%
+}%
+
+% Well, line comments, as we know them from TeX also work
+
+\import{meta}
+\import{book}
+
+\domain#special_words{
+	\struct#latex
+	\struct#ousia
+}
+
+\book{
+	\include{chapters/chapter1}
+	\include{chapters/chapter2}
+
+	\begin{note}{Behaviour of "Include"}
+		Analogous to the `include` command in \latex, \ousia forces the included
+		file to be *complete* in a sense, that it must not have dangling open
+		commands.
+	\end{note}
+}
+
