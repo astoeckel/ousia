@@ -8,26 +8,26 @@
 		     that parent-child-relationship in this sense are mediated
 		     by fields. So we must either reference a field that is
 		     already there or declare a new one on the fly. -->
-		<parent name="book.book">
+		<parentRef ref="book.book">
 			<field name="heading" isSubtree="true" optional="true"/>
-		</parent>
-		<parent name="book.chapter">
+		</parentRef>
+		<parentRef ref="book.chapter">
 			<field name="heading" isSubtree="true" optional="true"/>
-		</parent>
-		<parent name="book.section">
+		</parentRef>
+		<parentRef ref="book.section">
 			<field name="heading" isSubtree="true" optional="true"/>
-		</parent>
-		<parent name="book.subsection">
+		</parentRef>
+		<parentRef ref="book.subsection">
 			<field name="heading" isSubtree="true" optional="true"/>
-		</parent>
-		<parent name="book.paragraph">
+		</parentRef>
+		<parentRef ref="book.paragraph">
 			<field name="heading" isSubtree="true" optional="true"/>
-		</parent>
+		</parentRef>
 		<!-- regarding its fields we have a problem here. We do not want to
 		     declare a new field, because in fact we want to allow every
 		     bit of content that a paragraph would allow - also considering
 		     possible extensions of paragraph by other domains.
 		     So we need to reference the default field of paragraph. -->
-		<fieldRef name="book.paragraph.$default"/>
+		<fieldRef ref="book.paragraph.$default"/>
 	</struct>
 </domain>

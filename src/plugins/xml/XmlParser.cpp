@@ -597,7 +597,7 @@ public:
 	{
 		Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
-		const std::string &name = args["name"].asString();
+		const std::string &name = args["ref"].asString();
 		scope().resolve<FieldDescriptor>(
 		    name, parent, logger(),
 		    [](Handle<Node> field, Handle<Node> parent, Logger &logger) {
@@ -700,7 +700,7 @@ public:
 		    scope().selectOrThrow<StructuredClass>();
 
 		Rooted<DomainParent> parent{new DomainParent(
-		    strct->getManager(), args["name"].asString(), strct)};
+		    strct->getManager(), args["ref"].asString(), strct)};
 		parent->setLocation(location());
 		scope().push(parent);
 	}
@@ -765,7 +765,7 @@ public:
 		Rooted<DomainParent> parentNameNode =
 		    scope().selectOrThrow<DomainParent>();
 
-		const std::string &name = args["name"].asString();
+		const std::string &name = args["ref"].asString();
 		Rooted<StructuredClass> strct =
 		    parentNameNode->getParent().cast<StructuredClass>();
 		auto loc = location();
@@ -970,7 +970,7 @@ static const ParserState DomainFieldRef =
         .parents({&DomainStruct, &DomainAnnotation})
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainFieldRefHandler::create)
-        .arguments({Argument::String("name", DEFAULT_FIELD_NAME)});
+        .arguments({Argument::String("ref", DEFAULT_FIELD_NAME)});
 
 static const ParserState DomainStructPrimitive =
     ParserStateBuilder()
@@ -992,7 +992,7 @@ static const ParserState DomainStructParent =
         .parent(&DomainStruct)
         .createdNodeType(&RttiTypes::DomainParent)
         .elementHandler(DomainParentHandler::create)
-        .arguments({Argument::String("name")});
+        .arguments({Argument::String("ref")});
 
 static const ParserState DomainStructParentField =
     ParserStateBuilder()
@@ -1008,7 +1008,7 @@ static const ParserState DomainStructParentFieldRef =
         .parent(&DomainStructParent)
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainParentFieldRefHandler::create)
-        .arguments({Argument::String("name", DEFAULT_FIELD_NAME)});
+        .arguments({Argument::String("ref", DEFAULT_FIELD_NAME)});
 
 /* Typesystem states */
 static const ParserState Typesystem =
@@ -1079,8 +1079,8 @@ static const std::multimap<std::string, const ParserState *> XmlStates{
     {"field", &DomainField},
     {"fieldRef", &DomainFieldRef},
     {"primitive", &DomainStructPrimitive},
-    {"child", &DomainStructChild},
-    {"parent", &DomainStructParent},
+    {"childRef", &DomainStructChild},
+    {"parentRef", &DomainStructParent},
     {"field", &DomainStructParentField},
     {"fieldRef", &DomainStructParentFieldRef},
     {"typesystem", &Typesystem},

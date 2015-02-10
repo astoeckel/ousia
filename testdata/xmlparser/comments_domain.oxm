@@ -5,10 +5,10 @@
 	<!-- an annotation comment -->
 	<annotation name="comment">
 		<field name="content" isSubtree="true">
-			<child ref="book.paragraph"/>
+			<childRef ref="book.paragraph"/>
 		</field>
 		<field name="replies" isSubtree="true">
-			<child ref="reply"/>
+			<childRef ref="reply"/>
 		</field>
 	</annotation>
 
@@ -18,23 +18,23 @@
 		     two fields in comment and reply? Could we use a fieldRef here?
 		     Or would that be circular? -->
 		<field name="content" isSubtree="true">
-			<child ref="book.paragraph"/>
+			<childRef ref="book.paragraph"/>
 		</field>
 		<field name="replies" isSubtree="true">
-			<child ref="reply"/>
+			<childRef ref="reply"/>
 		</field>
-		<parent name="book.paragraph">
-			<fieldRef name="$default"/>
-		</parent>
+		<parentRef ref="book.paragraph">
+			<fieldRef ref="$default"/>
+		</parentRef>
 	</struct>
 	<!-- note that replies are organized in a tree fashion: One can also reply
 	     to a reply -->
 	<struct name="reply">
 		<field name="content" isSubtree="true">
-			<child ref="book.paragraph"/>
+			<childRef ref="book.paragraph"/>
 		</field>
 		<field name="replies" isSubtree="true">
-			<child ref="reply"/>
+			<childRef ref="reply"/>
 		</field>
 	</struct>
 </domain>
