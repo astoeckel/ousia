@@ -19,7 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <core/common/CharReader.hpp>
-#include <plugins/plain/DynamicTokenizer.hpp>
+#include <formats/osdm/DynamicTokenizer.hpp>
 
 namespace ousia {
 

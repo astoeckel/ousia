@@ -17,17 +17,17 @@
 */
 
 /**
- * @file PlainFormatStreamReader.hpp
+ * @file OsdmStreamParser.hpp
  *
- * Provides classes for low-level classes for reading the plain TeX-esque
- * format. The class provided here do not build any model objects and does not
- * implement the Parser interfaces.
+ * Provides classes for low-level classes for reading the TeX-esque osdm
+ * format. The class provided here does not build any model objects and does not
+ * implement the Parser interface.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_PLAIN_FORMAT_STREAM_READER_HPP_
-#define _OUSIA_PLAIN_FORMAT_STREAM_READER_HPP_
+#ifndef _OUSIA_OSDM_STREAM_PARSER_HPP_
+#define _OUSIA_OSDM_STREAM_PARSER_HPP_
 
 #include <stack>
 
@@ -43,17 +43,20 @@ class Logger;
 class DataHandler;
 
 /**
- * The PlainFormatStreamReader class provides a low-level reader for the plain
- * TeX-esque format. The parser is constructed around a "parse" function, which
- * reads data from the underlying CharReader until a new state is reached and
- * indicates this state in a return value. The calling code then has to pull
- * corresponding data from the stream reader. The reader already handles some
- * invalid cases, but recovers from most errors and happily continues parsing.
+ * The OsdmStreamParser class provides a low-level reader for the TeX-esque osdm
+ * format. The parser is constructed around a "parse" function, which reads data
+ * from the underlying CharReader until a new state is reached and indicates
+ * this state in a return value. The calling code then has to pull corresponding
+ * data from the stream reader. The reader makes sure the incommind file is
+ * syntactically valid and tries to recorver from most errors. If an error is
+ * irrecoverable (this is the case for errors with wrong nesting of commands or
+ * fields, as this would lead to too many consecutive errors) a
+ * LoggableException is thrown.
  */
-class PlainFormatStreamReader {
+class OsdmStreamParser {
 public:
 	/**
-	 * Enum used to indicate which state the PlainFormatStreamReader class is in
+	 * Enum used to indicate which state the OsdmStreamParser class is in
 	 * after calling the "parse" function.
 	 */
 	enum class State {
@@ -110,13 +113,13 @@ public:
 		END,
 
 		/**
-		 * Returned from internal functions if nothing should be done.
-		 */
+	     * Returned from internal functions if nothing should be done.
+	     */
 		NONE,
 
 		/**
-		 * Returned from internal function to indicate irrecoverable errors.
-		 */
+	     * Returned from internal function to indicate irrecoverable errors.
+	     */
 		ERROR
 	};
 
@@ -169,8 +172,8 @@ public:
 		 * @param inRangeField is set to true if we currently inside the outer
 		 * field of the command.
 		 */
-		Command(Variant name, Variant arguments, bool hasRange,
-		        bool inField, bool inRangeField)
+		Command(Variant name, Variant arguments, bool hasRange, bool inField,
+		        bool inRangeField)
 		    : name(std::move(name)),
 		      arguments(std::move(arguments)),
 		      hasRange(hasRange),
@@ -242,7 +245,8 @@ private:
 	/**
 	 * Pushes the parsed command onto the command stack.
 	 */
-	void pushCommand(Variant commandName, Variant commandArguments, bool hasRange);
+	void pushCommand(Variant commandName, Variant commandArguments,
+	                 bool hasRange);
 
 	/**
 	 * Parses the command arguments.
@@ -288,14 +292,14 @@ private:
 
 public:
 	/**
-	 * Constructor of the PlainFormatStreamReader class. Attaches the new
-	 * PlainFormatStreamReader to the given CharReader and Logger instances.
+	 * Constructor of the OsdmStreamParser class. Attaches the new
+	 * OsdmStreamParser to the given CharReader and Logger instances.
 	 *
 	 * @param reader is the reader instance from which incomming characters
 	 * should be read.
 	 * @param logger is the logger instance to which errors should be written.
 	 */
-	PlainFormatStreamReader(CharReader &reader, Logger &logger);
+	OsdmStreamParser(CharReader &reader, Logger &logger);
 
 	/**
 	 * Continues parsing. Returns one of the states defined in the State enum.
@@ -339,9 +343,9 @@ public:
 	 *
 	 * @return the last internal token location.
 	 */
-	SourceLocation &getLocation() {return location;}
+	SourceLocation &getLocation() { return location; }
 };
 }
 
-#endif /* _OUSIA_PLAIN_FORMAT_STREAM_READER_HPP_ */
+#endif /* _OUSIA_OSDM_STREAM_PARSER_HPP_ */
 

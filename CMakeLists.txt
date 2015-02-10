@@ -196,13 +196,13 @@ TARGET_LINK_LIBRARIES(ousia_xml
 	${EXPAT_LIBRARIES}
 )
 
-ADD_LIBRARY(ousia_plain
-	src/plugins/plain/DynamicTokenizer
-	src/plugins/plain/TokenTrie
-	src/plugins/plain/PlainFormatStreamReader
+ADD_LIBRARY(ousia_osdm
+	src/formats/osdm/DynamicTokenizer
+	src/formats/osdm/TokenTrie
+	src/formats/osdm/OsdmStreamParser
 )
 
-TARGET_LINK_LIBRARIES(ousia_plain
+TARGET_LINK_LIBRARIES(ousia_osdm
 	ousia_core
 )
 
@@ -324,16 +324,16 @@ IF(TEST)
 		ousia_filesystem
 	)
 
-	ADD_EXECUTABLE(ousia_test_plain
-		test/plugins/plain/TokenTrieTest
-		test/plugins/plain/DynamicTokenizerTest
-		test/plugins/plain/PlainFormatStreamReaderTest
+	ADD_EXECUTABLE(ousia_test_osdm
+		test/formats/osdm/TokenTrieTest
+		test/formats/osdm/DynamicTokenizerTest
+		test/formats/osdm/OsdmStreamParserTest
 	)
 
-	TARGET_LINK_LIBRARIES(ousia_test_plain
+	TARGET_LINK_LIBRARIES(ousia_test_osdm
 		${GTEST_LIBRARIES}
 		ousia_core
-		ousia_plain
+		ousia_osdm
 	)
 
 #	ADD_EXECUTABLE(ousia_test_mozjs
@@ -352,7 +352,7 @@ IF(TEST)
 	ADD_TEST(ousia_test_css ousia_test_css)
 	ADD_TEST(ousia_test_html ousia_test_html)
 	ADD_TEST(ousia_test_xml ousia_test_xml)
-	ADD_TEST(ousia_test_plain ousia_test_plain)
+	ADD_TEST(ousia_test_osdm ousia_test_osdm)
 #	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
 ENDIF()
 

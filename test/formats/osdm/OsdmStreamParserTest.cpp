@@ -22,30 +22,31 @@
 
 #include <core/common/CharReader.hpp>
 #include <core/frontend/TerminalLogger.hpp>
-#include <plugins/plain/PlainFormatStreamReader.hpp>
+
+#include <formats/osdm/OsdmStreamParser.hpp>
 
 namespace ousia {
 
 static TerminalLogger logger(std::cerr, true);
 
-TEST(PlainFormatStreamReader, empty)
+TEST(OsdmStreamParser, empty)
 {
 	const char *testString = "";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 }
 
-TEST(PlainFormatStreamReader, oneCharacter)
+TEST(OsdmStreamParser, oneCharacter)
 {
 	const char *testString = "a";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
-	ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 	ASSERT_EQ("a", reader.getData().asString());
 
 	SourceLocation loc = reader.getData().getLocation();
@@ -53,16 +54,16 @@ TEST(PlainFormatStreamReader, oneCharacter)
 	ASSERT_EQ(1U, loc.getEnd());
 }
 
-TEST(PlainFormatStreamReader, whitespaceElimination)
+TEST(OsdmStreamParser, whitespaceElimination)
 {
 	const char *testString = " hello \t world ";
 	//                        0123456 78901234
 	//                        0          1
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
-	ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 	ASSERT_EQ("hello world", reader.getData().asString());
 
 	SourceLocation loc = reader.getData().getLocation();
@@ -70,47 +71,47 @@ TEST(PlainFormatStreamReader, whitespaceElimination)
 	ASSERT_EQ(14U, loc.getEnd());
 }
 
-TEST(PlainFormatStreamReader, whitespaceEliminationWithLinebreak)
+TEST(OsdmStreamParser, whitespaceEliminationWithLinebreak)
 {
 	const char *testString = " hello \n world ";
 	//                        0123456 78901234
 	//                        0          1
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
-	ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 	ASSERT_EQ("hello world", reader.getData().asString());
 
 	SourceLocation loc = reader.getData().getLocation();
 	ASSERT_EQ(1U, loc.getStart());
 	ASSERT_EQ(14U, loc.getEnd());
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 }
 
-TEST(PlainFormatStreamReader, escapeWhitespace)
+TEST(OsdmStreamParser, escapeWhitespace)
 {
 	const char *testString = " hello\\ \\ world ";
 	//                        012345 67 89012345
 	//                        0           1
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
-	ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 	ASSERT_EQ("hello  world", reader.getData().asString());
 
 	SourceLocation loc = reader.getData().getLocation();
 	ASSERT_EQ(1U, loc.getStart());
 	ASSERT_EQ(15U, loc.getEnd());
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 }
 
 static void testEscapeSpecialCharacter(const std::string &c)
 {
 	CharReader charReader(std::string("\\") + c);
-	PlainFormatStreamReader reader(charReader, logger);
-	EXPECT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+	OsdmStreamParser reader(charReader, logger);
+	EXPECT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 	EXPECT_EQ(c, reader.getData().asString());
 
 	SourceLocation loc = reader.getData().getLocation();
@@ -118,7 +119,7 @@ static void testEscapeSpecialCharacter(const std::string &c)
 	EXPECT_EQ(1U + c.size(), loc.getEnd());
 }
 
-TEST(PlainFormatStreamReader, escapeSpecialCharacters)
+TEST(OsdmStreamParser, escapeSpecialCharacters)
 {
 	testEscapeSpecialCharacter("\\");
 	testEscapeSpecialCharacter("{");
@@ -127,23 +128,23 @@ TEST(PlainFormatStreamReader, escapeSpecialCharacters)
 	testEscapeSpecialCharacter(">");
 }
 
-TEST(PlainFormatStreamReader, simpleSingleLineComment)
+TEST(OsdmStreamParser, simpleSingleLineComment)
 {
 	const char *testString = "% This is a single line comment";
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	OsdmStreamParser reader(charReader, logger);
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 }
 
-TEST(PlainFormatStreamReader, singleLineComment)
+TEST(OsdmStreamParser, singleLineComment)
 {
 	const char *testString = "a% This is a single line comment\nb";
 	//                        01234567890123456789012345678901 23
 	//                        0         1         2         3
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 	{
-		ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+		ASSERT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 		ASSERT_EQ("a", reader.getData().asString());
 		SourceLocation loc = reader.getData().getLocation();
 		ASSERT_EQ(0U, loc.getStart());
@@ -151,25 +152,25 @@ TEST(PlainFormatStreamReader, singleLineComment)
 	}
 
 	{
-		ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+		ASSERT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 		ASSERT_EQ("b", reader.getData().asString());
 		SourceLocation loc = reader.getData().getLocation();
 		ASSERT_EQ(33U, loc.getStart());
 		ASSERT_EQ(34U, loc.getEnd());
 	}
 
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 }
 
-TEST(PlainFormatStreamReader, multilineComment)
+TEST(OsdmStreamParser, multilineComment)
 {
 	const char *testString = "a%{ This is a\n\n multiline line comment}%b";
 	//                        0123456789012 3 456789012345678901234567890
 	//                        0         1           2         3         4
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 	{
-		ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+		ASSERT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 		ASSERT_EQ("a", reader.getData().asString());
 		SourceLocation loc = reader.getData().getLocation();
 		ASSERT_EQ(0U, loc.getStart());
@@ -177,25 +178,25 @@ TEST(PlainFormatStreamReader, multilineComment)
 	}
 
 	{
-		ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+		ASSERT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 		ASSERT_EQ("b", reader.getData().asString());
 		SourceLocation loc = reader.getData().getLocation();
 		ASSERT_EQ(40U, loc.getStart());
 		ASSERT_EQ(41U, loc.getEnd());
 	}
 
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 }
 
-TEST(PlainFormatStreamReader, nestedMultilineComment)
+TEST(OsdmStreamParser, nestedMultilineComment)
 {
 	const char *testString = "a%{%{Another\n\n}%multiline line comment}%b";
 	//                        0123456789012 3 456789012345678901234567890
 	//                        0         1           2         3         4
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 	{
-		ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+		ASSERT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 		ASSERT_EQ("a", reader.getData().asString());
 		SourceLocation loc = reader.getData().getLocation();
 		ASSERT_EQ(0U, loc.getStart());
@@ -203,23 +204,23 @@ TEST(PlainFormatStreamReader, nestedMultilineComment)
 	}
 
 	{
-		ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+		ASSERT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 		ASSERT_EQ("b", reader.getData().asString());
 		SourceLocation loc = reader.getData().getLocation();
 		ASSERT_EQ(40U, loc.getStart());
 		ASSERT_EQ(41U, loc.getEnd());
 	}
 
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 }
 
-TEST(PlainFormatStreamReader, simpleCommand)
+TEST(OsdmStreamParser, simpleCommand)
 {
 	const char *testString = "\\test";
 	//                        0 12345
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
-	ASSERT_EQ(PlainFormatStreamReader::State::COMMAND, reader.parse());
+	OsdmStreamParser reader(charReader, logger);
+	ASSERT_EQ(OsdmStreamParser::State::COMMAND, reader.parse());
 
 	Variant commandName = reader.getCommandName();
 	ASSERT_EQ("test", commandName.asString());
@@ -229,16 +230,16 @@ TEST(PlainFormatStreamReader, simpleCommand)
 	ASSERT_EQ(5U, loc.getEnd());
 
 	ASSERT_EQ(0U, reader.getCommandArguments().asMap().size());
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 }
 
-TEST(PlainFormatStreamReader, simpleCommandWithName)
+TEST(OsdmStreamParser, simpleCommandWithName)
 {
 	const char *testString = "\\test#bla";
 	//                        0 12345678
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
-	ASSERT_EQ(PlainFormatStreamReader::State::COMMAND, reader.parse());
+	OsdmStreamParser reader(charReader, logger);
+	ASSERT_EQ(OsdmStreamParser::State::COMMAND, reader.parse());
 
 	Variant commandName = reader.getCommandName();
 	ASSERT_EQ("test", commandName.asString());
@@ -256,17 +257,17 @@ TEST(PlainFormatStreamReader, simpleCommandWithName)
 	ASSERT_EQ(5U, loc.getStart());
 	ASSERT_EQ(9U, loc.getEnd());
 
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 }
 
-TEST(PlainFormatStreamReader, simpleCommandWithArguments)
+TEST(OsdmStreamParser, simpleCommandWithArguments)
 {
 	const char *testString = "\\test[a=1,b=2,c=\"test\"]";
 	//                        0 123456789012345 678901 2
 	//                        0          1          2
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
-	ASSERT_EQ(PlainFormatStreamReader::State::COMMAND, reader.parse());
+	OsdmStreamParser reader(charReader, logger);
+	ASSERT_EQ(OsdmStreamParser::State::COMMAND, reader.parse());
 
 	Variant commandName = reader.getCommandName();
 	ASSERT_EQ("test", commandName.asString());
@@ -296,17 +297,17 @@ TEST(PlainFormatStreamReader, simpleCommandWithArguments)
 	ASSERT_EQ(16U, loc.getStart());
 	ASSERT_EQ(22U, loc.getEnd());
 
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 }
 
-TEST(PlainFormatStreamReader, simpleCommandWithArgumentsAndName)
+TEST(OsdmStreamParser, simpleCommandWithArgumentsAndName)
 {
 	const char *testString = "\\test#bla[a=1,b=2,c=\"test\"]";
 	//                        0 1234567890123456789 01234 56
 	//                        0          1          2
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
-	ASSERT_EQ(PlainFormatStreamReader::State::COMMAND, reader.parse());
+	OsdmStreamParser reader(charReader, logger);
+	ASSERT_EQ(OsdmStreamParser::State::COMMAND, reader.parse());
 
 	Variant commandName = reader.getCommandName();
 	ASSERT_EQ("test", commandName.asString());
@@ -342,15 +343,14 @@ TEST(PlainFormatStreamReader, simpleCommandWithArgumentsAndName)
 	ASSERT_EQ(5U, loc.getStart());
 	ASSERT_EQ(9U, loc.getEnd());
 
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 }
 
-static void assertCommand(PlainFormatStreamReader &reader,
-                          const std::string &name,
+static void assertCommand(OsdmStreamParser &reader, const std::string &name,
                           SourceOffset start = InvalidSourceOffset,
                           SourceOffset end = InvalidSourceOffset)
 {
-	ASSERT_EQ(PlainFormatStreamReader::State::COMMAND, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::COMMAND, reader.parse());
 	EXPECT_EQ(name, reader.getCommandName().asString());
 	if (start != InvalidSourceOffset) {
 		EXPECT_EQ(start, reader.getCommandName().getLocation().getStart());
@@ -362,8 +362,8 @@ static void assertCommand(PlainFormatStreamReader &reader,
 	}
 }
 
-static void assertCommand(PlainFormatStreamReader &reader,
-                          const std::string &name, const Variant::mapType &args,
+static void assertCommand(OsdmStreamParser &reader, const std::string &name,
+                          const Variant::mapType &args,
                           SourceOffset start = InvalidSourceOffset,
                           SourceOffset end = InvalidSourceOffset)
 {
@@ -371,11 +371,11 @@ static void assertCommand(PlainFormatStreamReader &reader,
 	EXPECT_EQ(args, reader.getCommandArguments());
 }
 
-static void assertData(PlainFormatStreamReader &reader, const std::string &data,
+static void assertData(OsdmStreamParser &reader, const std::string &data,
                        SourceOffset start = InvalidSourceOffset,
                        SourceOffset end = InvalidSourceOffset)
 {
-	ASSERT_EQ(PlainFormatStreamReader::State::DATA, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::DATA, reader.parse());
 	EXPECT_EQ(data, reader.getData().asString());
 	if (start != InvalidSourceOffset) {
 		EXPECT_EQ(start, reader.getData().getLocation().getStart());
@@ -387,11 +387,11 @@ static void assertData(PlainFormatStreamReader &reader, const std::string &data,
 	}
 }
 
-static void assertFieldStart(PlainFormatStreamReader &reader,
+static void assertFieldStart(OsdmStreamParser &reader,
                              SourceOffset start = InvalidSourceOffset,
                              SourceOffset end = InvalidSourceOffset)
 {
-	ASSERT_EQ(PlainFormatStreamReader::State::FIELD_START, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::FIELD_START, reader.parse());
 	if (start != InvalidSourceOffset) {
 		EXPECT_EQ(start, reader.getLocation().getStart());
 	}
@@ -400,11 +400,11 @@ static void assertFieldStart(PlainFormatStreamReader &reader,
 	}
 }
 
-static void assertFieldEnd(PlainFormatStreamReader &reader,
+static void assertFieldEnd(OsdmStreamParser &reader,
                            SourceOffset start = InvalidSourceOffset,
                            SourceOffset end = InvalidSourceOffset)
 {
-	ASSERT_EQ(PlainFormatStreamReader::State::FIELD_END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::FIELD_END, reader.parse());
 	if (start != InvalidSourceOffset) {
 		EXPECT_EQ(start, reader.getLocation().getStart());
 	}
@@ -413,11 +413,11 @@ static void assertFieldEnd(PlainFormatStreamReader &reader,
 	}
 }
 
-static void assertEnd(PlainFormatStreamReader &reader,
+static void assertEnd(OsdmStreamParser &reader,
                       SourceOffset start = InvalidSourceOffset,
                       SourceOffset end = InvalidSourceOffset)
 {
-	ASSERT_EQ(PlainFormatStreamReader::State::END, reader.parse());
+	ASSERT_EQ(OsdmStreamParser::State::END, reader.parse());
 	if (start != InvalidSourceOffset) {
 		EXPECT_EQ(start, reader.getLocation().getStart());
 	}
@@ -426,13 +426,13 @@ static void assertEnd(PlainFormatStreamReader &reader,
 	}
 }
 
-TEST(PlainFormatStreamReader, fields)
+TEST(OsdmStreamParser, fields)
 {
 	const char *testString = "\\test{a}{b}{c}";
 	//                         01234567890123
 	//                         0         1
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test", 0, 5);
 	assertFieldStart(reader, 5, 6);
@@ -449,13 +449,13 @@ TEST(PlainFormatStreamReader, fields)
 	assertEnd(reader, 14, 14);
 }
 
-TEST(PlainFormatStreamReader, dataOutsideField)
+TEST(OsdmStreamParser, dataOutsideField)
 {
 	const char *testString = "\\test{a}{b} c";
 	//                         0123456789012
 	//                         0         1
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test", 0, 5);
 	assertFieldStart(reader, 5, 6);
@@ -470,13 +470,13 @@ TEST(PlainFormatStreamReader, dataOutsideField)
 	assertEnd(reader, 13, 13);
 }
 
-TEST(PlainFormatStreamReader, nestedCommand)
+TEST(OsdmStreamParser, nestedCommand)
 {
 	const char *testString = "\\test{a}{\\test2{b} c} d";
 	//                         012345678 90123456789012
 	//                         0          1         2
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test", 0, 5);
 
@@ -497,13 +497,13 @@ TEST(PlainFormatStreamReader, nestedCommand)
 	assertEnd(reader, 23, 23);
 }
 
-TEST(PlainFormatStreamReader, nestedCommandImmediateEnd)
+TEST(OsdmStreamParser, nestedCommandImmediateEnd)
 {
 	const char *testString = "\\test{\\test2{b}} d";
 	//                         012345 678901234567
 	//                         0          1
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test", 0, 5);
 	assertFieldStart(reader, 5, 6);
@@ -518,12 +518,12 @@ TEST(PlainFormatStreamReader, nestedCommandImmediateEnd)
 	assertEnd(reader, 18, 18);
 }
 
-TEST(PlainFormatStreamReader, nestedCommandNoData)
+TEST(OsdmStreamParser, nestedCommandNoData)
 {
 	const char *testString = "\\test{\\test2}";
 	//                         012345 6789012
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test", 0, 5);
 	assertFieldStart(reader, 5, 6);
@@ -532,13 +532,13 @@ TEST(PlainFormatStreamReader, nestedCommandNoData)
 	assertEnd(reader, 13, 13);
 }
 
-TEST(PlainFormatStreamReader, multipleCommands)
+TEST(OsdmStreamParser, multipleCommands)
 {
 	const char *testString = "\\a \\b \\c \\d";
 	//                         012 345 678 90
 	//                         0            1
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "a", 0, 2);
 	assertCommand(reader, "b", 3, 5);
@@ -547,13 +547,13 @@ TEST(PlainFormatStreamReader, multipleCommands)
 	assertEnd(reader, 11, 11);
 }
 
-TEST(PlainFormatStreamReader, fieldsWithSpaces)
+TEST(OsdmStreamParser, fieldsWithSpaces)
 {
 	const char *testString = "\\a {\\b \\c}   \n\n {\\d}";
 	//                         0123 456 789012 3 456 789
 	//                         0           1
 	CharReader charReader(testString);
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "a", 0, 2);
 	assertFieldStart(reader, 3, 4);
@@ -566,14 +566,14 @@ TEST(PlainFormatStreamReader, fieldsWithSpaces)
 	assertEnd(reader, 20, 20);
 }
 
-TEST(PlainFormatStreamReader, errorNoFieldToStart)
+TEST(OsdmStreamParser, errorNoFieldToStart)
 {
 	const char *testString = "\\a b {";
 	//                         012345
 	//                         0
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	assertCommand(reader, "a", 0, 2);
@@ -583,14 +583,14 @@ TEST(PlainFormatStreamReader, errorNoFieldToStart)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, errorNoFieldToEnd)
+TEST(OsdmStreamParser, errorNoFieldToEnd)
 {
 	const char *testString = "\\a b }";
 	//                         012345
 	//                         0
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	assertCommand(reader, "a", 0, 2);
@@ -600,14 +600,14 @@ TEST(PlainFormatStreamReader, errorNoFieldToEnd)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, errorNoFieldEndNested)
+TEST(OsdmStreamParser, errorNoFieldEndNested)
 {
 	const char *testString = "\\test{\\test2{}}}";
 	//                         012345 6789012345
 	//                         0          1
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	assertCommand(reader, "test", 0, 5);
@@ -621,14 +621,14 @@ TEST(PlainFormatStreamReader, errorNoFieldEndNested)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, errorNoFieldEndNestedData)
+TEST(OsdmStreamParser, errorNoFieldEndNestedData)
 {
 	const char *testString = "\\test{\\test2{}}a}";
 	//                         012345 67890123456
 	//                         0          1
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	assertCommand(reader, "test", 0, 5);
@@ -643,14 +643,14 @@ TEST(PlainFormatStreamReader, errorNoFieldEndNestedData)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, beginEnd)
+TEST(OsdmStreamParser, beginEnd)
 {
 	const char *testString = "\\begin{book}\\end{book}";
 	//                         012345678901 2345678901
 	//                         0         1          2
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "book", 7, 11);
 	assertFieldStart(reader, 12, 13);
@@ -658,14 +658,14 @@ TEST(PlainFormatStreamReader, beginEnd)
 	assertEnd(reader, 22, 22);
 }
 
-TEST(PlainFormatStreamReader, beginEndWithName)
+TEST(OsdmStreamParser, beginEndWithName)
 {
 	const char *testString = "\\begin{book#a}\\end{book}";
 	//                         01234567890123 4567890123
 	//                         0         1          2
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "book", {{"name", "a"}}, 7, 11);
 	assertFieldStart(reader, 14, 15);
@@ -673,14 +673,14 @@ TEST(PlainFormatStreamReader, beginEndWithName)
 	assertEnd(reader, 24, 24);
 }
 
-TEST(PlainFormatStreamReader, beginEndWithNameAndArgs)
+TEST(OsdmStreamParser, beginEndWithNameAndArgs)
 {
 	const char *testString = "\\begin{book#a}[a=1,b=2,c=\"test\"]\\end{book}";
 	//                         0123456789012345678901234 56789 01 2345678901
 	//                         0         1         2           3          4
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "book",
 	              {{"name", "a"}, {"a", 1}, {"b", 2}, {"c", "test"}}, 7, 11);
@@ -689,7 +689,7 @@ TEST(PlainFormatStreamReader, beginEndWithNameAndArgs)
 	assertEnd(reader, 42, 42);
 }
 
-TEST(PlainFormatStreamReader, beginEndWithNameAndArgsMultipleFields)
+TEST(OsdmStreamParser, beginEndWithNameAndArgsMultipleFields)
 {
 	const char *testString =
 	    "\\begin{book#a}[a=1,b=2,c=\"test\"]{a \\test}{b \\test{}}\\end{book}";
@@ -697,7 +697,7 @@ TEST(PlainFormatStreamReader, beginEndWithNameAndArgsMultipleFields)
 	//    0         1         2           3          4          5          6
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "book",
 	              {{"name", "a"}, {"a", 1}, {"b", 2}, {"c", "test"}}, 7, 11);
@@ -716,14 +716,14 @@ TEST(PlainFormatStreamReader, beginEndWithNameAndArgsMultipleFields)
 	assertEnd(reader, 62, 62);
 }
 
-TEST(PlainFormatStreamReader, beginEndWithData)
+TEST(OsdmStreamParser, beginEndWithData)
 {
 	const char *testString = "\\begin{book}a\\end{book}";
 	//                         0123456789012 3456789012
 	//                         0         1          2
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "book", 7, 11);
 	assertFieldStart(reader, 12, 13);
@@ -732,14 +732,14 @@ TEST(PlainFormatStreamReader, beginEndWithData)
 	assertEnd(reader, 23, 23);
 }
 
-TEST(PlainFormatStreamReader, beginEndWithCommand)
+TEST(OsdmStreamParser, beginEndWithCommand)
 {
 	const char *testString = "\\begin{book}\\a{test}\\end{book}";
 	//                         012345678901 23456789 0123456789
 	//                         0         1           2
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "book", 7, 11);
 	assertFieldStart(reader, 12, 13);
@@ -751,13 +751,13 @@ TEST(PlainFormatStreamReader, beginEndWithCommand)
 	assertEnd(reader, 30, 30);
 }
 
-TEST(PlainFormatStreamReader, errorBeginNoBraceOpen)
+TEST(OsdmStreamParser, errorBeginNoBraceOpen)
 {
 	const char *testString = "\\begin a";
 	//                         01234567
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	ASSERT_FALSE(logger.hasError());
@@ -765,12 +765,12 @@ TEST(PlainFormatStreamReader, errorBeginNoBraceOpen)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, errorBeginNoIdentifier)
+TEST(OsdmStreamParser, errorBeginNoIdentifier)
 {
 	const char *testString = "\\begin{!";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	ASSERT_FALSE(logger.hasError());
@@ -778,12 +778,12 @@ TEST(PlainFormatStreamReader, errorBeginNoIdentifier)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, errorBeginNoBraceClose)
+TEST(OsdmStreamParser, errorBeginNoBraceClose)
 {
 	const char *testString = "\\begin{a";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	ASSERT_FALSE(logger.hasError());
@@ -791,12 +791,12 @@ TEST(PlainFormatStreamReader, errorBeginNoBraceClose)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, errorBeginNoName)
+TEST(OsdmStreamParser, errorBeginNoName)
 {
 	const char *testString = "\\begin{a#}";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	ASSERT_FALSE(logger.hasError());
@@ -808,13 +808,13 @@ TEST(PlainFormatStreamReader, errorBeginNoName)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, errorEndNoBraceOpen)
+TEST(OsdmStreamParser, errorEndNoBraceOpen)
 {
 	const char *testString = "\\end a";
 	//                         012345
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	ASSERT_FALSE(logger.hasError());
@@ -822,12 +822,12 @@ TEST(PlainFormatStreamReader, errorEndNoBraceOpen)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, errorEndNoIdentifier)
+TEST(OsdmStreamParser, errorEndNoIdentifier)
 {
 	const char *testString = "\\end{!";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	ASSERT_FALSE(logger.hasError());
@@ -835,12 +835,12 @@ TEST(PlainFormatStreamReader, errorEndNoIdentifier)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, errorEndNoBraceClose)
+TEST(OsdmStreamParser, errorEndNoBraceClose)
 {
 	const char *testString = "\\end{a";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	ASSERT_FALSE(logger.hasError());
@@ -848,12 +848,12 @@ TEST(PlainFormatStreamReader, errorEndNoBraceClose)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, errorEndNoBegin)
+TEST(OsdmStreamParser, errorEndNoBegin)
 {
 	const char *testString = "\\end{a}";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	ASSERT_FALSE(logger.hasError());
@@ -861,15 +861,14 @@ TEST(PlainFormatStreamReader, errorEndNoBegin)
 	ASSERT_TRUE(logger.hasError());
 }
 
-
-TEST(PlainFormatStreamReader, errorBeginEndMismatch)
+TEST(OsdmStreamParser, errorBeginEndMismatch)
 {
 	const char *testString = "\\begin{a} \\begin{b} test \\end{a}";
 	//                         0123456789 012345678901234 5678901
 	//                         0          1         2          3
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	assertCommand(reader, "a", 7, 8);
@@ -882,39 +881,39 @@ TEST(PlainFormatStreamReader, errorBeginEndMismatch)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(PlainFormatStreamReader, commandWithNSSep)
+TEST(OsdmStreamParser, commandWithNSSep)
 {
 	const char *testString = "\\test1:test2";
 	//                         012345678901
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test1:test2", 0, 12);
 	assertEnd(reader, 12, 12);
 }
 
-TEST(PlainFormatStreamReader, beginEndWithNSSep)
+TEST(OsdmStreamParser, beginEndWithNSSep)
 {
 	const char *testString = "\\begin{test1:test2}\\end{test1:test2}";
 	//                         0123456789012345678 90123456789012345
 	//                         0         1          2         3
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test1:test2", 7, 18);
 	assertFieldStart(reader, 19, 20);
-	assertFieldEnd(reader, 24 , 35);
+	assertFieldEnd(reader, 24, 35);
 	assertEnd(reader, 36, 36);
 }
 
-TEST(PlainFormatStreamReader, errorBeginNSSep)
+TEST(OsdmStreamParser, errorBeginNSSep)
 {
 	const char *testString = "\\begin:test{blub}\\end{blub}";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	ASSERT_FALSE(logger.hasError());
@@ -925,12 +924,12 @@ TEST(PlainFormatStreamReader, errorBeginNSSep)
 	assertEnd(reader);
 }
 
-TEST(PlainFormatStreamReader, errorEndNSSep)
+TEST(OsdmStreamParser, errorEndNSSep)
 {
 	const char *testString = "\\begin{blub}\\end:test{blub}";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	assertCommand(reader, "blub");
@@ -941,12 +940,12 @@ TEST(PlainFormatStreamReader, errorEndNSSep)
 	assertEnd(reader);
 }
 
-TEST(PlainFormatStreamReader, errorEmptyNs)
+TEST(OsdmStreamParser, errorEmptyNs)
 {
 	const char *testString = "\\test:";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	ASSERT_FALSE(logger.hasError());
@@ -956,12 +955,12 @@ TEST(PlainFormatStreamReader, errorEmptyNs)
 	assertEnd(reader);
 }
 
-TEST(PlainFormatStreamReader, errorRepeatedNs)
+TEST(OsdmStreamParser, errorRepeatedNs)
 {
 	const char *testString = "\\test::";
 	CharReader charReader(testString);
 
-	PlainFormatStreamReader reader(charReader, logger);
+	OsdmStreamParser reader(charReader, logger);
 
 	logger.reset();
 	ASSERT_FALSE(logger.hasError());
@@ -970,6 +969,5 @@ TEST(PlainFormatStreamReader, errorRepeatedNs)
 	assertData(reader, "::");
 	assertEnd(reader);
 }
-
 }
 

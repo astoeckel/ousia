@@ -21,7 +21,7 @@
 #include <core/common/Utils.hpp>
 #include <core/common/VariantReader.hpp>
 
-#include "PlainFormatStreamReader.hpp"
+#include "OsdmStreamParser.hpp"
 
 namespace ousia {
 
@@ -160,15 +160,14 @@ public:
 	}
 };
 
-PlainFormatStreamReader::PlainFormatStreamReader(CharReader &reader,
-                                                 Logger &logger)
+OsdmStreamParser::OsdmStreamParser(CharReader &reader, Logger &logger)
     : reader(reader), logger(logger), tokenizer(Tokens)
 {
 	// Place an intial command representing the complete file on the stack
 	commands.push(Command{"", Variant::mapType{}, true, true, true});
 }
 
-Variant PlainFormatStreamReader::parseIdentifier(size_t start, bool allowNSSep)
+Variant OsdmStreamParser::parseIdentifier(size_t start, bool allowNSSep)
 {
 	bool first = true;
 	bool hasCharSiceNSSep = false;
@@ -180,12 +179,14 @@ Variant PlainFormatStreamReader::parseIdentifier(size_t start, bool allowNSSep)
 		if ((first && Utils::isIdentifierStartCharacter(c)) ||
 		    (!first && Utils::isIdentifierCharacter(c))) {
 			identifier.push_back(c);
-		} else if (c == ':' && hasCharSiceNSSep && reader.fetchPeek(c2) && Utils::isIdentifierStartCharacter(c2)) {
+		} else if (c == ':' && hasCharSiceNSSep && reader.fetchPeek(c2) &&
+		           Utils::isIdentifierStartCharacter(c2)) {
 			identifier.push_back(c);
 		} else {
 			if (c == ':' && allowNSSep) {
 				logger.error(
-				    "Expected character before and after namespace separator \":\"",
+				    "Expected character before and after namespace separator "
+				    "\":\"",
 				    reader);
 			}
 			reader.resetPeek();
@@ -209,7 +210,7 @@ Variant PlainFormatStreamReader::parseIdentifier(size_t start, bool allowNSSep)
 	return res;
 }
 
-PlainFormatStreamReader::State PlainFormatStreamReader::parseBeginCommand()
+OsdmStreamParser::State OsdmStreamParser::parseBeginCommand()
 {
 	// Expect a '{' after the command
 	reader.consumeWhitespace();
@@ -250,7 +251,7 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parseBeginCommand()
 	return State::COMMAND;
 }
 
-static bool checkStillInField(const PlainFormatStreamReader::Command &cmd,
+static bool checkStillInField(const OsdmStreamParser::Command &cmd,
                               const Variant &endName, Logger &logger)
 {
 	if (cmd.inField && !cmd.inRangeField) {
@@ -263,7 +264,7 @@ static bool checkStillInField(const PlainFormatStreamReader::Command &cmd,
 	return false;
 }
 
-PlainFormatStreamReader::State PlainFormatStreamReader::parseEndCommand()
+OsdmStreamParser::State OsdmStreamParser::parseEndCommand()
 {
 	// Expect a '{' after the command
 	if (!reader.expect('{')) {
@@ -326,7 +327,7 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parseEndCommand()
 	return cmd.inRangeField ? State::FIELD_END : State::NONE;
 }
 
-Variant PlainFormatStreamReader::parseCommandArguments(Variant commandArgName)
+Variant OsdmStreamParser::parseCommandArguments(Variant commandArgName)
 {
 	// Parse the arguments using the universal VariantReader
 	Variant commandArguments;
@@ -352,9 +353,8 @@ Variant PlainFormatStreamReader::parseCommandArguments(Variant commandArgName)
 	return commandArguments;
 }
 
-void PlainFormatStreamReader::pushCommand(Variant commandName,
-                                          Variant commandArguments,
-                                          bool hasRange)
+void OsdmStreamParser::pushCommand(Variant commandName,
+                                   Variant commandArguments, bool hasRange)
 {
 	// Store the location on the stack
 	location = commandName.getLocation();
@@ -368,8 +368,7 @@ void PlainFormatStreamReader::pushCommand(Variant commandName,
 	                      hasRange, false, false});
 }
 
-PlainFormatStreamReader::State PlainFormatStreamReader::parseCommand(
-    size_t start)
+OsdmStreamParser::State OsdmStreamParser::parseCommand(size_t start)
 {
 	// Parse the commandName as a first identifier
 	Variant commandName = parseIdentifier(start, true);
@@ -417,7 +416,7 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parseCommand(
 	return State::COMMAND;
 }
 
-void PlainFormatStreamReader::parseBlockComment()
+void OsdmStreamParser::parseBlockComment()
 {
 	DynamicToken token;
 	size_t depth = 1;
@@ -437,7 +436,7 @@ void PlainFormatStreamReader::parseBlockComment()
 	logger.error("File ended while being in a block comment", reader);
 }
 
-void PlainFormatStreamReader::parseLineComment()
+void OsdmStreamParser::parseLineComment()
 {
 	char c;
 	while (reader.read(c)) {
@@ -447,7 +446,7 @@ void PlainFormatStreamReader::parseLineComment()
 	}
 }
 
-bool PlainFormatStreamReader::checkIssueData(DataHandler &handler)
+bool OsdmStreamParser::checkIssueData(DataHandler &handler)
 {
 	if (!handler.isEmpty()) {
 		data = handler.toVariant(reader.getSourceId());
@@ -458,7 +457,7 @@ bool PlainFormatStreamReader::checkIssueData(DataHandler &handler)
 	return false;
 }
 
-bool PlainFormatStreamReader::checkIssueFieldStart()
+bool OsdmStreamParser::checkIssueFieldStart()
 {
 	// Fetch the current command, and check whether we're currently inside a
 	// field of this command
@@ -483,7 +482,7 @@ bool PlainFormatStreamReader::checkIssueFieldStart()
 	return false;
 }
 
-PlainFormatStreamReader::State PlainFormatStreamReader::parse()
+OsdmStreamParser::State OsdmStreamParser::parse()
 {
 	// Handler for incomming data
 	DataHandler handler;
@@ -628,12 +627,12 @@ PlainFormatStreamReader::State PlainFormatStreamReader::parse()
 	return State::END;
 }
 
-const Variant &PlainFormatStreamReader::getCommandName()
+const Variant &OsdmStreamParser::getCommandName()
 {
 	return commands.top().name;
 }
 
-const Variant &PlainFormatStreamReader::getCommandArguments()
+const Variant &OsdmStreamParser::getCommandArguments()
 {
 	return commands.top().arguments;
 }
