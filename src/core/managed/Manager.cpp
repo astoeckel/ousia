@@ -159,6 +159,30 @@ void Manager::manage(Managed *o)
 	nextUid++;
 }
 
+void Manager::unmanage(Managed *o)
+{
+	if (!deleted.count(o)) {
+		Manager::ObjectDescriptor *descr = getDescriptor(o);
+		if (descr != nullptr) {
+			// Make sure all input references are deleted
+			while (!descr->refIn.empty()) {
+				deleteRef(o, descr->refIn.begin()->first, true);
+			}
+			// Remove all output references of this Managed
+			while (!descr->refOut.empty()) {
+				deleteRef(descr->refOut.begin()->first, o, true);
+			}
+
+			// Remove the uid, data and event store entry
+			uids.erase(descr->uid);
+			store.erase(o);
+			events.erase(o);
+			marked.erase(o);
+			objects.erase(o);
+		}
+	}
+}
+
 void Manager::addRef(Managed *tar, Managed *src)
 {
 #ifdef MANAGER_DEBUG_PRINT
@@ -286,10 +310,10 @@ void Manager::purgeDeleted()
 
 		for (size_t i = 0; i < orderedDeleted.size(); i++) {
 			Managed *m = orderedDeleted[i];
+			delete m;
 			deleted.erase(m);
 			marked.erase(m);
 			objects.erase(m);
-			delete m;
 		}
 		orderedDeleted.clear();
 		assert(deleted.empty());
