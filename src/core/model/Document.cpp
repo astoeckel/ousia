@@ -97,8 +97,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 	// iterate over every field
 	for (unsigned int f = 0; f < fields.size(); f++) {
 		// we have a special check for primitive fields.
-		if (fieldDescs[f]->getFieldType() ==
-		    FieldDescriptor::FieldType::PRIMITIVE) {
+		if (fieldDescs[f]->isPrimitive()) {
 			switch (fields[f].size()) {
 				case 0:
 					if (!fieldDescs[f]->isOptional()) {
