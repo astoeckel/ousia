@@ -145,9 +145,10 @@ TEST(Descriptor, pathToAdvanced)
 	 * 8.) E is transparent and has target as child in the default field
 	 *     (longer path)
 	 *
-	 * So the path start_field , E , E_field should be returned.
+	 * So the path A_second_field, C, C_field should be returned.
 	 */
 	Manager mgr{1};
+	Logger logger;
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Construct the domain
 	Rooted<Domain> domain{new Domain(mgr, sys, "nasty")};
@@ -162,8 +163,8 @@ TEST(Descriptor, pathToAdvanced)
 	Rooted<StructuredClass> B{new StructuredClass(
 	    mgr, "B", domain, Cardinality::any(), {nullptr}, true, false)};
 
-	Rooted<StructuredClass> C{
-	    new StructuredClass(mgr, "C", domain, Cardinality::any(), B, true, false)};
+	Rooted<StructuredClass> C{new StructuredClass(
+	    mgr, "C", domain, Cardinality::any(), B, true, false)};
 
 	Rooted<StructuredClass> D{new StructuredClass(
 	    mgr, "D", domain, Cardinality::any(), {nullptr}, true, false)};
@@ -175,31 +176,32 @@ TEST(Descriptor, pathToAdvanced)
 	    new StructuredClass(mgr, "target", domain, Cardinality::any())};
 
 	// We create two fields for A
-	Rooted<FieldDescriptor> A_field{new FieldDescriptor(mgr, A)};
+	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger);
 
 	A_field->addChild(target);
-	Rooted<FieldDescriptor> A_field2{new FieldDescriptor(
-	    mgr, A, FieldDescriptor::FieldType::SUBTREE, "second")};
+	Rooted<FieldDescriptor> A_field2 = A->createFieldDescriptor(
+	    logger, FieldDescriptor::FieldType::SUBTREE, "second", false);
 
 	A_field2->addChild(B);
 	// We create no field for B
 	// One for C
-	Rooted<FieldDescriptor> C_field{new FieldDescriptor(mgr, C)};
+	Rooted<FieldDescriptor> C_field = C->createFieldDescriptor(logger);
 
 	C_field->addChild(target);
 	// one for start
-	Rooted<FieldDescriptor> start_field{new FieldDescriptor(mgr, start)};
+	Rooted<FieldDescriptor> start_field = start->createFieldDescriptor(logger);
 
 	start_field->addChild(D);
 	// One for D
-	Rooted<FieldDescriptor> D_field{new FieldDescriptor(mgr, D)};
+	Rooted<FieldDescriptor> D_field = D->createFieldDescriptor(logger);
 
 	D_field->addChild(E);
 	// One for E
-	Rooted<FieldDescriptor> E_field{new FieldDescriptor(mgr, E)};
+	Rooted<FieldDescriptor> E_field = E->createFieldDescriptor(logger);
 
 	E_field->addChild(target);
 
+	ASSERT_TRUE(domain->validate(logger));
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	// dump the manager state
 	mgr.exportGraphviz("nastyDomain.dot");
@@ -313,20 +315,13 @@ TEST(Domain, validate)
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
 		// Let's add a primitive field (without a primitive type at first)
-		Rooted<FieldDescriptor> base_field{
-		    new FieldDescriptor(mgr, base, nullptr)};
+		Rooted<FieldDescriptor> base_field =
+		    base->createPrimitiveFieldDescriptor(nullptr, logger);
 		// this should not be valid.
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_FALSE(domain->validate(logger));
 		// but it should be if we set the type.
 		base_field->setPrimitiveType(sys->getStringType());
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
-		// not anymore, however, if we tamper with the FieldType.
-		base_field->setFieldType(FieldDescriptor::FieldType::TREE);
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_FALSE(domain->validate(logger));
-		base_field->setFieldType(FieldDescriptor::FieldType::PRIMITIVE);
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
 		// add a subclass for our base class.
@@ -338,7 +333,7 @@ TEST(Domain, validate)
 		sub->setSuperclass(base, logger);
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
-		// and still we we remove the subclass from the base class.
+		// and still if we remove the subclass from the base class.
 		base->removeSubclass(sub, logger);
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
@@ -349,19 +344,11 @@ TEST(Domain, validate)
 		ASSERT_TRUE(domain->validate(logger));
 		ASSERT_EQ(base, sub->getSuperclass());
 		// add a non-primitive field to the child class.
-		Rooted<FieldDescriptor> sub_field{new FieldDescriptor(mgr, sub)};
-		// this should be valid
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
-		// .. until we set a primitive type.
-		sub_field->setPrimitiveType(sys->getStringType());
+		Rooted<FieldDescriptor> sub_field = sub->createFieldDescriptor(logger);
+		// this should not be valid because we allow no children.
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_FALSE(domain->validate(logger));
-		// and valid again if we unset it.
-		sub_field->setPrimitiveType(nullptr);
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
-		// we should also be able to add a child and have it still be valid.
+		// we should also be able to add a child and make it valid.
 		sub_field->addChild(base);
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
@@ -371,6 +358,23 @@ TEST(Domain, validate)
 		ASSERT_FALSE(domain->validate(logger));
 		// and valid again if we remove it once.
 		sub_field->removeChild(base);
+		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
+		ASSERT_TRUE(domain->validate(logger));
+		// if we set a primitive type it should be invalid
+		sub_field->setPrimitiveType(sys->getStringType());
+		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
+		ASSERT_FALSE(domain->validate(logger));
+		// and valid again if we unset it.
+		sub_field->setPrimitiveType(nullptr);
+		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
+		ASSERT_TRUE(domain->validate(logger));
+		// It should be invalid if we set another TREE field.
+		Rooted<FieldDescriptor> sub_field2 = sub->createFieldDescriptor(
+		    logger, FieldDescriptor::FieldType::TREE, "test", false);
+		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
+		ASSERT_FALSE(domain->validate(logger));
+		// but valid again if we remove it
+		sub->removeFieldDescriptor(sub_field2);
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
 	}

@@ -27,18 +27,16 @@ namespace ousia {
 
 /* Class FieldDescriptor */
 
-FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
-                                 Handle<Type> primitiveType, std::string name,
-                                 bool optional)
+FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Type> primitiveType,
+                                 Handle<Descriptor> parent, FieldType fieldType,
+                                 std::string name, bool optional)
     : Node(mgr, std::move(name), parent),
       children(this),
-      fieldType(FieldType::PRIMITIVE),
+      fieldType(fieldType),
       primitiveType(acquire(primitiveType)),
-      optional(optional)
+      optional(optional),
+      primitive(true)
 {
-	if (parent != nullptr) {
-		parent->addFieldDescriptor(this);
-	}
 }
 
 FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
@@ -47,11 +45,9 @@ FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
     : Node(mgr, std::move(name), parent),
       children(this),
       fieldType(fieldType),
-      optional(optional)
+      optional(optional),
+      primitive(false)
 {
-	if (parent != nullptr) {
-		parent->addFieldDescriptor(this);
-	}
 }
 
 bool FieldDescriptor::doValidate(Logger &logger) const
@@ -59,45 +55,63 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	bool valid = true;
 	// check parent type
 	if (getParent() == nullptr) {
-		logger.error("This field has no parent!", *this);
+		logger.error(std::string("Field \"") + getName() + "\" has no parent!",
+		             *this);
 		valid = false;
 	} else if (!getParent()->isa(&RttiTypes::Descriptor)) {
-		logger.error("The parent of this field is not a descriptor!", *this);
+		logger.error(std::string("The parent of Field \"") + getName() +
+		                 "\" is not a descriptor!",
+		             *this);
 		valid = false;
 	}
 	// check name
-	if (getName() != DEFAULT_FIELD_NAME) {
+	if (getName().empty()) {
+		if (fieldType != FieldType::TREE) {
+			logger.error(std::string("Field \"") + getName() +
+			                 "\" is not the main field but has an empty name!",
+			             *this);
+			valid = false;
+		}
+	} else {
 		valid = valid & validateName(logger);
 	}
+
 	// check consistency of FieldType with the rest of the FieldDescriptor.
-	if (fieldType == FieldType::PRIMITIVE) {
+	if (primitive) {
 		if (children.size() > 0) {
-			logger.error(
-			    "This field is supposed to be primitive but has "
-			    "registered child classes!",
-			    *this);
+			logger.error(std::string("Field \"") + getName() +
+			                 "\" is supposed to be primitive but has "
+			                 "registered child classes!",
+			             *this);
 			valid = false;
 		}
 		if (primitiveType == nullptr) {
-			logger.error(
-			    "This field is supposed to be primitive but has "
-			    "no primitive type!",
-			    *this);
+			logger.error(std::string("Field \"") + getName() +
+			                 "\" is supposed to be primitive but has "
+			                 "no primitive type!",
+			             *this);
 			valid = false;
 		}
 	} else {
 		if (primitiveType != nullptr) {
-			logger.error(
-			    "This field is supposed to be non-primitive but has "
-			    "a primitive type!",
-			    *this);
+			logger.error(std::string("Field \"") + getName() +
+			                 "\" is supposed to be non-primitive but has "
+			                 "a primitive type!",
+			             *this);
+			valid = false;
+		}
+		// if this is not a primitive field we require at least one child.
+		if (children.empty()) {
+			logger.error(std::string("Field \"") + getName() +
+			                 "\" is non primitive but does not allow children!",
+			             *this);
 			valid = false;
 		}
 	}
 	/*
 	 * we are not allowed to call the validation functions of each child because
 	 * this might lead to cycles. What we should do, however, is to check if
-	 * there are no duplicates.
+	 * there are duplicates.
 	 */
 	std::set<std::string> names;
 	for (Handle<StructuredClass> c : children) {
@@ -140,10 +154,14 @@ bool Descriptor::doValidate(Logger &logger) const
 	bool valid = true;
 	// check parent type
 	if (getParent() == nullptr) {
-		logger.error("This Descriptor has no parent!", *this);
+		logger.error(
+		    std::string("Descriptor \"") + getName() + "\" has no parent!",
+		    *this);
 		valid = false;
 	} else if (!getParent()->isa(&RttiTypes::Domain)) {
-		logger.error("The parent of this Descriptor is not a Domain!", *this);
+		logger.error(std::string("The parent of Descriptor \"") + getName() +
+		                 "\" is not a Domain!",
+		             *this);
 		valid = false;
 	}
 	// check name
@@ -305,28 +323,26 @@ void Descriptor::moveFieldDescriptor(Handle<FieldDescriptor> fd)
 	}
 }
 
-void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd)
+void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
 {
-	if (fd->getFieldType() == FieldDescriptor::FieldType::PRIMITIVE) {
-		/*
-		 * To call the "new" operation is enough here, because the
-		 * constructor will add the newly constructed FieldDescriptor to this
-		 * Descriptor automatically.
-		 */
-		new FieldDescriptor(getManager(), this, fd->getPrimitiveType(),
-		                    fd->getName(), fd->isOptional());
+	Rooted<FieldDescriptor> copy;
+	if (fd->isPrimitive()) {
+		copy = Rooted<FieldDescriptor>{new FieldDescriptor(
+		    getManager(), fd->getPrimitiveType(), this, fd->getFieldType(),
+		    fd->getName(), fd->isOptional())};
 	} else {
 		/*
 		 * In case of non-primitive FieldDescriptors we also want to copy the
 		 * child references.
 		 */
-		Rooted<FieldDescriptor> copy = {
+		copy = Rooted<FieldDescriptor>{
 		    new FieldDescriptor(getManager(), this, fd->getFieldType(),
 		                        fd->getName(), fd->isOptional())};
 		for (auto &c : fd->getChildren()) {
 			copy->addChild(c);
 		}
 	}
+	addFieldDescriptor(copy, logger);
 }
 
 bool Descriptor::removeFieldDescriptor(Handle<FieldDescriptor> fd)
@@ -342,17 +358,24 @@ bool Descriptor::removeFieldDescriptor(Handle<FieldDescriptor> fd)
 }
 
 Rooted<FieldDescriptor> Descriptor::createPrimitiveFieldDescriptor(
-    Handle<Type> primitiveType, std::string name, bool optional)
+    Handle<Type> primitiveType, Logger &logger,
+    FieldDescriptor::FieldType fieldType, std::string name, bool optional)
 {
-	return Rooted<FieldDescriptor>{new FieldDescriptor(
-	    getManager(), this, primitiveType, std::move(name), optional)};
+	Rooted<FieldDescriptor> fd{new FieldDescriptor(getManager(), primitiveType,
+	                                               this, fieldType,
+	                                               std::move(name), optional)};
+	addFieldDescriptor(fd, logger);
+	return fd;
 }
 
 Rooted<FieldDescriptor> Descriptor::createFieldDescriptor(
-    FieldDescriptor::FieldType fieldType, std::string name, bool optional)
+    Logger &logger, FieldDescriptor::FieldType fieldType, std::string name,
+    bool optional)
 {
-	return Rooted<FieldDescriptor>{new FieldDescriptor(
+	Rooted<FieldDescriptor> fd{new FieldDescriptor(
 	    getManager(), this, fieldType, std::move(name), optional)};
+	addFieldDescriptor(fd, logger);
+	return fd;
 }
 
 /* Class StructuredClass */

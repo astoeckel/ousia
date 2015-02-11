@@ -575,7 +575,7 @@ public:
 		Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
 		Rooted<FieldDescriptor> field = parent->createFieldDescriptor(
-		    type, args["name"].asString(), args["optional"].asBool());
+		    logger(), type, args["name"].asString(), args["optional"].asBool());
 		field->setLocation(location());
 
 		scope().push(field);
@@ -624,8 +624,16 @@ public:
 	{
 		Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
+		FieldDescriptor::FieldType fieldType;
+		if (args["isSubtree"].asBool()) {
+			fieldType = FieldDescriptor::FieldType::SUBTREE;
+		} else {
+			fieldType = FieldDescriptor::FieldType::TREE;
+		}
+
 		Rooted<FieldDescriptor> field = parent->createPrimitiveFieldDescriptor(
-		    nullptr, args["name"].asString(), args["optional"].asBool());
+		    nullptr, logger(), fieldType, args["name"].asString(),
+		    args["optional"].asBool());
 		field->setLocation(location());
 
 		const std::string &type = args["type"].asString();
@@ -742,7 +750,7 @@ public:
 			    if (parent != nullptr) {
 				    Rooted<FieldDescriptor> field =
 				        parent.cast<Descriptor>()->createFieldDescriptor(
-				            type, name, optional);
+				            logger, type, name, optional);
 				    field->addChild(strct.cast<StructuredClass>());
 			    }
 			});
@@ -978,6 +986,7 @@ static const ParserState DomainStructPrimitive =
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainPrimitiveHandler::create)
         .arguments({Argument::String("name", DEFAULT_FIELD_NAME),
+                    Argument::Bool("isSubtree", false),
                     Argument::Bool("optional", false),
                     Argument::String("type")});
 

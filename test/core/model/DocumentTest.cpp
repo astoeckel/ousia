@@ -67,11 +67,9 @@ TEST(Document, construct)
 			ASSERT_EQ("text", text->getDescriptor()->getName());
 			ASSERT_TRUE(text->getDescriptor()->hasField());
 			ASSERT_EQ(1U, text->getField().size());
-			ASSERT_TRUE(
-			    text->getField()[0]->isa(typeOf<DocumentPrimitive>()));
-			Variant content = text->getField()[0]
-			                      .cast<DocumentPrimitive>()
-			                      ->getContent();
+			ASSERT_TRUE(text->getField()[0]->isa(typeOf<DocumentPrimitive>()));
+			Variant content =
+			    text->getField()[0].cast<DocumentPrimitive>()->getContent();
 			ASSERT_EQ("Some introductory text", content.asString());
 		}
 	}
@@ -101,11 +99,10 @@ TEST(Document, construct)
 				ASSERT_EQ("text", text->getDescriptor()->getName());
 				ASSERT_TRUE(text->getDescriptor()->hasField());
 				ASSERT_EQ(1U, text->getField().size());
-				ASSERT_TRUE(text->getField()[0]->isa(
-				    typeOf<DocumentPrimitive>()));
-				Variant content = text->getField()[0]
-				                      .cast<DocumentPrimitive>()
-				                      ->getContent();
+				ASSERT_TRUE(
+				    text->getField()[0]->isa(typeOf<DocumentPrimitive>()));
+				Variant content =
+				    text->getField()[0].cast<DocumentPrimitive>()->getContent();
 				ASSERT_EQ("Some actual text", content.asString());
 			}
 		}
@@ -149,7 +146,8 @@ TEST(Document, validate)
 	}
 
 	// now let's extend the rootClass with a default field.
-	Rooted<FieldDescriptor> rootField{new FieldDescriptor(mgr, rootClass)};
+	Rooted<FieldDescriptor> rootField =
+	    rootClass->createFieldDescriptor(logger);
 	// and add a child class for it.
 	Rooted<StructuredClass> childClass{
 	    new StructuredClass(mgr, "child", domain, single)};
@@ -195,7 +193,8 @@ TEST(Document, validate)
 	 * Make it even more complicated: child gets a field for further child
 	 * instances now.
 	 */
-	Rooted<FieldDescriptor> childField{new FieldDescriptor(mgr, childClass)};
+	Rooted<FieldDescriptor> childField =
+	    childClass->createFieldDescriptor(logger);
 	childField->addChild(childClass);
 	{
 		/*
@@ -211,10 +210,13 @@ TEST(Document, validate)
 		ASSERT_FALSE(doc->validate(logger));
 	}
 	/*
-	 * Override the default field in childSubClass.
+	 * Override the default field in childSubClass with an optional field.
 	 */
-	Rooted<FieldDescriptor> childSubField{
-	    new FieldDescriptor(mgr, childSubClass)};
+	Rooted<FieldDescriptor> childSubField =
+	    childSubClass->createFieldDescriptor(
+	        logger, FieldDescriptor::FieldType::TREE, "dummy", true);
+	// add a child pro forma to make it valid.
+	childSubField->addChild(childSubClass);
 	{
 		/*
 		 * Now a document with one instance of the Child subclass should be
@@ -229,8 +231,10 @@ TEST(Document, validate)
 		ASSERT_TRUE(doc->validate(logger));
 	}
 	// add a primitive field to the subclass with integer content.
-	Rooted<FieldDescriptor> primitive_field{new FieldDescriptor(
-	    mgr, childSubClass, sys->getIntType(), "int", false)};
+	Rooted<FieldDescriptor> primitive_field =
+	    childSubClass->createPrimitiveFieldDescriptor(
+	        sys->getIntType(), logger, FieldDescriptor::FieldType::SUBTREE,
+	        "int", false);
 	{
 		/*
 		 * Now a document with one instance of the Child subclass should be

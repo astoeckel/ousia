@@ -65,8 +65,8 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 	                                    "paragraph"};
 	for (auto &s : secclasses) {
 		Rooted<StructuredClass> desc = resolveDescriptor(bookDomain, s);
-		Rooted<FieldDescriptor> heading_field{new FieldDescriptor(
-		    mgr, desc, FieldDescriptor::FieldType::SUBTREE, "heading")};
+		Rooted<FieldDescriptor> heading_field = desc->createFieldDescriptor(
+		    logger, FieldDescriptor::FieldType::SUBTREE, "heading", true);
 		heading_field->addChild(heading);
 	}
 	return domain;

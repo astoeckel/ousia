@@ -169,6 +169,7 @@ static void checkFieldDescriptor(
 	ASSERT_EQ(parent, field->getParent());
 	ASSERT_EQ(type, field->getFieldType());
 	ASSERT_EQ(primitiveType, field->getPrimitiveType());
+	ASSERT_EQ(primitiveType != nullptr, field->isPrimitive());
 	ASSERT_EQ(optional, field->isOptional());
 	// check the children.
 	ASSERT_EQ(children.size(), field->getChildren().size());

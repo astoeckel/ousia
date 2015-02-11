@@ -42,7 +42,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	    mgr, "book", domain, single, {nullptr}, false, true)};
 
 	// The structure field of it.
-	Rooted<FieldDescriptor> book_field{new FieldDescriptor(mgr, book)};
+	Rooted<FieldDescriptor> book_field = book->createFieldDescriptor(logger);
 
 	// From there on the "section".
 	Rooted<StructuredClass> section{
@@ -50,7 +50,8 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	book_field->addChild(section);
 
 	// And the field of it.
-	Rooted<FieldDescriptor> section_field{new FieldDescriptor(mgr, section)};
+	Rooted<FieldDescriptor> section_field =
+	    section->createFieldDescriptor(logger);
 
 	// We also add the "paragraph", which is transparent.
 	Rooted<StructuredClass> paragraph{new StructuredClass(
@@ -59,8 +60,8 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	book_field->addChild(paragraph);
 
 	// And the field of it.
-	Rooted<FieldDescriptor> paragraph_field{
-	    new FieldDescriptor(mgr, paragraph)};
+	Rooted<FieldDescriptor> paragraph_field =
+	    paragraph->createFieldDescriptor(logger);
 
 	// We append "subsection" to section.
 	Rooted<StructuredClass> subsection{
@@ -68,8 +69,8 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	section_field->addChild(subsection);
 
 	// And the field of it.
-	Rooted<FieldDescriptor> subsection_field{
-	    new FieldDescriptor(mgr, subsection)};
+	Rooted<FieldDescriptor> subsection_field =
+	    subsection->createFieldDescriptor(logger);
 
 	// and we add the paragraph to subsections fields
 	subsection_field->addChild(paragraph);
@@ -80,9 +81,8 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	paragraph_field->addChild(text);
 
 	// ... and has a primitive field.
-	Rooted<FieldDescriptor> text_field{new FieldDescriptor(
-	    mgr, text, domain->getTypesystems()[0]->getTypes()[0],
-	    DEFAULT_FIELD_NAME, false)};
+	Rooted<FieldDescriptor> text_field =
+	    text->createPrimitiveFieldDescriptor(sys->getStringType(), logger);
 
 	return domain;
 }

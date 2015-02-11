@@ -253,32 +253,26 @@ class FieldDescriptor : public Node {
 public:
 	/**
 	 * This enum class contains all possible FieldTypes, meaning either the
-	 * main structure beneath this Descritor (TREE), supporting structure
-	 * (SUBTREE) or a primitive terminal (PRIMITIVE).
+	 * main structure beneath this Descriptor (TREE) or supporting structure
+	 * (SUBTREE)
 	 *
-	 * Note the following rules (which are also mentioned above):
-	 * 1.) There may be only one TREE field in a Descriptor.
-	 * 2.) Each TREE field must allow for at least one child, which in turn has
-	 *     either a TREE field or a PRIMITIVE field.
-	 * 3.) SUBTREE fields may not allow for children with TREE fields.
-	 * 4.) SUBTREE fields must allow for at least one child with another SUBTREE
-	 *     or PRIMITIVE field.
+	 * Note that there may be only one TREE field in a descriptor.
 	 */
-	enum class FieldType { TREE, SUBTREE, PRIMITIVE };
+	enum class FieldType { TREE, SUBTREE };
 
 private:
 	NodeVector<StructuredClass> children;
 	FieldType fieldType;
 	Owned<Type> primitiveType;
 	bool optional;
+	bool primitive;
 
 protected:
 	bool doValidate(Logger &logger) const override;
 
 public:
 	/**
-	 * This is the constructor for primitive fields. The type is automatically
-	 * set to "PRIMITIVE".
+	 * This is the constructor for primitive fields.
 	 *
 	 * @param mgr           is the global Manager instance.
 	 * @param parent        is a handle of the Descriptor node that has this
@@ -290,10 +284,10 @@ public:
 	 *                      filled in order for an instance of the parent
 	 *                      Descriptor to be valid.
 	 */
-	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
-	                Handle<Type> primitiveType,
-	                std::string name = DEFAULT_FIELD_NAME,
-	                bool optional = false);
+	FieldDescriptor(Manager &mgr, Handle<Type> primitiveType,
+	                Handle<Descriptor> parent,
+	                FieldType fieldType = FieldType::TREE,
+	                std::string name = "", bool optional = false);
 
 	/**
 	 * This is the constructor for non-primitive fields. You have to provide
@@ -312,8 +306,7 @@ public:
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent = nullptr,
 	                FieldType fieldType = FieldType::TREE,
-	                std::string name = DEFAULT_FIELD_NAME,
-	                bool optional = false);
+	                std::string name = "", bool optional = false);
 
 	/**
 	 * Returns a const reference to the NodeVector of StructuredClasses whose
@@ -616,8 +609,9 @@ public:
 	 * @return              the newly created FieldDescriptor.
 	 */
 	Rooted<FieldDescriptor> createPrimitiveFieldDescriptor(
-	    Handle<Type> primitiveType, std::string name = DEFAULT_FIELD_NAME,
-	    bool optional = false);
+	    Handle<Type> primitiveType, Logger &logger,
+	    FieldDescriptor::FieldType fieldType = FieldDescriptor::FieldType::TREE,
+	    std::string name = "", bool optional = false);
 
 	/**
 	 * This creates a new primitive FieldDescriptor and adds it to this
@@ -634,8 +628,9 @@ public:
 	 * @return              the newly created FieldDescriptor.
 	 */
 	Rooted<FieldDescriptor> createFieldDescriptor(
+	    Logger &logger,
 	    FieldDescriptor::FieldType fieldType = FieldDescriptor::FieldType::TREE,
-	    std::string name = DEFAULT_FIELD_NAME, bool optional = false);
+	    std::string name = "", bool optional = false);
 
 	/**
 	 * This tries to construct the shortest possible path of this Descriptor
