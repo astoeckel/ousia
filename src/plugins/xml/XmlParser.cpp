@@ -785,16 +785,14 @@ public:
 		                                        Handle<Node> strct,
 		                                        Logger &logger) {
 			if (parent != nullptr) {
-				auto res = parent.cast<Descriptor>()->resolve(
-				    &RttiTypes::FieldDescriptor, name);
-				if (res.size() != 1) {
+				Rooted<FieldDescriptor> field =
+				    parent.cast<Descriptor>()->getFieldDescriptor(name);
+				if (field == nullptr) {
 					logger.error(
 					    std::string("Could not find referenced field ") + name,
 					    loc);
 					return;
 				}
-				Rooted<FieldDescriptor> field =
-				    res[0].node.cast<FieldDescriptor>();
 				field->addChild(strct.cast<StructuredClass>());
 			}
 		});
@@ -985,10 +983,9 @@ static const ParserState DomainStructPrimitive =
         .parents({&DomainStruct, &DomainAnnotation})
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainPrimitiveHandler::create)
-        .arguments({Argument::String("name", ""),
-                    Argument::Bool("isSubtree", false),
-                    Argument::Bool("optional", false),
-                    Argument::String("type")});
+        .arguments(
+            {Argument::String("name", ""), Argument::Bool("isSubtree", false),
+             Argument::Bool("optional", false), Argument::String("type")});
 
 static const ParserState DomainStructChild =
     ParserStateBuilder()

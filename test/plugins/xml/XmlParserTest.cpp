@@ -292,7 +292,7 @@ TEST(XmlParser, domainParsing)
 		std::vector<Rooted<Descriptor>> descs{comment_anno, comment, reply};
 		for (auto &d : descs) {
 			checkFieldDescriptor(d, {paragraph}, "content",
-			                     FieldDescriptor::FieldType::SUBTREE, nullptr,
+			                     FieldDescriptor::FieldType::TREE, nullptr,
 			                     false);
 			checkFieldDescriptor(d, {reply}, "replies",
 			                     FieldDescriptor::FieldType::SUBTREE, nullptr,

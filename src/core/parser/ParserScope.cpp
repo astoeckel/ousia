@@ -19,6 +19,7 @@
 #include <core/common/Exceptions.hpp>
 #include <core/common/Utils.hpp>
 #include <core/common/VariantWriter.hpp>
+#include <core/model/Domain.hpp>
 #include <core/model/Typesystem.hpp>
 
 #include "ParserScope.hpp"
@@ -37,6 +38,19 @@ Rooted<Node> ParserScopeBase::resolve(const Rtti *type,
                                       const std::vector<std::string> &path,
                                       Logger &logger)
 {
+	// if the last element of the path is the default field name, we want to
+	// resolve the parent descriptor first.
+	if (type == &RttiTypes::FieldDescriptor &&
+	    path.back() == DEFAULT_FIELD_NAME) {
+		std::vector<std::string> descPath;
+		descPath.insert(descPath.end(), path.begin(), path.end() - 1);
+		Rooted<Node> res = resolve(&RttiTypes::Descriptor, descPath, logger);
+		if (res == nullptr) {
+			return nullptr;
+		}
+		return res.cast<Descriptor>()->getFieldDescriptor();
+	}
+
 	// Go up the stack and try to resolve the
 	for (auto it = nodes.rbegin(); it != nodes.rend(); it++) {
 		std::vector<ResolutionResult> res = (*it)->resolve(type, path);
