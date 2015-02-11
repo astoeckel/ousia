@@ -123,6 +123,12 @@ Manager::~Manager()
 	// Perform a final sweep
 	sweep();
 
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+	if (!objects.empty()) {
+		exportGraphviz("manager_crashdump.dot");
+	}
+#endif
+
 	// All objects should have been deleted!
 	assert(objects.empty());
 
@@ -220,10 +226,11 @@ void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 
 #ifdef MANAGER_DEBUG_HIDDEN_ROOTED
 	if (deletionRecursionDepth > 0 && src == 0) {
-		std::cerr << "\x1b[41;30mManager:\x1b[0m A managed object contains a rooted reference, "
+		std::cerr << "\x1b[41;30mManager:\x1b[0m A managed object contains a "
+		             "rooted reference, "
 		             "this may cause memory leaks!" << std::endl;
-		std::cerr << "\x1b[41;30mManager:\x1b[0m Referenced object is " << tar << " of type "
-		          << tar->type()->name << std::endl;
+		std::cerr << "\x1b[41;30mManager:\x1b[0m Referenced object is " << tar
+		          << " of type " << tar->type()->name << std::endl;
 	}
 #endif
 
@@ -635,7 +642,8 @@ void Manager::exportGraphviz(const char *filename)
 		// Print the label
 		fs << "\t\tlabel=<"
 		   << "<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">"
-		   << "<TR><TD>" << std::hex << std::showbase << p << "</TD></TR>"
+		   << "<TR><TD>" << std::hex << std::showbase << p << " ("
+		   << getUid(objectPtr) << ")</TD></TR>"
 		   << "<TR><TD><I>" << typeName << "</I></TD></TR>";
 
 		// Print any name
