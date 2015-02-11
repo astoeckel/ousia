@@ -215,7 +215,7 @@ TEST(Descriptor, pathToAdvanced)
 	ASSERT_TRUE(path[1]->isa(&RttiTypes::StructuredClass));
 	ASSERT_EQ("B", path[1]->getName());
 	ASSERT_TRUE(path[2]->isa(&RttiTypes::FieldDescriptor));
-	ASSERT_EQ("$default", path[2]->getName());
+	ASSERT_EQ("", path[2]->getName());
 }
 
 TEST(StructuredClass, isSubclassOf)

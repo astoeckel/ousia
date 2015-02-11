@@ -603,7 +603,7 @@ public:
 		    [](Handle<Node> field, Handle<Node> parent, Logger &logger) {
 			    if (field != nullptr) {
 				    parent.cast<StructuredClass>()->addFieldDescriptor(
-				        field.cast<FieldDescriptor>());
+				        field.cast<FieldDescriptor>(), logger);
 			    }
 			});
 	}
@@ -969,7 +969,7 @@ static const ParserState DomainField =
         .parents({&DomainStruct, &DomainAnnotation})
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainFieldHandler::create)
-        .arguments({Argument::String("name", DEFAULT_FIELD_NAME),
+        .arguments({Argument::String("name", ""),
                     Argument::Bool("isSubtree", false),
                     Argument::Bool("optional", false)});
 
@@ -985,7 +985,7 @@ static const ParserState DomainStructPrimitive =
         .parents({&DomainStruct, &DomainAnnotation})
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainPrimitiveHandler::create)
-        .arguments({Argument::String("name", DEFAULT_FIELD_NAME),
+        .arguments({Argument::String("name", ""),
                     Argument::Bool("isSubtree", false),
                     Argument::Bool("optional", false),
                     Argument::String("type")});
@@ -1008,7 +1008,7 @@ static const ParserState DomainStructParentField =
         .parent(&DomainStructParent)
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(DomainParentFieldHandler::create)
-        .arguments({Argument::String("name", DEFAULT_FIELD_NAME),
+        .arguments({Argument::String("name", ""),
                     Argument::Bool("isSubtree", false),
                     Argument::Bool("optional", false)});
 

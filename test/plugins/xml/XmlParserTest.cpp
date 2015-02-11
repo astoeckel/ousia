@@ -181,7 +181,7 @@ static void checkFieldDescriptor(
 static void checkFieldDescriptor(
     Handle<Descriptor> desc, Handle<Descriptor> parent,
     NodeVector<StructuredClass> children,
-    const std::string &name = DEFAULT_FIELD_NAME,
+    const std::string &name = "",
     FieldDescriptor::FieldType type = FieldDescriptor::FieldType::TREE,
     Handle<Type> primitiveType = nullptr, bool optional = false)
 {
@@ -193,7 +193,7 @@ static void checkFieldDescriptor(
 
 static void checkFieldDescriptor(
     Handle<Descriptor> desc, NodeVector<StructuredClass> children,
-    const std::string &name = DEFAULT_FIELD_NAME,
+    const std::string &name = "",
     FieldDescriptor::FieldType type = FieldDescriptor::FieldType::TREE,
     Handle<Type> primitiveType = nullptr, bool optional = false)
 {
@@ -244,7 +244,7 @@ TEST(XmlParser, domainParsing)
 	checkFieldDescriptor(subsection, {paragraph});
 	checkFieldDescriptor(paragraph, {text});
 	checkFieldDescriptor(
-	    text, {}, DEFAULT_FIELD_NAME, FieldDescriptor::FieldType::PRIMITIVE,
+	    text, {}, "", FieldDescriptor::FieldType::TREE,
 	    env.project->getSystemTypesystem()->getStringType(), false);
 
 	// check parent handling using the headings domain.

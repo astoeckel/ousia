@@ -324,7 +324,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 		if (childDescriptorName == "text") {
 			Handle<DocumentPrimitive> primitive =
 			    t->getField()[0].cast<DocumentPrimitive>();
-			if (primitive.isNull()) {
+			if (primitive == nullptr) {
 				throw OusiaException("Text field is not primitive!");
 			}
 			current->addChild(new xml::Text(

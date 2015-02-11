@@ -34,74 +34,46 @@
  *
  * \code{.xml}
  * <domain name="book">
- * 	<structs>
- * 		<struct name="book" cardinality="1" isRoot="true">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.chapter"/>
- * 						<child name="book.paragraph"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 		<struct name="chapter">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.section"/>
- * 						<child name="book.paragraph"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 		<struct name="section">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.subsection"/>
- * 						<child name="book.paragraph"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 		<struct name="subsection">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.paragraph"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 		<struct name="paragraph" transparent="true" role="paragraph">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.text"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 		<struct name="text" transparent="true" role="text">
- * 			<fields>
- * 				<field name="content" type="PRIMITIVE" primitiveType="string"/>
- * 			</fields>
- * 		</struct>
- * 	</structs>
+ * 	<struct name="book" cardinality="1" isRoot="true">
+ * 		<field>
+ * 			<childRef ref="book.chapter"/>
+ * 			<childRef ref="book.paragraph"/>
+ * 		</field>
+ * 	</struct>
+ * 	<struct name="chapter">
+ * 		<field>
+ * 			<childRef ref="book.section"/>
+ * 			<childRef ref="book.paragraph"/>
+ * 		</field>
+ * 	</struct>
+ * 	<struct name="section">
+ * 		<field>
+ * 			<childRef ref="book.subsection"/>
+ * 			<childRef ref="book.paragraph"/>
+ * 		</field>
+ * 	</struct>
+ * 	<struct name="subsection">
+ * 		<field>
+ * 			<childRef ref="book.paragraph"/>
+ * 		</field>
+ * 	</struct>
+ * 	<struct name="paragraph" transparent="true">
+ * 		<field>
+ * 			<childRef ref="book.text"/>
+ * 		</field>
+ * 	</struct>
+ * 	<struct name="text" transparent="true">
+ * 		<primitive type="string"/>
+ * 	</struct>
  * </domain>
  * \endcode
  *
  * Note that we define one field as the TREE (meaning the main or default
  * document structure) and one mearly as SUBTREE, relating to supporting
  * information. You are not allowed to define more than one field of type
- * "TREE". Accordingly for each StructuredClass in the main TREE there must be
- * at least one possible primitive child or one TREE field. Otherwise the
- * grammar would be nonterminal. For SUBTREE fields no children may define a
- * TREE field and at least one permitted child must exist, either primitive or
- * as another StructuredClass.
+ * "TREE".
  *
- * The translation to context free grammars is as follows:
+ * The translation to a context free grammar is as follows:
  *
  * \code{.txt}
  * BOOK              := <book> BOOK_TREE </book>
@@ -128,21 +100,14 @@
  *
  * \code{.xml}
  * <domain name="headings">
- * 	<head>
- * 		<import rel="domain" src="book.oxm"/>
- * 	</head>
- * 	<structs>
- * 		<struct name="heading" cardinality="0-1" transparent="true">
- * 			<parents>
- * 				<parent name="book.book">
- * 					<field name="heading" type="SUBTREE"/>
- * 				</parent>
- * 				...
- * 			</parents>
- * 			<fields>
- * 				<fieldRef name="book.paragraph.">
- * 			</fields>
- * 	</structs>
+ *	<import rel="domain" src="./book_domain.osxml"/>
+ * 	<struct name="heading" cardinality="1" transparent="true">
+ * 		<parentRef ref="book.book">
+ * 			<field name="heading" isSubtree="true" optional="true"/>
+ * 		</parentRef>
+ * 		...
+ * 		<fieldRef name="book.paragraph.">
+ * 	</struct>
  * </domain>
  * \endcode
  *
@@ -161,36 +126,36 @@
  *
  * \code{.xml}
  * <domain name="comments">
- * 	<head>
- * 		<import rel="domain" src="book.oxm"/>
- * 	</head>
- * 	<annos>
- * 		<anno name="comment">
- * 			<fields>
- * 				<field name="replies" type="SUBTREE">
- * 					<children>
- * 						<child name="reply"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</anno>
- * 	</annos>
- * 	<structs>
- * 		<struct name="reply">
- * 			<fields>
- * 				<field name="replies" type="SUBTREE">
- * 					<children>
- * 						<child name="reply"/>
- * 					</children>
- * 				</field>
- * 				<field name="content" type="SUBTREE">
- * 					<children>
- * 						<child name="book.paragraph"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 	</structs>
+ *	<import rel="domain" src="./book_domain.osxml"/>
+ *
+ *	<annotation name="comment">
+ *		<field name="content" isSubtree="true">
+ *			<childRef ref="book.paragraph"/>
+ *		</field>
+ *		<field name="replies" isSubtree="true">
+ *			<childRef ref="reply"/>
+ *		</field>
+ *	</annotation>
+ *
+ *	<struct name="comment">
+ *		<field name="content">
+ *			<childRef ref="book.paragraph"/>
+ *		</field>
+ *		<field name="replies" isSubtree="true">
+ *			<childRef ref="reply"/>
+ *		</field>
+ *		<parentRef ref="book.paragraph">
+ *			<fieldRef ref="$default"/>
+ *		</parentRef>
+ *	</struct>
+ *	<struct name="reply">
+ *		<field name="content" isSubtree="true">
+ *			<childRef ref="book.paragraph"/>
+ *		</field>
+ *		<field name="replies" isSubtree="true">
+ *			<childRef ref="reply"/>
+ *		</field>
+ *	</struct>
  * </domain>
  * \endcode
  *
@@ -227,25 +192,15 @@ static const std::string DEFAULT_FIELD_NAME = "$default";
  * accordingly typed content without further descending in the Structure
  * Hierarchy.
  *
- * As an example consider the "paragraph" StructuredClass, which might allow
+ * As an example consider the "text" StructuredClass, which might allow
  * the actual text content. Here is the according XML:
  *
  * \code{.xml}
- * <struct name="paragraph" transparent="true" role="paragraph">
- * 	<fields>
- * 		<field>
- * 			<children>
- * 				<child name="book.text"/>
- * 			</children>
- * 		</field>
- * 	</fields>
- * </struct>
+ * 	<struct name="text" transparent="true">
+ * 		<primitive type="string"/>
+ * 	</struct>
  * \endcode
  *
- * Accordingly the primitiveType field of a FieldDescriptor may only be
- * defined if the type is set to "PRIMITIVE". If the type is something else
- * at least one child must be defined and the primitiveType remains in an
- * undefined state.
  */
 class FieldDescriptor : public Node {
 	friend Descriptor;
@@ -370,11 +325,11 @@ public:
 	}
 
 	/**
-	 * Returns true if and only if the type of this field is PRIMITIVE.
+	 * Returns if this field is primitive.
 	 *
-	 * @return true if and only if the type of this field is PRIMITIVE.
+	 * @return true if and only if this field is primitive.
 	 */
-	bool isPrimitive() const { return fieldType == FieldType::PRIMITIVE; }
+	bool isPrimitive() const { return primitive; }
 
 	/**
 	 * Returns the primitive type of this field, which is only allowed to be
@@ -449,8 +404,10 @@ private:
 	Owned<StructType> attributesDescriptor;
 	NodeVector<FieldDescriptor> fieldDescriptors;
 
-	bool continuePath(Handle<StructuredClass> target,
-	                  std::vector<Rooted<Node>> &path) const;
+	bool continuePath(Handle<StructuredClass> target, NodeVector<Node> &path,
+	                  bool start) const;
+
+	void addAndSortFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 protected:
 	void doResolve(ResolutionState &state) override;
@@ -539,20 +496,7 @@ public:
 	 *
 	 * @param fd is a FieldDescriptor.
 	 */
-	void addFieldDescriptor(Handle<FieldDescriptor> fd);
-
-	/**
-	 * Adds the given FieldDescriptors to this Descriptor. This also sets the
-	 * parent of each given FieldDescriptor if it is not set yet.
-	 *
-	 * @param fds are FieldDescriptors.
-	 */
-	void addFieldDescriptors(const std::vector<Handle<FieldDescriptor>> &fds)
-	{
-		for (Handle<FieldDescriptor> fd : fds) {
-			addFieldDescriptor(fd);
-		}
-	}
+	void addFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 	/**
 	 * Adds the given FieldDescriptor to this Descriptor. This also sets the
@@ -561,21 +505,7 @@ public:
 	 *
 	 * @param fd is a FieldDescriptor.
 	 */
-	void moveFieldDescriptor(Handle<FieldDescriptor> fd);
-
-	/**
-	 * Adds the given FieldDescriptors to this Descriptor. This also sets the
-	 * parent of each given FieldDescriptor if it is not set to this Descriptor
-	 * already and removes it from the old parent Descriptor.
-	 *
-	 * @param fds are FieldDescriptors.
-	 */
-	void moveFieldDescriptors(const std::vector<Handle<FieldDescriptor>> &fds)
-	{
-		for (Handle<FieldDescriptor> fd : fds) {
-			moveFieldDescriptor(fd);
-		}
-	}
+	void moveFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 	/**
 	 * Copies a FieldDescriptor that belongs to another Descriptor to this
@@ -583,7 +513,7 @@ public:
 	 *
 	 * @param fd some FieldDescriptor belonging to another Descriptor.
 	 */
-	void copyFieldDescriptor(Handle<FieldDescriptor> fd);
+	void copyFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 	/**
 	 * Removes the given FieldDescriptor from this Descriptor. This also sets
@@ -751,9 +681,9 @@ private:
 	/**
 	 * Helper method for getFieldDescriptors.
 	 */
-	const void gatherFieldDescriptors(
-	    NodeVector<FieldDescriptor> &current,
-	    std::set<std::string> &overriddenFields) const;
+	void gatherFieldDescriptors(NodeVector<FieldDescriptor> &current,
+	                            std::set<std::string> &overriddenFields,
+	                            bool hasTREE) const;
 
 protected:
 	bool doValidate(Logger &logger) const override;

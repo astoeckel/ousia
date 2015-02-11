@@ -55,11 +55,11 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 	Cardinality card;
 	card.merge({0, 1});
 	// set up heading StructuredClass.
-	Rooted<StructuredClass> heading{new StructuredClass(
-	    mgr, "heading", domain, card, {nullptr}, true)};
-	// as field want to copy the field of paragraph.
+	Rooted<StructuredClass> heading{
+	    new StructuredClass(mgr, "heading", domain, card, {nullptr}, true)};
+	// as field want to reference the field of paragraph.
 	Rooted<StructuredClass> p = resolveDescriptor(bookDomain, "paragraph");
-	heading->copyFieldDescriptor(p->getFieldDescriptors()[0]);
+	heading->addFieldDescriptor(p->getFieldDescriptor(), logger);
 	// create a new field for headings in each section type.
 	std::vector<std::string> secclasses{"book", "section", "subsection",
 	                                    "paragraph"};
@@ -88,8 +88,8 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 	Rooted<StructuredClass> item{new StructuredClass(
 	    mgr, "item", domain, Cardinality::any(), {nullptr}, false)};
 
-	// as field we want to copy the field of paragraph.
-	item->copyFieldDescriptor(p->getFieldDescriptors()[0]);
+	// as field we want to reference the field of paragraph.
+	item->addFieldDescriptor(p->getFieldDescriptor(), logger);
 	// set up list StructuredClasses.
 	std::vector<std::string> listTypes{"ol", "ul"};
 	for (auto &listType : listTypes) {
@@ -157,7 +157,7 @@ static bool addAnnotation(Logger &logger, Handle<Document> doc,
                           Handle<StructuredEntity> parent,
                           const std::string &text, const std::string &annoClass)
 {
-	Manager& mgr = parent->getManager();
+	Manager &mgr = parent->getManager();
 	Rooted<Anchor> start{new Anchor(mgr, std::to_string(annoIdx++), parent)};
 	if (!addText(logger, doc, parent, text)) {
 		return false;

@@ -173,20 +173,38 @@ bool Descriptor::doValidate(Logger &logger) const
 	}
 	// ensure that no attribute with the key "name" exists.
 	if (attributesDescriptor == nullptr) {
-		logger.error("This Descriptor has no Attribute specification!");
+		logger.error(std::string("Descriptor \"") + getName() +
+		             "\" has no Attribute specification!");
 		valid = false;
 	} else {
 		if (attributesDescriptor->hasAttribute("name")) {
 			logger.error(
-			    "This Descriptor has an attribute \"name\" which is a reserved "
-			    "word!");
+			    std::string("Descriptor \"") + getName() +
+			    "\" has an attribute \"name\" which is a reserved word!");
 			valid = false;
 		}
 		valid = valid & attributesDescriptor->validate(logger);
 	}
+	// check that only one FieldDescriptor is of type TREE.
+	auto fds = Descriptor::getFieldDescriptors();
+	bool hasTREE = false;
+	for (auto fd : fds) {
+		if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+			if (!hasTREE) {
+				hasTREE = true;
+			} else {
+				logger.error(
+				    std::string("Descriptor \"") + getName() +
+				        "\" has multiple TREE fields, which is not permitted",
+				    *fd);
+				valid = false;
+				break;
+			}
+		}
+	}
 
 	// check attributes and the FieldDescriptors
-	return valid & continueValidationCheckDuplicates(fieldDescriptors, logger);
+	return valid & continueValidationCheckDuplicates(fds, logger);
 }
 
 std::vector<Rooted<Node>> Descriptor::pathTo(
@@ -259,16 +277,37 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 	return found;
 }
 
-ssize_t Descriptor::getFieldDescriptorIndex(const std::string &name) const
+static ssize_t getFieldDescriptorIndex(const NodeVector<FieldDescriptor> &fds,
+                                       const std::string &name)
 {
-	size_t f = 0;
-	for (auto &fd : getFieldDescriptors()) {
-		if (fd->getName() == name) {
+	if (fds.empty()) {
+		return -1;
+	}
+
+	if (name == DEFAULT_FIELD_NAME) {
+		if (fds.back()->getFieldType() == FieldDescriptor::FieldType::TREE) {
+			return fds.size() - 1;
+		} else {
+			/* The last field has to be the TREE field. If the last field does
+			 * not have the FieldType TREE no TREE-field exists at all. So we
+			 * return -1.
+			 */
+			return -1;
+		}
+	}
+
+	for (size_t f = 0; f < fds.size(); f++) {
+		if (fds[f]->getName() == name) {
 			return f;
 		}
-		f++;
 	}
 	return -1;
+}
+
+ssize_t Descriptor::getFieldDescriptorIndex(const std::string &name) const
+{
+	NodeVector<FieldDescriptor> fds = getFieldDescriptors();
+	return ousia::getFieldDescriptorIndex(fds, name);
 }
 
 ssize_t Descriptor::getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const
@@ -286,33 +325,54 @@ ssize_t Descriptor::getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const
 Rooted<FieldDescriptor> Descriptor::getFieldDescriptor(
     const std::string &name) const
 {
-	for (auto &fd : getFieldDescriptors()) {
-		if (fd->getName() == name) {
-			return fd;
-		}
+	NodeVector<FieldDescriptor> fds = getFieldDescriptors();
+	ssize_t idx = ousia::getFieldDescriptorIndex(fds, name);
+	if (idx != -1) {
+		return fds[idx];
+	} else {
+		return nullptr;
 	}
-	return nullptr;
 }
 
-void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd)
+void Descriptor::addAndSortFieldDescriptor(Handle<FieldDescriptor> fd,
+                                           Logger &logger)
 {
 	// only add it if we need to.
-	if (fieldDescriptors.find(fd) == fieldDescriptors.end()) {
+	auto fds = getFieldDescriptors();
+	if (fds.find(fd) == fds.end()) {
 		invalidate();
-		fieldDescriptors.push_back(fd);
+		// check if the previous field is a tree field already.
+		if (!fds.empty() &&
+		    fds.back()->getFieldType() == FieldDescriptor::FieldType::TREE &&
+		    fd->getFieldType() != FieldDescriptor::FieldType::TREE) {
+			// if so we add the new field before the TREE field and log a
+			// warning.
+
+			logger.warning(
+			    std::string("Field \"") + fd->getName() +
+			        "\" was declared after main field \"" +
+			        fds.back()->getName() +
+			        "\". The order of fields was changed to make the "
+			        "main field the last field.",
+			    *fd);
+			fieldDescriptors.insert(fieldDescriptors.end() - 1, fd);
+		} else {
+			fieldDescriptors.push_back(fd);
+		}
 	}
+}
+
+void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
+{
+	addAndSortFieldDescriptor(fd, logger);
 	if (fd->getParent() == nullptr) {
 		fd->setParent(this);
 	}
 }
 
-void Descriptor::moveFieldDescriptor(Handle<FieldDescriptor> fd)
+void Descriptor::moveFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
 {
-	// only add it if we need to.
-	if (fieldDescriptors.find(fd) == fieldDescriptors.end()) {
-		invalidate();
-		fieldDescriptors.push_back(fd);
-	}
+	addAndSortFieldDescriptor(fd, logger);
 	Handle<Managed> par = fd->getParent();
 	if (par != this) {
 		if (par != nullptr) {
@@ -494,18 +554,35 @@ void StructuredClass::removeSubclass(Handle<StructuredClass> sc, Logger &logger)
 	sc->setSuperclass(nullptr, logger);
 }
 
-const void StructuredClass::gatherFieldDescriptors(
+void StructuredClass::gatherFieldDescriptors(
     NodeVector<FieldDescriptor> &current,
-    std::set<std::string> &overriddenFields) const
+    std::set<std::string> &overriddenFields, bool hasTREE) const
 {
 	// append all FieldDescriptors that are not overridden.
 	for (auto &f : Descriptor::getFieldDescriptors()) {
 		if (overriddenFields.insert(f->getName()).second) {
-			current.push_back(f);
+			bool isTREE = f->getFieldType() == FieldDescriptor::FieldType::TREE;
+			if (hasTREE) {
+				if (!isTREE) {
+					/*
+					 * If we already have a tree field it has to be at the end
+					 * of the current vector. So ensure that all new non-TREE
+					 * fields are inserted before the TREE field such that after
+					 * this method the TREE field is still at the end.
+					 */
+					current.insert(current.end() - 1, f);
+				}
+			} else {
+				if (isTREE) {
+					hasTREE = true;
+				}
+				current.push_back(f);
+			}
 		}
 	}
+	// if we have a superclass, go there.
 	if (superclass != nullptr) {
-		superclass->gatherFieldDescriptors(current, overriddenFields);
+		superclass->gatherFieldDescriptors(current, overriddenFields, hasTREE);
 	}
 }
 
@@ -514,7 +591,7 @@ NodeVector<FieldDescriptor> StructuredClass::getFieldDescriptors() const
 	// in this case we return a NodeVector of Rooted entries without owner.
 	NodeVector<FieldDescriptor> vec;
 	std::set<std::string> overriddenFields;
-	gatherFieldDescriptors(vec, overriddenFields);
+	gatherFieldDescriptors(vec, overriddenFields, false);
 	return vec;
 }
 
