@@ -101,7 +101,7 @@ TEST(Descriptor, pathTo)
 	Rooted<StructuredClass> book = getClass("book", domain);
 	Rooted<StructuredClass> section = getClass("section", domain);
 	// get the path in between.
-	std::vector<Rooted<Node>> path = book->pathTo(section);
+	NodeVector<Node> path = book->pathTo(section);
 	ASSERT_EQ(1U, path.size());
 	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
 
@@ -202,18 +202,19 @@ TEST(Descriptor, pathToAdvanced)
 	E_field->addChild(target);
 
 	ASSERT_TRUE(domain->validate(logger));
+
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	// dump the manager state
 	mgr.exportGraphviz("nastyDomain.dot");
 #endif
 
 	// and now we should be able to find the shortest path as suggested
-	std::vector<Rooted<Node>> path = start->pathTo(target);
+	NodeVector<Node> path = start->pathTo(target);
 	ASSERT_EQ(3U, path.size());
 	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
 	ASSERT_EQ("second", path[0]->getName());
 	ASSERT_TRUE(path[1]->isa(&RttiTypes::StructuredClass));
-	ASSERT_EQ("B", path[1]->getName());
+	ASSERT_EQ("C", path[1]->getName());
 	ASSERT_TRUE(path[2]->isa(&RttiTypes::FieldDescriptor));
 	ASSERT_EQ("", path[2]->getName());
 }

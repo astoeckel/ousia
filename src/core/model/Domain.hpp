@@ -589,8 +589,7 @@ public:
 	 *                        no such path can be constructed.
 	 *
 	 */
-	std::vector<Rooted<Node>> pathTo(
-	    Handle<StructuredClass> childDescriptor) const;
+	NodeVector<Node> pathTo(Handle<StructuredClass> childDescriptor) const;
 };
 /*
  * TODO: We should discuss Cardinalities one more time. Is it smart to define

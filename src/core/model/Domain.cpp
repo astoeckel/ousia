@@ -207,16 +207,15 @@ bool Descriptor::doValidate(Logger &logger) const
 	return valid & continueValidationCheckDuplicates(fds, logger);
 }
 
-std::vector<Rooted<Node>> Descriptor::pathTo(
-    Handle<StructuredClass> target) const
+NodeVector<Node> Descriptor::pathTo(Handle<StructuredClass> target) const
 {
-	std::vector<Rooted<Node>> path;
-	continuePath(target, path);
-	return path;
+	NodeVector<Node> path;
+	continuePath(target, path, true);
+	return std::move(path);
 }
 
 bool Descriptor::continuePath(Handle<StructuredClass> target,
-                              std::vector<Rooted<Node>> &currentPath) const
+                              NodeVector<Node> &currentPath, bool start) const
 {
 	// check if we are at the target already
 	if (this == target) {
@@ -225,27 +224,34 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 	// a variable to determine if we already found a solution
 	bool found = false;
 	// the currently optimal path.
-	std::vector<Rooted<Node>> optimum;
+	NodeVector<Node> optimum;
 	// use recursive depth-first search from the top to reach the given child
 	// get the list of effective FieldDescriptors.
 	NodeVector<FieldDescriptor> fields = getFieldDescriptors();
+
+	Rooted<Node> thisHandle{const_cast<Descriptor *>(this)};
 
 	for (auto &fd : fields) {
 		for (auto &c : fd->getChildren()) {
 			// check if a child is the target node.
 			if (c == target) {
 				// if we have made the connection, stop the search.
+				if (!start) {
+					currentPath.push_back(thisHandle);
+				}
 				currentPath.push_back(fd);
 				return true;
 			}
 			// look for transparent intermediate nodes.
 			if (c->isTransparent()) {
 				// copy the path.
-				std::vector<Rooted<Node>> cPath = currentPath;
+				NodeVector<Node> cPath = currentPath;
+				if (!start) {
+					cPath.push_back(thisHandle);
+				}
 				cPath.push_back(fd);
-				cPath.push_back(c);
 				// recursion.
-				if (c->continuePath(target, cPath) &&
+				if (c->continuePath(target, cPath, false) &&
 				    (!found || optimum.size() > cPath.size())) {
 					// look if this path is better than the current optimum.
 					optimum = std::move(cPath);
@@ -260,8 +266,8 @@ bool Descriptor::continuePath(Handle<StructuredClass> target,
 		// if this is a StructuredClass we also can call the subclasses.
 		for (auto &c : tis->getSubclasses()) {
 			// copy the path.
-			std::vector<Rooted<Node>> cPath = currentPath;
-			if (c->continuePath(target, cPath) &&
+			NodeVector<Node> cPath = currentPath;
+			if (c->continuePath(target, cPath, false) &&
 			    (!found || optimum.size() > cPath.size())) {
 				// look if this path is better than the current optimum.
 				optimum = std::move(cPath);
