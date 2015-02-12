@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <memory>
+#include <queue>
 #include <set>
 
 #include <core/common/RttiBuilder.hpp>
@@ -207,80 +209,153 @@ bool Descriptor::doValidate(Logger &logger) const
 	return valid & continueValidationCheckDuplicates(fds, logger);
 }
 
-NodeVector<Node> Descriptor::pathTo(Handle<StructuredClass> target) const
+struct PathState {
+	std::shared_ptr<PathState> pred;
+	Node *node;
+	int length;
+
+	PathState(std::shared_ptr<PathState> pred, Node *node)
+	    : pred(pred), node(node)
+	{
+		if (pred == nullptr) {
+			length = 1;
+		} else {
+			length = pred->length + 1;
+		}
+	}
+};
+
+static void constructPath(std::shared_ptr<PathState> state,
+                          NodeVector<Node> &vec)
 {
-	NodeVector<Node> path;
-	continuePath(target, path, true);
-	return std::move(path);
+	if (state->pred != nullptr) {
+		constructPath(state->pred, vec);
+	}
+	vec.push_back(state->node);
 }
 
-bool Descriptor::continuePath(Handle<StructuredClass> target,
-                              NodeVector<Node> &currentPath, bool start) const
+template <typename F>
+static NodeVector<Node> pathTo(const Descriptor *start, Logger &logger,
+                               F finished)
 {
-	// check if we are at the target already
-	if (this == target) {
-		return true;
+	// state queue for breadth-first search.
+	std::queue<std::shared_ptr<PathState>> states;
+	{
+		// initially put every field descriptor on the queue.
+		NodeVector<FieldDescriptor> fields = start->getFieldDescriptors();
+
+		for (auto fd : fields) {
+			states.push(std::make_shared<PathState>(nullptr, fd.get()));
+		}
 	}
-	// a variable to determine if we already found a solution
-	bool found = false;
-	// the currently optimal path.
-	NodeVector<Node> optimum;
-	// use recursive depth-first search from the top to reach the given child
-	// get the list of effective FieldDescriptors.
-	NodeVector<FieldDescriptor> fields = getFieldDescriptors();
+	// shortest path.
+	NodeVector<Node> shortest;
+	// set of visited nodes.
+	std::unordered_set<const Node *> visited;
+	while (!states.empty()) {
+		std::shared_ptr<PathState> current = states.front();
+		states.pop();
+		// do not proceed if this node was already visited.
+		if (!visited.insert(current->node).second) {
+			continue;
+		}
+		// also do not proceed if we can't get better than the current shortest
+		// path anymore.
+		if (!shortest.empty() && current->length > shortest.size()) {
+			continue;
+		}
 
-	Rooted<Node> thisHandle{const_cast<Descriptor *>(this)};
+		bool fin = false;
+		if (current->node->isa(&RttiTypes::StructuredClass)) {
+			const StructuredClass *strct =
+			    static_cast<const StructuredClass *>(current->node);
 
-	for (auto &fd : fields) {
-		for (auto &c : fd->getChildren()) {
-			// check if a child is the target node.
-			if (c == target) {
-				// if we have made the connection, stop the search.
-				if (!start) {
-					currentPath.push_back(thisHandle);
+			// continue the search path via all fields.
+			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
+			for (auto fd : fields) {
+				// if we found our target, break off the search in this branch.
+				if (finished(fd)) {
+					fin = true;
+					continue;
 				}
-				currentPath.push_back(fd);
-				return true;
+				states.push(std::make_shared<PathState>(current, fd.get()));
 			}
-			// look for transparent intermediate nodes.
-			if (c->isTransparent()) {
-				// copy the path.
-				NodeVector<Node> cPath = currentPath;
-				if (!start) {
-					cPath.push_back(thisHandle);
+
+			/*
+			 * Furthermore we have to consider that all subclasses of this
+			 * StructuredClass are allowed in place of this StructuredClass as
+			 * well, so we continue the search for them as well.
+			 */
+
+			NodeVector<StructuredClass> subs = strct->getSubclasses();
+			for (auto sub : subs) {
+				// if we found our target, break off the search in this branch.
+				if (finished(sub)) {
+					fin = true;
+					current = current->pred;
+					continue;
 				}
-				cPath.push_back(fd);
-				// recursion.
-				if (c->continuePath(target, cPath, false) &&
-				    (!found || optimum.size() > cPath.size())) {
-					// look if this path is better than the current optimum.
-					optimum = std::move(cPath);
-					found = true;
+				// We only continue our path via transparent classes.
+				if (sub->isTransparent()) {
+					states.push(
+					    std::make_shared<PathState>(current->pred, sub.get()));
+				}
+			}
+		} else {
+			// otherwise this is a FieldDescriptor.
+			const FieldDescriptor *field =
+			    static_cast<const FieldDescriptor *>(current->node);
+			// and we proceed by visiting all permitted children.
+			for (auto c : field->getChildren()) {
+				// if we found our target, break off the search in this branch.
+				if (finished(c)) {
+					fin = true;
+					continue;
+				}
+				// We only allow to continue our path via transparent children.
+				if (c->isTransparent()) {
+					states.push(std::make_shared<PathState>(current, c.get()));
+				}
+			}
+		}
+		// check if we are finished.
+		if (fin) {
+			// if so we look if we found a shorter path than the current minimum
+			if (shortest.empty() || current->length < shortest.size()) {
+				NodeVector<Node> newPath;
+				constructPath(current, newPath);
+				shortest = newPath;
+			} else if (current->length == shortest.size()) {
+				// if the length is the same the result is ambigous and we log
+				// an error.
+				NodeVector<Node> newPath;
+				constructPath(current, newPath);
+				logger.error(
+				    std::string("Can not unambigously create a path from \"") +
+				    start->getName() + "\".");
+				logger.note("Dismissed the path:", SourceLocation{},
+				            MessageMode::NO_CONTEXT);
+				for (auto n : newPath) {
+					logger.note(n->getName());
 				}
 			}
 		}
 	}
+	return shortest;
+}
 
-	if (isa(&RttiTypes::StructuredClass)) {
-		const StructuredClass *tis = static_cast<const StructuredClass *>(this);
-		// if this is a StructuredClass we also can call the subclasses.
-		for (auto &c : tis->getSubclasses()) {
-			// copy the path.
-			NodeVector<Node> cPath = currentPath;
-			if (c->continuePath(target, cPath, false) &&
-			    (!found || optimum.size() > cPath.size())) {
-				// look if this path is better than the current optimum.
-				optimum = std::move(cPath);
-				found = true;
-			}
-		}
-	}
+NodeVector<Node> Descriptor::pathTo(Handle<StructuredClass> target,
+                                    Logger &logger) const
+{
+	return ousia::pathTo(this, logger,
+	                     [target](Handle<Node> n) { return n == target; });
+}
 
-	// put the optimum in the given path reference.
-	currentPath = std::move(optimum);
-
-	// return if we found something.
-	return found;
+NodeVector<Node> Descriptor::pathTo(Handle<FieldDescriptor> field,
+                                    Logger &logger) const
+{
+	return ousia::pathTo(this, logger,
+	                     [field](Handle<Node> n) { return n == field; });
 }
 
 static ssize_t getFieldDescriptorIndex(const NodeVector<FieldDescriptor> &fds,

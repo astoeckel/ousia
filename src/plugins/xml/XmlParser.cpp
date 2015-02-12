@@ -131,8 +131,8 @@ public:
 		preamble(parentNode, fieldName, parent, inField);
 
 		// try to find a FieldDescriptor for the given tag if we are not in a
-		// field already.
-		// TODO: Consider fields of transparent classes
+		// field already. This does _not_ try to construct transparent paths
+		// in between.
 		if (!inField && parent != nullptr &&
 		    parent->getDescriptor()->hasField(name())) {
 			Rooted<DocumentField> field{new DocumentField(
@@ -166,7 +166,7 @@ public:
 			    strct, args, name);
 		} else {
 			// calculate a path if transparent entities are needed in between.
-			auto path = parent->getDescriptor()->pathTo(strct);
+			auto path = parent->getDescriptor()->pathTo(strct, logger());
 			if (path.empty()) {
 				throw LoggableException(
 				    std::string("An instance of \"") + strct->getName() +

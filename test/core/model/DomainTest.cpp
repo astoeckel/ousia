@@ -91,7 +91,7 @@ Rooted<StructuredClass> getClass(const std::string name, Handle<Domain> dom)
 TEST(Descriptor, pathTo)
 {
 	// Start with some easy examples from the book domain.
-	Logger logger;
+	TerminalLogger logger{std::cout};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Get the domain.
@@ -101,14 +101,14 @@ TEST(Descriptor, pathTo)
 	Rooted<StructuredClass> book = getClass("book", domain);
 	Rooted<StructuredClass> section = getClass("section", domain);
 	// get the path in between.
-	NodeVector<Node> path = book->pathTo(section);
+	NodeVector<Node> path = book->pathTo(section, logger);
 	ASSERT_EQ(1U, path.size());
 	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
 
 	// get the text node.
 	Rooted<StructuredClass> text = getClass("text", domain);
 	// get the path between book and text via paragraph.
-	path = book->pathTo(text);
+	path = book->pathTo(text, logger);
 	ASSERT_EQ(3U, path.size());
 	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
 	ASSERT_TRUE(path[1]->isa(&RttiTypes::StructuredClass));
@@ -118,9 +118,19 @@ TEST(Descriptor, pathTo)
 	// get the subsection node.
 	Rooted<StructuredClass> subsection = getClass("subsection", domain);
 	// try to get the path between book and subsection.
-	path = book->pathTo(subsection);
+	path = book->pathTo(subsection, logger);
 	// this should be impossible.
 	ASSERT_EQ(0U, path.size());
+
+	// try to construct the path between section and the text field.
+	path = section->pathTo(text->getFieldDescriptor(), logger);
+	ASSERT_EQ(4U, path.size());
+	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
+	ASSERT_TRUE(path[1]->isa(&RttiTypes::StructuredClass));
+	ASSERT_EQ("paragraph", path[1]->getName());
+	ASSERT_TRUE(path[2]->isa(&RttiTypes::FieldDescriptor));
+	ASSERT_TRUE(path[3]->isa(&RttiTypes::StructuredClass));
+	ASSERT_EQ("text", path[3]->getName());
 }
 
 TEST(Descriptor, pathToAdvanced)
@@ -148,7 +158,7 @@ TEST(Descriptor, pathToAdvanced)
 	 * So the path A_second_field, C, C_field should be returned.
 	 */
 	Manager mgr{1};
-	Logger logger;
+	TerminalLogger logger{std::cout};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Construct the domain
 	Rooted<Domain> domain{new Domain(mgr, sys, "nasty")};
@@ -209,7 +219,7 @@ TEST(Descriptor, pathToAdvanced)
 #endif
 
 	// and now we should be able to find the shortest path as suggested
-	NodeVector<Node> path = start->pathTo(target);
+	NodeVector<Node> path = start->pathTo(target, logger);
 	ASSERT_EQ(3U, path.size());
 	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
 	ASSERT_EQ("second", path[0]->getName());

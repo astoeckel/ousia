@@ -404,9 +404,6 @@ private:
 	Owned<StructType> attributesDescriptor;
 	NodeVector<FieldDescriptor> fieldDescriptors;
 
-	bool continuePath(Handle<StructuredClass> target, NodeVector<Node> &path,
-	                  bool start) const;
-
 	void addAndSortFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 protected:
@@ -581,6 +578,9 @@ public:
 	 * a path between book and section (via chapter), but chapter is not
 	 * transparent. Therefore that path is not allowed.
 	 *
+	 * Implicitly this does a breadth-first search on the graph of
+	 * StructuredClasses that are transparent. It also takes care of cycles.
+	 *
 	 * @param childDescriptor is a supposedly valid child Descriptor of this
 	 *                        Descriptor.
 	 * @return                either a path of FieldDescriptors and
@@ -589,7 +589,38 @@ public:
 	 *                        no such path can be constructed.
 	 *
 	 */
-	NodeVector<Node> pathTo(Handle<StructuredClass> childDescriptor) const;
+	NodeVector<Node> pathTo(Handle<StructuredClass> childDescriptor,
+	                        Logger &logger) const;
+	/**
+	 * This tries to construct the shortest possible path of this Descriptor
+	 * to the given FieldDescriptor.
+	 *
+	 * Implicitly this does a breadth-first search on the graph of
+	 * StructuredClasses that are transparent. It also takes care of cycles.
+	 *
+	 * @param field is a FieldDescriptor that may be allowed as child of this
+	 *              Descriptor.
+	 * @return      either a path of FieldDescriptors and StructuredClasses
+	 *              between this Descriptor and the input FieldDescriptor or an
+	 *              empty vector if no such path can be constructed.
+	 */
+	NodeVector<Node> pathTo(Handle<FieldDescriptor> field,
+	                        Logger &logger) const;
+	/**
+	 * This tries to construct the shortest possible path of this Descriptor
+	 * to the given FieldDescriptor.
+	 *
+	 * Implicitly this does a breadth-first search on the graph of
+	 * StructuredClasses that are transparent. It also takes care of cycles.
+	 *
+	 * @param fieldName is the name of a FieldDescriptor that may be allowed as
+	 *                  child of this Descriptor.
+	 * @return          either a path of FieldDescriptors and StructuredClasses
+	 *                  between this Descriptor and a FieldDescriptor with the
+	 *                  given name or an empty vector if no such path can be
+	 *                  constructed.
+	 */
+	NodeVector<Node> pathTo(const std::string &fieldName, Logger &logger) const;
 };
 /*
  * TODO: We should discuss Cardinalities one more time. Is it smart to define
