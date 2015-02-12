@@ -117,6 +117,17 @@ public:
 		}
 	}
 
+	void createPath(const NodeVector<Node> &path, DocumentEntity *&parent)
+	{
+		size_t S = path.size();
+		for (size_t p = 1; p < S; p = p + 2) {
+			parent = static_cast<DocumentEntity *>(
+			    parent->createChildStructuredEntity(
+			                path[p].cast<StructuredClass>(), Variant::mapType{},
+			                path[p - 1]->getName(), "").get());
+		}
+	}
+
 	void start(Variant::mapType &args) override
 	{
 		scope().setFlag(ParserFlag::POST_HEAD, true);
@@ -176,13 +187,7 @@ public:
 			}
 
 			// create all transparent entities until the last field.
-			for (size_t p = 1; p < path.size() - 1; p = p + 2) {
-				parent = static_cast<DocumentEntity *>(
-				    parent->createChildStructuredEntity(
-				                path[p].cast<StructuredClass>(),
-				                Variant::mapType{}, path[p - 1]->getName(),
-				                "").get());
-			}
+			createPath(path, parent);
 			entity = parent->createChildStructuredEntity(strct, args, fieldName,
 			                                             name);
 		}
@@ -204,38 +209,81 @@ public:
 
 		preamble(parentNode, fieldName, parent, inField);
 
-		// retrieve the correct FieldDescriptor.
-		// TODO: Consider fields of transparent classes
 		Rooted<Descriptor> desc = parent->getDescriptor();
-		Rooted<FieldDescriptor> field = desc->getFieldDescriptor(fieldName);
-		if (field == nullptr) {
-			logger().error(
-			    std::string("Can't handle data because no field with name \"") +
-			        fieldName + "\" exists in descriptor\"" + desc->getName() +
-			        "\".",
-			    location());
-			return;
+		/*
+		 * We distinguish two cases here: One for fields that are given.
+		 */
+		if (fieldName != DEFAULT_FIELD_NAME) {
+			// retrieve the actual FieldDescriptor
+			Rooted<FieldDescriptor> field = desc->getFieldDescriptor(fieldName);
+			if (field == nullptr) {
+				logger().error(
+				    std::string(
+				        "Can't handle data because no field with name \"") +
+				        fieldName + "\" exists in descriptor\"" +
+				        desc->getName() + "\".",
+				    location());
+				return;
+			}
+			// if it is not primitive at all, we can't parse the content.
+			if (!field->isPrimitive()) {
+				logger().error(
+				    std::string("Can't handle data because field \"") +
+				        fieldName + "\" of descriptor \"" + desc->getName() +
+				        "\" is not primitive!",
+				    location());
+				return;
+			}
+			// then try to parse the content using the type specification.
+			// TODO: Improve with new parse method.
+			// try to parse the content.
+			auto res = VariantReader::parseGenericString(
+			    data, logger(), location().getSourceId(),
+			    location().getStart());
+			if (!res.first) {
+				return;
+			}
+			// try to convert it to the correct type.
+			if (!field->getPrimitiveType()->build(res.second, logger())) {
+				return;
+			}
+			// add it as primitive content.
+			parent->createChildDocumentPrimitive(res.second, fieldName);
+		} else {
+			/*
+			 * The second case is for primitive fields. Here we search through
+			 * all FieldDescriptors that allow primitive content at this point
+			 * and could be constructed via transparent intermediate entities.
+			 * We then try to parse the data using the type specified by the
+			 * respective field. If that does not work we proceed to the next
+			 * possible field.
+			 */
+			// retrieve all fields.
+			NodeVector<FieldDescriptor> fields = desc->getDefaultFields();
+			// TODO: Improve with new parse method.
+			// try to parse the content
+			auto res = VariantReader::parseGenericString(
+			    data, logger(), location().getSourceId(),
+			    location().getStart());
+			if (!res.first) {
+				return;
+			}
+			for (auto field : fields) {
+				// then try to parse the content using the type specification.
+				// TODO: Improve with new parse method.
+				// try to convert it to the correct type.
+				if (!field->getPrimitiveType()->build(res.second, logger())) {
+					continue;
+				}
+				// if that worked, construct the necessary path.
+				auto pathRes = desc->pathTo(field, logger());
+				assert(pathRes.second);
+				NodeVector<Node> path = pathRes.first;
+				createPath(path, parent);
+				// then create the primitive element.
+				parent->createChildDocumentPrimitive(res.second, fieldName);
+			}
 		}
-		if (!field->isPrimitive()) {
-			logger().error(std::string("Can't handle data because field \"") +
-			                   fieldName + "\" of descriptor \"" +
-			                   desc->getName() + "\" is not primitive!",
-			               location());
-			return;
-		}
-
-		// try to parse the content.
-		auto res = VariantReader::parseGenericString(
-		    data, logger(), location().getSourceId(), location().getStart());
-		if (!res.first) {
-			return;
-		}
-		// try to convert it to the correct type.
-		if (!field->getPrimitiveType()->build(res.second, logger())) {
-			return;
-		}
-		// add it as primitive content.
-		parent->createChildDocumentPrimitive(res.second, fieldName);
 	}
 
 	static Handler *create(const HandlerData &handlerData)
