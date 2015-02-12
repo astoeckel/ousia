@@ -301,6 +301,43 @@ TEST(Descriptor, getDefaultFields)
 	ASSERT_EQ(F_field, fields[1]);
 }
 
+TEST(Descriptor, getPermittedChildren)
+{
+	// analyze the book domain.
+	TerminalLogger logger{std::cout};
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// Get the domain.
+	Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
+	// get the relevant classes.
+	Rooted<StructuredClass> book = getClass("book", domain);
+	Rooted<StructuredClass> section = getClass("section", domain);
+	Rooted<StructuredClass> paragraph = getClass("paragraph", domain);
+	Rooted<StructuredClass> text = getClass("text", domain);
+	/*
+	 * as permitted children we expect section, paragraph and text in exactly
+	 * that order. section should be before paragraph because of declaration
+	 * order and text should be last because it needs a transparent paragraph
+	 * in between.
+	 */
+	NodeVector<StructuredClass> children = book->getPermittedChildren();
+	ASSERT_EQ(3, children.size());
+	ASSERT_EQ(section, children[0]);
+	ASSERT_EQ(paragraph, children[1]);
+	ASSERT_EQ(text, children[2]);
+
+	// Now we add a subclass to text.
+	Rooted<StructuredClass> sub{new StructuredClass(
+	    mgr, "Subclass", domain, Cardinality::any(), text, true, false)};
+	// And that should be in the result list as well now.
+	children = book->getPermittedChildren();
+	ASSERT_EQ(4, children.size());
+	ASSERT_EQ(section, children[0]);
+	ASSERT_EQ(paragraph, children[1]);
+	ASSERT_EQ(text, children[2]);
+	ASSERT_EQ(sub, children[3]);
+}
+
 TEST(StructuredClass, isSubclassOf)
 {
 	// create an inheritance hierarchy.

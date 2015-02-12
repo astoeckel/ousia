@@ -471,6 +471,19 @@ NodeVector<FieldDescriptor> Descriptor::getDefaultFields() const
 	return res;
 }
 
+NodeVector<StructuredClass> Descriptor::getPermittedChildren() const
+{
+	// TODO: In principle a cast would be nicer here, but for now we copy.
+	NodeVector<Node> nodes = collect(this, [](Handle<Node> n) {
+		return n->isa(&RttiTypes::StructuredClass);
+	});
+	NodeVector<StructuredClass> res;
+	for (auto n : nodes) {
+		res.push_back(n.cast<StructuredClass>());
+	}
+	return res;
+}
+
 static ssize_t getFieldDescriptorIndex(const NodeVector<FieldDescriptor> &fds,
                                        const std::string &name)
 {

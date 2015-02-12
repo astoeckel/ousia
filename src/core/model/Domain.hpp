@@ -624,6 +624,18 @@ public:
 	 *         children of an instance of this Descriptor.
 	 */
 	NodeVector<FieldDescriptor> getDefaultFields() const;
+
+	/**
+	 * Returns a vector of all StructuredClasses that are allowed as children
+	 * of an instance of this Descriptor in the structure tree. This also makes
+	 * use of transparency.
+	 * The list is sorted by the number of transparent elements that have to be
+	 * constructed to arrive at the respective FieldDescriptor.
+	 *
+	 * @return a vector of all StructuredClasses that are allowed as children
+	 *         of an instance of this Descriptor in the structure tree.
+	 */
+	NodeVector<StructuredClass> getPermittedChildren() const;
 };
 /*
  * TODO: We should discuss Cardinalities one more time. Is it smart to define
