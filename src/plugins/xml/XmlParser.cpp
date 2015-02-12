@@ -598,7 +598,7 @@ public:
 		Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
 		const std::string &name = args["ref"].asString();
-		scope().resolve<FieldDescriptor>(
+		scope().resolveFieldDescriptor(
 		    name, parent, logger(),
 		    [](Handle<Node> field, Handle<Node> parent, Logger &logger) {
 			    if (field != nullptr) {

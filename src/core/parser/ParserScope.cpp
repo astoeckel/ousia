@@ -38,19 +38,6 @@ Rooted<Node> ParserScopeBase::resolve(const Rtti *type,
                                       const std::vector<std::string> &path,
                                       Logger &logger)
 {
-	// if the last element of the path is the default field name, we want to
-	// resolve the parent descriptor first.
-	if (type == &RttiTypes::FieldDescriptor &&
-	    path.back() == DEFAULT_FIELD_NAME) {
-		std::vector<std::string> descPath;
-		descPath.insert(descPath.end(), path.begin(), path.end() - 1);
-		Rooted<Node> res = resolve(&RttiTypes::Descriptor, descPath, logger);
-		if (res == nullptr) {
-			return nullptr;
-		}
-		return res.cast<Descriptor>()->getFieldDescriptor();
-	}
-
 	// Go up the stack and try to resolve the
 	for (auto it = nodes.rbegin(); it != nodes.rend(); it++) {
 		std::vector<ResolutionResult> res = (*it)->resolve(type, path);
@@ -485,6 +472,41 @@ bool ParserScope::performDeferredResolution(Logger &logger)
 	}
 	deferred.clear();
 	return false;
+}
+
+bool ParserScope::resolveFieldDescriptor(
+    const std::vector<std::string> &path, Handle<Node> owner, Logger &logger,
+    ResolutionResultCallback resultCallback)
+{
+	// if the last element of the path is the default field name, we want to
+	// resolve the parent descriptor first.
+	if (path.back() == DEFAULT_FIELD_NAME) {
+		std::vector<std::string> descPath;
+		descPath.insert(descPath.end(), path.begin(), path.end() - 1);
+		return resolve(&RttiTypes::Descriptor, descPath, owner, logger,
+		               [resultCallback](Handle<Node> resolved,
+		                                Handle<Node> owner, Logger &logger) {
+			if (resolved != nullptr) {
+				resultCallback(
+				    resolved.cast<Descriptor>()->getFieldDescriptor(), owner,
+				    logger);
+			} else {
+				resultCallback(nullptr, owner, logger);
+			}
+		});
+	}
+
+	// If it is not the default field, we can just forward to resolve
+	return resolve(&RttiTypes::FieldDescriptor, path, owner, logger,
+	               resultCallback);
+}
+
+bool ParserScope::resolveFieldDescriptor(
+    const std::string &name, Handle<Node> owner, Logger &logger,
+    ResolutionResultCallback resultCallback)
+{
+	return resolveFieldDescriptor(Utils::split(name, '.'), owner, logger,
+	                              resultCallback);
 }
 }
 
