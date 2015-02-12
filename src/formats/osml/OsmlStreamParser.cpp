@@ -66,6 +66,16 @@ public:
 	TokenTypeId DefaultFieldStart;
 
 	/**
+	 * Id of the annotation start token.
+	 */
+	TokenTypeId AnnotationStart;
+
+	/**
+	 * Id of the annotation end token.
+	 */
+	TokenTypeId AnnotationEnd;
+
+	/**
 	 * Registers the plain format tokens in the internal tokenizer.
 	 */
 	PlainFormatTokens()
@@ -77,6 +87,8 @@ public:
 		FieldStart = registerToken("{");
 		FieldEnd = registerToken("}");
 		DefaultFieldStart = registerToken("{!");
+		AnnotationStart = registerToken("<\\");
+		AnnotationEnd = registerToken("\\>");
 	}
 };
 
@@ -374,7 +386,8 @@ void OsmlStreamParser::pushCommand(Variant commandName,
 	                      hasRange, false, false, false});
 }
 
-OsmlStreamParser::State OsmlStreamParser::parseCommand(size_t start)
+OsmlStreamParser::State OsmlStreamParser::parseCommand(size_t start,
+                                                       bool isAnnotation)
 {
 	// Parse the commandName as a first identifier
 	Variant commandName = parseIdentifier(start, true);
@@ -388,6 +401,9 @@ OsmlStreamParser::State OsmlStreamParser::parseCommand(size_t start)
 	    Utils::split(commandName.asString(), ':');
 	const bool isBegin = commandNameComponents[0] == "begin";
 	const bool isEnd = commandNameComponents[0] == "end";
+
+	// Parse the begin or end command
+	State res = State::COMMAND;
 	if (isBegin || isEnd) {
 		if (commandNameComponents.size() > 1) {
 			logger.error(
@@ -396,30 +412,76 @@ OsmlStreamParser::State OsmlStreamParser::parseCommand(size_t start)
 			    commandName);
 		}
 		if (isBegin) {
-			return parseBeginCommand();
+			res = parseBeginCommand();
 		} else if (isEnd) {
-			return parseEndCommand();
+			res = parseEndCommand();
+		}
+	} else {
+		// Check whether the next character is a '#', indicating the start of
+		// the command name
+		Variant commandArgName;
+		start = reader.getOffset();
+		if (reader.expect('#')) {
+			commandArgName = parseIdentifier(start);
+			if (commandArgName.asString().empty()) {
+				logger.error("Expected identifier after \"#\"", commandArgName);
+			}
+		}
+
+		// Parse the arugments
+		Variant commandArguments =
+		    parseCommandArguments(std::move(commandArgName));
+
+		// Push the command onto the command stack
+		pushCommand(std::move(commandName), std::move(commandArguments), false);
+	}
+
+	// Check whether a ">" character is the next character that is to be read.
+	// In that case the current command could be an annotation end command!
+	char c;
+	if (reader.fetch(c) && c == '>') {
+		// Ignore the character after a begin or end command
+		if (isBegin || isEnd) {
+			logger.warning(
+			    "Ignoring annotation end character \">\" after special "
+			    "commands \"begin\" or \"end\". Write \"\\>\" to end a "
+			    "\"begin\"/\"end\" enclosed annotation.",
+			    reader);
+			return res;
+		}
+
+		// If this should be an annoation, ignore the character
+		if (isAnnotation) {
+			logger.warning(
+			    "Ignoring annotation end character \">\" after annotation "
+			    "start command. Write \"\\>\" to end the annotation.",
+			    reader);
+		} else {
+			// Make sure no arguments apart from the "name" argument are given
+			// to an annotation end
+			Variant::mapType &map = commands.top().arguments.asMap();
+			if (!map.empty()) {
+				if (map.count("name") == 0 || map.size() > 1U) {
+					logger.error(
+					    "An annotation end command may not have any arguments "
+					    "other than \"name\"");
+					return res;
+				}
+			}
+
+			// If we got here, this is a valid ANNOTATION_END command, issue it
+			reader.peek(c);
+			reader.consumePeek();
+			return State::ANNOTATION_END;
 		}
 	}
 
-	// Check whether the next character is a '#', indicating the start of the
-	// command name
-	Variant commandArgName;
-	start = reader.getOffset();
-	if (reader.expect('#')) {
-		commandArgName = parseIdentifier(start);
-		if (commandArgName.asString().empty()) {
-			logger.error("Expected identifier after \"#\"", commandArgName);
-		}
+	// If we're starting an annotation, return the command as annotation start
+	// instead of command
+	if (isAnnotation && res == State::COMMAND) {
+		return State::ANNOTATION_START;
 	}
-
-	// Parse the arugments
-	Variant commandArguments = parseCommandArguments(std::move(commandArgName));
-
-	// Push the command onto the command stack
-	pushCommand(std::move(commandName), std::move(commandArguments), false);
-
-	return State::COMMAND;
+	return res;
 }
 
 void OsmlStreamParser::parseBlockComment()
@@ -522,7 +584,7 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 		const TokenTypeId type = token.type;
 
 		// Special handling for Backslash and Text
-		if (type == Tokens.Backslash) {
+		if (type == Tokens.Backslash || type == Tokens.AnnotationStart) {
 			// Before appending anything to the output data or starting a new
 			// command, check whether FIELD_START has to be issued, as the
 			// current command is a command with range
@@ -548,7 +610,8 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 				}
 
 				// Parse the actual command
-				State res = parseCommand(token.location.getStart());
+				State res = parseCommand(token.location.getStart(),
+				                         type == Tokens.AnnotationStart);
 				switch (res) {
 					case State::ERROR:
 						throw LoggableException(
@@ -565,6 +628,14 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 			// to the data buffer, use the escape character start as start
 			// location and the peek offset as end location
 			reader.peek(c);  // Peek the previously fetched character
+
+			// If this was an annotation start token, add the parsed < to the
+			// output
+			if (type == Tokens.AnnotationStart) {
+				handler.append('<', token.location.getStart(),
+				               token.location.getStart() + 1);
+			}
+
 			handler.append(c, token.location.getStart(),
 			               reader.getPeekOffset());
 			reader.consumePeek();
@@ -632,6 +703,13 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 			    "which to start the field. Write \"\\{!\" to insert this "
 			    "sequence as text",
 			    token);
+		} else if (token.type == Tokens.AnnotationEnd) {
+			// We got a single annotation end token "\>" -- simply issue the
+			// ANNOTATION_END event
+			Variant annotationName = Variant::fromString("");
+			annotationName.setLocation(token.location);
+			pushCommand(annotationName, Variant::mapType{}, false);
+			return State::ANNOTATION_END;
 		} else {
 			logger.error("Unexpected token \"" + token.content + "\"", token);
 		}

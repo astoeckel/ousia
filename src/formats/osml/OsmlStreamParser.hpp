@@ -161,7 +161,13 @@ public:
 		/**
 		 * Default constructor.
 		 */
-		Command() : hasRange(false), inField(false), inRangeField(false), inDefaultField() {}
+		Command()
+		    : hasRange(false),
+		      inField(false),
+		      inRangeField(false),
+		      inDefaultField()
+		{
+		}
 
 		/**
 		 * Constructor of the Command class.
@@ -179,8 +185,8 @@ public:
 		 * @param inDefaultField is set to true if we currently are in a
 		 * specially marked default field.
 		 */
-		Command(Variant name, Variant arguments, bool hasRange, bool inField,
-		        bool inRangeField, bool inDefaultField)
+		Command(Variant name, Variant arguments, bool hasRange,
+		        bool inField, bool inRangeField, bool inDefaultField)
 		    : name(std::move(name)),
 		      arguments(std::move(arguments)),
 		      hasRange(hasRange),
@@ -266,9 +272,11 @@ private:
 	 *
 	 * @param start is the start byte offset of the command (including the
 	 * backslash)
+	 * @param isAnnotation if true, the command is not returned as command, but
+	 * as annotation start.
 	 * @return true if a command was actuall parsed, false otherwise.
 	 */
-	State parseCommand(size_t start);
+	State parseCommand(size_t start, bool isAnnotation);
 
 	/**
 	 * Function used internally to parse a block comment.

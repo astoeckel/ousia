@@ -98,6 +98,56 @@ static void assertFieldEnd(OsmlStreamParser &reader,
 	}
 }
 
+static void assertAnnotationStart(OsmlStreamParser &reader,
+                                  const std::string &name,
+                                  SourceOffset start = InvalidSourceOffset,
+                                  SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(OsmlStreamParser::State::ANNOTATION_START, reader.parse());
+	EXPECT_EQ(name, reader.getCommandName().asString());
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getCommandName().getLocation().getStart());
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getCommandName().getLocation().getEnd());
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
+
+static void assertAnnotationStart(OsmlStreamParser &reader,
+                                  const std::string &name,
+                                  const Variant::mapType &args,
+                                  SourceOffset start = InvalidSourceOffset,
+                                  SourceOffset end = InvalidSourceOffset)
+{
+	assertAnnotationStart(reader, name, start, end);
+	EXPECT_EQ(args, reader.getCommandArguments());
+}
+
+static void assertAnnotationEnd(OsmlStreamParser &reader,
+                                const std::string &name,
+                                const std::string &elementName,
+                                SourceOffset start = InvalidSourceOffset,
+                                SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(OsmlStreamParser::State::ANNOTATION_END, reader.parse());
+	ASSERT_EQ(name, reader.getCommandName().asString());
+	if (!elementName.empty()) {
+		ASSERT_EQ(1U, reader.getCommandArguments().asMap().size());
+		ASSERT_EQ(1U, reader.getCommandArguments().asMap().count("name"));
+
+		auto it = reader.getCommandArguments().asMap().find("name");
+		ASSERT_EQ(elementName, it->second.asString());
+	}
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
+
 static void assertEnd(OsmlStreamParser &reader,
                       SourceOffset start = InvalidSourceOffset,
                       SourceOffset end = InvalidSourceOffset)
@@ -184,9 +234,6 @@ TEST(OsmlStreamParser, escapeSpecialCharacters)
 	testEscapeSpecialCharacter("\\");
 	testEscapeSpecialCharacter("{");
 	testEscapeSpecialCharacter("}");
-	testEscapeSpecialCharacter("<");
-	testEscapeSpecialCharacter(">");
-	testEscapeSpecialCharacter("|");
 }
 
 TEST(OsmlStreamParser, simpleSingleLineComment)
@@ -1035,5 +1082,180 @@ TEST(OsmlStreamParser, errorFieldAfterExplicitDefaultField)
 	assertEnd(reader, 10, 10);
 }
 
+TEST(OsmlStreamParser, annotationStart)
+{
+	const char *testString = "<\\a";
+	//                        0 12
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertAnnotationStart(reader, "a", Variant::mapType{}, 0, 3);
+	assertEnd(reader, 3, 3);
+}
+
+TEST(OsmlStreamParser, annotationStartWithName)
+{
+	const char *testString = "<\\annotationWithName#aName";
+	//                        0 1234567890123456789012345
+	//                        0          1         2
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertAnnotationStart(reader, "annotationWithName",
+	                      Variant::mapType{{"name", "aName"}}, 0, 20);
+	assertEnd(reader, 26, 26);
+}
+
+TEST(OsmlStreamParser, annotationStartWithArguments)
+{
+	const char *testString = "<\\annotationWithName#aName[a=1,b=2]";
+	//                        0 1234567890123456789012345678901234
+	//                        0          1         2         3
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertAnnotationStart(
+	    reader, "annotationWithName",
+	    Variant::mapType{{"name", "aName"}, {"a", 1}, {"b", 2}}, 0, 20);
+	assertEnd(reader, 35, 35);
+}
+
+TEST(OsmlStreamParser, simpleAnnotationStartBeginEnd)
+{
+	const char *testString = "<\\begin{ab#name}[a=1,b=2] a \\end{ab}\\>";
+	//                        0 123456789012345678901234567 89012345 67
+	//                        0          1         2          3
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertAnnotationStart(
+	    reader, "ab", Variant::mapType{{"name", "name"}, {"a", 1}, {"b", 2}}, 8,
+	    10);
+	assertFieldStart(reader, true, 26, 27);
+	assertData(reader, "a", 26, 27);
+	assertFieldEnd(reader, 33, 35);
+	assertAnnotationEnd(reader, "", "", 36, 38);
+	assertEnd(reader, 38, 38);
+}
+
+TEST(OsmlStreamParser, annotationEnd)
+{
+	const char *testString = "\\a>";
+	//                         012
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertAnnotationEnd(reader, "a", "", 0, 2);
+	assertEnd(reader, 3, 3);
+}
+
+TEST(OsmlStreamParser, annotationEndWithName)
+{
+	const char *testString = "\\a#name>";
+	//                         01234567
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertAnnotationEnd(reader, "a", "name", 0, 2);
+	assertEnd(reader, 8, 8);
+}
+
+TEST(OsmlStreamParser, annotationEndWithNameAsArgs)
+{
+	const char *testString = "\\a[name=name]>";
+	//                         01234567890123
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertAnnotationEnd(reader, "a", "name", 0, 2);
+	assertEnd(reader, 14, 14);
+}
+
+TEST(OsmlStreamParser, errorAnnotationEndWithArguments)
+{
+	const char *testString = "\\a[foo=bar]>";
+	//                         012345678901
+	//                         0         1
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	logger.reset();
+	ASSERT_FALSE(logger.hasError());
+	assertCommand(reader, "a", Variant::mapType{{"foo", "bar"}}, 0, 2);
+	ASSERT_TRUE(logger.hasError());
+	assertData(reader, ">", 11, 12);
+	assertEnd(reader, 12, 12);
+}
+
+TEST(OsmlStreamParser, closingAnnotation)
+{
+	const char *testString = "<\\a>";
+	//                        0 123
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertAnnotationStart(reader, "a", Variant::mapType{}, 0, 3);
+	assertData(reader, ">", 3, 4);
+	assertEnd(reader, 4, 4);
+}
+
+TEST(OsmlStreamParser, annotationWithFields)
+{
+	const char *testString = "a <\\b{c}{d}{!e} f \\> g";
+	//                        012 345678901234567 8901
+	//                        0          1          2
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertData(reader, "a", 0, 1);
+	assertAnnotationStart(reader, "b", Variant::mapType{}, 2, 5);
+	assertFieldStart(reader, false, 5, 6);
+	assertData(reader, "c", 6, 7);
+	assertFieldEnd(reader, 7, 8);
+	assertFieldStart(reader, false, 8, 9);
+	assertData(reader, "d", 9, 10);
+	assertFieldEnd(reader, 10, 11);
+	assertFieldStart(reader, true, 11, 13);
+	assertData(reader, "e", 13, 14);
+	assertFieldEnd(reader, 14, 15);
+	assertData(reader, "f", 16, 17);
+	assertAnnotationEnd(reader, "", "", 18, 20);
+	assertData(reader, "g", 21, 22);
+	assertEnd(reader, 22, 22);
+}
+
+TEST(OsmlStreamParser, annotationStartEscape)
+{
+	const char *testString = "<\\%test";
+	//                        0 123456
+	//                        0
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertData(reader, "<%test", 0, 7);
+	assertEnd(reader, 7, 7);
+}
 }
 
