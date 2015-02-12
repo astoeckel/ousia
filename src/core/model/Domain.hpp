@@ -612,6 +612,18 @@ public:
 	 */
 	std::pair<NodeVector<Node>, bool> pathTo(Handle<FieldDescriptor> field,
 	                                         Logger &logger) const;
+
+	/**
+	 * Returns a vector of all TREE fields that are allowed as structure tree
+	 * children of an instance of this Descriptor. This also makes use of
+	 * transparency.
+	 * The list is sorted by the number of transparent elements that have to be
+	 * constructed to arrive at the respective FieldDescriptor.
+	 *
+	 * @return a vector of all TREE fields that are allowed as structure tree
+	 *         children of an instance of this Descriptor.
+	 */
+	NodeVector<FieldDescriptor> getDefaultFields() const;
 };
 /*
  * TODO: We should discuss Cardinalities one more time. Is it smart to define

@@ -369,7 +369,106 @@ std::pair<NodeVector<Node>, bool> Descriptor::pathTo(
 	NodeVector<Node> path = ousia::pathTo(this, logger, field, success);
 	return std::make_pair(path, success);
 }
+
+template <typename F>
+static NodeVector<Node> collect(const Descriptor *start, F match)
 {
+	// result
+	NodeVector<Node> res;
+	// queue for breadth-first search of graph.
+	std::queue<Rooted<Node>> q;
+	{
+		// initially put every field descriptor on the queue.
+		NodeVector<FieldDescriptor> fields = start->getFieldDescriptors();
+
+		for (auto fd : fields) {
+			// note matches.
+			if (match(fd)) {
+				res.push_back(fd);
+			}
+			if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+				q.push(fd);
+			}
+		}
+	}
+	// set of visited nodes.
+	std::unordered_set<const Node *> visited;
+	while (!q.empty()) {
+		Rooted<Node> n = q.front();
+		q.pop();
+		// do not proceed if this node was already visited.
+		if (!visited.insert(n.get()).second) {
+			continue;
+		}
+
+		if (n->isa(&RttiTypes::StructuredClass)) {
+			Rooted<StructuredClass> strct = n.cast<StructuredClass>();
+
+			// look through all fields.
+			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
+			for (auto fd : fields) {
+				// note matches.
+				if (match(fd)) {
+					res.push_back(fd);
+				}
+				// only continue in the TREE field.
+				if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+					q.push(fd);
+				}
+			}
+
+			/*
+			 * Furthermore we have to consider that all subclasses of this
+			 * StructuredClass are allowed in place of this StructuredClass as
+			 * well, so we continue the search for them as well.
+			 */
+
+			NodeVector<StructuredClass> subs = strct->getSubclasses();
+			for (auto sub : subs) {
+				// note matches.
+				if (match(sub)) {
+					res.push_back(sub);
+				}
+				// We only continue our search via transparent classes.
+				if (sub->isTransparent()) {
+					q.push(sub);
+				}
+			}
+		} else {
+			// otherwise this is a FieldDescriptor.
+			Rooted<FieldDescriptor> field = n.cast<FieldDescriptor>();
+			// and we proceed by visiting all permitted children.
+			for (auto c : field->getChildren()) {
+				// note matches.
+				if (match(c)) {
+					res.push_back(c);
+				}
+				// We only continue our search via transparent children.
+				if (c->isTransparent()) {
+					q.push(c);
+				}
+			}
+		}
+	}
+	return res;
+}
+
+NodeVector<FieldDescriptor> Descriptor::getDefaultFields() const
+{
+	// TODO: In principle a cast would be nicer here, but for now we copy.
+	NodeVector<Node> nodes = collect(this, [](Handle<Node> n) {
+		if (!n->isa(&RttiTypes::FieldDescriptor)) {
+			return false;
+		}
+		Handle<FieldDescriptor> f = n.cast<FieldDescriptor>();
+		return f->getFieldType() == FieldDescriptor::FieldType::TREE &&
+		       f->isPrimitive();
+	});
+	NodeVector<FieldDescriptor> res;
+	for (auto n : nodes) {
+		res.push_back(n.cast<FieldDescriptor>());
+	}
+	return res;
 }
 
 static ssize_t getFieldDescriptorIndex(const NodeVector<FieldDescriptor> &fds,

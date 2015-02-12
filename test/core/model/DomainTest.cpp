@@ -221,6 +221,86 @@ TEST(Descriptor, pathToAdvanced)
 	ASSERT_EQ("", path[2]->getName());
 }
 
+TEST(Descriptor, getDefaultFields)
+{
+	// construct a domain with lots of default fields to test.
+	// start with a single structure class.
+	Manager mgr{1};
+	TerminalLogger logger{std::cout};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// Construct the domain
+	Rooted<Domain> domain{new Domain(mgr, sys, "nasty")};
+
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, Cardinality::any(), nullptr, false, true)};
+
+	// in this trivial case no field should be found.
+	ASSERT_TRUE(A->getDefaultFields().empty());
+
+	// create a field.
+	Rooted<FieldDescriptor> A_prim_field =
+	    A->createPrimitiveFieldDescriptor(sys->getStringType(), logger);
+	// now we should find that.
+	auto fields = A->getDefaultFields();
+	ASSERT_EQ(1, fields.size());
+	ASSERT_EQ(A_prim_field, fields[0]);
+
+	// remove that field from A and add it to another class.
+
+	Rooted<StructuredClass> B{new StructuredClass(
+	    mgr, "B", domain, Cardinality::any(), nullptr, false, true)};
+
+	B->moveFieldDescriptor(A_prim_field, logger);
+
+	// new we shouldn't find the field anymore.
+	ASSERT_TRUE(A->getDefaultFields().empty());
+
+	// but we should find it again if we set B as superclass of A.
+	A->setSuperclass(B, logger);
+	fields = A->getDefaultFields();
+	ASSERT_EQ(1, fields.size());
+	ASSERT_EQ(A_prim_field, fields[0]);
+
+	// and we should not be able to find it if we override the field.
+	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger);
+	ASSERT_TRUE(A->getDefaultFields().empty());
+
+	// add a transparent child class.
+
+	Rooted<StructuredClass> C{new StructuredClass(
+	    mgr, "C", domain, Cardinality::any(), nullptr, true, false)};
+	A_field->addChild(C);
+
+	// add a primitive field for it.
+	Rooted<FieldDescriptor> C_field =
+	    C->createPrimitiveFieldDescriptor(sys->getStringType(), logger);
+
+	// now we should find that.
+	fields = A->getDefaultFields();
+	ASSERT_EQ(1, fields.size());
+	ASSERT_EQ(C_field, fields[0]);
+
+	// add another transparent child class to A with a daughter class that has
+	// in turn a subclass with a primitive field.
+	Rooted<StructuredClass> D{new StructuredClass(
+	    mgr, "D", domain, Cardinality::any(), nullptr, true, false)};
+	A_field->addChild(D);
+	Rooted<FieldDescriptor> D_field = D->createFieldDescriptor(logger);
+	Rooted<StructuredClass> E{new StructuredClass(
+	    mgr, "E", domain, Cardinality::any(), nullptr, true, false)};
+	D_field->addChild(E);
+	Rooted<StructuredClass> F{new StructuredClass(
+	    mgr, "E", domain, Cardinality::any(), E, true, false)};
+	Rooted<FieldDescriptor> F_field =
+	    F->createPrimitiveFieldDescriptor(sys->getStringType(), logger);
+
+	// now we should find both primitive fields, but the C field first.
+	fields = A->getDefaultFields();
+	ASSERT_EQ(2, fields.size());
+	ASSERT_EQ(C_field, fields[0]);
+	ASSERT_EQ(F_field, fields[1]);
+}
+
 TEST(StructuredClass, isSubclassOf)
 {
 	// create an inheritance hierarchy.
