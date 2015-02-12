@@ -593,19 +593,25 @@ public:
 	                        Logger &logger) const;
 	/**
 	 * This tries to construct the shortest possible path of this Descriptor
-	 * to the given FieldDescriptor.
+	 * to the given FieldDescriptor. Note that this method has the problem that
+	 * an empty return path does NOT strictly imply that no such path could
+	 * be constructed: We also return an empty vector if the given
+	 * FieldDescriptor is a direct child. Therefore we also return a bool value
+	 * indicating that the path is valid or not.
+	 *
 	 *
 	 * Implicitly this does a breadth-first search on the graph of
 	 * StructuredClasses that are transparent. It also takes care of cycles.
 	 *
 	 * @param field is a FieldDescriptor that may be allowed as child of this
 	 *              Descriptor.
-	 * @return      either a path of FieldDescriptors and StructuredClasses
-	 *              between this Descriptor and the input FieldDescriptor or an
-	 *              empty vector if no such path can be constructed.
+	 * @return      returns a tuple containing a path of FieldDescriptors and
+	 *              StructuredClasses between this Descriptor and the input
+	 *              FieldDescriptor and a bool value indicating if the
+	 *              construction was successful.
 	 */
-	NodeVector<Node> pathTo(Handle<FieldDescriptor> field,
-	                        Logger &logger) const;
+	std::pair<NodeVector<Node>, bool> pathTo(Handle<FieldDescriptor> field,
+	                                         Logger &logger) const;
 };
 /*
  * TODO: We should discuss Cardinalities one more time. Is it smart to define

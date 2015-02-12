@@ -123,7 +123,9 @@ TEST(Descriptor, pathTo)
 	ASSERT_EQ(0U, path.size());
 
 	// try to construct the path between section and the text field.
-	path = section->pathTo(text->getFieldDescriptor(), logger);
+	auto res = section->pathTo(text->getFieldDescriptor(), logger);
+	ASSERT_TRUE(res.second);
+	path = res.first;
 	ASSERT_EQ(4U, path.size());
 	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
 	ASSERT_TRUE(path[1]->isa(&RttiTypes::StructuredClass));
@@ -144,15 +146,13 @@ TEST(Descriptor, pathToAdvanced)
 	 *
 	 * To achieve that we have the following structure:
 	 * 1.) The start class inherits from A.
-	 * 2.) A has the target as child in the default field, but the default
-	 *     field is overridden in the start class.
-	 * 3.) A has B as child in another field.
-	 * 4.) B is transparent and has no children (but C as subclass)
-	 * 5.) C is a subclass of B, transparent and has
+	 * 2.) A has B as child in the default field.
+	 * 3.) B is transparent and has no children (but C as subclass)
+	 * 4.) C is a subclass of B, transparent and has
 	 *     the target as child (shortest path).
-	 * 6.) start has D as child in the default field.
-	 * 7.) D is transparent has E as child in the default field.
-	 * 8.) E is transparent and has target as child in the default field
+	 * 5.) A has D as child in the default field.
+	 * 6.) D is transparent has E as child in the default field.
+	 * 7.) E is transparent and has target as child in the default field
 	 *     (longer path)
 	 *
 	 * So the path A_second_field, C, C_field should be returned.
@@ -185,30 +185,22 @@ TEST(Descriptor, pathToAdvanced)
 	Rooted<StructuredClass> target{
 	    new StructuredClass(mgr, "target", domain, Cardinality::any())};
 
-	// We create two fields for A
+	// We create a field for A
 	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger);
+	A_field->addChild(B);
+	A_field->addChild(D);
 
-	A_field->addChild(target);
-	Rooted<FieldDescriptor> A_field2 = A->createFieldDescriptor(
-	    logger, FieldDescriptor::FieldType::SUBTREE, "second", false);
-
-	A_field2->addChild(B);
 	// We create no field for B
 	// One for C
 	Rooted<FieldDescriptor> C_field = C->createFieldDescriptor(logger);
-
 	C_field->addChild(target);
-	// one for start
-	Rooted<FieldDescriptor> start_field = start->createFieldDescriptor(logger);
 
-	start_field->addChild(D);
 	// One for D
 	Rooted<FieldDescriptor> D_field = D->createFieldDescriptor(logger);
-
 	D_field->addChild(E);
+
 	// One for E
 	Rooted<FieldDescriptor> E_field = E->createFieldDescriptor(logger);
-
 	E_field->addChild(target);
 
 	ASSERT_TRUE(domain->validate(logger));
@@ -222,7 +214,7 @@ TEST(Descriptor, pathToAdvanced)
 	NodeVector<Node> path = start->pathTo(target, logger);
 	ASSERT_EQ(3U, path.size());
 	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
-	ASSERT_EQ("second", path[0]->getName());
+	ASSERT_EQ("", path[0]->getName());
 	ASSERT_TRUE(path[1]->isa(&RttiTypes::StructuredClass));
 	ASSERT_EQ("C", path[1]->getName());
 	ASSERT_TRUE(path[2]->isa(&RttiTypes::FieldDescriptor));

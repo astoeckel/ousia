@@ -212,7 +212,7 @@ bool Descriptor::doValidate(Logger &logger) const
 struct PathState {
 	std::shared_ptr<PathState> pred;
 	Node *node;
-	int length;
+	size_t length;
 
 	PathState(std::shared_ptr<PathState> pred, Node *node)
 	    : pred(pred), node(node)
@@ -234,10 +234,12 @@ static void constructPath(std::shared_ptr<PathState> state,
 	vec.push_back(state->node);
 }
 
-template <typename F>
 static NodeVector<Node> pathTo(const Descriptor *start, Logger &logger,
-                               F finished)
+                               Handle<Node> target, bool &success)
 {
+	success = false;
+	// shortest path.
+	NodeVector<Node> shortest;
 	// state queue for breadth-first search.
 	std::queue<std::shared_ptr<PathState>> states;
 	{
@@ -245,11 +247,16 @@ static NodeVector<Node> pathTo(const Descriptor *start, Logger &logger,
 		NodeVector<FieldDescriptor> fields = start->getFieldDescriptors();
 
 		for (auto fd : fields) {
-			states.push(std::make_shared<PathState>(nullptr, fd.get()));
+			if (fd == target) {
+				// if we have found the target directly, return without search.
+				success = true;
+				return shortest;
+			}
+			if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+				states.push(std::make_shared<PathState>(nullptr, fd.get()));
+			}
 		}
 	}
-	// shortest path.
-	NodeVector<Node> shortest;
 	// set of visited nodes.
 	std::unordered_set<const Node *> visited;
 	while (!states.empty()) {
@@ -270,15 +277,18 @@ static NodeVector<Node> pathTo(const Descriptor *start, Logger &logger,
 			const StructuredClass *strct =
 			    static_cast<const StructuredClass *>(current->node);
 
-			// continue the search path via all fields.
+			// look through all fields.
 			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
 			for (auto fd : fields) {
 				// if we found our target, break off the search in this branch.
-				if (finished(fd)) {
+				if (fd == target) {
 					fin = true;
 					continue;
 				}
-				states.push(std::make_shared<PathState>(current, fd.get()));
+				// only continue in the TREE field.
+				if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+					states.push(std::make_shared<PathState>(current, fd.get()));
+				}
 			}
 
 			/*
@@ -290,7 +300,7 @@ static NodeVector<Node> pathTo(const Descriptor *start, Logger &logger,
 			NodeVector<StructuredClass> subs = strct->getSubclasses();
 			for (auto sub : subs) {
 				// if we found our target, break off the search in this branch.
-				if (finished(sub)) {
+				if (sub == target) {
 					fin = true;
 					current = current->pred;
 					continue;
@@ -308,7 +318,7 @@ static NodeVector<Node> pathTo(const Descriptor *start, Logger &logger,
 			// and we proceed by visiting all permitted children.
 			for (auto c : field->getChildren()) {
 				// if we found our target, break off the search in this branch.
-				if (finished(c)) {
+				if (c == target) {
 					fin = true;
 					continue;
 				}
@@ -320,6 +330,7 @@ static NodeVector<Node> pathTo(const Descriptor *start, Logger &logger,
 		}
 		// check if we are finished.
 		if (fin) {
+			success = true;
 			// if so we look if we found a shorter path than the current minimum
 			if (shortest.empty() || current->length < shortest.size()) {
 				NodeVector<Node> newPath;
@@ -332,7 +343,7 @@ static NodeVector<Node> pathTo(const Descriptor *start, Logger &logger,
 				constructPath(current, newPath);
 				logger.error(
 				    std::string("Can not unambigously create a path from \"") +
-				    start->getName() + "\".");
+				    start->getName() + "\" to \"" + target->getName() + "\".");
 				logger.note("Dismissed the path:", SourceLocation{},
 				            MessageMode::NO_CONTEXT);
 				for (auto n : newPath) {
@@ -347,15 +358,18 @@ static NodeVector<Node> pathTo(const Descriptor *start, Logger &logger,
 NodeVector<Node> Descriptor::pathTo(Handle<StructuredClass> target,
                                     Logger &logger) const
 {
-	return ousia::pathTo(this, logger,
-	                     [target](Handle<Node> n) { return n == target; });
+	bool success = false;
+	return ousia::pathTo(this, logger, target, success);
 }
 
-NodeVector<Node> Descriptor::pathTo(Handle<FieldDescriptor> field,
-                                    Logger &logger) const
+std::pair<NodeVector<Node>, bool> Descriptor::pathTo(
+    Handle<FieldDescriptor> field, Logger &logger) const
 {
-	return ousia::pathTo(this, logger,
-	                     [field](Handle<Node> n) { return n == field; });
+	bool success = false;
+	NodeVector<Node> path = ousia::pathTo(this, logger, field, success);
+	return std::make_pair(path, success);
+}
+{
 }
 
 static ssize_t getFieldDescriptorIndex(const NodeVector<FieldDescriptor> &fds,
