@@ -606,21 +606,6 @@ public:
 	 */
 	NodeVector<Node> pathTo(Handle<FieldDescriptor> field,
 	                        Logger &logger) const;
-	/**
-	 * This tries to construct the shortest possible path of this Descriptor
-	 * to the given FieldDescriptor.
-	 *
-	 * Implicitly this does a breadth-first search on the graph of
-	 * StructuredClasses that are transparent. It also takes care of cycles.
-	 *
-	 * @param fieldName is the name of a FieldDescriptor that may be allowed as
-	 *                  child of this Descriptor.
-	 * @return          either a path of FieldDescriptors and StructuredClasses
-	 *                  between this Descriptor and a FieldDescriptor with the
-	 *                  given name or an empty vector if no such path can be
-	 *                  constructed.
-	 */
-	NodeVector<Node> pathTo(const std::string &fieldName, Logger &logger) const;
 };
 /*
  * TODO: We should discuss Cardinalities one more time. Is it smart to define
