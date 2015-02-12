@@ -39,8 +39,6 @@
 namespace ousia {
 namespace html {
 
-typedef std::map<std::string, Rooted<AnnotationEntity>> AnnoMap;
-
 class DemoHTMLTransformer {
 private:
 	/**
@@ -50,23 +48,20 @@ private:
 	 * called recursively.
 	 */
 	Rooted<xml::Element> transformSection(Handle<xml::Element> parent,
-	                                      Handle<StructuredEntity> sec,
-	                                      AnnoMap &startMap, AnnoMap &endMap);
+	                                      Handle<StructuredEntity> sec);
 	/**
 	 * This transforms a list entity, namely ul and ol to an XHTML element.
 	 * For each item, the transformParagraph function is called.
 	 */
 	Rooted<xml::Element> transformList(Handle<xml::Element> parent,
-	                                   Handle<StructuredEntity> list,
-	                                   AnnoMap &startMap, AnnoMap &endMap);
+	                                   Handle<StructuredEntity> list);
 	/**
 	 * This transforms a paragraph-like entity, namely heading, item and
 	 * paragraph, to an XHTML element including the text and the anchors
-	 * contained. For anchor handling we require the AnnoMaps.
+	 * contained.
 	 */
 	Rooted<xml::Element> transformParagraph(Handle<xml::Element> parent,
-	                                        Handle<StructuredEntity> par,
-	                                        AnnoMap &startMap, AnnoMap &endMap);
+	                                        Handle<StructuredEntity> par);
 
 public:
 	/**
@@ -89,8 +84,7 @@ public:
 	 * @param pretty is a flag that manipulates whether newlines and tabs are
 	 *               used.
 	 */
-	void writeHTML(Handle<Document> doc, std::ostream &out,
-	               bool pretty = true);
+	void writeHTML(Handle<Document> doc, std::ostream &out, bool pretty = true);
 };
 }
 }

@@ -55,23 +55,13 @@ void DemoHTMLTransformer::writeHTML(Handle<Document> doc, std::ostream &out,
 
 	// So far was the "preamble". No we have to get to the document content.
 
-	// build the start and end map for annotation processing.
-	AnnoMap startMap;
-	AnnoMap endMap;
-	for (auto &a : doc->getAnnotations()) {
-		// we assume uniquely IDed annotations, which should be checked in the
-		// validation process.
-		startMap.emplace(a->getStart()->getName(), a);
-		endMap.emplace(a->getEnd()->getName(), a);
-	}
-
 	// extract the book root node.
 	Rooted<StructuredEntity> root = doc->getRoot();
 	if (root->getDescriptor()->getName() != "book") {
 		throw OusiaException("The given documents root is no book node!");
 	}
 	// transform the book node.
-	Rooted<xml::Element> book = transformSection(body, root, startMap, endMap);
+	Rooted<xml::Element> book = transformSection(body, root);
 	// add it as child to the body node.
 	body->addChild(book);
 
@@ -100,8 +90,7 @@ SectionType getSectionType(const std::string &name)
 }
 
 Rooted<xml::Element> DemoHTMLTransformer::transformSection(
-    Handle<xml::Element> parent, Handle<StructuredEntity> section,
-    AnnoMap &startMap, AnnoMap &endMap)
+    Handle<xml::Element> parent, Handle<StructuredEntity> section)
 {
 	Manager &mgr = section->getManager();
 	// check the section type.
@@ -140,8 +129,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 		Rooted<xml::Element> h{new xml::Element{mgr, sec, headingclass}};
 		sec->addChild(h);
 		// extract the heading text, enveloped in a paragraph Element.
-		Rooted<xml::Element> h_content =
-		    transformParagraph(h, heading, startMap, endMap);
+		Rooted<xml::Element> h_content = transformParagraph(h, heading);
 		// We omit the paragraph Element and add the children directly to the
 		// heading Element
 		for (auto &n : h_content->getChildren()) {
@@ -165,11 +153,11 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 		const std::string childDescriptorName = s->getDescriptor()->getName();
 		Rooted<xml::Element> child;
 		if (childDescriptorName == "paragraph") {
-			child = transformParagraph(sec, s, startMap, endMap);
+			child = transformParagraph(sec, s);
 		} else if (childDescriptorName == "ul" || childDescriptorName == "ol") {
-			child = transformList(sec, s, startMap, endMap);
+			child = transformList(sec, s);
 		} else {
-			child = transformSection(sec, s, startMap, endMap);
+			child = transformSection(sec, s);
 		}
 		if (!child.isNull()) {
 			sec->addChild(child);
@@ -179,8 +167,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 }
 
 Rooted<xml::Element> DemoHTMLTransformer::transformList(
-    Handle<xml::Element> parent, Handle<StructuredEntity> list,
-    AnnoMap &startMap, AnnoMap &endMap)
+    Handle<xml::Element> parent, Handle<StructuredEntity> list)
 {
 	Manager &mgr = list->getManager();
 	// create the list Element, which is either ul or ol (depends on descriptor)
@@ -195,8 +182,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformList(
 			Rooted<xml::Element> li{new xml::Element{mgr, l, "li"}};
 			l->addChild(li);
 			// extract the item text, enveloped in a paragraph Element.
-			Rooted<xml::Element> li_content =
-			    transformParagraph(li, item, startMap, endMap);
+			Rooted<xml::Element> li_content = transformParagraph(li, item);
 			// We omit the paragraph Element and add the children directly to
 			// the list item
 			for (auto &n : li_content->getChildren()) {
@@ -229,8 +215,7 @@ static Rooted<xml::Element> openAnnotation(Manager &mgr, AnnoStack &opened,
 }
 
 Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
-    Handle<xml::Element> parent, Handle<StructuredEntity> par,
-    AnnoMap &startMap, AnnoMap &endMap)
+    Handle<xml::Element> parent, Handle<StructuredEntity> par)
 {
 	Manager &mgr = par->getManager();
 	// create the p Element
@@ -245,8 +230,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 		Rooted<xml::Element> strong{new xml::Element{mgr, p, "strong"}};
 		p->addChild(strong);
 		// extract the heading text, enveloped in a paragraph Element.
-		Rooted<xml::Element> h_content =
-		    transformParagraph(strong, heading, startMap, endMap);
+		Rooted<xml::Element> h_content = transformParagraph(strong, heading);
 		// We omit the paragraph Element and add the children directly to the
 		// heading Element
 		for (auto &n : h_content->getChildren()) {
@@ -267,17 +251,15 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 	Rooted<xml::Element> current = p;
 	for (auto &n : par->getField()) {
 		if (n->isa(&RttiTypes::Anchor)) {
+			Rooted<Anchor> a = n.cast<Anchor>();
 			// check if this is a start Anchor.
-			// here we assume, again, that the ids/names of anchors are unique.
-			auto it = startMap.find(n->getName());
-			if (it != startMap.end()) {
+			if (a->isStart()) {
 				// if we have a start anchor, we open an annotation element.
-				current = openAnnotation(mgr, opened, it->second, current);
+				current =
+				    openAnnotation(mgr, opened, a->getAnnotation(), current);
 				continue;
-			}
-			// check if this is an end Anchor.
-			auto it2 = endMap.find(n->getName());
-			if (it2 != endMap.end()) {
+				// check if this is an end Anchor.
+			} else if (a->isEnd()) {
 				/*
 				 * Now it gets somewhat interesting: We have to close all
 				 * tags that started after the one that is closed now and
@@ -289,7 +271,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 				Rooted<AnnotationEntity> closed = opened.top();
 				current = current->getParent();
 				opened.pop();
-				while (closed->getEnd()->getName() != n->getName()) {
+				while (closed != a->getAnnotation()) {
 					/*
 					 * We implicitly do close tags by climbing up the XML tree
 					 * until we are at the right element.
@@ -312,6 +294,7 @@ Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
 					current = openAnnotation(mgr, opened, closed, current);
 				}
 			}
+			// otherwise it is a disconnected Anchor and we can ignore it.
 			continue;
 		}
 		// if this is not an anchor, we can only handle text.

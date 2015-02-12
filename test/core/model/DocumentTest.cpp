@@ -269,12 +269,12 @@ TEST(Document, validate)
 		doc->referenceDomain(domain);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
-		Rooted<Anchor> start{new Anchor(mgr, "start", root)};
+		Rooted<Anchor> start{new Anchor(mgr, root)};
 		Rooted<StructuredEntity> child =
 		    buildStructuredEntity(doc, logger, root, {"childSub"});
 		Rooted<DocumentPrimitive> primitive{
 		    new DocumentPrimitive(mgr, child, {2}, "int")};
-		Rooted<Anchor> end{new Anchor(mgr, "end", root)};
+		Rooted<Anchor> end{new Anchor(mgr, root)};
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_TRUE(doc->validate(logger));
 		// then add an AnnotationEntity without Anchors.

@@ -150,19 +150,17 @@ static bool addHeading(Logger &logger, Handle<Document> doc,
 	return true;
 }
 
-static int annoIdx = 1;
-
 // Only works for non-overlapping annotations!
 static bool addAnnotation(Logger &logger, Handle<Document> doc,
                           Handle<StructuredEntity> parent,
                           const std::string &text, const std::string &annoClass)
 {
 	Manager &mgr = parent->getManager();
-	Rooted<Anchor> start{new Anchor(mgr, std::to_string(annoIdx++), parent)};
+	Rooted<Anchor> start{new Anchor(mgr, parent)};
 	if (!addText(logger, doc, parent, text)) {
 		return false;
 	}
-	Rooted<Anchor> end{new Anchor(mgr, std::to_string(annoIdx++), parent)};
+	Rooted<Anchor> end{new Anchor(mgr, parent)};
 	Rooted<AnnotationEntity> anno =
 	    buildAnnotationEntity(doc, logger, {annoClass}, start, end);
 	if (anno.isNull()) {

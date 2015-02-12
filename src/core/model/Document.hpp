@@ -126,6 +126,7 @@ class Document;
 class StructureNode;
 class StructuredEntity;
 class DocumentPrimitive;
+class AnnotationEntity;
 class Anchor;
 
 /**
@@ -409,14 +410,13 @@ public:
 	/**
 	 * Creates a new Anchor as child of this DocumentEntity.
 	 *
-	 * @param name      is the Anchor id.
 	 * @param fieldName is the name of the field, where the newly created
 	 *                  Anchor shall be added to this DocumentEntity.
 	 *
 	 * @return          the newly created Anchor.
 	 */
 	Rooted<Anchor> createChildAnchor(
-	    std::string name, const std::string &fieldName = DEFAULT_FIELD_NAME);
+	    const std::string &fieldName = DEFAULT_FIELD_NAME);
 };
 
 /**
@@ -577,6 +577,9 @@ public:
  * Please refer to the AnnotationEntity documentation for more information.
  */
 class Anchor : public StructureNode {
+private:
+	Owned<AnnotationEntity> annotation;
+
 protected:
 	bool doValidate(Logger &logger) const override;
 
@@ -589,15 +592,55 @@ public:
 	 *                  not the AnnotationEntity that references this Anchor.
 	 *                  Note that this Anchor will automatically register itself
 	 *                  as child of the given parent.
-	 * @param name      is the Anchor id.
 	 * @param fieldName is the name of the field in the parent DocumentEntity
 	 *                  where this Anchor shall be added.
 	 */
-	Anchor(Manager &mgr, std::string name, Handle<Node> parent,
+	Anchor(Manager &mgr, Handle<Node> parent,
 	       const std::string &fieldName = DEFAULT_FIELD_NAME)
-	    : StructureNode(mgr, std::move(name), parent, fieldName)
+	    : StructureNode(mgr, "", parent, fieldName)
 	{
 	}
+
+	/**
+	 * Returns the AnnotationEntity this Anchor belongs to.
+	 *
+	 * @return the AnnotationEntity this Anchor belongs to.
+	 */
+	Rooted<AnnotationEntity> getAnnotation() const { return annotation; }
+
+	/**
+	 * Sets the AnnotationEntity this Anchor belongs to. If this Anchor belonged
+	 * to an AnnotationEntity before already, this reference is removed. This
+	 * also sets the start/end reference of the new AnnotationEntity this Anchor
+	 * shall belong to.
+	 *
+	 * @param anno  the new AnnotationEntity this Anchor shall belong to.
+	 * @param start true if this Anchor should be added as start anchor, false
+	 *              if it should be added as end Anchor.
+	 */
+	void setAnnotation(Handle<AnnotationEntity> anno, bool start);
+
+	/**
+	 * Returns true if and only if this Anchor is the start Anchor of the
+	 * AnnotationEntity it belongs to. Note that this will return false also if
+	 * no AnnotationEntity is set yet. So isStart() == false and isEnd() ==
+	 * false is possible and occurs if and only if getAnnotation() == nullptr.
+	 *
+	 * @return true if and only if this Anchor is the start Anchor of the
+	 *              AnnotationEntity it belongs to.
+	 */
+	bool isStart() const;
+
+	/**
+	 * Returns true if and only if this Anchor is the end Anchor of the
+	 * AnnotationEntity it belongs to. Note that this will return false also if
+	 * no AnnotationEntity is set yet. So isStart() == false and isEnd() ==
+	 * false is possible and occurs if and only if getAnnotation() == nullptr.
+	 *
+	 * @return true if and only if this Anchor is the end Anchor of the
+	 *              AnnotationEntity it belongs to.
+	 */
+	bool isEnd() const;
 };
 
 /**
@@ -679,22 +722,13 @@ public:
 	 *
 	 * @param s is the new start Anchor for this AnnotationEntity.
 	 */
-	void setStart(Handle<Anchor> s)
-	{
-		invalidate();
-		start = acquire(s);
-	}
-
+	void setStart(Handle<Anchor> s);
 	/**
 	 * Sets the end Anchor of this AnnotationEntity.
 	 *
 	 * @param e is the new end Anchor for this AnnotationEntity.
 	 */
-	void setEnd(Handle<Anchor> e)
-	{
-		invalidate();
-		end = acquire(e);
-	}
+	void setEnd(Handle<Anchor> e);
 };
 
 /**
