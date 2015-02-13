@@ -306,6 +306,18 @@ const NodeVector<StructureNode> &DocumentEntity::getField(
 	return fields[enforceGetFieldDescriptorIndex(descriptor, fieldDescriptor)];
 }
 
+const NodeVector<StructureNode> &DocumentEntity::getField(
+    const size_t &idx) const
+{
+	if (idx >= fields.size()) {
+		throw OusiaException(std::string("Descriptor \"") +
+		                     descriptor->getName() +
+		                     "\" does not have enough fields for index \"" +
+		                     std::to_string(idx) + "\".");
+	}
+	return fields[idx];
+}
+
 void DocumentEntity::addStructureNode(Handle<StructureNode> s, const int &i)
 {
 	// only add the new node if we don't have it already.
@@ -814,4 +826,3 @@ const Rtti AnnotationEntity =
         .composedOf({&StructuredEntity, &DocumentPrimitive, &Anchor});
 }
 }
-

@@ -237,6 +237,18 @@ public:
 	    Handle<FieldDescriptor> fieldDescriptor) const;
 
 	/**
+	 * This returns the vector of entities containing all members of the field
+	 * with the given index.
+	 *
+	 * If the index is out of bounds an exception is thrown.
+	 *
+	 * @param idx       is the index of a field as specified in the
+	 *                  FieldDescriptor in the Domain description.
+	 * @return          a NodeVector of all StructuredEntities in that field.
+	 */
+	const NodeVector<StructureNode> &getField(const size_t& idx ) const;
+
+	/**
 	 * This adds a StructureNode to the field with the given index.
 	 *
 	 * This method also changes the parent of the newly added StructureNode if
