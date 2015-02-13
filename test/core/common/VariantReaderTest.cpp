@@ -622,6 +622,13 @@ TEST(VariantReader, parseObject)
 		auto res = VariantReader::parseObject(reader, logger);
 		ASSERT_FALSE(res.first);
 	}
+
+	// Mutliple commas
+	{
+		CharReader reader("[r=50,,t=70, b=70,g=60]");
+		auto res = VariantReader::parseObject(reader, logger);
+		ASSERT_FALSE(res.first);
+	}
 }
 
 TEST(VariantReader, parseCardinality)
