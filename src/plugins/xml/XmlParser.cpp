@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <sstream>
@@ -197,6 +198,23 @@ public:
 
 	void end() override { scope().pop(); }
 
+	std::pair<bool, Variant> convertData(Handle<FieldDescriptor> field,
+	                                     Logger &logger,
+	                                     const std::string &data)
+	{
+		// if the content is supposed to be of type string, we can finish
+		// directly.
+		auto vts = field->getPrimitiveType()->getVariantTypes();
+		if (std::find(vts.begin(), vts.end(), VariantType::STRING) != vts.end()) {
+			return std::make_pair(true, Variant::fromString(data));
+		}
+
+		// then try to parse the content using the type specification.
+		auto res = field->getPrimitiveType()->read(
+		    data, logger, location().getSourceId(), location().getStart());
+		return res;
+	}
+
 	void data(const std::string &data, int fieldIdx) override
 	{
 		Rooted<Node> parentNode = scope().selectOrThrow(
@@ -235,20 +253,11 @@ public:
 				return;
 			}
 			// then try to parse the content using the type specification.
-			// TODO: Improve with new parse method.
-			// try to parse the content.
-			auto res = VariantReader::parseGenericString(
-			    data, logger(), location().getSourceId(),
-			    location().getStart());
-			if (!res.first) {
-				return;
-			}
-			// try to convert it to the correct type.
-			if (!field->getPrimitiveType()->build(res.second, logger())) {
-				return;
-			}
+			auto res = convertData(field, logger(), data);
 			// add it as primitive content.
-			parent->createChildDocumentPrimitive(res.second, fieldName);
+			if (res.first) {
+				parent->createChildDocumentPrimitive(res.second, fieldName);
+			}
 		} else {
 			/*
 			 * The second case is for primitive fields. Here we search through
@@ -260,29 +269,25 @@ public:
 			 */
 			// retrieve all fields.
 			NodeVector<FieldDescriptor> fields = desc->getDefaultFields();
-			// TODO: Improve with new parse method.
-			// try to parse the content
-			auto res = VariantReader::parseGenericString(
-			    data, logger(), location().getSourceId(),
-			    location().getStart());
-			if (!res.first) {
-				return;
-			}
 			for (auto field : fields) {
 				// then try to parse the content using the type specification.
-				// TODO: Improve with new parse method.
-				// try to convert it to the correct type.
-				if (!field->getPrimitiveType()->build(res.second, logger())) {
-					continue;
+				LoggerFork loggerFork = logger().fork();
+				auto res = convertData(field, loggerFork, data);
+				if (res.first) {
+					loggerFork.commit();
+					// if that worked, construct the necessary path.
+					auto pathRes = desc->pathTo(field, logger());
+					assert(pathRes.second);
+					NodeVector<Node> path = pathRes.first;
+					createPath(path, parent);
+					// then create the primitive element.
+					parent->createChildDocumentPrimitive(res.second, fieldName);
+					return;
 				}
-				// if that worked, construct the necessary path.
-				auto pathRes = desc->pathTo(field, logger());
-				assert(pathRes.second);
-				NodeVector<Node> path = pathRes.first;
-				createPath(path, parent);
-				// then create the primitive element.
-				parent->createChildDocumentPrimitive(res.second, fieldName);
 			}
+			logger().error(
+			    "Could not read the data with any of the possible fields.",
+			    location());
 		}
 	}
 
