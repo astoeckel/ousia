@@ -16,9 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
-
 #include <cmath>
+#include <limits>
 #include <sstream>
 
 #include <utf8.h>
@@ -745,10 +744,9 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 	// Skip all whitespace characters, read a character and abort if at the end
 	reader.consumePeek();
 	reader.consumeWhitespace();
-	if (!reader.peek(c) || delims.count(c)) {
+	if (!reader.fetch(c) || delims.count(c)) {
 		return error(reader, logger, ERR_UNEXPECTED_END, nullptr);
 	}
-	reader.resetPeek();
 
 	// Fetch the start offset
 	const SourceOffset start = reader.getOffset();
@@ -768,26 +766,31 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 		CharReaderFork readerFork = reader.fork();
 		LoggerFork loggerFork = logger.fork();
 		if (n.parse(readerFork, loggerFork, delims)) {
-			readerFork.commit();
-			loggerFork.commit();
-
 			Variant v;
 			if (n.isInt()) {
+				if (n.intValue() <
+				        std::numeric_limits<Variant::intType>::min() ||
+				    n.intValue() >
+				        std::numeric_limits<Variant::intType>::max()) {
+					logger.error("Number exceeds type limits.", reader);
+					return std::make_pair(false, v);
+				}
 				v = Variant{static_cast<Variant::intType>(n.intValue())};
 			} else {
 				v = Variant{n.doubleValue()};
 			}
+			readerFork.commit();
+			loggerFork.commit();
 			v.setLocation({reader.getSourceId(), start, reader.getOffset()});
 			return std::make_pair(true, v);
 		}
-		reader.resetPeek();
 	}
 
 	// Try to parse a cardinality
 	if (c == '{') {
 		CharReaderFork readerFork = reader.fork();
 		LoggerFork loggerFork = logger.fork();
-		auto res = parseCardinality(readerFork, logger);
+		auto res = parseCardinality(readerFork, loggerFork);
 		if (res.first) {
 			readerFork.commit();
 			loggerFork.commit();
@@ -795,7 +798,6 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 			v.setLocation({reader.getSourceId(), start, reader.getOffset()});
 			return std::make_pair(true, v);
 		}
-		reader.resetPeek();
 	}
 
 	// Try to parse an object
