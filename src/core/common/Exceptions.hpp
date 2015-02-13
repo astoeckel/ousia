@@ -109,7 +109,7 @@ public:
 	 * @param loc is a reference to a variable with location data.
 	 */
 	template <class LocationType>
-	LoggableException(std::string msg, LocationType loc)
+	LoggableException(std::string msg, const LocationType &loc)
 	    : LoggableException(std::move(msg), SourceLocation::location(loc))
 	{
 	}

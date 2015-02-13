@@ -336,7 +336,7 @@ size_t Buffer::seekCursor(CursorId cursor, size_t offs)
 	const ssize_t relativeOffs = offs - currentOffs;
 
 	// Perform the actual seeking, move the peek cursor to the read cursor
-	const ssize_t reachedOffs =  currentOffs + moveCursor(cursor, relativeOffs);
+	const ssize_t reachedOffs = currentOffs + moveCursor(cursor, relativeOffs);
 
 	// Clamp to values larger or equal to zero
 	return reachedOffs < 0 ? 0 : reachedOffs;
@@ -400,6 +400,18 @@ CharReader::CharReader(std::shared_ptr<Buffer> buffer, SourceId sourceId,
       sourceId(sourceId),
       offs(offs)
 {
+}
+
+CharReader::CharReader(CharReader &&other) noexcept
+    : buffer(std::move(other.buffer)),
+      readCursor(other.readCursor),
+      peekCursor(other.peekCursor),
+      coherent(other.coherent),
+      sourceId(other.sourceId),
+      offs(other.offs)
+{
+	other.readCursor = 0;
+	other.peekCursor = 0;
 }
 
 CharReader::CharReader(const std::string &str, SourceId sourceId, size_t offs)
@@ -468,10 +480,7 @@ bool CharReader::read(char &c)
 	return res;
 }
 
-bool CharReader::fetch(char &c)
-{
-	return buffer->fetch(readCursor, c);
-}
+bool CharReader::fetch(char &c) { return buffer->fetch(readCursor, c); }
 
 bool CharReader::fetchPeek(char &c)
 {
@@ -541,7 +550,7 @@ size_t CharReader::readRaw(char *buf, size_t size)
 
 size_t CharReader::seek(size_t requestedOffset)
 {
-	const size_t res =  buffer->seekCursor(readCursor, requestedOffset);
+	const size_t res = buffer->seekCursor(readCursor, requestedOffset);
 	buffer->copyCursor(readCursor, peekCursor);
 	coherent = true;
 	return res;
@@ -549,7 +558,7 @@ size_t CharReader::seek(size_t requestedOffset)
 
 size_t CharReader::seekPeekCursor(size_t requestedOffset)
 {
-	const size_t res =  buffer->seekCursor(peekCursor, requestedOffset);
+	const size_t res = buffer->seekCursor(peekCursor, requestedOffset);
 	coherent = (res == getOffset());
 	return res;
 }

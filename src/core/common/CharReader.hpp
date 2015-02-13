@@ -462,10 +462,15 @@ public:
 	~CharReader();
 
 	// No copy
-	CharReader(const Buffer &) = delete;
+	CharReader(const CharReader &) = delete;
 
 	// No assign
-	CharReader &operator=(const Buffer &) = delete;
+	CharReader &operator=(const CharReader &) = delete;
+
+	/**
+	 * Move constructor.
+	 */
+	CharReader(CharReader &&) noexcept;
 
 	/**
 	 * Peeks a single character. If called multiple times, returns the
