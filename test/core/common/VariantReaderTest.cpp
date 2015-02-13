@@ -205,7 +205,7 @@ TEST(VariantReader, parseUnescapedString)
 
 	// Simple case with whitespace
 	{
-		CharReader reader("    hello world   ;    ");
+		CharReader reader("    hello world   ;    aha");
 		auto res = VariantReader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
@@ -225,6 +225,54 @@ TEST(VariantReader, parseUnescapedString)
 		auto res = VariantReader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
+	}
+}
+
+TEST(VariantReader, parseBool)
+{
+	// Valid bools
+	{
+		CharReader reader("   true   ");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second);
+	}
+	{
+		CharReader reader("   false   ");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_FALSE(res.second);
+	}
+	{
+		CharReader reader("   true   bla");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second);
+		reader.consumeWhitespace();
+		char c;
+		ASSERT_TRUE(reader.read(c));
+		ASSERT_EQ('b', c);
+		ASSERT_TRUE(reader.read(c));
+		ASSERT_EQ('l', c);
+		ASSERT_TRUE(reader.read(c));
+		ASSERT_EQ('a', c);
+		ASSERT_FALSE(reader.read(c));
+	}
+	// invalid bools.
+	{
+		CharReader reader("   bla   ");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_FALSE(res.first);
+	}
+	{
+		CharReader reader("   TRUE   ");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_FALSE(res.first);
+	}
+	{
+		CharReader reader("   tr ue   ");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_FALSE(res.first);
 	}
 }
 

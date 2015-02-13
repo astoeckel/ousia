@@ -485,6 +485,36 @@ std::pair<bool, std::string> VariantReader::parseUnescapedString(
 	return std::make_pair(true, res.str());
 }
 
+std::pair<bool, Variant::boolType> VariantReader::parseBool(
+    CharReader &reader, Logger &logger)
+{
+	// first we consume all whitespaces.
+	reader.consumePeek();
+	reader.consumeWhitespace();
+	// then we try to find the words "true" or "false".
+
+	bool val = false;
+	CharReaderFork readerFork = reader.fork();
+	LoggerFork loggerFork = logger.fork();
+	auto res = parseToken(readerFork, loggerFork, {});
+	if (res.first) {
+		bool valid = false;
+		if (res.second == "true") {
+			val = true;
+			valid = true;
+		} else if (res.second == "false") {
+			val = false;
+			valid = true;
+		}
+		if (valid) {
+			readerFork.commit();
+			loggerFork.commit();
+			return std::make_pair(true, val);
+		}
+	}
+	return std::make_pair(false, val);
+}
+
 std::pair<bool, int64_t> VariantReader::parseInteger(
     CharReader &reader, Logger &logger, const std::unordered_set<char> &delims)
 {

@@ -133,6 +133,19 @@ public:
 	    const std::unordered_set<char> &delims);
 
 	/**
+	 * Parses a bool from the given CharReader instance (the strings "true" or
+	 * "false").
+	 *
+	 * @param reader is a reference to the CharReader instance which is
+	 * the source for the character data. The reader will be positioned after
+	 * the bool.
+	 * @param logger is the logger instance that should be used to log error
+	 * messages and warnings.
+	 */
+	static std::pair<bool, Variant::boolType> parseBool(CharReader &reader,
+	                                                    Logger &logger);
+
+	/**
 	 * Parses an integer from the given CharReader instance until one of the
 	 * given delimiter characters is reached.
 	 *
