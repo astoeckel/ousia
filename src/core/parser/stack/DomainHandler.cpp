@@ -153,8 +153,8 @@ void DomainPrimitiveHandler::start(Variant::mapType &args)
 	}
 
 	Rooted<FieldDescriptor> field = parent->createPrimitiveFieldDescriptor(
-	    nullptr, logger(), fieldType, args["name"].asString(),
-	    args["optional"].asBool());
+	    new UnknownType(manager()), logger(), fieldType,
+	    args["name"].asString(), args["optional"].asBool());
 	field->setLocation(location());
 
 	const std::string &type = args["type"].asString();
