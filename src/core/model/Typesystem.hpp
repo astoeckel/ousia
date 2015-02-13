@@ -43,6 +43,7 @@
 namespace ousia {
 
 // Forward declarations
+class CharReader;
 class Rtti;
 class Typesystem;
 class SystemTypesystem;
@@ -166,6 +167,32 @@ public:
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool build(Variant &data, Logger &logger) const;
+
+	/**
+	 * Tries to parse an instance of this type from the given stream.
+	 *
+	 * @param reader is a reference to the CharReader instance which is
+	 * the source for the character data. The reader will be positioned
+	 * at the end of the type instance (or the delimiting character).
+	 * @param delims is a set of characters which will terminate the typed
+	 * instance if the according parser uses delimiting characters.
+	 * These characters are not included in the result. May not be nullptr.
+	 */
+	std::pair<bool, Variant> read(CharReader &reader, Logger &logger,
+	                              const std::unordered_set<char> &delims = {});
+
+	/**
+	 * Tries to parse an instance of this type from the given string.
+	 *
+	 * @param str is the string from which the value should be read.
+	 * @param sourceId is an optional descriptor of the source file from which
+	 * the element is being read.
+	 * @param offs is the by offset in the source file at which the string
+	 * starts.
+	 */
+	std::pair<bool, Variant> read(const std::string &str, Logger &logger,
+	                              SourceId sourceId = InvalidSourceId,
+	                              size_t offs = 0);
 
 	/**
 	 * Returns true if and only if the given Variant adheres to this Type. In
