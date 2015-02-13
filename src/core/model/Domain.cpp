@@ -817,12 +817,12 @@ AnnotationClass::AnnotationClass(Manager &mgr, std::string name,
 
 void Domain::doResolve(ResolutionState &state)
 {
-	if (!continueResolveComposita(structuredClasses,
-	                              structuredClasses.getIndex(), state) |
-	    continueResolveComposita(annotationClasses,
-	                             annotationClasses.getIndex(), state)) {
-		continueResolveReferences(typesystems, state);
-	}
+	continueResolveComposita(structuredClasses, structuredClasses.getIndex(),
+	                         state);
+	continueResolveComposita(annotationClasses, annotationClasses.getIndex(),
+	                         state);
+	continueResolveReferences(typesystems, state);
+	continueResolveReferences(domains, state);
 }
 
 bool Domain::doValidate(Logger &logger) const
@@ -837,14 +837,17 @@ bool Domain::doValidate(Logger &logger) const
 
 void Domain::doReference(Handle<Node> node)
 {
-	if (node->isa(&RttiTypes::Domain)) {
+	if (node->isa(&RttiTypes::Typesystem)) {
 		referenceTypesystem(node.cast<Typesystem>());
+	}
+	if (node->isa(&RttiTypes::Domain)) {
+		referenceDomain(node.cast<Domain>());
 	}
 }
 
 RttiSet Domain::doGetReferenceTypes() const
 {
-	return RttiSet{&RttiTypes::Domain};
+	return RttiSet{&RttiTypes::Domain, &RttiTypes::Typesystem};
 }
 
 void Domain::addStructuredClass(Handle<StructuredClass> s)

@@ -913,6 +913,7 @@ private:
 	NodeVector<StructuredClass> structuredClasses;
 	NodeVector<AnnotationClass> annotationClasses;
 	NodeVector<Typesystem> typesystems;
+	NodeVector<Domain> domains;
 
 protected:
 	void doResolve(ResolutionState &state) override;
@@ -933,7 +934,8 @@ public:
 	    : RootNode(mgr, std::move(name), nullptr),
 	      structuredClasses(this),
 	      annotationClasses(this),
-	      typesystems(this)
+	      typesystems(this),
+	      domains(this)
 	{
 	}
 
@@ -1083,6 +1085,19 @@ public:
 	void referenceTypesystems(const std::vector<Handle<Typesystem>> &ts)
 	{
 		typesystems.insert(typesystems.end(), ts.begin(), ts.end());
+	}
+
+	/**
+	 * Adds a Domain reference to this Domain.
+	 */
+	void referenceDomain(Handle<Domain> d) { domains.push_back(d); }
+
+	/**
+	 * Adds multiple Domain references to this Domain.
+	 */
+	void referenceDomains(const std::vector<Handle<Domain>> &ds)
+	{
+		domains.insert(domains.end(), ds.begin(), ds.end());
 	}
 };
 
