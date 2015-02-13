@@ -98,16 +98,27 @@ std::pair<bool, Variant> Type::read(const std::string &str, Logger &logger,
 	// try all variant types of this type and use the first successful one.
 	Variant v;
 	bool success = false;
-	for (auto t : getVariantTypes()) {
-		auto res = VariantReader::parseTyped(t, str, logger, sourceId, offs);
+	std::vector<LoggerFork> forks;
+	auto vts = getVariantTypes();
+	for (auto vt : vts) {
+		forks.emplace_back(logger.fork());
+		auto res =
+		    VariantReader::parseTyped(vt, str, forks.back(), sourceId, offs);
 		if (res.first) {
 			v = res.second;
 			success = true;
+			forks.back().commit();
 			break;
 		}
 	}
 
 	if (!success) {
+		logger.error("Could not read data with any of the possible types:");
+		for (size_t t = 0; t < forks.size(); t++) {
+			logger.note(std::string(Variant::getTypeName(vts[t])) + ":",
+			            SourceLocation{}, MessageMode::NO_CONTEXT);
+			forks[t].commit();
+		}
 		return std::make_pair(false, Variant{});
 	}
 	if (!build(v, logger)) {
