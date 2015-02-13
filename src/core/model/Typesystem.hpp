@@ -1012,7 +1012,7 @@ public:
 	 */
 	std::vector<VariantType> getVariantTypes() const override
 	{
-		return {VariantType::ARRAY, VariantType::MAP};
+		return {VariantType::MAP};
 	}
 };
 
