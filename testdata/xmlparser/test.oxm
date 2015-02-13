@@ -1,0 +1,15 @@
+<?xml version="1.0" standalone="yes"?>
+<domain name="test">
+
+	<import rel="domain" src="./book_domain.oxm"/>
+	<import rel="typesystem" src="./color.oxm"/>
+
+	<struct name="fancycolor">
+	
+		<primitive type="color"/>
+	
+		<parentRef ref="book.book">
+			<fieldRef ref="$default"/>
+		</parentRef>
+	</struct>
+</domain>
