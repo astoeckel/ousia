@@ -219,7 +219,7 @@ public:
 	 *this
 	 * type.
 	 */
-	virtual std::vector<VariantType> getVariantType() const = 0;
+	virtual std::vector<VariantType> getVariantTypes() const = 0;
 };
 
 /**
@@ -266,7 +266,7 @@ public:
 	 *
 	 * @return the String VariantType.
 	 */
-	std::vector<VariantType> getVariantType() const override
+	std::vector<VariantType> getVariantTypes() const override
 	{
 		return {VariantType::STRING};
 	}
@@ -315,7 +315,7 @@ public:
 	 *
 	 * @return the Int VariantType.
 	 */
-	std::vector<VariantType> getVariantType() const override
+	std::vector<VariantType> getVariantTypes() const override
 	{
 		return {VariantType::INT};
 	}
@@ -364,7 +364,7 @@ public:
 	 *
 	 * @return the Double VariantType.
 	 */
-	std::vector<VariantType> getVariantType() const override
+	std::vector<VariantType> getVariantTypes() const override
 	{
 		return {VariantType::DOUBLE};
 	}
@@ -413,7 +413,7 @@ public:
 	 *
 	 * @return the bool VariantType.
 	 */
-	std::vector<VariantType> getVariantType() const override
+	std::vector<VariantType> getVariantTypes() const override
 	{
 		return {VariantType::BOOL};
 	}
@@ -539,7 +539,7 @@ public:
 	 *
 	 * @return the int and string VariantTypes.
 	 */
-	std::vector<VariantType> getVariantType() const override
+	std::vector<VariantType> getVariantTypes() const override
 	{
 		return {VariantType::INT, VariantType::STRING};
 	}
@@ -983,7 +983,7 @@ public:
 	 *
 	 * @return the array and map VariantTypes.
 	 */
-	std::vector<VariantType> getVariantType() const override
+	std::vector<VariantType> getVariantTypes() const override
 	{
 		return {VariantType::ARRAY, VariantType::MAP};
 	}
@@ -1057,7 +1057,7 @@ public:
 	 *
 	 * @return the array VariantType.
 	 */
-	std::vector<VariantType> getVariantType() const override
+	std::vector<VariantType> getVariantTypes() const override
 	{
 		return {VariantType::ARRAY};
 	}
@@ -1106,7 +1106,7 @@ public:
 	 * @return all parseable VariantTypes (bool, int, double, array, map,
 	 *cardinality, object, string).
 	 */
-	std::vector<VariantType> getVariantType() const override
+	std::vector<VariantType> getVariantTypes() const override
 	{
 		return {VariantType::BOOL,   VariantType::INT,
 		        VariantType::DOUBLE, VariantType::ARRAY,
