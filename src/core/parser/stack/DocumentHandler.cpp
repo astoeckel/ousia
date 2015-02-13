@@ -21,6 +21,7 @@
 #include <algorithm>
 
 #include <core/common/RttiBuilder.hpp>
+#include <core/common/Utils.hpp>
 #include <core/model/Document.hpp>
 #include <core/model/Domain.hpp>
 #include <core/model/Typesystem.hpp>
@@ -218,12 +219,13 @@ void DocumentChildHandler::data(const std::string &data, int fieldIdx)
 		 */
 		// retrieve all fields.
 		NodeVector<FieldDescriptor> fields = desc->getDefaultFields();
+		std::vector<LoggerFork> forks;
 		for (auto field : fields) {
 			// then try to parse the content using the type specification.
-			LoggerFork loggerFork = logger().fork();
-			auto res = convertData(field, loggerFork, data);
+			forks.emplace_back(logger().fork());
+			auto res = convertData(field, forks.back(), data);
 			if (res.first) {
-				loggerFork.commit();
+				forks.back().commit();
 				// if that worked, construct the necessary path.
 				auto pathRes = desc->pathTo(field, logger());
 				assert(pathRes.second);
@@ -234,9 +236,12 @@ void DocumentChildHandler::data(const std::string &data, int fieldIdx)
 				return;
 			}
 		}
-		logger().error(
-		    "Could not read the data with any of the possible fields.",
-		    location());
+		logger().error("Could not read data with any of the possible fields:");
+		for (size_t f = 0; f < fields.size(); f++) {
+			logger().note(Utils::join(fields[f]->path(), ".") + ":",
+			              SourceLocation{}, MessageMode::NO_CONTEXT);
+			forks[f].commit();
+		}
 	}
 }
 
