@@ -192,6 +192,7 @@ TARGET_LINK_LIBRARIES(ousia_html
 )
 
 ADD_LIBRARY(ousia_xml
+	src/plugins/xml/XmlOutput
 	src/plugins/xml/XmlParser
 )
 

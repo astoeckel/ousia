@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <ostream>
+#include <set>
 
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -48,6 +50,7 @@
 #include <plugins/filesystem/FileLocator.hpp>
 #include <plugins/html/DemoOutput.hpp>
 #include <plugins/xml/XmlParser.hpp>
+#include <plugins/xml/XmlOutput.hpp>
 
 const size_t ERROR_IN_COMMAND_LINE = 1;
 const size_t SUCCESS = 0;
@@ -73,6 +76,20 @@ const char *MSG_COPYING =
     "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
     "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
     "GNU General Public License for more details.\n";
+
+const std::set<std::string> formats{"html", "xml"};
+
+static void createOutput(Handle<Document> doc, std::ostream &out,
+                         const std::string &format, Logger &logger)
+{
+	if (format == "html") {
+		html::DemoHTMLTransformer transform;
+		transform.writeHTML(doc, out, true);
+	} else if (format == "xml") {
+		xml::XmlTransformer transform;
+		transform.writeXml(doc, out, logger, true);
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -141,7 +158,7 @@ int main(int argc, char **argv)
 	if (inputPath == "-") {
 		logger.error("Currently no reading from std::in is supported!");
 		return ERROR_IN_COMMAND_LINE;
-	} else{
+	} else {
 		inputPath = fs::canonical(inputPath).string();
 	}
 
@@ -155,20 +172,27 @@ int main(int argc, char **argv)
 		outputPath = outP.string();
 		std::cout << "Using " << outputPath << " as output path." << std::endl;
 	}
+	// check format.
+	if (!formats.count(format)) {
+		logger.error("Format must be one of: ");
+		for (auto &f : formats) {
+			logger.error(f);
+		}
+	}
 
 	// TODO: REMOVE diagnostic code.
-	std::cout << "input : " << vm["input"].as<std::string>() << std::endl;
-	std::cout << "output : " << outputPath << std::endl;
-	std::cout << "format : " << vm["format"].as<std::string>() << std::endl;
-	if (vm.count("include")) {
-		std::vector<std::string> includes =
-		    vm["include"].as<std::vector<std::string>>();
-		std::cout << "includes : ";
-		for (auto &i : includes) {
-			std::cout << i << ", ";
-		}
-		std::cout << std::endl;
-	}
+	// 	std::cout << "input : " << vm["input"].as<std::string>() << std::endl;
+	// 	std::cout << "output : " << outputPath << std::endl;
+	// 	std::cout << "format : " << vm["format"].as<std::string>() << std::endl;
+	// 	if (vm.count("include")) {
+	// 		std::vector<std::string> includes =
+	// 		    vm["include"].as<std::vector<std::string>>();
+	// 		std::cout << "includes : ";
+	// 		for (auto &i : includes) {
+	// 			std::cout << i << ", ";
+	// 		}
+	// 		std::cout << std::endl;
+	// 	}
 
 	// initialize global instances.
 	Manager manager;
@@ -206,20 +230,19 @@ int main(int argc, char **argv)
 	}
 
 	// now all preparation is done and we can parse the input document.
-	Rooted<Node> doc = context.import(inputPath, "text/vnd.ousia.oxd", "",
-	                                  {&RttiTypes::Document});
-	if (logger.hasError() || doc == nullptr) {
+	Rooted<Node> docNode = context.import(inputPath, "text/vnd.ousia.oxd", "",
+	                                      {&RttiTypes::Document});
+	if (logger.hasError() || docNode == nullptr) {
 		logger.fatalError("Errors occured while parsing the document");
 		return ERROR_IN_DOCUMENT;
 	}
-
-	// write output.
-	html::DemoHTMLTransformer outTransformer;
-	if (outputPath == "-") {
-		outTransformer.writeHTML(doc.cast<Document>(), std::cout);
+	Rooted<Document> doc = docNode.cast<Document>();
+	// write output
+	if (outputPath != "-") {
+		std::fstream out{outputPath};
+		createOutput(doc, out, format, logger);
 	} else {
-		std::fstream out {outputPath};
-		outTransformer.writeHTML(doc.cast<Document>(), out);
+		createOutput(doc, std::cout, format, logger);
 	}
 
 	return SUCCESS;
