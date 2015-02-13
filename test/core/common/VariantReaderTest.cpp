@@ -1182,5 +1182,70 @@ TEST(VariantReader, parseGenericComplex)
 	ASSERT_TRUE(reader.peek(c));
 	ASSERT_EQ(';', c);
 }
+
+TEST(VariantReader, parseTyped)
+{
+	{
+		auto res = VariantReader::parseTyped(VariantType::BOOL, "true", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::BOOL, res.second.getType());
+		ASSERT_TRUE(res.second.asBool());
+	}
+	{
+		auto res =
+		    VariantReader::parseTyped(VariantType::INT, "  1254", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::INT, res.second.getType());
+		ASSERT_EQ(1254, res.second.asInt());
+	}
+	{
+		auto res =
+		    VariantReader::parseTyped(VariantType::DOUBLE, "  3.14", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::DOUBLE, res.second.getType());
+		ASSERT_EQ(3.14, res.second.asDouble());
+	}
+	{
+		auto res = VariantReader::parseTyped(VariantType::STRING,
+		                                     "\'my string\'", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::STRING, res.second.getType());
+		ASSERT_EQ("my string", res.second.asString());
+	}
+	{
+		auto res =
+		    VariantReader::parseTyped(VariantType::STRING, "my string", logger);
+		ASSERT_FALSE(res.first);
+	}
+	{
+		auto res =
+		    VariantReader::parseTyped(VariantType::ARRAY, "[1, 4, 5]", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::ARRAY, res.second.getType());
+		Variant::arrayType actual = res.second.asArray();
+		Variant::arrayType expected{{1}, {4}, {5}};
+		ASSERT_EQ(expected, actual);
+	}
+	{
+		auto res = VariantReader::parseTyped(
+		    VariantType::MAP, "[a=\"str\", b=true, i=4]", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::MAP, res.second.getType());
+		Variant::mapType actual = res.second.asMap();
+		Variant::mapType expected{{"a", {"str"}}, {"b", {true}}, {"i", {4}}};
+		ASSERT_EQ(expected, actual);
+	}
+	{
+		auto res = VariantReader::parseTyped(VariantType::CARDINALITY,
+		                                     "{1-2, >18}", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::CARDINALITY, res.second.getType());
+		Variant::cardinalityType actual = res.second.asCardinality();
+		Variant::cardinalityType expected;
+		expected.merge({1, 2});
+		expected.merge(Variant::rangeType::typeRangeFrom(19));
+		ASSERT_EQ(expected, actual);
+	}
+}
 }
 

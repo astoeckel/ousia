@@ -182,7 +182,7 @@ public:
 	 *
 	 * @param reader is a reference to the CharReader instance which is
 	 * the source for the character data. The reader will be positioned after
-	 * the number or at the terminating delimiting character.
+	 * the array or at the terminating delimiting character.
 	 * @param logger is the logger instance that should be used to log error
 	 * messages and warnings.
 	 * @param delim is the terminating character. If nonzero, the parse function
@@ -198,7 +198,7 @@ public:
 	 *
 	 * @param reader is a reference to the CharReader instance which is
 	 * the source for the character data. The reader will be positioned after
-	 * the number or at the terminating delimiting character.
+	 * the object or at the terminating delimiting character.
 	 * @param logger is the logger instance that should be used to log error
 	 * messages and warnings.
 	 * @param delim is the terminating character. If nonzero, the parse function
@@ -305,6 +305,38 @@ public:
 	 */
 	static std::pair<bool, Variant> parseGenericString(
 	    const std::string &str, Logger &logger,
+	    SourceId sourceId = InvalidSourceId, size_t offs = 0);
+
+	/**
+	 * Tries to parse an instance of the given type from the given stream. The
+	 * called method is one of the parse methods defined here and adheres to the
+	 * specifications defined there.
+	 *
+	 * @param type is the VariantType for which an instance shall be parsed.
+	 * @param reader is a reference to the CharReader instance which is
+	 * the source for the character data. The reader will be positioned
+	 * at the end of the type instance (or the delimiting character).
+	 * @param delims is a set of characters which will terminate the typed
+	 * instance if the according parser uses delimiting characters.
+	 * These characters are not included in the result. May not be nullptr.
+	 */
+	static std::pair<bool, Variant> parseTyped(
+	    VariantType type, CharReader &reader, Logger &logger,
+	    const std::unordered_set<char> &delims = {});
+	/**
+	 * Tries to parse an instance of the given type from the given string. The
+	 * called method is one of the parse methods defined here and adheres to the
+	 * specifications defined there.
+	 *
+	 * @param type is the VariantType for which an instance shall be parsed.
+	 * @param str is the string from which the value should be read.
+	 * @param sourceId is an optional descriptor of the source file from which
+	 * the element is being read.
+	 * @param offs is the by offset in the source file at which the string
+	 * starts.
+	 */
+	static std::pair<bool, Variant> parseTyped(
+	    VariantType type, const std::string &str, Logger &logger,
 	    SourceId sourceId = InvalidSourceId, size_t offs = 0);
 };
 }
