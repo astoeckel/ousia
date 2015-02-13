@@ -31,7 +31,7 @@ void Node::serialize(std::ostream &out, const std::string &doctype, bool pretty)
 	if (doctype != "") {
 		out << doctype;
 		if (pretty) {
-			out << '\n';
+			out << std::endl;
 		}
 	}
 	doSerialize(out, 0, pretty);
@@ -80,12 +80,12 @@ void Element::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 	if (children.size() == 0) {
 		out << "/>";
 		if (pretty) {
-			out << '\n';
+			out << std::endl;
 		}
 	} else {
 		out << ">";
 		if (pretty) {
-			out << '\n';
+			out << std::endl;
 		}
 		for (auto &n : children) {
 			n->doSerialize(out, tabdepth + 1, pretty);
@@ -97,7 +97,7 @@ void Element::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 		}
 		out << "</" << name << ">";
 		if (pretty) {
-			out << '\n';
+			out << std::endl;
 		}
 	}
 }
@@ -111,7 +111,7 @@ void Text::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 	}
 	out << escapePredefinedEntities(text);
 	if (pretty) {
-		out << '\n';
+		out << std::endl;
 	}
 }
 }

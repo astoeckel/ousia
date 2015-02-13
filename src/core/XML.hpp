@@ -150,6 +150,11 @@ public:
 	{
 		children.insert(children.end(), c.begin(), c.end());
 	}
+
+	const std::map<std::string, std::string> &getAttributes() const
+	{
+		return attributes;
+	}
 };
 
 class Text : public Node {
