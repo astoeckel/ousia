@@ -30,7 +30,6 @@
 #ifndef _OUSIA_HTML_DEMO_OUTPUT_HPP_
 #define _OUSIA_HTML_DEMO_OUTPUT_HPP_
 
-#include <map>
 #include <ostream>
 
 #include <core/model/Document.hpp>
