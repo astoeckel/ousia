@@ -21,20 +21,67 @@
 #include <core/common/Utils.hpp>
 #include <core/common/Exceptions.hpp>
 #include <core/parser/ParserScope.hpp>
+#include <core/parser/ParserContext.hpp>
 
+#include "Handler.hpp"
 #include "Stack.hpp"
+#include "State.hpp"
 
 namespace ousia {
 namespace parser_stack {
 
-/* Class StateStack */
+/* Class HandlerInfo */
+
+HandlerInfo::HandlerInfo() : HandlerInfo(nullptr) {}
+
+HandlerInfo::HandlerInfo(std::shared_ptr<Handler> handler)
+    : handler(handler),
+      fieldIdx(0),
+      inField(false),
+      inDefaultField(false),
+      inImplicitDefaultField(false),
+      hasDefaultField(false)
+{
+}
+
+HandlerInfo::~HandlerInfo()
+{
+	// Do nothing
+}
+
+void HandlerInfo::fieldStart(bool isDefault, bool isImplicit, bool isValid)
+{
+	inField = true;
+	inDefaultField = isDefault || isImplicit;
+	inImplicitDefaultField = isImplicit;
+	inValidField = isValid;
+	hasDefaultField = hasDefaultField || inDefaultField;
+	fieldIdx++;
+}
+
+void HandlerInfo::fieldEnd()
+{
+	inField = false;
+	inDefaultField = false;
+	inImplicitDefaultField = false;
+	inValidField = false;
+	if (fieldIdx > 0) {
+		fieldIdx--;
+	}
+}
+
+/* Helper functions */
 
 /**
  * Returns an Exception that should be thrown when a currently invalid command
  * is thrown.
+ *
+ * @param name is the name of the command for which no state transition is
+ * found.
+ * @param expected is a set containing the names of the expected commands.
  */
-static LoggableException InvalidCommand(const std::string &name,
-                                        const std::set<std::string> &expected)
+static LoggableException buildInvalidCommandException(
+    const std::string &name, const std::set<std::string> &expected)
 {
 	if (expected.empty()) {
 		return LoggableException{
@@ -50,14 +97,22 @@ static LoggableException InvalidCommand(const std::string &name,
 	}
 }
 
-StateStack::StateStack(
-    ParserContext &ctx,
-    const std::multimap<std::string, const State *> &states)
+/* Class Stack */
+
+Stack::Stack(ParserContext &ctx,
+             const std::multimap<std::string, const State *> &states)
     : ctx(ctx), states(states)
 {
+	// If the scope instance is not empty we need to deduce the current parser
+	// state
+	if (!ctx.getScope().isEmpty()) {
+		deduceState();
+	}
 }
 
-bool StateStack::deduceState()
+Stack::~Stack() {}
+
+bool Stack::deduceState()
 {
 	// Assemble all states
 	std::vector<const State *> states;
@@ -68,23 +123,28 @@ bool StateStack::deduceState()
 	// Fetch the type signature of the scope and derive all possible states,
 	// abort if no unique parser state was found
 	std::vector<const State *> possibleStates =
-	    StateDeductor(ctx.getScope().getStackTypeSignature(), states)
-	        .deduce();
-	if (possibleStates.size() != 1) {
-		ctx.getLogger().error(
-		    "Error while including file: Cannot deduce parser state.");
-		return false;
+	    StateDeductor(ctx.getScope().getStackTypeSignature(), states).deduce();
+	if (possibleStates.size() != 1U) {
+		throw LoggableException{
+		    "Error while including file: Cannot deduce parser state."};
 	}
 
 	// Switch to this state by creating a dummy handler
 	const State *state = possibleStates[0];
-	Handler *handler =
-	    DefaultHandler::create({ctx, "", *state, *state, SourceLocation{}});
-	stack.emplace(handler);
+	stack.emplace(std::shared_ptr<Handler>{EmptyHandler::create({ctx, "", *state, *state, SourceLocation{}})});
+}
+
+bool Stack::handlersValid()
+{
+	for (auto it = stack.crbegin(); it != stack.crend(); it++) {
+		if (!it->valid) {
+			return false;
+		}
+	}
 	return true;
 }
 
-std::set<std::string> StateStack::expectedCommands()
+std::set<std::string> Stack::expectedCommands()
 {
 	const State *currentState = &(this->currentState());
 	std::set<std::string> res;
@@ -96,17 +156,17 @@ std::set<std::string> StateStack::expectedCommands()
 	return res;
 }
 
-const State &StateStack::currentState()
+const State &Stack::currentState()
 {
 	return stack.empty() ? States::None : stack.top()->state();
 }
 
-std::string StateStack::currentCommandName()
+std::string Stack::currentCommandName()
 {
 	return stack.empty() ? std::string{} : stack.top()->name();
 }
 
-const State *StateStack::findTargetState(const std::string &name)
+const State *Stack::findTargetState(const std::string &name)
 {
 	const State *currentState = &(this->currentState());
 	auto range = states.equal_range(name);
@@ -120,21 +180,26 @@ const State *StateStack::findTargetState(const std::string &name)
 	return nullptr;
 }
 
-void StateStack::start(const std::string &name, Variant::mapType &args,
-                        const SourceLocation &location)
+void Stack::command(const Variant &name, const Variant::mapType &args)
 {
-	State const *targetState = findTargetState(name);
-// TODO: Andreas, please improve this.
-//	if (!Utils::isIdentifier(name)) {
-//		throw LoggableException(std::string("Invalid identifier \"") + name +
-//		                        std::string("\""));
-//	}
+	// Make sure the given identifier is valid
+	if (!Utils::isNamespacedIdentifier(name.asString())) {
+		throw LoggableException(std::string("Invalid identifier \"") +
+		                        name.asString() + std::string("\""), name);
+	}
 
+	// Try to find a target state for the given command
+	State const *targetState = findTargetState(name.asString());
+
+	// No target state is found, try to find a wildcard handler for the current
+	// state
 	if (targetState == nullptr) {
 		targetState = findTargetState("*");
 	}
+
+	// No handler has been found at all,
 	if (targetState == nullptr) {
-		throw InvalidCommand(name, expectedCommands());
+		throw buildInvalidCommandException(name.asString(), expectedCommands());
 	}
 
 	// Fetch the associated constructor
@@ -145,20 +210,24 @@ void StateStack::start(const std::string &name, Variant::mapType &args,
 	// Canonicalize the arguments, allow additional arguments
 	targetState->arguments.validateMap(args, ctx.getLogger(), true);
 
-	// Instantiate the handler and call its start function
-	Handler *handler = ctor({ctx, name, *targetState, currentState(), location});
-	handler->start(args);
-	stack.emplace(handler);
+	// Instantiate the handler and push it onto the stack
+	Handler *handler =
+	    ctor({ctx, name.asString(), *targetState, currentState(), name.getLocation()});
+	stack.emplace_back(std::shared_ptr<Handler>{handler});
+
+	// Call the "start" method of the handler, store the result of the start
+	// method as the validity of the handler -- do not call the start method
+	// if the stack is currently invalid (as this may cause further, unwanted
+	// errors)
+	try {
+		stack.back().valid = handlersValid() && handler->start(args);
+	} catch (LoggableException ex) {
+		stack.back().valid = false;
+		logger.log(ex, )
+	}
 }
 
-void StateStack::start(std::string name, const Variant::mapType &args,
-                        const SourceLocation &location)
-{
-	Variant::mapType argsCopy(args);
-	start(name, argsCopy);
-}
-
-void StateStack::end()
+void Stack::end()
 {
 	// Check whether the current command could be ended
 	if (stack.empty()) {
@@ -173,7 +242,7 @@ void StateStack::end()
 	inst->end();
 }
 
-void StateStack::data(const std::string &data, int field)
+void Stack::data(const std::string &data, int field)
 {
 	// Check whether there is any command the data can be sent to
 	if (stack.empty()) {
