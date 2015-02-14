@@ -25,18 +25,18 @@
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_XML_PARSER_HPP_
-#define _OUSIA_XML_PARSER_HPP_
+#ifndef _OUSIA_OSXML_PARSER_HPP_
+#define _OUSIA_OSXML_PARSER_HPP_
 
 #include <core/parser/Parser.hpp>
 
 namespace ousia {
 
 /**
- * The XmlParser class implements parsing the various types of Ousía XML
- * documents using the expat stream XML parser.
+ * The OsxmlParser class implements parsing the various types of Ousía XML
+ * documents using the OsxmlEventParser and Stack classes.
  */
-class XmlParser : public Parser {
+class OsxmlParser : public Parser {
 protected:
 	/**
 	 * Parses the given input stream as XML file and returns the parsed
@@ -51,5 +51,5 @@ protected:
 
 }
 
-#endif /* _OUSIA_XML_PARSER_HPP_ */
+#endif /* _OUSIA_OSXML_PARSER_HPP_ */
 
