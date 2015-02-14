@@ -36,14 +36,18 @@
 namespace ousia {
 
 /**
- * Interface defining a set of callback functions that can be directed from a
- * ParserStateHandler to the ParserStateStack and form the ParserStateStack
- * to the actual parser.
+ * Interface defining a set of callback functions that act as a basis for the
+ * ParserStateStackCallbacks and the ParserCallbacks.
  */
 class ParserStateCallbacks {
 public:
 	/**
-	 * Sets the whitespace mode that specifies how (string data) should be
+	 * Virtual descructor.
+	 */
+	virtual ~ParserStateCallbacks() {};
+
+	/**
+	 * Sets the whitespace mode that specifies how string data should be
 	 * processed.
 	 *
 	 * @param whitespaceMode specifies one of the three WhitespaceMode constants
@@ -61,19 +65,6 @@ public:
 	virtual void setDataType(VariantType type) = 0;
 
 	/**
-	 * Checks whether the given token is supported by the parser. The parser
-	 * returns true, if the token is supported, false if this token cannot be
-	 * registered. Note that parsers that do not support the registration of
-	 * tokens at all should always return "true".
-	 *
-	 * @param token is the token that should be checked for support.
-	 * @return true if the token is generally supported (or the parser does not
-	 * support registering tokens at all), false if the token is not supported,
-	 * because e.g. it is a reserved token or it interferes with other tokens.
-	 */
-	virtual bool supportsToken(const std::string &token) = 0;
-
-	/**
 	 * Registers the given token as token that should be reported to the handler
 	 * using the "token" function.
 	 *
@@ -89,6 +80,25 @@ public:
 	 */
 	virtual void unregisterToken(const std::string &token) = 0;
 };
+
+/**
+ * Interface defining the callback functions that can be passed from a
+ * ParserStateStack to the underlying parser.
+ */
+class ParserCallbacks : public ParserStateCallbacks {
+	/**
+	 * Checks whether the given token is supported by the parser. The parser
+	 * returns true, if the token is supported, false if this token cannot be
+	 * registered. Note that parsers that do not support the registration of
+	 * tokens at all should always return "true".
+	 *
+	 * @param token is the token that should be checked for support.
+	 * @return true if the token is generally supported (or the parser does not
+	 * support registering tokens at all), false if the token is not supported,
+	 * because e.g. it is a reserved token or it interferes with other tokens.
+	 */
+	virtual bool supportsToken(const std::string &token) = 0;
+}
 
 }
 

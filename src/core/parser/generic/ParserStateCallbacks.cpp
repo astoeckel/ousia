@@ -20,5 +20,7 @@
 
 namespace ousia {
 
+/* Class ParserStateCallbacks */
+
 }
 
