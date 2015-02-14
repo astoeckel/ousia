@@ -33,14 +33,103 @@
 #ifndef _OUSIA_GENERIC_PARSER_HPP_
 #define _OUSIA_GENERIC_PARSER_HPP_
 
-#include <core/parser/Parseer.hpp>
+#include <core/parser/Parser.hpp>
+
+#include "ParserStateStack.hpp"
+#include "ParserStateHandler.hpp"
+#include "ParserState.hpp"
 
 namespace ousia {
 
-class GenericParser : public Parser {
+/**
+ * The abstract GenericParser class is merely a convenience class for Parsers
+ * which use the ParserStateStack class. It maintains a ParserStateStack
+ * instance and provides functions which directly forward the given data to the
+ * ParserStateStack. It also implements the ParserStateCallbacks inteface which
+ * is used by ParserStateHandlers to influence the parsing process (such as
+ * setting the whitespace mode or registering new entities).
+ */
+class GenericParser : public Parser, public ParserStateCallbacks {
 
+private:
+	/**
+	 * Internal ParserStateStack instance.
+	 */
+	ParserStateStack stack;
 
+protected:
+	/**
+	 * Forwards the "command" event to the ParserStateStack instance.
+	 *
+	 * @param name is the name of the command (including the namespace
+	 * separator ':') and its corresponding location. Must be a string variant.
+	 * @param args is a map variant containing the arguments that were passed to
+	 * the command.
+	 */
+	void command(Variant name, Variant args)
+	{
+		stack.command(std::move(name), std::move(args));
+	}
 
+	/**
+	 * Forwards the "fieldStart" event to the ParserStateStack instance.
+	 */
+	void fieldStart()
+	{
+		stack.fieldStart();
+	}
+
+	/**
+	 * Forwards the "fieldEnd" event to the ParserStateStack instance.
+	 */
+	void fieldEnd()
+	{
+		stack.fieldEnd();
+	}
+
+	/**
+	 * Forwards the "data" event to the ParserStateStack instance.
+	 *
+	 * @param data is a variant of any type containing the data that was parsed
+	 * as data.
+	 */
+	void data(Variant data)
+	{
+		stack.data(std::move(data));
+	}
+
+	/**
+	 * Forwards the "annotationStart" event to the ParserStateStack instance.
+	 *
+	 * @param name is the name of the annotation class.
+	 * @param args is a map variant containing the arguments that were passed
+	 * to the annotation.
+	 */
+	void annotationStart(Variant name, Variant args)
+	{
+		stack.annotationStart(std::move(name), std::move(args));
+	}
+
+	/**
+	 * Forwards the "annotationEnd" event to the ParserStateStack instance.
+	 *
+	 * @param name is the name of the annotation class that was ended.
+	 * @param annotationName is the name of the annotation that was ended.
+	 */
+	void annotationEnd(Variant name, Variant annotationName)
+	{
+		stack.annotationEnd(std::move(name), std::move(annotationName));
+	}
+
+	/**
+	 * Forwards the "token" call to the ParserStateStack instance.
+	 *
+	 * @param token is string variant containing the token that was encountered.
+	 */
+	void token(Variant token)
+	{
+		stack.token(std::move(token));
+	}
 };
 
 }
