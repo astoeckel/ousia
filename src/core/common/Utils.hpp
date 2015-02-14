@@ -86,6 +86,11 @@ public:
 	static bool isIdentifier(const std::string &name);
 
 	/**
+	 * Returns true if the given string is an identifier or an empty string.
+	 */
+	static bool isIdentifierOrEmpty(const std::string &name);
+
+	/**
 	 * Returns true if the given string is in
 	 * \code{.txt}
 	 * ([A-Za-z][A-Za-z0-9_-]*)(:[A-Za-z][A-Za-z0-9_-]*)*

@@ -37,22 +37,27 @@ bool Utils::isIdentifier(const std::string &name)
 		}
 		first = false;
 	}
-	return true;
+	return !first;
 }
 
-bool Utils::isNamespaceIdentifier(const std::string &name)
+bool Utils::isIdentifierOrEmpty(const std::string &name)
+{
+	return name.empty() || isIdentifier(name);
+}
+
+bool Utils::isNamespacedIdentifier(const std::string &name)
 {
 	bool first = true;
 	for (char c : name) {
 		if (first && !isIdentifierStartCharacter(c)) {
 			return false;
 		}
-		if (!first && (!isIdentifierCharacter(c) || c == ':')) {
+		if (!first && (!isIdentifierCharacter(c) && c != ':')) {
 			return false;
 		}
 		first = (c == ':');
 	}
-	return true;
+	return !first;
 }
 
 bool Utils::hasNonWhitepaceChar(const std::string &s)
