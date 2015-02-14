@@ -150,10 +150,10 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/Parser
 	src/core/parser/ParserContext
 	src/core/parser/ParserScope
-#	src/core/parser/generic/ParserState
-#	src/core/parser/generic/ParserStateCallbacks
-#	src/core/parser/generic/ParserStateHandler
-#	src/core/parser/generic/ParserStateStack
+	src/core/parser/stack/Callbacks
+	src/core/parser/stack/Handler
+	src/core/parser/stack/State
+	src/core/parser/stack/Stack
 	src/core/parser/utils/Tokenizer
 	src/core/parser/utils/TokenTrie
 	src/core/resource/Resource
@@ -274,8 +274,8 @@ IF(TEST)
 		test/core/model/StyleTest
 		test/core/model/TypesystemTest
 		test/core/parser/ParserScopeTest
-#		test/core/parser/ParserStackTest
-#		test/core/parser/ParserStateTest
+#		test/core/parser/stack/StackTest
+		test/core/parser/stack/StateTest
 		test/core/parser/utils/TokenizerTest
 		test/core/parser/utils/TokenTrieTest
 		test/core/resource/ResourceLocatorTest
