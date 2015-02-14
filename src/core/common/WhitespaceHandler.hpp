@@ -32,7 +32,7 @@
 #include <string>
 #include <vector>
 
-#include "WhitespaceHandler.hpp"
+#include "Utils.hpp"
 
 namespace ousia {
 
@@ -76,7 +76,7 @@ public:
 	/**
 	 * Returns the content of the WhitespaceHandler as string.
 	 */
-	std::string toString()
+	std::string toString() const
 	{
 		return std::string(textBuf.data(), textBuf.size());
 	}
@@ -214,7 +214,8 @@ inline void appendToWhitespaceHandler(WhitespaceHandler &handler, Buffer buf,
                                       size_t start)
 {
 	for (auto elem : buf) {
-		handler.append(elem, start++);
+		handler.append(elem, start, start + 1);
+		start++;
 	}
 }
 }

@@ -21,6 +21,7 @@
 #include <string>
 
 #include "Utils.hpp"
+#include "WhitespaceHandler.hpp"
 
 namespace ousia {
 
@@ -86,6 +87,30 @@ std::string Utils::extractFileExtension(const std::string &filename)
 		n++;
 	}
 	return std::string{};
+}
+
+std::string Utils::trim(const std::string &s)
+{
+	std::pair<size_t, size_t> bounds = trim(s, Utils::isWhitespace);
+	return s.substr(bounds.first, bounds.second - bounds.first);
+}
+
+std::string Utils::collapse(const std::string &s)
+{
+	CollapsingWhitespaceHandler h;
+	appendToWhitespaceHandler(h, s, 0);
+	return h.toString();
+}
+
+bool Utils::startsWith(const std::string &s, const std::string &prefix)
+{
+	return prefix.size() <= s.size() && s.substr(0, prefix.size()) == prefix;
+}
+
+bool Utils::endsWith(const std::string &s, const std::string &suffix)
+{
+	return suffix.size() <= s.size() &&
+	       s.substr(s.size() - suffix.size(), suffix.size()) == suffix;
 }
 }
 

@@ -65,5 +65,22 @@ TEST(Utils, extractFileExtension)
 	ASSERT_EQ("ext", Utils::extractFileExtension("foo.bar/test.EXT"));
 }
 
+TEST(Utils, startsWith)
+{
+	ASSERT_TRUE(Utils::startsWith("foobar", "foo"));
+	ASSERT_TRUE(Utils::startsWith("foo", "foo"));
+	ASSERT_FALSE(Utils::startsWith("foo", "foobar"));
+	ASSERT_FALSE(Utils::startsWith("foobar", "bar"));
+	ASSERT_TRUE(Utils::startsWith("foo", ""));
+}
+
+TEST(Utils, endsWith)
+{
+	ASSERT_FALSE(Utils::endsWith("foobar", "foo"));
+	ASSERT_TRUE(Utils::endsWith("foo", "foo"));
+	ASSERT_FALSE(Utils::endsWith("foo", "foobar"));
+	ASSERT_TRUE(Utils::endsWith("foobar", "bar"));
+	ASSERT_TRUE(Utils::endsWith("foo", ""));
+}
 }
 

@@ -19,8 +19,7 @@
 /**
  * @file Whitespace.hpp
  *
- * Contains the WhitespaceMode enum used in various places, as well es functions
- * for trimming and collapsing whitespaces.
+ * Contains the WhitespaceMode enum used in various places.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
@@ -53,65 +52,6 @@ enum class WhitespaceMode {
      * are replaced by a single space character.
      */
 	COLLAPSE
-};
-
-/**
- * Collection of functions for trimming or collapsing whitespace.
- */
-class Whitespace {
-	/**
-	 * Removes whitespace at the beginning and the end of the given string.
-	 *
-	 * @param s is the string that should be trimmed.
-	 * @return a trimmed copy of s.
-	 */
-	static std::string trim(const std::string &s);
-
-	/**
-	 * Trims the given string or vector of chars by returning the start and end
-	 * index.
-	 *
-	 * @param s is the container that should be trimmed.
-	 * @param f is a function that returns true for values that should be
-	 * removed.
-	 * @return start and end index. Note that "end" points at the character
-	 * beyond the end, thus "end" minus "start"
-	 */
-	template <class T, class Filter>
-	static std::pair<size_t, size_t> trim(const T &s, Filter f)
-	{
-		size_t start = 0;
-		for (size_t i = 0; i < s.size(); i++) {
-			if (!f(s[i])) {
-				start = i;
-				break;
-			}
-		}
-
-		size_t end = 0;
-		for (ssize_t i = s.size() - 1; i >= static_cast<ssize_t>(start); i--) {
-			if (!f(s[i])) {
-				end = i + 1;
-				break;
-			}
-		}
-
-		if (end < start) {
-			start = 0;
-			end = 0;
-		}
-
-		return std::pair<size_t, size_t>{start, end};
-	}
-
-	/**
-	 * Collapses the whitespaces in the given string (trims the string and
-	 * replaces all whitespace characters by a single one).
-	 *
-	 * @param s is the string in which the whitespace should be collapsed.
-	 * @return a copy of s with collapsed whitespace.
-	 */
-	static std::string collapse(const std::string &s);
 };
 
 }

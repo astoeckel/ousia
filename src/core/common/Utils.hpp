@@ -100,6 +100,60 @@ public:
 	static bool hasNonWhitepaceChar(const std::string &s);
 
 	/**
+	 * Removes whitespace at the beginning and the end of the given string.
+	 *
+	 * @param s is the string that should be trimmed.
+	 * @return a trimmed copy of s.
+	 */
+	static std::string trim(const std::string &s);
+
+	/**
+	 * Trims the given string or vector of chars by returning the start and end
+	 * index.
+	 *
+	 * @param s is the container that should be trimmed.
+	 * @param f is a function that returns true for values that should be
+	 * removed.
+	 * @return start and end index. Note that "end" points at the character
+	 * beyond the end, thus "end" minus "start"
+	 */
+	template <class T, class Filter>
+	static std::pair<size_t, size_t> trim(const T &s, Filter f)
+	{
+		size_t start = 0;
+		for (size_t i = 0; i < s.size(); i++) {
+			if (!f(s[i])) {
+				start = i;
+				break;
+			}
+		}
+
+		size_t end = 0;
+		for (ssize_t i = s.size() - 1; i >= static_cast<ssize_t>(start); i--) {
+			if (!f(s[i])) {
+				end = i + 1;
+				break;
+			}
+		}
+
+		if (end < start) {
+			start = 0;
+			end = 0;
+		}
+
+		return std::pair<size_t, size_t>{start, end};
+	}
+
+	/**
+	 * Collapses the whitespaces in the given string (trims the string and
+	 * replaces all whitespace characters by a single one).
+	 *
+	 * @param s is the string in which the whitespace should be collapsed.
+	 * @return a copy of s with collapsed whitespace.
+	 */
+	static std::string collapse(const std::string &s);
+
+	/**
 	 * Turns the elements of a collection into a string separated by the
 	 * given delimiter.
 	 *
@@ -158,6 +212,24 @@ public:
 	 * lowercase.
 	 */
 	static std::string extractFileExtension(const std::string &filename);
+
+	/**
+	 * Checks whether the given string starts with the given prefix.
+	 *
+	 * @param s is the string.
+	 * @param prefix is the string which should be checked for being a prefix of
+	 * s.
+	 */
+	static bool startsWith(const std::string &s, const std::string &prefix);
+
+	/**
+	 * Checks whether the given string ends with the given suffix.
+	 *
+	 * @param s is the string.
+	 * @param suffix is the string which should be checked for being a suffix of
+	 * s.
+	 */
+	static bool endsWith(const std::string &s, const std::string &suffix);
 
 	/**
 	 * Hash functional to be used for enum classes.
