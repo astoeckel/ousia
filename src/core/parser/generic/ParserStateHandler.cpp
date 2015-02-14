@@ -24,11 +24,13 @@ namespace ousia {
 
 /* Class ParserStatedata */
 
-ParserStatedata::ParserStatedata(ParserContext &ctx, std::string name,
-                                 const ParserState &state,
+ParserStatedata::ParserStatedata(ParserContext &ctx,
+                                 ParserStateCallbacks &callbacks,
+                                 std::string name, const ParserState &state,
                                  const ParserState &parentState,
                                  const SourceLocation location)
     : ctx(ctx),
+      callbacks(callbacks),
       name(std::move(name)),
       state(state),
       parentState(parentState),
@@ -55,6 +57,31 @@ Rooted<Project> ParserStateHandler::project() { return data.ctx.getProject(); }
 const ParserState &ParserStateHandler::state() { return data.state; }
 
 SourceLocation ParserStateHandler::location() { return data.location; }
+
+void ParserStateHandler::setWhitespaceMode(WhitespaceMode whitespaceMode)
+{
+	data.callbacks.setWhitespaceMode(whitespaceMode);
+}
+
+void ParserStateHandler::setDataType(VariantType type)
+{
+	data.callbacks.setDataType(type);
+}
+
+bool ParserStateHandler::supportsToken(const std::string &token)
+{
+	return data.callbacks.supportsToken(token);
+}
+
+void ParserStateHandler::registerToken(const std::string &token)
+{
+	data.callbacks.registerToken(token);
+}
+
+void ParserStateHandler::unregisterToken(const std::string &token)
+{
+	data.callbacks.unregisterToken(token);
+}
 
 void ParserStateHandler::data(const std::string &data, int field)
 {

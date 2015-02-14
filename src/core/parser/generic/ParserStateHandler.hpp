@@ -44,7 +44,14 @@ public:
 	ParserContext &ctx;
 
 	/**
-	 * Contains the name of the tag that is being handled.
+	 * Reference at an instance of the ParserStateCallbacks class, used for
+	 * modifying the behaviour of the parser (like registering tokens, setting
+	 * the data type or changing the whitespace handling mode).
+	 */
+	ParserStateCallbacks &callbacks;
+
+	/**
+	 * Contains the name of the command that is being handled.
 	 */
 	const std::string name;
 
@@ -67,15 +74,17 @@ public:
 	 * Constructor of the HandlerData class.
 	 *
 	 * @param ctx is the parser context the handler should be executed in.
+	 * @param callbacks is an instance of ParserStateCallbacks used to notify
+	 * the parser about certain state changes.
 	 * @param name is the name of the string.
 	 * @param state is the state this handler was called for.
 	 * @param parentState is the state of the parent command.
 	 * @param location is the location at which the handler is created.
 	 */
-	ParserStateHandlerData(ParserContext &ctx, std::string name,
-	                       const ParserState &state,
+	ParserStateHandlerData(ParserContext &ctx, ParserStateCallbacks &callbacks,
+	                       std::string name, const ParserState &state,
 	                       const ParserState &parentState,
-	                       const SourceLocation location);
+	                       const SourceLocation &location);
 };
 
 /**
@@ -110,28 +119,28 @@ public:
 	 *
 	 * @return a reference at the ParserContext.
 	 */
-	ParserContext &context() { return handlerData.ctx; }
+	ParserContext &context();
 
 	/**
 	 * Returns the command name for which the handler was created.
 	 *
 	 * @return a const reference at the command name.
 	 */
-	const std::string &name() { return handlerData.name; }
+	const std::string &name();
 
 	/**
 	 * Returns a reference at the ParserScope instance.
 	 *
 	 * @return a reference at the ParserScope instance.
 	 */
-	ParserScope &scope() { return handlerData.ctx.getScope(); }
+	ParserScope &scope();
 
 	/**
 	 * Returns a reference at the Manager instance which manages all nodes.
 	 *
 	 * @return a referance at the Manager instance.
 	 */
-	Manager &manager() { return handlerData.ctx.getManager(); }
+	Manager &manager();
 
 	/**
 	 * Returns a reference at the Logger instance used for logging error
@@ -139,7 +148,7 @@ public:
 	 *
 	 * @return a reference at the Logger instance.
 	 */
-	Logger &logger() { return handlerData.ctx.getLogger(); }
+	Logger &logger();
 
 	/**
 	 * Returns a reference at the Project Node, representing the project into
@@ -147,7 +156,7 @@ public:
 	 *
 	 * @return a referance at the Project Node.
 	 */
-	Rooted<Project> project() { return handlerData.ctx.getProject(); }
+	Rooted<Project> project();
 
 	/**
 	 * Reference at the ParserState descriptor for which this Handler was
@@ -155,24 +164,66 @@ public:
 	 *
 	 * @return a const reference at the constructing ParserState descriptor.
 	 */
-	const ParserState &state() { return handlerData.state; }
-
-	/**
-	 * Reference at the ParserState descriptor of the parent state of the state
-	 * for which this Handler was created. Set to ParserStates::None if there
-	 * is no parent state.
-	 *
-	 * @return a const reference at the parent state of the constructing
-	 * ParserState descriptor.
-	 */
-	const ParserState &parentState() { return handlerData.parentState; }
+	const ParserState &state();
 
 	/**
 	 * Returns the current location in the source file.
 	 *
 	 * @return the current location in the source file.
 	 */
-	SourceLocation location() { return handlerData.location; }
+	SourceLocation location();
+
+	/**
+	 * Calls the corresponding function in the ParserStateCallbacks instance.
+	 * Sets the whitespace mode that specifies how string data should be
+	 * processed.
+	 *
+	 * @param whitespaceMode specifies one of the three WhitespaceMode constants
+	 * PRESERVE, TRIM or COLLAPSE.
+	 */
+	void setWhitespaceMode(WhitespaceMode whitespaceMode);
+
+	/**
+	 * Calls the corresponding function in the ParserStateCallbacks instance.
+	 * Sets the type as which the variant data should be parsed.
+	 *
+	 * @param type is one of the VariantType constants, specifying with which
+	 * type the data that is passed to the ParserStateHandler in the "data"
+	 * function should be handled.
+	 */
+	void setDataType(VariantType type);
+
+	/**
+	 * Calls the corresponding function in the ParserStateCallbacks instance.
+	 * Checks whether the given token is supported by the parser. The parser
+	 * returns true, if the token is supported, false if this token cannot be
+	 * registered. Note that parsers that do not support the registration of
+	 * tokens at all should always return "true".
+	 *
+	 * @param token is the token that should be checked for support.
+	 * @return true if the token is generally supported (or the parser does not
+	 * support registering tokens at all), false if the token is not supported,
+	 * because e.g. it is a reserved token or it interferes with other tokens.
+	 */
+	bool supportsToken(const std::string &token);
+
+	/**
+	 * Calls the corresponding function in the ParserStateCallbacks instance.
+	 * Registers the given token as token that should be reported to the handler
+	 * using the "token" function.
+	 *
+	 * @param token is the token string that should be reported.
+	 */
+	void registerToken(const std::string &token);
+
+	/**
+	 * Calls the corresponding function in the ParserStateCallbacks instance.
+	 * Unregisters the given token, it will no longer be reported to the handler
+	 * using the "token" function.
+	 *
+	 * @param token is the token string that should be unregistered.
+	 */
+	void unregisterToken(const std::string &token);
 
 	/**
 	 * Called when the command that was specified in the constructor is
