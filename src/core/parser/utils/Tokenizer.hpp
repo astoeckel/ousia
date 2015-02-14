@@ -17,7 +17,7 @@
 */
 
 /**
- * @file DynamicTokenizer.hpp
+ * @file Tokenizer.hpp
  *
  * Tokenizer that can be reconfigured at runtime used for parsing the plain
  * text format.
@@ -43,9 +43,9 @@ namespace ousia {
 class CharReader;
 
 /**
- * The DynamicToken structure describes a token discovered by the Tokenizer.
+ * The Token structure describes a token discovered by the Tokenizer.
  */
-struct DynamicToken {
+struct Token {
 	/**
 	 * Id of the type of this token.
 	 */
@@ -64,28 +64,28 @@ struct DynamicToken {
 	/**
 	 * Default constructor.
 	 */
-	DynamicToken() : type(EmptyToken) {}
+	Token() : type(EmptyToken) {}
 
 	/**
-	 * Constructor of the DynamicToken struct.
+	 * Constructor of the Token struct.
 	 *
 	 * @param id represents the token type.
 	 * @param content is the string content that has been extracted.
 	 * @param location is the location of the extracted string content in the
 	 * source file.
 	 */
-	DynamicToken(TokenTypeId type, const std::string &content,
+	Token(TokenTypeId type, const std::string &content,
 	             SourceLocation location)
 	    : type(type), content(content), location(location)
 	{
 	}
 
 	/**
-	 * Constructor of the DynamicToken struct, only initializes the token type
+	 * Constructor of the Token struct, only initializes the token type
 	 *
 	 * @param type is the id corresponding to the type of the token.
 	 */
-	DynamicToken(TokenTypeId type) : type(type) {}
+	Token(TokenTypeId type) : type(type) {}
 
 	/**
 	 * The getLocation function allows the tokens to be directly passed as
@@ -97,13 +97,13 @@ struct DynamicToken {
 };
 
 /**
- * The DynamicTokenizer is used to extract tokens and chunks of text from a
+ * The Tokenizer is used to extract tokens and chunks of text from a
  * CharReader. It allows to register and unregister tokens while parsing and
  * to modify the handling of whitespace characters. Note that the
- * DynamicTokenizer always tries to extract the longest possible token from the
+ * Tokenizer always tries to extract the longest possible token from the
  * tokenizer.
  */
-class DynamicTokenizer {
+class Tokenizer {
 private:
 	/**
 	 * Internally used token trie. This object holds all registered tokens.
@@ -140,15 +140,15 @@ private:
 	 * @return false if the end of the stream has been reached, true otherwise.
 	 */
 	template <typename TextHandler, bool read>
-	bool next(CharReader &reader, DynamicToken &token);
+	bool next(CharReader &reader, Token &token);
 
 public:
 	/**
-	 * Constructor of the DynamicTokenizer class.
+	 * Constructor of the Tokenizer class.
 	 *
 	 * @param whitespaceMode specifies how whitespace should be handled.
 	 */
-	DynamicTokenizer(WhitespaceMode whitespaceMode = WhitespaceMode::COLLAPSE);
+	Tokenizer(WhitespaceMode whitespaceMode = WhitespaceMode::COLLAPSE);
 
 	/**
 	 * Registers the given string as a token. Returns a const pointer at a
@@ -201,7 +201,7 @@ public:
 
 	/**
 	 * Reads a new token from the CharReader and stores it in the given
-	 * DynamicToken instance.
+	 * Token instance.
 	 *
 	 * @param reader is the CharReader instance from which the data should be
 	 * read.
@@ -210,7 +210,7 @@ public:
 	 * @return true if a token could be read, false if the end of the stream
 	 * has been reached.
 	 */
-	bool read(CharReader &reader, DynamicToken &token);
+	bool read(CharReader &reader, Token &token);
 
 	/**
 	 * The peek method does not advance the read position of the char reader,
@@ -223,7 +223,7 @@ public:
 	 * @return true if a token could be read, false if the end of the stream
 	 * has been reached.
 	 */
-	bool peek(CharReader &reader, DynamicToken &token);
+	bool peek(CharReader &reader, Token &token);
 };
 }
 

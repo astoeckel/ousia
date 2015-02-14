@@ -24,7 +24,7 @@
 #include <core/common/Utils.hpp>
 #include <core/common/WhitespaceHandler.hpp>
 
-#include "DynamicTokenizer.hpp"
+#include "Tokenizer.hpp"
 
 namespace ousia {
 
@@ -39,7 +39,7 @@ struct TokenMatch {
 	/**
 	 * Token that was matched.
 	 */
-	DynamicToken token;
+	Token token;
 
 	/**
 	 * Current length of the data within the text handler. The text buffer needs
@@ -117,10 +117,10 @@ public:
 	 * @param c is the character that should be appended to the current prefix.
 	 * @param lookups is a list to which new TokeLookup instances are added --
 	 * which could potentially be expanded in the next iteration.
-	 * @param match is the DynamicToken instance to which the matching token
+	 * @param match is the Token instance to which the matching token
 	 * should be written.
 	 * @param tokens is a reference at the internal token list of the
-	 * DynamicTokenizer.
+	 * Tokenizer.
 	 * @param end is the end byte offset of the current character.
 	 * @param sourceId is the source if of this file.
 	 */
@@ -143,7 +143,7 @@ public:
 			size_t len = str.size();
 			if (len > match.token.content.size()) {
 				match.token =
-				    DynamicToken{node->type, str, {sourceId, start, end}};
+				    Token{node->type, str, {sourceId, start, end}};
 				match.textLength = textLength;
 				match.textEnd = textEnd;
 			}
@@ -181,15 +181,15 @@ static void buildTextToken(const WhitespaceHandler &handler, TokenMatch &match,
 }
 }
 
-/* Class DynamicTokenizer */
+/* Class Tokenizer */
 
-DynamicTokenizer::DynamicTokenizer(WhitespaceMode whitespaceMode)
+Tokenizer::Tokenizer(WhitespaceMode whitespaceMode)
     : whitespaceMode(whitespaceMode), nextTokenTypeId(0)
 {
 }
 
 template <typename TextHandler, bool read>
-bool DynamicTokenizer::next(CharReader &reader, DynamicToken &token)
+bool Tokenizer::next(CharReader &reader, Token &token)
 {
 	// If we're in the read mode, reset the char reader peek position to the
 	// current read position
@@ -268,12 +268,12 @@ bool DynamicTokenizer::next(CharReader &reader, DynamicToken &token)
 		}
 		token = match.token;
 	} else {
-		token = DynamicToken{};
+		token = Token{};
 	}
 	return match.hasMatch();
 }
 
-bool DynamicTokenizer::read(CharReader &reader, DynamicToken &token)
+bool Tokenizer::read(CharReader &reader, Token &token)
 {
 	switch (whitespaceMode) {
 		case WhitespaceMode::PRESERVE:
@@ -286,7 +286,7 @@ bool DynamicTokenizer::read(CharReader &reader, DynamicToken &token)
 	return false;
 }
 
-bool DynamicTokenizer::peek(CharReader &reader, DynamicToken &token)
+bool Tokenizer::peek(CharReader &reader, Token &token)
 {
 	switch (whitespaceMode) {
 		case WhitespaceMode::PRESERVE:
@@ -299,7 +299,7 @@ bool DynamicTokenizer::peek(CharReader &reader, DynamicToken &token)
 	return false;
 }
 
-TokenTypeId DynamicTokenizer::registerToken(const std::string &token)
+TokenTypeId Tokenizer::registerToken(const std::string &token)
 {
 	// Abort if an empty token should be registered
 	if (token.empty()) {
@@ -337,7 +337,7 @@ TokenTypeId DynamicTokenizer::registerToken(const std::string &token)
 	return type;
 }
 
-bool DynamicTokenizer::unregisterToken(TokenTypeId type)
+bool Tokenizer::unregisterToken(TokenTypeId type)
 {
 	// Unregister the token from the trie, abort if an invalid type is given
 	if (type < tokens.size() && trie.unregisterToken(tokens[type])) {
@@ -348,7 +348,7 @@ bool DynamicTokenizer::unregisterToken(TokenTypeId type)
 	return false;
 }
 
-std::string DynamicTokenizer::getTokenString(TokenTypeId type)
+std::string Tokenizer::getTokenString(TokenTypeId type)
 {
 	if (type < tokens.size()) {
 		return tokens[type];
@@ -356,26 +356,26 @@ std::string DynamicTokenizer::getTokenString(TokenTypeId type)
 	return std::string{};
 }
 
-void DynamicTokenizer::setWhitespaceMode(WhitespaceMode mode)
+void Tokenizer::setWhitespaceMode(WhitespaceMode mode)
 {
 	whitespaceMode = mode;
 }
 
-WhitespaceMode DynamicTokenizer::getWhitespaceMode() { return whitespaceMode; }
+WhitespaceMode Tokenizer::getWhitespaceMode() { return whitespaceMode; }
 
 /* Explicitly instantiate all possible instantiations of the "next" member
    function */
-template bool DynamicTokenizer::next<PreservingWhitespaceHandler, false>(
-    CharReader &reader, DynamicToken &token);
-template bool DynamicTokenizer::next<TrimmingWhitespaceHandler, false>(
-    CharReader &reader, DynamicToken &token);
-template bool DynamicTokenizer::next<CollapsingWhitespaceHandler, false>(
-    CharReader &reader, DynamicToken &token);
-template bool DynamicTokenizer::next<PreservingWhitespaceHandler, true>(
-    CharReader &reader, DynamicToken &token);
-template bool DynamicTokenizer::next<TrimmingWhitespaceHandler, true>(
-    CharReader &reader, DynamicToken &token);
-template bool DynamicTokenizer::next<CollapsingWhitespaceHandler, true>(
-    CharReader &reader, DynamicToken &token);
+template bool Tokenizer::next<PreservingWhitespaceHandler, false>(
+    CharReader &reader, Token &token);
+template bool Tokenizer::next<TrimmingWhitespaceHandler, false>(
+    CharReader &reader, Token &token);
+template bool Tokenizer::next<CollapsingWhitespaceHandler, false>(
+    CharReader &reader, Token &token);
+template bool Tokenizer::next<PreservingWhitespaceHandler, true>(
+    CharReader &reader, Token &token);
+template bool Tokenizer::next<TrimmingWhitespaceHandler, true>(
+    CharReader &reader, Token &token);
+template bool Tokenizer::next<CollapsingWhitespaceHandler, true>(
+    CharReader &reader, Token &token);
 }
 
