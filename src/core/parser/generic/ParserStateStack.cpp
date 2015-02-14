@@ -23,40 +23,11 @@
 #include <core/model/Project.hpp>
 
 #include "ParserScope.hpp"
-#include "ParserStack.hpp"
+#include "ParserStateStack.hpp"
 
 namespace ousia {
 
-/* A default handler */
-
-/**
- * The DefaultHandler class is used in case no element handler is specified in
- * the ParserState descriptor.
- */
-class DefaultHandler : public Handler {
-public:
-	using Handler::Handler;
-
-	void start(Variant::mapType &args) override {}
-
-	void end() override {}
-
-	static Handler *create(const HandlerData &handlerData)
-	{
-		return new DefaultHandler{handlerData};
-	}
-};
-
-/* Class Handler */
-
-void Handler::data(const std::string &data, int field)
-{
-	if (Utils::hasNonWhitepaceChar(data)) {
-		logger().error("Expected command but found character data.");
-	}
-}
-
-/* Class ParserStack */
+/* Class ParserStateStack */
 
 /**
  * Returns an Exception that should be thrown when a currently invalid command
@@ -79,14 +50,14 @@ static LoggableException InvalidCommand(const std::string &name,
 	}
 }
 
-ParserStack::ParserStack(
+ParserStateStack::ParserStateStack(
     ParserContext &ctx,
     const std::multimap<std::string, const ParserState *> &states)
     : ctx(ctx), states(states)
 {
 }
 
-bool ParserStack::deduceState()
+bool ParserStateStack::deduceState()
 {
 	// Assemble all states
 	std::vector<const ParserState *> states;
@@ -113,7 +84,7 @@ bool ParserStack::deduceState()
 	return true;
 }
 
-std::set<std::string> ParserStack::expectedCommands()
+std::set<std::string> ParserStateStack::expectedCommands()
 {
 	const ParserState *currentState = &(this->currentState());
 	std::set<std::string> res;
@@ -125,17 +96,17 @@ std::set<std::string> ParserStack::expectedCommands()
 	return res;
 }
 
-const ParserState &ParserStack::currentState()
+const ParserState &ParserStateStack::currentState()
 {
 	return stack.empty() ? ParserStates::None : stack.top()->state();
 }
 
-std::string ParserStack::currentCommandName()
+std::string ParserStateStack::currentCommandName()
 {
 	return stack.empty() ? std::string{} : stack.top()->name();
 }
 
-const ParserState *ParserStack::findTargetState(const std::string &name)
+const ParserState *ParserStateStack::findTargetState(const std::string &name)
 {
 	const ParserState *currentState = &(this->currentState());
 	auto range = states.equal_range(name);
@@ -149,7 +120,7 @@ const ParserState *ParserStack::findTargetState(const std::string &name)
 	return nullptr;
 }
 
-void ParserStack::start(const std::string &name, Variant::mapType &args,
+void ParserStateStack::start(const std::string &name, Variant::mapType &args,
                         const SourceLocation &location)
 {
 	ParserState const *targetState = findTargetState(name);
@@ -180,14 +151,14 @@ void ParserStack::start(const std::string &name, Variant::mapType &args,
 	stack.emplace(handler);
 }
 
-void ParserStack::start(std::string name, const Variant::mapType &args,
+void ParserStateStack::start(std::string name, const Variant::mapType &args,
                         const SourceLocation &location)
 {
 	Variant::mapType argsCopy(args);
 	start(name, argsCopy);
 }
 
-void ParserStack::end()
+void ParserStateStack::end()
 {
 	// Check whether the current command could be ended
 	if (stack.empty()) {
@@ -202,7 +173,7 @@ void ParserStack::end()
 	inst->end();
 }
 
-void ParserStack::data(const std::string &data, int field)
+void ParserStateStack::data(const std::string &data, int field)
 {
 	// Check whether there is any command the data can be sent to
 	if (stack.empty()) {

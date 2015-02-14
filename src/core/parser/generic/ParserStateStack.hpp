@@ -17,17 +17,17 @@
 */
 
 /**
- * @file ParserStack.hpp
+ * @file ParserStateStack.hpp
  *
- * Helper classes for document or description parsers. Contains the ParserStack
- * class, which is an pushdown automaton responsible for accepting commands in
- * the correct order and calling specified handlers.
+ * Helper classes for document or description parsers. Contains the
+ * ParserStateStack class, which is an pushdown automaton responsible for
+ * accepting commands in the correct order and calling specified handlers.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_PARSER_STACK_HPP_
-#define _OUSIA_PARSER_STACK_HPP_
+#ifndef _OUSIA_PARSER_STATE_STACK_HPP_
+#define _OUSIA_PARSER_STATE_STACK_HPP_
 
 #include <cstdint>
 
@@ -48,189 +48,10 @@
 namespace ousia {
 
 /**
- * Struct collecting all the data that is being passed to a Handler instance.
- */
-struct HandlerData {
-	/**
-	 * Reference to the ParserContext instance that should be used to resolve
-	 * references to nodes in the Graph.
-	 */
-	ParserContext &ctx;
-
-	/**
-	 * Contains the name of the tag that is being handled.
-	 */
-	const std::string name;
-
-	/**
-	 * Contains the current state of the state machine.
-	 */
-	const ParserState &state;
-
-	/**
-	 * Contains the state of the state machine when the parent node was handled.
-	 */
-	const ParserState &parentState;
-
-	/**
-	 * Current source code location.
-	 */
-	const SourceLocation location;
-
-	/**
-	 * Constructor of the HandlerData class.
-	 *
-	 * @param ctx is the parser context the handler should be executed in.
-	 * @param name is the name of the string.
-	 * @param state is the state this handler was called for.
-	 * @param parentState is the state of the parent command.
-	 * @param location is the location at which the handler is created.
-	 */
-	HandlerData(ParserContext &ctx, std::string name, const ParserState &state,
-	            const ParserState &parentState, const SourceLocation location)
-	    : ctx(ctx),
-	      name(std::move(name)),
-	      state(state),
-	      parentState(parentState),
-	      location(location){};
-};
-
-/**
- * The handler class provides a context for handling an XML tag. It has to be
- * overridden and registered in the StateStack class to form handlers for
- * concrete XML tags.
- */
-class Handler {
-private:
-	/**
-	 * Structure containing the internal handler data.
-	 */
-	const HandlerData handlerData;
-
-public:
-	/**
-	 * Constructor of the Handler class.
-	 *
-	 * @param data is a structure containing all data being passed to the
-	 * handler.
-	 */
-	Handler(const HandlerData &handlerData) : handlerData(handlerData){};
-
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~Handler(){};
-
-	/**
-	 * Returns a reference at the ParserContext.
-	 *
-	 * @return a reference at the ParserContext.
-	 */
-	ParserContext &context() { return handlerData.ctx; }
-
-	/**
-	 * Returns the command name for which the handler was created.
-	 *
-	 * @return a const reference at the command name.
-	 */
-	const std::string &name() { return handlerData.name; }
-
-	/**
-	 * Returns a reference at the ParserScope instance.
-	 *
-	 * @return a reference at the ParserScope instance.
-	 */
-	ParserScope &scope() { return handlerData.ctx.getScope(); }
-
-	/**
-	 * Returns a reference at the Manager instance which manages all nodes.
-	 *
-	 * @return a referance at the Manager instance.
-	 */
-	Manager &manager() { return handlerData.ctx.getManager(); }
-
-	/**
-	 * Returns a reference at the Logger instance used for logging error
-	 * messages.
-	 *
-	 * @return a reference at the Logger instance.
-	 */
-	Logger &logger() { return handlerData.ctx.getLogger(); }
-
-	/**
-	 * Returns a reference at the Project Node, representing the project into
-	 * which the file is currently being parsed.
-	 *
-	 * @return a referance at the Project Node.
-	 */
-	Rooted<Project> project() { return handlerData.ctx.getProject(); }
-
-	/**
-	 * Reference at the ParserState descriptor for which this Handler was
-	 * created.
-	 *
-	 * @return a const reference at the constructing ParserState descriptor.
-	 */
-	const ParserState &state() { return handlerData.state; }
-
-	/**
-	 * Reference at the ParserState descriptor of the parent state of the state
-	 * for which this Handler was created. Set to ParserStates::None if there
-	 * is no parent state.
-	 *
-	 * @return a const reference at the parent state of the constructing
-	 * ParserState descriptor.
-	 */
-	const ParserState &parentState() { return handlerData.parentState; }
-
-	/**
-	 * Returns the current location in the source file.
-	 *
-	 * @return the current location in the source file.
-	 */
-	SourceLocation location() { return handlerData.location; }
-
-	/**
-	 * Called when the command that was specified in the constructor is
-	 * instanciated.
-	 *
-	 * @param args is a map from strings to variants (argument name and value).
-	 */
-	virtual void start(Variant::mapType &args) = 0;
-
-	/**
-	 * Called whenever the command for which this handler is defined ends.
-	 */
-	virtual void end() = 0;
-
-	/**
-	 * Called whenever raw data (int the form of a string) is available for the
-	 * Handler instance. In the default handler an exception is raised if the
-	 * received data contains non-whitespace characters.
-	 *
-	 * @param data is a pointer at the character data that is available for the
-	 * Handler instance.
-	 * @param field is the field number (the interpretation of this value
-	 * depends on the format that is being parsed).
-	 */
-	virtual void data(const std::string &data, int field);
-};
-
-/**
- * HandlerConstructor is a function pointer type used to create concrete
- * instances of the Handler class.
- *
- * @param handlerData is the data that should be passed to the new handler
- * instance.
- * @return a newly created handler instance.
- */
-using HandlerConstructor = Handler *(*)(const HandlerData &handlerData);
-
-/**
- * The ParserStack class is a pushdown automaton responsible for turning a
+ * The ParserStateStack class is a pushdown automaton responsible for turning a
  * command stream into a tree of Node instances.
  */
-class ParserStack {
+class ParserStateStack {
 private:
 	/**
 	 * Reference at the parser context.
@@ -269,14 +90,15 @@ private:
 
 public:
 	/**
-	 * Creates a new instance of the ParserStack class.
+	 * Creates a new instance of the ParserStateStack class.
 	 *
 	 * @param ctx is the parser context the parser stack is working on.
 	 * @param states is a map containing the command names and pointers at the
 	 * corresponding ParserState instances.
 	 */
-	ParserStack(ParserContext &ctx,
-	            const std::multimap<std::string, const ParserState *> &states);
+	ParserStateStack(
+	    ParserContext &ctx,
+	    const std::multimap<std::string, const ParserState *> &states);
 
 	/**
 	 * Tries to reconstruct the parser state from the Scope instance of the
@@ -293,7 +115,7 @@ public:
 	bool deduceState();
 
 	/**
-	 * Returns the state the ParserStack instance currently is in.
+	 * Returns the state the ParserStateStack instance currently is in.
 	 *
 	 * @return the state of the currently active Handler instance or STATE_NONE
 	 * if no handler is on the stack.
@@ -357,5 +179,5 @@ public:
 };
 }
 
-#endif /* _OUSIA_PARSER_STACK_HPP_ */
+#endif /* _OUSIA_PARSER_STATE_STACK_HPP_ */
 
