@@ -147,9 +147,9 @@ ADD_LIBRARY(ousia_core
 	src/core/model/RootNode
 	src/core/model/Style
 	src/core/model/Typesystem
-#	src/core/parser/Parser
-#	src/core/parser/ParserContext
-#	src/core/parser/ParserScope
+	src/core/parser/Parser
+	src/core/parser/ParserContext
+	src/core/parser/ParserScope
 #	src/core/parser/generic/ParserState
 #	src/core/parser/generic/ParserStateCallbacks
 #	src/core/parser/generic/ParserStateHandler
@@ -183,36 +183,37 @@ TARGET_LINK_LIBRARIES(ousia_osml
 	ousia_core
 )
 
-#ADD_LIBRARY(ousia_osxml
-#	src/formats/osxml/osxmlParser
-#)
+ADD_LIBRARY(ousia_osxml
+	src/formats/osxml/OsxmlAttributeLocator
+	src/formats/osxml/OsxmlEventParser
+)
 
-#TARGET_LINK_LIBRARIES(ousia_osxml
-#	ousia_core
-#	${EXPAT_LIBRARIES}
-#)
+TARGET_LINK_LIBRARIES(ousia_osxml
+	ousia_core
+	${EXPAT_LIBRARIES}
+)
 
 # Resource locators
 
-#ADD_LIBRARY(ousia_filesystem
-#	src/plugins/filesystem/FileLocator
-#	src/plugins/filesystem/SpecialPaths
-#)
+ADD_LIBRARY(ousia_filesystem
+	src/plugins/filesystem/FileLocator
+	src/plugins/filesystem/SpecialPaths
+)
 
-#TARGET_LINK_LIBRARIES(ousia_filesystem
-#	ousia_core
-#	${Boost_LIBRARIES}
-#)
+TARGET_LINK_LIBRARIES(ousia_filesystem
+	ousia_core
+	${Boost_LIBRARIES}
+)
 
 # Output libraries
 
-#ADD_LIBRARY(ousia_html
-#	src/plugins/html/DemoOutput
-#)
+ADD_LIBRARY(ousia_html
+	src/plugins/html/DemoOutput
+)
 
-#TARGET_LINK_LIBRARIES(ousia_html
-#	ousia_core
-#)
+TARGET_LINK_LIBRARIES(ousia_html
+	ousia_core
+)
 
 #ADD_LIBRARY(ousia_mozjs
 #	src/plugins/mozjs/MozJsScriptEngine
@@ -247,7 +248,7 @@ IF(TEST)
 
 	ADD_EXECUTABLE(ousia_test_core
 		test/core/RangeSetTest
-#		test/core/RegistryTest
+		test/core/RegistryTest
 		test/core/XMLTest
 		test/core/common/ArgumentTest
 		test/core/common/CharReaderTest
@@ -272,7 +273,7 @@ IF(TEST)
 		test/core/model/NodeTest
 		test/core/model/StyleTest
 		test/core/model/TypesystemTest
-#		test/core/parser/ParserScopeTest
+		test/core/parser/ParserScopeTest
 #		test/core/parser/ParserStackTest
 #		test/core/parser/ParserStateTest
 		test/core/parser/utils/TokenizerTest
@@ -311,15 +312,15 @@ IF(TEST)
 #		ousia_css
 #	)
 
-#	ADD_EXECUTABLE(ousia_test_html
-#		test/plugins/html/DemoOutputTest
-#	)
+	ADD_EXECUTABLE(ousia_test_html
+		test/plugins/html/DemoOutputTest
+	)
 
-#	TARGET_LINK_LIBRARIES(ousia_test_html
-#		${GTEST_LIBRARIES}
-#		ousia_core
-#		ousia_html
-#	)
+	TARGET_LINK_LIBRARIES(ousia_test_html
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_html
+	)
 
 	ADD_EXECUTABLE(ousia_test_osml
 		test/formats/osml/OsmlStreamParserTest
@@ -331,16 +332,16 @@ IF(TEST)
 		ousia_osml
 	)
 
-#	ADD_EXECUTABLE(ousia_test_osxml
-#		test/plugins/xml/XmlParserTest
-#	)
+	ADD_EXECUTABLE(ousia_test_osxml
+		test/formats/osxml/OsxmlEventParserTest
+	)
 
-#	TARGET_LINK_LIBRARIES(ousia_test_osxml
-#		${GTEST_LIBRARIES}
-#		ousia_core
-#		ousia_osml
-#		ousia_filesystem
-#	)
+	TARGET_LINK_LIBRARIES(ousia_test_osxml
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_osxml
+		ousia_filesystem
+	)
 
 #	ADD_EXECUTABLE(ousia_test_mozjs
 #		test/plugins/mozjs/MozJsScriptEngineTest
@@ -354,11 +355,11 @@ IF(TEST)
 
 	# Register the unit tests
 	ADD_TEST(ousia_test_core ousia_test_core)
-#	ADD_TEST(ousia_test_filesystem ousia_test_filesystem)
+	ADD_TEST(ousia_test_filesystem ousia_test_filesystem)
 #	ADD_TEST(ousia_test_css ousia_test_css)
-#	ADD_TEST(ousia_test_html ousia_test_html)
+	ADD_TEST(ousia_test_html ousia_test_html)
 	ADD_TEST(ousia_test_osml ousia_test_osml)
-#	ADD_TEST(ousia_test_osxml ousia_test_osxml)
+	ADD_TEST(ousia_test_osxml ousia_test_osxml)
 #	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
 ENDIF()
 

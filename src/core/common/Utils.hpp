@@ -120,8 +120,25 @@ public:
 	template <class T, class Filter>
 	static std::pair<size_t, size_t> trim(const T &s, Filter f)
 	{
+		return trim(s, s.size(), f);
+	}
+
+	/**
+	 * Trims the given string or vector of chars by returning the start and end
+	 * index.
+	 *
+	 * @param s is the container that should be trimmed.
+	 * @param len is the number of elements in the container.
+	 * @param f is a function that returns true for values that should be
+	 * removed.
+	 * @return start and end index. Note that "end" points at the character
+	 * beyond the end, thus "end" minus "start"
+	 */
+	template <class T, class Filter>
+	static std::pair<size_t, size_t> trim(const T &s, size_t len, Filter f)
+	{
 		size_t start = 0;
-		for (size_t i = 0; i < s.size(); i++) {
+		for (size_t i = 0; i < len; i++) {
 			if (!f(s[i])) {
 				start = i;
 				break;
@@ -129,7 +146,7 @@ public:
 		}
 
 		size_t end = 0;
-		for (ssize_t i = s.size() - 1; i >= static_cast<ssize_t>(start); i--) {
+		for (ssize_t i = len - 1; i >= static_cast<ssize_t>(start); i--) {
 			if (!f(s[i])) {
 				end = i + 1;
 				break;

@@ -18,13 +18,21 @@
 
 #include <expat.h>
 
+#include <vector>
+
+#include <core/common/CharReader.hpp>
 #include <core/common/Logger.hpp>
 #include <core/common/Variant.hpp>
+#include <core/common/VariantReader.hpp>
 #include <core/common/Utils.hpp>
+#include <core/common/WhitespaceHandler.hpp>
 
+#include "OsxmlAttributeLocator.hpp"
 #include "OsxmlEventParser.hpp"
 
 namespace ousia {
+
+/* Class OsxmlEventParser */
 
 /**
  * Class containing data used by the internal functions.
@@ -44,40 +52,74 @@ public:
 	ssize_t annotationEndTagDepth;
 
 	/**
+	 * Current character data buffer.
+	 */
+	std::vector<char> textBuf;
+
+	/**
+	 * Current whitespace buffer (for the trimming whitspace mode)
+	 */
+	std::vector<char> whitespaceBuf;
+
+	/**
+	 * Flag indicating whether a whitespace character was present (for the
+	 * collapsing whitespace mode).
+	 */
+	bool hasWhitespace;
+
+	/**
+	 * Current character data start.
+	 */
+	size_t textStart;
+
+	/**
+	 * Current character data end.
+	 */
+	size_t textEnd;
+
+	/**
 	 * Default constructor.
 	 */
-	OsxmlEventParserData() : depth(0), annotationEndTagDepth(-1) {}
+	OsxmlEventParserData();
 
 	/**
 	 * Increments the depth.
 	 */
-	void incrDepth() { depth++; }
+	void incrDepth();
 
 	/**
 	 * Decrement the depth and reset the annotationEndTagDepth flag.
 	 */
-	void decrDepth()
-	{
-		if (depth > 0) {
-			depth--;
-		}
-		if (depth < annotationEndTagDepth) {
-			annotationEndTagDepth = -1;
-		}
-	}
+	void decrDepth();
 
 	/**
 	 * Returns true if we're currently inside an end tag.
 	 */
-	bool inAnnotationEndTag() { depth >= annotationEndTagDepth; }
+	bool inAnnotationEndTag();
+
+	/**
+	 * Returns true if character data is available.
+	 *
+	 * @return true if character data is available.
+	 */
+	bool hasText();
+
+	/**
+	 * Returns a Variant containing the character data and its location.
+	 *
+	 * @return a string variant containing the text data and the character
+	 * location.
+	 */
+	Variant getText(SourceId sourceId);
 };
 
-namespace {
+/* Class GuardedExpatXmlParser */
+
 /**
  * Wrapper class around the XML_Parser pointer which safely frees it whenever
  * the scope is left (e.g. because an exception was thrown).
  */
-class ScopedExpatXmlParser {
+class GuardedExpatXmlParser {
 private:
 	/**
 	 * Internal pointer to the XML_Parser instance.
@@ -86,14 +128,14 @@ private:
 
 public:
 	/**
-	 * Constructor of the ScopedExpatXmlParser class. Calls XML_ParserCreateNS
+	 * Constructor of the GuardedExpatXmlParser class. Calls XML_ParserCreateNS
 	 * from the expat library. Throws a parser exception if the XML parser
 	 * cannot be initialized.
 	 *
 	 * @param encoding is the protocol-defined encoding passed to expat (or
 	 * nullptr if expat should determine the encoding by itself).
 	 */
-	ScopedExpatXmlParser(const XML_Char *encoding) : parser(nullptr)
+	GuardedExpatXmlParser(const XML_Char *encoding) : parser(nullptr)
 	{
 		parser = XML_ParserCreate(encoding);
 		if (!parser) {
@@ -103,9 +145,9 @@ public:
 	}
 
 	/**
-	 * Destuctor of the ScopedExpatXmlParser, frees the XML parser instance.
+	 * Destuctor of the GuardedExpatXmlParser, frees the XML parser instance.
 	 */
-	~ScopedExpatXmlParser()
+	~GuardedExpatXmlParser()
 	{
 		if (parser) {
 			XML_ParserFree(parser);
@@ -120,134 +162,20 @@ public:
 };
 
 /**
- * Enum used internally in the statemachine of the micro-xml argument parser.
+ * Name of the special outer tag used for allowing multiple top-level elements
+ * in an xml file.
  */
-enum class XmlAttributeState {
-	IN_TAG_NAME,
-	SEARCH_ATTR,
-	IN_ATTR_NAME,
-	HAS_ATTR_NAME,
-	HAS_ATTR_EQUALS,
-	IN_ATTR_DATA
-};
+static const std::string TOP_LEVEL_TAG{"ousia"};
 
 /**
- * Function used to reconstruct the location of the attributes of a XML tag in
- * the source code. This is necessary, as the xml parser only returns an offset
- * to the begining of a tag and not to the position of the individual arguments.
- *
- * @param reader is the char reader from which the character data should be
- * read.
- * @param offs is a byte offset in the xml file pointing at the "<" character of
- * the tag.
- * @return a map from attribute keys to the corresponding location (including
- * range) of the atribute. Also contains the location of the tagname in the
- * form of the virtual attribute "$tag".
+ * Prefix used to indicate the start of an annoation (note the trailing colon)
  */
-static std::map<std::string, SourceLocation> xmlReconstructAttributeOffsets(
-    CharReader &reader, size_t offs)
-{
-	std::map<std::string, SourceLocation> res;
+static const std::string ANNOTATION_START_PREFIX{"a:start:"};
 
-	// Fork the reader, we don't want to mess up the XML parsing process, do we?
-	CharReaderFork readerFork = reader.fork();
-
-	// Move the read cursor to the start location, abort if this does not work
-	if (!location.isValid() || offs != readerFork.seek(offs)) {
-		return res;
-	}
-
-	// Now all we need to do is to implement one half of an XML parser. As this
-	// is inherently complicated we'll totaly fail at it. Don't care. All we
-	// want to get is those darn offsets for pretty error messages... (and we
-	// can assume the XML is valid as it was already read by expat)
-	XmlAttributeState state = XmlAttributeState::IN_TAG_NAME;
-	char c;
-	std::stringstream attrName;
-	while (readerFork.read(c)) {
-		// Abort at the end of the tag
-		if (c == '>' && state != XmlAttributeState::IN_ATTR_DATA) {
-			return res;
-		}
-
-		// One state machine to rule them all, one state machine to find them,
-		// One state machine to bring them all and in the darkness bind them
-		// (the byte offsets)
-		switch (state) {
-			case XmlAttributeState::IN_TAG_NAME:
-				if (Utils::isWhitespace(c)) {
-					res.emplace("$tag",
-					            SourceLocation{reader.getSourceId(), offs + 1,
-					                           readerFork.getOffset() - 1});
-					state = XmlAttributeState::SEARCH_ATTR;
-				}
-				break;
-			case XmlAttributeState::SEARCH_ATTR:
-				if (!Utils::isWhitespace(c)) {
-					state = XmlAttributeState::IN_ATTR_NAME;
-					attrName << c;
-				}
-				break;
-			case XmlAttributeState::IN_ATTR_NAME:
-				if (Utils::isWhitespace(c)) {
-					state = XmlAttributeState::HAS_ATTR_NAME;
-				} else if (c == '=') {
-					state = XmlAttributeState::HAS_ATTR_EQUALS;
-				} else {
-					attrName << c;
-				}
-				break;
-			case XmlAttributeState::HAS_ATTR_NAME:
-				if (!Utils::isWhitespace(c)) {
-					if (c == '=') {
-						state = XmlAttributeState::HAS_ATTR_EQUALS;
-						break;
-					}
-					// Well, this is a strange XML file... We expected to
-					// see a '=' here! Try to continue with the
-					// "HAS_ATTR_EQUALS" state as this state will hopefully
-					// inlcude some error recovery
-				} else {
-					// Skip whitespace here
-					break;
-				}
-			// Fallthrough
-			case XmlAttributeState::HAS_ATTR_EQUALS:
-				if (!Utils::isWhitespace(c)) {
-					if (c == '"') {
-						// Here we are! We have found the beginning of an
-						// attribute. Let's quickly lock the current offset away
-						// in the result map
-						res.emplace(attrName.str(),
-						            SourceLocation{reader.getSourceId(),
-						                           readerFork.getOffset()});
-						state = XmlAttributeState::IN_ATTR_DATA;
-					} else {
-						// No, this XML file is not well formed. Assume we're in
-						// an attribute name once again
-						attrName.str(std::string{&c, 1});
-						state = XmlAttributeState::IN_ATTR_NAME;
-					}
-				}
-				break;
-			case XmlAttributeState::IN_ATTR_DATA:
-				if (c == '"') {
-					// We're at the end of the attribute data, set the end
-					// location
-					auto it = res.find(attrName.str());
-					if (it != res.end()) {
-						it->second.setEnd(readerFork.getOffset() - 1);
-					}
-
-					// Reset the attribute name and restart the search
-					attrName.str(std::string{});
-					state = XmlAttributeState::SEARCH_ATTR;
-				}
-				break;
-		}
-	}
-	return res;
-}
+/**
+ * Prefix used to indicate the end of an annotation.
+ */
+static const std::string ANNOTATION_END_PREFIX{"a:end"};
 
 /**
  * Synchronizes the position of the xml parser with the default location of the
@@ -268,21 +196,11 @@ static SourceLocation xmlSyncLoggerPosition(XML_Parser p, size_t len = 0)
 	size_t offs = XML_GetCurrentByteIndex(p);
 	SourceLocation loc =
 	    SourceLocation{parser->getReader().getSourceId(), offs, offs + len};
-	parser->getLogger().setDefaultLocation(location);
+	parser->getLogger().setDefaultLocation(loc);
 
 	// Return the fetched location
 	return loc;
 }
-
-/**
- * Prefix used to indicate the start of an annoation,
- */
-static const std::string ANNOTATION_START_PREFIX{"a:start:"};
-
-/**
- * Prefix used to indicate the end of an annotation.
- */
-static const std::string ANNOTATION_END_PREFIX{"a:end"};
 
 /**
  * Callback called by eXpat whenever a start handler is reached.
@@ -292,14 +210,21 @@ static void xmlStartElementHandler(void *ref, const XML_Char *name,
 {
 	// Fetch the XML_Parser pointer p and a pointer at the OsxmlEventParser
 	XML_Parser p = static_cast<XML_Parser>(ref);
-	OsxmlEventParser *parser = static_cast<XMLUserData *>(XML_GetUserData(p));
+	OsxmlEventParser *parser =
+	    static_cast<OsxmlEventParser *>(XML_GetUserData(p));
+
+	// If there is any text data in the buffer, issue that first
+	if (parser->getData().hasText()) {
+		parser->getEvents().data(
+		    parser->getData().getText(parser->getReader().getSourceId()));
+	}
 
 	// Read the argument locations -- this is only a stupid and slow hack,
 	// but it is necessary, as expat doesn't give use the byte offset of the
 	// arguments.
 	std::map<std::string, SourceLocation> attributeOffsets =
-	    xmlReconstructXMLAttributeOffsets(*userData->reader,
-	                                      XML_GetCurrentByteIndex(p));
+	    OsxmlAttributeLocator::locate(parser->getReader(),
+	                                  XML_GetCurrentByteIndex(p));
 
 	// Update the logger position
 	SourceLocation loc = xmlSyncLoggerPosition(p);
@@ -316,7 +241,8 @@ static void xmlStartElementHandler(void *ref, const XML_Char *name,
 	// Make sure we're currently not inside an annotation end tag -- this would
 	// be highly illegal!
 	if (parser->getData().inAnnotationEndTag()) {
-		logger.error("No tags allowed inside an annotation end tag", nameLoc);
+		parser->getLogger().error(
+		    "No tags allowed inside an annotation end tag", nameLoc);
 		return;
 	}
 
@@ -336,36 +262,33 @@ static void xmlStartElementHandler(void *ref, const XML_Char *name,
 
 		// Parse the string, pass the location of the key
 		std::pair<bool, Variant> value = VariantReader::parseGenericString(
-		    *(attr++), stack->getContext().getLogger(), keyLoc.getSourceId(),
+		    *(attr++), parser->getLogger(), keyLoc.getSourceId(),
 		    keyLoc.getStart());
 
 		// Set the overall location of the parsed element to the attribute
 		// location
-		value.second->setLocation(keyLoc);
+		value.second.setLocation(keyLoc);
 
-		// Store the
-		if (!args.emplace(key, value.second).second) {
-			parser->getLogger().warning(
-			    std::string("Attribute \"") + key +
-			        "\" defined multiple times, only using first definition",
-			    keyLoc);
-		}
+		// Store the keys in the map
+		args.emplace(key, value.second).second;
 	}
 
 	// Fetch the name of the tag, check for special tags
 	std::string nameStr(name);
-	if (nameStr == "ousia" && parser->getData().depth == 1) {
-		// We're in the top-level and the magic "ousia" tag is reached -- just
+	if (nameStr == TOP_LEVEL_TAG && parser->getData().depth == 1) {
+		// We're in the top-level and the magic tag is reached -- just
 		// ignore it and issue a warning for each argument that has been given
 		for (const auto &arg : args) {
-			parser->getLogger().warning(
-			    std::string("Ignoring attribute \"") + arg.first +
-			        std::string("\" for magic tag \"ousia\""),
-			    arg.second);
+			parser->getLogger().warning(std::string("Ignoring attribute \"") +
+			                                arg.first +
+			                                std::string("\" for magic tag \"") +
+			                                TOP_LEVEL_TAG + std::string("\""),
+			                            arg.second);
 		}
 	} else if (Utils::startsWith(nameStr, ANNOTATION_START_PREFIX)) {
 		// Assemble a name variant containing the name minus the prefix
-		Variant nameVar = nameStr.substr(ANNOTATION_START_PREFIX.size());
+		Variant nameVar =
+		    Variant::fromString(nameStr.substr(ANNOTATION_START_PREFIX.size()));
 		nameVar.setLocation(nameLoc);
 
 		// Issue the "annotationStart" event
@@ -410,25 +333,34 @@ static void xmlStartElementHandler(void *ref, const XML_Char *name,
 	}
 }
 
-static void xmlEndElementHandler(void *p, const XML_Char *name)
+static void xmlEndElementHandler(void *ref, const XML_Char *name)
 {
 	// Fetch the XML_Parser pointer p and a pointer at the OsxmlEventParser
 	XML_Parser p = static_cast<XML_Parser>(ref);
-	OsxmlEventParser *parser = static_cast<XMLUserData *>(XML_GetUserData(p));
+	OsxmlEventParser *parser =
+	    static_cast<OsxmlEventParser *>(XML_GetUserData(p));
 
 	// Synchronize the position of the logger with teh position
-	xmlSyncLoggerPosition(parser);
+	xmlSyncLoggerPosition(p);
+
+	// Abort as long as we're in an annotation end tag
+	if (parser->getData().inAnnotationEndTag()) {
+		parser->getData().decrDepth();
+		return;
+	}
 
 	// Decrement the current depth
 	parser->getData().decrDepth();
 
-	// Abort as long as we're in an annotation end tag
-	if (parser->getData().inAnnotationEndTag()) {
-		return;
+	// If there is any text data in the buffer, issue that first
+	if (parser->getData().hasText()) {
+		parser->getEvents().data(
+		    parser->getData().getText(parser->getReader().getSourceId()));
 	}
 
 	// Abort if the special ousia tag ends here
-	if (nameStr == "ousia" && parser->getData().depth == 0) {
+	std::string nameStr{name};
+	if (nameStr == TOP_LEVEL_TAG && parser->getData().depth == 0) {
 		return;
 	}
 
@@ -436,20 +368,105 @@ static void xmlEndElementHandler(void *p, const XML_Char *name)
 	parser->getEvents().fieldEnd();
 }
 
-static void xmlCharacterDataHandler(void *p, const XML_Char *s, int len)
+static void xmlCharacterDataHandler(void *ref, const XML_Char *s, int len)
 {
 	// Fetch the XML_Parser pointer p and a pointer at the OsxmlEventParser
 	XML_Parser p = static_cast<XML_Parser>(ref);
-	OsxmlEventParser *parser = static_cast<XMLUserData *>(XML_GetUserData(p));
+	OsxmlEventParser *parser =
+	    static_cast<OsxmlEventParser *>(XML_GetUserData(p));
 
-	// TODO
-/*	size_t ulen = len > 0 ? static_cast<size_t>(len) : 0;
-	syncLoggerPosition(parser, ulen);
-	const std::string data = Utils::trim(std::string{s, ulen});
-	if (!data.empty()) {
-		stack->data(data);
-	}*/
+	// Abort as long as we're in an annotation end tag
+	if (parser->getData().inAnnotationEndTag()) {
+		return;
+	}
+
+	// Convert the signed (smell the 90's C library here?) length to an usigned
+	// value
+	size_t ulen = len > 0 ? static_cast<size_t>(len) : 0;
+
+	// Synchronize the logger position
+	SourceLocation loc = xmlSyncLoggerPosition(p, ulen);
+
+	// Fetch some variables for convenience
+	const WhitespaceMode mode = parser->getWhitespaceMode();
+	OsxmlEventParserData &data = parser->getData();
+	std::vector<char> &textBuf = data.textBuf;
+	std::vector<char> &whitespaceBuf = data.whitespaceBuf;
+	bool &hasWhitespace = data.hasWhitespace;
+	size_t &textStart = data.textStart;
+	size_t &textEnd = data.textEnd;
+
+	size_t pos = loc.getStart();
+	for (size_t i = 0; i < ulen; i++, pos++) {
+		switch (mode) {
+			case WhitespaceMode::PRESERVE:
+				PreservingWhitespaceHandler::append(s[i], pos, pos + 1, textBuf,
+				                                    textStart, textEnd);
+				break;
+			case WhitespaceMode::TRIM:
+				TrimmingWhitespaceHandler::append(s[i], pos, pos + 1, textBuf,
+				                                  textStart, textEnd,
+				                                  whitespaceBuf);
+				break;
+			case WhitespaceMode::COLLAPSE:
+				CollapsingWhitespaceHandler::append(s[i], pos, pos + 1, textBuf,
+				                                    textStart, textEnd,
+				                                    hasWhitespace);
+				break;
+		}
+	}
 }
+
+/* Class OsxmlEvents */
+
+OsxmlEvents::~OsxmlEvents() {}
+
+/* Class OsxmlEventParser */
+
+OsxmlEventParserData::OsxmlEventParserData()
+    : depth(0),
+      annotationEndTagDepth(-1),
+      hasWhitespace(false),
+      textStart(0),
+      textEnd(0)
+{
+}
+
+void OsxmlEventParserData::incrDepth() { depth++; }
+
+void OsxmlEventParserData::decrDepth()
+{
+	if (depth > 0) {
+		depth--;
+	}
+	if (depth < annotationEndTagDepth) {
+		annotationEndTagDepth = -1;
+	}
+}
+
+bool OsxmlEventParserData::inAnnotationEndTag()
+{
+	return (annotationEndTagDepth > 0) && (depth >= annotationEndTagDepth);
+}
+
+bool OsxmlEventParserData::hasText() { return !textBuf.empty(); }
+
+Variant OsxmlEventParserData::getText(SourceId sourceId)
+{
+	// Create a variant containing the string data and the location
+	Variant var =
+	    Variant::fromString(std::string{textBuf.data(), textBuf.size()});
+	var.setLocation({sourceId, textStart, textEnd});
+
+	// Reset the text buffers
+	textBuf.clear();
+	whitespaceBuf.clear();
+	hasWhitespace = false;
+	textStart = 0;
+	textEnd = 0;
+
+	// Return the variant
+	return var;
 }
 
 /* Class OsxmlEventParser */
@@ -459,21 +476,22 @@ OsxmlEventParser::OsxmlEventParser(CharReader &reader, OsxmlEvents &events,
     : reader(reader),
       events(events),
       logger(logger),
-      whitespaceMode(WhitespaceMode::COLLAPSE),
+      whitespaceMode(WhitespaceMode::TRIM),
       data(new OsxmlEventParserData())
 {
 }
 
-void OsxmlEventParser::parse(CharReader &reader)
+OsxmlEventParser::~OsxmlEventParser() {}
+
+void OsxmlEventParser::parse()
 {
 	// Create the parser object
-	ScopedExpatXmlParser p{"UTF-8"};
+	GuardedExpatXmlParser p{"UTF-8"};
 
 	// Reset the depth
-	depth = 0;
+	data->depth = 0;
 
-	// Pass the reference to the ParserStack to the XML handler
-	XMLUserData data(&stack, &reader);
+	// Pass the reference to this parser instance to the XML handler
 	XML_SetUserData(&p, this);
 	XML_UseParserAsHandlerArg(&p);
 
@@ -498,7 +516,7 @@ void OsxmlEventParser::parse(CharReader &reader)
 		if (!XML_ParseBuffer(&p, bytesRead, bytesRead == 0)) {
 			throw LoggableException{
 			    "XML: " + std::string{XML_ErrorString(XML_GetErrorCode(&p))},
-			    xmlSyncLoggerPosition(p)};
+			    xmlSyncLoggerPosition(&p)};
 		}
 
 		// Abort once there are no more bytes in the stream
@@ -513,12 +531,17 @@ void OsxmlEventParser::setWhitespaceMode(WhitespaceMode whitespaceMode)
 	this->whitespaceMode = whitespaceMode;
 }
 
-CharReader &OsxmlEventParser::getCharReader() { return charReader; }
+WhitespaceMode OsxmlEventParser::getWhitespaceMode() const
+{
+	return whitespaceMode;
+}
 
-Logger &OsxmlEventParser::getLogger() { return logger; }
+CharReader &OsxmlEventParser::getReader() const { return reader; }
 
-OsxmlEvents &OsxmlEventParser::getEvents() { return events; }
+Logger &OsxmlEventParser::getLogger() const { return logger; }
 
-OsxmlEventParserData &OsxmlEventParser::getData() { return *data; }
+OsxmlEvents &OsxmlEventParser::getEvents() const { return events; }
+
+OsxmlEventParserData &OsxmlEventParser::getData() const { return *data; }
 }
 

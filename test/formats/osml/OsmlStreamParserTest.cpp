@@ -28,6 +28,7 @@
 namespace ousia {
 
 static TerminalLogger logger(std::cerr, true);
+//static ConcreteLogger logger;
 
 TEST(OsmlStreamParser, empty)
 {

@@ -98,6 +98,25 @@ public:
 	 */
 	void append(char c, size_t start, size_t end)
 	{
+		append(c, start, end, textBuf, textStart, textEnd);
+	}
+
+	/**
+	 * Static version of PreservingWhitespaceHandler append
+	 *
+	 * @param c is the character that should be appended to the internal buffer.
+	 * @param start is the start byte offset of the given character.
+	 * @param end is the end byte offset of the given character.
+	 * @param textBuf is a reference at the text buffer that is to be used.
+	 * @param textStart is a reference at the text start variable that is to be
+	 * used.
+	 * @param textEnd is a reference at the text end variable that is to be
+	 * used.
+	 */
+	static void append(char c, size_t start, size_t end,
+	                   std::vector<char> &textBuf, size_t &textStart,
+	                   size_t &textEnd)
+	{
 		if (textBuf.empty()) {
 			textStart = start;
 		}
@@ -129,6 +148,27 @@ public:
 	 * @param end is the end byte offset of the given character.
 	 */
 	void append(char c, size_t start, size_t end)
+	{
+		append(c, start, end, textBuf, textStart, textEnd, whitespaceBuf);
+	}
+
+	/**
+	 * Static version of TrimmingWhitespaceHandler append
+	 *
+	 * @param c is the character that should be appended to the internal buffer.
+	 * @param start is the start byte offset of the given character.
+	 * @param end is the end byte offset of the given character.
+	 * @param textBuf is a reference at the text buffer that is to be used.
+	 * @param textStart is a reference at the text start variable that is to be
+	 * used.
+	 * @param textEnd is a reference at the text end variable that is to be
+	 * used.
+	 * @param whitespaceBuf is a reference at the buffer for storing whitespace
+	 * characters.
+	 */
+	static void append(char c, size_t start, size_t end,
+	                   std::vector<char> &textBuf, size_t &textStart,
+	                   size_t &textEnd, std::vector<char> &whitespaceBuf)
 	{
 		// Handle whitespace characters
 		if (Utils::isWhitespace(c)) {
@@ -174,6 +214,26 @@ public:
 	 * @param end is the end byte offset of the given character.
 	 */
 	void append(char c, size_t start, size_t end)
+	{
+		append(c, start, end, textBuf, textStart, textEnd, hasWhitespace);
+	}
+
+	/**
+	 * Static version of CollapsingWhitespaceHandler append
+	 *
+	 * @param c is the character that should be appended to the internal buffer.
+	 * @param start is the start byte offset of the given character.
+	 * @param end is the end byte offset of the given character.
+	 * @param textBuf is a reference at the text buffer that is to be used.
+	 * @param textStart is a reference at the text start variable that is to be
+	 * used.
+	 * @param textEnd is a reference at the text end variable that is to be
+	 * used.
+	 * @param hasWhitespace is a reference at the "hasWhitespace" flag.
+	 */
+	static void append(char c, size_t start, size_t end,
+	                   std::vector<char> &textBuf, size_t &textStart,
+	                   size_t &textEnd, bool &hasWhitespace)
 	{
 		// Handle whitespace characters
 		if (Utils::isWhitespace(c)) {

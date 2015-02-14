@@ -42,7 +42,7 @@ class Variant;
 class OsxmlEventParserData;
 
 /**
- * Interface which defines the callback functions which are called by the 
+ * Interface which defines the callback functions which are called by the
  * OsxmlEventParser whenever an event occurs.
  */
 class OsxmlEvents {
@@ -50,13 +50,13 @@ public:
 	/**
 	 * Virtual destructor.
 	 */
-	virtual ~OsxmlEvents() {}
+	virtual ~OsxmlEvents();
 
 	/**
 	 * Called whenever a command starts. Note that this implicitly always starts
 	 * the default field of the command.
 	 *
-	 * @param name is a string variant containing name and location of the 
+	 * @param name is a string variant containing name and location of the
 	 * command.
 	 * @param args is a map variant containing the arguments that were given
 	 * to the command.
@@ -67,12 +67,12 @@ public:
 	 * Called whenever an annotation starts. Note that this implicitly always
 	 * starts the default field of the annotation.
 	 *
-	 * @param name is a string variant containing the name of the annotation 
+	 * @param name is a string variant containing the name of the annotation
 	 * class and the location of the annotation definition.
 	 * @param args is a map variant containing the arguments that were given
 	 * to the annotation definition.
 	 */
-	virtual void annotationStart(Variant name, Variant args);
+	virtual void annotationStart(Variant name, Variant args) = 0;
 
 	/**
 	 * Called whenever the range of an annotation ends. The callee must
@@ -85,12 +85,12 @@ public:
 	 * ended here. May be empty (or nullptr), if no elementName has been
 	 * specified at the end of the annotation.
 	 */
-	virtual void annotationEnd(Variant name, Variant elementName);
+	virtual void annotationEnd(Variant name, Variant elementName) = 0;
 
 	/**
-	 * Called whenever the default field which was implicitly started by 
+	 * Called whenever the default field which was implicitly started by
 	 * commandStart or annotationStart ends. Note that this does not end the
-	 * range of an annotation, but the default field of the annotation. To 
+	 * range of an annotation, but the default field of the annotation. To
 	 * signal the end of the annotation this, the annotationEnd method will be
 	 * invoked.
 	 */
@@ -102,11 +102,10 @@ public:
 	 * is not called if the parsing failed, the parser prints an error message
 	 * instead.
 	 *
-	 * @param data is the already parsed data that should be passed to the 
+	 * @param data is the already parsed data that should be passed to the
 	 * handler.
 	 */
 	virtual void data(Variant data) = 0;
-
 };
 
 /**
@@ -148,7 +147,7 @@ public:
 	 * Constructor fo the OsxmlEventParser. Takes a reference at the OsxmlEvents
 	 * of which the callback functions are called.
 	 *
-	 * @param reader is a reference to the CharReader instance from which the 
+	 * @param reader is a reference to the CharReader instance from which the
 	 * XML should be read.
 	 * @param events is a refence at an instance of the OsxmlEvents class. All
 	 * events are forwarded to this class.
@@ -156,6 +155,11 @@ public:
 	 * written.
 	 */
 	OsxmlEventParser(CharReader &reader, OsxmlEvents &events, Logger &logger);
+
+	/**
+	 * Destructor of OsxmlEventParser (needed for unique_ptr to incomplete type)
+	 */
+	~OsxmlEventParser();
 
 	/**
 	 * Performs the actual parsing. Reads the XML using eXpat and calles the
@@ -167,38 +171,44 @@ public:
 	/**
 	 * Sets the whitespace handling mode.
 	 *
-	 * @param whitespaceMode defines how whitespace in the data should be 
+	 * @param whitespaceMode defines how whitespace in the data should be
 	 * handled.
 	 */
 	void setWhitespaceMode(WhitespaceMode whitespaceMode);
+
+	/**
+	 * Returns the current whitespace handling mode.
+	 *
+	 * @return the currently set whitespace handling mode.
+	 */
+	WhitespaceMode getWhitespaceMode() const;
 
 	/**
 	 * Returns the internal CharReader reference.
 	 *
 	 * @return the CharReader reference.
 	 */
-	CharReader &getCharReader();
+	CharReader &getReader() const;
 
 	/**
 	 * Returns the internal Logger reference.
 	 *
 	 * @return the internal Logger reference.
 	 */
-	Logger &getLogger();
+	Logger &getLogger() const;
 
 	/**
 	 * Returns the internal OsxmlEvents reference.
 	 *
 	 * @return the internal OsxmlEvents reference.
 	 */
-	OsxmlEvents &getEvents();
+	OsxmlEvents &getEvents() const;
 
 	/**
 	 * Returns a reference at the internal data.
 	 */
-	OsxmlEventParserData &getData();
+	OsxmlEventParserData &getData() const;
 };
-
 }
 
 #endif /* _OSXML_EVENT_PARSER_HPP_ */
