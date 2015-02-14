@@ -28,7 +28,7 @@ namespace ousia {
 /**
  * Plain format default tokenizer.
  */
-class PlainFormatTokens : public DynamicTokenizer {
+class PlainFormatTokens : public Tokenizer {
 public:
 	/**
 	 * Id of the backslash token.
@@ -418,7 +418,7 @@ OsdmStreamParser::State OsdmStreamParser::parseCommand(size_t start)
 
 void OsdmStreamParser::parseBlockComment()
 {
-	DynamicToken token;
+	Token token;
 	size_t depth = 1;
 	while (tokenizer.read(reader, token)) {
 		if (token.type == Tokens.BlockCommentEnd) {
@@ -488,7 +488,7 @@ OsdmStreamParser::State OsdmStreamParser::parse()
 	DataHandler handler;
 
 	// Read tokens until the outer loop should be left
-	DynamicToken token;
+	Token token;
 	while (tokenizer.peek(reader, token)) {
 		const TokenTypeId type = token.type;
 

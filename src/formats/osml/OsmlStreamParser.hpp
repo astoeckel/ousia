@@ -32,8 +32,7 @@
 #include <stack>
 
 #include <core/common/Variant.hpp>
-
-#include "DynamicTokenizer.hpp"
+#include <core/parser/utils/Tokenizer.hpp>
 
 namespace ousia {
 
@@ -198,7 +197,7 @@ private:
 	/**
 	 * Tokenizer instance used to read individual tokens from the text.
 	 */
-	DynamicTokenizer tokenizer;
+	Tokenizer tokenizer;
 
 	/**
 	 * Stack containing the current commands.

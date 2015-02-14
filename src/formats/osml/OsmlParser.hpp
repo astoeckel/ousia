@@ -1,0 +1,48 @@
+/*
+    Ousía
+    Copyright (C) 2014, 2015  Benjamin Paaßen, Andreas Stöckel
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/**
+ * @file OsdmParser.hpp
+ *
+ * Contains the parser of the osdm format, the standard plain-text format used
+ * by Ousía for documents.
+ *
+ * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
+ */
+
+#ifndef _OUSIA_OSDM_PARSER_HPP_
+#define _OUSIA_OSDM_PARSER_HPP_
+
+#include <core/parser/Parser.hpp>
+
+namespace ousia {
+
+/**
+ * OsdmParser is a small wrapper implementing the Parser interface. The actual
+ * parsing is performed with the OsdmStreamParser in conjunction with the
+ * ParserStateStack.
+ */
+class OsdmParser : public Parser {
+protected:
+	void doParse(CharReader &reader, ParserContext &ctx) override;
+};
+
+}
+
+#endif /* _OUSIA_OSDM_PARSER_HPP_ */
+
