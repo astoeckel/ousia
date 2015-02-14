@@ -163,9 +163,13 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/ParserContext
 	src/core/parser/ParserScope
 	src/core/parser/stack/Callbacks
+	src/core/parser/stack/DocumentHandler
+	src/core/parser/stack/DomainHandler
 	src/core/parser/stack/Handler
+	src/core/parser/stack/ImportIncludeHandler
 	src/core/parser/stack/State
 	src/core/parser/stack/Stack
+	src/core/parser/stack/TypesystemHandler
 	src/core/parser/utils/Tokenizer
 	src/core/parser/utils/TokenTrie
 	src/core/resource/Resource

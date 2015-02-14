@@ -184,7 +184,7 @@ bool StaticHandler::annotationEnd(const Variant &className,
 
 bool StaticHandler::data(const Variant &data)
 {
-	// No data supported
+	logger().error("Did not expect any data here", data);
 	return false;
 }
 
