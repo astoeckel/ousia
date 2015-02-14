@@ -18,18 +18,11 @@
 
 #include <algorithm>
 #include <cctype>
-#include <limits>
 #include <string>
 
 #include "Utils.hpp"
 
 namespace ousia {
-
-std::string Utils::trim(const std::string &s)
-{
-	std::pair<size_t, size_t> bounds = trim(s, Utils::isWhitespace);
-	return s.substr(bounds.first, bounds.second - bounds.first);
-}
 
 bool Utils::isIdentifier(const std::string &name)
 {

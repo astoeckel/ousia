@@ -79,11 +79,16 @@ public:
 	static bool isIdentifier(const std::string &name);
 
 	/**
+	 * Returns true if the given character is a linebreak character.
+	 */
+	static bool isLinebreak(const char c) { return (c == '\n') || (c == '\r'); }
+
+	/**
 	 * Returns true if the given character is a whitespace character.
 	 */
 	static bool isWhitespace(const char c)
 	{
-		return (c == ' ') || (c == '\t') || (c == '\n') || (c == '\r');
+		return (c == ' ') || (c == '\t') || isLinebreak(c);
 	}
 
 	/**
@@ -93,56 +98,6 @@ public:
 	 * @return true if the string contains a non-whitespace character.
 	 */
 	static bool hasNonWhitepaceChar(const std::string &s);
-
-	/**
-	 * Returns true if the given character is a whitespace character.
-	 */
-	static bool isLinebreak(const char c) { return (c == '\n') || (c == '\r'); }
-
-	/**
-	 * Removes whitespace at the beginning and the end of the given string.
-	 *
-	 * @param s is the string that should be trimmed.
-	 * @return a trimmed copy of s.
-	 */
-	static std::string trim(const std::string &s);
-
-	/**
-	 * Trims the given string or vector of chars by returning the start and end
-	 * index.
-	 *
-	 * @param s is the container that should be trimmed.
-	 * @param f is a function that returns true for values that should be
-	 * removed.
-	 * @return start and end index. Note that "end" points at the character
-	 * beyond the end, thus "end" minus "start"
-	 */
-	template <class T, class Filter>
-	static std::pair<size_t, size_t> trim(const T &s, Filter f)
-	{
-		size_t start = 0;
-		for (size_t i = 0; i < s.size(); i++) {
-			if (!f(s[i])) {
-				start = i;
-				break;
-			}
-		}
-
-		size_t end = 0;
-		for (ssize_t i = s.size() - 1; i >= static_cast<ssize_t>(start); i--) {
-			if (!f(s[i])) {
-				end = i + 1;
-				break;
-			}
-		}
-
-		if (end < start) {
-			start = 0;
-			end = 0;
-		}
-
-		return std::pair<size_t, size_t>{start, end};
-	}
 
 	/**
 	 * Turns the elements of a collection into a string separated by the

@@ -32,14 +32,6 @@ TEST(Utils, isIdentifier)
 	ASSERT_FALSE(Utils::isIdentifier("invalid key"));
 }
 
-TEST(Utils, trim)
-{
-	ASSERT_EQ("hello world", Utils::trim("\t hello world   \n\r\t"));
-	ASSERT_EQ("hello world", Utils::trim("hello world   \n\r\t"));
-	ASSERT_EQ("hello world", Utils::trim("   hello world"));
-	ASSERT_EQ("hello world", Utils::trim("hello world"));
-}
-
 TEST(Utils, split)
 {
 	ASSERT_EQ(std::vector<std::string>({"ab"}), Utils::split("ab", '.'));
