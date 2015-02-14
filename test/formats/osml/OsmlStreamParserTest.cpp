@@ -1019,17 +1019,20 @@ TEST(OsmlStreamParser, explicitDefaultFieldWithCommand)
 TEST(OsmlStreamParser, errorFieldAfterExplicitDefaultField)
 {
 	const char *testString = "\\a{!\\b}{c}";
-	//                         0123 4567
+	//                         0123 456789
 	CharReader charReader(testString);
 
 	OsmlStreamParser reader(charReader, logger);
 
+	logger.reset();
 	assertCommand(reader, "a", 0, 2);
 	assertFieldStart(reader, true, 2, 4);
 	assertCommand(reader, "b", 4, 6);
 	assertFieldEnd(reader, 6, 7);
-	assertData(reader, "c", 7, 8);
-	assertEnd(reader, 8, 8);
+	ASSERT_FALSE(logger.hasError());
+	assertData(reader, "c", 8, 9);
+	ASSERT_TRUE(logger.hasError());
+	assertEnd(reader, 10, 10);
 }
 
 }
