@@ -43,6 +43,7 @@ namespace ousia {
 
 // Forward declarations
 class ParserContext;
+class Logger;
 
 namespace parser_stack {
 
@@ -75,7 +76,13 @@ public:
 	bool valid : 1;
 
 	/**
-	 * Set to true if the handler currently is in a filed.
+	 * Set to true if this is an implicit handler, that was created when the
+	 * current stack state was deduced.
+	 */
+	bool implicit : 1;
+
+	/**
+	 * Set to true if the handler currently is in a field.
 	 */
 	bool inField : 1;
 
@@ -99,12 +106,17 @@ public:
 	/**
 	 * Set to true, if the default field was already started.
 	 */
-	bool hasDefaultField : 1;
+	bool hadDefaultField : 1;
 
 	/**
 	 * Default constructor of the HandlerInfo class.
 	 */
 	HandlerInfo();
+	/**
+	 * Constructor of the HandlerInfo class, allows to set all flags manually.
+	 */
+	HandlerInfo(bool valid, bool implicit, bool inField, bool inDefaultField,
+	            bool inImplicitDefaultField, bool inValidField);
 
 	/**
 	 * Constructor of the HandlerInfo class, taking a shared_ptr to the handler
@@ -128,7 +140,6 @@ public:
 	 */
 	void fieldEnd();
 };
-
 
 /**
  * The Stack class is a pushdown automaton responsible for turning a command
@@ -155,6 +166,11 @@ private:
 	std::vector<HandlerInfo> stack;
 
 	/**
+	 * Return the reference in the Logger instance stored within the context.
+	 */
+	Logger &logger();
+
+	/**
 	 * Used internally to get all expected command names for the current state.
 	 * This function is used to build error messages.
 	 *
@@ -164,7 +180,7 @@ private:
 
 	/**
 	 * Returns the targetState for a command with the given name that can be
-	 * reached from for the current state.
+	 * reached from the current state.
 	 *
 	 * @param name is the name of the requested command.
 	 * @return nullptr if no target state was found, a pointer at the target
@@ -173,12 +189,50 @@ private:
 	const State *findTargetState(const std::string &name);
 
 	/**
+	 * Returns the targetState for a command with the given name that can be
+	 * reached from the current state, also including the wildcard "*" state.
+	 * Throws an exception if the given target state is not a valid identifier.
+	 *
+	 * @param name is the name of the requested command.
+	 * @return nullptr if no target state was found, a pointer at the target
+	 * state otherwise.
+	 */
+	const State *findTargetStateOrWildcard(const std::string &name);
+
+	/**
 	 * Tries to reconstruct the parser state from the Scope instance of the
 	 * ParserContext given in the constructor. This functionality is needed for
 	 * including files,as the Parser of the included file needs to be brought to
 	 * an equivalent state as the one in the including file.
 	 */
 	void deduceState();
+
+	/**
+	 * Returns a reference at the current HandlerInfo instance (or a stub
+	 * HandlerInfo instance if the stack is empty).
+	 */
+	HandlerInfo &currentInfo();
+
+	/**
+	 * Returns a reference at the last HandlerInfo instance (or a stub
+	 * HandlerInfo instance if the stack has only one element).
+	 */
+	HandlerInfo &lastInfo();
+
+	/**
+	 * Ends the current handler and removes the corresponding element from the
+	 * stack.
+	 */
+	void endCurrentHandler();
+
+	/**
+	 * Tries to start a default field for the current handler, if currently the
+	 * handler is not inside a field and did not have a default field yet.
+	 *
+	 * @return true if the handler is inside a field, false if no field could
+	 * be started.
+	 */
+	bool ensureHandlerIsInField();
 
 	/**
 	 * Returns true if all handlers on the stack are currently valid, or false
@@ -196,9 +250,8 @@ public:
 	 * @param states is a map containing the command names and pointers at the
 	 * corresponding State instances.
 	 */
-	Stack(
-	    ParserContext &ctx,
-	    const std::multimap<std::string, const State *> &states);
+	Stack(ParserContext &ctx,
+	      const std::multimap<std::string, const State *> &states);
 
 	/**
 	 * Destructor of the Stack class.
@@ -232,6 +285,15 @@ public:
 	void command(const Variant &name, const Variant::mapType &args);
 
 	/**
+	 * Function that shuold be called whenever character data is found in the
+	 * input stream. May only be called if the currently is a command on the
+	 * stack.
+	 *
+	 * @param data is a string variant containing the data that has been found.
+	 */
+	void data(const Variant &data);
+
+	/**
 	 * Function that should be called whenever a new field starts. Fields of the
 	 * same command may not be separated by calls to data or annotations. Doing
 	 * so will result in a LoggableException.
@@ -246,15 +308,6 @@ public:
 	 * function if there is no field to end will result in a LoggableException.
 	 */
 	void fieldEnd();
-
-	/**
-	 * Function that shuold be called whenever character data is found in the
-	 * input stream. May only be called if the currently is a command on the
-	 * stack.
-	 *
-	 * @param data is a string variant containing the data that has been found.
-	 */
-	void data(const Variant &data);
 
 	/**
 	 * Function that should be called whenever an annotation starts.
