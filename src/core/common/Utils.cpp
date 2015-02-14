@@ -40,6 +40,21 @@ bool Utils::isIdentifier(const std::string &name)
 	return true;
 }
 
+bool Utils::isNamespaceIdentifier(const std::string &name)
+{
+	bool first = true;
+	for (char c : name) {
+		if (first && !isIdentifierStartCharacter(c)) {
+			return false;
+		}
+		if (!first && (!isIdentifierCharacter(c) || c == ':')) {
+			return false;
+		}
+		first = (c == ':');
+	}
+	return true;
+}
+
 bool Utils::hasNonWhitepaceChar(const std::string &s)
 {
 	for (char c : s) {

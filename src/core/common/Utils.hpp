@@ -74,9 +74,28 @@ public:
 	}
 
 	/**
-	 * Returns true if the given character is in [A-Za-z][A-Za-z0-9_-]*
+	 * Returns true if the given string is in
+	 * \code{.txt}
+	 * [A-Za-z][A-Za-z0-9_-]*
+	 * \endCode
+	 *
+	 * @param name is the string that should be tested.
+	 * @return true if the string matches the regular expression given above, 
+	 * false otherwise.
 	 */
 	static bool isIdentifier(const std::string &name);
+
+	/**
+	 * Returns true if the given string is in
+	 * \code{.txt}
+	 * ([A-Za-z][A-Za-z0-9_-]*)(:[A-Za-z][A-Za-z0-9_-]*)*
+	 * \endCode
+	 *
+	 * @param name is the string that should be tested.
+	 * @return true if the string matches the regular expression given above, 
+	 * false otherwise.
+	 */
+	static bool isNamespacedIdentifier(const std::string &name);
 
 	/**
 	 * Returns true if the given character is a linebreak character.
