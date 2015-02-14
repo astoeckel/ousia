@@ -115,9 +115,7 @@ ADD_DEFINITIONS(
 )
 
 ADD_LIBRARY(ousia_core
-	src/core/CodeTokenizer
 	src/core/Registry
-	src/core/Tokenizer
 	src/core/XML
 	src/core/RangeSet
 	src/core/common/Argument
@@ -136,6 +134,7 @@ ADD_LIBRARY(ousia_core
 	src/core/common/VariantConverter
 	src/core/common/VariantReader
 	src/core/common/VariantWriter
+	src/core/common/Whitespace
 	src/core/frontend/Terminal
 	src/core/frontend/TerminalLogger
 	src/core/managed/Events
@@ -152,8 +151,8 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/Parser
 	src/core/parser/ParserContext
 	src/core/parser/ParserScope
-	src/core/parser/ParserStack
-	src/core/parser/ParserState
+	src/core/parser/generic/ParserStateStack
+	src/core/parser/generic/ParserState
 	src/core/resource/Resource
 	src/core/resource/ResourceLocator
 	src/core/resource/ResourceManager
@@ -161,13 +160,15 @@ ADD_LIBRARY(ousia_core
 #	src/core/script/ScriptEngine
 )
 
-ADD_LIBRARY(ousia_css
-	src/plugins/css/CSSParser
-)
+#ADD_LIBRARY(ousia_css
+#	src/plugins/css/CodeTokenizer
+#	src/plugins/css/Tokenizer
+#	src/plugins/css/CSSParser
+#)
 
-TARGET_LINK_LIBRARIES(ousia_css
-	ousia_core
-)
+#TARGET_LINK_LIBRARIES(ousia_css
+#	ousia_core
+#)
 
 ADD_LIBRARY(ousia_filesystem
 	src/plugins/filesystem/FileLocator
@@ -224,7 +225,6 @@ ADD_EXECUTABLE(ousia
 
 TARGET_LINK_LIBRARIES(ousia
 	ousia_core
-	ousia_css
 	ousia_filesystem
 	ousia_html
 	ousia_xml
@@ -257,6 +257,7 @@ IF(TEST)
 		test/core/common/VariantWriterTest
 		test/core/common/VariantTest
 		test/core/common/UtilsTest
+		test/core/common/WhitespaceTest
 		test/core/frontend/TerminalLoggerTest
 		test/core/managed/ManagedContainerTest
 		test/core/managed/ManagedTest
@@ -293,15 +294,17 @@ IF(TEST)
 		ousia_filesystem
 	)
 
-	ADD_EXECUTABLE(ousia_test_css
-		test/plugins/css/CSSParserTest
-	)
+#	ADD_EXECUTABLE(ousia_test_css
+#		test/plugins/css/Tokenizer
+#		test/plugins/css/CodeTokenizerTest
+#		test/plugins/css/CSSParserTest
+#	)
 
-	TARGET_LINK_LIBRARIES(ousia_test_css
-		${GTEST_LIBRARIES}
-		ousia_core
-		ousia_css
-	)
+#	TARGET_LINK_LIBRARIES(ousia_test_css
+#		${GTEST_LIBRARIES}
+#		ousia_core
+#		ousia_css
+#	)
 
 	ADD_EXECUTABLE(ousia_test_html
 		test/plugins/html/DemoOutputTest
@@ -349,7 +352,7 @@ IF(TEST)
 	# Register the unit tests
 	ADD_TEST(ousia_test_core ousia_test_core)
 	ADD_TEST(ousia_test_filesystem ousia_test_filesystem)
-	ADD_TEST(ousia_test_css ousia_test_css)
+#	ADD_TEST(ousia_test_css ousia_test_css)
 	ADD_TEST(ousia_test_html ousia_test_html)
 	ADD_TEST(ousia_test_xml ousia_test_xml)
 	ADD_TEST(ousia_test_osdm ousia_test_osdm)
