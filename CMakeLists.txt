@@ -290,15 +290,15 @@ IF(TEST)
 		ousia_core
 	)
 
-#	ADD_EXECUTABLE(ousia_test_filesystem
-#		test/plugins/filesystem/FileLocatorTest
-#	)
+	ADD_EXECUTABLE(ousia_test_filesystem
+		test/plugins/filesystem/FileLocatorTest
+	)
 
-#	TARGET_LINK_LIBRARIES(ousia_test_filesystem
-#		${GTEST_LIBRARIES}
-#		ousia_core
-#		ousia_filesystem
-#	)
+	TARGET_LINK_LIBRARIES(ousia_test_filesystem
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_filesystem
+	)
 
 #	ADD_EXECUTABLE(ousia_test_css
 #		test/plugins/css/Tokenizer

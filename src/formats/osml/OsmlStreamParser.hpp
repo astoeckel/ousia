@@ -153,9 +153,15 @@ public:
 		bool inRangeField;
 
 		/**
+		 * Set to true if we are currently in a field that has been especially
+		 * marked as default field (using the "|") syntax.
+		 */
+		bool inDefaultField;
+
+		/**
 		 * Default constructor.
 		 */
-		Command() : hasRange(false), inField(false), inRangeField(false) {}
+		Command() : hasRange(false), inField(false), inRangeField(false), inDefaultField() {}
 
 		/**
 		 * Constructor of the Command class.
@@ -168,16 +174,19 @@ public:
 		 * explicit range.
 		 * @param inField is set to true if we currently are inside a field
 		 * of this command.
-		 * @param inRangeField is set to true if we currently inside the outer
-		 * field of the command.
+		 * @param inRangeField is set to true if we currently are inside the
+		 * outer field of a ranged command.
+		 * @param inDefaultField is set to true if we currently are in a
+		 * specially marked default field.
 		 */
 		Command(Variant name, Variant arguments, bool hasRange, bool inField,
-		        bool inRangeField)
+		        bool inRangeField, bool inDefaultField)
 		    : name(std::move(name)),
 		      arguments(std::move(arguments)),
 		      hasRange(hasRange),
 		      inField(inField),
-		      inRangeField(inRangeField)
+		      inRangeField(inRangeField),
+		      inDefaultField(inDefaultField)
 		{
 		}
 	};
@@ -289,6 +298,16 @@ private:
 	 */
 	bool checkIssueFieldStart();
 
+	/**
+	 * Closes a currently open field. Note that the command will be removed from
+	 * the internal command stack if the field that is being closed is a
+	 * field marked as default field.
+	 *
+	 * @return true if the field could be closed, false if there was no field
+	 * to close.
+	 */
+	bool closeField();
+
 public:
 	/**
 	 * Constructor of the OsmlStreamParser class. Attaches the new
@@ -317,7 +336,7 @@ public:
 	 * @return a reference at a variant containing the data parsed by the
 	 * "parse" function.
 	 */
-	const Variant &getData() { return data; }
+	const Variant &getData() const { return data; }
 
 	/**
 	 * Returns a reference at the internally stored command name. Only valid if
@@ -326,7 +345,7 @@ public:
 	 * @return a reference at a variant containing name and location of the
 	 * parsed command.
 	 */
-	const Variant &getCommandName();
+	const Variant &getCommandName() const;
 
 	/**
 	 * Returns a reference at the internally stored command name. Only valid if
@@ -335,14 +354,22 @@ public:
 	 * @return a reference at a variant containing arguments given to the
 	 * command.
 	 */
-	const Variant &getCommandArguments();
+	const Variant &getCommandArguments() const;
+
+	/**
+	 * Returns true if the current field is the "default" field. This is true if
+	 * the parser either is in the outer range of a range command or inside a
+	 * field that has been especially marked as "default" field (using the "|"
+	 * syntax).
+	 */
+	bool inDefaultField() const;
 
 	/**
 	 * Returns a reference at the char reader.
 	 *
 	 * @return the last internal token location.
 	 */
-	SourceLocation &getLocation() { return location; }
+	const SourceLocation &getLocation() const { return location; }
 };
 }
 

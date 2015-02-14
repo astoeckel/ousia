@@ -28,7 +28,88 @@
 namespace ousia {
 
 static TerminalLogger logger(std::cerr, true);
-//static ConcreteLogger logger;
+// static ConcreteLogger logger;
+
+static void assertCommand(OsmlStreamParser &reader, const std::string &name,
+                          SourceOffset start = InvalidSourceOffset,
+                          SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(OsmlStreamParser::State::COMMAND, reader.parse());
+	EXPECT_EQ(name, reader.getCommandName().asString());
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getCommandName().getLocation().getStart());
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getCommandName().getLocation().getEnd());
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
+
+static void assertCommand(OsmlStreamParser &reader, const std::string &name,
+                          const Variant::mapType &args,
+                          SourceOffset start = InvalidSourceOffset,
+                          SourceOffset end = InvalidSourceOffset)
+{
+	assertCommand(reader, name, start, end);
+	EXPECT_EQ(args, reader.getCommandArguments());
+}
+
+static void assertData(OsmlStreamParser &reader, const std::string &data,
+                       SourceOffset start = InvalidSourceOffset,
+                       SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
+	EXPECT_EQ(data, reader.getData().asString());
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getData().getLocation().getStart());
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getData().getLocation().getEnd());
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
+
+static void assertFieldStart(OsmlStreamParser &reader, bool defaultField,
+                             SourceOffset start = InvalidSourceOffset,
+                             SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(OsmlStreamParser::State::FIELD_START, reader.parse());
+	EXPECT_EQ(defaultField, reader.inDefaultField());
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
+
+static void assertFieldEnd(OsmlStreamParser &reader,
+                           SourceOffset start = InvalidSourceOffset,
+                           SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(OsmlStreamParser::State::FIELD_END, reader.parse());
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
+
+static void assertEnd(OsmlStreamParser &reader,
+                      SourceOffset start = InvalidSourceOffset,
+                      SourceOffset end = InvalidSourceOffset)
+{
+	ASSERT_EQ(OsmlStreamParser::State::END, reader.parse());
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, reader.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, reader.getLocation().getEnd());
+	}
+}
 
 TEST(OsmlStreamParser, empty)
 {
@@ -47,12 +128,7 @@ TEST(OsmlStreamParser, oneCharacter)
 
 	OsmlStreamParser reader(charReader, logger);
 
-	ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-	ASSERT_EQ("a", reader.getData().asString());
-
-	SourceLocation loc = reader.getData().getLocation();
-	ASSERT_EQ(0U, loc.getStart());
-	ASSERT_EQ(1U, loc.getEnd());
+	assertData(reader, "a", 0, 1);
 }
 
 TEST(OsmlStreamParser, whitespaceElimination)
@@ -64,12 +140,7 @@ TEST(OsmlStreamParser, whitespaceElimination)
 
 	OsmlStreamParser reader(charReader, logger);
 
-	ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-	ASSERT_EQ("hello world", reader.getData().asString());
-
-	SourceLocation loc = reader.getData().getLocation();
-	ASSERT_EQ(1U, loc.getStart());
-	ASSERT_EQ(14U, loc.getEnd());
+	assertData(reader, "hello world", 1, 14);
 }
 
 TEST(OsmlStreamParser, whitespaceEliminationWithLinebreak)
@@ -81,13 +152,7 @@ TEST(OsmlStreamParser, whitespaceEliminationWithLinebreak)
 
 	OsmlStreamParser reader(charReader, logger);
 
-	ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-	ASSERT_EQ("hello world", reader.getData().asString());
-
-	SourceLocation loc = reader.getData().getLocation();
-	ASSERT_EQ(1U, loc.getStart());
-	ASSERT_EQ(14U, loc.getEnd());
-	ASSERT_EQ(OsmlStreamParser::State::END, reader.parse());
+	assertData(reader, "hello world", 1, 14);
 }
 
 TEST(OsmlStreamParser, escapeWhitespace)
@@ -99,13 +164,7 @@ TEST(OsmlStreamParser, escapeWhitespace)
 
 	OsmlStreamParser reader(charReader, logger);
 
-	ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-	ASSERT_EQ("hello  world", reader.getData().asString());
-
-	SourceLocation loc = reader.getData().getLocation();
-	ASSERT_EQ(1U, loc.getStart());
-	ASSERT_EQ(15U, loc.getEnd());
-	ASSERT_EQ(OsmlStreamParser::State::END, reader.parse());
+	assertData(reader, "hello  world", 1, 15);
 }
 
 static void testEscapeSpecialCharacter(const std::string &c)
@@ -127,6 +186,7 @@ TEST(OsmlStreamParser, escapeSpecialCharacters)
 	testEscapeSpecialCharacter("}");
 	testEscapeSpecialCharacter("<");
 	testEscapeSpecialCharacter(">");
+	testEscapeSpecialCharacter("|");
 }
 
 TEST(OsmlStreamParser, simpleSingleLineComment)
@@ -347,86 +407,6 @@ TEST(OsmlStreamParser, simpleCommandWithArgumentsAndName)
 	ASSERT_EQ(OsmlStreamParser::State::END, reader.parse());
 }
 
-static void assertCommand(OsmlStreamParser &reader, const std::string &name,
-                          SourceOffset start = InvalidSourceOffset,
-                          SourceOffset end = InvalidSourceOffset)
-{
-	ASSERT_EQ(OsmlStreamParser::State::COMMAND, reader.parse());
-	EXPECT_EQ(name, reader.getCommandName().asString());
-	if (start != InvalidSourceOffset) {
-		EXPECT_EQ(start, reader.getCommandName().getLocation().getStart());
-		EXPECT_EQ(start, reader.getLocation().getStart());
-	}
-	if (end != InvalidSourceOffset) {
-		EXPECT_EQ(end, reader.getCommandName().getLocation().getEnd());
-		EXPECT_EQ(end, reader.getLocation().getEnd());
-	}
-}
-
-static void assertCommand(OsmlStreamParser &reader, const std::string &name,
-                          const Variant::mapType &args,
-                          SourceOffset start = InvalidSourceOffset,
-                          SourceOffset end = InvalidSourceOffset)
-{
-	assertCommand(reader, name, start, end);
-	EXPECT_EQ(args, reader.getCommandArguments());
-}
-
-static void assertData(OsmlStreamParser &reader, const std::string &data,
-                       SourceOffset start = InvalidSourceOffset,
-                       SourceOffset end = InvalidSourceOffset)
-{
-	ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-	EXPECT_EQ(data, reader.getData().asString());
-	if (start != InvalidSourceOffset) {
-		EXPECT_EQ(start, reader.getData().getLocation().getStart());
-		EXPECT_EQ(start, reader.getLocation().getStart());
-	}
-	if (end != InvalidSourceOffset) {
-		EXPECT_EQ(end, reader.getData().getLocation().getEnd());
-		EXPECT_EQ(end, reader.getLocation().getEnd());
-	}
-}
-
-static void assertFieldStart(OsmlStreamParser &reader,
-                             SourceOffset start = InvalidSourceOffset,
-                             SourceOffset end = InvalidSourceOffset)
-{
-	ASSERT_EQ(OsmlStreamParser::State::FIELD_START, reader.parse());
-	if (start != InvalidSourceOffset) {
-		EXPECT_EQ(start, reader.getLocation().getStart());
-	}
-	if (end != InvalidSourceOffset) {
-		EXPECT_EQ(end, reader.getLocation().getEnd());
-	}
-}
-
-static void assertFieldEnd(OsmlStreamParser &reader,
-                           SourceOffset start = InvalidSourceOffset,
-                           SourceOffset end = InvalidSourceOffset)
-{
-	ASSERT_EQ(OsmlStreamParser::State::FIELD_END, reader.parse());
-	if (start != InvalidSourceOffset) {
-		EXPECT_EQ(start, reader.getLocation().getStart());
-	}
-	if (end != InvalidSourceOffset) {
-		EXPECT_EQ(end, reader.getLocation().getEnd());
-	}
-}
-
-static void assertEnd(OsmlStreamParser &reader,
-                      SourceOffset start = InvalidSourceOffset,
-                      SourceOffset end = InvalidSourceOffset)
-{
-	ASSERT_EQ(OsmlStreamParser::State::END, reader.parse());
-	if (start != InvalidSourceOffset) {
-		EXPECT_EQ(start, reader.getLocation().getStart());
-	}
-	if (end != InvalidSourceOffset) {
-		EXPECT_EQ(end, reader.getLocation().getEnd());
-	}
-}
-
 TEST(OsmlStreamParser, fields)
 {
 	const char *testString = "\\test{a}{b}{c}";
@@ -436,15 +416,15 @@ TEST(OsmlStreamParser, fields)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test", 0, 5);
-	assertFieldStart(reader, 5, 6);
+	assertFieldStart(reader, false, 5, 6);
 	assertData(reader, "a", 6, 7);
 	assertFieldEnd(reader, 7, 8);
 
-	assertFieldStart(reader, 8, 9);
+	assertFieldStart(reader, false, 8, 9);
 	assertData(reader, "b", 9, 10);
 	assertFieldEnd(reader, 10, 11);
 
-	assertFieldStart(reader, 11, 12);
+	assertFieldStart(reader, false, 11, 12);
 	assertData(reader, "c", 12, 13);
 	assertFieldEnd(reader, 13, 14);
 	assertEnd(reader, 14, 14);
@@ -459,11 +439,11 @@ TEST(OsmlStreamParser, dataOutsideField)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test", 0, 5);
-	assertFieldStart(reader, 5, 6);
+	assertFieldStart(reader, false, 5, 6);
 	assertData(reader, "a", 6, 7);
 	assertFieldEnd(reader, 7, 8);
 
-	assertFieldStart(reader, 8, 9);
+	assertFieldStart(reader, false, 8, 9);
 	assertData(reader, "b", 9, 10);
 	assertFieldEnd(reader, 10, 11);
 
@@ -481,14 +461,14 @@ TEST(OsmlStreamParser, nestedCommand)
 
 	assertCommand(reader, "test", 0, 5);
 
-	assertFieldStart(reader, 5, 6);
+	assertFieldStart(reader, false, 5, 6);
 	assertData(reader, "a", 6, 7);
 	assertFieldEnd(reader, 7, 8);
 
-	assertFieldStart(reader, 8, 9);
+	assertFieldStart(reader, false, 8, 9);
 	{
 		assertCommand(reader, "test2", 9, 15);
-		assertFieldStart(reader, 15, 16);
+		assertFieldStart(reader, false, 15, 16);
 		assertData(reader, "b", 16, 17);
 		assertFieldEnd(reader, 17, 18);
 	}
@@ -507,10 +487,10 @@ TEST(OsmlStreamParser, nestedCommandImmediateEnd)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test", 0, 5);
-	assertFieldStart(reader, 5, 6);
+	assertFieldStart(reader, false, 5, 6);
 	{
 		assertCommand(reader, "test2", 6, 12);
-		assertFieldStart(reader, 12, 13);
+		assertFieldStart(reader, false, 12, 13);
 		assertData(reader, "b", 13, 14);
 		assertFieldEnd(reader, 14, 15);
 	}
@@ -527,7 +507,7 @@ TEST(OsmlStreamParser, nestedCommandNoData)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test", 0, 5);
-	assertFieldStart(reader, 5, 6);
+	assertFieldStart(reader, false, 5, 6);
 	assertCommand(reader, "test2", 6, 12);
 	assertFieldEnd(reader, 12, 13);
 	assertEnd(reader, 13, 13);
@@ -557,11 +537,11 @@ TEST(OsmlStreamParser, fieldsWithSpaces)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "a", 0, 2);
-	assertFieldStart(reader, 3, 4);
+	assertFieldStart(reader, false, 3, 4);
 	assertCommand(reader, "b", 4, 6);
 	assertCommand(reader, "c", 7, 9);
 	assertFieldEnd(reader, 9, 10);
-	assertFieldStart(reader, 16, 17);
+	assertFieldStart(reader, false, 16, 17);
 	assertCommand(reader, "d", 17, 19);
 	assertFieldEnd(reader, 19, 20);
 	assertEnd(reader, 20, 20);
@@ -612,9 +592,9 @@ TEST(OsmlStreamParser, errorNoFieldEndNested)
 
 	logger.reset();
 	assertCommand(reader, "test", 0, 5);
-	assertFieldStart(reader, 5, 6);
+	assertFieldStart(reader, false, 5, 6);
 	assertCommand(reader, "test2", 6, 12);
-	assertFieldStart(reader, 12, 13);
+	assertFieldStart(reader, false, 12, 13);
 	assertFieldEnd(reader, 13, 14);
 	assertFieldEnd(reader, 14, 15);
 	ASSERT_FALSE(logger.hasError());
@@ -633,9 +613,9 @@ TEST(OsmlStreamParser, errorNoFieldEndNestedData)
 
 	logger.reset();
 	assertCommand(reader, "test", 0, 5);
-	assertFieldStart(reader, 5, 6);
+	assertFieldStart(reader, false, 5, 6);
 	assertCommand(reader, "test2", 6, 12);
-	assertFieldStart(reader, 12, 13);
+	assertFieldStart(reader, false, 12, 13);
 	assertFieldEnd(reader, 13, 14);
 	assertFieldEnd(reader, 14, 15);
 	assertData(reader, "a", 15, 16);
@@ -654,7 +634,7 @@ TEST(OsmlStreamParser, beginEnd)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "book", 7, 11);
-	assertFieldStart(reader, 12, 13);
+	assertFieldStart(reader, true, 12, 13);
 	assertFieldEnd(reader, 17, 21);
 	assertEnd(reader, 22, 22);
 }
@@ -669,7 +649,7 @@ TEST(OsmlStreamParser, beginEndWithName)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "book", {{"name", "a"}}, 7, 11);
-	assertFieldStart(reader, 14, 15);
+	assertFieldStart(reader, true, 14, 15);
 	assertFieldEnd(reader, 19, 23);
 	assertEnd(reader, 24, 24);
 }
@@ -685,7 +665,7 @@ TEST(OsmlStreamParser, beginEndWithNameAndArgs)
 
 	assertCommand(reader, "book",
 	              {{"name", "a"}, {"a", 1}, {"b", 2}, {"c", "test"}}, 7, 11);
-	assertFieldStart(reader, 32, 33);
+	assertFieldStart(reader, true, 32, 33);
 	assertFieldEnd(reader, 37, 41);
 	assertEnd(reader, 42, 42);
 }
@@ -702,17 +682,17 @@ TEST(OsmlStreamParser, beginEndWithNameAndArgsMultipleFields)
 
 	assertCommand(reader, "book",
 	              {{"name", "a"}, {"a", 1}, {"b", 2}, {"c", "test"}}, 7, 11);
-	assertFieldStart(reader, 32, 33);
+	assertFieldStart(reader, false, 32, 33);
 	assertData(reader, "a", 33, 34);
 	assertCommand(reader, "test", Variant::mapType{}, 35, 40);
 	assertFieldEnd(reader, 40, 41);
-	assertFieldStart(reader, 41, 42);
+	assertFieldStart(reader, false, 41, 42);
 	assertData(reader, "b", 42, 43);
 	assertCommand(reader, "test", Variant::mapType{}, 44, 49);
-	assertFieldStart(reader, 49, 50);
+	assertFieldStart(reader, false, 49, 50);
 	assertFieldEnd(reader, 50, 51);
 	assertFieldEnd(reader, 51, 52);
-	assertFieldStart(reader, 52, 53);
+	assertFieldStart(reader, true, 52, 53);
 	assertFieldEnd(reader, 57, 61);
 	assertEnd(reader, 62, 62);
 }
@@ -727,10 +707,43 @@ TEST(OsmlStreamParser, beginEndWithData)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "book", 7, 11);
-	assertFieldStart(reader, 12, 13);
+	assertFieldStart(reader, true, 12, 13);
 	assertData(reader, "a", 12, 13);
 	assertFieldEnd(reader, 18, 22);
 	assertEnd(reader, 23, 23);
+}
+
+TEST(OsmlStreamParser, beginEndNested)
+{
+	const char *testString =
+	    "\\begin{a}{b} c \\begin{d}{e}{f} \\g{h} \\end{d}\\end{a}";
+	//    012345678901234 5678901234567890 123456 7890123 4567890
+	//    0         1          2         3           4          5
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertCommand(reader, "a", 7, 8);
+	assertFieldStart(reader, false, 9, 10);
+	assertData(reader, "b", 10, 11);
+	assertFieldEnd(reader, 11, 12);
+	assertFieldStart(reader, true, 13, 14);
+	assertData(reader, "c", 13, 14);
+	assertCommand(reader, "d", 22, 23);
+	assertFieldStart(reader, false, 24, 25);
+	assertData(reader, "e", 25, 26);
+	assertFieldEnd(reader, 26, 27);
+	assertFieldStart(reader, false, 27, 28);
+	assertData(reader, "f", 28, 29);
+	assertFieldEnd(reader, 29, 30);
+	assertFieldStart(reader, true, 31, 32);
+	assertCommand(reader, "g", 31, 33);
+	assertFieldStart(reader, false, 33, 34);
+	assertData(reader, "h", 34, 35);
+	assertFieldEnd(reader, 35, 36);
+	assertFieldEnd(reader, 42, 43);
+	assertFieldEnd(reader, 49, 50);
+	assertEnd(reader, 51, 51);
 }
 
 TEST(OsmlStreamParser, beginEndWithCommand)
@@ -743,9 +756,9 @@ TEST(OsmlStreamParser, beginEndWithCommand)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "book", 7, 11);
-	assertFieldStart(reader, 12, 13);
+	assertFieldStart(reader, true, 12, 13);
 	assertCommand(reader, "a", 12, 14);
-	assertFieldStart(reader, 14, 15);
+	assertFieldStart(reader, false, 14, 15);
 	assertData(reader, "test", 15, 19);
 	assertFieldEnd(reader, 19, 20);
 	assertFieldEnd(reader, 25, 29);
@@ -873,9 +886,9 @@ TEST(OsmlStreamParser, errorBeginEndMismatch)
 
 	logger.reset();
 	assertCommand(reader, "a", 7, 8);
-	assertFieldStart(reader, 10, 11);
+	assertFieldStart(reader, true, 10, 11);
 	assertCommand(reader, "b", 17, 18);
-	assertFieldStart(reader, 20, 24);
+	assertFieldStart(reader, true, 20, 24);
 	assertData(reader, "test", 20, 24);
 	ASSERT_FALSE(logger.hasError());
 	ASSERT_THROW(reader.parse(), LoggableException);
@@ -904,7 +917,7 @@ TEST(OsmlStreamParser, beginEndWithNSSep)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "test1:test2", 7, 18);
-	assertFieldStart(reader, 19, 20);
+	assertFieldStart(reader, true, 19, 20);
 	assertFieldEnd(reader, 24, 35);
 	assertEnd(reader, 36, 36);
 }
@@ -920,7 +933,7 @@ TEST(OsmlStreamParser, errorBeginNSSep)
 	ASSERT_FALSE(logger.hasError());
 	assertCommand(reader, "blub");
 	ASSERT_TRUE(logger.hasError());
-	assertFieldStart(reader);
+	assertFieldStart(reader, true);
 	assertFieldEnd(reader);
 	assertEnd(reader);
 }
@@ -934,7 +947,7 @@ TEST(OsmlStreamParser, errorEndNSSep)
 
 	logger.reset();
 	assertCommand(reader, "blub");
-	assertFieldStart(reader);
+	assertFieldStart(reader, true);
 	ASSERT_FALSE(logger.hasError());
 	assertFieldEnd(reader);
 	ASSERT_TRUE(logger.hasError());
@@ -970,5 +983,54 @@ TEST(OsmlStreamParser, errorRepeatedNs)
 	assertData(reader, "::");
 	assertEnd(reader);
 }
+
+TEST(OsmlStreamParser, explicitDefaultField)
+{
+	const char *testString = "\\a{!b}c";
+	//                         01234567
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertCommand(reader, "a", 0, 2);
+	assertFieldStart(reader, true, 2, 4);
+	assertData(reader, "b", 4, 5);
+	assertFieldEnd(reader, 5, 6);
+	assertData(reader, "c", 6, 7);
+	assertEnd(reader, 7, 7);
+}
+
+TEST(OsmlStreamParser, explicitDefaultFieldWithCommand)
+{
+	const char *testString = "\\a{!\\b}c";
+	//                         0123 4567
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertCommand(reader, "a", 0, 2);
+	assertFieldStart(reader, true, 2, 4);
+	assertCommand(reader, "b", 4, 6);
+	assertFieldEnd(reader, 6, 7);
+	assertData(reader, "c", 7, 8);
+	assertEnd(reader, 8, 8);
+}
+
+TEST(OsmlStreamParser, errorFieldAfterExplicitDefaultField)
+{
+	const char *testString = "\\a{!\\b}{c}";
+	//                         0123 4567
+	CharReader charReader(testString);
+
+	OsmlStreamParser reader(charReader, logger);
+
+	assertCommand(reader, "a", 0, 2);
+	assertFieldStart(reader, true, 2, 4);
+	assertCommand(reader, "b", 4, 6);
+	assertFieldEnd(reader, 6, 7);
+	assertData(reader, "c", 7, 8);
+	assertEnd(reader, 8, 8);
+}
+
 }
 

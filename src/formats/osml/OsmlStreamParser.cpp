@@ -61,6 +61,11 @@ public:
 	TokenTypeId FieldEnd;
 
 	/**
+	 * Id of the default field start token.
+	 */
+	TokenTypeId DefaultFieldStart;
+
+	/**
 	 * Registers the plain format tokens in the internal tokenizer.
 	 */
 	PlainFormatTokens()
@@ -71,6 +76,7 @@ public:
 		BlockCommentEnd = registerToken("}%");
 		FieldStart = registerToken("{");
 		FieldEnd = registerToken("}");
+		DefaultFieldStart = registerToken("{!");
 	}
 };
 
@@ -164,7 +170,7 @@ OsmlStreamParser::OsmlStreamParser(CharReader &reader, Logger &logger)
     : reader(reader), logger(logger), tokenizer(Tokens)
 {
 	// Place an intial command representing the complete file on the stack
-	commands.push(Command{"", Variant::mapType{}, true, true, true});
+	commands.push(Command{"", Variant::mapType{}, true, true, true, false});
 }
 
 Variant OsmlStreamParser::parseIdentifier(size_t start, bool allowNSSep)
@@ -365,7 +371,7 @@ void OsmlStreamParser::pushCommand(Variant commandName,
 		commands.pop();
 	}
 	commands.push(Command{std::move(commandName), std::move(commandArguments),
-	                      hasRange, false, false});
+	                      hasRange, false, false, false});
 }
 
 OsmlStreamParser::State OsmlStreamParser::parseCommand(size_t start)
@@ -482,6 +488,29 @@ bool OsmlStreamParser::checkIssueFieldStart()
 	return false;
 }
 
+bool OsmlStreamParser::closeField()
+{
+	// Try to end an open field of the current command -- if the current command
+	// is not inside an open field, end this command and try to close the next
+	// one
+	for (int i = 0; i < 2 && commands.size() > 1; i++) {
+		Command &cmd = commands.top();
+		if (!cmd.inRangeField) {
+			if (cmd.inField) {
+				cmd.inField = false;
+				if (cmd.inDefaultField) {
+					commands.pop();
+				}
+				return true;
+			}
+			commands.pop();
+		} else {
+			return false;
+		}
+	}
+	return false;
+}
+
 OsmlStreamParser::State OsmlStreamParser::parse()
 {
 	// Handler for incomming data
@@ -579,27 +608,29 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 			}
 			logger.error(
 			    "Got field start token \"{\", but no command for which to "
-			    "start the field. Did you mean \"\\{\"?",
+			    "start the field. Write \"\\{\" to insert this sequence as "
+			    "text.",
 			    token);
 		} else if (token.type == Tokens.FieldEnd) {
-			// Try to end an open field of the current command -- if the current
-			// command is not inside an open field, end this command and try to
-			// close the next one
-			for (int i = 0; i < 2 && commands.size() > 1; i++) {
-				Command &cmd = commands.top();
-				if (!cmd.inRangeField) {
-					if (cmd.inField) {
-						cmd.inField = false;
-						return State::FIELD_END;
-					}
-					commands.pop();
-				} else {
-					break;
-				}
+			if (closeField()) {
+				return State::FIELD_END;
 			}
 			logger.error(
-			    "Got field end token \"}\", but there is no field to end. Did "
-			    "you mean \"\\}\"?",
+			    "Got field end token \"}\", but there is no field to end. "
+			    "Write \"\\}\" to insert this sequence as text.",
+			    token);
+		} else if (token.type == Tokens.DefaultFieldStart) {
+			// Try to start a default field the first time the token is reached
+			Command &topCmd = commands.top();
+			if (!topCmd.inField) {
+				topCmd.inField = true;
+				topCmd.inDefaultField = true;
+				return State::FIELD_START;
+			}
+			logger.error(
+			    "Got default field start token \"{!\", but no command for "
+			    "which to start the field. Write \"\\{!\" to insert this "
+			    "sequence as text",
 			    token);
 		} else {
 			logger.error("Unexpected token \"" + token.content + "\"", token);
@@ -627,14 +658,19 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 	return State::END;
 }
 
-const Variant &OsmlStreamParser::getCommandName()
+const Variant &OsmlStreamParser::getCommandName() const
 {
 	return commands.top().name;
 }
 
-const Variant &OsmlStreamParser::getCommandArguments()
+const Variant &OsmlStreamParser::getCommandArguments() const
 {
 	return commands.top().arguments;
+}
+
+bool OsmlStreamParser::inDefaultField() const
+{
+	return commands.top().inRangeField || commands.top().inDefaultField;
 }
 }
 
