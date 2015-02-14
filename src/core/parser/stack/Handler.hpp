@@ -23,10 +23,12 @@
 
 #include <core/common/Location.hpp>
 #include <core/common/Variant.hpp>
+#include <core/common/Whitespace.hpp>
 
 namespace ousia {
 
 // Forward declarations
+class ParserScope;
 class ParserContext;
 class Logger;
 
@@ -53,7 +55,7 @@ public:
 	 * modifying the behaviour of the parser (like registering tokens, setting
 	 * the data type or changing the whitespace handling mode).
 	 */
-	Callbacks &callbacks;
+	//	Callbacks &callbacks;
 
 	/**
 	 * Contains the name of the command that is being handled.
@@ -80,7 +82,8 @@ public:
 	 * @param state is the state this handler was called for.
 	 * @param location is the location at which the handler is created.
 	 */
-	HandlerData(ParserContext &ctx, Callbacks &callbacks, std::string name,
+	HandlerData(ParserContext &ctx,
+	            /*Callbacks &callbacks,*/ const std::string &name,
 	            const State &state, const SourceLocation &location);
 };
 
@@ -95,6 +98,12 @@ private:
 	 * Structure containing the internal handler data.
 	 */
 	const HandlerData handlerData;
+
+	/**
+	 * Reference at the current logger. If not nullptr, this will override the
+	 * logger from the ParserContext specified in the handlerData.
+	 */
+	Logger *internalLogger;
 
 protected:
 	/**
@@ -135,11 +144,12 @@ protected:
 	Logger &logger();
 
 	/**
-	 * Returns the current location in the source file.
+	 * Returns the location of the element in the source file, for which this
+	 * Handler was created.
 	 *
-	 * @return the current location in the source file.
+	 * @return the location of the Handler in the source file.
 	 */
-	SourceLocation location();
+	const SourceLocation &location() const;
 
 public:
 	/**
@@ -189,6 +199,27 @@ public:
 	 * @return a const reference at the constructing State descriptor.
 	 */
 	const State &getState() const;
+
+	/**
+	 * Sets the internal logger to the given logger instance.
+	 *
+	 * @param logger is the Logger instance to which the logger should be set.
+	 */
+	void setLogger(Logger &logger);
+
+	/**
+	 * Resets the logger instance to the logger instance provided in the
+	 * ParserContext.
+	 */
+	void resetLogger();
+
+	/**
+	 * Returns the location of the element in the source file, for which this
+	 * Handler was created.
+	 *
+	 * @return the location of the Handler in the source file.
+	 */
+	const SourceLocation &getLocation() const;
 
 	/**
 	 * Called when the command that was specified in the constructor is

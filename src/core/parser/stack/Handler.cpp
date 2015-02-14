@@ -29,12 +29,12 @@ namespace parser_stack {
 
 /* Class HandlerData */
 
-HandlerData::HandlerData(ParserContext &ctx, Callbacks &callbacks,
-                         std::string name, const State &state,
+HandlerData::HandlerData(ParserContext &ctx, /*Callbacks &callbacks,*/
+                         const std::string &name, const State &state,
                          const SourceLocation &location)
     : ctx(ctx),
-      callbacks(callbacks),
-      name(std::move(name)),
+      /*callbacks(callbacks),*/
+      name(name),
       state(state),
       location(location)
 {
@@ -42,7 +42,10 @@ HandlerData::HandlerData(ParserContext &ctx, Callbacks &callbacks,
 
 /* Class Handler */
 
-Handler::Handler(const HandlerData &handlerData) : handlerData(handlerData) {}
+Handler::Handler(const HandlerData &handlerData)
+    : handlerData(handlerData), internalLogger(nullptr)
+{
+}
 
 Handler::~Handler() {}
 
@@ -52,28 +55,40 @@ ParserScope &Handler::scope() { return handlerData.ctx.getScope(); }
 
 Manager &Handler::manager() { return handlerData.ctx.getManager(); }
 
-Logger &Handler::logger() { return handlerData.ctx.getLogger(); }
+Logger &Handler::logger()
+{
+	if (internalLogger != nullptr) {
+		return *internalLogger;
+	}
+	return handlerData.ctx.getLogger();
+}
 
-SourceLocation Handler::location() { return handlerData.location; }
+const SourceLocation &Handler::location() const { return handlerData.location; }
 
 void Handler::setWhitespaceMode(WhitespaceMode whitespaceMode)
 {
-	handlerData.callbacks.setWhitespaceMode(whitespaceMode);
+	/*handlerData.callbacks.setWhitespaceMode(whitespaceMode);*/
 }
 
 void Handler::registerToken(const std::string &token)
 {
-	handlerData.callbacks.registerToken(token);
+	/*handlerData.callbacks.registerToken(token);*/
 }
 
 void Handler::unregisterToken(const std::string &token)
 {
-	handlerData.callbacks.unregisterToken(token);
+	/*handlerData.callbacks.unregisterToken(token);*/
 }
 
 const std::string &Handler::getName() const { return handlerData.name; }
 
 const State &Handler::getState() const { return handlerData.state; }
+
+void Handler::setLogger(Logger &logger) { internalLogger = &logger; }
+
+void Handler::resetLogger() { internalLogger = nullptr; }
+
+const SourceLocation &Handler::getLocation() const { return location(); }
 
 /* Class EmptyHandler */
 
@@ -117,6 +132,11 @@ bool EmptyHandler::data(const Variant &data)
 {
 	// Support any data
 	return true;
+}
+
+Handler *EmptyHandler::create(const HandlerData &handlerData)
+{
+	return new EmptyHandler(handlerData);
 }
 
 /* Class StaticHandler */
