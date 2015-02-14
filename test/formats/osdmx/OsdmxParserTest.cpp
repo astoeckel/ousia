@@ -29,7 +29,7 @@
 #include <core/StandaloneEnvironment.hpp>
 
 #include <plugins/filesystem/FileLocator.hpp>
-#include <plugins/xml/XmlParser.hpp>
+#include <formats/osdmx/OsdmxParser.hpp>
 
 namespace ousia {
 
