@@ -131,51 +131,59 @@ public:
 	std::string currentCommandName();
 
 	/**
-	 * Function that should be called whenever a new command starts.
+	 * Function that should be called whenever a new command is reached.
 	 *
-	 * @param name is the name of the command.
-	 * @param args is a map from strings to variants (argument name and value).
-	 * Note that the passed map will be modified.
-	 * @param location is the location in the source file at which the command
-	 * starts.
+	 * @param name is the name of the command (including the namespace
+	 * separator ':') and its corresponding location. Must be a string variant.
+	 * @param args is a map variant containing the arguments that were passed to
+	 * the command.
 	 */
-	void start(const std::string &name, Variant::mapType &args,
-	           const SourceLocation &location = SourceLocation{});
+	void command(Variant name, Variant args);
 
 	/**
-	 * Function that should be called whenever a new command starts.
-	 *
-	 * @param name is the name of the command.
-	 * @param args is a map from strings to variants (argument name and value).
-	 * @param location is the location in the source file at which the command
-	 * starts.
+	 * Function that should be called whenever a new field starts. Fields of the
+	 * same command may not be separated by calls to 
 	 */
-	void start(std::string name,
-	           const Variant::mapType &args = Variant::mapType{},
-	           const SourceLocation &location = SourceLocation{});
+	void fieldStart();
 
 	/**
-	 * Function called whenever a command ends.
+	 * Function that should be called whenever a field ends.
 	 */
-	void end();
+	void fieldEnd();
 
 	/**
-	 * Function that should be called whenever data is available for the
-	 * command.
+	 * Function that shuold be called whenever character data is found in the
+	 * input stream.
 	 *
-	 * @param data is the data that should be passed to the handler.
-	 * @param field is the field number (the interpretation of this value
-	 * depends on the format that is being parsed).
+	 * @param data is a variant of any type containing the data that was parsed
+	 * as data.
 	 */
-	void data(const std::string &data, int field = 0);
+	void data(Variant data);
 
 	/**
-	 * Returns a reference to the parser context the parser stack is currently
-	 * working on.
+	 * Function that should be called whenever an annotation starts.
 	 *
-	 * @return a reference to the parser context.
+	 * @param name is the name of the annotation class.
+	 * @param args is a map variant containing the arguments that were passed
+	 * to the annotation.
 	 */
-	ParserContext &getContext() { return ctx; }
+	void annotationStart(Variant name, Variant args);
+
+	/**
+	 * Function that should be called whenever an annotation ends.
+	 *
+	 * @param name is the name of the annotation class that was ended.
+	 * @param annotationName is the name of the annotation that was ended.
+	 */
+	void annotationEnd(Variant name, Variant annotationName);
+
+	/**
+	 * Function that should be called whenever a previously registered token
+	 * is found in the input stream.
+	 *
+	 * @param token is string variant containing the token that was encountered.
+	 */
+	void token(Variant token);
 };
 }
 
