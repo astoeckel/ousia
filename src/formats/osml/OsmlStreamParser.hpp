@@ -139,24 +139,24 @@ public:
 		/**
 		 * Set to true if this is a command with clear begin and end.
 		 */
-		bool hasRange;
+		bool hasRange : 1;
 
 		/**
 		 * Set to true if we are currently inside a field of this command.
 		 */
-		bool inField;
+		bool inField : 1;
 
 		/**
 		 * Set to true if we are currently in the range field of the command
 		 * (implies inField being set to true).
 		 */
-		bool inRangeField;
+		bool inRangeField : 1;
 
 		/**
 		 * Set to true if we are currently in a field that has been especially
 		 * marked as default field (using the "|") syntax.
 		 */
-		bool inDefaultField;
+		bool inDefaultField : 1;
 
 		/**
 		 * Default constructor.
