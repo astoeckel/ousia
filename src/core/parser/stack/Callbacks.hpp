@@ -26,8 +26,8 @@
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_PARSER_STATE_CALLBACKS_HPP_
-#define _OUSIA_PARSER_STATE_CALLBACKS_HPP_
+#ifndef _OUSIA_PARSER_STACK_CALLBACKS_HPP_
+#define _OUSIA_PARSER_STACK_CALLBACKS_HPP_
 
 #include <string>
 
@@ -95,5 +95,5 @@ class ParserCallbacks : public Callbacks {
 }
 }
 
-#endif /* _OUSIA_PARSER_STATE_CALLBACKS_HPP_ */
+#endif /* _OUSIA_PARSER_STACK_CALLBACKS_HPP_ */
 
