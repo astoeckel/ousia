@@ -33,6 +33,7 @@
 #include <vector>
 
 #include <core/common/Location.hpp>
+#include <core/common/Whitespace.hpp>
 
 #include "TokenTrie.hpp"
 
@@ -93,28 +94,6 @@ struct DynamicToken {
 	 * @return a reference at the location field
 	 */
 	const SourceLocation &getLocation() const { return location; }
-};
-
-/**
- * Enum specifying the whitespace handling of the DynamicTokenizer class when
- * reading non-token text.
- */
-enum class WhitespaceMode {
-	/**
-     * Preserves all whitespaces as they are found in the source file.
-     */
-	PRESERVE,
-
-	/**
-     * Trims whitespace at the beginning and the end of the found text.
-     */
-	TRIM,
-
-	/**
-     * Whitespaces are trimmed and collapsed, multiple whitespace characters
-     * are replaced by a single space character.
-     */
-	COLLAPSE
 };
 
 /**
