@@ -123,6 +123,12 @@ Manager::~Manager()
 	// Perform a final sweep
 	sweep();
 
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+	if (!objects.empty()) {
+		exportGraphviz("manager_crashdump.dot");
+	}
+#endif
+
 	// All objects should have been deleted!
 	assert(objects.empty());
 
@@ -157,6 +163,30 @@ void Manager::manage(Managed *o)
 	objects.emplace(o, ObjectDescriptor{nextUid});
 	uids.emplace(nextUid, o);
 	nextUid++;
+}
+
+void Manager::unmanage(Managed *o)
+{
+	if (!deleted.count(o)) {
+		Manager::ObjectDescriptor *descr = getDescriptor(o);
+		if (descr != nullptr) {
+			// Make sure all input references are deleted
+			while (!descr->refIn.empty()) {
+				deleteRef(o, descr->refIn.begin()->first, true);
+			}
+			// Remove all output references of this Managed
+			while (!descr->refOut.empty()) {
+				deleteRef(descr->refOut.begin()->first, o, true);
+			}
+
+			// Remove the uid, data and event store entry
+			uids.erase(descr->uid);
+			store.erase(o);
+			events.erase(o);
+			marked.erase(o);
+			objects.erase(o);
+		}
+	}
 }
 
 void Manager::addRef(Managed *tar, Managed *src)
@@ -196,10 +226,11 @@ void Manager::deleteRef(Managed *tar, Managed *src, bool all)
 
 #ifdef MANAGER_DEBUG_HIDDEN_ROOTED
 	if (deletionRecursionDepth > 0 && src == 0) {
-		std::cerr << "\x1b[41;30mManager:\x1b[0m A managed object contains a rooted reference, "
+		std::cerr << "\x1b[41;30mManager:\x1b[0m A managed object contains a "
+		             "rooted reference, "
 		             "this may cause memory leaks!" << std::endl;
-		std::cerr << "\x1b[41;30mManager:\x1b[0m Referenced object is " << tar << " of type "
-		          << tar->type()->name << std::endl;
+		std::cerr << "\x1b[41;30mManager:\x1b[0m Referenced object is " << tar
+		          << " of type " << tar->type()->name << std::endl;
 	}
 #endif
 
@@ -286,10 +317,10 @@ void Manager::purgeDeleted()
 
 		for (size_t i = 0; i < orderedDeleted.size(); i++) {
 			Managed *m = orderedDeleted[i];
+			delete m;
 			deleted.erase(m);
 			marked.erase(m);
 			objects.erase(m);
-			delete m;
 		}
 		orderedDeleted.clear();
 		assert(deleted.empty());
@@ -611,7 +642,8 @@ void Manager::exportGraphviz(const char *filename)
 		// Print the label
 		fs << "\t\tlabel=<"
 		   << "<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">"
-		   << "<TR><TD>" << std::hex << std::showbase << p << "</TD></TR>"
+		   << "<TR><TD>" << std::hex << std::showbase << p << " ("
+		   << getUid(objectPtr) << ")</TD></TR>"
 		   << "<TR><TD><I>" << typeName << "</I></TD></TR>";
 
 		// Print any name

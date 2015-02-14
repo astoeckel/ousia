@@ -55,18 +55,18 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 	Cardinality card;
 	card.merge({0, 1});
 	// set up heading StructuredClass.
-	Rooted<StructuredClass> heading{new StructuredClass(
-	    mgr, "heading", domain, card, {nullptr}, true)};
-	// as field want to copy the field of paragraph.
+	Rooted<StructuredClass> heading{
+	    new StructuredClass(mgr, "heading", domain, card, {nullptr}, true)};
+	// as field want to reference the field of paragraph.
 	Rooted<StructuredClass> p = resolveDescriptor(bookDomain, "paragraph");
-	heading->copyFieldDescriptor(p->getFieldDescriptors()[0]);
+	heading->addFieldDescriptor(p->getFieldDescriptor(), logger);
 	// create a new field for headings in each section type.
 	std::vector<std::string> secclasses{"book", "section", "subsection",
 	                                    "paragraph"};
 	for (auto &s : secclasses) {
 		Rooted<StructuredClass> desc = resolveDescriptor(bookDomain, s);
-		Rooted<FieldDescriptor> heading_field{new FieldDescriptor(
-		    mgr, desc, FieldDescriptor::FieldType::SUBTREE, "heading")};
+		Rooted<FieldDescriptor> heading_field = desc->createFieldDescriptor(
+		    logger, FieldDescriptor::FieldType::SUBTREE, "heading", true);
 		heading_field->addChild(heading);
 	}
 	return domain;
@@ -88,8 +88,8 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 	Rooted<StructuredClass> item{new StructuredClass(
 	    mgr, "item", domain, Cardinality::any(), {nullptr}, false)};
 
-	// as field we want to copy the field of paragraph.
-	item->copyFieldDescriptor(p->getFieldDescriptors()[0]);
+	// as field we want to reference the field of paragraph.
+	item->addFieldDescriptor(p->getFieldDescriptor(), logger);
 	// set up list StructuredClasses.
 	std::vector<std::string> listTypes{"ol", "ul"};
 	for (auto &listType : listTypes) {
@@ -150,19 +150,17 @@ static bool addHeading(Logger &logger, Handle<Document> doc,
 	return true;
 }
 
-static int annoIdx = 1;
-
 // Only works for non-overlapping annotations!
 static bool addAnnotation(Logger &logger, Handle<Document> doc,
                           Handle<StructuredEntity> parent,
                           const std::string &text, const std::string &annoClass)
 {
-	Manager& mgr = parent->getManager();
-	Rooted<Anchor> start{new Anchor(mgr, std::to_string(annoIdx++), parent)};
+	Manager &mgr = parent->getManager();
+	Rooted<Anchor> start{new Anchor(mgr, parent)};
 	if (!addText(logger, doc, parent, text)) {
 		return false;
 	}
-	Rooted<Anchor> end{new Anchor(mgr, std::to_string(annoIdx++), parent)};
+	Rooted<Anchor> end{new Anchor(mgr, parent)};
 	Rooted<AnnotationEntity> anno =
 	    buildAnnotationEntity(doc, logger, {annoClass}, start, end);
 	if (anno.isNull()) {

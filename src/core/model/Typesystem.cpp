@@ -21,6 +21,7 @@
 #include <core/common/RttiBuilder.hpp>
 #include <core/common/Utils.hpp>
 #include <core/common/VariantConverter.hpp>
+#include <core/common/VariantReader.hpp>
 
 namespace ousia {
 
@@ -65,6 +66,65 @@ bool Type::build(Variant &data, Logger &logger,
 bool Type::build(Variant &data, Logger &logger) const
 {
 	return build(data, logger, NullMagicCallback);
+}
+
+std::pair<bool, Variant> Type::read(CharReader &reader, Logger &logger,
+                                    const std::unordered_set<char> &delims)
+{
+	// try all variant types of this type and use the first successful one.
+	Variant v;
+	bool success = false;
+	for (auto t : getVariantTypes()) {
+		auto res = VariantReader::parseTyped(t, reader, logger, delims);
+		if (res.first) {
+			v = res.second;
+			success = true;
+			break;
+		}
+	}
+
+	if (!success) {
+		return std::make_pair(false, Variant{});
+	}
+	if (!build(v, logger)) {
+		return std::make_pair(false, Variant{});
+	}
+	return std::make_pair(true, v);
+}
+
+std::pair<bool, Variant> Type::read(const std::string &str, Logger &logger,
+                                    SourceId sourceId, size_t offs)
+{
+	// try all variant types of this type and use the first successful one.
+	Variant v;
+	bool success = false;
+	std::vector<LoggerFork> forks;
+	auto vts = getVariantTypes();
+	for (auto vt : vts) {
+		forks.emplace_back(logger.fork());
+		auto res =
+		    VariantReader::parseTyped(vt, str, forks.back(), sourceId, offs);
+		if (res.first) {
+			v = res.second;
+			success = true;
+			forks.back().commit();
+			break;
+		}
+	}
+
+	if (!success) {
+		logger.error("Could not read data with any of the possible types:");
+		for (size_t t = 0; t < forks.size(); t++) {
+			logger.note(std::string(Variant::getTypeName(vts[t])) + ":",
+			            SourceLocation{}, MessageMode::NO_CONTEXT);
+			forks[t].commit();
+		}
+		return std::make_pair(false, Variant{});
+	}
+	if (!build(v, logger)) {
+		return std::make_pair(false, Variant{});
+	}
+	return std::make_pair(true, v);
 }
 
 bool Type::doCheckIsa(Handle<const Type> type) const { return false; }

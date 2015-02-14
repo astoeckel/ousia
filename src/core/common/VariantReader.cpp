@@ -16,9 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
-
 #include <cmath>
+#include <limits>
 #include <sstream>
 
 #include <utf8.h>
@@ -485,6 +484,36 @@ std::pair<bool, std::string> VariantReader::parseUnescapedString(
 	return std::make_pair(true, res.str());
 }
 
+std::pair<bool, Variant::boolType> VariantReader::parseBool(CharReader &reader,
+                                                            Logger &logger)
+{
+	// first we consume all whitespaces.
+	reader.consumePeek();
+	reader.consumeWhitespace();
+	// then we try to find the words "true" or "false".
+
+	bool val = false;
+	CharReaderFork readerFork = reader.fork();
+	LoggerFork loggerFork = logger.fork();
+	auto res = parseToken(readerFork, loggerFork, {});
+	if (res.first) {
+		bool valid = false;
+		if (res.second == "true") {
+			val = true;
+			valid = true;
+		} else if (res.second == "false") {
+			val = false;
+			valid = true;
+		}
+		if (valid) {
+			readerFork.commit();
+			loggerFork.commit();
+			return std::make_pair(true, val);
+		}
+	}
+	return std::make_pair(false, val);
+}
+
 std::pair<bool, int64_t> VariantReader::parseInteger(
     CharReader &reader, Logger &logger, const std::unordered_set<char> &delims)
 {
@@ -715,10 +744,9 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 	// Skip all whitespace characters, read a character and abort if at the end
 	reader.consumePeek();
 	reader.consumeWhitespace();
-	if (!reader.peek(c) || delims.count(c)) {
+	if (!reader.fetch(c) || delims.count(c)) {
 		return error(reader, logger, ERR_UNEXPECTED_END, nullptr);
 	}
-	reader.resetPeek();
 
 	// Fetch the start offset
 	const SourceOffset start = reader.getOffset();
@@ -738,26 +766,31 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 		CharReaderFork readerFork = reader.fork();
 		LoggerFork loggerFork = logger.fork();
 		if (n.parse(readerFork, loggerFork, delims)) {
-			readerFork.commit();
-			loggerFork.commit();
-
 			Variant v;
 			if (n.isInt()) {
+				if (n.intValue() <
+				        std::numeric_limits<Variant::intType>::min() ||
+				    n.intValue() >
+				        std::numeric_limits<Variant::intType>::max()) {
+					logger.error("Number exceeds type limits.", reader);
+					return std::make_pair(false, v);
+				}
 				v = Variant{static_cast<Variant::intType>(n.intValue())};
 			} else {
 				v = Variant{n.doubleValue()};
 			}
+			readerFork.commit();
+			loggerFork.commit();
 			v.setLocation({reader.getSourceId(), start, reader.getOffset()});
 			return std::make_pair(true, v);
 		}
-		reader.resetPeek();
 	}
 
 	// Try to parse a cardinality
 	if (c == '{') {
 		CharReaderFork readerFork = reader.fork();
 		LoggerFork loggerFork = logger.fork();
-		auto res = parseCardinality(readerFork, logger);
+		auto res = parseCardinality(readerFork, loggerFork);
 		if (res.first) {
 			readerFork.commit();
 			loggerFork.commit();
@@ -765,7 +798,6 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 			v.setLocation({reader.getSourceId(), start, reader.getOffset()});
 			return std::make_pair(true, v);
 		}
-		reader.resetPeek();
 	}
 
 	// Try to parse an object
@@ -834,6 +866,86 @@ std::pair<bool, Variant> VariantReader::parseGenericString(
 	Variant v = Variant::fromString(str);
 	v.setLocation({sourceId, offs, offs + str.size()});
 	return std::make_pair(true, v);
+}
+
+std::pair<bool, Variant> VariantReader::parseTyped(
+    VariantType type, CharReader &reader, Logger &logger,
+    const std::unordered_set<char> &delims)
+{
+	switch (type) {
+		case VariantType::BOOL: {
+			auto res = parseBool(reader, logger);
+			return std::make_pair(res.first, Variant{res.second});
+		}
+		case VariantType::INT: {
+			auto res = parseInteger(reader, logger, delims);
+			if (res.second < std::numeric_limits<Variant::intType>::min() ||
+			    res.second > std::numeric_limits<Variant::intType>::max()) {
+				logger.error("Number exceeds type limits.", reader);
+				return std::make_pair(false, Variant{});
+			}
+			return std::make_pair(
+			    res.first, Variant{static_cast<Variant::intType>(res.second)});
+		}
+		case VariantType::DOUBLE: {
+			auto res = parseDouble(reader, logger, delims);
+			return std::make_pair(res.first, Variant{res.second});
+		}
+		case VariantType::STRING: {
+			auto res = parseString(reader, logger, delims);
+			return std::make_pair(res.first, Variant::fromString(res.second));
+		}
+		case VariantType::ARRAY: {
+			char delim = 0;
+			if (delims.size() == 1) {
+				delim = *delims.begin();
+			}
+			auto res = parseArray(reader, logger, delim);
+			return std::make_pair(res.first, Variant{res.second});
+		}
+
+		case VariantType::MAP:
+		case VariantType::OBJECT: {
+			char delim = 0;
+			if (delims.size() == 1) {
+				delim = *delims.begin();
+			}
+			auto res = parseObject(reader, logger, delim);
+			return std::make_pair(res.first, Variant{res.second});
+		}
+		case VariantType::CARDINALITY: {
+			auto res = parseCardinality(reader, logger);
+			return std::make_pair(res.first, Variant{res.second});
+		}
+		default:
+			break;
+	}
+
+	return std::make_pair(false, Variant{});
+}
+
+std::pair<bool, Variant> VariantReader::parseTyped(VariantType type,
+                                                   const std::string &str,
+                                                   Logger &logger,
+                                                   SourceId sourceId,
+                                                   size_t offs)
+{
+	// create a char reader and forward the method.
+	CharReader reader{str, sourceId, offs};
+	LoggerFork loggerFork = logger.fork();
+	std::pair<bool, Variant> res =
+	    parseTyped(type, reader, loggerFork, std::unordered_set<char>{});
+
+	// If all content could be parsed, commit the result.
+	if (reader.atEnd()) {
+		loggerFork.commit();
+		return res;
+	}
+
+	// otherwise do not.
+	logger.error("Not all input could be processed",
+	             {sourceId, offs, offs + str.size()});
+	return std::make_pair(false, Variant{});
 }
 }
 

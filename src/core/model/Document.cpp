@@ -97,8 +97,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 	// iterate over every field
 	for (unsigned int f = 0; f < fields.size(); f++) {
 		// we have a special check for primitive fields.
-		if (fieldDescs[f]->getFieldType() ==
-		    FieldDescriptor::FieldType::PRIMITIVE) {
+		if (fieldDescs[f]->isPrimitive()) {
 			switch (fields[f].size()) {
 				case 0:
 					if (!fieldDescs[f]->isOptional()) {
@@ -276,9 +275,9 @@ static int enforceGetFieldDescriptorIndex(Handle<Descriptor> desc,
 {
 	ssize_t idx = desc->getFieldDescriptorIndex(fieldName);
 	if (idx == -1) {
-		throw OusiaException(
-		    std::string("Descriptor \"") + desc->getName() +
-		    "\" has no field with the name \"" + fieldName + "\"");
+		throw OusiaException(std::string("Descriptor \"") + desc->getName() +
+		                     "\" has no field with the name \"" + fieldName +
+		                     "\"");
 	}
 	return idx;
 }
@@ -288,8 +287,7 @@ static int enforceGetFieldDescriptorIndex(
 {
 	ssize_t idx = desc->getFieldDescriptorIndex(fieldDescriptor);
 	if (idx == -1) {
-		throw OusiaException(std::string("Descriptor \"") +
-		                     desc->getName() +
+		throw OusiaException(std::string("Descriptor \"") + desc->getName() +
 		                     "\" does not reference the given field \"" +
 		                     fieldDescriptor->getName() + "\"");
 	}
@@ -306,6 +304,18 @@ const NodeVector<StructureNode> &DocumentEntity::getField(
     Handle<FieldDescriptor> fieldDescriptor) const
 {
 	return fields[enforceGetFieldDescriptorIndex(descriptor, fieldDescriptor)];
+}
+
+const NodeVector<StructureNode> &DocumentEntity::getField(
+    const size_t &idx) const
+{
+	if (idx >= fields.size()) {
+		throw OusiaException(std::string("Descriptor \"") +
+		                     descriptor->getName() +
+		                     "\" does not have enough fields for index \"" +
+		                     std::to_string(idx) + "\".");
+	}
+	return fields[idx];
 }
 
 void DocumentEntity::addStructureNode(Handle<StructureNode> s, const int &i)
@@ -420,11 +430,10 @@ Rooted<DocumentPrimitive> DocumentEntity::createChildDocumentPrimitive(
 	    subInst->getManager(), subInst, std::move(content), fieldName)};
 }
 
-Rooted<Anchor> DocumentEntity::createChildAnchor(std::string name,
-                                                 const std::string &fieldName)
+Rooted<Anchor> DocumentEntity::createChildAnchor(const std::string &fieldName)
 {
 	return Rooted<Anchor>{
-	    new Anchor(subInst->getManager(), std::move(name), subInst, fieldName)};
+	    new Anchor(subInst->getManager(), subInst, fieldName)};
 }
 
 /* Class StructureNode */
@@ -495,11 +504,59 @@ bool Anchor::doValidate(Logger &logger) const
 {
 	bool valid = true;
 	// check name
-	if (getName().empty()) {
-		logger.error("An Anchor needs a name!", *this);
+	if (!getName().empty()) {
+		logger.error(
+		    "This anchor has a name! Anchors should only be referred to by "
+		    "reference, not by name!",
+		    *this);
 		valid = false;
 	}
+	if (annotation == nullptr) {
+		// this is valid but should throw a warning.
+		logger.warning("This anchor is disconnected.", *this);
+	}
 	return valid & StructureNode::doValidate(logger);
+}
+
+void Anchor::setAnnotation(Handle<AnnotationEntity> anno, bool start)
+{
+	if (annotation == anno) {
+		return;
+	}
+	invalidate();
+	// unset the old reference.
+	if (annotation != nullptr) {
+		if (isStart()) {
+			annotation->setStart(nullptr);
+		} else {
+			annotation->setEnd(nullptr);
+		}
+	}
+	annotation = acquire(anno);
+	// set the new reference.
+	if (anno != nullptr) {
+		if (start) {
+			anno->setStart(this);
+		} else {
+			anno->setEnd(this);
+		}
+	}
+}
+
+bool Anchor::isStart() const
+{
+	if (annotation == nullptr) {
+		return false;
+	}
+	return annotation->getStart() == this;
+}
+
+bool Anchor::isEnd() const
+{
+	if (annotation == nullptr) {
+		return false;
+	}
+	return annotation->getEnd() == this;
 }
 
 /* Class AnnotationEntity */
@@ -509,13 +566,13 @@ AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
                                    Handle<Anchor> start, Handle<Anchor> end,
                                    Variant attributes, std::string name)
     : Node(mgr, std::move(name), parent),
-      DocumentEntity(this, descriptor, attributes),
-      start(acquire(start)),
-      end(acquire(end))
+      DocumentEntity(this, descriptor, attributes)
 {
 	if (parent != nullptr) {
 		parent->addAnnotation(this);
 	}
+	setStart(start);
+	setEnd(end);
 }
 
 bool AnnotationEntity::doValidate(Logger &logger) const
@@ -568,8 +625,48 @@ bool AnnotationEntity::doValidate(Logger &logger) const
 			valid = false;
 		}
 	}
+	// check if the Anchors reference this AnnotationEntity correctly.
+	if (start != nullptr) {
+		if (start->getAnnotation() != this) {
+			logger.error(
+			    "This annotations start anchor does not have the correct "
+			    "annotation as parent!",
+			    *this);
+			valid = false;
+		}
+	}
+	if (end != nullptr) {
+		if (end->getAnnotation() != this) {
+			logger.error(
+			    "This annotations end anchor does not have the correct "
+			    "annotation as parent!",
+			    *this);
+			valid = false;
+		}
+	}
+
 	// check the validity as a DocumentEntity.
 	return valid & DocumentEntity::doValidate(logger);
+}
+
+void AnnotationEntity::setStart(Handle<Anchor> s)
+{
+	if (start == s) {
+		return;
+	}
+	invalidate();
+	start = acquire(s);
+	s->setAnnotation(this, true);
+}
+
+void AnnotationEntity::setEnd(Handle<Anchor> e)
+{
+	if (end == e) {
+		return;
+	}
+	invalidate();
+	end = acquire(e);
+	e->setAnnotation(this, false);
 }
 
 /* Class Document */
@@ -729,4 +826,3 @@ const Rtti AnnotationEntity =
         .composedOf({&StructuredEntity, &DocumentPrimitive, &Anchor});
 }
 }
-

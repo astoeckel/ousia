@@ -41,14 +41,11 @@ TEST(DemoHTMLTransformer, writeHTML)
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Get the domains.
-	Rooted<Domain> bookDom =
-	    constructBookDomain(mgr, sys, logger);
+	Rooted<Domain> bookDom = constructBookDomain(mgr, sys, logger);
 	Rooted<Domain> headingDom =
 	    constructHeadingDomain(mgr, sys, bookDom, logger);
-	Rooted<Domain> listDom =
-	    constructListDomain(mgr, sys, bookDom, logger);
-	Rooted<Domain> emDom =
-	    constructEmphasisDomain(mgr, sys, logger);
+	Rooted<Domain> listDom = constructListDomain(mgr, sys, bookDom, logger);
+	Rooted<Domain> emDom = constructEmphasisDomain(mgr, sys, logger);
 	// Construct the document.
 	Rooted<Document> doc = constructAdvancedDocument(
 	    mgr, logger, bookDom, headingDom, listDom, emDom);
@@ -79,10 +76,8 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	// Get the domains.
-	Rooted<Domain> bookDom =
-	    constructBookDomain(mgr, sys, logger);
-	Rooted<Domain> emDom =
-	    constructEmphasisDomain(mgr, sys, logger);
+	Rooted<Domain> bookDom = constructBookDomain(mgr, sys, logger);
+	Rooted<Domain> emDom = constructEmphasisDomain(mgr, sys, logger);
 	// Construct a document only containing overlapping annotations.
 	// it has the form: <em>bla<strong>blub</em>bla</strong>
 	Rooted<Document> doc{new Document(mgr, "annotations.oxd")};
@@ -93,13 +88,13 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	Rooted<StructuredEntity> p =
 	    buildStructuredEntity(doc, logger, book, {"paragraph"});
 	ASSERT_TRUE(p != nullptr);
-	Rooted<Anchor> em_start{new Anchor(mgr, "1", p)};
+	Rooted<Anchor> em_start{new Anchor(mgr, p)};
 	ASSERT_TRUE(addText(logger, doc, p, "bla"));
-	Rooted<Anchor> strong_start{new Anchor(mgr, "2", p)};
+	Rooted<Anchor> strong_start{new Anchor(mgr, p)};
 	ASSERT_TRUE(addText(logger, doc, p, "blub"));
-	Rooted<Anchor> em_end{new Anchor(mgr, "3", p)};
+	Rooted<Anchor> em_end{new Anchor(mgr, p)};
 	ASSERT_TRUE(addText(logger, doc, p, "bla"));
-	Rooted<Anchor> strong_end{new Anchor(mgr, "4", p)};
+	Rooted<Anchor> strong_end{new Anchor(mgr, p)};
 	buildAnnotationEntity(doc, logger, {"emphasized"}, em_start, em_end);
 	buildAnnotationEntity(doc, logger, {"strong"}, strong_start, strong_end);
 

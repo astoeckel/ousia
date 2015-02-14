@@ -273,6 +273,14 @@ public:
 	void manage(Managed *o);
 
 	/**
+	 * Removes a previously managed object from the manager -- this function is
+	 * called from the destructor of the Managed class.
+	 *
+	 * @param o is the object that should be unregistered from the manager.
+	 */
+	void unmanage(Managed *o);
+
+	/**
 	 * Stores a reference to the given target object from the given source
 	 * object. If the source pointer is set to nullptr, this means that the
 	 * target object is rooted (semantic: it is reachable from the current

@@ -43,6 +43,7 @@
 namespace ousia {
 
 // Forward declarations
+class CharReader;
 class Rtti;
 class Typesystem;
 class SystemTypesystem;
@@ -168,6 +169,32 @@ public:
 	bool build(Variant &data, Logger &logger) const;
 
 	/**
+	 * Tries to parse an instance of this type from the given stream.
+	 *
+	 * @param reader is a reference to the CharReader instance which is
+	 * the source for the character data. The reader will be positioned
+	 * at the end of the type instance (or the delimiting character).
+	 * @param delims is a set of characters which will terminate the typed
+	 * instance if the according parser uses delimiting characters.
+	 * These characters are not included in the result. May not be nullptr.
+	 */
+	std::pair<bool, Variant> read(CharReader &reader, Logger &logger,
+	                              const std::unordered_set<char> &delims = {});
+
+	/**
+	 * Tries to parse an instance of this type from the given string.
+	 *
+	 * @param str is the string from which the value should be read.
+	 * @param sourceId is an optional descriptor of the source file from which
+	 * the element is being read.
+	 * @param offs is the by offset in the source file at which the string
+	 * starts.
+	 */
+	std::pair<bool, Variant> read(const std::string &str, Logger &logger,
+	                              SourceId sourceId = InvalidSourceId,
+	                              size_t offs = 0);
+
+	/**
 	 * Returns true if and only if the given Variant adheres to this Type. In
 	 * essence this just calls the build method on a copy of the input Variant.
 	 *
@@ -203,6 +230,23 @@ public:
 	{
 		return this->getParent().cast<Typesystem>();
 	}
+
+	/**
+	 * Returns the VariantTypes whose instances are proper input for building an
+	 * instance of this type.
+	 * More specifically: Every returned VariantType T should be such that:
+	 * If a string s can be parsed according to T to a Variant v then the call
+	 * build(v, logger) should only fail (return false) if the variant content
+	 * does not adhere to the specific type specification. But it should be a
+	 * properly typed input for build.
+	 * The order of the types returned by this function determines the order in
+	 * which a parser should try to interpret an input string s.
+	 *
+	 * @return the VariantTypes that arethe basis for parsing an instance of
+	 *this
+	 * type.
+	 */
+	virtual std::vector<VariantType> getVariantTypes() const = 0;
 };
 
 /**
@@ -243,6 +287,16 @@ public:
 	 * @return a variant containing an empty string.
 	 */
 	Variant create() const override { return Variant{""}; }
+
+	/**
+	 * Returns the String VariantType.
+	 *
+	 * @return the String VariantType.
+	 */
+	std::vector<VariantType> getVariantTypes() const override
+	{
+		return {VariantType::STRING};
+	}
 };
 
 /**
@@ -282,6 +336,16 @@ public:
 	 * @return the integer value zero.
 	 */
 	Variant create() const override { return Variant{0}; }
+
+	/**
+	 * Returns the Int VariantType.
+	 *
+	 * @return the Int VariantType.
+	 */
+	std::vector<VariantType> getVariantTypes() const override
+	{
+		return {VariantType::INT};
+	}
 };
 
 /**
@@ -321,6 +385,16 @@ public:
 	 * @return the double value zero.
 	 */
 	Variant create() const override { return Variant{0.0}; }
+
+	/**
+	 * Returns the Double VariantType.
+	 *
+	 * @return the Double VariantType.
+	 */
+	std::vector<VariantType> getVariantTypes() const override
+	{
+		return {VariantType::DOUBLE};
+	}
 };
 
 /**
@@ -360,6 +434,16 @@ public:
 	 * @return a Variant with the boolean value false.
 	 */
 	Variant create() const override { return Variant{false}; }
+
+	/**
+	 * Returns the bool VariantType.
+	 *
+	 * @return the bool VariantType.
+	 */
+	std::vector<VariantType> getVariantTypes() const override
+	{
+		return {VariantType::BOOL};
+	}
 };
 
 /**
@@ -476,6 +560,16 @@ public:
 	 * name. Throws a LoggableException if the string does not exist.
 	 */
 	Ordinal valueOf(const std::string &name) const;
+
+	/**
+	 * Returns the int and string VariantTypes.
+	 *
+	 * @return the int and string VariantTypes.
+	 */
+	std::vector<VariantType> getVariantTypes() const override
+	{
+		return {VariantType::INT, VariantType::STRING};
+	}
 };
 
 /**
@@ -911,6 +1005,15 @@ public:
 	 * @return true if the requested attribute name exists, false otherwise.
 	 */
 	bool hasAttribute(const std::string &name) const;
+	/**
+	 * Returns the array and map VariantTypes.
+	 *
+	 * @return the array and map VariantTypes.
+	 */
+	std::vector<VariantType> getVariantTypes() const override
+	{
+		return {VariantType::MAP};
+	}
 };
 
 /**
@@ -976,6 +1079,15 @@ public:
 	 * @return Rooted reference pointing at the innerType.
 	 */
 	Rooted<Type> getInnerType() { return innerType; }
+	/**
+	 * Returns the array VariantType.
+	 *
+	 * @return the array VariantType.
+	 */
+	std::vector<VariantType> getVariantTypes() const override
+	{
+		return {VariantType::ARRAY};
+	}
 };
 
 /**
@@ -1014,6 +1126,20 @@ public:
 	 * @return a Variant instance with nullptr value.
 	 */
 	Variant create() const override;
+	/**
+	 * Returns all parseable VariantTypes (bool, int, double, array, map,
+	 *cardinality, object, string).
+	 *
+	 * @return all parseable VariantTypes (bool, int, double, array, map,
+	 *cardinality, object, string).
+	 */
+	std::vector<VariantType> getVariantTypes() const override
+	{
+		return {VariantType::BOOL,   VariantType::INT,
+		        VariantType::DOUBLE, VariantType::ARRAY,
+		        VariantType::MAP,    VariantType::CARDINALITY,
+		        VariantType::OBJECT, VariantType::STRING};
+	}
 };
 
 /**

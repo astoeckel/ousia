@@ -34,74 +34,46 @@
  *
  * \code{.xml}
  * <domain name="book">
- * 	<structs>
- * 		<struct name="book" cardinality="1" isRoot="true">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.chapter"/>
- * 						<child name="book.paragraph"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 		<struct name="chapter">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.section"/>
- * 						<child name="book.paragraph"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 		<struct name="section">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.subsection"/>
- * 						<child name="book.paragraph"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 		<struct name="subsection">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.paragraph"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 		<struct name="paragraph" transparent="true" role="paragraph">
- * 			<fields>
- * 				<field>
- * 					<children>
- * 						<child name="book.text"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 		<struct name="text" transparent="true" role="text">
- * 			<fields>
- * 				<field name="content" type="PRIMITIVE" primitiveType="string"/>
- * 			</fields>
- * 		</struct>
- * 	</structs>
+ * 	<struct name="book" cardinality="1" isRoot="true">
+ * 		<field>
+ * 			<childRef ref="book.chapter"/>
+ * 			<childRef ref="book.paragraph"/>
+ * 		</field>
+ * 	</struct>
+ * 	<struct name="chapter">
+ * 		<field>
+ * 			<childRef ref="book.section"/>
+ * 			<childRef ref="book.paragraph"/>
+ * 		</field>
+ * 	</struct>
+ * 	<struct name="section">
+ * 		<field>
+ * 			<childRef ref="book.subsection"/>
+ * 			<childRef ref="book.paragraph"/>
+ * 		</field>
+ * 	</struct>
+ * 	<struct name="subsection">
+ * 		<field>
+ * 			<childRef ref="book.paragraph"/>
+ * 		</field>
+ * 	</struct>
+ * 	<struct name="paragraph" transparent="true">
+ * 		<field>
+ * 			<childRef ref="book.text"/>
+ * 		</field>
+ * 	</struct>
+ * 	<struct name="text" transparent="true">
+ * 		<primitive type="string"/>
+ * 	</struct>
  * </domain>
  * \endcode
  *
  * Note that we define one field as the TREE (meaning the main or default
  * document structure) and one mearly as SUBTREE, relating to supporting
  * information. You are not allowed to define more than one field of type
- * "TREE". Accordingly for each StructuredClass in the main TREE there must be
- * at least one possible primitive child or one TREE field. Otherwise the
- * grammar would be nonterminal. For SUBTREE fields no children may define a
- * TREE field and at least one permitted child must exist, either primitive or
- * as another StructuredClass.
+ * "TREE".
  *
- * The translation to context free grammars is as follows:
+ * The translation to a context free grammar is as follows:
  *
  * \code{.txt}
  * BOOK              := <book> BOOK_TREE </book>
@@ -128,21 +100,14 @@
  *
  * \code{.xml}
  * <domain name="headings">
- * 	<head>
- * 		<import rel="domain" src="book.oxm"/>
- * 	</head>
- * 	<structs>
- * 		<struct name="heading" cardinality="0-1" transparent="true">
- * 			<parents>
- * 				<parent name="book.book">
- * 					<field name="heading" type="SUBTREE"/>
- * 				</parent>
- * 				...
- * 			</parents>
- * 			<fields>
- * 				<fieldRef name="book.paragraph.">
- * 			</fields>
- * 	</structs>
+ *	<import rel="domain" src="./book_domain.osxml"/>
+ * 	<struct name="heading" cardinality="1" transparent="true">
+ * 		<parentRef ref="book.book">
+ * 			<field name="heading" isSubtree="true" optional="true"/>
+ * 		</parentRef>
+ * 		...
+ * 		<fieldRef name="book.paragraph.">
+ * 	</struct>
  * </domain>
  * \endcode
  *
@@ -161,36 +126,36 @@
  *
  * \code{.xml}
  * <domain name="comments">
- * 	<head>
- * 		<import rel="domain" src="book.oxm"/>
- * 	</head>
- * 	<annos>
- * 		<anno name="comment">
- * 			<fields>
- * 				<field name="replies" type="SUBTREE">
- * 					<children>
- * 						<child name="reply"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</anno>
- * 	</annos>
- * 	<structs>
- * 		<struct name="reply">
- * 			<fields>
- * 				<field name="replies" type="SUBTREE">
- * 					<children>
- * 						<child name="reply"/>
- * 					</children>
- * 				</field>
- * 				<field name="content" type="SUBTREE">
- * 					<children>
- * 						<child name="book.paragraph"/>
- * 					</children>
- * 				</field>
- * 			</fields>
- * 		</struct>
- * 	</structs>
+ *	<import rel="domain" src="./book_domain.osxml"/>
+ *
+ *	<annotation name="comment">
+ *		<field name="content" isSubtree="true">
+ *			<childRef ref="book.paragraph"/>
+ *		</field>
+ *		<field name="replies" isSubtree="true">
+ *			<childRef ref="reply"/>
+ *		</field>
+ *	</annotation>
+ *
+ *	<struct name="comment">
+ *		<field name="content">
+ *			<childRef ref="book.paragraph"/>
+ *		</field>
+ *		<field name="replies" isSubtree="true">
+ *			<childRef ref="reply"/>
+ *		</field>
+ *		<parentRef ref="book.paragraph">
+ *			<fieldRef ref="$default"/>
+ *		</parentRef>
+ *	</struct>
+ *	<struct name="reply">
+ *		<field name="content" isSubtree="true">
+ *			<childRef ref="book.paragraph"/>
+ *		</field>
+ *		<field name="replies" isSubtree="true">
+ *			<childRef ref="reply"/>
+ *		</field>
+ *	</struct>
  * </domain>
  * \endcode
  *
@@ -227,25 +192,15 @@ static const std::string DEFAULT_FIELD_NAME = "$default";
  * accordingly typed content without further descending in the Structure
  * Hierarchy.
  *
- * As an example consider the "paragraph" StructuredClass, which might allow
+ * As an example consider the "text" StructuredClass, which might allow
  * the actual text content. Here is the according XML:
  *
  * \code{.xml}
- * <struct name="paragraph" transparent="true" role="paragraph">
- * 	<fields>
- * 		<field>
- * 			<children>
- * 				<child name="book.text"/>
- * 			</children>
- * 		</field>
- * 	</fields>
- * </struct>
+ * 	<struct name="text" transparent="true">
+ * 		<primitive type="string"/>
+ * 	</struct>
  * \endcode
  *
- * Accordingly the primitiveType field of a FieldDescriptor may only be
- * defined if the type is set to "PRIMITIVE". If the type is something else
- * at least one child must be defined and the primitiveType remains in an
- * undefined state.
  */
 class FieldDescriptor : public Node {
 	friend Descriptor;
@@ -253,32 +208,26 @@ class FieldDescriptor : public Node {
 public:
 	/**
 	 * This enum class contains all possible FieldTypes, meaning either the
-	 * main structure beneath this Descritor (TREE), supporting structure
-	 * (SUBTREE) or a primitive terminal (PRIMITIVE).
+	 * main structure beneath this Descriptor (TREE) or supporting structure
+	 * (SUBTREE)
 	 *
-	 * Note the following rules (which are also mentioned above):
-	 * 1.) There may be only one TREE field in a Descriptor.
-	 * 2.) Each TREE field must allow for at least one child, which in turn has
-	 *     either a TREE field or a PRIMITIVE field.
-	 * 3.) SUBTREE fields may not allow for children with TREE fields.
-	 * 4.) SUBTREE fields must allow for at least one child with another SUBTREE
-	 *     or PRIMITIVE field.
+	 * Note that there may be only one TREE field in a descriptor.
 	 */
-	enum class FieldType { TREE, SUBTREE, PRIMITIVE };
+	enum class FieldType { TREE, SUBTREE };
 
 private:
 	NodeVector<StructuredClass> children;
 	FieldType fieldType;
 	Owned<Type> primitiveType;
 	bool optional;
+	bool primitive;
 
 protected:
 	bool doValidate(Logger &logger) const override;
 
 public:
 	/**
-	 * This is the constructor for primitive fields. The type is automatically
-	 * set to "PRIMITIVE".
+	 * This is the constructor for primitive fields.
 	 *
 	 * @param mgr           is the global Manager instance.
 	 * @param parent        is a handle of the Descriptor node that has this
@@ -290,10 +239,10 @@ public:
 	 *                      filled in order for an instance of the parent
 	 *                      Descriptor to be valid.
 	 */
-	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
-	                Handle<Type> primitiveType,
-	                std::string name = DEFAULT_FIELD_NAME,
-	                bool optional = false);
+	FieldDescriptor(Manager &mgr, Handle<Type> primitiveType,
+	                Handle<Descriptor> parent,
+	                FieldType fieldType = FieldType::TREE,
+	                std::string name = "", bool optional = false);
 
 	/**
 	 * This is the constructor for non-primitive fields. You have to provide
@@ -312,8 +261,7 @@ public:
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent = nullptr,
 	                FieldType fieldType = FieldType::TREE,
-	                std::string name = DEFAULT_FIELD_NAME,
-	                bool optional = false);
+	                std::string name = "", bool optional = false);
 
 	/**
 	 * Returns a const reference to the NodeVector of StructuredClasses whose
@@ -377,11 +325,11 @@ public:
 	}
 
 	/**
-	 * Returns true if and only if the type of this field is PRIMITIVE.
+	 * Returns if this field is primitive.
 	 *
-	 * @return true if and only if the type of this field is PRIMITIVE.
+	 * @return true if and only if this field is primitive.
 	 */
-	bool isPrimitive() const { return fieldType == FieldType::PRIMITIVE; }
+	bool isPrimitive() const { return primitive; }
 
 	/**
 	 * Returns the primitive type of this field, which is only allowed to be
@@ -456,8 +404,7 @@ private:
 	Owned<StructType> attributesDescriptor;
 	NodeVector<FieldDescriptor> fieldDescriptors;
 
-	bool continuePath(Handle<StructuredClass> target,
-	                  std::vector<Rooted<Node>> &path) const;
+	void addAndSortFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 protected:
 	void doResolve(ResolutionState &state) override;
@@ -546,20 +493,7 @@ public:
 	 *
 	 * @param fd is a FieldDescriptor.
 	 */
-	void addFieldDescriptor(Handle<FieldDescriptor> fd);
-
-	/**
-	 * Adds the given FieldDescriptors to this Descriptor. This also sets the
-	 * parent of each given FieldDescriptor if it is not set yet.
-	 *
-	 * @param fds are FieldDescriptors.
-	 */
-	void addFieldDescriptors(const std::vector<Handle<FieldDescriptor>> &fds)
-	{
-		for (Handle<FieldDescriptor> fd : fds) {
-			addFieldDescriptor(fd);
-		}
-	}
+	void addFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 	/**
 	 * Adds the given FieldDescriptor to this Descriptor. This also sets the
@@ -568,21 +502,7 @@ public:
 	 *
 	 * @param fd is a FieldDescriptor.
 	 */
-	void moveFieldDescriptor(Handle<FieldDescriptor> fd);
-
-	/**
-	 * Adds the given FieldDescriptors to this Descriptor. This also sets the
-	 * parent of each given FieldDescriptor if it is not set to this Descriptor
-	 * already and removes it from the old parent Descriptor.
-	 *
-	 * @param fds are FieldDescriptors.
-	 */
-	void moveFieldDescriptors(const std::vector<Handle<FieldDescriptor>> &fds)
-	{
-		for (Handle<FieldDescriptor> fd : fds) {
-			moveFieldDescriptor(fd);
-		}
-	}
+	void moveFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 	/**
 	 * Copies a FieldDescriptor that belongs to another Descriptor to this
@@ -590,7 +510,7 @@ public:
 	 *
 	 * @param fd some FieldDescriptor belonging to another Descriptor.
 	 */
-	void copyFieldDescriptor(Handle<FieldDescriptor> fd);
+	void copyFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 	/**
 	 * Removes the given FieldDescriptor from this Descriptor. This also sets
@@ -616,8 +536,9 @@ public:
 	 * @return              the newly created FieldDescriptor.
 	 */
 	Rooted<FieldDescriptor> createPrimitiveFieldDescriptor(
-	    Handle<Type> primitiveType, std::string name = DEFAULT_FIELD_NAME,
-	    bool optional = false);
+	    Handle<Type> primitiveType, Logger &logger,
+	    FieldDescriptor::FieldType fieldType = FieldDescriptor::FieldType::TREE,
+	    std::string name = "", bool optional = false);
 
 	/**
 	 * This creates a new primitive FieldDescriptor and adds it to this
@@ -634,8 +555,9 @@ public:
 	 * @return              the newly created FieldDescriptor.
 	 */
 	Rooted<FieldDescriptor> createFieldDescriptor(
+	    Logger &logger,
 	    FieldDescriptor::FieldType fieldType = FieldDescriptor::FieldType::TREE,
-	    std::string name = DEFAULT_FIELD_NAME, bool optional = false);
+	    std::string name = "", bool optional = false);
 
 	/**
 	 * This tries to construct the shortest possible path of this Descriptor
@@ -656,6 +578,9 @@ public:
 	 * a path between book and section (via chapter), but chapter is not
 	 * transparent. Therefore that path is not allowed.
 	 *
+	 * Implicitly this does a breadth-first search on the graph of
+	 * StructuredClasses that are transparent. It also takes care of cycles.
+	 *
 	 * @param childDescriptor is a supposedly valid child Descriptor of this
 	 *                        Descriptor.
 	 * @return                either a path of FieldDescriptors and
@@ -664,8 +589,53 @@ public:
 	 *                        no such path can be constructed.
 	 *
 	 */
-	std::vector<Rooted<Node>> pathTo(
-	    Handle<StructuredClass> childDescriptor) const;
+	NodeVector<Node> pathTo(Handle<StructuredClass> childDescriptor,
+	                        Logger &logger) const;
+	/**
+	 * This tries to construct the shortest possible path of this Descriptor
+	 * to the given FieldDescriptor. Note that this method has the problem that
+	 * an empty return path does NOT strictly imply that no such path could
+	 * be constructed: We also return an empty vector if the given
+	 * FieldDescriptor is a direct child. Therefore we also return a bool value
+	 * indicating that the path is valid or not.
+	 *
+	 *
+	 * Implicitly this does a breadth-first search on the graph of
+	 * StructuredClasses that are transparent. It also takes care of cycles.
+	 *
+	 * @param field is a FieldDescriptor that may be allowed as child of this
+	 *              Descriptor.
+	 * @return      returns a tuple containing a path of FieldDescriptors and
+	 *              StructuredClasses between this Descriptor and the input
+	 *              FieldDescriptor and a bool value indicating if the
+	 *              construction was successful.
+	 */
+	std::pair<NodeVector<Node>, bool> pathTo(Handle<FieldDescriptor> field,
+	                                         Logger &logger) const;
+
+	/**
+	 * Returns a vector of all TREE fields that are allowed as structure tree
+	 * children of an instance of this Descriptor. This also makes use of
+	 * transparency.
+	 * The list is sorted by the number of transparent elements that have to be
+	 * constructed to arrive at the respective FieldDescriptor.
+	 *
+	 * @return a vector of all TREE fields that are allowed as structure tree
+	 *         children of an instance of this Descriptor.
+	 */
+	NodeVector<FieldDescriptor> getDefaultFields() const;
+
+	/**
+	 * Returns a vector of all StructuredClasses that are allowed as children
+	 * of an instance of this Descriptor in the structure tree. This also makes
+	 * use of transparency.
+	 * The list is sorted by the number of transparent elements that have to be
+	 * constructed to arrive at the respective FieldDescriptor.
+	 *
+	 * @return a vector of all StructuredClasses that are allowed as children
+	 *         of an instance of this Descriptor in the structure tree.
+	 */
+	NodeVector<StructuredClass> getPermittedChildren() const;
 };
 /*
  * TODO: We should discuss Cardinalities one more time. Is it smart to define
@@ -756,9 +726,9 @@ private:
 	/**
 	 * Helper method for getFieldDescriptors.
 	 */
-	const void gatherFieldDescriptors(
-	    NodeVector<FieldDescriptor> &current,
-	    std::set<std::string> &overriddenFields) const;
+	void gatherFieldDescriptors(NodeVector<FieldDescriptor> &current,
+	                            std::set<std::string> &overriddenFields,
+	                            bool hasTREE) const;
 
 protected:
 	bool doValidate(Logger &logger) const override;
@@ -943,6 +913,7 @@ private:
 	NodeVector<StructuredClass> structuredClasses;
 	NodeVector<AnnotationClass> annotationClasses;
 	NodeVector<Typesystem> typesystems;
+	NodeVector<Domain> domains;
 
 protected:
 	void doResolve(ResolutionState &state) override;
@@ -963,7 +934,8 @@ public:
 	    : RootNode(mgr, std::move(name), nullptr),
 	      structuredClasses(this),
 	      annotationClasses(this),
-	      typesystems(this)
+	      typesystems(this),
+	      domains(this)
 	{
 	}
 
@@ -1113,6 +1085,19 @@ public:
 	void referenceTypesystems(const std::vector<Handle<Typesystem>> &ts)
 	{
 		typesystems.insert(typesystems.end(), ts.begin(), ts.end());
+	}
+
+	/**
+	 * Adds a Domain reference to this Domain.
+	 */
+	void referenceDomain(Handle<Domain> d) { domains.push_back(d); }
+
+	/**
+	 * Adds multiple Domain references to this Domain.
+	 */
+	void referenceDomains(const std::vector<Handle<Domain>> &ds)
+	{
+		domains.insert(domains.end(), ds.begin(), ds.end());
 	}
 };
 

@@ -1,45 +1,17 @@
 <?xml version="1.0"?>
 <document>
 	<import rel="domain" src="book_domain.oxm"/>
-	<!-- Currently we have only one root. Thus we need no wrapper. -->
-	<!-- Note that we only reference "book" here, which resolves to the book
-		 domain as well as the book StructuredClass. This is unambigous however,
-		 because we are looking for a StructuredClass. The resolving mechanism
-		 should be able to handle this. -->
 	<book>
-	<!-- implicitly:
-	<book name="">
-		 -->
-	<!-- note that we do not refer to the attributes explicitly. Attributes are
-		 referenced by their key-value pairs as defined in the according
-		 StructType. For an example please refer to the more complex book
-		 domain. -->
-		<!--<paragraph>-->
-		<text>
 		This might be some introductory text or a dedication.
-		</text>
-		<!--</paragraph>-->
 		<!-- Note that a better version of the book domain might specify
 			 headings here. -->
 		<chapter name="myFirstChapter">
-			<paragraph>
-			<text>
 			Here we might have an introduction to the chapter.
-			</text>
-			</paragraph>
 			<section name="myFirstSection">
-				<paragraph>
-				<text>
 				Here we might find the actual section content.
-				</text>
-				</paragraph>
 			</section>
 			<section name="mySndSection">
-				<paragraph>
-				<text>
 				Here we might find the actual section content.
-				</text>
-				</paragraph>
 			</section>
 		</chapter>
 	</book>

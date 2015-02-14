@@ -33,11 +33,11 @@
 			     effectively use forward declarations here. So the
 			     resolve() process may only be started _after_ all
 			     delcarations are read. -->
-			<child ref="book.chapter"/>
+			<childRef ref="book.chapter"/>
 			<!-- The dot notation as path separator might be changed
 			     but I think it to be intuitive. If we want a more
 			     CSS like style we can use whitespaces here. -->
-			<child ref="book.paragraph"/>
+			<childRef ref="book.paragraph"/>
 		</field>
 	</struct>
 	<struct name="chapter">
@@ -49,8 +49,8 @@
 		<!-- implicitly:
 		<field name="" isSubtree="false" optional="false">
 		-->
-			<child ref="book.section"/>
-			<child ref="book.paragraph"/>
+			<childRef ref="book.section"/>
+			<childRef ref="book.paragraph"/>
 		</field>
 	</struct>
 	<struct name="section">
@@ -62,8 +62,8 @@
 		<!-- implicitly:
 		<field name="" isSubtree="false" optional="false">
 		-->
-			<child ref="book.subsection"/>
-			<child ref="book.paragraph"/>
+			<childRef ref="book.subsection"/>
+			<childRef ref="book.paragraph"/>
 		</field>
 	</struct>
 	<struct name="subsection">
@@ -75,7 +75,7 @@
 		<!-- implicitly:
 		<field name="" isSubtree="false" optional="false">
 		-->
-			<child ref="book.paragraph"/>
+			<childRef ref="book.paragraph"/>
 		</field>
 	</struct>
 	<struct name="paragraph" transparent="true" role="paragraph">
@@ -87,7 +87,7 @@
 		<!-- implicitly:
 		<field name="" type="TREE" optional="false">
 		-->
-			<child ref="book.text"/>
+			<childRef ref="book.text"/>
 		</field>
 	</struct>
 	<struct name="text" transparent="true" role="text">

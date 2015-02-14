@@ -280,7 +280,7 @@ public:
 	 * @param mode specifies how the message should be displayed.
 	 */
 	template <class LocationType>
-	void log(const LoggableException &ex, LocationType loc,
+	void log(const LoggableException &ex, const LocationType &loc,
 	         MessageMode mode = MessageMode::DEFAULT)
 	{
 		log(ex, SourceLocation::location(loc), mode);
@@ -297,7 +297,7 @@ public:
 	 * @param mode specifies how the message should be displayed.
 	 */
 	template <class LocationType>
-	void log(Severity severity, const std::string &msg, LocationType loc,
+	void log(Severity severity, const std::string &msg, const LocationType &loc,
 	         MessageMode mode = MessageMode::DEFAULT)
 	{
 		log(severity, msg, SourceLocation::location(loc), mode);
@@ -328,7 +328,7 @@ public:
 	 * information.
 	 */
 	template <class LocationType>
-	void debug(const std::string &msg, LocationType loc,
+	void debug(const std::string &msg, const LocationType &loc,
 	           MessageMode mode = MessageMode::DEFAULT)
 	{
 #ifndef NDEBUG
@@ -357,7 +357,7 @@ public:
 	 * information.
 	 */
 	template <class LocationType>
-	void note(const std::string &msg, LocationType loc,
+	void note(const std::string &msg, const LocationType &loc,
 	          MessageMode mode = MessageMode::DEFAULT)
 	{
 		log(Severity::NOTE, msg, loc, mode);
@@ -384,7 +384,7 @@ public:
 	 * information.
 	 */
 	template <class LocationType>
-	void warning(const std::string &msg, LocationType loc,
+	void warning(const std::string &msg, const LocationType &loc,
 	             MessageMode mode = MessageMode::DEFAULT)
 	{
 		log(Severity::WARNING, msg, SourceLocation::location(loc), mode);
@@ -411,7 +411,7 @@ public:
 	 * information.
 	 */
 	template <class LocationType>
-	void error(const std::string &msg, LocationType loc,
+	void error(const std::string &msg, const LocationType &loc,
 	           MessageMode mode = MessageMode::DEFAULT)
 	{
 		log(Severity::ERROR, msg, SourceLocation::location(loc), mode);
@@ -438,7 +438,7 @@ public:
 	 * information.
 	 */
 	template <class LocationType>
-	void fatalError(const std::string &msg, LocationType loc,
+	void fatalError(const std::string &msg, const LocationType &loc,
 	                MessageMode mode = MessageMode::DEFAULT)
 	{
 		log(Severity::FATAL_ERROR, msg, SourceLocation::location(loc), mode);

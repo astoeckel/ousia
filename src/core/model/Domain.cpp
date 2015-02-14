@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <memory>
+#include <queue>
 #include <set>
 
 #include <core/common/RttiBuilder.hpp>
@@ -27,18 +29,16 @@ namespace ousia {
 
 /* Class FieldDescriptor */
 
-FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
-                                 Handle<Type> primitiveType, std::string name,
-                                 bool optional)
+FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Type> primitiveType,
+                                 Handle<Descriptor> parent, FieldType fieldType,
+                                 std::string name, bool optional)
     : Node(mgr, std::move(name), parent),
       children(this),
-      fieldType(FieldType::PRIMITIVE),
+      fieldType(fieldType),
       primitiveType(acquire(primitiveType)),
-      optional(optional)
+      optional(optional),
+      primitive(true)
 {
-	if (parent != nullptr) {
-		parent->addFieldDescriptor(this);
-	}
 }
 
 FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
@@ -47,11 +47,9 @@ FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
     : Node(mgr, std::move(name), parent),
       children(this),
       fieldType(fieldType),
-      optional(optional)
+      optional(optional),
+      primitive(false)
 {
-	if (parent != nullptr) {
-		parent->addFieldDescriptor(this);
-	}
 }
 
 bool FieldDescriptor::doValidate(Logger &logger) const
@@ -59,45 +57,63 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	bool valid = true;
 	// check parent type
 	if (getParent() == nullptr) {
-		logger.error("This field has no parent!", *this);
+		logger.error(std::string("Field \"") + getName() + "\" has no parent!",
+		             *this);
 		valid = false;
 	} else if (!getParent()->isa(&RttiTypes::Descriptor)) {
-		logger.error("The parent of this field is not a descriptor!", *this);
+		logger.error(std::string("The parent of Field \"") + getName() +
+		                 "\" is not a descriptor!",
+		             *this);
 		valid = false;
 	}
 	// check name
-	if (getName() != DEFAULT_FIELD_NAME) {
+	if (getName().empty()) {
+		if (fieldType != FieldType::TREE) {
+			logger.error(std::string("Field \"") + getName() +
+			                 "\" is not the main field but has an empty name!",
+			             *this);
+			valid = false;
+		}
+	} else {
 		valid = valid & validateName(logger);
 	}
+
 	// check consistency of FieldType with the rest of the FieldDescriptor.
-	if (fieldType == FieldType::PRIMITIVE) {
+	if (primitive) {
 		if (children.size() > 0) {
-			logger.error(
-			    "This field is supposed to be primitive but has "
-			    "registered child classes!",
-			    *this);
+			logger.error(std::string("Field \"") + getName() +
+			                 "\" is supposed to be primitive but has "
+			                 "registered child classes!",
+			             *this);
 			valid = false;
 		}
 		if (primitiveType == nullptr) {
-			logger.error(
-			    "This field is supposed to be primitive but has "
-			    "no primitive type!",
-			    *this);
+			logger.error(std::string("Field \"") + getName() +
+			                 "\" is supposed to be primitive but has "
+			                 "no primitive type!",
+			             *this);
 			valid = false;
 		}
 	} else {
 		if (primitiveType != nullptr) {
-			logger.error(
-			    "This field is supposed to be non-primitive but has "
-			    "a primitive type!",
-			    *this);
+			logger.error(std::string("Field \"") + getName() +
+			                 "\" is supposed to be non-primitive but has "
+			                 "a primitive type!",
+			             *this);
+			valid = false;
+		}
+		// if this is not a primitive field we require at least one child.
+		if (children.empty()) {
+			logger.error(std::string("Field \"") + getName() +
+			                 "\" is non primitive but does not allow children!",
+			             *this);
 			valid = false;
 		}
 	}
 	/*
 	 * we are not allowed to call the validation functions of each child because
 	 * this might lead to cycles. What we should do, however, is to check if
-	 * there are no duplicates.
+	 * there are duplicates.
 	 */
 	std::set<std::string> names;
 	for (Handle<StructuredClass> c : children) {
@@ -140,10 +156,14 @@ bool Descriptor::doValidate(Logger &logger) const
 	bool valid = true;
 	// check parent type
 	if (getParent() == nullptr) {
-		logger.error("This Descriptor has no parent!", *this);
+		logger.error(
+		    std::string("Descriptor \"") + getName() + "\" has no parent!",
+		    *this);
 		valid = false;
 	} else if (!getParent()->isa(&RttiTypes::Domain)) {
-		logger.error("The parent of this Descriptor is not a Domain!", *this);
+		logger.error(std::string("The parent of Descriptor \"") + getName() +
+		                 "\" is not a Domain!",
+		             *this);
 		valid = false;
 	}
 	// check name
@@ -155,102 +175,346 @@ bool Descriptor::doValidate(Logger &logger) const
 	}
 	// ensure that no attribute with the key "name" exists.
 	if (attributesDescriptor == nullptr) {
-		logger.error("This Descriptor has no Attribute specification!");
+		logger.error(std::string("Descriptor \"") + getName() +
+		             "\" has no Attribute specification!");
 		valid = false;
 	} else {
 		if (attributesDescriptor->hasAttribute("name")) {
 			logger.error(
-			    "This Descriptor has an attribute \"name\" which is a reserved "
-			    "word!");
+			    std::string("Descriptor \"") + getName() +
+			    "\" has an attribute \"name\" which is a reserved word!");
 			valid = false;
 		}
 		valid = valid & attributesDescriptor->validate(logger);
 	}
+	// check that only one FieldDescriptor is of type TREE.
+	auto fds = Descriptor::getFieldDescriptors();
+	bool hasTREE = false;
+	for (auto fd : fds) {
+		if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+			if (!hasTREE) {
+				hasTREE = true;
+			} else {
+				logger.error(
+				    std::string("Descriptor \"") + getName() +
+				        "\" has multiple TREE fields, which is not permitted",
+				    *fd);
+				valid = false;
+				break;
+			}
+		}
+	}
 
 	// check attributes and the FieldDescriptors
-	return valid & continueValidationCheckDuplicates(fieldDescriptors, logger);
+	return valid & continueValidationCheckDuplicates(fds, logger);
 }
 
-std::vector<Rooted<Node>> Descriptor::pathTo(
-    Handle<StructuredClass> target) const
-{
-	std::vector<Rooted<Node>> path;
-	continuePath(target, path);
-	return path;
-}
+struct PathState {
+	std::shared_ptr<PathState> pred;
+	Node *node;
+	size_t length;
 
-bool Descriptor::continuePath(Handle<StructuredClass> target,
-                              std::vector<Rooted<Node>> &currentPath) const
-{
-	// check if we are at the target already
-	if (this == target) {
-		return true;
+	PathState(std::shared_ptr<PathState> pred, Node *node)
+	    : pred(pred), node(node)
+	{
+		if (pred == nullptr) {
+			length = 1;
+		} else {
+			length = pred->length + 1;
+		}
 	}
-	// a variable to determine if we already found a solution
-	bool found = false;
-	// the currently optimal path.
-	std::vector<Rooted<Node>> optimum;
-	// use recursive depth-first search from the top to reach the given child
-	// get the list of effective FieldDescriptors.
-	NodeVector<FieldDescriptor> fields = getFieldDescriptors();
+};
 
-	for (auto &fd : fields) {
-		for (auto &c : fd->getChildren()) {
-			// check if a child is the target node.
-			if (c == target) {
-				// if we have made the connection, stop the search.
-				currentPath.push_back(fd);
-				return true;
+static void constructPath(std::shared_ptr<PathState> state,
+                          NodeVector<Node> &vec)
+{
+	if (state->pred != nullptr) {
+		constructPath(state->pred, vec);
+	}
+	vec.push_back(state->node);
+}
+
+static NodeVector<Node> pathTo(const Descriptor *start, Logger &logger,
+                               Handle<Node> target, bool &success)
+{
+	success = false;
+	// shortest path.
+	NodeVector<Node> shortest;
+	// state queue for breadth-first search.
+	std::queue<std::shared_ptr<PathState>> states;
+	{
+		// initially put every field descriptor on the queue.
+		NodeVector<FieldDescriptor> fields = start->getFieldDescriptors();
+
+		for (auto fd : fields) {
+			if (fd == target) {
+				// if we have found the target directly, return without search.
+				success = true;
+				return shortest;
 			}
-			// look for transparent intermediate nodes.
-			if (c->isTransparent()) {
-				// copy the path.
-				std::vector<Rooted<Node>> cPath = currentPath;
-				cPath.push_back(fd);
-				cPath.push_back(c);
-				// recursion.
-				if (c->continuePath(target, cPath) &&
-				    (!found || optimum.size() > cPath.size())) {
-					// look if this path is better than the current optimum.
-					optimum = std::move(cPath);
-					found = true;
+			if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+				states.push(std::make_shared<PathState>(nullptr, fd.get()));
+			}
+		}
+	}
+	// set of visited nodes.
+	std::unordered_set<const Node *> visited;
+	while (!states.empty()) {
+		std::shared_ptr<PathState> current = states.front();
+		states.pop();
+		// do not proceed if this node was already visited.
+		if (!visited.insert(current->node).second) {
+			continue;
+		}
+		// also do not proceed if we can't get better than the current shortest
+		// path anymore.
+		if (!shortest.empty() && current->length > shortest.size()) {
+			continue;
+		}
+
+		bool fin = false;
+		if (current->node->isa(&RttiTypes::StructuredClass)) {
+			const StructuredClass *strct =
+			    static_cast<const StructuredClass *>(current->node);
+
+			// look through all fields.
+			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
+			for (auto fd : fields) {
+				// if we found our target, break off the search in this branch.
+				if (fd == target) {
+					fin = true;
+					continue;
+				}
+				// only continue in the TREE field.
+				if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+					states.push(std::make_shared<PathState>(current, fd.get()));
+				}
+			}
+
+			/*
+			 * Furthermore we have to consider that all subclasses of this
+			 * StructuredClass are allowed in place of this StructuredClass as
+			 * well, so we continue the search for them as well.
+			 */
+
+			NodeVector<StructuredClass> subs = strct->getSubclasses();
+			for (auto sub : subs) {
+				// if we found our target, break off the search in this branch.
+				if (sub == target) {
+					fin = true;
+					current = current->pred;
+					continue;
+				}
+				// We only continue our path via transparent classes.
+				if (sub->isTransparent()) {
+					states.push(
+					    std::make_shared<PathState>(current->pred, sub.get()));
+				}
+			}
+		} else {
+			// otherwise this is a FieldDescriptor.
+			const FieldDescriptor *field =
+			    static_cast<const FieldDescriptor *>(current->node);
+			// and we proceed by visiting all permitted children.
+			for (auto c : field->getChildren()) {
+				// if we found our target, break off the search in this branch.
+				if (c == target) {
+					fin = true;
+					continue;
+				}
+				// We only allow to continue our path via transparent children.
+				if (c->isTransparent()) {
+					states.push(std::make_shared<PathState>(current, c.get()));
+				}
+			}
+		}
+		// check if we are finished.
+		if (fin) {
+			success = true;
+			// if so we look if we found a shorter path than the current minimum
+			if (shortest.empty() || current->length < shortest.size()) {
+				NodeVector<Node> newPath;
+				constructPath(current, newPath);
+				shortest = newPath;
+			} else if (current->length == shortest.size()) {
+				// if the length is the same the result is ambigous and we log
+				// an error.
+				NodeVector<Node> newPath;
+				constructPath(current, newPath);
+				logger.error(
+				    std::string("Can not unambigously create a path from \"") +
+				    start->getName() + "\" to \"" + target->getName() + "\".");
+				logger.note("Dismissed the path:", SourceLocation{},
+				            MessageMode::NO_CONTEXT);
+				for (auto n : newPath) {
+					logger.note(n->getName());
 				}
 			}
 		}
 	}
+	return shortest;
+}
 
-	if (isa(&RttiTypes::StructuredClass)) {
-		const StructuredClass *tis = static_cast<const StructuredClass *>(this);
-		// if this is a StructuredClass we also can call the subclasses.
-		for (auto &c : tis->getSubclasses()) {
-			// copy the path.
-			std::vector<Rooted<Node>> cPath = currentPath;
-			if (c->continuePath(target, cPath) &&
-			    (!found || optimum.size() > cPath.size())) {
-				// look if this path is better than the current optimum.
-				optimum = std::move(cPath);
-				found = true;
+NodeVector<Node> Descriptor::pathTo(Handle<StructuredClass> target,
+                                    Logger &logger) const
+{
+	bool success = false;
+	return ousia::pathTo(this, logger, target, success);
+}
+
+std::pair<NodeVector<Node>, bool> Descriptor::pathTo(
+    Handle<FieldDescriptor> field, Logger &logger) const
+{
+	bool success = false;
+	NodeVector<Node> path = ousia::pathTo(this, logger, field, success);
+	return std::make_pair(path, success);
+}
+
+template <typename F>
+static NodeVector<Node> collect(const Descriptor *start, F match)
+{
+	// result
+	NodeVector<Node> res;
+	// queue for breadth-first search of graph.
+	std::queue<Rooted<Node>> q;
+	{
+		// initially put every field descriptor on the queue.
+		NodeVector<FieldDescriptor> fields = start->getFieldDescriptors();
+
+		for (auto fd : fields) {
+			// note matches.
+			if (match(fd)) {
+				res.push_back(fd);
+			}
+			if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+				q.push(fd);
 			}
 		}
 	}
+	// set of visited nodes.
+	std::unordered_set<const Node *> visited;
+	while (!q.empty()) {
+		Rooted<Node> n = q.front();
+		q.pop();
+		// do not proceed if this node was already visited.
+		if (!visited.insert(n.get()).second) {
+			continue;
+		}
 
-	// put the optimum in the given path reference.
-	currentPath = std::move(optimum);
+		if (n->isa(&RttiTypes::StructuredClass)) {
+			Rooted<StructuredClass> strct = n.cast<StructuredClass>();
 
-	// return if we found something.
-	return found;
+			// look through all fields.
+			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
+			for (auto fd : fields) {
+				// note matches.
+				if (match(fd)) {
+					res.push_back(fd);
+				}
+				// only continue in the TREE field.
+				if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+					q.push(fd);
+				}
+			}
+
+			/*
+			 * Furthermore we have to consider that all subclasses of this
+			 * StructuredClass are allowed in place of this StructuredClass as
+			 * well, so we continue the search for them as well.
+			 */
+
+			NodeVector<StructuredClass> subs = strct->getSubclasses();
+			for (auto sub : subs) {
+				// note matches.
+				if (match(sub)) {
+					res.push_back(sub);
+				}
+				// We only continue our search via transparent classes.
+				if (sub->isTransparent()) {
+					q.push(sub);
+				}
+			}
+		} else {
+			// otherwise this is a FieldDescriptor.
+			Rooted<FieldDescriptor> field = n.cast<FieldDescriptor>();
+			// and we proceed by visiting all permitted children.
+			for (auto c : field->getChildren()) {
+				// note matches.
+				if (match(c)) {
+					res.push_back(c);
+				}
+				// We only continue our search via transparent children.
+				if (c->isTransparent()) {
+					q.push(c);
+				}
+			}
+		}
+	}
+	return res;
+}
+
+NodeVector<FieldDescriptor> Descriptor::getDefaultFields() const
+{
+	// TODO: In principle a cast would be nicer here, but for now we copy.
+	NodeVector<Node> nodes = collect(this, [](Handle<Node> n) {
+		if (!n->isa(&RttiTypes::FieldDescriptor)) {
+			return false;
+		}
+		Handle<FieldDescriptor> f = n.cast<FieldDescriptor>();
+		return f->getFieldType() == FieldDescriptor::FieldType::TREE &&
+		       f->isPrimitive();
+	});
+	NodeVector<FieldDescriptor> res;
+	for (auto n : nodes) {
+		res.push_back(n.cast<FieldDescriptor>());
+	}
+	return res;
+}
+
+NodeVector<StructuredClass> Descriptor::getPermittedChildren() const
+{
+	// TODO: In principle a cast would be nicer here, but for now we copy.
+	NodeVector<Node> nodes = collect(this, [](Handle<Node> n) {
+		return n->isa(&RttiTypes::StructuredClass);
+	});
+	NodeVector<StructuredClass> res;
+	for (auto n : nodes) {
+		res.push_back(n.cast<StructuredClass>());
+	}
+	return res;
+}
+
+static ssize_t getFieldDescriptorIndex(const NodeVector<FieldDescriptor> &fds,
+                                       const std::string &name)
+{
+	if (fds.empty()) {
+		return -1;
+	}
+
+	if (name == DEFAULT_FIELD_NAME) {
+		if (fds.back()->getFieldType() == FieldDescriptor::FieldType::TREE) {
+			return fds.size() - 1;
+		} else {
+			/* The last field has to be the TREE field. If the last field does
+			 * not have the FieldType TREE no TREE-field exists at all. So we
+			 * return -1.
+			 */
+			return -1;
+		}
+	}
+
+	for (size_t f = 0; f < fds.size(); f++) {
+		if (fds[f]->getName() == name) {
+			return f;
+		}
+	}
+	return -1;
 }
 
 ssize_t Descriptor::getFieldDescriptorIndex(const std::string &name) const
 {
-	size_t f = 0;
-	for (auto &fd : getFieldDescriptors()) {
-		if (fd->getName() == name) {
-			return f;
-		}
-		f++;
-	}
-	return -1;
+	NodeVector<FieldDescriptor> fds = getFieldDescriptors();
+	return ousia::getFieldDescriptorIndex(fds, name);
 }
 
 ssize_t Descriptor::getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const
@@ -268,33 +532,54 @@ ssize_t Descriptor::getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const
 Rooted<FieldDescriptor> Descriptor::getFieldDescriptor(
     const std::string &name) const
 {
-	for (auto &fd : getFieldDescriptors()) {
-		if (fd->getName() == name) {
-			return fd;
-		}
+	NodeVector<FieldDescriptor> fds = getFieldDescriptors();
+	ssize_t idx = ousia::getFieldDescriptorIndex(fds, name);
+	if (idx != -1) {
+		return fds[idx];
+	} else {
+		return nullptr;
 	}
-	return nullptr;
 }
 
-void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd)
+void Descriptor::addAndSortFieldDescriptor(Handle<FieldDescriptor> fd,
+                                           Logger &logger)
 {
 	// only add it if we need to.
-	if (fieldDescriptors.find(fd) == fieldDescriptors.end()) {
+	auto fds = getFieldDescriptors();
+	if (fds.find(fd) == fds.end()) {
 		invalidate();
-		fieldDescriptors.push_back(fd);
+		// check if the previous field is a tree field already.
+		if (!fds.empty() &&
+		    fds.back()->getFieldType() == FieldDescriptor::FieldType::TREE &&
+		    fd->getFieldType() != FieldDescriptor::FieldType::TREE) {
+			// if so we add the new field before the TREE field and log a
+			// warning.
+
+			logger.warning(
+			    std::string("Field \"") + fd->getName() +
+			        "\" was declared after main field \"" +
+			        fds.back()->getName() +
+			        "\". The order of fields was changed to make the "
+			        "main field the last field.",
+			    *fd);
+			fieldDescriptors.insert(fieldDescriptors.end() - 1, fd);
+		} else {
+			fieldDescriptors.push_back(fd);
+		}
 	}
+}
+
+void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
+{
+	addAndSortFieldDescriptor(fd, logger);
 	if (fd->getParent() == nullptr) {
 		fd->setParent(this);
 	}
 }
 
-void Descriptor::moveFieldDescriptor(Handle<FieldDescriptor> fd)
+void Descriptor::moveFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
 {
-	// only add it if we need to.
-	if (fieldDescriptors.find(fd) == fieldDescriptors.end()) {
-		invalidate();
-		fieldDescriptors.push_back(fd);
-	}
+	addAndSortFieldDescriptor(fd, logger);
 	Handle<Managed> par = fd->getParent();
 	if (par != this) {
 		if (par != nullptr) {
@@ -305,28 +590,26 @@ void Descriptor::moveFieldDescriptor(Handle<FieldDescriptor> fd)
 	}
 }
 
-void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd)
+void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
 {
-	if (fd->getFieldType() == FieldDescriptor::FieldType::PRIMITIVE) {
-		/*
-		 * To call the "new" operation is enough here, because the
-		 * constructor will add the newly constructed FieldDescriptor to this
-		 * Descriptor automatically.
-		 */
-		new FieldDescriptor(getManager(), this, fd->getPrimitiveType(),
-		                    fd->getName(), fd->isOptional());
+	Rooted<FieldDescriptor> copy;
+	if (fd->isPrimitive()) {
+		copy = Rooted<FieldDescriptor>{new FieldDescriptor(
+		    getManager(), fd->getPrimitiveType(), this, fd->getFieldType(),
+		    fd->getName(), fd->isOptional())};
 	} else {
 		/*
 		 * In case of non-primitive FieldDescriptors we also want to copy the
 		 * child references.
 		 */
-		Rooted<FieldDescriptor> copy = {
+		copy = Rooted<FieldDescriptor>{
 		    new FieldDescriptor(getManager(), this, fd->getFieldType(),
 		                        fd->getName(), fd->isOptional())};
 		for (auto &c : fd->getChildren()) {
 			copy->addChild(c);
 		}
 	}
+	addFieldDescriptor(copy, logger);
 }
 
 bool Descriptor::removeFieldDescriptor(Handle<FieldDescriptor> fd)
@@ -342,17 +625,24 @@ bool Descriptor::removeFieldDescriptor(Handle<FieldDescriptor> fd)
 }
 
 Rooted<FieldDescriptor> Descriptor::createPrimitiveFieldDescriptor(
-    Handle<Type> primitiveType, std::string name, bool optional)
+    Handle<Type> primitiveType, Logger &logger,
+    FieldDescriptor::FieldType fieldType, std::string name, bool optional)
 {
-	return Rooted<FieldDescriptor>{new FieldDescriptor(
-	    getManager(), this, primitiveType, std::move(name), optional)};
+	Rooted<FieldDescriptor> fd{new FieldDescriptor(getManager(), primitiveType,
+	                                               this, fieldType,
+	                                               std::move(name), optional)};
+	addFieldDescriptor(fd, logger);
+	return fd;
 }
 
 Rooted<FieldDescriptor> Descriptor::createFieldDescriptor(
-    FieldDescriptor::FieldType fieldType, std::string name, bool optional)
+    Logger &logger, FieldDescriptor::FieldType fieldType, std::string name,
+    bool optional)
 {
-	return Rooted<FieldDescriptor>{new FieldDescriptor(
+	Rooted<FieldDescriptor> fd{new FieldDescriptor(
 	    getManager(), this, fieldType, std::move(name), optional)};
+	addFieldDescriptor(fd, logger);
+	return fd;
 }
 
 /* Class StructuredClass */
@@ -471,18 +761,35 @@ void StructuredClass::removeSubclass(Handle<StructuredClass> sc, Logger &logger)
 	sc->setSuperclass(nullptr, logger);
 }
 
-const void StructuredClass::gatherFieldDescriptors(
+void StructuredClass::gatherFieldDescriptors(
     NodeVector<FieldDescriptor> &current,
-    std::set<std::string> &overriddenFields) const
+    std::set<std::string> &overriddenFields, bool hasTREE) const
 {
 	// append all FieldDescriptors that are not overridden.
 	for (auto &f : Descriptor::getFieldDescriptors()) {
 		if (overriddenFields.insert(f->getName()).second) {
-			current.push_back(f);
+			bool isTREE = f->getFieldType() == FieldDescriptor::FieldType::TREE;
+			if (hasTREE) {
+				if (!isTREE) {
+					/*
+					 * If we already have a tree field it has to be at the end
+					 * of the current vector. So ensure that all new non-TREE
+					 * fields are inserted before the TREE field such that after
+					 * this method the TREE field is still at the end.
+					 */
+					current.insert(current.end() - 1, f);
+				}
+			} else {
+				if (isTREE) {
+					hasTREE = true;
+				}
+				current.push_back(f);
+			}
 		}
 	}
+	// if we have a superclass, go there.
 	if (superclass != nullptr) {
-		superclass->gatherFieldDescriptors(current, overriddenFields);
+		superclass->gatherFieldDescriptors(current, overriddenFields, hasTREE);
 	}
 }
 
@@ -491,7 +798,7 @@ NodeVector<FieldDescriptor> StructuredClass::getFieldDescriptors() const
 	// in this case we return a NodeVector of Rooted entries without owner.
 	NodeVector<FieldDescriptor> vec;
 	std::set<std::string> overriddenFields;
-	gatherFieldDescriptors(vec, overriddenFields);
+	gatherFieldDescriptors(vec, overriddenFields, false);
 	return vec;
 }
 
@@ -510,12 +817,12 @@ AnnotationClass::AnnotationClass(Manager &mgr, std::string name,
 
 void Domain::doResolve(ResolutionState &state)
 {
-	if (!continueResolveComposita(structuredClasses,
-	                              structuredClasses.getIndex(), state) |
-	    continueResolveComposita(annotationClasses,
-	                             annotationClasses.getIndex(), state)) {
-		continueResolveReferences(typesystems, state);
-	}
+	continueResolveComposita(structuredClasses, structuredClasses.getIndex(),
+	                         state);
+	continueResolveComposita(annotationClasses, annotationClasses.getIndex(),
+	                         state);
+	continueResolveReferences(typesystems, state);
+	continueResolveReferences(domains, state);
 }
 
 bool Domain::doValidate(Logger &logger) const
@@ -530,14 +837,17 @@ bool Domain::doValidate(Logger &logger) const
 
 void Domain::doReference(Handle<Node> node)
 {
-	if (node->isa(&RttiTypes::Domain)) {
+	if (node->isa(&RttiTypes::Typesystem)) {
 		referenceTypesystem(node.cast<Typesystem>());
+	}
+	if (node->isa(&RttiTypes::Domain)) {
+		referenceDomain(node.cast<Domain>());
 	}
 }
 
 RttiSet Domain::doGetReferenceTypes() const
 {
-	return RttiSet{&RttiTypes::Domain};
+	return RttiSet{&RttiTypes::Domain, &RttiTypes::Typesystem};
 }
 
 void Domain::addStructuredClass(Handle<StructuredClass> s)

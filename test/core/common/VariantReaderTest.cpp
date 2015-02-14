@@ -205,7 +205,7 @@ TEST(VariantReader, parseUnescapedString)
 
 	// Simple case with whitespace
 	{
-		CharReader reader("    hello world   ;    ");
+		CharReader reader("    hello world   ;    aha");
 		auto res = VariantReader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
@@ -225,6 +225,54 @@ TEST(VariantReader, parseUnescapedString)
 		auto res = VariantReader::parseUnescapedString(reader, logger, {';'});
 		ASSERT_TRUE(res.first);
 		ASSERT_EQ("hello world", res.second);
+	}
+}
+
+TEST(VariantReader, parseBool)
+{
+	// Valid bools
+	{
+		CharReader reader("   true   ");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second);
+	}
+	{
+		CharReader reader("   false   ");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_FALSE(res.second);
+	}
+	{
+		CharReader reader("   true   bla");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second);
+		reader.consumeWhitespace();
+		char c;
+		ASSERT_TRUE(reader.read(c));
+		ASSERT_EQ('b', c);
+		ASSERT_TRUE(reader.read(c));
+		ASSERT_EQ('l', c);
+		ASSERT_TRUE(reader.read(c));
+		ASSERT_EQ('a', c);
+		ASSERT_FALSE(reader.read(c));
+	}
+	// invalid bools.
+	{
+		CharReader reader("   bla   ");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_FALSE(res.first);
+	}
+	{
+		CharReader reader("   TRUE   ");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_FALSE(res.first);
+	}
+	{
+		CharReader reader("   tr ue   ");
+		auto res = VariantReader::parseBool(reader, logger);
+		ASSERT_FALSE(res.first);
 	}
 }
 
@@ -571,6 +619,13 @@ TEST(VariantReader, parseObject)
 	// Invalid array/object
 	{
 		CharReader reader("[invalid key = bla]");
+		auto res = VariantReader::parseObject(reader, logger);
+		ASSERT_FALSE(res.first);
+	}
+
+	// Mutliple commas
+	{
+		CharReader reader("[r=50,,t=70, b=70,g=60]");
 		auto res = VariantReader::parseObject(reader, logger);
 		ASSERT_FALSE(res.first);
 	}
@@ -1133,6 +1188,71 @@ TEST(VariantReader, parseGenericComplex)
 	char c;
 	ASSERT_TRUE(reader.peek(c));
 	ASSERT_EQ(';', c);
+}
+
+TEST(VariantReader, parseTyped)
+{
+	{
+		auto res = VariantReader::parseTyped(VariantType::BOOL, "true", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::BOOL, res.second.getType());
+		ASSERT_TRUE(res.second.asBool());
+	}
+	{
+		auto res =
+		    VariantReader::parseTyped(VariantType::INT, "  1254", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::INT, res.second.getType());
+		ASSERT_EQ(1254, res.second.asInt());
+	}
+	{
+		auto res =
+		    VariantReader::parseTyped(VariantType::DOUBLE, "  3.14", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::DOUBLE, res.second.getType());
+		ASSERT_EQ(3.14, res.second.asDouble());
+	}
+	{
+		auto res = VariantReader::parseTyped(VariantType::STRING,
+		                                     "\'my string\'", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::STRING, res.second.getType());
+		ASSERT_EQ("my string", res.second.asString());
+	}
+	{
+		auto res =
+		    VariantReader::parseTyped(VariantType::STRING, "my string", logger);
+		ASSERT_FALSE(res.first);
+	}
+	{
+		auto res =
+		    VariantReader::parseTyped(VariantType::ARRAY, "[1, 4, 5]", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::ARRAY, res.second.getType());
+		Variant::arrayType actual = res.second.asArray();
+		Variant::arrayType expected{{1}, {4}, {5}};
+		ASSERT_EQ(expected, actual);
+	}
+	{
+		auto res = VariantReader::parseTyped(
+		    VariantType::MAP, "[a=\"str\", b=true, i=4]", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::MAP, res.second.getType());
+		Variant::mapType actual = res.second.asMap();
+		Variant::mapType expected{{"a", {"str"}}, {"b", {true}}, {"i", {4}}};
+		ASSERT_EQ(expected, actual);
+	}
+	{
+		auto res = VariantReader::parseTyped(VariantType::CARDINALITY,
+		                                     "{1-2, >18}", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_EQ(VariantType::CARDINALITY, res.second.getType());
+		Variant::cardinalityType actual = res.second.asCardinality();
+		Variant::cardinalityType expected;
+		expected.merge({1, 2});
+		expected.merge(Variant::rangeType::typeRangeFrom(19));
+		ASSERT_EQ(expected, actual);
+	}
 }
 }
 

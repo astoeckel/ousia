@@ -19,6 +19,7 @@
 #include <core/common/Exceptions.hpp>
 #include <core/common/Utils.hpp>
 #include <core/common/VariantWriter.hpp>
+#include <core/model/Domain.hpp>
 #include <core/model/Typesystem.hpp>
 
 #include "ParserScope.hpp"
@@ -471,6 +472,41 @@ bool ParserScope::performDeferredResolution(Logger &logger)
 	}
 	deferred.clear();
 	return false;
+}
+
+bool ParserScope::resolveFieldDescriptor(
+    const std::vector<std::string> &path, Handle<Node> owner, Logger &logger,
+    ResolutionResultCallback resultCallback)
+{
+	// if the last element of the path is the default field name, we want to
+	// resolve the parent descriptor first.
+	if (path.back() == DEFAULT_FIELD_NAME) {
+		std::vector<std::string> descPath;
+		descPath.insert(descPath.end(), path.begin(), path.end() - 1);
+		return resolve(&RttiTypes::Descriptor, descPath, owner, logger,
+		               [resultCallback](Handle<Node> resolved,
+		                                Handle<Node> owner, Logger &logger) {
+			if (resolved != nullptr) {
+				resultCallback(
+				    resolved.cast<Descriptor>()->getFieldDescriptor(), owner,
+				    logger);
+			} else {
+				resultCallback(nullptr, owner, logger);
+			}
+		});
+	}
+
+	// If it is not the default field, we can just forward to resolve
+	return resolve(&RttiTypes::FieldDescriptor, path, owner, logger,
+	               resultCallback);
+}
+
+bool ParserScope::resolveFieldDescriptor(
+    const std::string &name, Handle<Node> owner, Logger &logger,
+    ResolutionResultCallback resultCallback)
+{
+	return resolveFieldDescriptor(Utils::split(name, '.'), owner, logger,
+	                              resultCallback);
 }
 }
 

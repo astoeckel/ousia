@@ -679,7 +679,6 @@ public:
 	 * Resolves a typesystem type. Makes sure an array type is returned if an
 	 * array type is requested.
 	 *
-	 * @tparam T is the type of the node that should be resolved.
 	 * @param name is the path for which a node should be resolved. The name is
 	 * split at '.' to form a path.
 	 * @param owner is the node for which the resolution takes place.
@@ -715,7 +714,6 @@ public:
 	 * Resolves a type and makes sure the corresponding value is of the correct
 	 * type.
 	 *
-	 * @tparam T is the type of the node that should be resolved.
 	 * @param path is the path for which a node should be resolved.
 	 * @param owner is the node for which the resolution takes place.
 	 * @param value is a reference at the Variant that represents the value for
@@ -739,7 +737,6 @@ public:
 	 * Resolves a type and makes sure the corresponding value is of the correct
 	 * type.
 	 *
-	 * @tparam T is the type of the node that should be resolved.
 	 * @param name is the path for which a node should be resolved. The name is
 	 * split at '.' to form a path.
 	 * @param owner is the node for which the resolution takes place.
@@ -759,6 +756,44 @@ public:
 	                          Variant &value, Logger &logger,
 	                          ResolutionResultCallback resultCallback);
 
+	/**
+	 * Resolves a FieldDescriptor. Makes sure that the default field can be
+	 * handled.
+	 *
+	 * @param path is the path for which a node should be resolved.
+	 * @param owner is the node for which the resolution takes place.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolveFieldDescriptor(const std::vector<std::string> &path,
+	                            Handle<Node> owner, Logger &logger,
+	                            ResolutionResultCallback resultCallback);
+
+	/**
+	 * Resolves a FieldDescriptor. Makes sure that the default field can be
+	 * handled.
+	 *
+	 * @param name is the path for which a node should be resolved. The name is
+	 * split at '.' to form a path.
+	 * @param owner is the node for which the resolution takes place.
+	 * @param logger is the logger instance into which resolution problems
+	 * should be logged.
+	 * @param resultCallback is the callback function to which the result of
+	 * the resolution process is passed. This function is called once the
+	 * resolution was successful.
+	 * @return true if the resolution was immediately successful. This does not
+	 * mean, that the resolved object does not exist, as it may be resolved
+	 * later.
+	 */
+	bool resolveFieldDescriptor(const std::string &name, Handle<Node> owner,
+	                            Logger &logger,
+	                            ResolutionResultCallback resultCallback);
 	/**
 	 * Tries to resolve all currently deferred resolution steps. The list of
 	 * pending deferred resolutions is cleared after this function has run.
