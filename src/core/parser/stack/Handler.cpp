@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <core/common/Exceptions.hpp>
+#include <core/common/Logger.hpp>
 #include <core/parser/ParserContext.hpp>
 
 #include "Callbacks.hpp"
@@ -40,51 +42,191 @@ HandlerData::HandlerData(ParserContext &ctx, Callbacks &callbacks,
 
 /* Class Handler */
 
-Handler::Handler(const HandlerData &internalData) : internalData(internalData)
-{
-}
+Handler::Handler(const HandlerData &handlerData) : handlerData(handlerData) {}
 
 Handler::~Handler() {}
 
-ParserContext &Handler::context() { return internalData.ctx; }
+ParserContext &Handler::context() { return handlerData.ctx; }
 
-const std::string &Handler::name() { return internalData.name; }
+ParserScope &Handler::scope() { return handlerData.ctx.getScope(); }
 
-ParserScope &Handler::scope() { return internalData.ctx.getScope(); }
+Manager &Handler::manager() { return handlerData.ctx.getManager(); }
 
-Manager &Handler::manager() { return internalData.ctx.getManager(); }
+Logger &Handler::logger() { return handlerData.ctx.getLogger(); }
 
-Logger &Handler::logger() { return internalData.ctx.getLogger(); }
-
-const State &Handler::state() { return internalData.state; }
-
-SourceLocation Handler::location() { return internalData.location; }
+SourceLocation Handler::location() { return handlerData.location; }
 
 void Handler::setWhitespaceMode(WhitespaceMode whitespaceMode)
 {
-	internalData.callbacks.setWhitespaceMode(whitespaceMode);
+	handlerData.callbacks.setWhitespaceMode(whitespaceMode);
 }
 
 void Handler::registerToken(const std::string &token)
 {
-	internalData.callbacks.registerToken(token);
+	handlerData.callbacks.registerToken(token);
 }
 
 void Handler::unregisterToken(const std::string &token)
 {
-	internalData.callbacks.unregisterToken(token);
+	handlerData.callbacks.unregisterToken(token);
 }
 
-/* Class DefaultHandler */
+const std::string &Handler::getName() const { return handlerData.name; }
 
-/*void DefaultHandler::start(Variant::mapType &args) {}
+const State &Handler::getState() const { return handlerData.state; }
 
-void DefaultHandler::end() {}
+/* Class EmptyHandler */
 
-Handler *DefaultHandler::create(const data &data)
+bool EmptyHandler::start(const Variant::mapType &args)
 {
-    return new DefaultHandler{data};
-}*/
+	// Just accept anything
+	return true;
+}
+
+void EmptyHandler::end()
+{
+	// Do nothing if a command ends
+}
+
+bool EmptyHandler::fieldStart(bool &isDefaultField, size_t fieldIndex)
+{
+	// Accept any field
+	return true;
+}
+
+void EmptyHandler::fieldEnd()
+{
+	// Do not handle fields
+}
+
+bool EmptyHandler::annotationStart(const Variant &className,
+                                   const Variant::mapType &args)
+{
+	// Accept any data
+	return true;
+}
+
+bool EmptyHandler::annotationEnd(const Variant &className,
+                                 const Variant &elementName)
+{
+	// Accept any annotation
+	return true;
+}
+
+bool EmptyHandler::data(const Variant &data)
+{
+	// Support any data
+	return true;
+}
+
+/* Class StaticHandler */
+
+bool StaticHandler::start(const Variant::mapType &args)
+{
+	// Do nothing in the default implementation, accept anything
+	return true;
+}
+
+void StaticHandler::end()
+{
+	// Do nothing here
+}
+
+bool StaticHandler::fieldStart(bool &isDefault, size_t fieldIdx)
+{
+	// Return true if either the default field is requested or the field index
+	// is zero. This simulates that there is exactly one field (a default field)
+	if (fieldIdx == 0) {
+		isDefault = true;
+		return true;
+	}
+	return false;
+}
+
+void StaticHandler::fieldEnd()
+{
+	// Do nothing here
+}
+
+bool StaticHandler::annotationStart(const Variant &className,
+                                    const Variant::mapType &args)
+{
+	// No annotations supported
+	return false;
+}
+
+bool StaticHandler::annotationEnd(const Variant &className,
+                                  const Variant &elementName)
+{
+	// No annotations supported
+	return false;
+}
+
+bool StaticHandler::data(const Variant &data)
+{
+	// No data supported
+	return false;
+}
+
+/* Class StaticFieldHandler */
+
+StaticFieldHandler::StaticFieldHandler(const HandlerData &handlerData,
+                                       const std::string &argName)
+    : StaticHandler(handlerData), argName(argName), handled(false)
+{
+}
+
+bool StaticFieldHandler::start(const Variant::mapType &args)
+{
+	if (!argName.empty()) {
+		auto it = args.find(argName);
+		if (it != args.end()) {
+			handled = true;
+			doHandle(it->second, args);
+			return true;
+		}
+	}
+
+	this->args = args;
+	return true;
+}
+
+void StaticFieldHandler::end()
+{
+	if (!handled) {
+		if (!argName.empty()) {
+			logger().error(std::string("Required argument \"") + argName +
+			                   std::string("\" is missing."),
+			               location());
+		} else {
+			logger().error("Command requires data, but no data given",
+			               location());
+		}
+	}
+}
+
+bool StaticFieldHandler::data(const Variant &data)
+{
+	// Call the doHandle function if this has not been done before
+	if (!handled) {
+		handled = true;
+		doHandle(data, args);
+		return true;
+	}
+
+	// The doHandle function was already called, print an error message
+	logger().error(
+	    std::string("Found data, but the corresponding argument \"") + argName +
+	        std::string("\" was already specified"),
+	    data);
+
+	// Print the location at which the attribute was originally specified
+	auto it = args.find(argName);
+	if (it != args.end()) {
+		logger().note(std::string("Attribute was specified here:"), it->second);
+	}
+	return false;
+}
 }
 }
 

@@ -16,10 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _OUSIA_PARSER_STATE_HANDLER_HPP_
-#define _OUSIA_PARSER_STATE_HANDLER_HPP_
+#ifndef _OUSIA_PARSER_STACK_HANDLER_HPP_
+#define _OUSIA_PARSER_STACK_HANDLER_HPP_
 
-#include <memory>
 #include <string>
 
 #include <core/common/Location.hpp>
@@ -29,13 +28,12 @@ namespace ousia {
 
 // Forward declarations
 class ParserContext;
-class Callbacks;
 class Logger;
-class Project;
 
 namespace parser_stack {
 
 // More forward declarations
+class Callbacks;
 class State;
 
 /**
@@ -96,7 +94,7 @@ private:
 	/**
 	 * Structure containing the internal handler data.
 	 */
-	const HandlerData internalData;
+	const HandlerData handlerData;
 
 protected:
 	/**
@@ -105,7 +103,7 @@ protected:
 	 * @param data is a structure containing all data being passed to the
 	 * handler.
 	 */
-	Handler(const HandlerData &internalData);
+	Handler(const HandlerData &handlerData);
 
 	/**
 	 * Returns a reference at the ParserContext.
@@ -113,13 +111,6 @@ protected:
 	 * @return a reference at the ParserContext.
 	 */
 	ParserContext &context();
-
-	/**
-	 * Returns the command name for which the handler was created.
-	 *
-	 * @return a const reference at the command name.
-	 */
-	const std::string &name();
 
 	/**
 	 * Returns a reference at the ParserScope instance.
@@ -142,13 +133,6 @@ protected:
 	 * @return a reference at the Logger instance.
 	 */
 	Logger &logger();
-
-	/**
-	 * Reference at the State descriptor for which this Handler was created.
-	 *
-	 * @return a const reference at the constructing State descriptor.
-	 */
-	const State &state();
 
 	/**
 	 * Returns the current location in the source file.
@@ -193,6 +177,20 @@ public:
 	void unregisterToken(const std::string &token);
 
 	/**
+	 * Returns the command name for which the handler was created.
+	 *
+	 * @return a const reference at the command name.
+	 */
+	const std::string &getName() const;
+
+	/**
+	 * Reference at the State descriptor for which this Handler was created.
+	 *
+	 * @return a const reference at the constructing State descriptor.
+	 */
+	const State &getState() const;
+
+	/**
 	 * Called when the command that was specified in the constructor is
 	 * instanciated.
 	 *
@@ -200,7 +198,7 @@ public:
 	 * @return true if the handler was successful in starting the element it
 	 * represents, false otherwise.
 	 */
-	virtual bool start(Variant::mapType &args) = 0;
+	virtual bool start(const Variant::mapType &args) = 0;
 
 	/**
 	 * Called before the command for which this handler is defined ends (is
@@ -216,16 +214,12 @@ public:
 	 * even though the corresponding structure does not have a field, as long as
 	 * no data is fed into the field).
 	 *
-	 * @param isDefaultField is set to true if the field that is being started
-	 * is the default/tree field. The handler should set the value of this
-	 * variable to true if the referenced field is indeed the default field.
-	 * @param isImplicit is set to true if the field is implicitly being started
-	 * by the stack (this field always implies isDefaultField being set to
-	 * true).
-	 * @param fieldIndex is the numerical index of the field.
+	 * @param isDefault is set to true if the field that is being started is the
+	 * default/tree field. The handler should set the value of this variable to
+	 * true if the referenced field is indeed the default field.
+	 * @param fieldIdx is the numerical index of the field.
 	 */
-	virtual bool fieldStart(bool &isDefaultField, bool isImplicit,
-	                        size_t fieldIndex) = 0;
+	virtual bool fieldStart(bool &isDefault, size_t fieldIdx) = 0;
 
 	/**
 	 * Called when a previously opened field ends, while the handler is active.
@@ -244,10 +238,11 @@ public:
 	 * @return true if the mentioned annotation could be started here, false
 	 * if an error occurred.
 	 */
-	virtual bool annotationStart(Variant className, Variant::mapType &args) = 0;
+	virtual bool annotationStart(const Variant &className,
+	                             const Variant::mapType &args) = 0;
 
 	/**
-	 * Called whenever an annotation ends while this handler is active. The 
+	 * Called whenever an annotation ends while this handler is active. The
 	 * function should return true if ending the annotation was successful,
 	 * false otherwise.
 	 *
@@ -258,16 +253,19 @@ public:
 	 * @return true if the mentioned annotation could be started here, false if
 	 * an error occurred.
 	 */
-	virtual bool annotationEnd(Variant className, Variant elementName) = 0;
+	virtual bool annotationEnd(const Variant &className,
+	                           const Variant &elementName) = 0;
 
 	/**
 	 * Called whenever raw data (int the form of a string) is available for the
-	 * Handler instance.
+	 * Handler instance. Should return true if the data could be handled, false
+	 * otherwise.
 	 *
 	 * @param data is a string variant containing the character data and its
 	 * location.
+	 * @return true if the data could be handled, false otherwise.
 	 */
-	virtual void data(Variant data) = 0;
+	virtual bool data(const Variant &data) = 0;
 };
 
 /**
@@ -281,22 +279,105 @@ public:
 using HandlerConstructor = Handler *(*)(const HandlerData &handlerData);
 
 /**
- * The DefaultHandler class is used in case no element handler is specified in
- * the State descriptor.
+ * The EmptyHandler class is used in case no element handler is specified in
+ * the State descriptor. It just accepts all data and does nothing.
  */
-/*class EmptyHandler : public Handler {
-public:
+class EmptyHandler : public Handler {
+protected:
 	using Handler::Handler;
 
-	void start(Variant::mapType &args) override;
-
+public:
+	bool start(const Variant::mapType &args) override;
 	void end() override;
+	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
+	void fieldEnd() override;
+	bool annotationStart(const Variant &className,
+	                     const Variant::mapType &args) override;
+	bool annotationEnd(const Variant &className,
+	                   const Variant &elementName) override;
+	bool data(const Variant &data) override;
 
+	/**
+	 * Creates an instance of the EmptyHandler class.
+	 */
 	static Handler *create(const HandlerData &handlerData);
-};*/
+};
 
+/**
+ * The StaticHandler class is used to handle predifined commands which do
+ * neither support annotations, nor multiple fields. Child classes can decide
+ * whether a single data field should be used.
+ */
+class StaticHandler : public Handler {
+protected:
+	using Handler::Handler;
+
+public:
+	bool start(const Variant::mapType &args) override;
+	void end() override;
+	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
+	void fieldEnd() override;
+	bool annotationStart(const Variant &className,
+	                     const Variant::mapType &args) override;
+	bool annotationEnd(const Variant &className,
+	                   const Variant &elementName) override;
+	bool data(const Variant &data) override;
+};
+
+/**
+ * The StaticFieldHandler class is used to handle predifined commands which do
+ * neither support annotations, nor multiple fields. Additionally, it captures a
+ * data entry from a single default field.
+ */
+class StaticFieldHandler : public StaticHandler {
+private:
+	/**
+	 * Set to the name of the data argument that should be used instead of the
+	 * data field, if no data field is given.
+	 */
+	std::string argName;
+
+	/**
+	 * Set to true, once the "doHandle" function has been called.
+	 */
+	bool handled;
+
+	/**
+	 * Map containing the arguments given in the start function.
+	 */
+	Variant::mapType args;
+
+protected:
+	/**
+	 * Constructor of the StaticFieldHandler class.
+	 *
+	 * @param handlerData is a structure containing the internal data that
+	 * should be stored inside the handler.
+	 * @param name of the data argument that -- if present -- should be used
+	 * instead of the data field. If empty, data is not captured from the
+	 * arguments. If both, data in the data field and the argument, are given,
+	 * this results in an error.
+	 */
+	StaticFieldHandler(const HandlerData &handlerData,
+	                   const std::string &argName);
+
+	/**
+	 * Function that should be overriden in order to handle the field data and
+	 * the other arguments. This function is not called if no data was given.
+	 *
+	 * @param fieldData is the captured field data.
+	 * @param args are the arguments that were given in the "start" function.
+	 */
+	virtual void doHandle(const Variant &fieldData,
+	                      const Variant::mapType &args) = 0;
+
+public:
+	bool start(const Variant::mapType &args) override;
+	void end() override;
+	bool data(const Variant &data) override;
+};
 }
 }
 
-#endif /* _OUSIA_PARSER_STATE_HANDLER_HPP_ */
+#endif /* _OUSIA_PARSER_STACK_HANDLER_HPP_ */
 
