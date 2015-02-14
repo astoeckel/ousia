@@ -17,17 +17,17 @@
 */
 
 /**
- * @file OsdmStreamParser.hpp
+ * @file OsmlStreamParser.hpp
  *
- * Provides classes for low-level classes for reading the TeX-esque osdm
+ * Provides classes for low-level classes for reading the TeX-esque osml
  * format. The class provided here does not build any model objects and does not
  * implement the Parser interface.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_OSDM_STREAM_PARSER_HPP_
-#define _OUSIA_OSDM_STREAM_PARSER_HPP_
+#ifndef _OUSIA_OSML_STREAM_PARSER_HPP_
+#define _OUSIA_OSML_STREAM_PARSER_HPP_
 
 #include <stack>
 
@@ -42,7 +42,7 @@ class Logger;
 class DataHandler;
 
 /**
- * The OsdmStreamParser class provides a low-level reader for the TeX-esque osdm
+ * The OsmlStreamParser class provides a low-level reader for the TeX-esque osml
  * format. The parser is constructed around a "parse" function, which reads data
  * from the underlying CharReader until a new state is reached and indicates
  * this state in a return value. The calling code then has to pull corresponding
@@ -52,10 +52,10 @@ class DataHandler;
  * fields, as this would lead to too many consecutive errors) a
  * LoggableException is thrown.
  */
-class OsdmStreamParser {
+class OsmlStreamParser {
 public:
 	/**
-	 * Enum used to indicate which state the OsdmStreamParser class is in
+	 * Enum used to indicate which state the OsmlStreamParser class is in
 	 * after calling the "parse" function.
 	 */
 	enum class State {
@@ -291,14 +291,14 @@ private:
 
 public:
 	/**
-	 * Constructor of the OsdmStreamParser class. Attaches the new
-	 * OsdmStreamParser to the given CharReader and Logger instances.
+	 * Constructor of the OsmlStreamParser class. Attaches the new
+	 * OsmlStreamParser to the given CharReader and Logger instances.
 	 *
 	 * @param reader is the reader instance from which incomming characters
 	 * should be read.
 	 * @param logger is the logger instance to which errors should be written.
 	 */
-	OsdmStreamParser(CharReader &reader, Logger &logger);
+	OsmlStreamParser(CharReader &reader, Logger &logger);
 
 	/**
 	 * Continues parsing. Returns one of the states defined in the State enum.
@@ -346,5 +346,5 @@ public:
 };
 }
 
-#endif /* _OUSIA_OSDM_STREAM_PARSER_HPP_ */
+#endif /* _OUSIA_OSML_STREAM_PARSER_HPP_ */
 

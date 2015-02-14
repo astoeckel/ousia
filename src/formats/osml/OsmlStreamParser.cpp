@@ -21,7 +21,7 @@
 #include <core/common/Utils.hpp>
 #include <core/common/VariantReader.hpp>
 
-#include "OsdmStreamParser.hpp"
+#include "OsmlStreamParser.hpp"
 
 namespace ousia {
 
@@ -160,14 +160,14 @@ public:
 	}
 };
 
-OsdmStreamParser::OsdmStreamParser(CharReader &reader, Logger &logger)
+OsmlStreamParser::OsmlStreamParser(CharReader &reader, Logger &logger)
     : reader(reader), logger(logger), tokenizer(Tokens)
 {
 	// Place an intial command representing the complete file on the stack
 	commands.push(Command{"", Variant::mapType{}, true, true, true});
 }
 
-Variant OsdmStreamParser::parseIdentifier(size_t start, bool allowNSSep)
+Variant OsmlStreamParser::parseIdentifier(size_t start, bool allowNSSep)
 {
 	bool first = true;
 	bool hasCharSiceNSSep = false;
@@ -210,7 +210,7 @@ Variant OsdmStreamParser::parseIdentifier(size_t start, bool allowNSSep)
 	return res;
 }
 
-OsdmStreamParser::State OsdmStreamParser::parseBeginCommand()
+OsmlStreamParser::State OsmlStreamParser::parseBeginCommand()
 {
 	// Expect a '{' after the command
 	reader.consumeWhitespace();
@@ -251,7 +251,7 @@ OsdmStreamParser::State OsdmStreamParser::parseBeginCommand()
 	return State::COMMAND;
 }
 
-static bool checkStillInField(const OsdmStreamParser::Command &cmd,
+static bool checkStillInField(const OsmlStreamParser::Command &cmd,
                               const Variant &endName, Logger &logger)
 {
 	if (cmd.inField && !cmd.inRangeField) {
@@ -264,7 +264,7 @@ static bool checkStillInField(const OsdmStreamParser::Command &cmd,
 	return false;
 }
 
-OsdmStreamParser::State OsdmStreamParser::parseEndCommand()
+OsmlStreamParser::State OsmlStreamParser::parseEndCommand()
 {
 	// Expect a '{' after the command
 	if (!reader.expect('{')) {
@@ -327,7 +327,7 @@ OsdmStreamParser::State OsdmStreamParser::parseEndCommand()
 	return cmd.inRangeField ? State::FIELD_END : State::NONE;
 }
 
-Variant OsdmStreamParser::parseCommandArguments(Variant commandArgName)
+Variant OsmlStreamParser::parseCommandArguments(Variant commandArgName)
 {
 	// Parse the arguments using the universal VariantReader
 	Variant commandArguments;
@@ -353,7 +353,7 @@ Variant OsdmStreamParser::parseCommandArguments(Variant commandArgName)
 	return commandArguments;
 }
 
-void OsdmStreamParser::pushCommand(Variant commandName,
+void OsmlStreamParser::pushCommand(Variant commandName,
                                    Variant commandArguments, bool hasRange)
 {
 	// Store the location on the stack
@@ -368,7 +368,7 @@ void OsdmStreamParser::pushCommand(Variant commandName,
 	                      hasRange, false, false});
 }
 
-OsdmStreamParser::State OsdmStreamParser::parseCommand(size_t start)
+OsmlStreamParser::State OsmlStreamParser::parseCommand(size_t start)
 {
 	// Parse the commandName as a first identifier
 	Variant commandName = parseIdentifier(start, true);
@@ -416,7 +416,7 @@ OsdmStreamParser::State OsdmStreamParser::parseCommand(size_t start)
 	return State::COMMAND;
 }
 
-void OsdmStreamParser::parseBlockComment()
+void OsmlStreamParser::parseBlockComment()
 {
 	Token token;
 	size_t depth = 1;
@@ -436,7 +436,7 @@ void OsdmStreamParser::parseBlockComment()
 	logger.error("File ended while being in a block comment", reader);
 }
 
-void OsdmStreamParser::parseLineComment()
+void OsmlStreamParser::parseLineComment()
 {
 	char c;
 	while (reader.read(c)) {
@@ -446,7 +446,7 @@ void OsdmStreamParser::parseLineComment()
 	}
 }
 
-bool OsdmStreamParser::checkIssueData(DataHandler &handler)
+bool OsmlStreamParser::checkIssueData(DataHandler &handler)
 {
 	if (!handler.isEmpty()) {
 		data = handler.toVariant(reader.getSourceId());
@@ -457,7 +457,7 @@ bool OsdmStreamParser::checkIssueData(DataHandler &handler)
 	return false;
 }
 
-bool OsdmStreamParser::checkIssueFieldStart()
+bool OsmlStreamParser::checkIssueFieldStart()
 {
 	// Fetch the current command, and check whether we're currently inside a
 	// field of this command
@@ -482,7 +482,7 @@ bool OsdmStreamParser::checkIssueFieldStart()
 	return false;
 }
 
-OsdmStreamParser::State OsdmStreamParser::parse()
+OsmlStreamParser::State OsmlStreamParser::parse()
 {
 	// Handler for incomming data
 	DataHandler handler;
@@ -627,12 +627,12 @@ OsdmStreamParser::State OsdmStreamParser::parse()
 	return State::END;
 }
 
-const Variant &OsdmStreamParser::getCommandName()
+const Variant &OsmlStreamParser::getCommandName()
 {
 	return commands.top().name;
 }
 
-const Variant &OsdmStreamParser::getCommandArguments()
+const Variant &OsmlStreamParser::getCommandArguments()
 {
 	return commands.top().arguments;
 }
