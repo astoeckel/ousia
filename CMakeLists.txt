@@ -44,6 +44,18 @@ FIND_PACKAGE(Boost COMPONENTS system filesystem program_options REQUIRED)
 SET(UTF8CPP_INCLUDE_DIR "lib/utf8cpp")
 
 ################################################################################
+# Check the gcc version                                                        #
+################################################################################
+
+IF(CMAKE_COMPILER_IS_GNUCC)
+	EXECUTE_PROCESS(COMMAND ${CMAKE_C_COMPILER} -dumpversion
+		OUTPUT_VARIABLE GCC_VERSION)
+	IF(GCC_VERSION VERSION_LESS 4.8)
+		ERROR("This projects requires at last GCC 4.8 or newer to be built")
+	ENDIF()
+ENDIF()
+
+################################################################################
 # Inclusion of doxygen                                                         #
 ################################################################################
 
@@ -274,7 +286,7 @@ IF(TEST)
 		test/core/model/StyleTest
 		test/core/model/TypesystemTest
 		test/core/parser/ParserScopeTest
-#		test/core/parser/stack/StackTest
+		test/core/parser/stack/StackTest
 		test/core/parser/stack/StateTest
 		test/core/parser/utils/TokenizerTest
 		test/core/parser/utils/TokenTrieTest
