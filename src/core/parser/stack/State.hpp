@@ -33,6 +33,7 @@
 
 #include <core/common/Rtti.hpp>
 #include <core/common/Argument.hpp>
+#include <core/common/Whitespace.hpp>
 
 namespace ousia {
 namespace parser_stack {
