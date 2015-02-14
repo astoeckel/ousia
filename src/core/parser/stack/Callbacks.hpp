@@ -17,10 +17,10 @@
 */
 
 /**
- * @file ParserStateCallbacks.hpp
+ * @file Callbacks.hpp
  *
  * Contains an interface defining the callbacks that can be directed from a
- * ParserStateHandler to the ParserStateStack, and from the ParserStateStack to
+ * StateHandler to the StateStack, and from the StateStack to
  * the actual parser.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
@@ -34,17 +34,18 @@
 #include <core/common/Whitespace.hpp>
 
 namespace ousia {
+namespace parser_stack {
 
 /**
  * Interface defining a set of callback functions that act as a basis for the
- * ParserStateStackCallbacks and the ParserCallbacks.
+ * StateStackCallbacks and the ParserCallbacks.
  */
-class ParserStateCallbacks {
+class Callbacks {
 public:
 	/**
 	 * Virtual descructor.
 	 */
-	virtual ~ParserStateCallbacks() {};
+	virtual ~Callbacks() {};
 
 	/**
 	 * Sets the whitespace mode that specifies how string data should be
@@ -54,15 +55,6 @@ public:
 	 * PRESERVE, TRIM or COLLAPSE.
 	 */
 	virtual void setWhitespaceMode(WhitespaceMode whitespaceMode) = 0;
-
-	/**
-	 * Sets the type as which the variant data should be parsed.
-	 *
-	 * @param type is one of the VariantType constants, specifying with which
-	 * type the data that is passed to the ParserStateHandler in the "data"
-	 * function should be handled.
-	 */
-	virtual void setDataType(VariantType type) = 0;
 
 	/**
 	 * Registers the given token as token that should be reported to the handler
@@ -83,9 +75,9 @@ public:
 
 /**
  * Interface defining the callback functions that can be passed from a
- * ParserStateStack to the underlying parser.
+ * StateStack to the underlying parser.
  */
-class ParserCallbacks : public ParserStateCallbacks {
+class ParserCallbacks : public Callbacks {
 	/**
 	 * Checks whether the given token is supported by the parser. The parser
 	 * returns true, if the token is supported, false if this token cannot be
@@ -98,8 +90,9 @@ class ParserCallbacks : public ParserStateCallbacks {
 	 * because e.g. it is a reserved token or it interferes with other tokens.
 	 */
 	virtual bool supportsToken(const std::string &token) = 0;
-}
+};
 
+}
 }
 
 #endif /* _OUSIA_PARSER_STATE_CALLBACKS_HPP_ */
