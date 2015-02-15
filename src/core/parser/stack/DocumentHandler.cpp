@@ -148,19 +148,42 @@ void DocumentChildHandler::start(Variant::mapType &args)
 		    strct, args, name);
 	} else {
 		// calculate a path if transparent entities are needed in between.
-		auto path = parent->getDescriptor()->pathTo(strct, logger());
-		if (path.empty()) {
-			throw LoggableException(
-			    std::string("An instance of \"") + strct->getName() +
-			        "\" is not allowed as child of an instance of \"" +
-			        parent->getDescriptor()->getName() + "\"",
-			    location());
-		}
+		std::string lastFieldName = fieldName;
+		if (inField) {
+			Rooted<FieldDescriptor> field =
+			    parent->getDescriptor()->getFieldDescriptor(fieldName);
+			auto pathRes =
+			    field.cast<FieldDescriptor>()->pathTo(strct, logger());
+			if (!pathRes.second) {
+				throw LoggableException(
+				    std::string("An instance of \"") + strct->getName() +
+				        "\" is not allowed as child of field \"" + fieldName +
+				        "\"",
+				    location());
+			}
+			if (!pathRes.first.empty()) {
+				createPath(fieldName, pathRes.first, parent);
+				lastFieldName = DEFAULT_FIELD_NAME;
+			}
+		} else {
+			auto path = parent->getDescriptor()->pathTo(strct, logger());
+			if (path.empty()) {
+				throw LoggableException(
+				    std::string("An instance of \"") + strct->getName() +
+				        "\" is not allowed as child of an instance of \"" +
+				        parent->getDescriptor()->getName() + "\"",
+				    location());
+			}
 
-		// create all transparent entities until the last field.
-		createPath(path, parent);
-		entity =
-		    parent->createChildStructuredEntity(strct, args, fieldName, name);
+			// create all transparent entities until the last field.
+			createPath(path, parent);
+			if (path.size() > 1) {
+				lastFieldName = DEFAULT_FIELD_NAME;
+			}
+		}
+		// create the entity for the new element at last.
+		entity = parent->createChildStructuredEntity(strct, args, lastFieldName,
+		                                             name);
 	}
 	entity->setLocation(location());
 	scope().push(entity);
@@ -202,7 +225,7 @@ void DocumentChildHandler::data(const std::string &data, int fieldIdx)
 	/*
 	 * We distinguish two cases here: One for fields that are given.
 	 */
-	if (fieldName != DEFAULT_FIELD_NAME) {
+	if (inField) {
 		// retrieve the actual FieldDescriptor
 		Rooted<FieldDescriptor> field = desc->getFieldDescriptor(fieldName);
 		if (field == nullptr) {
@@ -240,7 +263,7 @@ void DocumentChildHandler::data(const std::string &data, int fieldIdx)
 	 */
 	// retrieve all default fields at this point.
 	NodeVector<FieldDescriptor> defaultFields;
-	if (parentClass->isa(&RttiTypes::FieldDescriptor)) {
+	if (inField) {
 		defaultFields = parentClass.cast<FieldDescriptor>()->getDefaultFields();
 	} else {
 		defaultFields = parentClass.cast<StructuredClass>()->getDefaultFields();
@@ -253,7 +276,7 @@ void DocumentChildHandler::data(const std::string &data, int fieldIdx)
 		if (res.first) {
 			forks.back().commit();
 			// if that worked, construct the necessary path.
-			if (parentClass->isa(&RttiTypes::FieldDescriptor)) {
+			if (inField) {
 				NodeVector<Node> path =
 				    parentClass.cast<FieldDescriptor>()->pathTo(field,
 				                                                logger());
