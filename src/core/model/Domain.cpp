@@ -778,36 +778,40 @@ void StructuredClass::removeSubclass(Handle<StructuredClass> sc, Logger &logger)
 	sc->setSuperclass(nullptr, logger);
 }
 
-void StructuredClass::gatherFieldDescriptors(
+Rooted<FieldDescriptor> StructuredClass::gatherFieldDescriptors(
     NodeVector<FieldDescriptor> &current,
     std::set<std::string> &overriddenFields, bool hasTREE) const
 {
-	// append all FieldDescriptors that are not overridden.
-	for (auto &f : Descriptor::getFieldDescriptors()) {
+	Rooted<FieldDescriptor> mainField;
+	NodeVector<FieldDescriptor> tmp;
+	// first gather the non-overridden fields.
+	for (auto f : Descriptor::getFieldDescriptors()) {
 		if (overriddenFields.insert(f->getName()).second) {
 			bool isTREE = f->getFieldType() == FieldDescriptor::FieldType::TREE;
-			if (hasTREE) {
-				if (!isTREE) {
-					/*
-					 * If we already have a tree field it has to be at the end
-					 * of the current vector. So ensure that all new non-TREE
-					 * fields are inserted before the TREE field such that after
-					 * this method the TREE field is still at the end.
-					 */
-					current.insert(current.end() - 1, f);
-				}
+			if (!isTREE) {
+				tmp.push_back(f);
 			} else {
-				if (isTREE) {
+				if (!hasTREE) {
 					hasTREE = true;
+					mainField = f;
 				}
-				current.push_back(f);
 			}
 		}
 	}
-	// if we have a superclass, go there.
+	// append all non-overridden superclass fields.
+
 	if (superclass != nullptr) {
-		superclass->gatherFieldDescriptors(current, overriddenFields, hasTREE);
+		Rooted<FieldDescriptor> super_main_field =
+		    superclass->gatherFieldDescriptors(current, overriddenFields,
+		                                       hasTREE);
+		if (!hasTREE) {
+			mainField = super_main_field;
+		}
 	}
+	// then append all subtree fields of this level.
+	current.insert(current.end(), tmp.begin(), tmp.end());
+	// and return the main field.
+	return mainField;
 }
 
 NodeVector<FieldDescriptor> StructuredClass::getFieldDescriptors() const
@@ -815,7 +819,11 @@ NodeVector<FieldDescriptor> StructuredClass::getFieldDescriptors() const
 	// in this case we return a NodeVector of Rooted entries without owner.
 	NodeVector<FieldDescriptor> vec;
 	std::set<std::string> overriddenFields;
-	gatherFieldDescriptors(vec, overriddenFields, false);
+	Rooted<FieldDescriptor> mainField =
+	    gatherFieldDescriptors(vec, overriddenFields, false);
+	if (mainField != nullptr) {
+		vec.push_back(mainField);
+	}
 	return vec;
 }
 
