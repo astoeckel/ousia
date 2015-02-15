@@ -1,6 +1,6 @@
 <?xml version="1.0" standalone="yes"?>
 <typesystem name="border">
-	<import>./color.oxm</import>
+	<import>./color.osxml</import>
 
 	<enum name="border-style">
 		<entry>none</entry>

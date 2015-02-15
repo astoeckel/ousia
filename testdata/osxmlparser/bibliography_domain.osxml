@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <domain name="bibliography">
 
-	<import rel="domain" src="./book_domain.oxm"/>
-	<import rel="domain" src="./meta_domain.oxm"/>
+	<import rel="domain" src="./book_domain.osxml"/>
+	<import rel="domain" src="./meta_domain.osxml"/>
 
 	<struct name="bibliography" transparent="true">
 		<field>

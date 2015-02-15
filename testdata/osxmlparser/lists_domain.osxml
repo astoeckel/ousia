@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <domain name="lists">
-	<import rel="domain" src="book.oxm"/>
+	<import rel="domain" src="book.osxml"/>
 
 	<struct name="ul" isa="book.paragraph">
 		<!-- Here we solve the problem of parents using the isa

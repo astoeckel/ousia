@@ -1,8 +1,8 @@
 <?xml version="1.0" standalone="yes"?>
 <domain name="test">
 
-	<import rel="domain" src="./book_domain.oxm"/>
-	<import rel="typesystem" src="./color.oxm"/>
+	<import rel="domain" src="./book_domain.osxml"/>
+	<import rel="typesystem" src="./color.osxml"/>
 
 	<struct name="fancycolor">
 	

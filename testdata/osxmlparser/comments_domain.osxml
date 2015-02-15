@@ -1,6 +1,6 @@
 <?xml version="1.0" standalone="yes"?>
 <domain name="comments">
-	<import rel="domain" src="./book_domain.oxm"/>
+	<import rel="domain" src="./book_domain.osxml"/>
 
 	<!-- an annotation comment -->
 	<annotation name="comment">

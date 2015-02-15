@@ -1,7 +1,7 @@
 <?xml version="1.0" standalone="yes"?>
 <domain name="headings">
 
-	<import rel="domain" src="./book_domain.oxm"/>
+	<import rel="domain" src="./book_domain.osxml"/>
 
 	<struct name="heading" cardinality="1" transparent="true">
 		<!-- The parent mechanism is a curious thing. Remind yourself

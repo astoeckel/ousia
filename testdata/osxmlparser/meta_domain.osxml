@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <domain name="meta">
 
-	<import rel="typesystem" src="./affiliation.oxm"/>
-	<import rel="typesystem" src="./email.oxm"/>
-	<import rel="typesystem" src="./version.oxm"/>
-	<import rel="domain" src="./book_domain.oxm"/>
+	<import rel="typesystem" src="./affiliation.osxml"/>
+	<import rel="typesystem" src="./email.osxml"/>
+	<import rel="typesystem" src="./version.osxml"/>
+	<import rel="domain" src="./book_domain.osxml"/>
 
 	<struct name="meta" cardinality="{1}" transparent="true">
 		<field name="authors">

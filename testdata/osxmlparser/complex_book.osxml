@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <document>
 
-	<import rel="domain" src="./book_domain.oxm"/>
-	<import rel="domain" src="./headings_domain.oxm"/>
-	<import rel="domain" src="./meta_domain.oxm"/>
-	<import rel="domain" src="./bibliography_domain.oxm"/>
+	<import rel="domain" src="./book_domain.osxml"/>
+	<import rel="domain" src="./headings_domain.osxml"/>
+	<import rel="domain" src="./meta_domain.osxml"/>
+	<import rel="domain" src="./bibliography_domain.osxml"/>
 	<!--<import rel="domain" src="emphasis.oxm"/>
 	<import rel="domain" src="comments.oxm"/>
 	<import rel="domain" src="lists.oxm"/>
