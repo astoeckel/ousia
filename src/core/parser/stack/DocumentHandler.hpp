@@ -144,6 +144,19 @@ public:
 		return new DocumentChildHandler{handlerData};
 	}
 };
+
+namespace States {
+/**
+ * State constant representing the "document" tag.
+ */
+extern const State Document;
+
+/**
+ * State contstant representing any user-defined element within a document.
+ */
+extern const State DocumentChild;
+}
+
 }
 
 namespace RttiTypes {
@@ -152,6 +165,7 @@ namespace RttiTypes {
  */
 extern const Rtti DocumentField;
 }
+
 }
 
 #endif /* _OUSIA_PARSER_STACK_DOCUMENT_HANDLER_HPP_ */

@@ -16,13 +16,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "DomainHandler.hpp"
-
 #include <core/common/RttiBuilder.hpp>
+#include <core/model/Document.hpp>
 #include <core/model/Domain.hpp>
 #include <core/model/Project.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
+
+#include "DocumentHandler.hpp"
+#include "DomainHandler.hpp"
+#include "State.hpp"
+#include "TypesystemHandler.hpp"
 
 namespace ousia {
 namespace parser_stack {
@@ -277,6 +281,98 @@ bool DomainParentFieldRefHandler::start(Variant::mapType &args)
 		    }
 		});
 	return true;
+}
+
+namespace States {
+const State Domain = StateBuilder()
+                         .parents({&None, &Document})
+                         .createdNodeType(&RttiTypes::Domain)
+                         .elementHandler(DomainHandler::create)
+                         .arguments({Argument::String("name")});
+
+const State DomainStruct =
+    StateBuilder()
+        .parent(&Domain)
+        .createdNodeType(&RttiTypes::StructuredClass)
+        .elementHandler(DomainStructHandler::create)
+        .arguments({Argument::String("name"),
+                    Argument::Cardinality("cardinality", Cardinality::any()),
+                    Argument::Bool("isRoot", false),
+                    Argument::Bool("transparent", false),
+                    Argument::String("isa", "")});
+
+const State DomainAnnotation =
+    StateBuilder()
+        .parent(&Domain)
+        .createdNodeType(&RttiTypes::AnnotationClass)
+        .elementHandler(DomainAnnotationHandler::create)
+        .arguments({Argument::String("name")});
+
+const State DomainAttributes =
+    StateBuilder()
+        .parents({&DomainStruct, &DomainAnnotation})
+        .createdNodeType(&RttiTypes::StructType)
+        .elementHandler(DomainAttributesHandler::create)
+        .arguments({});
+
+const State DomainAttribute =
+    StateBuilder()
+        .parent(&DomainAttributes)
+        .elementHandler(TypesystemStructFieldHandler::create)
+        .arguments({Argument::String("name"), Argument::String("type"),
+                    Argument::Any("default", Variant::fromObject(nullptr))});
+
+const State DomainField = StateBuilder()
+                              .parents({&DomainStruct, &DomainAnnotation})
+                              .createdNodeType(&RttiTypes::FieldDescriptor)
+                              .elementHandler(DomainFieldHandler::create)
+                              .arguments({Argument::String("name", ""),
+                                          Argument::Bool("isSubtree", false),
+                                          Argument::Bool("optional", false)});
+
+const State DomainFieldRef =
+    StateBuilder()
+        .parents({&DomainStruct, &DomainAnnotation})
+        .createdNodeType(&RttiTypes::FieldDescriptor)
+        .elementHandler(DomainFieldRefHandler::create)
+        .arguments({Argument::String("ref", DEFAULT_FIELD_NAME)});
+
+const State DomainStructPrimitive =
+    StateBuilder()
+        .parents({&DomainStruct, &DomainAnnotation})
+        .createdNodeType(&RttiTypes::FieldDescriptor)
+        .elementHandler(DomainPrimitiveHandler::create)
+        .arguments(
+            {Argument::String("name", ""), Argument::Bool("isSubtree", false),
+             Argument::Bool("optional", false), Argument::String("type")});
+
+const State DomainStructChild = StateBuilder()
+                                    .parent(&DomainField)
+                                    .elementHandler(DomainChildHandler::create)
+                                    .arguments({Argument::String("ref")});
+
+const State DomainStructParent =
+    StateBuilder()
+        .parent(&DomainStruct)
+        .createdNodeType(&RttiTypes::DomainParent)
+        .elementHandler(DomainParentHandler::create)
+        .arguments({Argument::String("ref")});
+
+const State DomainStructParentField =
+    StateBuilder()
+        .parent(&DomainStructParent)
+        .createdNodeType(&RttiTypes::FieldDescriptor)
+        .elementHandler(DomainParentFieldHandler::create)
+        .arguments({Argument::String("name", ""),
+                    Argument::Bool("isSubtree", false),
+                    Argument::Bool("optional", false)});
+
+const State DomainStructParentFieldRef =
+    StateBuilder()
+        .parent(&DomainStructParent)
+        .createdNodeType(&RttiTypes::FieldDescriptor)
+        .elementHandler(DomainParentFieldRefHandler::create)
+        .arguments({Argument::String("ref", DEFAULT_FIELD_NAME)});
 }
 }
 

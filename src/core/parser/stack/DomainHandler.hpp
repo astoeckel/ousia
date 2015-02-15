@@ -34,12 +34,13 @@
 #include "Handler.hpp"
 
 namespace ousia {
-namespace parser_stack {
-
-// TODO: Documentation
 
 // Forward declarations
 class Rtti;
+
+namespace parser_stack {
+
+// TODO: Documentation
 
 class DomainHandler : public StaticHandler {
 public:
@@ -149,10 +150,6 @@ public:
 	using Node::Node;
 };
 
-namespace RttiTypes {
-extern const Rtti DomainParent;
-}
-
 class DomainParentHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
@@ -189,6 +186,68 @@ public:
 		return new DomainParentFieldRefHandler{handlerData};
 	}
 };
+
+namespace States {
+/**
+ * State representing a "domain" struct.
+ */
+extern const State Domain;
+
+/**
+ * State representing a "struct" tag within a domain description.
+ */
+extern const State DomainStruct;
+
+/**
+ * State representing an "annotation" tag within a domain description.
+ */
+extern const State DomainAnnotation;
+
+/**
+ * State representing an "attributes" tag within a structure or annotation.
+ */
+extern const State DomainAttributes;
+
+/**
+ * State representing an "attribute" tag within the "attributes".
+ */
+extern const State DomainAttribute;
+
+/**
+ * State representing a "field" tag within a structure or annotation.
+ */
+extern const State DomainField;
+
+/**
+ * State representing a "fieldref" tag within a structure or annotation.
+ */
+extern const State DomainFieldRef;
+
+/**
+ * State representing a "primitive" tag within a structure or annotation.
+ */
+extern const State DomainStructPrimitive;
+
+/**
+ * State representing a "child" tag within a structure or annotation.
+ */
+extern const State DomainStructChild;
+
+/**
+ * State representing a "parent" tag within a structure or annotation.
+ */
+extern const State DomainStructParent;
+
+/**
+ * State representing a "field" tag within a "parent" tag.
+ */
+extern const State DomainStructParentField;
+
+/**
+ * State representing a "fieldRef" tag within a "parent" tag.
+ */
+extern const State DomainStructParentFieldRef;
+}
 }
 
 namespace RttiTypes {

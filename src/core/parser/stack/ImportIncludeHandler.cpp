@@ -16,11 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ImportIncludeHandler.hpp"
-
 #include <core/model/RootNode.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
+
+#include "DomainHandler.hpp"
+#include "DocumentHandler.hpp"
+#include "ImportIncludeHandler.hpp"
+#include "State.hpp"
+#include "TypesystemHandler.hpp"
 
 namespace ousia {
 namespace parser_stack {
@@ -57,6 +61,22 @@ void IncludeHandler::doHandle(const Variant &fieldData, Variant::mapType &args)
 {
 	context().include(fieldData.asString(), args["type"].asString(),
 	                  args["rel"].asString(), {&RttiTypes::Node});
+}
+
+namespace States {
+const State Import =
+    StateBuilder()
+        .parents({&Document, &Typesystem, &Domain})
+        .elementHandler(ImportHandler::create)
+        .arguments({Argument::String("rel", ""), Argument::String("type", ""),
+                    Argument::String("src", "")});
+
+const State Include =
+    StateBuilder()
+        .parent(&All)
+        .elementHandler(IncludeHandler::create)
+        .arguments({Argument::String("rel", ""), Argument::String("type", ""),
+                    Argument::String("src", "")});
 }
 }
 }

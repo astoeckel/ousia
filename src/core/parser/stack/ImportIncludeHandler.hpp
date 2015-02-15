@@ -88,6 +88,19 @@ public:
 		return new IncludeHandler{handlerData, "src"};
 	}
 };
+
+namespace States {
+/**
+ * State representing the "import" command.
+ */
+extern const State Import;
+
+/**
+ * State representing the "include" command.
+ */
+extern const State Include;
+}
+
 }
 }
 #endif

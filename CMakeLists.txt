@@ -165,6 +165,7 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/stack/Callbacks
 	src/core/parser/stack/DocumentHandler
 	src/core/parser/stack/DomainHandler
+	src/core/parser/stack/GenericParserStates
 	src/core/parser/stack/Handler
 	src/core/parser/stack/ImportIncludeHandler
 	src/core/parser/stack/State

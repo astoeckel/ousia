@@ -16,12 +16,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "TypesystemHandler.hpp"
-
 #include <core/model/Typesystem.hpp>
+#include <core/model/Domain.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
 
+#include "DomainHandler.hpp"
+#include "State.hpp"
+#include "TypesystemHandler.hpp"
 
 namespace ousia {
 namespace parser_stack {
@@ -169,6 +171,48 @@ bool TypesystemConstantHandler::start(Variant::mapType &args)
 		});
 
 	return true;
+}
+
+namespace States {
+const State Typesystem = StateBuilder()
+                             .parents({&None, &Domain})
+                             .createdNodeType(&RttiTypes::Typesystem)
+                             .elementHandler(TypesystemHandler::create)
+                             .arguments({Argument::String("name", "")});
+
+const State TypesystemEnum = StateBuilder()
+                                 .parent(&Typesystem)
+                                 .createdNodeType(&RttiTypes::EnumType)
+                                 .elementHandler(TypesystemEnumHandler::create)
+                                 .arguments({Argument::String("name")});
+
+const State TypesystemEnumEntry =
+    StateBuilder()
+        .parent(&TypesystemEnum)
+        .elementHandler(TypesystemEnumEntryHandler::create)
+        .arguments({});
+
+const State TypesystemStruct =
+    StateBuilder()
+        .parent(&Typesystem)
+        .createdNodeType(&RttiTypes::StructType)
+        .elementHandler(TypesystemStructHandler::create)
+        .arguments({Argument::String("name"), Argument::String("parent", "")});
+
+const State TypesystemStructField =
+    StateBuilder()
+        .parent(&TypesystemStruct)
+        .elementHandler(TypesystemStructFieldHandler::create)
+        .arguments({Argument::String("name"), Argument::String("type"),
+                    Argument::Any("default", Variant::fromObject(nullptr))});
+
+const State TypesystemConstant =
+    StateBuilder()
+        .parent(&Typesystem)
+        .createdNodeType(&RttiTypes::Constant)
+        .elementHandler(TypesystemConstantHandler::create)
+        .arguments({Argument::String("name"), Argument::String("type"),
+                    Argument::Any("value")});
 }
 }
 }

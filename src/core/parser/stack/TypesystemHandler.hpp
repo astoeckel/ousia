@@ -91,8 +91,7 @@ class TypesystemEnumEntryHandler : public StaticFieldHandler {
 public:
 	using StaticFieldHandler::StaticFieldHandler;
 
-	void doHandle(const Variant &fieldData,
-	              Variant::mapType &args) override;
+	void doHandle(const Variant &fieldData, Variant::mapType &args) override;
 
 	/**
 	 * Creates a new instance of the TypesystemEnumEntryHandler.
@@ -177,6 +176,33 @@ public:
 		return new TypesystemConstantHandler{handlerData};
 	}
 };
+
+namespace States {
+/**
+ * State representing the "typesystem" tag.
+ */
+extern const State Typesystem;
+/**
+ * State representing the "enum" tag within a typesystem.
+ */
+extern const State TypesystemEnum;
+/**
+ * State representing the "entry" tag within an enum.
+ */
+extern const State TypesystemEnumEntry;
+/**
+ * State representing the "struct" tag within a typesystem.
+ */
+extern const State TypesystemStruct;
+/**
+ * State representing the "field" tag within a typesystem structure.
+ */
+extern const State TypesystemStructField;
+/**
+ * State representing the "constant" tag within a typesystem.
+ */
+extern const State TypesystemConstant;
+}
 }
 }
 #endif

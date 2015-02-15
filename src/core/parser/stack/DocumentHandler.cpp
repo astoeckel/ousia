@@ -16,8 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "DocumentHandler.hpp"
-
 #include <algorithm>
 
 #include <core/common/RttiBuilder.hpp>
@@ -29,6 +27,9 @@
 #include <core/model/Typesystem.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
+
+#include "DocumentHandler.hpp"
+#include "State.hpp"
 
 namespace ousia {
 namespace parser_stack {
@@ -273,6 +274,22 @@ bool DocumentChildHandler::data(Variant &data)
 		return false;
 	}
 	return true;
+}
+
+namespace States {
+const State Document = StateBuilder()
+                                  .parent(&None)
+                                  .createdNodeType(&RttiTypes::Document)
+                                  .elementHandler(DocumentHandler::create)
+                                  .arguments({Argument::String("name", "")});
+
+const State DocumentChild =
+    StateBuilder()
+        .parents({&Document, &DocumentChild})
+        .createdNodeTypes({&RttiTypes::StructureNode,
+                           &RttiTypes::AnnotationEntity,
+                           &RttiTypes::DocumentField})
+        .elementHandler(DocumentChildHandler::create);
 }
 }
 
