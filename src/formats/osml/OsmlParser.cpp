@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <core/common/Logger.hpp>
 #include <core/parser/stack/GenericParserStates.hpp>
 #include <core/parser/stack/Stack.hpp>
 #include <core/parser/ParserContext.hpp>
@@ -33,6 +34,11 @@ using namespace parser_stack;
  */
 class OsmlParserImplementation {
 private:
+	/**
+	 * Reference at the logger.
+	 */
+	Logger &logger;
+
 	/**
 	 * OsmlStreamParser instance responsible for converting the input stream
 	 * into a series of osml events that are relayed to the Stack class.
@@ -55,7 +61,9 @@ public:
 	 * used.
 	 */
 	OsmlParserImplementation(CharReader &reader, ParserContext &ctx)
-	    : parser(reader, ctx.getLogger()), stack(ctx, GenericParserStates)
+	    : logger(ctx.getLogger()),
+	      parser(reader, logger),
+	      stack(ctx, GenericParserStates)
 	{
 	}
 
@@ -68,6 +76,7 @@ public:
 		bool needsDocument = true;
 		while (true) {
 			OsmlStreamParser::State state = parser.parse();
+			logger.setDefaultLocation(parser.getLocation());
 			switch (state) {
 				case OsmlStreamParser::State::COMMAND: {
 					// Implicitly create a "document" element if the first
