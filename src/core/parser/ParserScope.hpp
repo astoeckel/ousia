@@ -702,13 +702,11 @@ public:
 	 * (even in inner structures). The data will be passed to the "build"
 	 * function of the given type.
 	 * @param type is the Typesystem type the data should be interpreted with.
-	 * @param owner is the node for which the resolution takes place.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
 	 * @return true if the value was successfully built.
 	 */
-	bool resolveValue(Variant &data, Handle<Type> type, Handle<Node> owner,
-	                  Logger &logger);
+	bool resolveValue(Variant &data, Handle<Type> type, Logger &logger);
 
 	/**
 	 * Resolves a type and makes sure the corresponding value is of the correct
