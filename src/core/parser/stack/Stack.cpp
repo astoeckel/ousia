@@ -322,7 +322,8 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 		// to create an empty default field, otherwise this is an exception
 		const State *targetState = findTargetStateOrWildcard(name.asString());
 		if (targetState == nullptr) {
-			if (!currentInfo().inField) {
+			HandlerInfo &info = currentInfo();
+			if (info.inImplicitDefaultField || !info.inField) {
 				endCurrentHandler();
 				continue;
 			} else {
@@ -397,7 +398,7 @@ void Stack::data(const Variant &data)
 	while (true) {
 		// Check whether there is any command the data can be sent to
 		if (stack.empty()) {
-			throw LoggableException("No command here to receive data.");
+			throw LoggableException("No command here to receive data.", data);
 		}
 
 		// Fetch the current command handler information
@@ -497,14 +498,23 @@ void Stack::fieldStart(bool isDefault)
 
 void Stack::fieldEnd()
 {
-	// Make sure the current handler stack is not empty
+	// Check whether there is any command the data can be sent to
 	if (stack.empty()) {
-		throw LoggableException("No command for which a field could be ended");
+		throw LoggableException("No command, but got end of field.");
+	}
+
+	// Unroll the stack until the next explicitly open field
+	while (!stack.empty()) {
+		HandlerInfo &info = currentInfo();
+		if (info.inField && !info.inImplicitDefaultField) {
+			break;
+		}
+		endCurrentHandler();
 	}
 
 	// Fetch the information attached to the current handler
 	HandlerInfo &info = currentInfo();
-	if (!info.inField) {
+	if (!info.inField || info.inImplicitDefaultField || stack.empty()) {
 		logger().error(
 		    "Got field end, but there is no command for which to end the "
 		    "field.");

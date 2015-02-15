@@ -602,7 +602,7 @@ TEST(Stack, errorFieldStartNoCommand)
 	tracker.expect(0, 0, 0, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 }
 
-TEST(Stack, errorMutlipleFieldStarts)
+TEST(Stack, errorMultipleFieldStarts)
 {
 	tracker.reset();
 	logger.reset();
@@ -624,7 +624,7 @@ TEST(Stack, errorMutlipleFieldStarts)
 	tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 }
 
-TEST(Stack, errorMutlipleFieldEnds)
+TEST(Stack, errorMultipleFieldEnds)
 {
 	tracker.reset();
 	logger.reset();
@@ -640,7 +640,7 @@ TEST(Stack, errorMutlipleFieldEnds)
 		tracker.expect(1, 0, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 		s.fieldEnd();
 		ASSERT_TRUE(logger.hasError());
-		tracker.expect(1, 0, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	}
 	tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 }
@@ -661,6 +661,24 @@ TEST(Stack, errorOpenField)
 	ASSERT_TRUE(logger.hasError());
 	tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 }
+
+TEST(Stack, fieldEndWhenImplicitDefaultFieldOpen)
+{
+	tracker.reset();
+	logger.reset();
+
+	{
+		Stack s{env.context, States::AnyHandlers};
+		s.command("a", {});
+		s.fieldStart(true);
+		s.command("b", {});
+		s.data("test");
+		s.fieldEnd();
+		tracker.expect(2, 2, 2, 2, 0, 0, 1);  // sc, ec, fsc, fse, asc, aec, dc
+	}
+	ASSERT_FALSE(logger.hasError());
+}
+
 }
 }
 
