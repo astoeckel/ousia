@@ -884,6 +884,21 @@ public:
 	}
 
 	/**
+	 * If the value of the variant already is a string, the markAsMagic function
+	 * marks this string as a "magic" value (a variant which might also be an
+	 * identifier). Throws an exception if the variant is not a string or magic
+	 * value.
+	 */
+	void markAsMagic()
+	{
+		if (getType() == VariantType::STRING) {
+			meta.setType(VariantType::MAGIC);
+			return;
+		}
+		throw TypeException{getType(), VariantType::STRING};
+	}
+
+	/**
 	 * Returns the value of the Variant as boolean, performs type conversion.
 	 *
 	 * @return the Variant value converted to a boolean value.
@@ -1146,10 +1161,7 @@ public:
 	 *
 	 * @retun true if the
 	 */
-	bool hasLocation() const
-	{
-		return meta.hasLocation();
-	}
+	bool hasLocation() const { return meta.hasLocation(); }
 
 	/**
 	 * Unpacks ans returns the stored source location. Note that the returned
@@ -1158,10 +1170,7 @@ public:
 	 *
 	 * @return the stored SourceLocation.
 	 */
-	SourceLocation getLocation() const
-	{
-		return meta.getLocation();
-	}
+	SourceLocation getLocation() const { return meta.getLocation(); }
 
 	/**
 	 * Packs the given source location and stores it in the metadata. Not all
