@@ -107,8 +107,16 @@ Rooted<Text> XmlTransformer::transformPrimitive(Handle<Element> parent,
 {
 	Manager &mgr = parent->getManager();
 	// transform the primitive content.
+	Variant v = p->getContent();
 	std::string textcontent =
 	    VariantWriter::writeJsonToString(p->getContent(), pretty);
+	if (v.isString() && ((textcontent[0] == '\"' &&
+	                      textcontent[textcontent.size() - 1] == '\"') ||
+	                     (textcontent[0] == '\'' &&
+	                      textcontent[textcontent.size() - 1] == '\''))) {
+		// cut the start and end quote
+		textcontent = textcontent.substr(1, textcontent.size() - 2);
+	}
 	Rooted<Text> text{new Text(mgr, parent, textcontent)};
 	return text;
 }
