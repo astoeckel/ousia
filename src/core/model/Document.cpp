@@ -135,6 +135,15 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			continue;
 		}
 
+		std::unordered_set<StructuredClass *> childClasses;
+		{
+			NodeVector<StructuredClass> tmp =
+			    fieldDescs[f]->getChildrenWithSubclasses();
+			for (auto s : tmp) {
+				childClasses.insert(s.get());
+			}
+		}
+
 		// we can do a faster check if this field is empty.
 		if (fields[f].size() == 0) {
 			// if this field is optional, an empty field is valid anyways.
@@ -145,7 +154,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			 * if it is not optional we have to check if zero is a valid
 			 * cardinality.
 			 */
-			for (auto childClass : fieldDescs[f]->getChildren()) {
+			for (auto childClass : childClasses) {
 				const size_t min =
 				    childClass->getCardinality().asCardinality().min();
 				if (min > 0) {
@@ -163,15 +172,10 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			continue;
 		}
 
-		// create a set of allowed classes identified by their unique id.
-		std::set<ManagedUid> childClasses;
-		for (auto &childClass : fieldDescs[f]->getChildren()) {
-			childClasses.insert(childClass->getUid());
-		}
 		// store the actual numbers of children for each child class in a map
-		std::map<ManagedUid, unsigned int> nums;
+		std::unordered_map<StructuredClass *, unsigned int> nums;
 
-		// iterate over every actual child of this DocumentEntity
+		// iterate over every actual child of this field
 		for (auto child : fields[f]) {
 			// check if the parent reference is correct.
 			if (child->getParent() != subInst) {
@@ -195,25 +199,11 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			}
 			// otherwise this is a StructuredEntity
 			Handle<StructuredEntity> c = child.cast<StructuredEntity>();
+			StructuredClass *classPtr =
+			    c->getDescriptor().cast<StructuredClass>().get();
 
-			ManagedUid id = c->getDescriptor()->getUid();
 			// check if its class is allowed.
-			bool allowed = childClasses.find(id) != childClasses.end();
-			/*
-			 * if it is not allowed directly, we have to check if the class is a
-			 * child of a permitted class.
-			 */
-			if (!allowed) {
-				for (auto childClass : fieldDescs[f]->getChildren()) {
-					if (c->getDescriptor()
-					        .cast<StructuredClass>()
-					        ->isSubclassOf(childClass)) {
-						allowed = true;
-						id = childClass->getUid();
-					}
-				}
-			}
-			if (!allowed) {
+			if (childClasses.find(classPtr) == childClasses.end()) {
 				logger.error(
 				    std::string("An instance of \"") +
 				        c->getDescriptor()->getName() +
@@ -224,18 +214,24 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				valid = false;
 				continue;
 			}
-			// note the number of occurences.
-			const auto &n = nums.find(id);
-			if (n != nums.end()) {
-				n->second++;
-			} else {
-				nums.emplace(id, 1);
+			// note the number of occurences for this class and all
+			// superclasses, because a subclass instance should count for
+			// superclasses as well.
+			while (classPtr != nullptr &&
+			       childClasses.find(classPtr) != childClasses.end()) {
+				const auto &n = nums.find(classPtr);
+				if (n != nums.end()) {
+					n->second++;
+				} else {
+					nums.emplace(classPtr, 1);
+				}
+				classPtr = classPtr->getSuperclass().get();
 			}
 		}
 
 		// now check if the cardinalities are right.
-		for (auto childClass : fieldDescs[f]->getChildren()) {
-			const auto &n = nums.find(childClass->getUid());
+		for (auto childClass : childClasses) {
+			const auto &n = nums.find(childClass);
 			unsigned int num = 0;
 			if (n != nums.end()) {
 				num = n->second;
