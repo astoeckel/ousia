@@ -50,6 +50,7 @@
 #include <plugins/filesystem/FileLocator.hpp>
 #include <plugins/html/DemoOutput.hpp>
 #include <formats/osxml/OsxmlParser.hpp>
+#include <formats/osml/OsmlParser.hpp>
 #include <plugins/xml/XmlOutput.hpp>
 
 const size_t ERROR_IN_COMMAND_LINE = 1;
@@ -209,11 +210,16 @@ int main(int argc, char **argv)
 
 	// fill registry
 	registry.registerDefaultExtensions();
-	OsxmlParser xmlParser;
+	OsmlParser osmlParser;
+	OsxmlParser osxmlParser;
 	registry.registerParser(
-	    {"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
+	    {"text/vnd.ousia.osml"},
 	    {&RttiTypes::Document, &RttiTypes::Domain, &RttiTypes::Typesystem},
-	    &xmlParser);
+	    &osmlParser);
+	registry.registerParser(
+	    {"text/vnd.ousia.osml+xml"},
+	    {&RttiTypes::Document, &RttiTypes::Domain, &RttiTypes::Typesystem},
+	    &osxmlParser);
 	registry.registerResourceLocator(&fileLocator);
 
 	// register search paths

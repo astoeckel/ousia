@@ -17,32 +17,32 @@
 */
 
 /**
- * @file OsdmParser.hpp
+ * @file OsmlParser.hpp
  *
- * Contains the parser of the osdm format, the standard plain-text format used
+ * Contains the parser of the Osml format, the standard plain-text format used
  * by Ousía for documents.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_OSDM_PARSER_HPP_
-#define _OUSIA_OSDM_PARSER_HPP_
+#ifndef _OUSIA_OSML_PARSER_HPP_
+#define _OUSIA_OSML_PARSER_HPP_
 
 #include <core/parser/Parser.hpp>
 
 namespace ousia {
 
 /**
- * OsdmParser is a small wrapper implementing the Parser interface. The actual
- * parsing is performed with the OsdmStreamParser in conjunction with the
+ * OsmlParser is a small wrapper implementing the Parser interface. The actual
+ * parsing is performed with the OsmlStreamParser in conjunction with the
  * ParserStateStack.
  */
-class OsdmParser : public Parser {
+class OsmlParser : public Parser {
 protected:
 	void doParse(CharReader &reader, ParserContext &ctx) override;
 };
 
 }
 
-#endif /* _OUSIA_OSDM_PARSER_HPP_ */
+#endif /* _OUSIA_OSML_PARSER_HPP_ */
 

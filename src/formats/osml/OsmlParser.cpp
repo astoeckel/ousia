@@ -16,42 +16,102 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <core/parser/generic/ParserStateCallbacks.hpp>
-#include <core/parser/generic/ParserStateStack.hpp>
+#include <core/parser/stack/GenericParserStates.hpp>
+#include <core/parser/stack/Stack.hpp>
+#include <core/parser/ParserContext.hpp>
 
-#include "OsdmParser.hpp"
-#include "OsdmStreamParser.hpp"
+#include "OsmlParser.hpp"
+#include "OsmlStreamParser.hpp"
 
 namespace ousia {
 
-namespace {
+using namespace parser_stack;
 
 /**
- * The OsdmParserImplementation class contains the actual implementation of the
- * parsing process and is created in the "doParse" function of the OsdmParser.
- 
+ * The OsmlParserImplementation class contains the actual implementation of the
+ * parsing process and is created in the "doParse" function of the OsmlParser.
  */
-class OsdmParserImplementation : public ParserStateCallbacks {
+class OsmlParserImplementation {
 private:
 	/**
-	 * OsdmStreamParser instance.
+	 * OsmlStreamParser instance responsible for converting the input stream
+	 * into a series of osml events that are relayed to the Stack class.
 	 */
-	OsdmStreamParser parser;
+	OsmlStreamParser parser;
 
 	/**
-	 * Instance of the ParserStateStack.
+	 * Pushdown automaton responsible for converting the osml events into an
+	 * actual Node tree.
 	 */
-	ParserStateStack stack;
+	Stack stack;
 
 public:
-	OsdmParserImplementation parser(reader, ctx) : parser(reader), stack(ctx, std::multimap)
-};
-}
+	/**
+	 * Constructor of the OsmlParserImplementation class.
+	 *
+	 * @param reader is a reference to the CharReader instance from which the
+	 * osml should be read.
+	 * @param ctx is a reference to the ParserContext instance that should be
+	 * used.
+	 */
+	OsmlParserImplementation(CharReader &reader, ParserContext &ctx)
+	    : parser(reader, ctx.getLogger()), stack(ctx, GenericParserStates)
+	{
+	}
 
-void OsdmParser::doParse(CharReader &reader, ParserContext &ctx)
+	/**
+	 * Starts the actual parsing process.
+	 */
+	void parse()
+	{
+		while (true) {
+			OsmlStreamParser::State state = parser.parse();
+			switch (state) {
+				case OsmlStreamParser::State::COMMAND:
+					stack.command(parser.getCommandName(),
+					              parser.getCommandArguments().asMap());
+					break;
+				case OsmlStreamParser::State::DATA:
+					stack.data(parser.getData());
+					break;
+				case OsmlStreamParser::State::ENTITY:
+					// TODO
+					break;
+				case OsmlStreamParser::State::ANNOTATION_START:
+					stack.annotationStart(parser.getCommandName(),
+					                      parser.getCommandArguments().asMap());
+					break;
+				case OsmlStreamParser::State::ANNOTATION_END: {
+					Variant elementName = Variant::fromString(std::string{});
+					const auto &args = parser.getCommandArguments().asMap();
+					auto it = args.find("name");
+					if (it != args.end()) {
+						elementName = it->second;
+					}
+					stack.annotationEnd(parser.getCommandName(), elementName);
+					break;
+				}
+				case OsmlStreamParser::State::FIELD_START:
+					stack.fieldStart(parser.inDefaultField());
+					break;
+				case OsmlStreamParser::State::FIELD_END:
+					stack.fieldEnd();
+					break;
+				case OsmlStreamParser::State::NONE:
+				case OsmlStreamParser::State::ERROR:
+					// Internally used in OsmlStreamParser, these states should
+					// never occur. Just contiunue.
+					continue;
+				case OsmlStreamParser::State::END:
+					return;
+			}
+		}
+	}
+};
+
+void OsmlParser::doParse(CharReader &reader, ParserContext &ctx)
 {
-	OsdmParserImplementation parser(reader, ctx);
+	OsmlParserImplementation parser(reader, ctx);
 	parser.parse();
 }
-
 }
