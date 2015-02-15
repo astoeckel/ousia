@@ -19,6 +19,9 @@
 /**
  * @file ImportIncludeHandler.hpp
  *
+ * Contains the conceptually similar handlers for the "include" and "import"
+ * commands.
+ *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
@@ -26,51 +29,78 @@
 #define _OUSIA_IMPORT_INCLUDE_HANDLER_HPP_
 
 #include <core/common/Variant.hpp>
-#include <core/parser/ParserStack.hpp>
+
+#include "Handler.hpp"
 
 namespace ousia {
+namespace parser_stack {
 
-class ImportIncludeHandler : public Handler {
-protected:
-	bool srcInArgs = false;
-	std::string rel;
-	std::string type;
-	std::string src;
-
+/**
+ * The ImportHandler is responsible for handling the "import" command. An import
+ * creates a reference to a specified file. The specified file is parsed (if
+ * this has not already been done) outside of the context of the current file.
+ * If the specified resource has already been parsed, a reference to the already
+ * parsed file is inserted. Imports are only possible before no other content
+ * has been parsed.
+ */
+class ImportHandler : public StaticFieldHandler {
 public:
-	using Handler::Handler;
+	using StaticFieldHandler::StaticFieldHandler;
 
-	void start(Variant::mapType &args) override;
+	void doHandle(const Variant &fieldData,
+	              Variant::mapType &args) override;
 
-	void data(const std::string &data, int field) override;
-};
-
-class ImportHandler : public ImportIncludeHandler {
-public:
-	using ImportIncludeHandler::ImportIncludeHandler;
-
-	void start(Variant::mapType &args) override;
-
-	void end() override;
-
+	/**
+	 * Creates a new instance of the ImportHandler.
+	 *
+	 * @param handlerData is the data that is passed to the constructor of the
+	 * Handler base class and used there to e.g. access the ParserContext and
+	 * the Callbacks instance.
+	 */
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new ImportHandler{handlerData};
+		return new ImportHandler{handlerData, "src"};
 	}
 };
 
-class IncludeHandler : public ImportIncludeHandler {
+/**
+ * The IncludeHandler is responsible for handling the "include" command. The
+ * included file is parsed in the context of the current file and will change
+ * the content that is currently being parsed. Includes are possible at (almost)
+ * any position in the source file.
+ */
+class IncludeHandler : public StaticFieldHandler {
 public:
-	using ImportIncludeHandler::ImportIncludeHandler;
+	using StaticFieldHandler::StaticFieldHandler;
 
-	void start(Variant::mapType &args) override;
+	void doHandle(const Variant &fieldData,
+	              Variant::mapType &args) override;
 
-	void end() override;
-
+	/**
+	 * Creates a new instance of the IncludeHandler.
+	 *
+	 * @param handlerData is the data that is passed to the constructor of the
+	 * Handler base class and used there to e.g. access the ParserContext and
+	 * the Callbacks instance.
+	 */
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new IncludeHandler{handlerData};
+		return new IncludeHandler{handlerData, "src"};
 	}
 };
+
+namespace States {
+/**
+ * State representing the "import" command.
+ */
+extern const State Import;
+
+/**
+ * State representing the "include" command.
+ */
+extern const State Include;
+}
+
+}
 }
 #endif

@@ -19,13 +19,13 @@
 #include <gtest/gtest.h>
 
 #include <core/common/CharReader.hpp>
-#include <formats/osdm/DynamicTokenizer.hpp>
+#include <core/parser/utils/Tokenizer.hpp>
 
 namespace ousia {
 
-TEST(DynamicTokenizer, tokenRegistration)
+TEST(Tokenizer, tokenRegistration)
 {
-	DynamicTokenizer tokenizer;
+	Tokenizer tokenizer;
 
 	ASSERT_EQ(EmptyToken, tokenizer.registerToken(""));
 
@@ -50,15 +50,15 @@ TEST(DynamicTokenizer, tokenRegistration)
 	ASSERT_EQ("d", tokenizer.getTokenString(1U));
 }
 
-TEST(DynamicTokenizer, textTokenPreserveWhitespace)
+TEST(Tokenizer, textTokenPreserveWhitespace)
 {
 	{
 		CharReader reader{" this \t is only a  \n\n test   text   "};
 		//                 012345 6789012345678 9 0123456789012345
 		//                 0          1           2         3
-		DynamicTokenizer tokenizer{WhitespaceMode::PRESERVE};
+		Tokenizer tokenizer{WhitespaceMode::PRESERVE};
 
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 		ASSERT_EQ(TextToken, token.type);
 		ASSERT_EQ(" this \t is only a  \n\n test   text   ", token.content);
@@ -74,9 +74,9 @@ TEST(DynamicTokenizer, textTokenPreserveWhitespace)
 		CharReader reader{"this \t is only a  \n\n test   text"};
 		//                 01234 5678901234567 8 9012345678901
 		//                 0          1           2         3
-		DynamicTokenizer tokenizer{WhitespaceMode::PRESERVE};
+		Tokenizer tokenizer{WhitespaceMode::PRESERVE};
 
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 		ASSERT_EQ(TextToken, token.type);
 		ASSERT_EQ("this \t is only a  \n\n test   text", token.content);
@@ -89,15 +89,15 @@ TEST(DynamicTokenizer, textTokenPreserveWhitespace)
 	}
 }
 
-TEST(DynamicTokenizer, textTokenTrimWhitespace)
+TEST(Tokenizer, textTokenTrimWhitespace)
 {
 	{
 		CharReader reader{" this \t is only a  \n\n test   text   "};
 		//                 012345 6789012345678 9 0123456789012345
 		//                 0          1           2         3
-		DynamicTokenizer tokenizer{WhitespaceMode::TRIM};
+		Tokenizer tokenizer{WhitespaceMode::TRIM};
 
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 		ASSERT_EQ(TextToken, token.type);
 		ASSERT_EQ("this \t is only a  \n\n test   text", token.content);
@@ -113,9 +113,9 @@ TEST(DynamicTokenizer, textTokenTrimWhitespace)
 		CharReader reader{"this \t is only a  \n\n test   text"};
 		//                 01234 5678901234567 8 9012345678901
 		//                 0          1           2         3
-		DynamicTokenizer tokenizer{WhitespaceMode::TRIM};
+		Tokenizer tokenizer{WhitespaceMode::TRIM};
 
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 		ASSERT_EQ(TextToken, token.type);
 		ASSERT_EQ("this \t is only a  \n\n test   text", token.content);
@@ -128,15 +128,15 @@ TEST(DynamicTokenizer, textTokenTrimWhitespace)
 	}
 }
 
-TEST(DynamicTokenizer, textTokenCollapseWhitespace)
+TEST(Tokenizer, textTokenCollapseWhitespace)
 {
 	{
 		CharReader reader{" this \t is only a  \n\n test   text   "};
 		//                 012345 6789012345678 9 0123456789012345
 		//                 0          1           2         3
-		DynamicTokenizer tokenizer{WhitespaceMode::COLLAPSE};
+		Tokenizer tokenizer{WhitespaceMode::COLLAPSE};
 
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 		ASSERT_EQ(TextToken, token.type);
 		ASSERT_EQ("this is only a test text", token.content);
@@ -152,9 +152,9 @@ TEST(DynamicTokenizer, textTokenCollapseWhitespace)
 		CharReader reader{"this \t is only a  \n\n test   text"};
 		//                 01234 5678901234567 8 9012345678901
 		//                 0          1           2         3
-		DynamicTokenizer tokenizer{WhitespaceMode::COLLAPSE};
+		Tokenizer tokenizer{WhitespaceMode::COLLAPSE};
 
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 		ASSERT_EQ(TextToken, token.type);
 		ASSERT_EQ("this is only a test text", token.content);
@@ -167,16 +167,16 @@ TEST(DynamicTokenizer, textTokenCollapseWhitespace)
 	}
 }
 
-TEST(DynamicTokenizer, simpleReadToken)
+TEST(Tokenizer, simpleReadToken)
 {
 	CharReader reader{"test1:test2"};
-	DynamicTokenizer tokenizer;
+	Tokenizer tokenizer;
 
 	const TokenTypeId tid = tokenizer.registerToken(":");
 	ASSERT_EQ(0U, tid);
 
 	{
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
 		ASSERT_EQ(TextToken, token.type);
@@ -192,7 +192,7 @@ TEST(DynamicTokenizer, simpleReadToken)
 	}
 
 	{
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
 		ASSERT_EQ(tid, token.type);
@@ -208,7 +208,7 @@ TEST(DynamicTokenizer, simpleReadToken)
 	}
 
 	{
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
 		ASSERT_EQ(TextToken, token.type);
@@ -223,16 +223,16 @@ TEST(DynamicTokenizer, simpleReadToken)
 	}
 }
 
-TEST(DynamicTokenizer, simplePeekToken)
+TEST(Tokenizer, simplePeekToken)
 {
 	CharReader reader{"test1:test2"};
-	DynamicTokenizer tokenizer;
+	Tokenizer tokenizer;
 
 	const TokenTypeId tid = tokenizer.registerToken(":");
 	ASSERT_EQ(0U, tid);
 
 	{
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.peek(reader, token));
 
 		ASSERT_EQ(TextToken, token.type);
@@ -246,7 +246,7 @@ TEST(DynamicTokenizer, simplePeekToken)
 	}
 
 	{
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.peek(reader, token));
 
 		ASSERT_EQ(tid, token.type);
@@ -260,7 +260,7 @@ TEST(DynamicTokenizer, simplePeekToken)
 	}
 
 	{
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.peek(reader, token));
 
 		ASSERT_EQ(TextToken, token.type);
@@ -274,7 +274,7 @@ TEST(DynamicTokenizer, simplePeekToken)
 	}
 
 	{
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
 		ASSERT_EQ(TextToken, token.type);
@@ -288,7 +288,7 @@ TEST(DynamicTokenizer, simplePeekToken)
 	}
 
 	{
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
 		ASSERT_EQ(tid, token.type);
@@ -302,7 +302,7 @@ TEST(DynamicTokenizer, simplePeekToken)
 	}
 
 	{
-		DynamicToken token;
+		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
 		ASSERT_EQ(TextToken, token.type);
@@ -316,10 +316,10 @@ TEST(DynamicTokenizer, simplePeekToken)
 	}
 }
 
-TEST(DynamicTokenizer, ambiguousTokens)
+TEST(Tokenizer, ambiguousTokens)
 {
 	CharReader reader{"abc"};
-	DynamicTokenizer tokenizer;
+	Tokenizer tokenizer;
 
 	TokenTypeId t1 = tokenizer.registerToken("abd");
 	TokenTypeId t2 = tokenizer.registerToken("bc");
@@ -327,7 +327,7 @@ TEST(DynamicTokenizer, ambiguousTokens)
 	ASSERT_EQ(0U, t1);
 	ASSERT_EQ(1U, t2);
 
-	DynamicToken token;
+	Token token;
 	ASSERT_TRUE(tokenizer.read(reader, token));
 
 	ASSERT_EQ(TextToken, token.type);
@@ -349,18 +349,18 @@ TEST(DynamicTokenizer, ambiguousTokens)
 	ASSERT_FALSE(tokenizer.read(reader, token));
 }
 
-TEST(DynamicTokenizer, commentTestWhitespacePreserve)
+TEST(Tokenizer, commentTestWhitespacePreserve)
 {
 	CharReader reader{"Test/Test /* Block Comment */", 0};
 	//                 012345678901234567890123456789
 	//                 0        1         2
-	DynamicTokenizer tokenizer(WhitespaceMode::PRESERVE);
+	Tokenizer tokenizer(WhitespaceMode::PRESERVE);
 
 	const TokenTypeId t1 = tokenizer.registerToken("/");
 	const TokenTypeId t2 = tokenizer.registerToken("/*");
 	const TokenTypeId t3 = tokenizer.registerToken("*/");
 
-	std::vector<DynamicToken> expected = {
+	std::vector<Token> expected = {
 	    {TextToken, "Test", SourceLocation{0, 0, 4}},
 	    {t1, "/", SourceLocation{0, 4, 5}},
 	    {TextToken, "Test ", SourceLocation{0, 5, 10}},
@@ -368,7 +368,7 @@ TEST(DynamicTokenizer, commentTestWhitespacePreserve)
 	    {TextToken, " Block Comment ", SourceLocation{0, 12, 27}},
 	    {t3, "*/", SourceLocation{0, 27, 29}}};
 
-	DynamicToken t;
+	Token t;
 	for (auto &te : expected) {
 		EXPECT_TRUE(tokenizer.read(reader, t));
 		EXPECT_EQ(te.type, t.type);
@@ -380,18 +380,18 @@ TEST(DynamicTokenizer, commentTestWhitespacePreserve)
 	ASSERT_FALSE(tokenizer.read(reader, t));
 }
 
-TEST(DynamicTokenizer, commentTestWhitespaceCollapse)
+TEST(Tokenizer, commentTestWhitespaceCollapse)
 {
 	CharReader reader{"Test/Test /* Block Comment */", 0};
 	//                 012345678901234567890123456789
 	//                 0        1         2
-	DynamicTokenizer tokenizer(WhitespaceMode::COLLAPSE);
+	Tokenizer tokenizer(WhitespaceMode::COLLAPSE);
 
 	const TokenTypeId t1 = tokenizer.registerToken("/");
 	const TokenTypeId t2 = tokenizer.registerToken("/*");
 	const TokenTypeId t3 = tokenizer.registerToken("*/");
 
-	std::vector<DynamicToken> expected = {
+	std::vector<Token> expected = {
 	    {TextToken, "Test", SourceLocation{0, 0, 4}},
 	    {t1, "/", SourceLocation{0, 4, 5}},
 	    {TextToken, "Test", SourceLocation{0, 5, 9}},
@@ -399,7 +399,7 @@ TEST(DynamicTokenizer, commentTestWhitespaceCollapse)
 	    {TextToken, "Block Comment", SourceLocation{0, 13, 26}},
 	    {t3, "*/", SourceLocation{0, 27, 29}}};
 
-	DynamicToken t;
+	Token t;
 	for (auto &te : expected) {
 		EXPECT_TRUE(tokenizer.read(reader, t));
 		EXPECT_EQ(te.type, t.type);
@@ -410,6 +410,5 @@ TEST(DynamicTokenizer, commentTestWhitespaceCollapse)
 	}
 	ASSERT_FALSE(tokenizer.read(reader, t));
 }
-
 }
 

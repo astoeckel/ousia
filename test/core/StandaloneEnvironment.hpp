@@ -31,6 +31,10 @@
 
 namespace ousia {
 
+/**
+ * StandaloneEnvironment is a class used for quickly setting up an entire
+ * environment needed for running an Ousia instance.
+ */
 struct StandaloneEnvironment {
 	ConcreteLogger &logger;
 	Manager manager;

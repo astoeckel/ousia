@@ -448,7 +448,7 @@ bool Node::doValidate(Logger &logger) const { return true; }
 
 bool Node::validateName(Logger &logger) const
 {
-	if (!Utils::isIdentifier(name)) {
+	if (!Utils::isIdentifierOrEmpty(name)) {
 		logger.error(type()->name + std::string(" name \"") + name +
 		                 std::string("\" is not a valid identifier"),
 		             this);

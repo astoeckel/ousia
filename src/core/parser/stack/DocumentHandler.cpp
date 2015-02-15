@@ -16,28 +16,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "DocumentHandler.hpp"
-
 #include <algorithm>
 
 #include <core/common/RttiBuilder.hpp>
 #include <core/common/Utils.hpp>
+#include <core/common/VariantReader.hpp>
 #include <core/model/Document.hpp>
 #include <core/model/Domain.hpp>
+#include <core/model/Project.hpp>
 #include <core/model/Typesystem.hpp>
 #include <core/parser/ParserScope.hpp>
+#include <core/parser/ParserContext.hpp>
+
+#include "DocumentHandler.hpp"
+#include "State.hpp"
 
 namespace ousia {
+namespace parser_stack {
 
 /* DocumentHandler */
 
-void DocumentHandler::start(Variant::mapType &args)
+bool DocumentHandler::start(Variant::mapType &args)
 {
 	Rooted<Document> document =
-	    project()->createDocument(args["name"].asString());
+	    context().getProject()->createDocument(args["name"].asString());
 	document->setLocation(location());
 	scope().push(document);
 	scope().setFlag(ParserFlag::POST_HEAD, false);
+
+	return true;
 }
 
 void DocumentHandler::end() { scope().pop(); }
@@ -48,7 +55,7 @@ void DocumentChildHandler::preamble(Handle<Node> parentNode,
                                     std::string &fieldName,
                                     DocumentEntity *&parent, bool &inField)
 {
-	// check if the parent in the structure tree was an explicit field
+	// Check if the parent in the structure tree was an explicit field
 	// reference.
 	inField = parentNode->isa(&RttiTypes::DocumentField);
 	if (inField) {
@@ -56,10 +63,11 @@ void DocumentChildHandler::preamble(Handle<Node> parentNode,
 		parentNode = scope().selectOrThrow(
 		    {&RttiTypes::StructuredEntity, &RttiTypes::AnnotationEntity});
 	} else {
-		// if it wasn't an explicit reference, we use the default field.
+		// If it wasn't an explicit reference, we use the default field.
 		fieldName = DEFAULT_FIELD_NAME;
 	}
-	// reference the parent entity explicitly.
+
+	// Reference the parent entity explicitly.
 	parent = nullptr;
 	if (parentNode->isa(&RttiTypes::StructuredEntity)) {
 		parent = static_cast<DocumentEntity *>(
@@ -70,36 +78,33 @@ void DocumentChildHandler::preamble(Handle<Node> parentNode,
 	}
 }
 
+static void createPath(const NodeVector<Node> &path, DocumentEntity *&parent,
+                       size_t p0 = 1)
+{
+	// TODO (@benjamin): These should be pushed onto the scope and poped once
+	// the scope is left. Otherwise stuff may not be correclty resolved.
+	size_t S = path.size();
+	for (size_t p = p0; p < S; p = p + 2) {
+		parent = static_cast<DocumentEntity *>(
+		    parent->createChildStructuredEntity(
+		                path[p].cast<StructuredClass>(), Variant::mapType{},
+		                path[p - 1]->getName(), "").get());
+	}
+}
+
 static void createPath(const std::string &firstFieldName,
                        const NodeVector<Node> &path, DocumentEntity *&parent)
 {
-	// add the first element
+	// Add the first element
 	parent = static_cast<DocumentEntity *>(
 	    parent->createChildStructuredEntity(path[0].cast<StructuredClass>(),
 	                                        Variant::mapType{}, firstFieldName,
 	                                        "").get());
 
-	size_t S = path.size();
-	for (size_t p = 2; p < S; p = p + 2) {
-		parent = static_cast<DocumentEntity *>(
-		    parent->createChildStructuredEntity(
-		                path[p].cast<StructuredClass>(), Variant::mapType{},
-		                path[p - 1]->getName(), "").get());
-	}
+	createPath(path, parent, 2);
 }
 
-static void createPath(const NodeVector<Node> &path, DocumentEntity *&parent)
-{
-	size_t S = path.size();
-	for (size_t p = 1; p < S; p = p + 2) {
-		parent = static_cast<DocumentEntity *>(
-		    parent->createChildStructuredEntity(
-		                path[p].cast<StructuredClass>(), Variant::mapType{},
-		                path[p - 1]->getName(), "").get());
-	}
-}
-
-void DocumentChildHandler::start(Variant::mapType &args)
+bool DocumentChildHandler::start(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 	Rooted<Node> parentNode = scope().selectOrThrow(
@@ -112,7 +117,7 @@ void DocumentChildHandler::start(Variant::mapType &args)
 
 	preamble(parentNode, fieldName, parent, inField);
 
-	// try to find a FieldDescriptor for the given tag if we are not in a
+	// Try to find a FieldDescriptor for the given tag if we are not in a
 	// field already. This does _not_ try to construct transparent paths
 	// in between.
 	if (!inField && parent != nullptr &&
@@ -121,7 +126,7 @@ void DocumentChildHandler::start(Variant::mapType &args)
 		    new DocumentField(parentNode->getManager(), name(), parentNode)};
 		field->setLocation(location());
 		scope().push(field);
-		return;
+		return true;
 	}
 
 	// Otherwise create a new StructuredEntity
@@ -187,27 +192,39 @@ void DocumentChildHandler::start(Variant::mapType &args)
 	}
 	entity->setLocation(location());
 	scope().push(entity);
+	return true;
 }
 
 void DocumentChildHandler::end() { scope().pop(); }
 
-std::pair<bool, Variant> DocumentChildHandler::convertData(
-    Handle<FieldDescriptor> field, Logger &logger, const std::string &data)
+bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
+                                       Variant &data, Logger &logger)
 {
-	// if the content is supposed to be of type string, we can finish
-	// directly.
-	auto vts = field->getPrimitiveType()->getVariantTypes();
-	if (std::find(vts.begin(), vts.end(), VariantType::STRING) != vts.end()) {
-		return std::make_pair(true, Variant::fromString(data));
+	bool valid = true;
+	Rooted<Type> type = field->getPrimitiveType();
+
+	// If the content is supposed to be of type string, we only need to check
+	// for "magic" values -- otherwise just call the "parseGenericString"
+	// function on the string data
+	if (type->isa(&RttiTypes::StringType)) {
+		const std::string &str = data.asString();
+		// TODO: Referencing constants with "." separator should also work
+		if (Utils::isIdentifier(str)) {
+			data.markAsMagic();
+		}
+	} else {
+		// Parse the string as generic string, assign the result
+		auto res = VariantReader::parseGenericString(
+		    data.asString(), logger, data.getLocation().getSourceId(),
+		    data.getLocation().getStart());
+		data = res.second;
 	}
 
-	// then try to parse the content using the type specification.
-	auto res = field->getPrimitiveType()->read(
-	    data, logger, location().getSourceId(), location().getStart());
-	return res;
+	// Now try to resolve the value for the primitive type
+	return valid && scope().resolveValue(data, type, logger);
 }
 
-void DocumentChildHandler::data(const std::string &data, int fieldIdx)
+bool DocumentChildHandler::data(Variant &data)
 {
 	Rooted<Node> parentNode = scope().selectOrThrow(
 	    {&RttiTypes::StructuredEntity, &RttiTypes::AnnotationEntity,
@@ -222,11 +239,10 @@ void DocumentChildHandler::data(const std::string &data, int fieldIdx)
 	Rooted<Descriptor> desc = strctParent->getDescriptor();
 	// The parent from which we need to connect to the primitive content.
 	Rooted<Node> parentClass;
-	/*
-	 * We distinguish two cases here: One for fields that are given.
-	 */
+
+	// We distinguish two cases here: One for fields that are given.
 	if (inField) {
-		// retrieve the actual FieldDescriptor
+		// Retrieve the actual FieldDescriptor
 		Rooted<FieldDescriptor> field = desc->getFieldDescriptor(fieldName);
 		if (field == nullptr) {
 			logger().error(
@@ -234,75 +250,102 @@ void DocumentChildHandler::data(const std::string &data, int fieldIdx)
 			        fieldName + "\" exists in descriptor\"" + desc->getName() +
 			        "\".",
 			    location());
-			return;
+			return false;
 		}
-		// if it is a primitive field directly, try to parse the content.
+		// If it is a primitive field directly, try to parse the content.
 		if (field->isPrimitive()) {
-			auto res = convertData(field, logger(), data);
-			// add it as primitive content.
-			if (res.first) {
-				strctParent->createChildDocumentPrimitive(res.second,
-				                                          fieldName);
+			// Add it as primitive content.
+			if (!convertData(field, data, logger())) {
+				return false;
 			}
-			return;
+
+			strctParent->createChildDocumentPrimitive(data, fieldName);
+			return true;
 		}
-		// if it is not primitive we need to connect via transparent elements
+		// If it is not primitive we need to connect via transparent elements
 		// and default fields.
 		parentClass = field;
 	} else {
-		// in case of default fields we need to construct via default fields
+		// In case of default fields we need to construct via default fields
 		// and maybe transparent elements.
 		parentClass = desc;
 	}
-	/*
-	 * Search through all permitted default fields of the parent class that
-	 * allow primitive content at this point and could be constructed via
-	 * transparent intermediate entities.
-	 * We then try to parse the data using the type specified by the respective
-	 * field. If that does not work we proceed to the next possible field.
-	 */
-	// retrieve all default fields at this point.
+
+	// Search through all permitted default fields of the parent class that
+	// allow primitive content at this point and could be constructed via
+	// transparent intermediate entities.
+
+	// Retrieve all default fields at this point, either from the field
+	// descriptor or the structured class
 	NodeVector<FieldDescriptor> defaultFields;
 	if (inField) {
 		defaultFields = parentClass.cast<FieldDescriptor>()->getDefaultFields();
 	} else {
 		defaultFields = parentClass.cast<StructuredClass>()->getDefaultFields();
 	}
+
+	// Try to parse the data using the type specified by the respective field.
+	// If that does not work we proceed to the next possible field.
 	std::vector<LoggerFork> forks;
 	for (auto field : defaultFields) {
-		// then try to parse the content using the type specification.
+		// Then try to parse the content using the type specification.
 		forks.emplace_back(logger().fork());
-		auto res = convertData(field, forks.back(), data);
-		if (res.first) {
-			forks.back().commit();
-			// if that worked, construct the necessary path.
-			if (inField) {
-				NodeVector<Node> path =
-				    parentClass.cast<FieldDescriptor>()->pathTo(field,
-				                                                logger());
-				createPath(fieldName, path, strctParent);
-			} else {
-				auto pathRes = desc->pathTo(field, logger());
-				assert(pathRes.second);
-				createPath(pathRes.first, strctParent);
-			}
-			// then create the primitive element.
-			strctParent->createChildDocumentPrimitive(res.second);
-			return;
+		if (!convertData(field, data, forks.back())) {
+			continue;
 		}
+
+		// The conversion worked, commit any possible warnings
+		forks.back().commit();
+
+		// Construct the necessary path
+		if (inField) {
+			NodeVector<Node> path =
+			    parentClass.cast<FieldDescriptor>()->pathTo(field, logger());
+			createPath(fieldName, path, strctParent);
+		} else {
+			auto pathRes = desc->pathTo(field, logger());
+			assert(pathRes.second);
+			createPath(pathRes.first, strctParent);
+		}
+
+		// Then create the primitive element
+		strctParent->createChildDocumentPrimitive(data);
+		return true;
 	}
-	logger().error("Could not read data with any of the possible fields:");
+
+	// No field was found that might take the data -- dump the error messages
+	// from the loggers
+	logger().error("Could not read data with any of the possible fields:",
+	               SourceLocation{}, MessageMode::NO_CONTEXT);
 	size_t f = 0;
 	for (auto field : defaultFields) {
-		logger().note(Utils::join(field->path(), ".") + ":", SourceLocation{},
-		              MessageMode::NO_CONTEXT);
+		logger().note(std::string("Field ") + Utils::join(field->path(), ".") +
+		                  std::string(":"),
+		              SourceLocation{}, MessageMode::NO_CONTEXT);
 		forks[f].commit();
 		f++;
 	}
+	return false;
+}
+
+namespace States {
+const State Document = StateBuilder()
+                           .parent(&None)
+                           .createdNodeType(&RttiTypes::Document)
+                           .elementHandler(DocumentHandler::create)
+                           .arguments({Argument::String("name", "")});
+
+const State DocumentChild = StateBuilder()
+                                .parents({&Document, &DocumentChild})
+                                .createdNodeTypes({&RttiTypes::StructureNode,
+                                                   &RttiTypes::AnnotationEntity,
+                                                   &RttiTypes::DocumentField})
+                                .elementHandler(DocumentChildHandler::create);
+}
 }
 
 namespace RttiTypes {
-const Rtti DocumentField =
-    RttiBuilder<ousia::DocumentField>("DocumentField").parent(&Node);
+const Rtti DocumentField = RttiBuilder<ousia::parser_stack::DocumentField>(
+                               "DocumentField").parent(&Node);
 }
 }

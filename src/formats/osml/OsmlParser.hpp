@@ -17,39 +17,32 @@
 */
 
 /**
- * @file XmlParser.hpp
+ * @file OsdmParser.hpp
  *
- * Contains the parser responsible for reading Ousía XML Documents (extension
- * oxd) and Ousía XML Modules (extension oxm).
+ * Contains the parser of the osdm format, the standard plain-text format used
+ * by Ousía for documents.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_XML_PARSER_HPP_
-#define _OUSIA_XML_PARSER_HPP_
+#ifndef _OUSIA_OSDM_PARSER_HPP_
+#define _OUSIA_OSDM_PARSER_HPP_
 
 #include <core/parser/Parser.hpp>
 
 namespace ousia {
 
 /**
- * The XmlParser class implements parsing the various types of Ousía XML
- * documents using the expat stream XML parser.
+ * OsdmParser is a small wrapper implementing the Parser interface. The actual
+ * parsing is performed with the OsdmStreamParser in conjunction with the
+ * ParserStateStack.
  */
-class XmlParser : public Parser {
+class OsdmParser : public Parser {
 protected:
-	/**
-	 * Parses the given input stream as XML file and returns the parsed
-	 * top-level node.
-	 *
-	 * @param reader is the CharReader from which the input should be read.
-	 * @param ctx is a reference to the ParserContext instance that should be
-	 * used.
-	 */
 	void doParse(CharReader &reader, ParserContext &ctx) override;
 };
 
 }
 
-#endif /* _OUSIA_XML_PARSER_HPP_ */
+#endif /* _OUSIA_OSDM_PARSER_HPP_ */
 

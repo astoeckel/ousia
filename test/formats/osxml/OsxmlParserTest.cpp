@@ -30,7 +30,7 @@
 #include <core/StandaloneEnvironment.hpp>
 
 #include <plugins/filesystem/FileLocator.hpp>
-#include <plugins/xml/XmlParser.hpp>
+#include <formats/osxml/OsxmlParser.hpp>
 
 namespace ousia {
 
@@ -41,7 +41,7 @@ extern const Rtti Typesystem;
 }
 
 struct XmlStandaloneEnvironment : public StandaloneEnvironment {
-	XmlParser xmlParser;
+	OsxmlParser parser;
 	FileLocator fileLocator;
 
 	XmlStandaloneEnvironment(ConcreteLogger &logger)
@@ -52,21 +52,21 @@ struct XmlStandaloneEnvironment : public StandaloneEnvironment {
 
 		registry.registerDefaultExtensions();
 		registry.registerParser({"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
-		                        {&RttiTypes::Node}, &xmlParser);
+		                        {&RttiTypes::Node}, &parser);
 		registry.registerResourceLocator(&fileLocator);
 	}
 };
 
 static TerminalLogger logger(std::cerr, true);
 
-TEST(XmlParser, mismatchedTag)
+TEST(OsxmlParser, mismatchedTag)
 {
 	XmlStandaloneEnvironment env(logger);
 	env.parse("mismatchedTag.oxm", "", "", RttiSet{&RttiTypes::Document});
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(XmlParser, generic)
+TEST(OsxmlParser, generic)
 {
 	XmlStandaloneEnvironment env(logger);
 	env.parse("generic.oxm", "", "", RttiSet{&RttiTypes::Node});
@@ -186,7 +186,7 @@ static void checkFieldDescriptor(
     Handle<Type> primitiveType = nullptr, bool optional = false)
 {
 	auto res = desc->resolve(&RttiTypes::FieldDescriptor, name);
-	ASSERT_EQ(1, res.size());
+	ASSERT_EQ(1U, res.size());
 	checkFieldDescriptor(res[0].node, name, parent, children, type,
 	                     primitiveType, optional);
 }
@@ -201,7 +201,7 @@ static void checkFieldDescriptor(
 	                     optional);
 }
 
-TEST(XmlParser, domainParsing)
+TEST(OsxmlParser, domainParsing)
 {
 	XmlStandaloneEnvironment env(logger);
 	Rooted<Node> book_domain_node =
@@ -332,10 +332,10 @@ static void checkText(Handle<Node> p, Handle<Node> expectedParent,
 {
 	checkStructuredEntity(p, expectedParent, doc, "paragraph");
 	Rooted<StructuredEntity> par = p.cast<StructuredEntity>();
-	ASSERT_EQ(1, par->getField().size());
+	ASSERT_EQ(1U, par->getField().size());
 	checkStructuredEntity(par->getField()[0], par, doc, "text");
 	Rooted<StructuredEntity> text = par->getField()[0].cast<StructuredEntity>();
-	ASSERT_EQ(1, text->getField().size());
+	ASSERT_EQ(1U, text->getField().size());
 
 	Handle<StructureNode> d = text->getField()[0];
 	ASSERT_FALSE(d == nullptr);
@@ -345,7 +345,7 @@ static void checkText(Handle<Node> p, Handle<Node> expectedParent,
 	ASSERT_EQ(expected, prim->getContent());
 }
 
-TEST(XmlParser, documentParsing)
+TEST(OsxmlParser, documentParsing)
 {
 	XmlStandaloneEnvironment env(logger);
 	Rooted<Node> book_document_node =
@@ -357,7 +357,7 @@ TEST(XmlParser, documentParsing)
 	checkStructuredEntity(doc->getRoot(), doc, doc, "book");
 	{
 		Rooted<StructuredEntity> book = doc->getRoot();
-		ASSERT_EQ(2, book->getField().size());
+		ASSERT_EQ(2U, book->getField().size());
 		checkText(book->getField()[0], book, doc,
 		          "This might be some introductory text or a dedication.");
 		checkStructuredEntity(book->getField()[1], book, doc, "chapter",
@@ -365,7 +365,7 @@ TEST(XmlParser, documentParsing)
 		{
 			Rooted<StructuredEntity> chapter =
 			    book->getField()[1].cast<StructuredEntity>();
-			ASSERT_EQ(3, chapter->getField().size());
+			ASSERT_EQ(3U, chapter->getField().size());
 			checkText(chapter->getField()[0], chapter, doc,
 			          "Here we might have an introduction to the chapter.");
 			checkStructuredEntity(chapter->getField()[1], chapter, doc,
@@ -374,7 +374,7 @@ TEST(XmlParser, documentParsing)
 			{
 				Rooted<StructuredEntity> section =
 				    chapter->getField()[1].cast<StructuredEntity>();
-				ASSERT_EQ(1, section->getField().size());
+				ASSERT_EQ(1U, section->getField().size());
 				checkText(section->getField()[0], section, doc,
 				          "Here we might find the actual section content.");
 			}
@@ -384,7 +384,7 @@ TEST(XmlParser, documentParsing)
 			{
 				Rooted<StructuredEntity> section =
 				    chapter->getField()[2].cast<StructuredEntity>();
-				ASSERT_EQ(1, section->getField().size());
+				ASSERT_EQ(1U, section->getField().size());
 				checkText(section->getField()[0], section, doc,
 				          "Here we might find the actual section content.");
 			}

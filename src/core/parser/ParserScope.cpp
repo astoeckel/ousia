@@ -351,8 +351,7 @@ bool ParserScope::resolveType(const std::string &name, Handle<Node> owner,
 	return resolveType(Utils::split(name, '.'), owner, logger, resultCallback);
 }
 
-bool ParserScope::resolveValue(Variant &data, Handle<Type> type,
-                               Handle<Node> owner, Logger &logger)
+bool ParserScope::resolveValue(Variant &data, Handle<Type> type, Logger &logger)
 {
 	return type->build(
 	    data, logger,
@@ -408,7 +407,7 @@ bool ParserScope::resolveTypeWithValue(const std::vector<std::string> &path,
 	    [=](Handle<Node> resolved, Handle<Node> owner, Logger &logger) mutable {
 		    if (resolved != nullptr) {
 			    Rooted<Type> type = resolved.cast<Type>();
-			    scope.resolveValue(*valuePtr, type, owner, logger);
+			    scope.resolveValue(*valuePtr, type, logger);
 		    }
 
 		    // Call the result callback with the type

@@ -110,7 +110,7 @@ TEST(RangeSet, Merge)
 	s.merge(Range<int>(40, 50));
 	s.merge(Range<int>(60, 70));
 	{
-		ASSERT_EQ(ranges.size(), 4);
+		ASSERT_EQ(ranges.size(), 4U);
 
 		auto it = ranges.begin();
 		ASSERT_EQ((*it).start, 0);
@@ -132,7 +132,7 @@ TEST(RangeSet, Merge)
 	// Now insert an element which spans the second and third element
 	s.merge(Range<int>(15, 55));
 	{
-		ASSERT_EQ(ranges.size(), 3);
+		ASSERT_EQ(ranges.size(), 3U);
 
 		auto it = ranges.begin();
 		ASSERT_EQ((*it).start, 0);
@@ -150,7 +150,7 @@ TEST(RangeSet, Merge)
 	// Now insert an element which expands the first element
 	s.merge(Range<int>(-10, 11));
 	{
-		ASSERT_EQ(ranges.size(), 3);
+		ASSERT_EQ(ranges.size(), 3U);
 
 		auto it = ranges.begin();
 		ASSERT_EQ((*it).start, -10);
@@ -168,7 +168,7 @@ TEST(RangeSet, Merge)
 	// Now insert an element which merges the last two elements
 	s.merge(Range<int>(13, 70));
 	{
-		ASSERT_EQ(ranges.size(), 2);
+		ASSERT_EQ(ranges.size(), 2U);
 
 		auto it = ranges.begin();
 		ASSERT_EQ((*it).start, -10);
@@ -182,7 +182,7 @@ TEST(RangeSet, Merge)
 	// Now insert an element which merges the remaining elements
 	s.merge(Range<int>(-9, 12));
 	{
-		ASSERT_EQ(ranges.size(), 1);
+		ASSERT_EQ(ranges.size(), 1U);
 
 		auto it = ranges.begin();
 		ASSERT_EQ((*it).start, -10);

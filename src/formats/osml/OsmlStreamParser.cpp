@@ -21,14 +21,14 @@
 #include <core/common/Utils.hpp>
 #include <core/common/VariantReader.hpp>
 
-#include "OsdmStreamParser.hpp"
+#include "OsmlStreamParser.hpp"
 
 namespace ousia {
 
 /**
  * Plain format default tokenizer.
  */
-class PlainFormatTokens : public DynamicTokenizer {
+class PlainFormatTokens : public Tokenizer {
 public:
 	/**
 	 * Id of the backslash token.
@@ -61,6 +61,21 @@ public:
 	TokenTypeId FieldEnd;
 
 	/**
+	 * Id of the default field start token.
+	 */
+	TokenTypeId DefaultFieldStart;
+
+	/**
+	 * Id of the annotation start token.
+	 */
+	TokenTypeId AnnotationStart;
+
+	/**
+	 * Id of the annotation end token.
+	 */
+	TokenTypeId AnnotationEnd;
+
+	/**
 	 * Registers the plain format tokens in the internal tokenizer.
 	 */
 	PlainFormatTokens()
@@ -71,6 +86,9 @@ public:
 		BlockCommentEnd = registerToken("}%");
 		FieldStart = registerToken("{");
 		FieldEnd = registerToken("}");
+		DefaultFieldStart = registerToken("{!");
+		AnnotationStart = registerToken("<\\");
+		AnnotationEnd = registerToken("\\>");
 	}
 };
 
@@ -160,14 +178,14 @@ public:
 	}
 };
 
-OsdmStreamParser::OsdmStreamParser(CharReader &reader, Logger &logger)
+OsmlStreamParser::OsmlStreamParser(CharReader &reader, Logger &logger)
     : reader(reader), logger(logger), tokenizer(Tokens)
 {
 	// Place an intial command representing the complete file on the stack
-	commands.push(Command{"", Variant::mapType{}, true, true, true});
+	commands.push(Command{"", Variant::mapType{}, true, true, true, false});
 }
 
-Variant OsdmStreamParser::parseIdentifier(size_t start, bool allowNSSep)
+Variant OsmlStreamParser::parseIdentifier(size_t start, bool allowNSSep)
 {
 	bool first = true;
 	bool hasCharSiceNSSep = false;
@@ -210,7 +228,7 @@ Variant OsdmStreamParser::parseIdentifier(size_t start, bool allowNSSep)
 	return res;
 }
 
-OsdmStreamParser::State OsdmStreamParser::parseBeginCommand()
+OsmlStreamParser::State OsmlStreamParser::parseBeginCommand()
 {
 	// Expect a '{' after the command
 	reader.consumeWhitespace();
@@ -251,7 +269,7 @@ OsdmStreamParser::State OsdmStreamParser::parseBeginCommand()
 	return State::COMMAND;
 }
 
-static bool checkStillInField(const OsdmStreamParser::Command &cmd,
+static bool checkStillInField(const OsmlStreamParser::Command &cmd,
                               const Variant &endName, Logger &logger)
 {
 	if (cmd.inField && !cmd.inRangeField) {
@@ -264,7 +282,7 @@ static bool checkStillInField(const OsdmStreamParser::Command &cmd,
 	return false;
 }
 
-OsdmStreamParser::State OsdmStreamParser::parseEndCommand()
+OsmlStreamParser::State OsmlStreamParser::parseEndCommand()
 {
 	// Expect a '{' after the command
 	if (!reader.expect('{')) {
@@ -327,7 +345,7 @@ OsdmStreamParser::State OsdmStreamParser::parseEndCommand()
 	return cmd.inRangeField ? State::FIELD_END : State::NONE;
 }
 
-Variant OsdmStreamParser::parseCommandArguments(Variant commandArgName)
+Variant OsmlStreamParser::parseCommandArguments(Variant commandArgName)
 {
 	// Parse the arguments using the universal VariantReader
 	Variant commandArguments;
@@ -353,7 +371,7 @@ Variant OsdmStreamParser::parseCommandArguments(Variant commandArgName)
 	return commandArguments;
 }
 
-void OsdmStreamParser::pushCommand(Variant commandName,
+void OsmlStreamParser::pushCommand(Variant commandName,
                                    Variant commandArguments, bool hasRange)
 {
 	// Store the location on the stack
@@ -365,10 +383,11 @@ void OsdmStreamParser::pushCommand(Variant commandName,
 		commands.pop();
 	}
 	commands.push(Command{std::move(commandName), std::move(commandArguments),
-	                      hasRange, false, false});
+	                      hasRange, false, false, false});
 }
 
-OsdmStreamParser::State OsdmStreamParser::parseCommand(size_t start)
+OsmlStreamParser::State OsmlStreamParser::parseCommand(size_t start,
+                                                       bool isAnnotation)
 {
 	// Parse the commandName as a first identifier
 	Variant commandName = parseIdentifier(start, true);
@@ -382,6 +401,9 @@ OsdmStreamParser::State OsdmStreamParser::parseCommand(size_t start)
 	    Utils::split(commandName.asString(), ':');
 	const bool isBegin = commandNameComponents[0] == "begin";
 	const bool isEnd = commandNameComponents[0] == "end";
+
+	// Parse the begin or end command
+	State res = State::COMMAND;
 	if (isBegin || isEnd) {
 		if (commandNameComponents.size() > 1) {
 			logger.error(
@@ -390,35 +412,81 @@ OsdmStreamParser::State OsdmStreamParser::parseCommand(size_t start)
 			    commandName);
 		}
 		if (isBegin) {
-			return parseBeginCommand();
+			res = parseBeginCommand();
 		} else if (isEnd) {
-			return parseEndCommand();
+			res = parseEndCommand();
+		}
+	} else {
+		// Check whether the next character is a '#', indicating the start of
+		// the command name
+		Variant commandArgName;
+		start = reader.getOffset();
+		if (reader.expect('#')) {
+			commandArgName = parseIdentifier(start);
+			if (commandArgName.asString().empty()) {
+				logger.error("Expected identifier after \"#\"", commandArgName);
+			}
+		}
+
+		// Parse the arugments
+		Variant commandArguments =
+		    parseCommandArguments(std::move(commandArgName));
+
+		// Push the command onto the command stack
+		pushCommand(std::move(commandName), std::move(commandArguments), false);
+	}
+
+	// Check whether a ">" character is the next character that is to be read.
+	// In that case the current command could be an annotation end command!
+	char c;
+	if (reader.fetch(c) && c == '>') {
+		// Ignore the character after a begin or end command
+		if (isBegin || isEnd) {
+			logger.warning(
+			    "Ignoring annotation end character \">\" after special "
+			    "commands \"begin\" or \"end\". Write \"\\>\" to end a "
+			    "\"begin\"/\"end\" enclosed annotation.",
+			    reader);
+			return res;
+		}
+
+		// If this should be an annoation, ignore the character
+		if (isAnnotation) {
+			logger.warning(
+			    "Ignoring annotation end character \">\" after annotation "
+			    "start command. Write \"\\>\" to end the annotation.",
+			    reader);
+		} else {
+			// Make sure no arguments apart from the "name" argument are given
+			// to an annotation end
+			Variant::mapType &map = commands.top().arguments.asMap();
+			if (!map.empty()) {
+				if (map.count("name") == 0 || map.size() > 1U) {
+					logger.error(
+					    "An annotation end command may not have any arguments "
+					    "other than \"name\"");
+					return res;
+				}
+			}
+
+			// If we got here, this is a valid ANNOTATION_END command, issue it
+			reader.peek(c);
+			reader.consumePeek();
+			return State::ANNOTATION_END;
 		}
 	}
 
-	// Check whether the next character is a '#', indicating the start of the
-	// command name
-	Variant commandArgName;
-	start = reader.getOffset();
-	if (reader.expect('#')) {
-		commandArgName = parseIdentifier(start);
-		if (commandArgName.asString().empty()) {
-			logger.error("Expected identifier after \"#\"", commandArgName);
-		}
+	// If we're starting an annotation, return the command as annotation start
+	// instead of command
+	if (isAnnotation && res == State::COMMAND) {
+		return State::ANNOTATION_START;
 	}
-
-	// Parse the arugments
-	Variant commandArguments = parseCommandArguments(std::move(commandArgName));
-
-	// Push the command onto the command stack
-	pushCommand(std::move(commandName), std::move(commandArguments), false);
-
-	return State::COMMAND;
+	return res;
 }
 
-void OsdmStreamParser::parseBlockComment()
+void OsmlStreamParser::parseBlockComment()
 {
-	DynamicToken token;
+	Token token;
 	size_t depth = 1;
 	while (tokenizer.read(reader, token)) {
 		if (token.type == Tokens.BlockCommentEnd) {
@@ -436,7 +504,7 @@ void OsdmStreamParser::parseBlockComment()
 	logger.error("File ended while being in a block comment", reader);
 }
 
-void OsdmStreamParser::parseLineComment()
+void OsmlStreamParser::parseLineComment()
 {
 	char c;
 	while (reader.read(c)) {
@@ -446,7 +514,7 @@ void OsdmStreamParser::parseLineComment()
 	}
 }
 
-bool OsdmStreamParser::checkIssueData(DataHandler &handler)
+bool OsmlStreamParser::checkIssueData(DataHandler &handler)
 {
 	if (!handler.isEmpty()) {
 		data = handler.toVariant(reader.getSourceId());
@@ -457,7 +525,7 @@ bool OsdmStreamParser::checkIssueData(DataHandler &handler)
 	return false;
 }
 
-bool OsdmStreamParser::checkIssueFieldStart()
+bool OsmlStreamParser::checkIssueFieldStart()
 {
 	// Fetch the current command, and check whether we're currently inside a
 	// field of this command
@@ -482,18 +550,41 @@ bool OsdmStreamParser::checkIssueFieldStart()
 	return false;
 }
 
-OsdmStreamParser::State OsdmStreamParser::parse()
+bool OsmlStreamParser::closeField()
+{
+	// Try to end an open field of the current command -- if the current command
+	// is not inside an open field, end this command and try to close the next
+	// one
+	for (int i = 0; i < 2 && commands.size() > 1; i++) {
+		Command &cmd = commands.top();
+		if (!cmd.inRangeField) {
+			if (cmd.inField) {
+				cmd.inField = false;
+				if (cmd.inDefaultField) {
+					commands.pop();
+				}
+				return true;
+			}
+			commands.pop();
+		} else {
+			return false;
+		}
+	}
+	return false;
+}
+
+OsmlStreamParser::State OsmlStreamParser::parse()
 {
 	// Handler for incomming data
 	DataHandler handler;
 
 	// Read tokens until the outer loop should be left
-	DynamicToken token;
+	Token token;
 	while (tokenizer.peek(reader, token)) {
 		const TokenTypeId type = token.type;
 
 		// Special handling for Backslash and Text
-		if (type == Tokens.Backslash) {
+		if (type == Tokens.Backslash || type == Tokens.AnnotationStart) {
 			// Before appending anything to the output data or starting a new
 			// command, check whether FIELD_START has to be issued, as the
 			// current command is a command with range
@@ -519,7 +610,8 @@ OsdmStreamParser::State OsdmStreamParser::parse()
 				}
 
 				// Parse the actual command
-				State res = parseCommand(token.location.getStart());
+				State res = parseCommand(token.location.getStart(),
+				                         type == Tokens.AnnotationStart);
 				switch (res) {
 					case State::ERROR:
 						throw LoggableException(
@@ -536,6 +628,14 @@ OsdmStreamParser::State OsdmStreamParser::parse()
 			// to the data buffer, use the escape character start as start
 			// location and the peek offset as end location
 			reader.peek(c);  // Peek the previously fetched character
+
+			// If this was an annotation start token, add the parsed < to the
+			// output
+			if (type == Tokens.AnnotationStart) {
+				handler.append('<', token.location.getStart(),
+				               token.location.getStart() + 1);
+			}
+
 			handler.append(c, token.location.getStart(),
 			               reader.getPeekOffset());
 			reader.consumePeek();
@@ -579,28 +679,37 @@ OsdmStreamParser::State OsdmStreamParser::parse()
 			}
 			logger.error(
 			    "Got field start token \"{\", but no command for which to "
-			    "start the field. Did you mean \"\\{\"?",
+			    "start the field. Write \"\\{\" to insert this sequence as "
+			    "text.",
 			    token);
 		} else if (token.type == Tokens.FieldEnd) {
-			// Try to end an open field of the current command -- if the current
-			// command is not inside an open field, end this command and try to
-			// close the next one
-			for (int i = 0; i < 2 && commands.size() > 1; i++) {
-				Command &cmd = commands.top();
-				if (!cmd.inRangeField) {
-					if (cmd.inField) {
-						cmd.inField = false;
-						return State::FIELD_END;
-					}
-					commands.pop();
-				} else {
-					break;
-				}
+			if (closeField()) {
+				return State::FIELD_END;
 			}
 			logger.error(
-			    "Got field end token \"}\", but there is no field to end. Did "
-			    "you mean \"\\}\"?",
+			    "Got field end token \"}\", but there is no field to end. "
+			    "Write \"\\}\" to insert this sequence as text.",
 			    token);
+		} else if (token.type == Tokens.DefaultFieldStart) {
+			// Try to start a default field the first time the token is reached
+			Command &topCmd = commands.top();
+			if (!topCmd.inField) {
+				topCmd.inField = true;
+				topCmd.inDefaultField = true;
+				return State::FIELD_START;
+			}
+			logger.error(
+			    "Got default field start token \"{!\", but no command for "
+			    "which to start the field. Write \"\\{!\" to insert this "
+			    "sequence as text",
+			    token);
+		} else if (token.type == Tokens.AnnotationEnd) {
+			// We got a single annotation end token "\>" -- simply issue the
+			// ANNOTATION_END event
+			Variant annotationName = Variant::fromString("");
+			annotationName.setLocation(token.location);
+			pushCommand(annotationName, Variant::mapType{}, false);
+			return State::ANNOTATION_END;
 		} else {
 			logger.error("Unexpected token \"" + token.content + "\"", token);
 		}
@@ -627,14 +736,19 @@ OsdmStreamParser::State OsdmStreamParser::parse()
 	return State::END;
 }
 
-const Variant &OsdmStreamParser::getCommandName()
+const Variant &OsmlStreamParser::getCommandName() const
 {
 	return commands.top().name;
 }
 
-const Variant &OsdmStreamParser::getCommandArguments()
+const Variant &OsmlStreamParser::getCommandArguments() const
 {
 	return commands.top().arguments;
+}
+
+bool OsmlStreamParser::inDefaultField() const
+{
+	return commands.top().inRangeField || commands.top().inDefaultField;
 }
 }
 

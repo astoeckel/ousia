@@ -17,23 +17,22 @@
 */
 
 /**
- * @file OsdmStreamParser.hpp
+ * @file OsmlStreamParser.hpp
  *
- * Provides classes for low-level classes for reading the TeX-esque osdm
+ * Provides classes for low-level classes for reading the TeX-esque osml
  * format. The class provided here does not build any model objects and does not
  * implement the Parser interface.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_OSDM_STREAM_PARSER_HPP_
-#define _OUSIA_OSDM_STREAM_PARSER_HPP_
+#ifndef _OUSIA_OSML_STREAM_PARSER_HPP_
+#define _OUSIA_OSML_STREAM_PARSER_HPP_
 
 #include <stack>
 
 #include <core/common/Variant.hpp>
-
-#include "DynamicTokenizer.hpp"
+#include <core/parser/utils/Tokenizer.hpp>
 
 namespace ousia {
 
@@ -43,7 +42,7 @@ class Logger;
 class DataHandler;
 
 /**
- * The OsdmStreamParser class provides a low-level reader for the TeX-esque osdm
+ * The OsmlStreamParser class provides a low-level reader for the TeX-esque osml
  * format. The parser is constructed around a "parse" function, which reads data
  * from the underlying CharReader until a new state is reached and indicates
  * this state in a return value. The calling code then has to pull corresponding
@@ -53,10 +52,10 @@ class DataHandler;
  * fields, as this would lead to too many consecutive errors) a
  * LoggableException is thrown.
  */
-class OsdmStreamParser {
+class OsmlStreamParser {
 public:
 	/**
-	 * Enum used to indicate which state the OsdmStreamParser class is in
+	 * Enum used to indicate which state the OsmlStreamParser class is in
 	 * after calling the "parse" function.
 	 */
 	enum class State {
@@ -140,23 +139,35 @@ public:
 		/**
 		 * Set to true if this is a command with clear begin and end.
 		 */
-		bool hasRange;
+		bool hasRange : 1;
 
 		/**
 		 * Set to true if we are currently inside a field of this command.
 		 */
-		bool inField;
+		bool inField : 1;
 
 		/**
 		 * Set to true if we are currently in the range field of the command
 		 * (implies inField being set to true).
 		 */
-		bool inRangeField;
+		bool inRangeField : 1;
+
+		/**
+		 * Set to true if we are currently in a field that has been especially
+		 * marked as default field (using the "|") syntax.
+		 */
+		bool inDefaultField : 1;
 
 		/**
 		 * Default constructor.
 		 */
-		Command() : hasRange(false), inField(false), inRangeField(false) {}
+		Command()
+		    : hasRange(false),
+		      inField(false),
+		      inRangeField(false),
+		      inDefaultField()
+		{
+		}
 
 		/**
 		 * Constructor of the Command class.
@@ -169,16 +180,19 @@ public:
 		 * explicit range.
 		 * @param inField is set to true if we currently are inside a field
 		 * of this command.
-		 * @param inRangeField is set to true if we currently inside the outer
-		 * field of the command.
+		 * @param inRangeField is set to true if we currently are inside the
+		 * outer field of a ranged command.
+		 * @param inDefaultField is set to true if we currently are in a
+		 * specially marked default field.
 		 */
-		Command(Variant name, Variant arguments, bool hasRange, bool inField,
-		        bool inRangeField)
+		Command(Variant name, Variant arguments, bool hasRange,
+		        bool inField, bool inRangeField, bool inDefaultField)
 		    : name(std::move(name)),
 		      arguments(std::move(arguments)),
 		      hasRange(hasRange),
 		      inField(inField),
-		      inRangeField(inRangeField)
+		      inRangeField(inRangeField),
+		      inDefaultField(inDefaultField)
 		{
 		}
 	};
@@ -198,7 +212,7 @@ private:
 	/**
 	 * Tokenizer instance used to read individual tokens from the text.
 	 */
-	DynamicTokenizer tokenizer;
+	Tokenizer tokenizer;
 
 	/**
 	 * Stack containing the current commands.
@@ -258,9 +272,11 @@ private:
 	 *
 	 * @param start is the start byte offset of the command (including the
 	 * backslash)
+	 * @param isAnnotation if true, the command is not returned as command, but
+	 * as annotation start.
 	 * @return true if a command was actuall parsed, false otherwise.
 	 */
-	State parseCommand(size_t start);
+	State parseCommand(size_t start, bool isAnnotation);
 
 	/**
 	 * Function used internally to parse a block comment.
@@ -290,16 +306,26 @@ private:
 	 */
 	bool checkIssueFieldStart();
 
+	/**
+	 * Closes a currently open field. Note that the command will be removed from
+	 * the internal command stack if the field that is being closed is a
+	 * field marked as default field.
+	 *
+	 * @return true if the field could be closed, false if there was no field
+	 * to close.
+	 */
+	bool closeField();
+
 public:
 	/**
-	 * Constructor of the OsdmStreamParser class. Attaches the new
-	 * OsdmStreamParser to the given CharReader and Logger instances.
+	 * Constructor of the OsmlStreamParser class. Attaches the new
+	 * OsmlStreamParser to the given CharReader and Logger instances.
 	 *
 	 * @param reader is the reader instance from which incomming characters
 	 * should be read.
 	 * @param logger is the logger instance to which errors should be written.
 	 */
-	OsdmStreamParser(CharReader &reader, Logger &logger);
+	OsmlStreamParser(CharReader &reader, Logger &logger);
 
 	/**
 	 * Continues parsing. Returns one of the states defined in the State enum.
@@ -318,7 +344,7 @@ public:
 	 * @return a reference at a variant containing the data parsed by the
 	 * "parse" function.
 	 */
-	const Variant &getData() { return data; }
+	const Variant &getData() const { return data; }
 
 	/**
 	 * Returns a reference at the internally stored command name. Only valid if
@@ -327,7 +353,7 @@ public:
 	 * @return a reference at a variant containing name and location of the
 	 * parsed command.
 	 */
-	const Variant &getCommandName();
+	const Variant &getCommandName() const;
 
 	/**
 	 * Returns a reference at the internally stored command name. Only valid if
@@ -336,16 +362,24 @@ public:
 	 * @return a reference at a variant containing arguments given to the
 	 * command.
 	 */
-	const Variant &getCommandArguments();
+	const Variant &getCommandArguments() const;
+
+	/**
+	 * Returns true if the current field is the "default" field. This is true if
+	 * the parser either is in the outer range of a range command or inside a
+	 * field that has been especially marked as "default" field (using the "|"
+	 * syntax).
+	 */
+	bool inDefaultField() const;
 
 	/**
 	 * Returns a reference at the char reader.
 	 *
 	 * @return the last internal token location.
 	 */
-	SourceLocation &getLocation() { return location; }
+	const SourceLocation &getLocation() const { return location; }
 };
 }
 
-#endif /* _OUSIA_OSDM_STREAM_PARSER_HPP_ */
+#endif /* _OUSIA_OSML_STREAM_PARSER_HPP_ */
 

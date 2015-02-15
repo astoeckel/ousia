@@ -17,10 +17,10 @@
 */
 
 /**
- * @file ParserState.hpp
+ * @file State.hpp
  *
- * Defines the ParserState class used within the ParserStack pushdown
- * automaton and the ParserStateBuilder class for convenient construction of
+ * Defines the State class used within the ParserStack pushdown
+ * automaton and the StateBuilder class for convenient construction of
  * such classes.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
@@ -33,12 +33,14 @@
 
 #include <core/common/Rtti.hpp>
 #include <core/common/Argument.hpp>
+#include <core/common/Whitespace.hpp>
 
 namespace ousia {
+namespace parser_stack {
 
 // Forward declarations
-class ParserStateBuilder;
-class ParserState;
+class StateBuilder;
+class State;
 class HandlerData;
 class Handler;
 using HandlerConstructor = Handler *(*)(const HandlerData &handlerData);
@@ -47,17 +49,17 @@ using HandlerConstructor = Handler *(*)(const HandlerData &handlerData);
  * Set of pointers of parser states -- used for specifying a set of parent
  * states.
  */
-using ParserStateSet = std::unordered_set<const ParserState *>;
+using StateSet = std::unordered_set<const State *>;
 
 /**
- * Class used for the complete specification of a ParserState. Stores possible
+ * Class used for the complete specification of a State. Stores possible
  * parent states, state handlers and arguments to be passed to that state.
  */
-struct ParserState {
+struct State {
 	/**
 	 * Vector containing all possible parent states.
 	 */
-	ParserStateSet parents;
+	StateSet parents;
 
 	/**
 	 * Descriptor of the arguments that should be passed to the handler.
@@ -66,8 +68,8 @@ struct ParserState {
 
 	/**
 	 * Set containing the types of the nodes that may be created in this
-	 * ParserState. This information is needed for Parsers to reconstruct the
-	 * current ParserState from a given ParserScope when a file is included.
+	 * State. This information is needed for Parsers to reconstruct the
+	 * current State from a given ParserScope when a file is included.
 	 */
 	RttiSet createdNodeTypes;
 
@@ -79,109 +81,119 @@ struct ParserState {
 	HandlerConstructor elementHandler;
 
 	/**
-	 * Default constructor, initializes the handlers with nullptr.
+	 * Set to true if this handler does support annotations. This is almost
+	 * always false (e.g. all description handlers), except for document 
+	 * element handlers.
 	 */
-	ParserState();
+	bool supportsAnnotations;
 
 	/**
-	 * Constructor taking values for all fields. Use the ParserStateBuilder
-	 * class for a more convenient construction of ParserState instances.
+	 * Default constructor, initializes the handlers with nullptr.
+	 */
+	State();
+
+	/**
+	 * Constructor taking values for all fields. Use the StateBuilder
+	 * class for a more convenient construction of State instances.
 	 *
 	 * @param parents is a vector containing all possible parent states.
 	 * @param arguments is a descriptor of arguments that should be passed to
 	 * the handler.
 	 * @param createdNodeTypes is a set containing the types of the nodes tha
-	 * may be created in this ParserState. This information is needed for
-	 * Parsers to reconstruct the current ParserState from a given ParserScope
+	 * may be created in this State. This information is needed for
+	 * Parsers to reconstruct the current State from a given ParserScope
 	 * when a file is included.
 	 * @param elementHandler is a pointer at a function which creates a new
 	 * concrete Handler instance for the elements described by this state. May
 	 * be nullptr in which case no handler instance is created.
+	 * @param supportsAnnotations specifies whether annotations are supported
+	 * here at all.
 	 */
-	ParserState(ParserStateSet parents, Arguments arguments = Arguments{},
+	State(StateSet parents, Arguments arguments = Arguments{},
 	            RttiSet createdNodeTypes = RttiSet{},
-	            HandlerConstructor elementHandler = nullptr);
+	            HandlerConstructor elementHandler = nullptr,
+	            bool supportsAnnotations = false);
 
 	/**
-	 * Creates this ParserState from the given ParserStateBuilder instance.
+	 * Creates this State from the given StateBuilder instance.
 	 */
-	ParserState(const ParserStateBuilder &builder);
+	State(const StateBuilder &builder);
 };
 
 /**
- * The ParserStateBuilder class is a class used for conveniently building new
- * ParserState instances.
+ * The StateBuilder class is a class used for conveniently building new
+ * State instances.
  */
-class ParserStateBuilder {
+class StateBuilder {
 private:
 	/**
-	 * ParserState instance that is currently being built by the
-	 * ParserStateBuilder.
+	 * State instance that is currently being built by the
+	 * StateBuilder.
 	 */
-	ParserState state;
+	State state;
 
 public:
 	/**
-	 * Copies the ParserState instance and uses it as internal state. Overrides
-	 * all changes made by the ParserStateBuilder.
+	 * Copies the State instance and uses it as internal state. Overrides
+	 * all changes made by the StateBuilder.
 	 *
 	 * @param state is the state that should be copied.
-	 * @return a reference at this ParserStateBuilder instance for method
+	 * @return a reference at this StateBuilder instance for method
 	 * chaining.
 	 */
-	ParserStateBuilder &copy(const ParserState &state);
+	StateBuilder &copy(const State &state);
 
 	/**
 	 * Sets the possible parent states to the single given parent element.
 	 *
-	 * @param parent is a pointer at the parent ParserState instance that should
+	 * @param parent is a pointer at the parent State instance that should
 	 * be the possible parent state.
-	 * @return a reference at this ParserStateBuilder instance for method
+	 * @return a reference at this StateBuilder instance for method
 	 * chaining.
 	 */
-	ParserStateBuilder &parent(const ParserState *parent);
+	StateBuilder &parent(const State *parent);
 
 	/**
-	 * Sets the ParserState instances in the given ParserStateSet as the list of
+	 * Sets the State instances in the given StateSet as the list of
 	 * supported parent states.
 	 *
-	 * @param parents is a set of pointers at ParserState instances that should
+	 * @param parents is a set of pointers at State instances that should
 	 * be the possible parent states.
-	 * @return a reference at this ParserStateBuilder instance for method
+	 * @return a reference at this StateBuilder instance for method
 	 * chaining.
 	 */
-	ParserStateBuilder &parents(const ParserStateSet &parents);
+	StateBuilder &parents(const StateSet &parents);
 
 	/**
 	 * Sets the arguments that should be passed to the parser state handler to
 	 * those given as argument.
 	 *
 	 * @param arguments is the Arguments instance describing the Arguments that
-	 * should be parsed to a Handler for this ParserState.
-	 * @return a reference at this ParserStateBuilder instance for method
+	 * should be parsed to a Handler for this State.
+	 * @return a reference at this StateBuilder instance for method
 	 * chaining.
 	 */
-	ParserStateBuilder &arguments(const Arguments &arguments);
+	StateBuilder &arguments(const Arguments &arguments);
 
 	/**
 	 * Sets the Node types this state may produce to the given Rtti descriptor.
 	 *
 	 * @param type is the Rtti descriptor of the Type that may be produced by
 	 * this state.
-	 * @return a reference at this ParserStateBuilder instance for method
+	 * @return a reference at this StateBuilder instance for method
 	 * chaining.
 	 */
-	ParserStateBuilder &createdNodeType(const Rtti *type);
+	StateBuilder &createdNodeType(const Rtti *type);
 
 	/**
 	 * Sets the Node types this state may produce to the given Rtti descriptors.
 	 *
 	 * @param types is a set of Rtti descriptors of the Types that may be
 	 * produced by this state.
-	 * @return a reference at this ParserStateBuilder instance for method
+	 * @return a reference at this StateBuilder instance for method
 	 * chaining.
 	 */
-	ParserStateBuilder &createdNodeTypes(const RttiSet &types);
+	StateBuilder &createdNodeTypes(const RttiSet &types);
 
 	/**
 	 * Sets the constructor for the element handler. The constructor creates a
@@ -191,31 +203,42 @@ public:
 	 *
 	 * @param elementHandler is the HandlerConstructor that should create a
 	 * new Handler instance.
-	 * @return a reference at this ParserStateBuilder instance for method
+	 * @return a reference at this StateBuilder instance for method
 	 * chaining.
 	 */
-	ParserStateBuilder &elementHandler(HandlerConstructor elementHandler);
+	StateBuilder &elementHandler(HandlerConstructor elementHandler);
 
 	/**
-	 * Returns a reference at the internal ParserState instance that was built
-	 * using the ParserStateBuilder.
+	 * Sets the state of the "supportsAnnotations" flags (default value is
+	 * false)
 	 *
-	 * @return the built ParserState.
+	 * @param supportsAnnotations should be set to true, if annotations are
+	 * supported for the handlers associated with this document.
+	 * @return a reference at this StateBuilder instance for method
+	 * chaining.
 	 */
-	const ParserState &build() const;
+	StateBuilder &supportsAnnotations(bool supportsAnnotations);
+
+	/**
+	 * Returns a reference at the internal State instance that was built
+	 * using the StateBuilder.
+	 *
+	 * @return the built State.
+	 */
+	const State &build() const;
 };
 
 /**
- * Class used to deduce the ParserState a Parser is currently in based on the
+ * Class used to deduce the State a Parser is currently in based on the
  * types of the Nodes that currently are on the ParserStack. Uses dynamic
  * programming in order to solve this problem.
  */
-class ParserStateDeductor {
+class StateDeductor {
 public:
 	/**
 	 * Type containing the dynamic programming table.
 	 */
-	using Table = std::vector<std::unordered_map<const ParserState *, bool>>;
+	using Table = std::vector<std::unordered_map<const State *, bool>>;
 
 private:
 	/**
@@ -231,7 +254,7 @@ private:
 	/**
 	 * List of states that should be checked for being active.
 	 */
-	const std::vector<const ParserState *> states;
+	const std::vector<const State *> states;
 
 	/**
 	 * Used internally to check whether the given parser stack s may have been
@@ -239,20 +262,20 @@ private:
 	 *
 	 * @param d is the signature element.
 	 * @param s is the parser state.
-	 * @return true if the the given ParserState may have been active.
+	 * @return true if the the given State may have been active.
 	 */
-	bool isActive(size_t d, const ParserState *s);
+	bool isActive(size_t d, const State *s);
 
 public:
 	/**
-	 * Constructor of the ParserStateDeductor class.
+	 * Constructor of the StateDeductor class.
 	 *
 	 * @param signature a Node type signature describing the types of the nodes
 	 * which currently reside on e.g. the ParserScope stack.
 	 * @param states is a list of states that should be checked.
 	 */
-	ParserStateDeductor(std::vector<const Rtti *> signature,
-	                    std::vector<const ParserState *> states);
+	StateDeductor(std::vector<const Rtti *> signature,
+	                    std::vector<const State *> states);
 
 	/**
 	 * Selects all active states from the given states. Only considers those
@@ -260,23 +283,24 @@ public:
 	 *
 	 * @return a list of states that may actually have been active.
 	 */
-	std::vector<const ParserState *> deduce();
+	std::vector<const State *> deduce();
 };
 
 /**
- * The ParserStates namespace contains all the global state constants used
+ * The States namespace contains all the global state constants used
  * in the ParserStack class.
  */
-namespace ParserStates {
+namespace States {
 /**
  * State representing all states.
  */
-extern const ParserState All;
+extern const State All;
 
 /**
  * State representing the initial state.
  */
-extern const ParserState None;
+extern const State None;
+}
 }
 }
 
