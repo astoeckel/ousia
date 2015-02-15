@@ -169,6 +169,14 @@ bool StringType::doBuild(Variant &data, Logger &logger,
 	return VariantConverter::toString(data, logger);
 }
 
+/* Class CardinalityType */
+
+bool CardinalityType::doBuild(Variant &data, Logger &logger,
+                              const MagicCallback &magicCallback) const
+{
+	return VariantConverter::toCardinality(data, logger);
+}
+
 /* Class EnumType */
 
 EnumType::EnumType(Manager &mgr, std::string name, Handle<Typesystem> system)
@@ -829,12 +837,14 @@ SystemTypesystem::SystemTypesystem(Manager &mgr)
       stringType(new StringType(mgr, this)),
       intType(new IntType(mgr, this)),
       doubleType(new DoubleType(mgr, this)),
-      boolType(new BoolType(mgr, this))
+      boolType(new BoolType(mgr, this)),
+      cardinalityType(new CardinalityType(mgr, this))
 {
 	addType(stringType);
 	addType(intType);
 	addType(doubleType);
 	addType(boolType);
+	addType(cardinalityType);
 }
 
 /* RTTI type registrations */
@@ -847,6 +857,8 @@ const Rtti IntType = RttiBuilder<ousia::IntType>("IntType").parent(&Type);
 const Rtti DoubleType =
     RttiBuilder<ousia::DoubleType>("DoubleType").parent(&Type);
 const Rtti BoolType = RttiBuilder<ousia::BoolType>("BoolType").parent(&Type);
+const Rtti CardinalityType =
+    RttiBuilder<ousia::CardinalityType>("CardinalityType").parent(&Type);
 const Rtti EnumType = RttiBuilder<ousia::EnumType>("EnumType").parent(&Type);
 const Rtti StructType = RttiBuilder<ousia::StructType>("StructType")
                             .parent(&Type)
@@ -858,10 +870,9 @@ const Rtti Constant = RttiBuilder<ousia::Constant>("Constant").parent(&Node);
 const Rtti Attribute = RttiBuilder<ousia::Attribute>("Attribute").parent(&Node);
 const Rtti Typesystem =
     RttiBuilder<ousia::Typesystem>("Typesystem").parent(&RootNode).composedOf(
-        {&StringType, &IntType, &DoubleType, &BoolType, &EnumType, &StructType,
-         &Constant});
+        {&StringType, &IntType, &DoubleType, &BoolType, &CardinalityType,
+         &EnumType, &StructType, &Constant});
 const Rtti SystemTypesystem = RttiBuilder<ousia::SystemTypesystem>(
                                   "SystemTypesystem").parent(&Typesystem);
 }
 }
-

@@ -961,6 +961,7 @@ TEST(Typesystem, rtti)
 	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::IntType));
 	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::DoubleType));
 	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::BoolType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::CardinalityType));
 	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::EnumType));
 	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::StructType));
 	ASSERT_FALSE(typesystem->composedOf(&RttiTypes::ArrayType));
@@ -982,6 +983,7 @@ TEST(SystemTypesystem, rtti)
 	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::IntType));
 	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::DoubleType));
 	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::BoolType));
+	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::CardinalityType));
 	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::EnumType));
 	ASSERT_TRUE(typesystem->composedOf(&RttiTypes::StructType));
 	ASSERT_FALSE(typesystem->composedOf(&RttiTypes::ArrayType));

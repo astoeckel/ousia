@@ -447,6 +447,55 @@ public:
 };
 
 /**
+ * The CardinalityType class represents the cardinality type. There should be
+ * exactly one instance of this class available in a preloaded type system.
+ */
+class CardinalityType : public Type {
+protected:
+	/**
+	 * Expects the given variant to be a cardinality or a single int.
+	 *
+	 * @param data is a variant containing the data that should be checked.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
+	 */
+	bool doBuild(Variant &data, Logger &logger,
+	             const MagicCallback &magicCallback) const override;
+
+public:
+	/**
+	 * Constructor of the CardinalityType class. Only one instance of
+	 *CardinalityType should
+	 * exist per project graph.
+	 *
+	 * @param mgr is the Manager instance to be used for the Node.
+	 * @param name is the name of the type.
+	 * @param system is a reference to the parent Typesystem instance.
+	 */
+	CardinalityType(Manager &mgr, Handle<Typesystem> system)
+	    : Type(mgr, "cardinality", system, true)
+	{
+	}
+
+	/**
+	 * Creates a variant with the cardinality value "any".
+	 *
+	 * @return a Variant with the cardinality value "any".
+	 */
+	Variant create() const override { return Variant{Cardinality::any()}; }
+
+	/**
+	 * Returns the cardinality VariantType.
+	 *
+	 * @return the cardinality VariantType.
+	 */
+	std::vector<VariantType> getVariantTypes() const override
+	{
+		return {VariantType::CARDINALITY};
+	}
+};
+
+/**
  * The EnumType class represents a user defined enumeration type.
  */
 class EnumType : public Type {
@@ -1401,6 +1450,11 @@ private:
 	 */
 	Handle<BoolType> boolType;
 
+	/**
+	 * Reference to the cardinality type.
+	 */
+	Handle<CardinalityType> cardinalityType;
+
 public:
 	/**
 	 * Creates the SystemTypesystem containing all basic types (string, int,
@@ -1438,6 +1492,13 @@ public:
 	 * @return a reference to the primitive BoolType instance.
 	 */
 	Rooted<BoolType> getBoolType() { return boolType; }
+
+	/**
+	 * Returns the cardinality type.
+	 *
+	 * @return a reference to the CardinalityType instance.
+	 */
+	Rooted<CardinalityType> getCardinalityType() { return cardinalityType; }
 };
 
 /* RTTI type registrations */
@@ -1467,6 +1528,11 @@ extern const Rtti DoubleType;
  * Type information for the BoolType class.
  */
 extern const Rtti BoolType;
+
+/**
+ * Type information for the CardinalityType class.
+ */
+extern const Rtti CardinalityType;
 
 /**
  * Type information for the EnumType class.
@@ -1511,4 +1577,3 @@ extern const Rtti SystemTypesystem;
 }
 
 #endif /* _OUSIA_MODEL_TYPESYSTEM_HPP_ */
-
