@@ -58,34 +58,36 @@ public:
 	 *
 	 * @param name is a string variant containing name and location of the
 	 * command.
-	 * @param args is a map variant containing the arguments that were given
-	 * to the command.
+	 * @param args is a map containing the arguments that were given to the
+	 * command.
 	 */
-	virtual void commandStart(Variant name, Variant args) = 0;
+	virtual void command(const Variant &name, const Variant::mapType &args) = 0;
 
 	/**
 	 * Called whenever an annotation starts. Note that this implicitly always
 	 * starts the default field of the annotation.
 	 *
-	 * @param name is a string variant containing the name of the annotation
-	 * class and the location of the annotation definition.
+	 * @param className is a string variant containing the name of the
+	 * annotation class and the location of the annotation definition.
 	 * @param args is a map variant containing the arguments that were given
 	 * to the annotation definition.
 	 */
-	virtual void annotationStart(Variant name, Variant args) = 0;
+	virtual void annotationStart(const Variant &className,
+	                             const Variant::mapType &args) = 0;
 
 	/**
 	 * Called whenever the range of an annotation ends. The callee must
 	 * disambiguate the actual annotation that is finished here.
 	 *
-	 * @param name is a string variant containing the name of the annotation
-	 * class that should end here. May be empty (or nullptr), if no elementName
-	 * has been specified at the end of the annotation.
+	 * @param className is a string variant containing the name of the
+	 * annotation class that should end here. May be empty (or nullptr), if no
+	 * elementName has been specified at the end of the annotation.
 	 * @param elementName is the name of the annotation element that should be
 	 * ended here. May be empty (or nullptr), if no elementName has been
 	 * specified at the end of the annotation.
 	 */
-	virtual void annotationEnd(Variant name, Variant elementName) = 0;
+	virtual void annotationEnd(const Variant &className,
+	                           const Variant &elementName) = 0;
 
 	/**
 	 * Called whenever the default field which was implicitly started by
@@ -105,7 +107,7 @@ public:
 	 * @param data is the already parsed data that should be passed to the
 	 * handler.
 	 */
-	virtual void data(Variant data) = 0;
+	virtual void data(const Variant &data) = 0;
 };
 
 /**

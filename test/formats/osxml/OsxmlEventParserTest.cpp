@@ -31,7 +31,7 @@ static TerminalLogger logger(std::cerr, true);
 
 namespace {
 enum class OsxmlEvent {
-	COMMAND_START,
+	COMMAND,
 	ANNOTATION_START,
 	ANNOTATION_END,
 	FIELD_END,
@@ -42,22 +42,24 @@ class TestOsxmlEventListener : public OsxmlEvents {
 public:
 	std::vector<std::pair<OsxmlEvent, Variant>> events;
 
-	void commandStart(Variant name, Variant args) override
+	void command(const Variant &name, const Variant::mapType &args) override
 	{
-		events.emplace_back(OsxmlEvent::COMMAND_START,
+		events.emplace_back(OsxmlEvent::COMMAND,
 		                    Variant::arrayType{name, args});
 	}
 
-	void annotationStart(Variant name, Variant args) override
+	void annotationStart(const Variant &className,
+	                     const Variant::mapType &args) override
 	{
 		events.emplace_back(OsxmlEvent::ANNOTATION_START,
-		                    Variant::arrayType{name, args});
+		                    Variant::arrayType{className, args});
 	}
 
-	void annotationEnd(Variant name, Variant elementName) override
+	void annotationEnd(const Variant &className,
+	                   const Variant &elementName) override
 	{
 		events.emplace_back(OsxmlEvent::ANNOTATION_END,
-		                    Variant::arrayType{name, elementName});
+		                    Variant::arrayType{className, elementName});
 	}
 
 	void fieldEnd() override
@@ -65,7 +67,7 @@ public:
 		events.emplace_back(OsxmlEvent::FIELD_END, Variant::arrayType{});
 	}
 
-	void data(Variant data) override
+	void data(const Variant &data) override
 	{
 		events.emplace_back(OsxmlEvent::DATA, Variant::arrayType{data});
 	}
@@ -91,7 +93,7 @@ TEST(OsxmlEventParser, simpleCommandWithArgs)
 	//                        0          1            2            3
 
 	std::vector<std::pair<OsxmlEvent, Variant>> expectedEvents{
-	    {OsxmlEvent::COMMAND_START,
+	    {OsxmlEvent::COMMAND,
 	     Variant::arrayType{
 	         "a", Variant::mapType{
 	                  {"name", "test"}, {"a", 1}, {"b", 2}, {"c", "blub"}}}},
@@ -131,11 +133,9 @@ TEST(OsxmlEventParser, magicTopLevelTag)
 	const char *testString = "<ousia><a/><b/></ousia>";
 
 	std::vector<std::pair<OsxmlEvent, Variant>> expectedEvents{
-	    {OsxmlEvent::COMMAND_START,
-	     Variant::arrayType{{"a", Variant::mapType{}}}},
+	    {OsxmlEvent::COMMAND, Variant::arrayType{{"a", Variant::mapType{}}}},
 	    {OsxmlEvent::FIELD_END, Variant::arrayType{}},
-	    {OsxmlEvent::COMMAND_START,
-	     Variant::arrayType{{"b", Variant::mapType{}}}},
+	    {OsxmlEvent::COMMAND, Variant::arrayType{{"b", Variant::mapType{}}}},
 	    {OsxmlEvent::FIELD_END, Variant::arrayType{}}};
 
 	auto events = parseXml(testString);
@@ -147,9 +147,8 @@ TEST(OsxmlEventParser, magicTopLevelTagInside)
 	const char *testString = "<a><ousia/></a>";
 
 	std::vector<std::pair<OsxmlEvent, Variant>> expectedEvents{
-	    {OsxmlEvent::COMMAND_START,
-	     Variant::arrayType{{"a", Variant::mapType{}}}},
-	    {OsxmlEvent::COMMAND_START,
+	    {OsxmlEvent::COMMAND, Variant::arrayType{{"a", Variant::mapType{}}}},
+	    {OsxmlEvent::COMMAND,
 	     Variant::arrayType{{"ousia", Variant::mapType{}}}},
 	    {OsxmlEvent::FIELD_END, Variant::arrayType{}},
 	    {OsxmlEvent::FIELD_END, Variant::arrayType{}}};
@@ -165,8 +164,7 @@ TEST(OsxmlEventParser, commandWithDataPreserveWhitespace)
 	//                        0         1          2
 
 	std::vector<std::pair<OsxmlEvent, Variant>> expectedEvents{
-	    {OsxmlEvent::COMMAND_START,
-	     Variant::arrayType{"a", Variant::mapType{}}},
+	    {OsxmlEvent::COMMAND, Variant::arrayType{"a", Variant::mapType{}}},
 	    {OsxmlEvent::DATA, Variant::arrayType{"  hello  \n world "}},
 	    {OsxmlEvent::FIELD_END, Variant::arrayType{}}};
 
@@ -185,8 +183,7 @@ TEST(OsxmlEventParser, commandWithDataTrimWhitespace)
 	//                        0         1          2
 
 	std::vector<std::pair<OsxmlEvent, Variant>> expectedEvents{
-	    {OsxmlEvent::COMMAND_START,
-	     Variant::arrayType{"a", Variant::mapType{}}},
+	    {OsxmlEvent::COMMAND, Variant::arrayType{"a", Variant::mapType{}}},
 	    {OsxmlEvent::DATA, Variant::arrayType{"hello  \n world"}},
 	    {OsxmlEvent::FIELD_END, Variant::arrayType{}}};
 
@@ -205,8 +202,7 @@ TEST(OsxmlEventParser, commandWithDataCollapseWhitespace)
 	//                        0         1          2
 
 	std::vector<std::pair<OsxmlEvent, Variant>> expectedEvents{
-	    {OsxmlEvent::COMMAND_START,
-	     Variant::arrayType{"a", Variant::mapType{}}},
+	    {OsxmlEvent::COMMAND, Variant::arrayType{"a", Variant::mapType{}}},
 	    {OsxmlEvent::DATA, Variant::arrayType{"hello world"}},
 	    {OsxmlEvent::FIELD_END, Variant::arrayType{}}};
 
@@ -217,6 +213,5 @@ TEST(OsxmlEventParser, commandWithDataCollapseWhitespace)
 	ASSERT_EQ(5U, events[1].second.asArray()[0].getLocation().getStart());
 	ASSERT_EQ(19U, events[1].second.asArray()[0].getLocation().getEnd());
 }
-
 }
 

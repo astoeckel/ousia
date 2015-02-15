@@ -329,7 +329,7 @@ static void xmlStartElementHandler(void *ref, const XML_Char *name,
 		// Just issue a "commandStart" event in any other case
 		Variant nameVar = Variant::fromString(nameStr);
 		nameVar.setLocation(nameLoc);
-		parser->getEvents().commandStart(nameVar, args);
+		parser->getEvents().command(nameVar, args);
 	}
 }
 
