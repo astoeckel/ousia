@@ -422,16 +422,6 @@ public:
 	 * @return a Variant with the cardinality value "any".
 	 */
 	Variant create() const override { return Variant{Cardinality::any()}; }
-
-	/**
-	 * Returns the cardinality VariantType.
-	 *
-	 * @return the cardinality VariantType.
-	 */
-	std::vector<VariantType> getVariantTypes() const override
-	{
-		return {VariantType::CARDINALITY};
-	}
 };
 
 /**
