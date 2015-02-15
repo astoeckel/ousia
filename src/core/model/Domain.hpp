@@ -275,6 +275,17 @@ public:
 	const NodeVector<StructuredClass> &getChildren() const { return children; }
 
 	/**
+	 * Returns all StructuredClasses whose instances are allowed as children in
+	 * the Structure Tree of instances of this field including subclasses of
+	 * children, which are allowed directly.
+	 *
+	 * @return all StructuredClasses whose instances are allowed as children in
+	 * the Structure Tree of instances of this field including subclasses of
+	 * children, which are allowed directly.
+	 */
+	NodeVector<StructuredClass> getChildrenWithSubclasses() const;
+
+	/**
 	 * Adds a StructuredClass whose instances shall be allowed as children in
 	 * the StructureTree of instances of this field.
 	 */
