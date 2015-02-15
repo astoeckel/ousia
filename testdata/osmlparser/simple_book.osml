@@ -1,0 +1,19 @@
+\import{../osxmlparser/book_domain.osxml}
+\import{../osxmlparser/headings_domain.osxml}
+
+\begin{book}
+This might be some introductory text or a dedication.
+
+\chapter#myFirstChapter
+\heading{My first chapter}
+Here we might have an introduction to the chapter.
+
+\section#myFirstSection
+\heading{A rather curious experiment}
+Here we might find the actual section content.
+
+\section#mySndSection
+Here we might find the actual section content.
+
+\end{book}
+
