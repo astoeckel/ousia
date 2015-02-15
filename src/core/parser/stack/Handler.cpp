@@ -202,7 +202,7 @@ bool StaticFieldHandler::start(Variant::mapType &args)
 {
 	if (!argName.empty()) {
 		auto it = args.find(argName);
-		if (it != args.end()) {
+		if (it != args.end() && !it->second.toString().empty()) {
 			handled = true;
 			doHandle(it->second, args);
 			return true;
