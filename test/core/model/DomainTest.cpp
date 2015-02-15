@@ -242,7 +242,7 @@ TEST(Descriptor, getDefaultFields)
 	    A->createPrimitiveFieldDescriptor(sys->getStringType(), logger);
 	// now we should find that.
 	auto fields = A->getDefaultFields();
-	ASSERT_EQ(1, fields.size());
+	ASSERT_EQ(1U, fields.size());
 	ASSERT_EQ(A_prim_field, fields[0]);
 
 	// remove that field from A and add it to another class.
@@ -258,7 +258,7 @@ TEST(Descriptor, getDefaultFields)
 	// but we should find it again if we set B as superclass of A.
 	A->setSuperclass(B, logger);
 	fields = A->getDefaultFields();
-	ASSERT_EQ(1, fields.size());
+	ASSERT_EQ(1U, fields.size());
 	ASSERT_EQ(A_prim_field, fields[0]);
 
 	// and we should not be able to find it if we override the field.
@@ -277,7 +277,7 @@ TEST(Descriptor, getDefaultFields)
 
 	// now we should find that.
 	fields = A->getDefaultFields();
-	ASSERT_EQ(1, fields.size());
+	ASSERT_EQ(1U, fields.size());
 	ASSERT_EQ(C_field, fields[0]);
 
 	// add another transparent child class to A with a daughter class that has
@@ -296,7 +296,7 @@ TEST(Descriptor, getDefaultFields)
 
 	// now we should find both primitive fields, but the C field first.
 	fields = A->getDefaultFields();
-	ASSERT_EQ(2, fields.size());
+	ASSERT_EQ(2U, fields.size());
 	ASSERT_EQ(C_field, fields[0]);
 	ASSERT_EQ(F_field, fields[1]);
 }
@@ -321,7 +321,7 @@ TEST(Descriptor, getPermittedChildren)
 	 * in between.
 	 */
 	NodeVector<StructuredClass> children = book->getPermittedChildren();
-	ASSERT_EQ(3, children.size());
+	ASSERT_EQ(3U, children.size());
 	ASSERT_EQ(section, children[0]);
 	ASSERT_EQ(paragraph, children[1]);
 	ASSERT_EQ(text, children[2]);
@@ -331,7 +331,7 @@ TEST(Descriptor, getPermittedChildren)
 	    mgr, "Subclass", domain, Cardinality::any(), text, true, false)};
 	// And that should be in the result list as well now.
 	children = book->getPermittedChildren();
-	ASSERT_EQ(4, children.size());
+	ASSERT_EQ(4U, children.size());
 	ASSERT_EQ(section, children[0]);
 	ASSERT_EQ(paragraph, children[1]);
 	ASSERT_EQ(text, children[2]);
