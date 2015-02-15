@@ -95,7 +95,7 @@ static void createOutput(Handle<Document> doc, std::ostream &out,
 int main(int argc, char **argv)
 {
 	// Initialize terminal logger. Only use color if writing to a terminal (tty)
-	bool useColor = isatty(STDOUT_FILENO) && isatty(STDERR_FILENO);
+	bool useColor = isatty(STDERR_FILENO);
 	TerminalLogger logger{std::cerr, useColor};
 
 	// Program options
