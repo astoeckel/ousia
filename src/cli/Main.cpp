@@ -236,7 +236,7 @@ int main(int argc, char **argv)
 	}
 
 	// now all preparation is done and we can parse the input document.
-	Rooted<Node> docNode = context.import(inputPath, "text/vnd.ousia.oxd", "",
+	Rooted<Node> docNode = context.import(inputPath, "", "",
 	                                      {&RttiTypes::Document});
 	if (logger.hasError() || docNode == nullptr) {
 		logger.fatalError("Errors occured while parsing the document");
