@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<document>
+
+	<import rel="domain" src="./book_domain.oxm"/>
+	<import rel="domain" src="./headings_domain.oxm"/>
+	<import rel="domain" src="./meta_domain.oxm"/>
+	<import rel="domain" src="./bibliography_domain.oxm"/>
+	<!--<import rel="domain" src="emphasis.oxm"/>
+	<import rel="domain" src="comments.oxm"/>
+	<import rel="domain" src="lists.oxm"/>
+	<alias tag="paragraph" aka="p"/>
+	<alias tag="emphasized" aka="em"/>-->
+	
+	<book>
+		<meta>
+			<primaryAuthor>
+				<firstName>Immanuel</firstName>
+				<lastName>Kant</lastName>
+				<email>[ikant,philo.albertus-koenigsberg,de]</email>
+				<affiliation>[Logic and Metaphysics, Faculty of Philosophy, Albertus-University Königsberg]</affiliation>
+			</primaryAuthor>
+			<!-- Using this version tag leads to a very interesting bug:
+			A new transparent meta element gets created for it. Because only
+			one meta tag is allowed this leads to an error. So what to do?
+			
+			<version>[1,0,0]</version> -->
+		</meta>
+	
+		<heading>
+			Beantwortung der Frage: Was ist Aufklärung?
+		</heading>
+		
+		<chapter name="content">
+			<heading>Was ist Aufklärung?</heading>
+
+			Aufklärung ist der Ausgang des Menschen aus seiner
+			selbstverschuldeten Unmündigkeit. Unmündigkeit ist
+			das Unvermögen, sich seines Verstandes ohne Leitung eines anderen zu
+			bedienen. Selbstverschuldet ist diese Unmündigkeit, wenn
+			die Ursache derselben nicht am Mangel des Verstandes, sondern der
+			Entschließung und des Mutes liegt, sich seiner ohne Leitung eines
+			andern zu bedienen.
+			Sapere aude! Habe Mut, dich deines eigenen Verstandes zu
+			bedienen! ist also der Wahlspruch der Aufklärung.
+		</chapter>
+
+		<bibliography>
+			<bibEntry>
+				<name>Dezember-Heft</name>
+				<journal>Berlinische Monatsschrift</journal>
+				<year>1784</year>
+				<pages>{481-494}</pages>
+			</bibEntry>
+			<bibEntry>
+				<name>Kleine Schriften</name>
+				<primaryAuthor>
+					<firstName>Immanuel</firstName>
+					<lastName>Kant</lastName>
+				</primaryAuthor>
+				<year>1793</year>
+				<pages>{34-50}</pages>
+				<location>Neuwied</location>
+			</bibEntry>
+			<bibEntry>
+				<name>Zerstreute Aufsätze</name>
+				<primaryAuthor>
+					<firstName>Immanuel</firstName>
+					<lastName>Kant</lastName>
+				</primaryAuthor>
+				<year>1793</year>
+				<pages>{25-37}</pages>
+				<location>Frankfurt und Leipzig</location>
+			</bibEntry>
+			<bibEntry>
+				<name>Sämmtliche kleine Schriften</name>
+				<primaryAuthor>
+					<firstName>Immanuel</firstName>
+					<lastName>Kant</lastName>
+				</primaryAuthor>
+				<year>1798</year>
+				<pages>{159-172}</pages>
+				<location>Königsberg u. Leipzig</location>
+			</bibEntry>
+			<bibEntry>
+				<name>I. Kant's vermischte Schriften</name>
+				<primaryAuthor>
+					<firstName>Immanuel</firstName>
+					<lastName>Kant</lastName>
+				</primaryAuthor>
+				<year>1799</year>
+				<pages>{687-700}</pages>
+				<location>Halle</location>
+			</bibEntry>
+			<bibEntry>
+				<name>Vorzügliche kleine Schriften und Aufsätze</name>
+				<primaryAuthor>
+					<firstName>Immanuel</firstName>
+					<lastName>Kant</lastName>
+				</primaryAuthor>
+				<year>1833</year>
+				<pages>{75-84}</pages>
+				<location>Leipzig</location>
+			</bibEntry>
+		</bibliography>
+	</book>
+</document>

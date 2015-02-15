@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<domain name="meta">
+
+	<import rel="typesystem" src="./affiliation.oxm"/>
+	<import rel="typesystem" src="./email.oxm"/>
+	<import rel="typesystem" src="./version.oxm"/>
+	<import rel="domain" src="./book_domain.oxm"/>
+
+	<struct name="meta" cardinality="{1}" transparent="true">
+		<field name="authors">
+			<childRef ref="author"/>
+			<childRef ref="version"/>
+		</field>
+		<parentRef ref="book">
+			<field name="meta" isSubtree="true" optional="true"/>
+		</parentRef>
+		<parentRef ref="chapter">
+			<field name="meta" isSubtree="true" optional="true"/>
+		</parentRef>
+		<!-- One could also include "article" and other things here -->
+	</struct>
+	<!-- no explicit cardinality, because we might have multiple authors -->
+	<struct name="author">
+		<primitive isSubtree="true" name="firstName" type="string"/>
+		<primitive isSubtree="true" name="lastName" type="string"/>
+		<primitive isSubtree="true" name="email" type="email" optional="true"/>
+		<primitive isSubtree="true" name="affiliation" type="affiliation" optional="true"/>
+	</struct>
+	<!-- but we need at least one primary author -->
+	<struct name="primaryAuthor" cardinality="{>0}" isa="author"/>
+	<!-- version intermediate struct -->
+	<struct name="version" cardinality="{0-1}">
+		<primitive type="version"/>
+	</struct>
+</domain>
