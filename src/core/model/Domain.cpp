@@ -569,17 +569,22 @@ void Descriptor::addAndSortFieldDescriptor(Handle<FieldDescriptor> fd,
 		if (!fds.empty() &&
 		    fds.back()->getFieldType() == FieldDescriptor::FieldType::TREE &&
 		    fd->getFieldType() != FieldDescriptor::FieldType::TREE) {
-			// if so we add the new field before the TREE field and log a
-			// warning.
-
-			logger.warning(
-			    std::string("Field \"") + fd->getName() +
-			        "\" was declared after main field \"" +
-			        fds.back()->getName() +
-			        "\". The order of fields was changed to make the "
-			        "main field the last field.",
-			    *fd);
+			// if so we add the new field before the TREE field.
 			fieldDescriptors.insert(fieldDescriptors.end() - 1, fd);
+
+			// if the new field was from the same domain we warn the user
+			// because that is bad coding style.
+			if (fd->getParent() != nullptr &&
+			    fd->getParent().cast<Descriptor>()->getParent() ==
+			        getParent()) {
+				logger.warning(
+				    std::string("Field \"") + fd->getName() +
+				        "\" was declared after main field \"" +
+				        fds.back()->getName() +
+				        "\". The order of fields was changed to make the "
+				        "main field the last field.",
+				    *fd);
+			}
 		} else {
 			fieldDescriptors.push_back(fd);
 		}
