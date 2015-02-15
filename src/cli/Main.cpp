@@ -246,7 +246,7 @@ int main(int argc, char **argv)
 	Rooted<Document> doc = docNode.cast<Document>();
 	// write output
 	if (outputPath != "-") {
-		std::fstream out{outputPath};
+		std::ofstream out{outputPath};
 		createOutput(doc, out, format, logger);
 	} else {
 		createOutput(doc, std::cout, format, logger);
