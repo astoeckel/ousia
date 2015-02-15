@@ -791,9 +791,9 @@ private:
 	/**
 	 * Helper method for getFieldDescriptors.
 	 */
-	void gatherFieldDescriptors(NodeVector<FieldDescriptor> &current,
-	                            std::set<std::string> &overriddenFields,
-	                            bool hasTREE) const;
+	Rooted<FieldDescriptor> gatherFieldDescriptors(
+	    NodeVector<FieldDescriptor> &current,
+	    std::set<std::string> &overriddenFields, bool hasTREE) const;
 
 protected:
 	bool doValidate(Logger &logger) const override;
@@ -915,10 +915,14 @@ public:
 	void removeSubclass(Handle<StructuredClass> sc, Logger &logger);
 
 	/**
-	 * Returns a const reference to the NodeVector of all FieldDescriptors of
+	 * Returns a NodeVector of all FieldDescriptors of
 	 * this StructuredClass. This also merges the FieldDescriptors directly
 	 * belonging to this StructuredClass with all FieldDescritptors of its
-	 * Superclass (and so on recurvively).
+	 * Superclass (and so on recurvively). The order of field descriptors is
+	 * as follows:
+	 * 1.) non-overridden SUBTREE FieldDescriptors of super classes.
+	 * 2.) SUBTREE FieldDescriptors of this class.
+	 * 3.) TREE FieldDescriptor (either inherited from super class or direct)
 	 *
 	 * @return a NodeVector of all FieldDescriptors of this StructuredClass.
 	 */
