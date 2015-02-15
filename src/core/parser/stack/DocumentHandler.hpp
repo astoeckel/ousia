@@ -101,16 +101,6 @@ private:
 	              DocumentEntity *&parent, bool &inField);
 
 	/**
-	 * Constructs all structured entites along the given path and inserts them
-	 * into the document graph.
-	 *
-	 * @param path is a path containing an alternating series of structured
-	 * classes and fields.
-	 * @pram parent is the root entity from which the process should be started.
-	 */
-	void createPath(const NodeVector<Node> &path, DocumentEntity *&parent);
-
-	/**
 	 * Tries to convert the given data to the type that is specified in the
 	 * given primitive field.
 	 *
