@@ -80,16 +80,25 @@ static NodeVector<Node> pathTo(const Node *start, Logger &logger,
 	} else {
 		const FieldDescriptor *field =
 		    static_cast<const FieldDescriptor *>(start);
-		// initially put every child on the queue.
+		// initially put every child and its subclasses to the queue.
 		for (auto c : field->getChildren()) {
 			// if we have found the target directly, return without search.
 			if (c == target) {
 				success = true;
 				return shortest;
 			}
-			// We only allow to continue our path via transparent children.
 			if (c->isTransparent()) {
 				states.push(std::make_shared<PathState>(nullptr, c.get()));
+			}
+			for (auto sub : c->getSubclasses()) {
+				if (sub == target) {
+					success = true;
+					return shortest;
+				}
+				if (sub->isTransparent()) {
+					states.push(
+					    std::make_shared<PathState>(nullptr, sub.get()));
+				}
 			}
 		}
 	}
@@ -126,27 +135,6 @@ static NodeVector<Node> pathTo(const Node *start, Logger &logger,
 					states.push(std::make_shared<PathState>(current, fd.get()));
 				}
 			}
-
-			/*
-			 * Furthermore we have to consider that all subclasses of this
-			 * StructuredClass are allowed in place of this StructuredClass as
-			 * well, so we continue the search for them as well.
-			 */
-
-			NodeVector<StructuredClass> subs = strct->getSubclasses();
-			for (auto sub : subs) {
-				// if we found our target, break off the search in this branch.
-				if (sub == target) {
-					fin = true;
-					current = current->pred;
-					continue;
-				}
-				// We only continue our path via transparent classes.
-				if (sub->isTransparent()) {
-					states.push(
-					    std::make_shared<PathState>(current->pred, sub.get()));
-				}
-			}
 		} else {
 			// otherwise this is a FieldDescriptor.
 			const FieldDescriptor *field =
@@ -161,6 +149,17 @@ static NodeVector<Node> pathTo(const Node *start, Logger &logger,
 				// We only allow to continue our path via transparent children.
 				if (c->isTransparent()) {
 					states.push(std::make_shared<PathState>(current, c.get()));
+				}
+				// ... or their transparent subclasses.
+				for (auto sub : c->getSubclasses()) {
+					if (sub == target) {
+						fin = true;
+						continue;
+					}
+					if (sub->isTransparent()) {
+						states.push(
+						    std::make_shared<PathState>(current, sub.get()));
+					}
 				}
 			}
 		}
