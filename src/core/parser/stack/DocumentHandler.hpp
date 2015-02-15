@@ -59,8 +59,6 @@ private:
 	void preamble(Handle<Node> parentNode, std::string &fieldName,
 	              DocumentEntity *&parent, bool &inField);
 
-	void createPath(const NodeVector<Node> &path, DocumentEntity *&parent);
-
 	std::pair<bool, Variant> convertData(Handle<FieldDescriptor> field,
 	                                     Logger &logger,
 	                                     const std::string &data);

@@ -70,8 +70,25 @@ void DocumentChildHandler::preamble(Handle<Node> parentNode,
 	}
 }
 
-void DocumentChildHandler::createPath(const NodeVector<Node> &path,
-                                      DocumentEntity *&parent)
+static void createPath(const std::string &firstFieldName,
+                       const NodeVector<Node> &path, DocumentEntity *&parent)
+{
+	// add the first element
+	parent = static_cast<DocumentEntity *>(
+	    parent->createChildStructuredEntity(path[0].cast<StructuredClass>(),
+	                                        Variant::mapType{}, firstFieldName,
+	                                        "").get());
+
+	size_t S = path.size();
+	for (size_t p = 2; p < S; p = p + 2) {
+		parent = static_cast<DocumentEntity *>(
+		    parent->createChildStructuredEntity(
+		                path[p].cast<StructuredClass>(), Variant::mapType{},
+		                path[p - 1]->getName(), "").get());
+	}
+}
+
+static void createPath(const NodeVector<Node> &path, DocumentEntity *&parent)
 {
 	size_t S = path.size();
 	for (size_t p = 1; p < S; p = p + 2) {
@@ -101,7 +118,7 @@ void DocumentChildHandler::start(Variant::mapType &args)
 	if (!inField && parent != nullptr &&
 	    parent->getDescriptor()->hasField(name())) {
 		Rooted<DocumentField> field{
-		    new DocumentField(parentNode->getManager(), fieldName, parentNode)};
+		    new DocumentField(parentNode->getManager(), name(), parentNode)};
 		field->setLocation(location());
 		scope().push(field);
 		return;
@@ -174,12 +191,14 @@ void DocumentChildHandler::data(const std::string &data, int fieldIdx)
 	     &RttiTypes::DocumentField});
 
 	std::string fieldName;
-	DocumentEntity *parent;
+	DocumentEntity *strctParent;
 	bool inField;
 
-	preamble(parentNode, fieldName, parent, inField);
+	preamble(parentNode, fieldName, strctParent, inField);
 
-	Rooted<Descriptor> desc = parent->getDescriptor();
+	Rooted<Descriptor> desc = strctParent->getDescriptor();
+	// The parent from which we need to connect to the primitive content.
+	Rooted<Node> parentClass;
 	/*
 	 * We distinguish two cases here: One for fields that are given.
 	 */
@@ -194,54 +213,68 @@ void DocumentChildHandler::data(const std::string &data, int fieldIdx)
 			    location());
 			return;
 		}
-		// if it is not primitive at all, we can't parse the content.
-		if (!field->isPrimitive()) {
-			logger().error(std::string("Can't handle data because field \"") +
-			                   fieldName + "\" of descriptor \"" +
-			                   desc->getName() + "\" is not primitive!",
-			               location());
+		// if it is a primitive field directly, try to parse the content.
+		if (field->isPrimitive()) {
+			auto res = convertData(field, logger(), data);
+			// add it as primitive content.
+			if (res.first) {
+				strctParent->createChildDocumentPrimitive(res.second,
+				                                          fieldName);
+			}
 			return;
 		}
-		// then try to parse the content using the type specification.
-		auto res = convertData(field, logger(), data);
-		// add it as primitive content.
-		if (res.first) {
-			parent->createChildDocumentPrimitive(res.second, fieldName);
-		}
+		// if it is not primitive we need to connect via transparent elements
+		// and default fields.
+		parentClass = field;
 	} else {
-		/*
-		 * The second case is for primitive fields. Here we search through
-		 * all FieldDescriptors that allow primitive content at this point
-		 * and could be constructed via transparent intermediate entities.
-		 * We then try to parse the data using the type specified by the
-		 * respective field. If that does not work we proceed to the next
-		 * possible field.
-		 */
-		// retrieve all fields.
-		NodeVector<FieldDescriptor> fields = desc->getDefaultFields();
-		std::vector<LoggerFork> forks;
-		for (auto field : fields) {
-			// then try to parse the content using the type specification.
-			forks.emplace_back(logger().fork());
-			auto res = convertData(field, forks.back(), data);
-			if (res.first) {
-				forks.back().commit();
-				// if that worked, construct the necessary path.
+		// in case of default fields we need to construct via default fields
+		// and maybe transparent elements.
+		parentClass = desc;
+	}
+	/*
+	 * Search through all permitted default fields of the parent class that
+	 * allow primitive content at this point and could be constructed via
+	 * transparent intermediate entities.
+	 * We then try to parse the data using the type specified by the respective
+	 * field. If that does not work we proceed to the next possible field.
+	 */
+	// retrieve all default fields at this point.
+	NodeVector<FieldDescriptor> defaultFields;
+	if (parentClass->isa(&RttiTypes::FieldDescriptor)) {
+		defaultFields = parentClass.cast<FieldDescriptor>()->getDefaultFields();
+	} else {
+		defaultFields = parentClass.cast<StructuredClass>()->getDefaultFields();
+	}
+	std::vector<LoggerFork> forks;
+	for (auto field : defaultFields) {
+		// then try to parse the content using the type specification.
+		forks.emplace_back(logger().fork());
+		auto res = convertData(field, forks.back(), data);
+		if (res.first) {
+			forks.back().commit();
+			// if that worked, construct the necessary path.
+			if (parentClass->isa(&RttiTypes::FieldDescriptor)) {
+				NodeVector<Node> path =
+				    parentClass.cast<FieldDescriptor>()->pathTo(field,
+				                                                logger());
+				createPath(fieldName, path, strctParent);
+			} else {
 				auto pathRes = desc->pathTo(field, logger());
 				assert(pathRes.second);
-				NodeVector<Node> path = pathRes.first;
-				createPath(path, parent);
-				// then create the primitive element.
-				parent->createChildDocumentPrimitive(res.second, fieldName);
-				return;
+				createPath(pathRes.first, strctParent);
 			}
+			// then create the primitive element.
+			strctParent->createChildDocumentPrimitive(res.second);
+			return;
 		}
-		logger().error("Could not read data with any of the possible fields:");
-		for (size_t f = 0; f < fields.size(); f++) {
-			logger().note(Utils::join(fields[f]->path(), ".") + ":",
-			              SourceLocation{}, MessageMode::NO_CONTEXT);
-			forks[f].commit();
-		}
+	}
+	logger().error("Could not read data with any of the possible fields:");
+	size_t f = 0;
+	for (auto field : defaultFields) {
+		logger().note(Utils::join(field->path(), ".") + ":", SourceLocation{},
+		              MessageMode::NO_CONTEXT);
+		forks[f].commit();
+		f++;
 	}
 }
 
