@@ -171,7 +171,8 @@ int main(int argc, char **argv)
 		fs::path outP = fs::canonical(".");
 		outP /= (in.stem().string() + "." + format);
 		outputPath = outP.string();
-		std::cout << "Using " << outputPath << " as output path." << std::endl;
+		logger.note(std::string("Using ") + outputPath +
+		            std::string(" as output path."));
 	}
 	// check format.
 	if (!formats.count(format)) {
