@@ -179,7 +179,7 @@ public:
 	 * These characters are not included in the result. May not be nullptr.
 	 */
 	std::pair<bool, Variant> read(CharReader &reader, Logger &logger,
-	                              const std::unordered_set<char> &delims = {});
+	                              const std::unordered_set<char> &delims = std::unordered_set<char>{});
 
 	/**
 	 * Tries to parse an instance of this type from the given string.
