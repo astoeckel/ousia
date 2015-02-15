@@ -214,15 +214,8 @@ TEST(XmlParser, domainParsing)
 	// get the book struct node.
 	Cardinality single;
 	single.merge({1});
-	Rooted<StructType> bookAuthor{
-	    new StructType(book_domain->getManager(), "", nullptr)};
-	bookAuthor->addAttribute(
-	    {new Attribute(book_domain->getManager(), "author",
-	                   env.project->getSystemTypesystem()->getStringType(),
-	                   "")},
-	    logger);
 	Rooted<StructuredClass> book = checkStructuredClass(
-	    "book", "book", book_domain, single, bookAuthor, nullptr, false, true);
+	    "book", "book", book_domain, single, nullptr, nullptr, false, true);
 	// get the chapter struct node.
 	Rooted<StructuredClass> chapter =
 	    checkStructuredClass("chapter", "chapter", book_domain);

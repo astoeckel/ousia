@@ -10,9 +10,6 @@
 	     values. Also note that we need to specify explicitly, which classes
 	     are allowed as root nodes. -->
 	<struct name="book" cardinality="{1}" isRoot="true">
-		<attributes>
-			<attribute name="author" type="string" default="''"/>
-		</attributes>
 	<!-- implicitly:
 	<struct name="book" cardinality="{1}" isRoot="true" 
 	                 transparent="false" isa="" attributesDescriptor="">
