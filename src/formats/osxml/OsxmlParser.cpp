@@ -16,223 +16,83 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
-#include <map>
-#include <sstream>
-#include <vector>
+#include <core/parser/stack/GenericParserStates.hpp>
+#include <core/parser/stack/Stack.hpp>
+#include <core/parser/ParserContext.hpp>
 
-#include <expat.h>
-
-#include <core/common/CharReader.hpp>
-#include <core/common/Utils.hpp>
-#include <core/common/VariantReader.hpp>
-#include <core/parser/ParserScope.hpp>
-#include <core/parser/ParserStack.hpp>
-#include <core/parser/stack/DocumentHandler.hpp>
-#include <core/parser/stack/DomainHandler.hpp>
-#include <core/parser/stack/ImportIncludeHandler.hpp>
-#include <core/parser/stack/TypesystemHandler.hpp>
-#include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
-#include <core/model/Typesystem.hpp>
-
-#include "XmlParser.hpp"
+#include "OsxmlEventParser.hpp"
+#include "OsxmlParser.hpp"
 
 namespace ousia {
 
-namespace ParserStates {
-/* Document states */
-static const ParserState Document =
-    ParserStateBuilder()
-        .parent(&None)
-        .createdNodeType(&RttiTypes::Document)
-        .elementHandler(DocumentHandler::create)
-        .arguments({Argument::String("name", "")});
+using namespace parser_stack;
 
-static const ParserState DocumentChild =
-    ParserStateBuilder()
-        .parents({&Document, &DocumentChild})
-        .createdNodeTypes({&RttiTypes::StructureNode,
-                           &RttiTypes::AnnotationEntity,
-                           &RttiTypes::DocumentField})
-        .elementHandler(DocumentChildHandler::create);
+/**
+ * Class containing the actual OsxmlParser implementation.
+ */
+class OsxmlParserImplementation : public OsxmlEvents {
+private:
+	/**
+	 * Actual xml parser -- converts the xml stream into a set of events.
+	 */
+	OsxmlEventParser parser;
 
-/* Domain states */
-static const ParserState Domain = ParserStateBuilder()
-                                      .parents({&None, &Document})
-                                      .createdNodeType(&RttiTypes::Domain)
-                                      .elementHandler(DomainHandler::create)
-                                      .arguments({Argument::String("name")});
+	/**
+	 * Pushdown automaton responsible for converting the xml events into an
+	 * actual Node tree.
+	 */
+	Stack stack;
 
-static const ParserState DomainStruct =
-    ParserStateBuilder()
-        .parent(&Domain)
-        .createdNodeType(&RttiTypes::StructuredClass)
-        .elementHandler(DomainStructHandler::create)
-        .arguments({Argument::String("name"),
-                    Argument::Cardinality("cardinality", Cardinality::any()),
-                    Argument::Bool("isRoot", false),
-                    Argument::Bool("transparent", false),
-                    Argument::String("isa", "")});
+public:
+	/**
+	 * Constructor of the OsxmlParserImplementation class.
+	 *
+	 * @param reader is a reference to the CharReader instance from which the
+	 * XML should be read.
+	 * @param ctx is a reference to the ParserContext instance that should be
+	 * used.
+	 */
+	OsxmlParserImplementation(CharReader &reader, ParserContext &ctx)
+	    : parser(reader, *this, ctx.getLogger()),
+	      stack(ctx, GenericParserStates)
+	{
+	}
 
-static const ParserState DomainAnnotation =
-    ParserStateBuilder()
-        .parent(&Domain)
-        .createdNodeType(&RttiTypes::AnnotationClass)
-        .elementHandler(DomainAnnotationHandler::create)
-        .arguments({Argument::String("name")});
+	/**
+	 * Starts the actual parsing process.
+	 */
+	void parse() { parser.parse(); }
 
-static const ParserState DomainAttributes =
-    ParserStateBuilder()
-        .parents({&DomainStruct, &DomainAnnotation})
-        .createdNodeType(&RttiTypes::StructType)
-        .elementHandler(DomainAttributesHandler::create)
-        .arguments({});
+	void command(const Variant &name, const Variant::mapType &args) override
+	{
+		stack.command(name, args);
+		stack.fieldStart(true);
+	}
 
-static const ParserState DomainAttribute =
-    ParserStateBuilder()
-        .parent(&DomainAttributes)
-        .elementHandler(TypesystemStructFieldHandler::create)
-        .arguments({Argument::String("name"), Argument::String("type"),
-                    Argument::Any("default", Variant::fromObject(nullptr))});
+	void annotationStart(const Variant &name,
+	                     const Variant::mapType &args) override
+	{
+		stack.annotationStart(name, args);
+		stack.fieldStart(true);
+	}
 
-static const ParserState DomainField =
-    ParserStateBuilder()
-        .parents({&DomainStruct, &DomainAnnotation})
-        .createdNodeType(&RttiTypes::FieldDescriptor)
-        .elementHandler(DomainFieldHandler::create)
-        .arguments({Argument::String("name", ""),
-                    Argument::Bool("isSubtree", false),
-                    Argument::Bool("optional", false)});
+	void annotationEnd(const Variant &className,
+	                   const Variant &elementName) override
+	{
+		stack.annotationEnd(className, elementName);
+	}
 
-static const ParserState DomainFieldRef =
-    ParserStateBuilder()
-        .parents({&DomainStruct, &DomainAnnotation})
-        .createdNodeType(&RttiTypes::FieldDescriptor)
-        .elementHandler(DomainFieldRefHandler::create)
-        .arguments({Argument::String("ref", DEFAULT_FIELD_NAME)});
+	void fieldEnd() override { stack.fieldEnd(); }
 
-static const ParserState DomainStructPrimitive =
-    ParserStateBuilder()
-        .parents({&DomainStruct, &DomainAnnotation})
-        .createdNodeType(&RttiTypes::FieldDescriptor)
-        .elementHandler(DomainPrimitiveHandler::create)
-        .arguments(
-            {Argument::String("name", ""), Argument::Bool("isSubtree", false),
-             Argument::Bool("optional", false), Argument::String("type")});
+	void data(const Variant &data) override { stack.data(data); }
+};
 
-static const ParserState DomainStructChild =
-    ParserStateBuilder()
-        .parent(&DomainField)
-        .elementHandler(DomainChildHandler::create)
-        .arguments({Argument::String("ref")});
+/* Class OsxmlParser */
 
-static const ParserState DomainStructParent =
-    ParserStateBuilder()
-        .parent(&DomainStruct)
-        .createdNodeType(&RttiTypes::DomainParent)
-        .elementHandler(DomainParentHandler::create)
-        .arguments({Argument::String("ref")});
-
-static const ParserState DomainStructParentField =
-    ParserStateBuilder()
-        .parent(&DomainStructParent)
-        .createdNodeType(&RttiTypes::FieldDescriptor)
-        .elementHandler(DomainParentFieldHandler::create)
-        .arguments({Argument::String("name", ""),
-                    Argument::Bool("isSubtree", false),
-                    Argument::Bool("optional", false)});
-
-static const ParserState DomainStructParentFieldRef =
-    ParserStateBuilder()
-        .parent(&DomainStructParent)
-        .createdNodeType(&RttiTypes::FieldDescriptor)
-        .elementHandler(DomainParentFieldRefHandler::create)
-        .arguments({Argument::String("ref", DEFAULT_FIELD_NAME)});
-
-/* Typesystem states */
-static const ParserState Typesystem =
-    ParserStateBuilder()
-        .parents({&None, &Domain})
-        .createdNodeType(&RttiTypes::Typesystem)
-        .elementHandler(TypesystemHandler::create)
-        .arguments({Argument::String("name", "")});
-
-static const ParserState TypesystemEnum =
-    ParserStateBuilder()
-        .parent(&Typesystem)
-        .createdNodeType(&RttiTypes::EnumType)
-        .elementHandler(TypesystemEnumHandler::create)
-        .arguments({Argument::String("name")});
-
-static const ParserState TypesystemEnumEntry =
-    ParserStateBuilder()
-        .parent(&TypesystemEnum)
-        .elementHandler(TypesystemEnumEntryHandler::create)
-        .arguments({});
-
-static const ParserState TypesystemStruct =
-    ParserStateBuilder()
-        .parent(&Typesystem)
-        .createdNodeType(&RttiTypes::StructType)
-        .elementHandler(TypesystemStructHandler::create)
-        .arguments({Argument::String("name"), Argument::String("parent", "")});
-
-static const ParserState TypesystemStructField =
-    ParserStateBuilder()
-        .parent(&TypesystemStruct)
-        .elementHandler(TypesystemStructFieldHandler::create)
-        .arguments({Argument::String("name"), Argument::String("type"),
-                    Argument::Any("default", Variant::fromObject(nullptr))});
-
-static const ParserState TypesystemConstant =
-    ParserStateBuilder()
-        .parent(&Typesystem)
-        .createdNodeType(&RttiTypes::Constant)
-        .elementHandler(TypesystemConstantHandler::create)
-        .arguments({Argument::String("name"), Argument::String("type"),
-                    Argument::Any("value")});
-
-/* Special states for import and include */
-static const ParserState Import =
-    ParserStateBuilder()
-        .parents({&Document, &Typesystem, &Domain})
-        .elementHandler(ImportHandler::create)
-        .arguments({Argument::String("rel", ""), Argument::String("type", ""),
-                    Argument::String("src", "")});
-
-static const ParserState Include =
-    ParserStateBuilder()
-        .parent(&All)
-        .elementHandler(IncludeHandler::create)
-        .arguments({Argument::String("rel", ""), Argument::String("type", ""),
-                    Argument::String("src", "")});
-
-static const std::multimap<std::string, const ParserState *> XmlStates{
-    {"document", &Document},
-    {"*", &DocumentChild},
-    {"domain", &Domain},
-    {"struct", &DomainStruct},
-    {"annotation", &DomainAnnotation},
-    {"attributes", &DomainAttributes},
-    {"attribute", &DomainAttribute},
-    {"field", &DomainField},
-    {"fieldRef", &DomainFieldRef},
-    {"primitive", &DomainStructPrimitive},
-    {"childRef", &DomainStructChild},
-    {"parentRef", &DomainStructParent},
-    {"field", &DomainStructParentField},
-    {"fieldRef", &DomainStructParentFieldRef},
-    {"typesystem", &Typesystem},
-    {"enum", &TypesystemEnum},
-    {"entry", &TypesystemEnumEntry},
-    {"struct", &TypesystemStruct},
-    {"field", &TypesystemStructField},
-    {"constant", &TypesystemConstant},
-    {"import", &Import},
-    {"include", &Include}};
+void OsxmlParser::doParse(CharReader &reader, ParserContext &ctx)
+{
+	OsxmlParserImplementation impl(reader, ctx);
+	impl.parse();
 }
-
-
 }
 

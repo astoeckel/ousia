@@ -17,7 +17,7 @@
 */
 
 /**
- * @file XmlParser.hpp
+ * @file OsxmlParser.hpp
  *
  * Contains the parser responsible for reading Ousía XML Documents (extension
  * oxd) and Ousía XML Modules (extension oxm).

@@ -203,6 +203,7 @@ TARGET_LINK_LIBRARIES(ousia_osml
 ADD_LIBRARY(ousia_osxml
 	src/formats/osxml/OsxmlAttributeLocator
 	src/formats/osxml/OsxmlEventParser
+	src/formats/osxml/OsxmlParser
 )
 
 TARGET_LINK_LIBRARIES(ousia_osxml
@@ -351,6 +352,7 @@ IF(TEST)
 
 	ADD_EXECUTABLE(ousia_test_osxml
 		test/formats/osxml/OsxmlEventParserTest
+		test/formats/osxml/OsxmlParserTest
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test_osxml
