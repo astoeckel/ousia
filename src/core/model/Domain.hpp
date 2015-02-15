@@ -368,6 +368,60 @@ public:
 		invalidate();
 		optional = std::move(o);
 	}
+
+	/**
+	 * This tries to construct the shortest possible path of this Descriptor
+	 * to the given child Descriptor. Note that this method has the problem that
+	 * an empty return path does NOT strictly imply that no such path could
+	 * be constructed: We also return an empty vector if the given
+	 * Descriptor is a direct child. Therefore we also return a bool value
+	 * indicating that the path is valid or not.
+	 *
+	 * Implicitly this does a breadth-first search on the graph of
+	 * StructuredClasses that are transparent. It also takes care of cycles.
+	 *
+	 * @param childDescriptor is a supposedly valid child Descriptor of this
+	 *                        Descriptor.
+	 * @return                a tuple containing a path of FieldDescriptors and
+	 *                        StructuredClasses between this Descriptor and the
+	 *                        input Descriptor and a bool value indicating if
+	 *                        the construction was successful.
+	 *
+	 */
+	std::pair<NodeVector<Node>, bool> pathTo(
+	    Handle<StructuredClass> childDescriptor, Logger &logger) const;
+	/**
+	 * This tries to construct the shortest possible path of this Descriptor
+	 * to the given FieldDescriptor. Note that this method has the problem that
+	 * an empty return path does NOT strictly imply that no such path could
+	 * be constructed: We also return an empty vector if the given
+	 * FieldDescriptor is a direct child. Therefore we also return a bool value
+	 * indicating that the path is valid or not.
+	 *
+	 *
+	 * Implicitly this does a breadth-first search on the graph of
+	 * StructuredClasses that are transparent. It also takes care of cycles.
+	 *
+	 * @param field is a FieldDescriptor that may be allowed as child of this
+	 *              Descriptor.
+	 * @return      a path of FieldDescriptors and StructuredClasses between
+	 *              this Descriptor and the input FieldDescriptor or an empty
+	 *              vector if no such path could be constructed.
+	 */
+	NodeVector<Node> pathTo(Handle<FieldDescriptor> field,
+	                        Logger &logger) const;
+
+	/**
+	 * Returns a vector of all TREE fields that are allowed as structure tree
+	 * children of an instance of this Descriptor. This also makes use of
+	 * transparency.
+	 * The list is sorted by the number of transparent elements that have to be
+	 * constructed to arrive at the respective FieldDescriptor.
+	 *
+	 * @return a vector of all TREE fields that are allowed as structure tree
+	 *         children of an instance of this Descriptor.
+	 */
+	NodeVector<FieldDescriptor> getDefaultFields() const;
 };
 
 /**
@@ -1112,4 +1166,3 @@ extern const Rtti Domain;
 }
 
 #endif /* _OUSIA_MODEL_DOMAIN_HPP_ */
-

@@ -27,6 +27,241 @@
 
 namespace ousia {
 
+/* Helper Functions */
+
+struct PathState {
+	std::shared_ptr<PathState> pred;
+	Node *node;
+	size_t length;
+
+	PathState(std::shared_ptr<PathState> pred, Node *node)
+	    : pred(pred), node(node)
+	{
+		if (pred == nullptr) {
+			length = 1;
+		} else {
+			length = pred->length + 1;
+		}
+	}
+};
+
+static void constructPath(std::shared_ptr<PathState> state,
+                          NodeVector<Node> &vec)
+{
+	if (state->pred != nullptr) {
+		constructPath(state->pred, vec);
+	}
+	vec.push_back(state->node);
+}
+
+static NodeVector<Node> pathTo(const Node *start, Logger &logger,
+                               Handle<Node> target, bool &success)
+{
+	success = false;
+	// shortest path.
+	NodeVector<Node> shortest;
+	// state queue for breadth-first search.
+	std::queue<std::shared_ptr<PathState>> states;
+	if (start->isa(&RttiTypes::Descriptor)) {
+		const Descriptor *desc = static_cast<const Descriptor *>(start);
+		// initially put every field descriptor on the queue.
+		NodeVector<FieldDescriptor> fields = desc->getFieldDescriptors();
+
+		for (auto fd : fields) {
+			if (fd == target) {
+				// if we have found the target directly, return without search.
+				success = true;
+				return shortest;
+			}
+			if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+				states.push(std::make_shared<PathState>(nullptr, fd.get()));
+			}
+		}
+	} else {
+		const FieldDescriptor *field =
+		    static_cast<const FieldDescriptor *>(start);
+		// initially put every child on the queue.
+		for (auto c : field->getChildren()) {
+			// if we have found the target directly, return without search.
+			if (c == target) {
+				success = true;
+				return shortest;
+			}
+			// We only allow to continue our path via transparent children.
+			if (c->isTransparent()) {
+				states.push(std::make_shared<PathState>(nullptr, c.get()));
+			}
+		}
+	}
+	// set of visited nodes.
+	std::unordered_set<const Node *> visited;
+	while (!states.empty()) {
+		std::shared_ptr<PathState> current = states.front();
+		states.pop();
+		// do not proceed if this node was already visited.
+		if (!visited.insert(current->node).second) {
+			continue;
+		}
+		// also do not proceed if we can't get better than the current shortest
+		// path anymore.
+		if (!shortest.empty() && current->length > shortest.size()) {
+			continue;
+		}
+
+		bool fin = false;
+		if (current->node->isa(&RttiTypes::StructuredClass)) {
+			const StructuredClass *strct =
+			    static_cast<const StructuredClass *>(current->node);
+
+			// look through all fields.
+			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
+			for (auto fd : fields) {
+				// if we found our target, break off the search in this branch.
+				if (fd == target) {
+					fin = true;
+					continue;
+				}
+				// only continue in the TREE field.
+				if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+					states.push(std::make_shared<PathState>(current, fd.get()));
+				}
+			}
+
+			/*
+			 * Furthermore we have to consider that all subclasses of this
+			 * StructuredClass are allowed in place of this StructuredClass as
+			 * well, so we continue the search for them as well.
+			 */
+
+			NodeVector<StructuredClass> subs = strct->getSubclasses();
+			for (auto sub : subs) {
+				// if we found our target, break off the search in this branch.
+				if (sub == target) {
+					fin = true;
+					current = current->pred;
+					continue;
+				}
+				// We only continue our path via transparent classes.
+				if (sub->isTransparent()) {
+					states.push(
+					    std::make_shared<PathState>(current->pred, sub.get()));
+				}
+			}
+		} else {
+			// otherwise this is a FieldDescriptor.
+			const FieldDescriptor *field =
+			    static_cast<const FieldDescriptor *>(current->node);
+			// and we proceed by visiting all permitted children.
+			for (auto c : field->getChildren()) {
+				// if we found our target, break off the search in this branch.
+				if (c == target) {
+					fin = true;
+					continue;
+				}
+				// We only allow to continue our path via transparent children.
+				if (c->isTransparent()) {
+					states.push(std::make_shared<PathState>(current, c.get()));
+				}
+			}
+		}
+		// check if we are finished.
+		if (fin) {
+			success = true;
+			// if so we look if we found a shorter path than the current minimum
+			if (shortest.empty() || current->length < shortest.size()) {
+				NodeVector<Node> newPath;
+				constructPath(current, newPath);
+				shortest = newPath;
+			} else if (current->length == shortest.size()) {
+				// if the length is the same the result is ambigous and we log
+				// an error.
+				NodeVector<Node> newPath;
+				constructPath(current, newPath);
+				logger.error(
+				    std::string("Can not unambigously create a path from \"") +
+				    start->getName() + "\" to \"" + target->getName() + "\".");
+				logger.note("Dismissed the path:", SourceLocation{},
+				            MessageMode::NO_CONTEXT);
+				for (auto n : newPath) {
+					logger.note(n->getName());
+				}
+			}
+		}
+	}
+	return shortest;
+}
+
+template <typename F>
+static NodeVector<Node> collect(const Node *start, F match)
+{
+	// result
+	NodeVector<Node> res;
+	// queue for breadth-first search of graph.
+	std::queue<Rooted<Node>> q;
+	// put the initial node on the stack.
+	q.push(const_cast<Node *>(start));
+	// set of visited nodes.
+	std::unordered_set<const Node *> visited;
+	while (!q.empty()) {
+		Rooted<Node> n = q.front();
+		q.pop();
+		// do not proceed if this node was already visited.
+		if (!visited.insert(n.get()).second) {
+			continue;
+		}
+
+		if (n->isa(&RttiTypes::StructuredClass)) {
+			Rooted<StructuredClass> strct = n.cast<StructuredClass>();
+
+			// look through all fields.
+			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
+			for (auto fd : fields) {
+				// note matches.
+				if (match(fd)) {
+					res.push_back(fd);
+				}
+				// only continue in the TREE field.
+				if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
+					q.push(fd);
+				}
+			}
+
+			/*
+			 * Furthermore we have to consider that all subclasses of this
+			 * StructuredClass are allowed in place of this StructuredClass as
+			 * well, so we continue the search for them as well.
+			 */
+
+			NodeVector<StructuredClass> subs = strct->getSubclasses();
+			for (auto sub : subs) {
+				// note matches.
+				if (match(sub)) {
+					res.push_back(sub);
+				}
+				// We only continue our search via transparent classes.
+				if (sub->isTransparent()) {
+					q.push(sub);
+				}
+			}
+		} else {
+			// otherwise this is a FieldDescriptor.
+			Rooted<FieldDescriptor> field = n.cast<FieldDescriptor>();
+			// and we proceed by visiting all permitted children.
+			for (auto c : field->getChildren()) {
+				// note matches.
+				if (match(c)) {
+					res.push_back(c);
+				}
+				// We only continue our search via transparent children.
+				if (c->isTransparent()) {
+					q.push(c);
+				}
+			}
+		}
+	}
+	return res;
+}
+
 /* Class FieldDescriptor */
 
 FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Type> primitiveType,
@@ -140,6 +375,38 @@ bool FieldDescriptor::removeChild(Handle<StructuredClass> c)
 	return false;
 }
 
+std::pair<NodeVector<Node>, bool> FieldDescriptor::pathTo(
+    Handle<StructuredClass> childDescriptor, Logger &logger) const
+{
+	bool success = false;
+	NodeVector<Node> path =
+	    ousia::pathTo(this, logger, childDescriptor, success);
+	return std::make_pair(path, success);
+}
+NodeVector<Node> FieldDescriptor::pathTo(Handle<FieldDescriptor> field,
+                                         Logger &logger) const
+{
+	bool success = false;
+	return ousia::pathTo(this, logger, field, success);
+}
+NodeVector<FieldDescriptor> FieldDescriptor::getDefaultFields() const
+{
+	// TODO: In principle a cast would be nicer here, but for now we copy.
+	NodeVector<Node> nodes = collect(this, [](Handle<Node> n) {
+		if (!n->isa(&RttiTypes::FieldDescriptor)) {
+			return false;
+		}
+		Handle<FieldDescriptor> f = n.cast<FieldDescriptor>();
+		return f->getFieldType() == FieldDescriptor::FieldType::TREE &&
+		       f->isPrimitive();
+	});
+	NodeVector<FieldDescriptor> res;
+	for (auto n : nodes) {
+		res.push_back(n.cast<FieldDescriptor>());
+	}
+	return res;
+}
+
 /* Class Descriptor */
 
 void Descriptor::doResolve(ResolutionState &state)
@@ -209,152 +476,6 @@ bool Descriptor::doValidate(Logger &logger) const
 	return valid & continueValidationCheckDuplicates(fds, logger);
 }
 
-struct PathState {
-	std::shared_ptr<PathState> pred;
-	Node *node;
-	size_t length;
-
-	PathState(std::shared_ptr<PathState> pred, Node *node)
-	    : pred(pred), node(node)
-	{
-		if (pred == nullptr) {
-			length = 1;
-		} else {
-			length = pred->length + 1;
-		}
-	}
-};
-
-static void constructPath(std::shared_ptr<PathState> state,
-                          NodeVector<Node> &vec)
-{
-	if (state->pred != nullptr) {
-		constructPath(state->pred, vec);
-	}
-	vec.push_back(state->node);
-}
-
-static NodeVector<Node> pathTo(const Descriptor *start, Logger &logger,
-                               Handle<Node> target, bool &success)
-{
-	success = false;
-	// shortest path.
-	NodeVector<Node> shortest;
-	// state queue for breadth-first search.
-	std::queue<std::shared_ptr<PathState>> states;
-	{
-		// initially put every field descriptor on the queue.
-		NodeVector<FieldDescriptor> fields = start->getFieldDescriptors();
-
-		for (auto fd : fields) {
-			if (fd == target) {
-				// if we have found the target directly, return without search.
-				success = true;
-				return shortest;
-			}
-			if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
-				states.push(std::make_shared<PathState>(nullptr, fd.get()));
-			}
-		}
-	}
-	// set of visited nodes.
-	std::unordered_set<const Node *> visited;
-	while (!states.empty()) {
-		std::shared_ptr<PathState> current = states.front();
-		states.pop();
-		// do not proceed if this node was already visited.
-		if (!visited.insert(current->node).second) {
-			continue;
-		}
-		// also do not proceed if we can't get better than the current shortest
-		// path anymore.
-		if (!shortest.empty() && current->length > shortest.size()) {
-			continue;
-		}
-
-		bool fin = false;
-		if (current->node->isa(&RttiTypes::StructuredClass)) {
-			const StructuredClass *strct =
-			    static_cast<const StructuredClass *>(current->node);
-
-			// look through all fields.
-			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
-			for (auto fd : fields) {
-				// if we found our target, break off the search in this branch.
-				if (fd == target) {
-					fin = true;
-					continue;
-				}
-				// only continue in the TREE field.
-				if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
-					states.push(std::make_shared<PathState>(current, fd.get()));
-				}
-			}
-
-			/*
-			 * Furthermore we have to consider that all subclasses of this
-			 * StructuredClass are allowed in place of this StructuredClass as
-			 * well, so we continue the search for them as well.
-			 */
-
-			NodeVector<StructuredClass> subs = strct->getSubclasses();
-			for (auto sub : subs) {
-				// if we found our target, break off the search in this branch.
-				if (sub == target) {
-					fin = true;
-					current = current->pred;
-					continue;
-				}
-				// We only continue our path via transparent classes.
-				if (sub->isTransparent()) {
-					states.push(
-					    std::make_shared<PathState>(current->pred, sub.get()));
-				}
-			}
-		} else {
-			// otherwise this is a FieldDescriptor.
-			const FieldDescriptor *field =
-			    static_cast<const FieldDescriptor *>(current->node);
-			// and we proceed by visiting all permitted children.
-			for (auto c : field->getChildren()) {
-				// if we found our target, break off the search in this branch.
-				if (c == target) {
-					fin = true;
-					continue;
-				}
-				// We only allow to continue our path via transparent children.
-				if (c->isTransparent()) {
-					states.push(std::make_shared<PathState>(current, c.get()));
-				}
-			}
-		}
-		// check if we are finished.
-		if (fin) {
-			success = true;
-			// if so we look if we found a shorter path than the current minimum
-			if (shortest.empty() || current->length < shortest.size()) {
-				NodeVector<Node> newPath;
-				constructPath(current, newPath);
-				shortest = newPath;
-			} else if (current->length == shortest.size()) {
-				// if the length is the same the result is ambigous and we log
-				// an error.
-				NodeVector<Node> newPath;
-				constructPath(current, newPath);
-				logger.error(
-				    std::string("Can not unambigously create a path from \"") +
-				    start->getName() + "\" to \"" + target->getName() + "\".");
-				logger.note("Dismissed the path:", SourceLocation{},
-				            MessageMode::NO_CONTEXT);
-				for (auto n : newPath) {
-					logger.note(n->getName());
-				}
-			}
-		}
-	}
-	return shortest;
-}
-
 NodeVector<Node> Descriptor::pathTo(Handle<StructuredClass> target,
                                     Logger &logger) const
 {
@@ -368,89 +489,6 @@ std::pair<NodeVector<Node>, bool> Descriptor::pathTo(
 	bool success = false;
 	NodeVector<Node> path = ousia::pathTo(this, logger, field, success);
 	return std::make_pair(path, success);
-}
-
-template <typename F>
-static NodeVector<Node> collect(const Descriptor *start, F match)
-{
-	// result
-	NodeVector<Node> res;
-	// queue for breadth-first search of graph.
-	std::queue<Rooted<Node>> q;
-	{
-		// initially put every field descriptor on the queue.
-		NodeVector<FieldDescriptor> fields = start->getFieldDescriptors();
-
-		for (auto fd : fields) {
-			// note matches.
-			if (match(fd)) {
-				res.push_back(fd);
-			}
-			if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
-				q.push(fd);
-			}
-		}
-	}
-	// set of visited nodes.
-	std::unordered_set<const Node *> visited;
-	while (!q.empty()) {
-		Rooted<Node> n = q.front();
-		q.pop();
-		// do not proceed if this node was already visited.
-		if (!visited.insert(n.get()).second) {
-			continue;
-		}
-
-		if (n->isa(&RttiTypes::StructuredClass)) {
-			Rooted<StructuredClass> strct = n.cast<StructuredClass>();
-
-			// look through all fields.
-			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
-			for (auto fd : fields) {
-				// note matches.
-				if (match(fd)) {
-					res.push_back(fd);
-				}
-				// only continue in the TREE field.
-				if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
-					q.push(fd);
-				}
-			}
-
-			/*
-			 * Furthermore we have to consider that all subclasses of this
-			 * StructuredClass are allowed in place of this StructuredClass as
-			 * well, so we continue the search for them as well.
-			 */
-
-			NodeVector<StructuredClass> subs = strct->getSubclasses();
-			for (auto sub : subs) {
-				// note matches.
-				if (match(sub)) {
-					res.push_back(sub);
-				}
-				// We only continue our search via transparent classes.
-				if (sub->isTransparent()) {
-					q.push(sub);
-				}
-			}
-		} else {
-			// otherwise this is a FieldDescriptor.
-			Rooted<FieldDescriptor> field = n.cast<FieldDescriptor>();
-			// and we proceed by visiting all permitted children.
-			for (auto c : field->getChildren()) {
-				// note matches.
-				if (match(c)) {
-					res.push_back(c);
-				}
-				// We only continue our search via transparent children.
-				if (c->isTransparent()) {
-					q.push(c);
-				}
-			}
-		}
-	}
-	return res;
 }
 
 NodeVector<FieldDescriptor> Descriptor::getDefaultFields() const
