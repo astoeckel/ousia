@@ -48,10 +48,10 @@ struct XmlStandaloneEnvironment : public StandaloneEnvironment {
 	    : StandaloneEnvironment(logger)
 	{
 		fileLocator.addDefaultSearchPaths();
-		fileLocator.addUnittestSearchPath("xmlparser");
+		fileLocator.addUnittestSearchPath("osxmlparser");
 
 		registry.registerDefaultExtensions();
-		registry.registerParser({"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
+		registry.registerParser({"text/vnd.ousia.osml+xml"},
 		                        {&RttiTypes::Node}, &parser);
 		registry.registerResourceLocator(&fileLocator);
 	}
@@ -62,14 +62,14 @@ static TerminalLogger logger(std::cerr, true);
 TEST(OsxmlParser, mismatchedTag)
 {
 	XmlStandaloneEnvironment env(logger);
-	env.parse("mismatchedTag.oxm", "", "", RttiSet{&RttiTypes::Document});
+	env.parse("mismatchedTag.osxml", "", "", RttiSet{&RttiTypes::Document});
 	ASSERT_TRUE(logger.hasError());
 }
 
 TEST(OsxmlParser, generic)
 {
 	XmlStandaloneEnvironment env(logger);
-	env.parse("generic.oxm", "", "", RttiSet{&RttiTypes::Node});
+	env.parse("generic.osxml", "", "", RttiSet{&RttiTypes::Node});
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	env.manager.exportGraphviz("xmlDocument.dot");
 #endif
@@ -205,7 +205,7 @@ TEST(OsxmlParser, domainParsing)
 {
 	XmlStandaloneEnvironment env(logger);
 	Rooted<Node> book_domain_node =
-	    env.parse("book_domain.oxm", "", "", RttiSet{&RttiTypes::Domain});
+	    env.parse("book_domain.osxml", "", "", RttiSet{&RttiTypes::Domain});
 	ASSERT_FALSE(book_domain_node == nullptr);
 	ASSERT_FALSE(logger.hasError());
 	// check the domain node.
@@ -242,7 +242,7 @@ TEST(OsxmlParser, domainParsing)
 
 	// check parent handling using the headings domain.
 	Rooted<Node> headings_domain_node =
-	    env.parse("headings_domain.oxm", "", "", RttiSet{&RttiTypes::Domain});
+	    env.parse("headings_domain.osxml", "", "", RttiSet{&RttiTypes::Domain});
 	ASSERT_FALSE(headings_domain_node == nullptr);
 	ASSERT_FALSE(logger.hasError());
 	Rooted<Domain> headings_domain = headings_domain_node.cast<Domain>();
@@ -267,7 +267,7 @@ TEST(OsxmlParser, domainParsing)
 
 	// check annotation handling using the comments domain.
 	Rooted<Node> comments_domain_node =
-	    env.parse("comments_domain.oxm", "", "", RttiSet{&RttiTypes::Domain});
+	    env.parse("comments_domain.osxml", "", "", RttiSet{&RttiTypes::Domain});
 	ASSERT_FALSE(comments_domain_node == nullptr);
 	ASSERT_FALSE(logger.hasError());
 	Rooted<Domain> comments_domain = comments_domain_node.cast<Domain>();
@@ -349,7 +349,7 @@ TEST(OsxmlParser, documentParsing)
 {
 	XmlStandaloneEnvironment env(logger);
 	Rooted<Node> book_document_node =
-	    env.parse("simple_book.oxd", "", "", RttiSet{&RttiTypes::Document});
+	    env.parse("simple_book.osxml", "", "", RttiSet{&RttiTypes::Document});
 	ASSERT_FALSE(book_document_node == nullptr);
 	ASSERT_TRUE(book_document_node->isa(&RttiTypes::Document));
 	Rooted<Document> doc = book_document_node.cast<Document>();

@@ -76,11 +76,8 @@ void Registry::registerExtension(const std::string &extension,
 
 void Registry::registerDefaultExtensions()
 {
-	registerExtension("oxd", "text/vnd.ousia.oxd");
-	registerExtension("oxm", "text/vnd.ousia.oxm");
-	registerExtension("opd", "text/vnd.ousia.opd");
-	registerExtension("oss", "text/vnd.ousia.oss");
-	registerExtension("js", "application/javascript");
+	registerExtension("osml", "text/vnd.ousia.osml");
+	registerExtension("osxml", "text/vnd.ousia.osml+xml");
 }
 
 std::string Registry::getMimetypeForExtension(
