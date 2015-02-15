@@ -19,26 +19,34 @@
 /**
  * @file DomainHandler.hpp
  *
- * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
+ * Contains the Handler classes used for parsing Domain descriptors. This
+ * includes the "domain" tag and all describing tags below the "domain" tag.
+ *
+ * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
  */
 
 #ifndef _OUSIA_DOMAIN_HANDLER_HPP_
 #define _OUSIA_DOMAIN_HANDLER_HPP_
 
 #include <core/common/Variant.hpp>
-#include <core/parser/ParserStack.hpp>
+#include <core/model/Node.hpp>
+
+#include "Handler.hpp"
 
 namespace ousia {
 
 // Forward declarations
 class Rtti;
 
-class DomainHandler : public Handler {
+namespace parser_stack {
+
+// TODO: Documentation
+
+class DomainHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
+	bool start(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -47,12 +55,11 @@ public:
 	}
 };
 
-class DomainStructHandler : public Handler {
+class DomainStructHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
+	bool start(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -61,12 +68,11 @@ public:
 	}
 };
 
-class DomainAnnotationHandler : public Handler {
+class DomainAnnotationHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
+	bool start(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -75,12 +81,11 @@ public:
 	}
 };
 
-class DomainAttributesHandler : public Handler {
+class DomainAttributesHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
+	bool start(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -89,12 +94,11 @@ public:
 	}
 };
 
-class DomainFieldHandler : public Handler {
+class DomainFieldHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
+	bool start(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -103,12 +107,11 @@ public:
 	}
 };
 
-class DomainFieldRefHandler : public Handler {
+class DomainFieldRefHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
+	bool start(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -117,12 +120,11 @@ public:
 	}
 };
 
-class DomainPrimitiveHandler : public Handler {
+class DomainPrimitiveHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
+	bool start(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -131,13 +133,11 @@ public:
 	}
 };
 
-class DomainChildHandler : public Handler {
+class DomainChildHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
-	void end() override;
+	bool start(Variant::mapType &args) override;
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -150,16 +150,11 @@ public:
 	using Node::Node;
 };
 
-namespace RttiTypes {
-extern const Rtti DomainParent;
-}
-
-class DomainParentHandler : public Handler {
+class DomainParentHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
+	bool start(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -168,13 +163,11 @@ public:
 	}
 };
 
-class DomainParentFieldHandler : public Handler {
+class DomainParentFieldHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
-	void end() override;
+	bool start(Variant::mapType &args) override;
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -182,18 +175,83 @@ public:
 	}
 };
 
-class DomainParentFieldRefHandler : public Handler {
+class DomainParentFieldRefHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
-	void end() override;
+	bool start(Variant::mapType &args) override;
 
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new DomainParentFieldRefHandler{handlerData};
 	}
 };
+
+namespace States {
+/**
+ * State representing a "domain" struct.
+ */
+extern const State Domain;
+
+/**
+ * State representing a "struct" tag within a domain description.
+ */
+extern const State DomainStruct;
+
+/**
+ * State representing an "annotation" tag within a domain description.
+ */
+extern const State DomainAnnotation;
+
+/**
+ * State representing an "attributes" tag within a structure or annotation.
+ */
+extern const State DomainAttributes;
+
+/**
+ * State representing an "attribute" tag within the "attributes".
+ */
+extern const State DomainAttribute;
+
+/**
+ * State representing a "field" tag within a structure or annotation.
+ */
+extern const State DomainField;
+
+/**
+ * State representing a "fieldref" tag within a structure or annotation.
+ */
+extern const State DomainFieldRef;
+
+/**
+ * State representing a "primitive" tag within a structure or annotation.
+ */
+extern const State DomainStructPrimitive;
+
+/**
+ * State representing a "child" tag within a structure or annotation.
+ */
+extern const State DomainStructChild;
+
+/**
+ * State representing a "parent" tag within a structure or annotation.
+ */
+extern const State DomainStructParent;
+
+/**
+ * State representing a "field" tag within a "parent" tag.
+ */
+extern const State DomainStructParentField;
+
+/**
+ * State representing a "fieldRef" tag within a "parent" tag.
+ */
+extern const State DomainStructParentFieldRef;
+}
+}
+
+namespace RttiTypes {
+extern const Rtti DomainParent;
+}
 }
 #endif

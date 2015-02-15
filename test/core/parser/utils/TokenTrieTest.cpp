@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include <formats/osdm/TokenTrie.hpp>
+#include <core/parser/utils/TokenTrie.hpp>
 
 namespace ousia {
 

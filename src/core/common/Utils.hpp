@@ -74,16 +74,45 @@ public:
 	}
 
 	/**
-	 * Returns true if the given character is in [A-Za-z][A-Za-z0-9_-]*
+	 * Returns true if the given string is in
+	 * \code{.txt}
+	 * [A-Za-z][A-Za-z0-9_-]*
+	 * \endCode
+	 *
+	 * @param name is the string that should be tested.
+	 * @return true if the string matches the regular expression given above, 
+	 * false otherwise.
 	 */
 	static bool isIdentifier(const std::string &name);
+
+	/**
+	 * Returns true if the given string is an identifier or an empty string.
+	 */
+	static bool isIdentifierOrEmpty(const std::string &name);
+
+	/**
+	 * Returns true if the given string is in
+	 * \code{.txt}
+	 * ([A-Za-z][A-Za-z0-9_-]*)(:[A-Za-z][A-Za-z0-9_-]*)*
+	 * \endCode
+	 *
+	 * @param name is the string that should be tested.
+	 * @return true if the string matches the regular expression given above, 
+	 * false otherwise.
+	 */
+	static bool isNamespacedIdentifier(const std::string &name);
+
+	/**
+	 * Returns true if the given character is a linebreak character.
+	 */
+	static bool isLinebreak(const char c) { return (c == '\n') || (c == '\r'); }
 
 	/**
 	 * Returns true if the given character is a whitespace character.
 	 */
 	static bool isWhitespace(const char c)
 	{
-		return (c == ' ') || (c == '\t') || (c == '\n') || (c == '\r');
+		return (c == ' ') || (c == '\t') || isLinebreak(c);
 	}
 
 	/**
@@ -93,11 +122,6 @@ public:
 	 * @return true if the string contains a non-whitespace character.
 	 */
 	static bool hasNonWhitepaceChar(const std::string &s);
-
-	/**
-	 * Returns true if the given character is a whitespace character.
-	 */
-	static bool isLinebreak(const char c) { return (c == '\n') || (c == '\r'); }
 
 	/**
 	 * Removes whitespace at the beginning and the end of the given string.
@@ -120,8 +144,25 @@ public:
 	template <class T, class Filter>
 	static std::pair<size_t, size_t> trim(const T &s, Filter f)
 	{
+		return trim(s, s.size(), f);
+	}
+
+	/**
+	 * Trims the given string or vector of chars by returning the start and end
+	 * index.
+	 *
+	 * @param s is the container that should be trimmed.
+	 * @param len is the number of elements in the container.
+	 * @param f is a function that returns true for values that should be
+	 * removed.
+	 * @return start and end index. Note that "end" points at the character
+	 * beyond the end, thus "end" minus "start"
+	 */
+	template <class T, class Filter>
+	static std::pair<size_t, size_t> trim(const T &s, size_t len, Filter f)
+	{
 		size_t start = 0;
-		for (size_t i = 0; i < s.size(); i++) {
+		for (size_t i = 0; i < len; i++) {
 			if (!f(s[i])) {
 				start = i;
 				break;
@@ -129,7 +170,7 @@ public:
 		}
 
 		size_t end = 0;
-		for (ssize_t i = s.size() - 1; i >= static_cast<ssize_t>(start); i--) {
+		for (ssize_t i = len - 1; i >= static_cast<ssize_t>(start); i--) {
 			if (!f(s[i])) {
 				end = i + 1;
 				break;
@@ -143,6 +184,15 @@ public:
 
 		return std::pair<size_t, size_t>{start, end};
 	}
+
+	/**
+	 * Collapses the whitespaces in the given string (trims the string and
+	 * replaces all whitespace characters by a single one).
+	 *
+	 * @param s is the string in which the whitespace should be collapsed.
+	 * @return a copy of s with collapsed whitespace.
+	 */
+	static std::string collapse(const std::string &s);
 
 	/**
 	 * Turns the elements of a collection into a string separated by the
@@ -203,6 +253,24 @@ public:
 	 * lowercase.
 	 */
 	static std::string extractFileExtension(const std::string &filename);
+
+	/**
+	 * Checks whether the given string starts with the given prefix.
+	 *
+	 * @param s is the string.
+	 * @param prefix is the string which should be checked for being a prefix of
+	 * s.
+	 */
+	static bool startsWith(const std::string &s, const std::string &prefix);
+
+	/**
+	 * Checks whether the given string ends with the given suffix.
+	 *
+	 * @param s is the string.
+	 * @param suffix is the string which should be checked for being a suffix of
+	 * s.
+	 */
+	static bool endsWith(const std::string &s, const std::string &suffix);
 
 	/**
 	 * Hash functional to be used for enum classes.

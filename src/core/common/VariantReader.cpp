@@ -495,7 +495,7 @@ std::pair<bool, Variant::boolType> VariantReader::parseBool(CharReader &reader,
 	bool val = false;
 	CharReaderFork readerFork = reader.fork();
 	LoggerFork loggerFork = logger.fork();
-	auto res = parseToken(readerFork, loggerFork, {});
+	auto res = parseToken(readerFork, loggerFork, std::unordered_set<char>{});
 	if (res.first) {
 		bool valid = false;
 		if (res.second == "true") {

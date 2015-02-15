@@ -16,32 +16,46 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <core/model/Typesystem.hpp>
+#include <core/model/Domain.hpp>
+#include <core/parser/ParserScope.hpp>
+#include <core/parser/ParserContext.hpp>
+
+#include "DomainHandler.hpp"
+#include "State.hpp"
 #include "TypesystemHandler.hpp"
 
-#include <core/model/Typesystem.hpp>
-#include <core/parser/ParserScope.hpp>
-
 namespace ousia {
+namespace parser_stack {
 
 /* TypesystemHandler */
 
-void TypesystemHandler::start(Variant::mapType &args)
+bool TypesystemHandler::start(Variant::mapType &args)
 {
 	// Create the typesystem instance
 	Rooted<Typesystem> typesystem =
-	    project()->createTypesystem(args["name"].asString());
+	    context().getProject()->createTypesystem(args["name"].asString());
 	typesystem->setLocation(location());
+
+	// If the typesystem is defined inside a domain, add a reference to the
+	// typesystem to the domain
+	Rooted<Domain> domain = scope().select<Domain>();
+	if (domain != nullptr) {
+		domain->reference(typesystem);
+	}
 
 	// Push the typesystem onto the scope, set the POST_HEAD flag to true
 	scope().push(typesystem);
 	scope().setFlag(ParserFlag::POST_HEAD, false);
+
+	return true;
 }
 
 void TypesystemHandler::end() { scope().pop(); }
 
 /* TypesystemEnumHandler */
 
-void TypesystemEnumHandler::start(Variant::mapType &args)
+bool TypesystemEnumHandler::start(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -52,33 +66,24 @@ void TypesystemEnumHandler::start(Variant::mapType &args)
 	enumType->setLocation(location());
 
 	scope().push(enumType);
+
+	return true;
 }
 
 void TypesystemEnumHandler::end() { scope().pop(); }
 
 /* TypesystemEnumEntryHandler */
 
-void TypesystemEnumEntryHandler::start(Variant::mapType &args) {}
-
-void TypesystemEnumEntryHandler::end()
+void TypesystemEnumEntryHandler::doHandle(const Variant &fieldData,
+                                          Variant::mapType &args)
 {
 	Rooted<EnumType> enumType = scope().selectOrThrow<EnumType>();
-	enumType->addEntry(entry, logger());
-}
-
-void TypesystemEnumEntryHandler::data(const std::string &data, int field)
-{
-	if (field != 0) {
-		// TODO: This should be stored in the HandlerData
-		logger().error("Enum entry only has one field.");
-		return;
-	}
-	entry.append(data);
+	enumType->addEntry(fieldData.asString(), logger());
 }
 
 /* TypesystemStructHandler */
 
-void TypesystemStructHandler::start(Variant::mapType &args)
+bool TypesystemStructHandler::start(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -103,13 +108,15 @@ void TypesystemStructHandler::start(Variant::mapType &args)
 			});
 	}
 	scope().push(structType);
+
+	return true;
 }
 
 void TypesystemStructHandler::end() { scope().pop(); }
 
 /* TypesystemStructFieldHandler */
 
-void TypesystemStructFieldHandler::start(Variant::mapType &args)
+bool TypesystemStructFieldHandler::start(Variant::mapType &args)
 {
 	// Read the argument values
 	const std::string &name = args["name"].asString();
@@ -142,13 +149,13 @@ void TypesystemStructFieldHandler::start(Variant::mapType &args)
 			}
 		});
 	}
-}
 
-void TypesystemStructFieldHandler::end() {}
+	return true;
+}
 
 /* TypesystemConstantHandler */
 
-void TypesystemConstantHandler::start(Variant::mapType &args)
+bool TypesystemConstantHandler::start(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -169,7 +176,51 @@ void TypesystemConstantHandler::start(Variant::mapType &args)
 			    constant.cast<Constant>()->setType(type.cast<Type>(), logger);
 		    }
 		});
+
+	return true;
 }
 
-void TypesystemConstantHandler::end() {}
+namespace States {
+const State Typesystem = StateBuilder()
+                             .parents({&None, &Domain})
+                             .createdNodeType(&RttiTypes::Typesystem)
+                             .elementHandler(TypesystemHandler::create)
+                             .arguments({Argument::String("name", "")});
+
+const State TypesystemEnum = StateBuilder()
+                                 .parent(&Typesystem)
+                                 .createdNodeType(&RttiTypes::EnumType)
+                                 .elementHandler(TypesystemEnumHandler::create)
+                                 .arguments({Argument::String("name")});
+
+const State TypesystemEnumEntry =
+    StateBuilder()
+        .parent(&TypesystemEnum)
+        .elementHandler(TypesystemEnumEntryHandler::create)
+        .arguments({});
+
+const State TypesystemStruct =
+    StateBuilder()
+        .parent(&Typesystem)
+        .createdNodeType(&RttiTypes::StructType)
+        .elementHandler(TypesystemStructHandler::create)
+        .arguments({Argument::String("name"), Argument::String("parent", "")});
+
+const State TypesystemStructField =
+    StateBuilder()
+        .parent(&TypesystemStruct)
+        .elementHandler(TypesystemStructFieldHandler::create)
+        .arguments({Argument::String("name"), Argument::String("type"),
+                    Argument::Any("default", Variant::fromObject(nullptr))});
+
+const State TypesystemConstant =
+    StateBuilder()
+        .parent(&Typesystem)
+        .createdNodeType(&RttiTypes::Constant)
+        .elementHandler(TypesystemConstantHandler::create)
+        .arguments({Argument::String("name"), Argument::String("type"),
+                    Argument::Any("value")});
 }
+}
+}
+

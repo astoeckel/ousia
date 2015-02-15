@@ -302,10 +302,10 @@ bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
 		} else {
 			if (ignoreUnknown) {
 				logger.note(std::string("Ignoring argument \"") + e.first +
-				            std::string("\""));
+				            std::string("\""), e.second);
 			} else {
 				logger.error(std::string("Unknown argument \"") + e.first +
-				             std::string("\""));
+				             std::string("\""), e.second);
 				ok = false;
 			}
 		}

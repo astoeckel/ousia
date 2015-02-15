@@ -22,8 +22,9 @@
 #include <core/common/CharReader.hpp>
 #include <core/common/Exceptions.hpp>
 #include <core/common/Utils.hpp>
+#include <core/common/WhitespaceHandler.hpp>
 
-#include "DynamicTokenizer.hpp"
+#include "Tokenizer.hpp"
 
 namespace ousia {
 
@@ -38,7 +39,7 @@ struct TokenMatch {
 	/**
 	 * Token that was matched.
 	 */
-	DynamicToken token;
+	Token token;
 
 	/**
 	 * Current length of the data within the text handler. The text buffer needs
@@ -102,8 +103,8 @@ public:
 	 * @param textLength is the text buffer length of the previous text token.
 	 * @param textEnd is the current end location of the previous text token.
 	 */
-	TokenLookup(const TokenTrie::Node *node, size_t start,
-	            size_t textLength, size_t textEnd)
+	TokenLookup(const TokenTrie::Node *node, size_t start, size_t textLength,
+	            size_t textEnd)
 	    : node(node), start(start), textLength(textLength), textEnd(textEnd)
 	{
 	}
@@ -116,10 +117,10 @@ public:
 	 * @param c is the character that should be appended to the current prefix.
 	 * @param lookups is a list to which new TokeLookup instances are added --
 	 * which could potentially be expanded in the next iteration.
-	 * @param match is the DynamicToken instance to which the matching token
+	 * @param match is the Token instance to which the matching token
 	 * should be written.
 	 * @param tokens is a reference at the internal token list of the
-	 * DynamicTokenizer.
+	 * Tokenizer.
 	 * @param end is the end byte offset of the current character.
 	 * @param sourceId is the source if of this file.
 	 */
@@ -142,7 +143,7 @@ public:
 			size_t len = str.size();
 			if (len > match.token.content.size()) {
 				match.token =
-				    DynamicToken{node->type, str, {sourceId, start, end}};
+				    Token{node->type, str, {sourceId, start, end}};
 				match.textLength = textLength;
 				match.textEnd = textEnd;
 			}
@@ -155,203 +156,40 @@ public:
 	}
 };
 
-/* Internal class TextHandlerBase */
-
 /**
- * Base class used for those classes that may be used as TextHandler in the
- * DynamicTokenizer::next function.
+ * Transforms the given token into a text token containing the extracted
+ * text.
+ *
+ * @param handler is the WhitespaceHandler containing the collected data.
+ * @param token is the output token to which the text should be written.
+ * @param sourceId is the source id of the underlying file.
  */
-class TextHandlerBase {
-public:
-	/**
-	 * Start position of the extracted text.
-	 */
-	size_t textStart;
-
-	/**
-	 * End position of the extracted text.
-	 */
-	size_t textEnd;
-
-	/**
-	 * Buffer containing the extracted text.
-	 */
-	std::vector<char> textBuf;
-
-	/**
-	 * Constructor of the TextHandlerBase base class. Initializes the start and
-	 * end position with zeros.
-	 */
-	TextHandlerBase() : textStart(0), textEnd(0) {}
-
-	/**
-	 * Transforms the given token into a text token containing the extracted
-	 * text.
-	 *
-	 * @param token is the output token to which the text should be written.
-	 * @param sourceId is the source id of the underlying file.
-	 */
-	void buildTextToken(TokenMatch &match, SourceId sourceId)
-	{
-		if (match.hasMatch()) {
-			match.token.content =
-			    std::string{textBuf.data(), match.textLength};
-			match.token.location =
-			    SourceLocation{sourceId, textStart, match.textEnd};
-		} else {
-			match.token.content = std::string{textBuf.data(), textBuf.size()};
-			match.token.location = SourceLocation{sourceId, textStart, textEnd};
-		}
-		match.token.type = TextToken;
+static void buildTextToken(const WhitespaceHandler &handler, TokenMatch &match,
+                           SourceId sourceId)
+{
+	if (match.hasMatch()) {
+		match.token.content =
+		    std::string{handler.textBuf.data(), match.textLength};
+		match.token.location =
+		    SourceLocation{sourceId, handler.textStart, match.textEnd};
+	} else {
+		match.token.content = handler.toString();
+		match.token.location =
+		    SourceLocation{sourceId, handler.textStart, handler.textEnd};
 	}
-
-	/**
-	 * Returns true if this whitespace handler has found any text and a text
-	 * token could be emitted.
-	 *
-	 * @return true if the internal data buffer is non-empty.
-	 */
-	bool hasText() { return !textBuf.empty(); }
-};
-
-/* Internal class PreservingTextHandler */
-
-/**
- * The PreservingTextHandler class preserves all characters unmodified,
- * including whitepace characters.
- */
-class PreservingTextHandler : public TextHandlerBase {
-public:
-	using TextHandlerBase::TextHandlerBase;
-
-	/**
-	 * Appends the given character to the internal text buffer, does not
-	 * eliminate whitespace.
-	 *
-	 * @param c is the character that should be appended to the internal buffer.
-	 * @param start is the start byte offset of the given character.
-	 * @param end is the end byte offset of the given character.
-	 */
-	void append(char c, size_t start, size_t end)
-	{
-		if (textBuf.empty()) {
-			textStart = start;
-		}
-		textEnd = end;
-		textBuf.push_back(c);
-	}
-};
-
-/* Internal class TrimmingTextHandler */
-
-/**
- * The TrimmingTextHandler class trims all whitespace characters at the begin
- * and the end of a text section but leaves all other characters unmodified,
- * including whitepace characters.
- */
-class TrimmingTextHandler : public TextHandlerBase {
-public:
-	using TextHandlerBase::TextHandlerBase;
-
-	/**
-	 * Buffer used internally to temporarily store all whitespace characters.
-	 * They are only added to the output buffer if another non-whitespace
-	 * character is reached.
-	 */
-	std::vector<char> whitespaceBuf;
-
-	/**
-	 * Appends the given character to the internal text buffer, eliminates
-	 * whitespace characters at the begin and end of the text.
-	 *
-	 * @param c is the character that should be appended to the internal buffer.
-	 * @param start is the start byte offset of the given character.
-	 * @param end is the end byte offset of the given character.
-	 */
-	void append(char c, size_t start, size_t end)
-	{
-		// Handle whitespace characters
-		if (Utils::isWhitespace(c)) {
-			if (!textBuf.empty()) {
-				whitespaceBuf.push_back(c);
-			}
-			return;
-		}
-
-		// Set the start and end offset correctly
-		if (textBuf.empty()) {
-			textStart = start;
-		}
-		textEnd = end;
-
-		// Store the character
-		if (!whitespaceBuf.empty()) {
-			textBuf.insert(textBuf.end(), whitespaceBuf.begin(),
-			               whitespaceBuf.end());
-			whitespaceBuf.clear();
-		}
-		textBuf.push_back(c);
-	}
-};
-
-/* Internal class CollapsingTextHandler */
-
-/**
- * The CollapsingTextHandler trims characters at the beginning and end of the
- * text and reduced multiple whitespace characters to a single blank.
- */
-class CollapsingTextHandler : public TextHandlerBase {
-public:
-	using TextHandlerBase::TextHandlerBase;
-
-	/**
-	 * Flag set to true if a whitespace character was reached.
-	 */
-	bool hasWhitespace = false;
-
-	/**
-	 * Appends the given character to the internal text buffer, eliminates
-	 * redundant whitespace characters.
-	 *
-	 * @param c is the character that should be appended to the internal buffer.
-	 * @param start is the start byte offset of the given character.
-	 * @param end is the end byte offset of the given character.
-	 */
-	void append(char c, size_t start, size_t end)
-	{
-		// Handle whitespace characters
-		if (Utils::isWhitespace(c)) {
-			if (!textBuf.empty()) {
-				hasWhitespace = true;
-			}
-			return;
-		}
-
-		// Set the start and end offset correctly
-		if (textBuf.empty()) {
-			textStart = start;
-		}
-		textEnd = end;
-
-		// Store the character
-		if (hasWhitespace) {
-			textBuf.push_back(' ');
-			hasWhitespace = false;
-		}
-		textBuf.push_back(c);
-	}
-};
+	match.token.type = TextToken;
+}
 }
 
-/* Class DynamicTokenizer */
+/* Class Tokenizer */
 
-DynamicTokenizer::DynamicTokenizer(WhitespaceMode whitespaceMode)
+Tokenizer::Tokenizer(WhitespaceMode whitespaceMode)
     : whitespaceMode(whitespaceMode), nextTokenTypeId(0)
 {
 }
 
 template <typename TextHandler, bool read>
-bool DynamicTokenizer::next(CharReader &reader, DynamicToken &token)
+bool Tokenizer::next(CharReader &reader, Token &token)
 {
 	// If we're in the read mode, reset the char reader peek position to the
 	// current read position
@@ -409,9 +247,8 @@ bool DynamicTokenizer::next(CharReader &reader, DynamicToken &token)
 	}
 
 	// If we found text, emit that text
-	if (textHandler.hasText() &&
-	    (!match.hasMatch() || match.textLength > 0)) {
-		textHandler.buildTextToken(match, sourceId);
+	if (textHandler.hasText() && (!match.hasMatch() || match.textLength > 0)) {
+		buildTextToken(textHandler, match, sourceId);
 	}
 
 	// Move the read/peek cursor to the end of the token, abort if an error
@@ -431,38 +268,38 @@ bool DynamicTokenizer::next(CharReader &reader, DynamicToken &token)
 		}
 		token = match.token;
 	} else {
-		token = DynamicToken{};
+		token = Token{};
 	}
 	return match.hasMatch();
 }
 
-bool DynamicTokenizer::read(CharReader &reader,DynamicToken &token)
+bool Tokenizer::read(CharReader &reader, Token &token)
 {
 	switch (whitespaceMode) {
 		case WhitespaceMode::PRESERVE:
-			return next<PreservingTextHandler, true>(reader, token);
+			return next<PreservingWhitespaceHandler, true>(reader, token);
 		case WhitespaceMode::TRIM:
-			return next<TrimmingTextHandler, true>(reader, token);
+			return next<TrimmingWhitespaceHandler, true>(reader, token);
 		case WhitespaceMode::COLLAPSE:
-			return next<CollapsingTextHandler, true>(reader, token);
+			return next<CollapsingWhitespaceHandler, true>(reader, token);
 	}
 	return false;
 }
 
-bool DynamicTokenizer::peek(CharReader &reader,DynamicToken &token)
+bool Tokenizer::peek(CharReader &reader, Token &token)
 {
 	switch (whitespaceMode) {
 		case WhitespaceMode::PRESERVE:
-			return next<PreservingTextHandler, false>(reader, token);
+			return next<PreservingWhitespaceHandler, false>(reader, token);
 		case WhitespaceMode::TRIM:
-			return next<TrimmingTextHandler, false>(reader, token);
+			return next<TrimmingWhitespaceHandler, false>(reader, token);
 		case WhitespaceMode::COLLAPSE:
-			return next<CollapsingTextHandler, false>(reader, token);
+			return next<CollapsingWhitespaceHandler, false>(reader, token);
 	}
 	return false;
 }
 
-TokenTypeId DynamicTokenizer::registerToken(const std::string &token)
+TokenTypeId Tokenizer::registerToken(const std::string &token)
 {
 	// Abort if an empty token should be registered
 	if (token.empty()) {
@@ -493,14 +330,14 @@ TokenTypeId DynamicTokenizer::registerToken(const std::string &token)
 	// Try to register the token in the trie -- if this fails, remove it
 	// from the tokens list
 	if (!trie.registerToken(token, type)) {
-		tokens[type] = std::string();
+		tokens[type] = std::string{};
 		nextTokenTypeId = type;
 		return EmptyToken;
 	}
 	return type;
 }
 
-bool DynamicTokenizer::unregisterToken(TokenTypeId type)
+bool Tokenizer::unregisterToken(TokenTypeId type)
 {
 	// Unregister the token from the trie, abort if an invalid type is given
 	if (type < tokens.size() && trie.unregisterToken(tokens[type])) {
@@ -511,7 +348,7 @@ bool DynamicTokenizer::unregisterToken(TokenTypeId type)
 	return false;
 }
 
-std::string DynamicTokenizer::getTokenString(TokenTypeId type)
+std::string Tokenizer::getTokenString(TokenTypeId type)
 {
 	if (type < tokens.size()) {
 		return tokens[type];
@@ -519,26 +356,26 @@ std::string DynamicTokenizer::getTokenString(TokenTypeId type)
 	return std::string{};
 }
 
-void DynamicTokenizer::setWhitespaceMode(WhitespaceMode mode)
+void Tokenizer::setWhitespaceMode(WhitespaceMode mode)
 {
 	whitespaceMode = mode;
 }
 
-WhitespaceMode DynamicTokenizer::getWhitespaceMode() { return whitespaceMode; }
+WhitespaceMode Tokenizer::getWhitespaceMode() { return whitespaceMode; }
 
 /* Explicitly instantiate all possible instantiations of the "next" member
    function */
-template bool DynamicTokenizer::next<PreservingTextHandler, false>(
-    CharReader &reader, DynamicToken &token);
-template bool DynamicTokenizer::next<TrimmingTextHandler, false>(
-    CharReader &reader, DynamicToken &token);
-template bool DynamicTokenizer::next<CollapsingTextHandler, false>(
-    CharReader &reader,DynamicToken &token);
-template bool DynamicTokenizer::next<PreservingTextHandler, true>(
-    CharReader &reader,DynamicToken &token);
-template bool DynamicTokenizer::next<TrimmingTextHandler, true>(
-    CharReader &reader,DynamicToken &token);
-template bool DynamicTokenizer::next<CollapsingTextHandler, true>(
-    CharReader &reader,DynamicToken &token);
+template bool Tokenizer::next<PreservingWhitespaceHandler, false>(
+    CharReader &reader, Token &token);
+template bool Tokenizer::next<TrimmingWhitespaceHandler, false>(
+    CharReader &reader, Token &token);
+template bool Tokenizer::next<CollapsingWhitespaceHandler, false>(
+    CharReader &reader, Token &token);
+template bool Tokenizer::next<PreservingWhitespaceHandler, true>(
+    CharReader &reader, Token &token);
+template bool Tokenizer::next<TrimmingWhitespaceHandler, true>(
+    CharReader &reader, Token &token);
+template bool Tokenizer::next<CollapsingWhitespaceHandler, true>(
+    CharReader &reader, Token &token);
 }
 

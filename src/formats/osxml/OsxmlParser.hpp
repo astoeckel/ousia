@@ -17,33 +17,39 @@
 */
 
 /**
- * @file GenericParser.hpp
+ * @file OsxmlParser.hpp
  *
- * The GenericParser class builds an abstraction layer that separates the
- * underlying document format (e.g. osdm or osdmx) from the actual process of
- * building the document model. It provides a set of genric functions that
- * should be called by the inheriting concrete parser class, e.g. indicating a
- * command with parameters, the start/end of a field or the start/end of an
- * annotation. The GenericParser maintains an internal stack of
- * ParserStateHandlers and relays the commands to the elements of this stack.
+ * Contains the parser responsible for reading Ousía XML Documents (extension
+ * oxd) and Ousía XML Modules (extension oxm).
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_GENERIC_PARSER_HPP_
-#define _OUSIA_GENERIC_PARSER_HPP_
+#ifndef _OUSIA_OSXML_PARSER_HPP_
+#define _OUSIA_OSXML_PARSER_HPP_
 
-#include <core/parser/Parseer.hpp>
+#include <core/parser/Parser.hpp>
 
 namespace ousia {
 
-class GenericParser : public Parser {
-
-
-
+/**
+ * The OsxmlParser class implements parsing the various types of Ousía XML
+ * documents using the OsxmlEventParser and Stack classes.
+ */
+class OsxmlParser : public Parser {
+protected:
+	/**
+	 * Parses the given input stream as XML file and returns the parsed
+	 * top-level node.
+	 *
+	 * @param reader is the CharReader from which the input should be read.
+	 * @param ctx is a reference to the ParserContext instance that should be
+	 * used.
+	 */
+	void doParse(CharReader &reader, ParserContext &ctx) override;
 };
 
 }
 
-#endif _OUSIA_GENERIC_PARSER_HPP_
+#endif /* _OUSIA_OSXML_PARSER_HPP_ */
 

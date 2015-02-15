@@ -16,88 +16,97 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ParserState.hpp"
+#include "State.hpp"
 
 namespace ousia {
+namespace parser_stack {
 
-/* Class ParserState */
+/* Class State */
 
-ParserState::ParserState() : elementHandler(nullptr) {}
+State::State() : elementHandler(nullptr) {}
 
-ParserState::ParserState(ParserStateSet parents, Arguments arguments,
+State::State(StateSet parents, Arguments arguments,
                          RttiSet createdNodeTypes,
-                         HandlerConstructor elementHandler)
+                         HandlerConstructor elementHandler,
+                         bool supportsAnnotations)
     : parents(parents),
       arguments(arguments),
       createdNodeTypes(createdNodeTypes),
-      elementHandler(elementHandler)
+      elementHandler(elementHandler),
+      supportsAnnotations(supportsAnnotations)
 {
 }
 
-ParserState::ParserState(const ParserStateBuilder &builder)
-    : ParserState(builder.build())
+State::State(const StateBuilder &builder)
+    : State(builder.build())
 {
 }
 
-/* Class ParserStateBuilder */
+/* Class StateBuilder */
 
-ParserStateBuilder &ParserStateBuilder::copy(const ParserState &state)
+StateBuilder &StateBuilder::copy(const State &state)
 {
 	this->state = state;
 	return *this;
 }
 
-ParserStateBuilder &ParserStateBuilder::parent(const ParserState *parent)
+StateBuilder &StateBuilder::parent(const State *parent)
 {
-	state.parents = ParserStateSet{parent};
+	state.parents = StateSet{parent};
 	return *this;
 }
 
-ParserStateBuilder &ParserStateBuilder::parents(const ParserStateSet &parents)
+StateBuilder &StateBuilder::parents(const StateSet &parents)
 {
 	state.parents = parents;
 	return *this;
 }
 
-ParserStateBuilder &ParserStateBuilder::arguments(const Arguments &arguments)
+StateBuilder &StateBuilder::arguments(const Arguments &arguments)
 {
 	state.arguments = arguments;
 	return *this;
 }
 
-ParserStateBuilder &ParserStateBuilder::createdNodeType(const Rtti *type)
+StateBuilder &StateBuilder::createdNodeType(const Rtti *type)
 {
 	state.createdNodeTypes = RttiSet{type};
 	return *this;
 }
 
-ParserStateBuilder &ParserStateBuilder::createdNodeTypes(const RttiSet &types)
+StateBuilder &StateBuilder::createdNodeTypes(const RttiSet &types)
 {
 	state.createdNodeTypes = types;
 	return *this;
 }
 
-ParserStateBuilder &ParserStateBuilder::elementHandler(
+StateBuilder &StateBuilder::elementHandler(
     HandlerConstructor elementHandler)
 {
 	state.elementHandler = elementHandler;
 	return *this;
 }
 
-const ParserState &ParserStateBuilder::build() const { return state; }
+StateBuilder &StateBuilder::supportsAnnotations(bool supportsAnnotations)
+{
+	state.supportsAnnotations = supportsAnnotations;
+	return *this;
+}
 
-/* Class ParserStateDeductor */
+const State &StateBuilder::build() const { return state; }
 
-ParserStateDeductor::ParserStateDeductor(
+/* Class StateDeductor */
+
+StateDeductor::StateDeductor(
     std::vector<const Rtti *> signature,
-    std::vector<const ParserState *> states)
+    std::vector<const State *> states)
     : tbl(signature.size()),
       signature(std::move(signature)),
       states(std::move(states))
 {
 }
 
-bool ParserStateDeductor::isActive(size_t d, const ParserState *s)
+bool StateDeductor::isActive(size_t d, const State *s)
 {
 	// Lookup the "active" state of (d, s), if it was not already set
 	// (e.second is true) we'll have to calculate it
@@ -123,7 +132,7 @@ bool ParserStateDeductor::isActive(size_t d, const ParserState *s)
 			// Check whether any of the parent nodes were active -- either for
 			// the previous element (if this one is generative) or for the
 			// current element (assuming this node was not generative)
-			for (const ParserState *parent : s->parents) {
+			for (const State *parent : s->parents) {
 				if ((isGenerative && isActive(d - 1, parent)) ||
 					isActive(d, parent)) {
 					res = true;
@@ -136,9 +145,9 @@ bool ParserStateDeductor::isActive(size_t d, const ParserState *s)
 	return res;
 }
 
-std::vector<const ParserState *> ParserStateDeductor::deduce()
+std::vector<const State *> StateDeductor::deduce()
 {
-	std::vector<const ParserState *> res;
+	std::vector<const State *> res;
 	if (!signature.empty()) {
 		const size_t D = signature.size();
 		for (auto s : states) {
@@ -153,9 +162,10 @@ std::vector<const ParserState *> ParserStateDeductor::deduce()
 
 /* Constant initializations */
 
-namespace ParserStates {
-const ParserState All;
-const ParserState None;
+namespace States {
+const State All;
+const State None;
+}
 }
 }
 

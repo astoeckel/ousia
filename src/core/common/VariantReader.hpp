@@ -322,7 +322,7 @@ public:
 	 */
 	static std::pair<bool, Variant> parseTyped(
 	    VariantType type, CharReader &reader, Logger &logger,
-	    const std::unordered_set<char> &delims = {});
+	    const std::unordered_set<char> &delims = std::unordered_set<char>{});
 	/**
 	 * Tries to parse an instance of the given type from the given string. The
 	 * called method is one of the parse methods defined here and adheres to the

@@ -24,7 +24,7 @@
 <language id="ousia" _name="Ousia" version="2.0" _section="Markup">
   <metadata>
     <property name="mimetypes">text/vnd.ousia</property>
-    <property name="globs">*.osdm</property>
+    <property name="globs">*.osml</property>
     <property name="line-comment-start">%</property>
     <property name="block-comment-start">%{</property>
     <property name="block-comment-end">}%</property>

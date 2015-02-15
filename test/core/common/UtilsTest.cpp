@@ -24,21 +24,39 @@ namespace ousia {
 
 TEST(Utils, isIdentifier)
 {
-	ASSERT_TRUE(Utils::isIdentifier("test"));
-	ASSERT_TRUE(Utils::isIdentifier("t0-_est"));
-	ASSERT_FALSE(Utils::isIdentifier("_t0-_EST"));
-	ASSERT_FALSE(Utils::isIdentifier("-t0-_EST"));
-	ASSERT_FALSE(Utils::isIdentifier("0t-_EST"));
-	ASSERT_FALSE(Utils::isIdentifier("invalid key"));
+	EXPECT_TRUE(Utils::isIdentifier("test"));
+	EXPECT_TRUE(Utils::isIdentifier("t0-_est"));
+	EXPECT_FALSE(Utils::isIdentifier("_t0-_EST"));
+	EXPECT_FALSE(Utils::isIdentifier("-t0-_EST"));
+	EXPECT_FALSE(Utils::isIdentifier("0t-_EST"));
+	EXPECT_FALSE(Utils::isIdentifier("_A"));
+	EXPECT_FALSE(Utils::isIdentifier("invalid key"));
+	EXPECT_FALSE(Utils::isIdentifier(""));
 }
 
-TEST(Utils, trim)
+
+TEST(Utils, isNamespacedIdentifier)
 {
-	ASSERT_EQ("hello world", Utils::trim("\t hello world   \n\r\t"));
-	ASSERT_EQ("hello world", Utils::trim("hello world   \n\r\t"));
-	ASSERT_EQ("hello world", Utils::trim("   hello world"));
-	ASSERT_EQ("hello world", Utils::trim("hello world"));
+	EXPECT_TRUE(Utils::isNamespacedIdentifier("test"));
+	EXPECT_TRUE(Utils::isNamespacedIdentifier("t0-_est"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier("_t0-_EST"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier("-t0-_EST"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier("0t-_EST"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier("invalid key"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier("_A"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier(""));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier(":"));
+	EXPECT_TRUE(Utils::isNamespacedIdentifier("test:a"));
+	EXPECT_TRUE(Utils::isNamespacedIdentifier("t0-_est:b"));
+	EXPECT_TRUE(Utils::isNamespacedIdentifier("test:test"));
+	EXPECT_TRUE(Utils::isNamespacedIdentifier("t0-_est:t0-_est"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier("test:_A"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier("test::a"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier(":test"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier("t0-_est:_t0-_EST"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier("t0-_est: b"));
 }
+
 
 TEST(Utils, split)
 {
@@ -71,6 +89,24 @@ TEST(Utils, extractFileExtension)
 	ASSERT_EQ("", Utils::extractFileExtension("foo.bar\\test"));
 	ASSERT_EQ("ext", Utils::extractFileExtension("foo.bar/test.ext"));
 	ASSERT_EQ("ext", Utils::extractFileExtension("foo.bar/test.EXT"));
+}
+
+TEST(Utils, startsWith)
+{
+	ASSERT_TRUE(Utils::startsWith("foobar", "foo"));
+	ASSERT_TRUE(Utils::startsWith("foo", "foo"));
+	ASSERT_FALSE(Utils::startsWith("foo", "foobar"));
+	ASSERT_FALSE(Utils::startsWith("foobar", "bar"));
+	ASSERT_TRUE(Utils::startsWith("foo", ""));
+}
+
+TEST(Utils, endsWith)
+{
+	ASSERT_FALSE(Utils::endsWith("foobar", "foo"));
+	ASSERT_TRUE(Utils::endsWith("foo", "foo"));
+	ASSERT_FALSE(Utils::endsWith("foo", "foobar"));
+	ASSERT_TRUE(Utils::endsWith("foobar", "bar"));
+	ASSERT_TRUE(Utils::endsWith("foo", ""));
 }
 
 }

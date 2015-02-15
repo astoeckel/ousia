@@ -16,29 +16,48 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "DomainHandler.hpp"
-
 #include <core/common/RttiBuilder.hpp>
+#include <core/model/Document.hpp>
 #include <core/model/Domain.hpp>
+#include <core/model/Project.hpp>
 #include <core/parser/ParserScope.hpp>
+#include <core/parser/ParserContext.hpp>
+
+#include "DocumentHandler.hpp"
+#include "DomainHandler.hpp"
+#include "State.hpp"
+#include "TypesystemHandler.hpp"
 
 namespace ousia {
+namespace parser_stack {
 
 /* DomainHandler */
 
-void DomainHandler::start(Variant::mapType &args)
+bool DomainHandler::start(Variant::mapType &args)
 {
-	Rooted<Domain> domain = project()->createDomain(args["name"].asString());
+	// Create the Domain node
+	Rooted<Domain> domain =
+	    context().getProject()->createDomain(args["name"].asString());
 	domain->setLocation(location());
 
+	// If the domain is defined inside a document, add the reference to the
+	// document
+	Rooted<Document> document = scope().select<Document>();
+	if (document != nullptr) {
+		document->reference(domain);
+	}
+
+	// Push the typesystem onto the scope, set the POST_HEAD flag to true
 	scope().push(domain);
+	scope().setFlag(ParserFlag::POST_HEAD, false);
+	return true;
 }
 
 void DomainHandler::end() { scope().pop(); }
 
 /* DomainStructHandler */
 
-void DomainStructHandler::start(Variant::mapType &args)
+bool DomainStructHandler::start(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -63,12 +82,13 @@ void DomainStructHandler::start(Variant::mapType &args)
 	}
 
 	scope().push(structuredClass);
+	return true;
 }
 
 void DomainStructHandler::end() { scope().pop(); }
 
 /* DomainAnnotationHandler */
-void DomainAnnotationHandler::start(Variant::mapType &args)
+bool DomainAnnotationHandler::start(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -79,13 +99,14 @@ void DomainAnnotationHandler::start(Variant::mapType &args)
 	annotationClass->setLocation(location());
 
 	scope().push(annotationClass);
+	return true;
 }
 
 void DomainAnnotationHandler::end() { scope().pop(); }
 
 /* DomainAttributesHandler */
 
-void DomainAttributesHandler::start(Variant::mapType &args)
+bool DomainAttributesHandler::start(Variant::mapType &args)
 {
 	// Fetch the current typesystem and create the struct node
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
@@ -94,13 +115,14 @@ void DomainAttributesHandler::start(Variant::mapType &args)
 	attrDesc->setLocation(location());
 
 	scope().push(attrDesc);
+	return true;
 }
 
 void DomainAttributesHandler::end() { scope().pop(); }
 
 /* DomainFieldHandler */
 
-void DomainFieldHandler::start(Variant::mapType &args)
+bool DomainFieldHandler::start(Variant::mapType &args)
 {
 	FieldDescriptor::FieldType type;
 	if (args["isSubtree"].asBool()) {
@@ -116,13 +138,14 @@ void DomainFieldHandler::start(Variant::mapType &args)
 	field->setLocation(location());
 
 	scope().push(field);
+	return true;
 }
 
 void DomainFieldHandler::end() { scope().pop(); }
 
 /* DomainFieldRefHandler */
 
-void DomainFieldRefHandler::start(Variant::mapType &args)
+bool DomainFieldRefHandler::start(Variant::mapType &args)
 {
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
@@ -135,13 +158,14 @@ void DomainFieldRefHandler::start(Variant::mapType &args)
 			        field.cast<FieldDescriptor>(), logger);
 		    }
 		});
+	return true;
 }
 
 void DomainFieldRefHandler::end() {}
 
 /* DomainPrimitiveHandler */
 
-void DomainPrimitiveHandler::start(Variant::mapType &args)
+bool DomainPrimitiveHandler::start(Variant::mapType &args)
 {
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
@@ -167,13 +191,14 @@ void DomainPrimitiveHandler::start(Variant::mapType &args)
 	});
 
 	scope().push(field);
+	return true;
 }
 
 void DomainPrimitiveHandler::end() { scope().pop(); }
 
 /* DomainChildHandler */
 
-void DomainChildHandler::start(Variant::mapType &args)
+bool DomainChildHandler::start(Variant::mapType &args)
 {
 	Rooted<FieldDescriptor> field = scope().selectOrThrow<FieldDescriptor>();
 
@@ -186,13 +211,12 @@ void DomainChildHandler::start(Variant::mapType &args)
 			        child.cast<StructuredClass>());
 		    }
 		});
+	return true;
 }
-
-void DomainChildHandler::end() {}
 
 /* DomainParentHandler */
 
-void DomainParentHandler::start(Variant::mapType &args)
+bool DomainParentHandler::start(Variant::mapType &args)
 {
 	Rooted<StructuredClass> strct = scope().selectOrThrow<StructuredClass>();
 
@@ -200,12 +224,14 @@ void DomainParentHandler::start(Variant::mapType &args)
 	    new DomainParent(strct->getManager(), args["ref"].asString(), strct)};
 	parent->setLocation(location());
 	scope().push(parent);
+	return true;
 }
 
 void DomainParentHandler::end() { scope().pop(); }
 
 /* DomainParentFieldHandler */
-void DomainParentFieldHandler::start(Variant::mapType &args)
+
+bool DomainParentFieldHandler::start(Variant::mapType &args)
 {
 	Rooted<DomainParent> parentNameNode = scope().selectOrThrow<DomainParent>();
 	FieldDescriptor::FieldType type;
@@ -233,13 +259,12 @@ void DomainParentFieldHandler::start(Variant::mapType &args)
 			    field->addChild(strct.cast<StructuredClass>());
 		    }
 		});
+	return true;
 }
-
-void DomainParentFieldHandler::end() {}
 
 /* DomainParentFieldRefHandler */
 
-void DomainParentFieldRefHandler::start(Variant::mapType &args)
+bool DomainParentFieldRefHandler::start(Variant::mapType &args)
 {
 	Rooted<DomainParent> parentNameNode = scope().selectOrThrow<DomainParent>();
 
@@ -265,12 +290,104 @@ void DomainParentFieldRefHandler::start(Variant::mapType &args)
 			    field->addChild(strct.cast<StructuredClass>());
 		    }
 		});
+	return true;
 }
 
-void DomainParentFieldRefHandler::end() {}
+namespace States {
+const State Domain = StateBuilder()
+                         .parents({&None, &Document})
+                         .createdNodeType(&RttiTypes::Domain)
+                         .elementHandler(DomainHandler::create)
+                         .arguments({Argument::String("name")});
+
+const State DomainStruct =
+    StateBuilder()
+        .parent(&Domain)
+        .createdNodeType(&RttiTypes::StructuredClass)
+        .elementHandler(DomainStructHandler::create)
+        .arguments({Argument::String("name"),
+                    Argument::Cardinality("cardinality", Cardinality::any()),
+                    Argument::Bool("isRoot", false),
+                    Argument::Bool("transparent", false),
+                    Argument::String("isa", "")});
+
+const State DomainAnnotation =
+    StateBuilder()
+        .parent(&Domain)
+        .createdNodeType(&RttiTypes::AnnotationClass)
+        .elementHandler(DomainAnnotationHandler::create)
+        .arguments({Argument::String("name")});
+
+const State DomainAttributes =
+    StateBuilder()
+        .parents({&DomainStruct, &DomainAnnotation})
+        .createdNodeType(&RttiTypes::StructType)
+        .elementHandler(DomainAttributesHandler::create)
+        .arguments({});
+
+const State DomainAttribute =
+    StateBuilder()
+        .parent(&DomainAttributes)
+        .elementHandler(TypesystemStructFieldHandler::create)
+        .arguments({Argument::String("name"), Argument::String("type"),
+                    Argument::Any("default", Variant::fromObject(nullptr))});
+
+const State DomainField = StateBuilder()
+                              .parents({&DomainStruct, &DomainAnnotation})
+                              .createdNodeType(&RttiTypes::FieldDescriptor)
+                              .elementHandler(DomainFieldHandler::create)
+                              .arguments({Argument::String("name", ""),
+                                          Argument::Bool("isSubtree", false),
+                                          Argument::Bool("optional", false)});
+
+const State DomainFieldRef =
+    StateBuilder()
+        .parents({&DomainStruct, &DomainAnnotation})
+        .createdNodeType(&RttiTypes::FieldDescriptor)
+        .elementHandler(DomainFieldRefHandler::create)
+        .arguments({Argument::String("ref", DEFAULT_FIELD_NAME)});
+
+const State DomainStructPrimitive =
+    StateBuilder()
+        .parents({&DomainStruct, &DomainAnnotation})
+        .createdNodeType(&RttiTypes::FieldDescriptor)
+        .elementHandler(DomainPrimitiveHandler::create)
+        .arguments(
+            {Argument::String("name", ""), Argument::Bool("isSubtree", false),
+             Argument::Bool("optional", false), Argument::String("type")});
+
+const State DomainStructChild = StateBuilder()
+                                    .parent(&DomainField)
+                                    .elementHandler(DomainChildHandler::create)
+                                    .arguments({Argument::String("ref")});
+
+const State DomainStructParent =
+    StateBuilder()
+        .parent(&DomainStruct)
+        .createdNodeType(&RttiTypes::DomainParent)
+        .elementHandler(DomainParentHandler::create)
+        .arguments({Argument::String("ref")});
+
+const State DomainStructParentField =
+    StateBuilder()
+        .parent(&DomainStructParent)
+        .createdNodeType(&RttiTypes::FieldDescriptor)
+        .elementHandler(DomainParentFieldHandler::create)
+        .arguments({Argument::String("name", ""),
+                    Argument::Bool("isSubtree", false),
+                    Argument::Bool("optional", false)});
+
+const State DomainStructParentFieldRef =
+    StateBuilder()
+        .parent(&DomainStructParent)
+        .createdNodeType(&RttiTypes::FieldDescriptor)
+        .elementHandler(DomainParentFieldRefHandler::create)
+        .arguments({Argument::String("ref", DEFAULT_FIELD_NAME)});
+}
+}
 
 namespace RttiTypes {
-const Rtti DomainParent =
-    RttiBuilder<ousia::DomainParent>("DomainParent").parent(&Node);
+const Rtti DomainParent = RttiBuilder<ousia::parser_stack::DomainParent>(
+                              "DomainParent").parent(&Node);
 }
 }

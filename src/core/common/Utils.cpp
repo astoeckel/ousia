@@ -18,18 +18,12 @@
 
 #include <algorithm>
 #include <cctype>
-#include <limits>
 #include <string>
 
 #include "Utils.hpp"
+#include "WhitespaceHandler.hpp"
 
 namespace ousia {
-
-std::string Utils::trim(const std::string &s)
-{
-	std::pair<size_t, size_t> bounds = trim(s, Utils::isWhitespace);
-	return s.substr(bounds.first, bounds.second - bounds.first);
-}
 
 bool Utils::isIdentifier(const std::string &name)
 {
@@ -43,7 +37,27 @@ bool Utils::isIdentifier(const std::string &name)
 		}
 		first = false;
 	}
-	return true;
+	return !first;
+}
+
+bool Utils::isIdentifierOrEmpty(const std::string &name)
+{
+	return name.empty() || isIdentifier(name);
+}
+
+bool Utils::isNamespacedIdentifier(const std::string &name)
+{
+	bool first = true;
+	for (char c : name) {
+		if (first && !isIdentifierStartCharacter(c)) {
+			return false;
+		}
+		if (!first && (!isIdentifierCharacter(c) && c != ':')) {
+			return false;
+		}
+		first = (c == ':');
+	}
+	return !first;
 }
 
 bool Utils::hasNonWhitepaceChar(const std::string &s)
@@ -93,6 +107,30 @@ std::string Utils::extractFileExtension(const std::string &filename)
 		n++;
 	}
 	return std::string{};
+}
+
+std::string Utils::trim(const std::string &s)
+{
+	std::pair<size_t, size_t> bounds = trim(s, Utils::isWhitespace);
+	return s.substr(bounds.first, bounds.second - bounds.first);
+}
+
+std::string Utils::collapse(const std::string &s)
+{
+	CollapsingWhitespaceHandler h;
+	appendToWhitespaceHandler(h, s, 0);
+	return h.toString();
+}
+
+bool Utils::startsWith(const std::string &s, const std::string &prefix)
+{
+	return prefix.size() <= s.size() && s.substr(0, prefix.size()) == prefix;
+}
+
+bool Utils::endsWith(const std::string &s, const std::string &suffix)
+{
+	return suffix.size() <= s.size() &&
+	       s.substr(s.size() - suffix.size(), suffix.size()) == suffix;
 }
 }
 
