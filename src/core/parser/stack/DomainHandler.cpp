@@ -35,11 +35,21 @@ namespace parser_stack {
 
 bool DomainHandler::start(Variant::mapType &args)
 {
+	// Create the Domain node
 	Rooted<Domain> domain =
 	    context().getProject()->createDomain(args["name"].asString());
 	domain->setLocation(location());
 
+	// If the domain is defined inside a document, add the reference to the
+	// document
+	Rooted<Document> document = scope().select<Document>();
+	if (document != nullptr) {
+		document->reference(domain);
+	}
+
+	// Push the typesystem onto the scope, set the POST_HEAD flag to true
 	scope().push(domain);
+	scope().setFlag(ParserFlag::POST_HEAD, false);
 	return true;
 }
 

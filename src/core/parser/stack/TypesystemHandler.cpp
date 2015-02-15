@@ -37,6 +37,13 @@ bool TypesystemHandler::start(Variant::mapType &args)
 	    context().getProject()->createTypesystem(args["name"].asString());
 	typesystem->setLocation(location());
 
+	// If the typesystem is defined inside a domain, add a reference to the
+	// typesystem to the domain
+	Rooted<Domain> domain = scope().select<Domain>();
+	if (domain != nullptr) {
+		domain->reference(typesystem);
+	}
+
 	// Push the typesystem onto the scope, set the POST_HEAD flag to true
 	scope().push(typesystem);
 	scope().setFlag(ParserFlag::POST_HEAD, false);
