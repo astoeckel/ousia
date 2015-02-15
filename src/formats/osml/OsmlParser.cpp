@@ -64,13 +64,27 @@ public:
 	 */
 	void parse()
 	{
+		// Flag set to true if a "document" element needs to be created
+		bool needsDocument = true;
 		while (true) {
 			OsmlStreamParser::State state = parser.parse();
 			switch (state) {
-				case OsmlStreamParser::State::COMMAND:
+				case OsmlStreamParser::State::COMMAND: {
+					// Implicitly create a "document" element if the first
+					// command is not any other top-level command
+					if (needsDocument) {
+						const std::string &cmd =
+						    parser.getCommandName().asString();
+						if (cmd != "typesystem" && cmd != "document" &&
+						    cmd != "domain") {
+							stack.command("document", Variant::mapType{});
+						}
+						needsDocument = false;
+					}
 					stack.command(parser.getCommandName(),
 					              parser.getCommandArguments().asMap());
 					break;
+				}
 				case OsmlStreamParser::State::DATA:
 					stack.data(parser.getData());
 					break;

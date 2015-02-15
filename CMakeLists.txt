@@ -352,6 +352,7 @@ IF(TEST)
 	)
 
 	ADD_EXECUTABLE(ousia_test_osml
+		test/formats/osml/OsmlParserTest
 		test/formats/osml/OsmlStreamParserTest
 	)
 
@@ -359,6 +360,7 @@ IF(TEST)
 		${GTEST_LIBRARIES}
 		ousia_core
 		ousia_osml
+		ousia_filesystem
 	)
 
 	ADD_EXECUTABLE(ousia_test_osxml
