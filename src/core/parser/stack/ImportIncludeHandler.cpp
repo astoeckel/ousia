@@ -18,48 +18,16 @@
 
 #include "ImportIncludeHandler.hpp"
 
+#include <core/model/RootNode.hpp>
 #include <core/parser/ParserScope.hpp>
+#include <core/parser/ParserContext.hpp>
 
 namespace ousia {
-
-/* ImportIncludeHandler */
-
-void ImportIncludeHandler::start(Variant::mapType &args)
-{
-	rel = args["rel"].asString();
-	type = args["type"].asString();
-	src = args["src"].asString();
-	srcInArgs = !src.empty();
-}
-
-void ImportIncludeHandler::data(const std::string &data, int field)
-{
-	if (srcInArgs) {
-		logger().error("\"src\" attribute has already been set");
-		return;
-	}
-	if (field != 0) {
-		logger().error("Command has only one field.");
-		return;
-	}
-	src.append(data);
-}
+namespace parser_stack {
 
 /* ImportHandler */
 
-void ImportHandler::start(Variant::mapType &args)
-{
-	ImportIncludeHandler::start(args);
-
-	// Make sure imports are still possible
-	if (scope().getFlag(ParserFlag::POST_HEAD)) {
-		logger().error("Imports must be listed before other commands.",
-		               location());
-		return;
-	}
-}
-
-void ImportHandler::end()
+void ImportHandler::doHandle(const Variant &fieldData, Variant::mapType &args)
 {
 	// Fetch the last node and check whether an import is valid at this
 	// position
@@ -75,8 +43,9 @@ void ImportHandler::end()
 
 	// Perform the actual import, register the imported node within the leaf
 	// node
-	Rooted<Node> imported =
-	    context().import(src, type, rel, leafRootNode->getReferenceTypes());
+	Rooted<Node> imported = context().import(
+	    fieldData.asString(), args["type"].asString(), args["rel"].asString(),
+	    leafRootNode->getReferenceTypes());
 	if (imported != nullptr) {
 		leafRootNode->reference(imported);
 	}
@@ -84,13 +53,10 @@ void ImportHandler::end()
 
 /* IncludeHandler */
 
-void IncludeHandler::start(Variant::mapType &args)
+void IncludeHandler::doHandle(const Variant &fieldData, Variant::mapType &args)
 {
-	ImportIncludeHandler::start(args);
+	context().include(fieldData.asString(), args["type"].asString(),
+	                  args["rel"].asString(), {&RttiTypes::Node});
 }
-
-void IncludeHandler::end()
-{
-	context().include(src, type, rel, {&RttiTypes::Node});
 }
 }

@@ -19,6 +19,9 @@
 /**
  * @file TypesystemHandler.hpp
  *
+ * Contains the Handler classes used to parse Typesystem descriptions. The
+ * Handlers parse all the tags found below and including the "typesystem" tag.
+ *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
 
@@ -26,96 +29,154 @@
 #define _OUSIA_TYPESYSTEM_HANDLER_HPP_
 
 #include <core/common/Variant.hpp>
-#include <core/parser/ParserStack.hpp>
+
+#include "Handler.hpp"
 
 namespace ousia {
+namespace parser_stack {
 
-class TypesystemHandler : public Handler {
+/**
+ * Handles the occurance of the "typesystem" tag. Creates a new Typesystem
+ * instance and places it on the ParserScope.
+ */
+class TypesystemHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
+	bool start(Variant::mapType &args) override;
 	void end() override;
 
+	/**
+	 * Creates a new instance of the TypesystemHandler.
+	 *
+	 * @param handlerData is the data that is passed to the constructor of the
+	 * Handler base class and used there to e.g. access the ParserContext and
+	 * the Callbacks instance.
+	 */
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new TypesystemHandler{handlerData};
 	}
 };
 
-class TypesystemEnumHandler : public Handler {
+/**
+ * Handles the occurance of the "enum" tag. Creates a new EnumType instance and
+ * places it on the ParserScope.
+ */
+class TypesystemEnumHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
+	bool start(Variant::mapType &args) override;
 	void end() override;
 
+	/**
+	 * Creates a new instance of the TypesystemEnumHandler.
+	 *
+	 * @param handlerData is the data that is passed to the constructor of the
+	 * Handler base class and used there to e.g. access the ParserContext and
+	 * the Callbacks instance.
+	 */
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new TypesystemEnumHandler{handlerData};
 	}
 };
 
-class TypesystemEnumEntryHandler : public Handler {
+/**
+ * Handles the occurance of the "entry" tag within an "enum" tag. Creates a new
+ * EnumType instance and places it on the ParserScope.
+ */
+class TypesystemEnumEntryHandler : public StaticFieldHandler {
 public:
-	using Handler::Handler;
+	using StaticFieldHandler::StaticFieldHandler;
 
-	std::string entry;
+	void doHandle(const Variant &fieldData,
+	              Variant::mapType &args) override;
 
-	void start(Variant::mapType &args) override;
-
-	void end() override;
-
-	void data(const std::string &data, int field) override;
-
+	/**
+	 * Creates a new instance of the TypesystemEnumEntryHandler.
+	 *
+	 * @param handlerData is the data that is passed to the constructor of the
+	 * Handler base class and used there to e.g. access the ParserContext and
+	 * the Callbacks instance.
+	 */
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new TypesystemEnumEntryHandler{handlerData};
+		return new TypesystemEnumEntryHandler{handlerData, "name"};
 	}
 };
 
-class TypesystemStructHandler : public Handler {
+/**
+ * Handles the occurance of the "struct" tag within a typesystem description.
+ * Creates a new StructType instance and places it on the ParserScope.
+ */
+class TypesystemStructHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
-
+	bool start(Variant::mapType &args) override;
 	void end() override;
 
+	/**
+	 * Creates a new instance of the TypesystemStructHandler.
+	 *
+	 * @param handlerData is the data that is passed to the constructor of the
+	 * Handler base class and used there to e.g. access the ParserContext and
+	 * the Callbacks instance.
+	 */
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new TypesystemStructHandler{handlerData};
 	}
 };
 
-class TypesystemStructFieldHandler : public Handler {
+/**
+ * Handles the occurance of the "field" tag within a typesystem structure
+ * description. Places a new Attribute instance in the StructType instance
+ * that is currently at the top of the scope.
+ */
+class TypesystemStructFieldHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
+	bool start(Variant::mapType &args) override;
 
-	void end() override;
-
+	/**
+	 * Creates a new instance of the TypesystemStructFieldHandler.
+	 *
+	 * @param handlerData is the data that is passed to the constructor of the
+	 * Handler base class and used there to e.g. access the ParserContext and
+	 * the Callbacks instance.
+	 */
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new TypesystemStructFieldHandler{handlerData};
 	}
 };
 
-class TypesystemConstantHandler : public Handler {
+/**
+ * Handles the occurance of the "constant" tag within a typesystem structure
+ * description. Places a new Constant instance in the current typesystem.
+ */
+class TypesystemConstantHandler : public StaticHandler {
 public:
-	using Handler::Handler;
+	using StaticHandler::StaticHandler;
 
-	void start(Variant::mapType &args) override;
+	bool start(Variant::mapType &args) override;
 
-	void end() override;
-
+	/**
+	 * Creates a new instance of the TypesystemConstantHandler.
+	 *
+	 * @param handlerData is the data that is passed to the constructor of the
+	 * Handler base class and used there to e.g. access the ParserContext and
+	 * the Callbacks instance.
+	 */
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new TypesystemConstantHandler{handlerData};
 	}
 };
+}
 }
 #endif

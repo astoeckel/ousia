@@ -151,6 +151,13 @@ protected:
 	 */
 	const SourceLocation &location() const;
 
+	/**
+	 * Returns the command name for which the handler was created.
+	 *
+	 * @return a const reference at the command name.
+	 */
+	const std::string &name() const;
+
 public:
 	/**
 	 * Virtual destructor.
@@ -229,7 +236,7 @@ public:
 	 * @return true if the handler was successful in starting the element it
 	 * represents, false otherwise.
 	 */
-	virtual bool start(const Variant::mapType &args) = 0;
+	virtual bool start(Variant::mapType &args) = 0;
 
 	/**
 	 * Called before the command for which this handler is defined ends (is
@@ -270,7 +277,7 @@ public:
 	 * if an error occurred.
 	 */
 	virtual bool annotationStart(const Variant &className,
-	                             const Variant::mapType &args) = 0;
+	                             Variant::mapType &args) = 0;
 
 	/**
 	 * Called whenever an annotation ends while this handler is active. The
@@ -296,7 +303,7 @@ public:
 	 * location.
 	 * @return true if the data could be handled, false otherwise.
 	 */
-	virtual bool data(const Variant &data) = 0;
+	virtual bool data(Variant &data) = 0;
 };
 
 /**
@@ -318,15 +325,15 @@ protected:
 	using Handler::Handler;
 
 public:
-	bool start(const Variant::mapType &args) override;
+	bool start(Variant::mapType &args) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
 	void fieldEnd() override;
 	bool annotationStart(const Variant &className,
-	                     const Variant::mapType &args) override;
+	                     Variant::mapType &args) override;
 	bool annotationEnd(const Variant &className,
 	                   const Variant &elementName) override;
-	bool data(const Variant &data) override;
+	bool data(Variant &data) override;
 
 	/**
 	 * Creates an instance of the EmptyHandler class.
@@ -344,15 +351,15 @@ protected:
 	using Handler::Handler;
 
 public:
-	bool start(const Variant::mapType &args) override;
+	bool start(Variant::mapType &args) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
 	void fieldEnd() override;
 	bool annotationStart(const Variant &className,
-	                     const Variant::mapType &args) override;
+	                     Variant::mapType &args) override;
 	bool annotationEnd(const Variant &className,
 	                   const Variant &elementName) override;
-	bool data(const Variant &data) override;
+	bool data(Variant &data) override;
 };
 
 /**
@@ -400,12 +407,12 @@ protected:
 	 * @param args are the arguments that were given in the "start" function.
 	 */
 	virtual void doHandle(const Variant &fieldData,
-	                      const Variant::mapType &args) = 0;
+	                      Variant::mapType &args) = 0;
 
 public:
-	bool start(const Variant::mapType &args) override;
+	bool start(Variant::mapType &args) override;
 	void end() override;
-	bool data(const Variant &data) override;
+	bool data(Variant &data) override;
 };
 }
 }

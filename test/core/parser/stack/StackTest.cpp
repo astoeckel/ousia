@@ -112,16 +112,21 @@ private:
 	TestHandler(const HandlerData &handlerData) : Handler(handlerData) {}
 
 public:
-	bool start(const Variant::mapType &args)
+	bool start(Variant::mapType &args) override
 	{
 		tracker.startCount++;
 		tracker.startArgs = args;
+		if (!tracker.startResult) {
+			logger().error(
+			    "The TestHandler was told not to allow a field start. So it "
+			    "doesn't. The TestHandler always obeys its master.");
+		}
 		return tracker.startResult;
 	}
 
-	void end() { tracker.endCount++; }
+	void end() override { tracker.endCount++; }
 
-	bool fieldStart(bool &isDefault, size_t fieldIdx)
+	bool fieldStart(bool &isDefault, size_t fieldIdx) override
 	{
 		tracker.fieldStartCount++;
 		tracker.fieldStartIsDefault = isDefault;
@@ -132,9 +137,10 @@ public:
 		return tracker.fieldStartResult;
 	}
 
-	void fieldEnd() { tracker.fieldEndCount++; }
+	void fieldEnd() override { tracker.fieldEndCount++; }
 
-	bool annotationStart(const Variant &className, const Variant::mapType &args)
+	bool annotationStart(const Variant &className,
+	                     Variant::mapType &args) override
 	{
 		tracker.annotationStartCount++;
 		tracker.annotationStartClassName = className;
@@ -142,7 +148,8 @@ public:
 		return tracker.annotationStartResult;
 	}
 
-	bool annotationEnd(const Variant &className, const Variant &elementName)
+	bool annotationEnd(const Variant &className,
+	                   const Variant &elementName) override
 	{
 		tracker.annotationEndCount++;
 		tracker.annotationEndClassName = className;
@@ -150,7 +157,7 @@ public:
 		return tracker.annotationEndResult;
 	}
 
-	bool data(const Variant &data)
+	bool data(Variant &data) override
 	{
 		tracker.dataCount++;
 		tracker.dataData = data;
@@ -456,6 +463,26 @@ TEST(Stack, noImplicitDefaultFieldIfDefaultFieldGiven)
 	}
 	tracker.expect(2, 2, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	ASSERT_FALSE(logger.hasError());
+}
+
+TEST(Stack, noEndIfStartFails)
+{
+	tracker.reset();
+	logger.reset();
+	{
+		Stack s{env.context, States::AnyHandlers};
+
+		s.command("a", {});
+		tracker.expect(1, 0, 0, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		ASSERT_EQ("a", s.currentCommandName());
+
+		tracker.startResult = false;
+		s.command("b", {});
+		tracker.expect(3, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		ASSERT_EQ("b", s.currentCommandName());
+	}
+	tracker.expect(3, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+	ASSERT_TRUE(logger.hasError());
 }
 
 TEST(Stack, implicitDefaultFieldOnData)

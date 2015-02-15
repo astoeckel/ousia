@@ -19,17 +19,24 @@
 /**
  * @file DomainHandler.hpp
  *
- * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
+ * Contains the Handler classes used for parsing Domain descriptors. This
+ * includes the "domain" tag and all describing tags below the "domain" tag.
+ *
+ * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
  */
 
 #ifndef _OUSIA_DOMAIN_HANDLER_HPP_
 #define _OUSIA_DOMAIN_HANDLER_HPP_
 
 #include <core/common/Variant.hpp>
+#include <core/model/Node.hpp>
 
 #include "Handler.hpp"
 
 namespace ousia {
+namespace parser_stack {
+
+// TODO: Documentation
 
 // Forward declarations
 class Rtti;
@@ -39,7 +46,6 @@ public:
 	using StaticHandler::StaticHandler;
 
 	bool start(Variant::mapType &args) override;
-
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -53,7 +59,6 @@ public:
 	using StaticHandler::StaticHandler;
 
 	bool start(Variant::mapType &args) override;
-
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -67,7 +72,6 @@ public:
 	using StaticHandler::StaticHandler;
 
 	bool start(Variant::mapType &args) override;
-
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -81,7 +85,6 @@ public:
 	using StaticHandler::StaticHandler;
 
 	bool start(Variant::mapType &args) override;
-
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -95,7 +98,6 @@ public:
 	using StaticHandler::StaticHandler;
 
 	bool start(Variant::mapType &args) override;
-
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -109,7 +111,6 @@ public:
 	using StaticHandler::StaticHandler;
 
 	bool start(Variant::mapType &args) override;
-
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -123,7 +124,6 @@ public:
 	using StaticHandler::StaticHandler;
 
 	bool start(Variant::mapType &args) override;
-
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -137,8 +137,6 @@ public:
 	using StaticHandler::StaticHandler;
 
 	bool start(Variant::mapType &args) override;
-
-	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -160,7 +158,6 @@ public:
 	using StaticHandler::StaticHandler;
 
 	bool start(Variant::mapType &args) override;
-
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -175,8 +172,6 @@ public:
 
 	bool start(Variant::mapType &args) override;
 
-	void end() override;
-
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new DomainParentFieldHandler{handlerData};
@@ -189,12 +184,15 @@ public:
 
 	bool start(Variant::mapType &args) override;
 
-	void end() override;
-
 	static Handler *create(const HandlerData &handlerData)
 	{
 		return new DomainParentFieldRefHandler{handlerData};
 	}
 };
+}
+
+namespace RttiTypes {
+extern const Rtti DomainParent;
+}
 }
 #endif

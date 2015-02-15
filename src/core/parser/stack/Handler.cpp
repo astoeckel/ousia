@@ -65,6 +65,8 @@ Logger &Handler::logger()
 
 const SourceLocation &Handler::location() const { return handlerData.location; }
 
+const std::string &Handler::name() const { return handlerData.name; }
+
 void Handler::setWhitespaceMode(WhitespaceMode whitespaceMode)
 {
 	/*handlerData.callbacks.setWhitespaceMode(whitespaceMode);*/
@@ -80,7 +82,7 @@ void Handler::unregisterToken(const std::string &token)
 	/*handlerData.callbacks.unregisterToken(token);*/
 }
 
-const std::string &Handler::getName() const { return handlerData.name; }
+const std::string &Handler::getName() const { return name(); }
 
 const State &Handler::getState() const { return handlerData.state; }
 
@@ -92,7 +94,7 @@ const SourceLocation &Handler::getLocation() const { return location(); }
 
 /* Class EmptyHandler */
 
-bool EmptyHandler::start(const Variant::mapType &args)
+bool EmptyHandler::start(Variant::mapType &args)
 {
 	// Just accept anything
 	return true;
@@ -115,7 +117,7 @@ void EmptyHandler::fieldEnd()
 }
 
 bool EmptyHandler::annotationStart(const Variant &className,
-                                   const Variant::mapType &args)
+                                   Variant::mapType &args)
 {
 	// Accept any data
 	return true;
@@ -128,7 +130,7 @@ bool EmptyHandler::annotationEnd(const Variant &className,
 	return true;
 }
 
-bool EmptyHandler::data(const Variant &data)
+bool EmptyHandler::data(Variant &data)
 {
 	// Support any data
 	return true;
@@ -141,7 +143,7 @@ Handler *EmptyHandler::create(const HandlerData &handlerData)
 
 /* Class StaticHandler */
 
-bool StaticHandler::start(const Variant::mapType &args)
+bool StaticHandler::start(Variant::mapType &args)
 {
 	// Do nothing in the default implementation, accept anything
 	return true;
@@ -169,7 +171,7 @@ void StaticHandler::fieldEnd()
 }
 
 bool StaticHandler::annotationStart(const Variant &className,
-                                    const Variant::mapType &args)
+                                    Variant::mapType &args)
 {
 	// No annotations supported
 	return false;
@@ -182,7 +184,7 @@ bool StaticHandler::annotationEnd(const Variant &className,
 	return false;
 }
 
-bool StaticHandler::data(const Variant &data)
+bool StaticHandler::data(Variant &data)
 {
 	logger().error("Did not expect any data here", data);
 	return false;
@@ -196,7 +198,7 @@ StaticFieldHandler::StaticFieldHandler(const HandlerData &handlerData,
 {
 }
 
-bool StaticFieldHandler::start(const Variant::mapType &args)
+bool StaticFieldHandler::start(Variant::mapType &args)
 {
 	if (!argName.empty()) {
 		auto it = args.find(argName);
@@ -225,7 +227,7 @@ void StaticFieldHandler::end()
 	}
 }
 
-bool StaticFieldHandler::data(const Variant &data)
+bool StaticFieldHandler::data(Variant &data)
 {
 	// Call the doHandle function if this has not been done before
 	if (!handled) {

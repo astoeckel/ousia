@@ -316,8 +316,6 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 		                        name);
 	}
 
-	State const *lastTargetState = nullptr;
-	Variant::mapType canonicalArgs;
 	while (true) {
 		// Try to find a target state for the given command, if none can be
 		// found and the current command does not have an open field, then try
@@ -342,14 +340,6 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 		// Fork the logger. We do not want any validation errors to skip
 		LoggerFork loggerFork = logger().fork();
 
-		// Canonicalize the arguments (if this has not already been done), allow
-		// additional arguments
-		if (lastTargetState != targetState) {
-			canonicalArgs = args;
-			targetState->arguments.validateMap(canonicalArgs, loggerFork, true);
-			lastTargetState = targetState;
-		}
-
 		// Instantiate the handler and push it onto the stack
 		HandlerConstructor ctor = targetState->elementHandler
 		                              ? targetState->elementHandler
@@ -369,6 +359,11 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 		bool validStack = handlersValid();
 		info.valid = false;
 		if (validStack) {
+			// Canonicalize the arguments (if this has not already been done),
+			// allow additional arguments
+			Variant::mapType canonicalArgs = args;
+			targetState->arguments.validateMap(canonicalArgs, loggerFork, true);
+
 			handler->setLogger(loggerFork);
 			try {
 				info.valid = handler->start(canonicalArgs);
@@ -430,7 +425,8 @@ void Stack::data(const Variant &data)
 			// Pass the data to the current Handler instance
 			bool valid = false;
 			try {
-				valid = info.handler->data(data);
+				Variant dataCopy = data;
+				valid = info.handler->data(dataCopy);
 			}
 			catch (LoggableException ex) {
 				loggerFork.log(ex);

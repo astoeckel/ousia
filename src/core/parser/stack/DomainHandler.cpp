@@ -20,25 +20,30 @@
 
 #include <core/common/RttiBuilder.hpp>
 #include <core/model/Domain.hpp>
+#include <core/model/Project.hpp>
 #include <core/parser/ParserScope.hpp>
+#include <core/parser/ParserContext.hpp>
 
 namespace ousia {
+namespace parser_stack {
 
 /* DomainHandler */
 
-void DomainHandler::start(Variant::mapType &args)
+bool DomainHandler::start(Variant::mapType &args)
 {
-	Rooted<Domain> domain = project()->createDomain(args["name"].asString());
+	Rooted<Domain> domain =
+	    context().getProject()->createDomain(args["name"].asString());
 	domain->setLocation(location());
 
 	scope().push(domain);
+	return true;
 }
 
 void DomainHandler::end() { scope().pop(); }
 
 /* DomainStructHandler */
 
-void DomainStructHandler::start(Variant::mapType &args)
+bool DomainStructHandler::start(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -63,12 +68,13 @@ void DomainStructHandler::start(Variant::mapType &args)
 	}
 
 	scope().push(structuredClass);
+	return true;
 }
 
 void DomainStructHandler::end() { scope().pop(); }
 
 /* DomainAnnotationHandler */
-void DomainAnnotationHandler::start(Variant::mapType &args)
+bool DomainAnnotationHandler::start(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -79,13 +85,14 @@ void DomainAnnotationHandler::start(Variant::mapType &args)
 	annotationClass->setLocation(location());
 
 	scope().push(annotationClass);
+	return true;
 }
 
 void DomainAnnotationHandler::end() { scope().pop(); }
 
 /* DomainAttributesHandler */
 
-void DomainAttributesHandler::start(Variant::mapType &args)
+bool DomainAttributesHandler::start(Variant::mapType &args)
 {
 	// Fetch the current typesystem and create the struct node
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
@@ -94,13 +101,14 @@ void DomainAttributesHandler::start(Variant::mapType &args)
 	attrDesc->setLocation(location());
 
 	scope().push(attrDesc);
+	return true;
 }
 
 void DomainAttributesHandler::end() { scope().pop(); }
 
 /* DomainFieldHandler */
 
-void DomainFieldHandler::start(Variant::mapType &args)
+bool DomainFieldHandler::start(Variant::mapType &args)
 {
 	FieldDescriptor::FieldType type;
 	if (args["isSubtree"].asBool()) {
@@ -116,13 +124,14 @@ void DomainFieldHandler::start(Variant::mapType &args)
 	field->setLocation(location());
 
 	scope().push(field);
+	return true;
 }
 
 void DomainFieldHandler::end() { scope().pop(); }
 
 /* DomainFieldRefHandler */
 
-void DomainFieldRefHandler::start(Variant::mapType &args)
+bool DomainFieldRefHandler::start(Variant::mapType &args)
 {
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
@@ -135,13 +144,14 @@ void DomainFieldRefHandler::start(Variant::mapType &args)
 			        field.cast<FieldDescriptor>(), logger);
 		    }
 		});
+	return true;
 }
 
 void DomainFieldRefHandler::end() {}
 
 /* DomainPrimitiveHandler */
 
-void DomainPrimitiveHandler::start(Variant::mapType &args)
+bool DomainPrimitiveHandler::start(Variant::mapType &args)
 {
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
@@ -167,13 +177,14 @@ void DomainPrimitiveHandler::start(Variant::mapType &args)
 	});
 
 	scope().push(field);
+	return true;
 }
 
 void DomainPrimitiveHandler::end() { scope().pop(); }
 
 /* DomainChildHandler */
 
-void DomainChildHandler::start(Variant::mapType &args)
+bool DomainChildHandler::start(Variant::mapType &args)
 {
 	Rooted<FieldDescriptor> field = scope().selectOrThrow<FieldDescriptor>();
 
@@ -186,13 +197,12 @@ void DomainChildHandler::start(Variant::mapType &args)
 			        child.cast<StructuredClass>());
 		    }
 		});
+	return true;
 }
-
-void DomainChildHandler::end() {}
 
 /* DomainParentHandler */
 
-void DomainParentHandler::start(Variant::mapType &args)
+bool DomainParentHandler::start(Variant::mapType &args)
 {
 	Rooted<StructuredClass> strct = scope().selectOrThrow<StructuredClass>();
 
@@ -200,12 +210,14 @@ void DomainParentHandler::start(Variant::mapType &args)
 	    new DomainParent(strct->getManager(), args["ref"].asString(), strct)};
 	parent->setLocation(location());
 	scope().push(parent);
+	return true;
 }
 
 void DomainParentHandler::end() { scope().pop(); }
 
 /* DomainParentFieldHandler */
-void DomainParentFieldHandler::start(Variant::mapType &args)
+
+bool DomainParentFieldHandler::start(Variant::mapType &args)
 {
 	Rooted<DomainParent> parentNameNode = scope().selectOrThrow<DomainParent>();
 	FieldDescriptor::FieldType type;
@@ -233,13 +245,12 @@ void DomainParentFieldHandler::start(Variant::mapType &args)
 			    field->addChild(strct.cast<StructuredClass>());
 		    }
 		});
+	return true;
 }
-
-void DomainParentFieldHandler::end() {}
 
 /* DomainParentFieldRefHandler */
 
-void DomainParentFieldRefHandler::start(Variant::mapType &args)
+bool DomainParentFieldRefHandler::start(Variant::mapType &args)
 {
 	Rooted<DomainParent> parentNameNode = scope().selectOrThrow<DomainParent>();
 
@@ -265,12 +276,12 @@ void DomainParentFieldRefHandler::start(Variant::mapType &args)
 			    field->addChild(strct.cast<StructuredClass>());
 		    }
 		});
+	return true;
+}
 }
 
-void DomainParentFieldRefHandler::end() {}
-
 namespace RttiTypes {
-const Rtti DomainParent =
-    RttiBuilder<ousia::DomainParent>("DomainParent").parent(&Node);
+const Rtti DomainParent = RttiBuilder<ousia::parser_stack::DomainParent>(
+                              "DomainParent").parent(&Node);
 }
 }

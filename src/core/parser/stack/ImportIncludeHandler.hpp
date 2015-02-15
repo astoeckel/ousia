@@ -29,9 +29,11 @@
 #define _OUSIA_IMPORT_INCLUDE_HANDLER_HPP_
 
 #include <core/common/Variant.hpp>
-#include <core/parser/ParserStack.hpp>
+
+#include "Handler.hpp"
 
 namespace ousia {
+namespace parser_stack {
 
 /**
  * The ImportHandler is responsible for handling the "import" command. An import
@@ -46,7 +48,7 @@ public:
 	using StaticFieldHandler::StaticFieldHandler;
 
 	void doHandle(const Variant &fieldData,
-	                      const Variant::mapType &args) override;
+	              Variant::mapType &args) override;
 
 	/**
 	 * Creates a new instance of the ImportHandler.
@@ -57,7 +59,7 @@ public:
 	 */
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new ImportHandler{handlerData};
+		return new ImportHandler{handlerData, "src"};
 	}
 };
 
@@ -72,7 +74,7 @@ public:
 	using StaticFieldHandler::StaticFieldHandler;
 
 	void doHandle(const Variant &fieldData,
-	                      const Variant::mapType &args) override;
+	              Variant::mapType &args) override;
 
 	/**
 	 * Creates a new instance of the IncludeHandler.
@@ -83,8 +85,9 @@ public:
 	 */
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new IncludeHandler{handlerData};
+		return new IncludeHandler{handlerData, "src"};
 	}
 };
+}
 }
 #endif
