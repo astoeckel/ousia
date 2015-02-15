@@ -49,7 +49,7 @@
 #include <core/resource/ResourceManager.hpp>
 #include <plugins/filesystem/FileLocator.hpp>
 #include <plugins/html/DemoOutput.hpp>
-#include <plugins/xml/XmlParser.hpp>
+#include <formats/osxml/OsxmlParser.hpp>
 #include <plugins/xml/XmlOutput.hpp>
 
 const size_t ERROR_IN_COMMAND_LINE = 1;
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 
 	// fill registry
 	registry.registerDefaultExtensions();
-	XmlParser xmlParser;
+	OsxmlParser xmlParser;
 	registry.registerParser(
 	    {"text/vnd.ousia.oxm", "text/vnd.ousia.oxd"},
 	    {&RttiTypes::Document, &RttiTypes::Domain, &RttiTypes::Typesystem},
