@@ -186,21 +186,21 @@ TEST(Descriptor, pathToAdvanced)
 	    new StructuredClass(mgr, "target", domain, Cardinality::any())};
 
 	// We create a field for A
-	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger);
+	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
 	A_field->addChild(B);
 	A_field->addChild(D);
 
 	// We create no field for B
 	// One for C
-	Rooted<FieldDescriptor> C_field = C->createFieldDescriptor(logger);
+	Rooted<FieldDescriptor> C_field = C->createFieldDescriptor(logger).first;
 	C_field->addChild(target);
 
 	// One for D
-	Rooted<FieldDescriptor> D_field = D->createFieldDescriptor(logger);
+	Rooted<FieldDescriptor> D_field = D->createFieldDescriptor(logger).first;
 	D_field->addChild(E);
 
 	// One for E
-	Rooted<FieldDescriptor> E_field = E->createFieldDescriptor(logger);
+	Rooted<FieldDescriptor> E_field = E->createFieldDescriptor(logger).first;
 	E_field->addChild(target);
 
 	ASSERT_TRUE(domain->validate(logger));
@@ -239,7 +239,7 @@ TEST(Descriptor, getDefaultFields)
 
 	// create a field.
 	Rooted<FieldDescriptor> A_prim_field =
-	    A->createPrimitiveFieldDescriptor(sys->getStringType(), logger);
+	    A->createPrimitiveFieldDescriptor(sys->getStringType(), logger).first;
 	// now we should find that.
 	auto fields = A->getDefaultFields();
 	ASSERT_EQ(1U, fields.size());
@@ -262,7 +262,7 @@ TEST(Descriptor, getDefaultFields)
 	ASSERT_EQ(A_prim_field, fields[0]);
 
 	// and we should not be able to find it if we override the field.
-	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger);
+	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
 	ASSERT_TRUE(A->getDefaultFields().empty());
 
 	// add a transparent child class.
@@ -273,7 +273,7 @@ TEST(Descriptor, getDefaultFields)
 
 	// add a primitive field for it.
 	Rooted<FieldDescriptor> C_field =
-	    C->createPrimitiveFieldDescriptor(sys->getStringType(), logger);
+	    C->createPrimitiveFieldDescriptor(sys->getStringType(), logger).first;
 
 	// now we should find that.
 	fields = A->getDefaultFields();
@@ -285,14 +285,14 @@ TEST(Descriptor, getDefaultFields)
 	Rooted<StructuredClass> D{new StructuredClass(
 	    mgr, "D", domain, Cardinality::any(), nullptr, true, false)};
 	A_field->addChild(D);
-	Rooted<FieldDescriptor> D_field = D->createFieldDescriptor(logger);
+	Rooted<FieldDescriptor> D_field = D->createFieldDescriptor(logger).first;
 	Rooted<StructuredClass> E{new StructuredClass(
 	    mgr, "E", domain, Cardinality::any(), nullptr, true, false)};
 	D_field->addChild(E);
 	Rooted<StructuredClass> F{new StructuredClass(
 	    mgr, "E", domain, Cardinality::any(), E, true, false)};
 	Rooted<FieldDescriptor> F_field =
-	    F->createPrimitiveFieldDescriptor(sys->getStringType(), logger);
+	    F->createPrimitiveFieldDescriptor(sys->getStringType(), logger).first;
 
 	// now we should find both primitive fields, but the C field first.
 	fields = A->getDefaultFields();
@@ -436,7 +436,7 @@ TEST(Domain, validate)
 		ASSERT_TRUE(domain->validate(logger));
 		// Let's add a primitive field (without a primitive type at first)
 		Rooted<FieldDescriptor> base_field =
-		    base->createPrimitiveFieldDescriptor(nullptr, logger);
+		    base->createPrimitiveFieldDescriptor(nullptr, logger).first;
 		// this should not be valid.
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_FALSE(domain->validate(logger));
@@ -464,7 +464,8 @@ TEST(Domain, validate)
 		ASSERT_TRUE(domain->validate(logger));
 		ASSERT_EQ(base, sub->getSuperclass());
 		// add a non-primitive field to the child class.
-		Rooted<FieldDescriptor> sub_field = sub->createFieldDescriptor(logger);
+		Rooted<FieldDescriptor> sub_field =
+		    sub->createFieldDescriptor(logger).first;
 		// this should not be valid because we allow no children.
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_FALSE(domain->validate(logger));
@@ -489,8 +490,9 @@ TEST(Domain, validate)
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
 		// It should be invalid if we set another TREE field.
-		Rooted<FieldDescriptor> sub_field2 = sub->createFieldDescriptor(
-		    logger, FieldDescriptor::FieldType::TREE, "test", false);
+		Rooted<FieldDescriptor> sub_field2 =
+		    sub->createFieldDescriptor(logger, FieldDescriptor::FieldType::TREE,
+		                               "test", false).first;
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_FALSE(domain->validate(logger));
 		// but valid again if we remove it

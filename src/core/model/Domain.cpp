@@ -558,7 +558,7 @@ Rooted<FieldDescriptor> Descriptor::getFieldDescriptor(
 	}
 }
 
-void Descriptor::addAndSortFieldDescriptor(Handle<FieldDescriptor> fd,
+bool Descriptor::addAndSortFieldDescriptor(Handle<FieldDescriptor> fd,
                                            Logger &logger)
 {
 	// only add it if we need to.
@@ -571,37 +571,25 @@ void Descriptor::addAndSortFieldDescriptor(Handle<FieldDescriptor> fd,
 		    fd->getFieldType() != FieldDescriptor::FieldType::TREE) {
 			// if so we add the new field before the TREE field.
 			fieldDescriptors.insert(fieldDescriptors.end() - 1, fd);
-
-			// if the new field was from the same domain we warn the user
-			// because that is bad coding style.
-			if (fd->getParent() != nullptr &&
-			    fd->getParent().cast<Descriptor>()->getParent() ==
-			        getParent()) {
-				logger.warning(
-				    std::string("Field \"") + fd->getName() +
-				        "\" was declared after main field \"" +
-				        fds.back()->getName() +
-				        "\". The order of fields was changed to make the "
-				        "main field the last field.",
-				    *fd);
-			}
+			return true;
 		} else {
 			fieldDescriptors.push_back(fd);
 		}
 	}
+	return false;
 }
 
-void Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
+bool Descriptor::addFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
 {
-	addAndSortFieldDescriptor(fd, logger);
 	if (fd->getParent() == nullptr) {
 		fd->setParent(this);
 	}
+	return addAndSortFieldDescriptor(fd, logger);
 }
 
-void Descriptor::moveFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
+bool Descriptor::moveFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
 {
-	addAndSortFieldDescriptor(fd, logger);
+	bool sorted = addAndSortFieldDescriptor(fd, logger);
 	Handle<Managed> par = fd->getParent();
 	if (par != this) {
 		if (par != nullptr) {
@@ -610,9 +598,10 @@ void Descriptor::moveFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
 		}
 		fd->setParent(this);
 	}
+	return sorted;
 }
 
-void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
+bool Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
 {
 	Rooted<FieldDescriptor> copy;
 	if (fd->isPrimitive()) {
@@ -631,7 +620,7 @@ void Descriptor::copyFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger)
 			copy->addChild(c);
 		}
 	}
-	addFieldDescriptor(copy, logger);
+	return addFieldDescriptor(copy, logger);
 }
 
 bool Descriptor::removeFieldDescriptor(Handle<FieldDescriptor> fd)
@@ -646,25 +635,27 @@ bool Descriptor::removeFieldDescriptor(Handle<FieldDescriptor> fd)
 	return false;
 }
 
-Rooted<FieldDescriptor> Descriptor::createPrimitiveFieldDescriptor(
-    Handle<Type> primitiveType, Logger &logger,
-    FieldDescriptor::FieldType fieldType, std::string name, bool optional)
+std::pair<Rooted<FieldDescriptor>, bool>
+Descriptor::createPrimitiveFieldDescriptor(Handle<Type> primitiveType,
+                                           Logger &logger,
+                                           FieldDescriptor::FieldType fieldType,
+                                           std::string name, bool optional)
 {
 	Rooted<FieldDescriptor> fd{new FieldDescriptor(getManager(), primitiveType,
 	                                               this, fieldType,
 	                                               std::move(name), optional)};
-	addFieldDescriptor(fd, logger);
-	return fd;
+	bool sorted = addFieldDescriptor(fd, logger);
+	return std::make_pair(fd, sorted);
 }
 
-Rooted<FieldDescriptor> Descriptor::createFieldDescriptor(
+std::pair<Rooted<FieldDescriptor>, bool> Descriptor::createFieldDescriptor(
     Logger &logger, FieldDescriptor::FieldType fieldType, std::string name,
     bool optional)
 {
 	Rooted<FieldDescriptor> fd{new FieldDescriptor(
 	    getManager(), this, fieldType, std::move(name), optional)};
-	addFieldDescriptor(fd, logger);
-	return fd;
+	bool sorted = addFieldDescriptor(fd, logger);
+	return std::make_pair(fd, sorted);
 }
 
 /* Class StructuredClass */

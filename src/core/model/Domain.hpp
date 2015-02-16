@@ -469,7 +469,7 @@ private:
 	Owned<StructType> attributesDescriptor;
 	NodeVector<FieldDescriptor> fieldDescriptors;
 
-	void addAndSortFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
+	bool addAndSortFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 protected:
 	void doResolve(ResolutionState &state) override;
@@ -557,8 +557,11 @@ public:
 	 * parent of the given FieldDescriptor if it is not set yet.
 	 *
 	 * @param fd is a FieldDescriptor.
+	 * @return   returns true if the given FieldDescriptor was not added at the
+	 *           end one place before because a TREE field already existed and
+	 *           the TREE field has to be at the end.
 	 */
-	void addFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
+	bool addFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 	/**
 	 * Adds the given FieldDescriptor to this Descriptor. This also sets the
@@ -566,16 +569,22 @@ public:
 	 * already and removes it from the old parent Descriptor.
 	 *
 	 * @param fd is a FieldDescriptor.
+	 * @return   returns true if the given FieldDescriptor was not added at the
+	 *           end one place before because a TREE field already existed and
+	 *           the TREE field has to be at the end.
 	 */
-	void moveFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
+	bool moveFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 	/**
 	 * Copies a FieldDescriptor that belongs to another Descriptor to this
 	 * Descriptor.
 	 *
 	 * @param fd some FieldDescriptor belonging to another Descriptor.
+	 * @return   returns true if the given FieldDescriptor was not added at the
+	 *           end one place before because a TREE field already existed and
+	 *           the TREE field has to be at the end.
 	 */
-	void copyFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
+	bool copyFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
 	/**
 	 * Removes the given FieldDescriptor from this Descriptor. This also sets
@@ -598,9 +607,12 @@ public:
 	 *                      filled in order for an instance of the parent
 	 *                      Descriptor to be valid.
 	 *
-	 * @return              the newly created FieldDescriptor.
+	 * @return              the newly created FieldDescriptor and a bool
+	 *                      indicating whether the order of FieldDescriptors had
+	 *                      to be changed for the TREE field to be in the last
+	 *                      spot.
 	 */
-	Rooted<FieldDescriptor> createPrimitiveFieldDescriptor(
+	std::pair<Rooted<FieldDescriptor>, bool> createPrimitiveFieldDescriptor(
 	    Handle<Type> primitiveType, Logger &logger,
 	    FieldDescriptor::FieldType fieldType = FieldDescriptor::FieldType::TREE,
 	    std::string name = "", bool optional = false);
@@ -617,9 +629,12 @@ public:
 	 *                      filled in order for an instance of the parent
 	 *                      Descriptor to be valid.
 	 *
-	 * @return              the newly created FieldDescriptor.
+	 * @return              the newly created FieldDescriptor and a bool
+	 *                      indicating whether the order of FieldDescriptors had
+	 *                      to be changed for the TREE field to be in the last
+	 *                      spot.
 	 */
-	Rooted<FieldDescriptor> createFieldDescriptor(
+	std::pair<Rooted<FieldDescriptor>, bool> createFieldDescriptor(
 	    Logger &logger,
 	    FieldDescriptor::FieldType fieldType = FieldDescriptor::FieldType::TREE,
 	    std::string name = "", bool optional = false);

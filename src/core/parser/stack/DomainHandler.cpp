@@ -133,11 +133,18 @@ bool DomainFieldHandler::start(Variant::mapType &args)
 
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
-	Rooted<FieldDescriptor> field = parent->createFieldDescriptor(
+	auto res = parent->createFieldDescriptor(
 	    logger(), type, args["name"].asString(), args["optional"].asBool());
-	field->setLocation(location());
+	res.first->setLocation(location());
+	if (res.second) {
+		logger().warning(
+		    std::string("Field \"") + res.first->getName() +
+		        "\" was declared after main field. The order of fields "
+		        "was changed to make the main field the last field.",
+		    *res.first);
+	}
 
-	scope().push(field);
+	scope().push(res.first);
 	return true;
 }
 
@@ -150,14 +157,24 @@ bool DomainFieldRefHandler::start(Variant::mapType &args)
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
 	const std::string &name = args["ref"].asString();
-	scope().resolveFieldDescriptor(
-	    name, parent, logger(),
-	    [](Handle<Node> field, Handle<Node> parent, Logger &logger) {
-		    if (field != nullptr) {
-			    parent.cast<StructuredClass>()->addFieldDescriptor(
-			        field.cast<FieldDescriptor>(), logger);
-		    }
-		});
+
+	auto loc = location();
+
+	scope().resolveFieldDescriptor(name, parent, logger(),
+	                               [loc](Handle<Node> field,
+	                                     Handle<Node> parent, Logger &logger) {
+		if (field != nullptr) {
+			if (parent.cast<StructuredClass>()->addFieldDescriptor(
+			        field.cast<FieldDescriptor>(), logger)) {
+				logger.warning(
+				    std::string("Field \"") + field->getName() +
+				        "\" was referenced after main field was declared. The "
+				        "order of fields was changed to make the main field "
+				        "the last field.",
+				    loc);
+			}
+		}
+	});
 	return true;
 }
 
@@ -176,13 +193,20 @@ bool DomainPrimitiveHandler::start(Variant::mapType &args)
 		fieldType = FieldDescriptor::FieldType::TREE;
 	}
 
-	Rooted<FieldDescriptor> field = parent->createPrimitiveFieldDescriptor(
+	auto res = parent->createPrimitiveFieldDescriptor(
 	    new UnknownType(manager()), logger(), fieldType,
 	    args["name"].asString(), args["optional"].asBool());
-	field->setLocation(location());
+	res.first->setLocation(location());
+	if (res.second) {
+		logger().warning(
+		    std::string("Field \"") + res.first->getName() +
+		        "\" was declared after main field. The order of fields "
+		        "was changed to make the main field the last field.",
+		    *res.first);
+	}
 
 	const std::string &type = args["type"].asString();
-	scope().resolve<Type>(type, field, logger(),
+	scope().resolve<Type>(type, res.first, logger(),
 	                      [](Handle<Node> type, Handle<Node> field,
 	                         Logger &logger) {
 		if (type != nullptr) {
@@ -190,7 +214,7 @@ bool DomainPrimitiveHandler::start(Variant::mapType &args)
 		}
 	});
 
-	scope().push(field);
+	scope().push(res.first);
 	return true;
 }
 
@@ -254,8 +278,8 @@ bool DomainParentFieldHandler::start(Variant::mapType &args)
 	                           Logger &logger) {
 		    if (parent != nullptr) {
 			    Rooted<FieldDescriptor> field =
-			        parent.cast<Descriptor>()->createFieldDescriptor(
-			            logger, type, name, optional);
+			        (parent.cast<Descriptor>()->createFieldDescriptor(
+			             logger, type, name, optional)).first;
 			    field->addChild(strct.cast<StructuredClass>());
 		    }
 		});
