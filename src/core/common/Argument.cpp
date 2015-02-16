@@ -54,7 +54,8 @@ Argument Argument::Any(std::string name)
 
 Argument Argument::Any(std::string name, Variant defaultValue)
 {
-	return Argument{name, &RttiTypes::None, &RttiTypes::None, defaultValue, true};
+	return Argument{name, &RttiTypes::None, &RttiTypes::None, defaultValue,
+	                true};
 }
 
 Argument Argument::Bool(std::string name)
@@ -95,7 +96,8 @@ Argument Argument::String(std::string name)
 Argument Argument::String(std::string name,
                           const Variant::stringType &defaultValue)
 {
-	return Argument{name, &RttiTypes::String, Variant::fromString(defaultValue)};
+	return Argument{name, &RttiTypes::String,
+	                Variant::fromString(defaultValue)};
 }
 
 Argument Argument::Object(std::string name, const Rtti *type)
@@ -158,7 +160,8 @@ Argument Argument::Map(std::string name, const Variant::mapType &defaultValue)
 
 Argument Argument::Map(std::string name, const Rtti *innerType)
 {
-	return Argument(std::move(name), &RttiTypes::Map, innerType, nullptr, false);
+	return Argument(std::move(name), &RttiTypes::Map, innerType, nullptr,
+	                false);
 }
 
 Argument Argument::Map(std::string name, const Rtti *innerType,
@@ -276,7 +279,7 @@ bool Arguments::validateArray(Variant::arrayType &arr, Logger &logger) const
 }
 
 bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
-                            bool ignoreUnknown) const
+                            bool ignoreUnknown, bool allowNumericIndices) const
 {
 	// Abort if no arguments were explicitly given -- everything is valid
 	if (!valid) {
@@ -289,26 +292,58 @@ bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
 	const size_t N = arguments.size();
 	std::vector<bool> set(N);
 	bool ok = true;
+	std::unordered_map<std::string, std::string> keyReplacements;
 
 	// Iterate over the map entries and search for the corresponding argument
 	for (auto &e : map) {
 		// Check whether an argument with the name of the current entry exists
-		auto it = names.find(e.first);
+		const std::string &key = e.first;
+		auto it = names.find(key);
+		ssize_t idx = -1;
 		if (it != names.end()) {
 			// Fetch the corresponding index in the "arguments" array
-			size_t idx = it->second;
+			idx = it->second;
+		} else if (!key.empty() && key[0] == '#' && allowNumericIndices) {
+			// Read the numeric index
+			try {
+				size_t i = stoul(key.substr(1));
+				if (i >= 0 && i < arguments.size()) {
+					idx = i;
+					keyReplacements.emplace(key, arguments[i].getName());
+				} else {
+					ok = false;
+				}
+			}
+			catch (std::exception ex) {
+				logger.error(
+				    std::string("Invalid key \"") + key + std::string("\""),
+				    e.second);
+				ok = false;
+			}
+		}
+
+		// If the key could be resolved to an index, validate the argument
+		if (idx >= 0) {
 			set[idx] = arguments[idx].validate(e.second, logger);
 			ok = ok && set[idx];
 		} else {
 			if (ignoreUnknown) {
 				logger.note(std::string("Ignoring argument \"") + e.first +
-				            std::string("\""), e.second);
+				                std::string("\""),
+				            e.second);
 			} else {
 				logger.error(std::string("Unknown argument \"") + e.first +
-				             std::string("\""), e.second);
+				                 std::string("\""),
+				             e.second);
 				ok = false;
 			}
 		}
+	}
+
+	// Execute all the key replacements
+	for (const auto &replacement : keyReplacements) {
+		map[replacement.second] = std::move(map[replacement.first]);
+		map.erase(replacement.first);
 	}
 
 	// Insert all unset arguments

@@ -1,5 +1,5 @@
-\import{../osxmlparser/book_domain.osxml}
-\import{../osxmlparser/headings_domain.osxml}
+\import[domain]{../osxmlparser/book_domain.osxml}
+\import[domain]{../osxmlparser/headings_domain.osxml}
 
 \begin{book}
 This might be some introductory text or a dedication.

@@ -61,13 +61,13 @@ private:
 	/**
 	 * Type that should be returned by the Variant rttiType function.
 	 */
-	Rtti const* type;
+	Rtti const *type;
 
 	/**
 	 * Describes the inner type of the variant -- e.g. the type of the elements
 	 * inside an array. Normally set to RttiTypes::None.
 	 */
-	Rtti const* innerType;
+	Rtti const *innerType;
 
 	/**
 	 * Default value. Note that a value of nullptr does not indicate that no
@@ -421,7 +421,7 @@ public:
 	 * @return the default value that was given in the constructor (may be
 	 * nullptr) and nullptr if no default value was given.
 	 */
-	const Variant& getDefaultValue() const;
+	const Variant &getDefaultValue() const;
 
 	/**
 	 * Returns true if a default value was set in the constructor.
@@ -502,10 +502,13 @@ public:
 	 * @param ignoreUnknown if set to true, unknown map entries are ignored
 	 * (a note is issued). This behaviour can be usefull if forward
 	 * compatibility must be achieved (such as for XML based formats).
+	 * @param allowNumericIndices if set to true, allows numeric indices in the
+	 * input map (such as "#1").
 	 * @return true if the operation was successful, false if an error occured.
 	 */
 	bool validateMap(Variant::mapType &map, Logger &logger,
-	                 bool ignoreUnknown = false) const;
+	                 bool ignoreUnknown = false,
+	                 bool allowNumericIndices = false) const;
 };
 }
 
