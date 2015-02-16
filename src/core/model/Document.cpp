@@ -314,7 +314,7 @@ const NodeVector<StructureNode> &DocumentEntity::getField(
 	return fields[idx];
 }
 
-void DocumentEntity::addStructureNode(Handle<StructureNode> s, const int &i)
+void DocumentEntity::addStructureNode(Handle<StructureNode> s, const size_t &i)
 {
 	// only add the new node if we don't have it already.
 	auto it = fields[i].find(s);
@@ -419,6 +419,15 @@ Rooted<StructuredEntity> DocumentEntity::createChildStructuredEntity(
 	    fieldName, std::move(name))};
 }
 
+Rooted<StructuredEntity> DocumentEntity::createChildStructuredEntity(
+    Handle<StructuredClass> descriptor, const size_t &fieldIdx,
+    Variant attributes, std::string name)
+{
+	return Rooted<StructuredEntity>{
+	    new StructuredEntity(subInst->getManager(), subInst, descriptor,
+	                         fieldIdx, std::move(attributes), std::move(name))};
+}
+
 Rooted<DocumentPrimitive> DocumentEntity::createChildDocumentPrimitive(
     Variant content, const std::string &fieldName)
 {
@@ -426,10 +435,21 @@ Rooted<DocumentPrimitive> DocumentEntity::createChildDocumentPrimitive(
 	    subInst->getManager(), subInst, std::move(content), fieldName)};
 }
 
+Rooted<DocumentPrimitive> DocumentEntity::createChildDocumentPrimitive(
+    Variant content, const size_t &fieldIdx)
+{
+	return Rooted<DocumentPrimitive>{new DocumentPrimitive(
+	    subInst->getManager(), subInst, std::move(content), fieldIdx)};
+}
+
 Rooted<Anchor> DocumentEntity::createChildAnchor(const std::string &fieldName)
 {
 	return Rooted<Anchor>{
 	    new Anchor(subInst->getManager(), subInst, fieldName)};
+}
+Rooted<Anchor> DocumentEntity::createChildAnchor(const size_t &fieldIdx)
+{
+	return Rooted<Anchor>{new Anchor(subInst->getManager(), subInst, fieldIdx)};
 }
 
 /* Class StructureNode */
@@ -468,6 +488,19 @@ StructureNode::StructureNode(Manager &mgr, std::string name,
 	}
 }
 
+StructureNode::StructureNode(Manager &mgr, std::string name,
+                             Handle<Node> parent, const size_t &fieldIdx)
+    : Node(mgr, std::move(name), parent)
+{
+	if (parent->isa(&RttiTypes::StructuredEntity)) {
+		parent.cast<StructuredEntity>()->addStructureNode(this, fieldIdx);
+	} else if (parent->isa(&RttiTypes::AnnotationEntity)) {
+		parent.cast<AnnotationEntity>()->addStructureNode(this, fieldIdx);
+	} else {
+		throw OusiaException("The proposed parent was no DocumentEntity!");
+	}
+}
+
 /* Class StructuredEntity */
 
 StructuredEntity::StructuredEntity(Manager &mgr, Handle<Document> doc,
@@ -489,8 +522,25 @@ StructuredEntity::StructuredEntity(Manager &mgr, Handle<Node> parent,
 
 bool StructuredEntity::doValidate(Logger &logger) const
 {
+	bool valid = true;
+	// check the parent.
+	if (getDescriptor() == nullptr) {
+		logger.error("The descriptor is not set!", *this);
+		valid = false;
+	} else if (!getDescriptor()->isa(&RttiTypes::StructuredClass)) {
+		logger.error("The descriptor is not a structure descriptor!", *this);
+		valid = false;
+	} else if (transparent &&
+	           !getDescriptor().cast<StructuredClass>()->isTransparent()) {
+		logger.error(
+		    "The entity is marked as transparent but the descriptor "
+		    "does not allow transparency!",
+		    *this);
+		valid = false;
+	}
+
 	// check the validity as a StructureNode and as a DocumentEntity.
-	return StructureNode::doValidate(logger) &
+	return valid & StructureNode::doValidate(logger) &
 	       DocumentEntity::doValidate(logger);
 }
 
