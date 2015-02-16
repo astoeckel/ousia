@@ -724,6 +724,7 @@ void Document::doResolve(ResolutionState &state)
 		continueResolveCompositum(root, state);
 	}
 	continueResolveReferences(domains, state);
+	continueResolveReferences(typesystems, state);
 }
 
 bool Document::doValidate(Logger &logger) const
@@ -763,11 +764,14 @@ void Document::doReference(Handle<Node> node)
 	if (node->isa(&RttiTypes::Domain)) {
 		referenceDomain(node.cast<Domain>());
 	}
+	if (node->isa(&RttiTypes::Typesystem)) {
+		referenceTypesystem(node.cast<Typesystem>());
+	}
 }
 
 RttiSet Document::doGetReferenceTypes() const
 {
-	return RttiSet{&RttiTypes::Domain};
+	return RttiSet{&RttiTypes::Domain, &RttiTypes::Typesystem};
 }
 
 Rooted<StructuredEntity> Document::createRootStructuredEntity(
