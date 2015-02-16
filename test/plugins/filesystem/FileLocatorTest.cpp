@@ -213,11 +213,11 @@ TEST(FileLocator, testDefaultSearchPaths)
 	FileLocator locator;
 	locator.addDefaultSearchPaths();
 
-	assert_not_located(locator, "book.oxm", "", ResourceType::UNKNOWN);
-	assert_located(locator, "domain/book.oxm", "", ResourceType::UNKNOWN);
-	assert_located(locator, "book.oxm", "", ResourceType::DOMAIN_DESC);
-	assert_not_located(locator, "color.oxm", "", ResourceType::UNKNOWN);
-	assert_located(locator, "typesystem/color.oxm", "", ResourceType::UNKNOWN);
-	assert_located(locator, "color.oxm", "", ResourceType::TYPESYSTEM);
+	assert_not_located(locator, "book.osxml", "", ResourceType::UNKNOWN);
+	assert_located(locator, "domain/book.osxml", "", ResourceType::UNKNOWN);
+	assert_located(locator, "book.osxml", "", ResourceType::DOMAIN_DESC);
+	assert_not_located(locator, "color.osxml", "", ResourceType::UNKNOWN);
+	assert_located(locator, "typesystem/color.osxml", "", ResourceType::UNKNOWN);
+	assert_located(locator, "color.osxml", "", ResourceType::TYPESYSTEM);
 }
 }
