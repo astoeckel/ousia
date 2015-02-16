@@ -246,7 +246,7 @@ public:
 	 *                  FieldDescriptor in the Domain description.
 	 * @return          a NodeVector of all StructuredEntities in that field.
 	 */
-	const NodeVector<StructureNode> &getField(const size_t& idx ) const;
+	const NodeVector<StructureNode> &getField(const size_t &idx) const;
 
 	/**
 	 * This adds a StructureNode to the field with the given index.
@@ -259,7 +259,7 @@ public:
 	 * @param fieldIdx  is the index of a field as specified in the
 	 *                  FieldDescriptor in the Domain description.
 	 */
-	void addStructureNode(Handle<StructureNode> s, const int &fieldIdx);
+	void addStructureNode(Handle<StructureNode> s, const size_t &fieldIdx);
 	/**
 	 * This adds a StructureNode to the field with the given name.
 	 *
@@ -403,6 +403,23 @@ public:
 	    Variant attributes = Variant::mapType{},
 	    const std::string &fieldName = DEFAULT_FIELD_NAME,
 	    std::string name = "");
+
+	/**
+	 * This creates a new StructuredEntity as child of this DocumentEntity.
+	 *
+	 * @param descriptor is the StructuredClass of this StructuredEntity.
+	 * @param attributes is a Map Variant containing attribute fillings for this
+	 *                   StructuredEntity. It is empty per default.
+	 * @param fieldIdx   is the index of the field, where the newly created
+	 *                   StructuredEntity shall be added to this DocumentEntity.
+	 * @param name       is some name for this StructuredEntity that may be used
+	 *                   for later reference. It is empty per default.
+	 *
+	 * @return           the newly created StructuredEntity.
+	 */
+	Rooted<StructuredEntity> createChildStructuredEntity(
+	    Handle<StructuredClass> descriptor, const size_t &fieldIdx,
+	    Variant attributes = Variant::mapType{}, std::string name = "");
 	/*
 	 * Creates a new DocumentPrimitive as child of this DocumentEntity.
 	 *
@@ -416,8 +433,21 @@ public:
 	 * @return          the newly created DocumentPrimitive.
 	 */
 	Rooted<DocumentPrimitive> createChildDocumentPrimitive(
-	    Variant content = {},
-	    const std::string &fieldName = DEFAULT_FIELD_NAME);
+	    Variant content, const std::string &fieldName = DEFAULT_FIELD_NAME);
+	/*
+	 * Creates a new DocumentPrimitive as child of this DocumentEntity.
+	 *
+	 * @param fieldIdx  is the index of the field, where the newly created
+	 *                  StructuredEntity shall be added to this DocumentEntity.
+	 * @param content   is a Variant containing the content of this
+	 *                  DocumentPrimitive. The Type of this Variant is
+	 *                  specified at the parents Descriptor for the given
+	 *                  fieldName.
+	 *
+	 * @return          the newly created DocumentPrimitive.
+	 */
+	Rooted<DocumentPrimitive> createChildDocumentPrimitive(
+	    Variant content, const size_t &fieldIdx);
 
 	/**
 	 * Creates a new Anchor as child of this DocumentEntity.
@@ -429,6 +459,16 @@ public:
 	 */
 	Rooted<Anchor> createChildAnchor(
 	    const std::string &fieldName = DEFAULT_FIELD_NAME);
+
+	/**
+	 * Creates a new Anchor as child of this DocumentEntity.
+	 *
+	 * @param fieldIdx  is the index of the field, where the newly created
+	 *                  Anchor shall be added to this DocumentEntity.
+	 *
+	 * @return          the newly created Anchor.
+	 */
+	Rooted<Anchor> createChildAnchor(const size_t &fieldIdx);
 };
 
 /**
@@ -447,6 +487,11 @@ public:
 	 */
 	StructureNode(Manager &mgr, std::string name, Handle<Node> parent,
 	              const std::string &fieldName);
+	/**
+	 * Constructor for a StructureNode in the StructureTree.
+	 */
+	StructureNode(Manager &mgr, std::string name, Handle<Node> parent,
+	              const size_t &fieldIdx);
 
 	/**
 	 * Constructor for an empty StructureNode.
@@ -464,6 +509,9 @@ public:
  */
 class StructuredEntity : public StructureNode, public DocumentEntity {
 	friend Document;
+
+private:
+	bool transparent = false;
 
 protected:
 	bool doValidate(Logger &logger) const override;
@@ -491,6 +539,30 @@ public:
 	                 const std::string &fieldName = DEFAULT_FIELD_NAME,
 	                 std::string name = "")
 	    : StructureNode(mgr, std::move(name), parent, fieldName),
+	      DocumentEntity(this, descriptor, std::move(attributes))
+	{
+	}
+	/**
+	 * Constructor for a StructuredEntity in the Structure Tree.
+	 *
+	 * @param mgr        is the Manager instance.
+	 * @param parent     is the parent DocumentEntity of this StructuredEntity
+	 *                   in the DocumentTree. Note that this StructuredEntity
+	 *                   will automatically register itself as child of this
+	 *                   parent.
+	 * @param descriptor is the StructuredClass of this StructuredEntity.
+	 * @param fieldIdx   is the index of the field in the parent DocumentEntity
+	 *                   where this StructuredEntity shall be added.
+	 * @param attributes is a Map Variant containing attribute fillings for this
+	 *                   StructuredEntity. It is empty per default.
+	 * @param name       is some name for this StructuredEntity that may be used
+	 *                   for later reference. It is empty per default.
+	 */
+	StructuredEntity(Manager &mgr, Handle<Node> parent,
+	                 Handle<StructuredClass> descriptor, const size_t &fieldIdx,
+	                 Variant attributes = Variant::mapType{},
+	                 std::string name = "")
+	    : StructureNode(mgr, std::move(name), parent, fieldIdx),
 	      DocumentEntity(this, descriptor, std::move(attributes))
 	{
 	}
@@ -530,6 +602,20 @@ public:
 	                 Handle<StructuredClass> descriptor = nullptr,
 	                 Variant attributes = Variant::mapType{},
 	                 std::string name = "");
+
+	/**
+	 * Returns true if and only if this element was created using transparency/
+	 * if and only if this is an implicit element.
+	 *
+	 * @return true if and only if this element was created using transparency.
+	 */
+	bool isTransparent() const { return transparent; }
+
+	/**
+	 * @param trans true if and only if this element was created using
+	 *              transparency/if and only if this is an implicit element.
+	 */
+	void setTransparent(bool trans) { transparent = trans; }
 };
 
 /**
@@ -557,9 +643,29 @@ public:
 	 * @param fieldName is the name of the field in the parent DocumentEntity
 	 *                  where this DocumentPrimitive shall be added.
 	 */
-	DocumentPrimitive(Manager &mgr, Handle<Node> parent, Variant content = {},
+	DocumentPrimitive(Manager &mgr, Handle<Node> parent, Variant content,
 	                  const std::string &fieldName = DEFAULT_FIELD_NAME)
 	    : StructureNode(mgr, "", parent, fieldName), content(content)
+	{
+	}
+	/**
+	 * Constructor for a DocumentPrimitive.
+	 *
+	 * @param mgr       is the Manager instance.
+	 * @param parent    is the parent DocumentEntity of this DocumentPrimitive
+	 *                  in the DocumentTree. Note that this DocumentPrimitive
+	 *                  will automatically register itself as child of this
+	 *                  parent.
+	 * @param content   is a Variant containing the content of this
+	 *                  DocumentPrimitive. The Type of this Variant is
+	 *                  specified at the parents Descriptor for the given
+	 *                  fieldName.
+	 * @param fieldIdx  is the index of the field in the parent DocumentEntity
+	 *                  where this DocumentPrimitive shall be added.
+	 */
+	DocumentPrimitive(Manager &mgr, Handle<Node> parent, Variant content,
+	                  const size_t &fieldIdx)
+	    : StructureNode(mgr, "", parent, fieldIdx), content(content)
 	{
 	}
 
@@ -610,6 +716,21 @@ public:
 	Anchor(Manager &mgr, Handle<Node> parent,
 	       const std::string &fieldName = DEFAULT_FIELD_NAME)
 	    : StructureNode(mgr, "", parent, fieldName)
+	{
+	}
+	/**
+	 * Constructor for Anchor.
+	 *
+	 * @param mgr       is the Manager instance.
+	 * @param parent    is the parent of this Anchor in the Structure Tree (!),
+	 *                  not the AnnotationEntity that references this Anchor.
+	 *                  Note that this Anchor will automatically register itself
+	 *                  as child of the given parent.
+	 * @param fieldIdx  is the index of the field in the parent DocumentEntity
+	 *                  where this Anchor shall be added.
+	 */
+	Anchor(Manager &mgr, Handle<Node> parent, const size_t &fieldIdx)
+	    : StructureNode(mgr, "", parent, fieldIdx)
 	{
 	}
 
@@ -935,4 +1056,3 @@ extern const Rtti Anchor;
 }
 
 #endif /* _OUSIA_MODEL_DOCUMENT_HPP_ */
-

@@ -76,29 +76,74 @@ public:
  */
 class DocumentField : public Node {
 public:
-	using Node::Node;
+	const size_t fieldIdx;
+	const bool transparent;
+
+	DocumentField(Manager &mgr, Handle<Node> parent, size_t fieldIdx,
+	              bool transparent)
+	    : Node(mgr, parent), fieldIdx(fieldIdx), transparent(transparent)
+	{
+	}
 };
 
 /**
  * The DocumentChildHandler class performs the actual parsing of the user
  * defined elements in an Ousía document.
  */
-class DocumentChildHandler : public StaticHandler {
+class DocumentChildHandler : public Handler {
 private:
+	bool isExplicitField = false;
+
 	/**
-	 * Code shared by both the start() and the end() method. Checks whether the
-	 * parser currently is in a field and returns the name of this field.
+	 * Code shared by both the start(), fieldStart() and the data() method.
+	 * Checks whether the parser currently is in a field and returns the name
+	 * of this field.
 	 *
 	 * @param parentNode is the next possible parent node (a document,
 	 * a structured entity, an annotation entity or a field).
-	 * @param fieldName is an output parameter to which the name of the current
+	 * @param fieldIdx is an output parameter to which the index of the current
 	 * field is written (or unchanged if we're not in a field).
 	 * @param parent is an output parameter to which the parent document entity
 	 * will be written.
-	 * @param inField is set to true if we actually are in a field.
 	 */
-	void preamble(Handle<Node> parentNode, std::string &fieldName,
-	              DocumentEntity *&parent, bool &inField);
+	void preamble(Rooted<Node> &parentNode, size_t &fieldIdx,
+	              DocumentEntity *&parent);
+
+	/**
+	 * Creates transparent elements that are stored in the given path.
+	 *
+	 * @param path   a NodeVector of alternating FieldDescriptors and
+	 *               StructuredClasses. For each of the StructuredClasses at
+	 *               index p an instance is created and added to the field at
+	 *               index p-1 of the previously created instance of the
+	 *               StructuredClass at index p-2.
+	 * @param parent is the parent DocumentEntity for the first transparent
+	 *               element. This will be reset for each created transparent
+	 *               element.
+	 * @param p0     is the index of the path vector of the first
+	 *               StructuredClass for which an instance shall be created.
+	 *               This is 1 per default.
+	 */
+	void createPath(const NodeVector<Node> &path, DocumentEntity *&parent,
+	                size_t p0 = 1);
+
+	/**
+	 * Creates transparent elements that are stored in the given path.
+	 *
+	 * @param fieldIdx  is the index of the field for which the first instance
+	 *                  shall be added.
+	 * @param path      a NodeVector of alternating FieldDescriptors and
+	 *                  StructuredClasses. For each of the StructuredClasses at
+	 *                  index p an instance is created and added to the field at
+	 *                  index p-1 of the previously created instance of the
+	 *                  StructuredClass at index p-2. The first element has
+	 *                  to be a StructuredClass.
+	 * @param parent    is the parent DocumentEntity for the first transparent
+	 *                  element. This will be reset for each created transparent
+	 *                  element.
+	 */
+	void createPath(const size_t &fieldIdx, const NodeVector<Node> &path,
+	                DocumentEntity *&parent);
 
 	/**
 	 * Tries to convert the given data to the type that is specified in the
@@ -116,11 +161,21 @@ private:
 	                 Logger &logger);
 
 public:
-	using StaticHandler::StaticHandler;
+	using Handler::Handler;
 
 	bool start(Variant::mapType &args) override;
 	void end() override;
 	bool data(Variant &data) override;
+
+	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
+
+	void fieldEnd() override;
+
+	bool annotationStart(const Variant &className,
+	                     Variant::mapType &args) override;
+
+	bool annotationEnd(const Variant &className,
+	                   const Variant &elementName) override;
 
 	/**
 	 * Creates a new instance of the DocumentChildHandler.
@@ -146,7 +201,6 @@ extern const State Document;
  */
 extern const State DocumentChild;
 }
-
 }
 
 namespace RttiTypes {
@@ -155,8 +209,6 @@ namespace RttiTypes {
  */
 extern const Rtti DocumentField;
 }
-
 }
 
 #endif /* _OUSIA_PARSER_STACK_DOCUMENT_HANDLER_HPP_ */
-
