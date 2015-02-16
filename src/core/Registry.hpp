@@ -30,6 +30,7 @@
 
 #include <map>
 #include <set>
+#include <string>
 #include <vector>
 
 #include <core/common/Rtti.hpp>
@@ -153,6 +154,23 @@ public:
 	bool locateResource(Resource &resource, const std::string &path,
 	                    ResourceType type = ResourceType::UNKNOWN,
 	                    const Resource &relativeTo = NullResource) const;
+
+	/**
+	 * Performs autocompletion of resources with missing file extension and
+	 * returns a list of possible files existing within the filesystem.
+	 *
+	 * @param path is the path for which the autocompletion shuold be performed.
+	 * @param type is the ResourceType which is used to select the search paths.
+	 * @param relativeTo is another resource relatie to which the resource may
+	 * be looked up.
+	 * @return a list of possible files to which the given path may be extended.
+	 * If the file pointed to by "path" exists, it will be the only result in
+	 * the list. Otherwise files which have the given path as a prefix but a
+	 * different file extension are returned.
+	 */
+	std::vector<std::string> autocompleteResource(
+	    const std::string &path, ResourceType type = ResourceType::UNKNOWN,
+	    const Resource &relativeTo = NullResource) const;
 };
 }
 
