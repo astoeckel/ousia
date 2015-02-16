@@ -38,6 +38,19 @@ namespace fs = boost::filesystem;
 
 namespace ousia {
 
+/**
+ * Function used internally to ignore backup files when performing auto
+ * completion.
+ *
+ * @param fn is the filename that should be checked for looking like a temporary
+ * or backup file.
+ * @return true if the file might be a backup file, false otherwise.
+ */
+static bool isBackupFile(const std::string fn)
+{
+	return Utils::endsWith(fn, "~") || Utils::endsWith(fn, "backup");
+}
+
 void FileLocator::addPath(const std::string &path,
                           std::vector<std::string> &paths)
 {
@@ -135,7 +148,7 @@ static bool iteratePaths(const FileLocator::SearchPaths &searchPaths,
 	// Check whether the given resource has an absolute path -- if yes, call the
 	// callback function and do not try any search paths
 	if (dir.is_absolute()) {
-		return callback(dir, filename);
+		return callback(dir, filename, dir);
 	}
 
 	// If the path starts with "./" or "../" only perform relative lookups!
@@ -151,7 +164,7 @@ static bool iteratePaths(const FileLocator::SearchPaths &searchPaths,
 #endif
 				// Concatenate the searchpath with the given directory
 				fs::path curDir = fs::path(*it) / dir;
-				if (callback(curDir, filename)) {
+				if (callback(curDir, filename, dir)) {
 					return true;
 				}
 			}
@@ -173,7 +186,7 @@ static bool iteratePaths(const FileLocator::SearchPaths &searchPaths,
 			curDir = curDir / dir;
 
 			// If we already found a fitting resource there, use that.
-			if (callback(curDir, filename)) {
+			if (callback(curDir, filename, dir)) {
 				return true;
 			}
 		}
@@ -185,23 +198,23 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
                            const ResourceType type,
                            const std::string &relativeTo) const
 {
-	return iteratePaths(
-	    searchPaths, path, type, relativeTo,
-	    [&](const fs::path &dir, const std::string &filename) -> bool {
-		    // Combine directory and filename
-		    fs::path p = dir / filename;
+	return iteratePaths(searchPaths, path, type, relativeTo,
+	                    [&](const fs::path &dir, const std::string &filename,
+	                        const fs::path &) -> bool {
+		// Combine directory and filename
+		fs::path p = dir / filename;
 
-		    // Check whether p exists
-		    if (fs::exists(p) && fs::is_regular_file(p)) {
-			    std::string location = fs::canonical(p).generic_string();
+		// Check whether p exists
+		if (fs::exists(p) && fs::is_regular_file(p)) {
+			std::string location = fs::canonical(p).generic_string();
 #ifdef FILELOCATOR_DEBUG_PRINT
-			    std::cout << "FileLocator: Found at " << location << std::endl;
+			std::cout << "FileLocator: Found at " << location << std::endl;
 #endif
-			    resource = Resource(true, *this, type, location);
-			    return true;
-		    }
-		    return false;
-		});
+			resource = Resource(true, *this, type, location);
+			return true;
+		}
+		return false;
+	});
 }
 
 std::vector<std::string> FileLocator::doAutocomplete(
@@ -210,19 +223,39 @@ std::vector<std::string> FileLocator::doAutocomplete(
 {
 	std::vector<std::string> res;
 	iteratePaths(searchPaths, path, type, relativeTo,
-	             [&](const fs::path &dir, const std::string &filename) -> bool {
+	             [&](const fs::path &dir, const std::string &filename,
+	                 const fs::path &originalDir) -> bool {
 		// Make sure the given directory actually is a directory
 		if (!fs::is_directory(dir)) {
 			return false;
 		}
 
+		// Check whether the file itself exists -- if yes, return this file
+		// directly intead of performing any autocomplete
+		fs::path p = dir / filename;
+		if (fs::exists(p) && fs::is_regular_file(p)) {
+			res.push_back((originalDir / filename).generic_string());
+			return true;
+		}
+
+		// Append a point to the filename -- this allows us to only take files
+		// into acount that actually extend the extension
+		const std::string fn = filename + ".";
+
 		// Iterate over the directory content
 		fs::directory_iterator end;
 		for (fs::directory_iterator it(dir); it != end; it++) {
-			const std::string fn = it->path().filename().generic_string();
-			if (!fn.empty() && fn[fn.size() - 1] != '~' &&
-			    Utils::startsWith(fn, filename)) {
-				res.push_back(it->path().generic_string());
+			// Only consider regular files
+			fs::path p = it->path();
+			if (!fs::is_regular_file(p)) {
+				continue;
+			}
+
+			// Fetch the filename of the found file, ignore temporary files
+			const std::string fn2 = it->path().filename().generic_string();
+			if (!fn.empty() && !isBackupFile(fn2) &&
+			    Utils::startsWith(fn2, fn)) {
+				res.push_back((originalDir / fn2).generic_string());
 			}
 		}
 		return !res.empty();

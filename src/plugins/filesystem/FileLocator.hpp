@@ -38,11 +38,8 @@
 namespace ousia {
 
 /**
- * @file FileLocator.hpp
- *
- * This is a FileLocator employing the boost path class for file finding.
- *
- * @author Benjamin Paassen - bpaassen@techfak.uni-bielefeld.de
+ * The FileLocator class is an implementation of the abstract ResourceLocator
+ * interface used to locate resources in the filesystem.
  */
 class FileLocator : public ResourceLocator {
 public:

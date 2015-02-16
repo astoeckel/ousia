@@ -18,6 +18,8 @@
 
 #include <gtest/gtest.h>
 
+#include <set>
+
 #include <plugins/filesystem/FileLocator.hpp>
 #include <plugins/filesystem/SpecialPaths.hpp>
 
@@ -142,10 +144,11 @@ TEST(FileLocator, locate)
 	assert_not_located(locator, "c.txt", "", ResourceType::SCRIPT);
 }
 
-TEST(FileLocator, locateAbsolute){
+TEST(FileLocator, locateAbsolute)
+{
 	FileLocator locator;
-	// construct the absolute path by utilizing SpecialPaths and 
-	fs::path testdataDir {SpecialPaths::getDebugTestdataDir()};
+	// construct the absolute path by utilizing SpecialPaths and
+	fs::path testdataDir{SpecialPaths::getDebugTestdataDir()};
 	fs::path absolute = fs::canonical(testdataDir);
 	absolute /= "filesystem";
 	absolute /= "a.txt";
@@ -217,7 +220,50 @@ TEST(FileLocator, testDefaultSearchPaths)
 	assert_located(locator, "domain/book.osxml", "", ResourceType::UNKNOWN);
 	assert_located(locator, "book.osxml", "", ResourceType::DOMAIN_DESC);
 	assert_not_located(locator, "color.osxml", "", ResourceType::UNKNOWN);
-	assert_located(locator, "typesystem/color.osxml", "", ResourceType::UNKNOWN);
+	assert_located(locator, "typesystem/color.osxml", "",
+	               ResourceType::UNKNOWN);
 	assert_located(locator, "color.osxml", "", ResourceType::TYPESYSTEM);
+}
+
+TEST(FileLocator, autocompleteIgnoreBackupFiles)
+{
+	FileLocator locator;
+	locator.addUnittestSearchPath("filesystem");
+
+	auto res = locator.autocomplete("autocomplete/a");
+	ASSERT_EQ(std::vector<std::string>{"autocomplete/a.test"}, res);
+}
+
+TEST(FileLocator, autocompleteAmbiguous)
+{
+	FileLocator locator;
+	locator.addUnittestSearchPath("filesystem");
+
+	auto res = locator.autocomplete("autocomplete/b");
+
+	std::set<std::string> resSet;
+	resSet.insert(res.begin(), res.end());
+
+	ASSERT_EQ(
+	    std::set<std::string>({"autocomplete/b.test1", "autocomplete/b.test2"}),
+	    resSet);
+}
+
+TEST(FileLocator, autocompleteExisting)
+{
+	FileLocator locator;
+	locator.addUnittestSearchPath("filesystem");
+
+	auto res = locator.autocomplete("autocomplete/c");
+	ASSERT_EQ(std::vector<std::string>{"autocomplete/c"}, res);
+}
+
+TEST(FileLocator, autocompleteExtensionOnly)
+{
+	FileLocator locator;
+	locator.addUnittestSearchPath("filesystem");
+
+	auto res = locator.autocomplete("autocomplete/d");
+	ASSERT_EQ(std::vector<std::string>{}, res);
 }
 }
