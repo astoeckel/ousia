@@ -754,6 +754,7 @@ private:
 	Owned<StructuredEntity> root;
 	NodeVector<AnnotationEntity> annotations;
 	NodeVector<Domain> domains;
+	NodeVector<Typesystem> typesystems;
 
 protected:
 	void doResolve(ResolutionState &state) override;
@@ -771,7 +772,8 @@ public:
 	Document(Manager &mgr, std::string name)
 	    : RootNode(mgr, std::move(name), nullptr),
 	      annotations(this),
-	      domains(this)
+	      domains(this),
+	      typesystems(this)
 	{
 	}
 
@@ -889,6 +891,25 @@ public:
 		invalidate();
 		domains.insert(domains.end(), d.begin(), d.end());
 	}
+
+	/**
+	 * Adds a Typesystem reference to this Document.
+	 */
+	void referenceTypesystem(Handle<Typesystem> d)
+	{
+		invalidate();
+		typesystems.push_back(d);
+	}
+
+	/**
+	 * Adds multiple Typesystem references to this Document.
+	 */
+	void referenceTypesystems(const std::vector<Handle<Typesystem>> &d)
+	{
+		invalidate();
+		typesystems.insert(typesystems.end(), d.begin(), d.end());
+	}
+
 
 	/**
 	 * Returns true if and only if the given StructureNode is part of this
