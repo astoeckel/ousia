@@ -792,8 +792,8 @@ TEST(Arguments, invalid)
 
 	Variant::arrayType arr{1};
 
-	ASSERT_TRUE(argsInvalid.validateArray(arr, logger)); // No error message
-	ASSERT_FALSE(argsValid.validateArray(arr, logger)); // Too many arguments
+	ASSERT_TRUE(argsInvalid.validateArray(arr, logger));  // No error message
+	ASSERT_FALSE(argsValid.validateArray(arr, logger));   // Too many arguments
 }
 
 TEST(Arguments, validateArray)
@@ -879,6 +879,25 @@ TEST(Arguments, validateMap)
 		              {{"a", 2}, {"b", "test"}, {"c", true}, {"d", nullptr}}),
 		          map);
 	}
+
+	{
+		Variant::mapType map{{"#0", 2}, {"#1", "bla"}, {"#2", false}};
+		ASSERT_FALSE(args.validateMap(map, logger, false, false));
+		ASSERT_EQ(Variant::mapType({{"#0", 2},
+		                            {"#1", "bla"},
+		                            {"#2", false},
+		                            {"a", 0},
+		                            {"b", "test"},
+		                            {"c", true}}),
+		          map);
+	}
+
+	{
+		Variant::mapType map{{"#0", 2}, {"#1", "bla"}, {"#2", false}};
+		ASSERT_TRUE(args.validateMap(map, logger, false, true));
+		ASSERT_EQ(Variant::mapType({{"a", 2}, {"b", "bla"}, {"c", false}}),
+		          map);
+	}
 }
 
 TEST(Arguments, validateMissing)
@@ -897,6 +916,5 @@ TEST(Arguments, validateMissing)
 		ASSERT_EQ(Variant::arrayType({""}), arr);
 	}
 }
-
 }
 
