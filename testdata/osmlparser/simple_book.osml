@@ -1,5 +1,17 @@
+%{
+This is just a simple document for toying around
+}%
 \import{../osxmlparser/book_domain.osxml}
 \import{../osxmlparser/headings_domain.osxml}
+
+% Define some local domain here
+\domain#stuff
+	\import[rel=typesystem]{../osxmlparser/color.osxml}
+	\import[rel=domain]{../osxmlparser/book_domain.osxml}
+	\struct#fancy
+		\primitive#myLittleColor[type=color]
+		\parentRef[ref=book]
+			\fieldRef[ref="$default"]
 
 \begin{book}
 This might be some introductory text or a dedication.
@@ -10,10 +22,34 @@ Here we might have an introduction to the chapter.
 
 \section#myFirstSection
 \heading{A rather curious experiment}
+
+\paragraph
 Here we might find the actual section content.
+
+\paragraph
+Test
 
 \section#mySndSection
 Here we might find the actual section content.
+
+% Create a simple fancy instance
+\fancy{[10,g=10,b=10]}
+
+%{
+Note that this
+	\fancy [10,g=10,b=10]
+will also work (since the braces are not counted as commands). However
+	\fancy [t=10,g=10,b=10]
+will leave the fancy field empty and assign the data as string to the above
+paragraph.
+}%
+
+%{
+Another note: In the short term the behaviour of the "{" and "}" tokens should
+be changed in the parser. They should only be parsed when they are valid (after
+commands and after a closing field). This can easily be hacked in (albeit it
+will be ugly)
+}%
 
 \end{book}
 
