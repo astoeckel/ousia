@@ -29,6 +29,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <core/common/Utils.hpp>
+
 #include "FileLocator.hpp"
 #include "SpecialPaths.hpp"
 
@@ -116,42 +118,26 @@ void FileLocator::addUnittestSearchPath(const std::string &subdir,
 	              type);
 }
 
-static bool checkPath(Resource &resource, const ResourceLocator &locator,
-                      fs::path p, const ResourceType type)
-{
-	if (fs::exists(p) && fs::is_regular_file(p)) {
-		std::string location = fs::canonical(p).generic_string();
-#ifdef FILELOCATOR_DEBUG_PRINT
-		std::cout << "FileLocator: Found at " << location << std::endl;
-#endif
-		resource = Resource(true, locator, type, location);
-		return true;
-	}
-	return false;
-}
-
-bool FileLocator::doLocate(Resource &resource, const std::string &path,
-                           const ResourceType type,
-                           const std::string &relativeTo) const
+template <typename CallbackType>
+static bool iteratePaths(const FileLocator::SearchPaths &searchPaths,
+                         const std::string &path, const ResourceType type,
+                         const std::string &relativeTo, CallbackType callback)
 {
 #ifdef FILELOCATOR_DEBUG_PRINT
 	std::cout << "FileLocator: Searching for \"" << path << "\"" << std::endl;
 #endif
 
-	// TODO: Check if with ./book.oxm relative paths are used and otherwise
-	// global search paths take precedence.
+	// Divide the given path into the directory and the filename
+	fs::path p{path};
+	fs::path dir = p.parent_path();
+	std::string filename = p.filename().generic_string();
 
-	// If the path is an absolute path, look at this exact point.
-	{
-		fs::path p{path};
-		if (p.is_absolute()) {
-			if (checkPath(resource, *this, p, type)) {
-				return true;
-			} else {
-				return false;
-			}
-		}
+	// Check whether the given resource has an absolute path -- if yes, call the
+	// callback function and do not try any search paths
+	if (dir.is_absolute()) {
+		return callback(dir, filename);
 	}
+
 	// If the path starts with "./" or "../" only perform relative lookups!
 	if (path.substr(0, 2) != "./" && path.substr(0, 3) != "../") {
 		// Look in the search paths, search backwards, last defined search
@@ -163,34 +149,85 @@ bool FileLocator::doLocate(Resource &resource, const std::string &path,
 #ifdef FILELOCATOR_DEBUG_PRINT
 				std::cout << "FileLocator: Entering " << *it << std::endl;
 #endif
-				fs::path p{*it};
-				p /= path;
-				if (checkPath(resource, *this, p, type)) {
+				// Concatenate the searchpath with the given directory
+				fs::path curDir = fs::path(*it) / dir;
+				if (callback(curDir, filename)) {
 					return true;
 				}
 			}
 		}
 	}
+
+	// Perform relative lookups
 	if (!relativeTo.empty()) {
-		fs::path base(relativeTo);
-		if (fs::exists(base)) {
+		fs::path curDir(relativeTo);
+		if (fs::exists(curDir)) {
 			// Look if 'relativeTo' is a directory already.
-			if (!fs::is_directory(base)) {
+			if (!fs::is_directory(curDir)) {
 				// If not we use the parent directory.
-				base = base.parent_path();
+				curDir = curDir.parent_path();
 			}
 
-			// Use the / operator to append the path.
-			base /= path;
+			// Append the directory to the base path and try to resolve this
+			// pair
+			curDir = curDir / dir;
 
 			// If we already found a fitting resource there, use that.
-			if (checkPath(resource, *this, base, type)) {
+			if (callback(curDir, filename)) {
 				return true;
 			}
 		}
 	}
-
 	return false;
+}
+
+bool FileLocator::doLocate(Resource &resource, const std::string &path,
+                           const ResourceType type,
+                           const std::string &relativeTo) const
+{
+	return iteratePaths(
+	    searchPaths, path, type, relativeTo,
+	    [&](const fs::path &dir, const std::string &filename) -> bool {
+		    // Combine directory and filename
+		    fs::path p = dir / filename;
+
+		    // Check whether p exists
+		    if (fs::exists(p) && fs::is_regular_file(p)) {
+			    std::string location = fs::canonical(p).generic_string();
+#ifdef FILELOCATOR_DEBUG_PRINT
+			    std::cout << "FileLocator: Found at " << location << std::endl;
+#endif
+			    resource = Resource(true, *this, type, location);
+			    return true;
+		    }
+		    return false;
+		});
+}
+
+std::vector<std::string> FileLocator::doAutocomplete(
+    const std::string &path, const ResourceType type,
+    const std::string &relativeTo) const
+{
+	std::vector<std::string> res;
+	iteratePaths(searchPaths, path, type, relativeTo,
+	             [&](const fs::path &dir, const std::string &filename) -> bool {
+		// Make sure the given directory actually is a directory
+		if (!fs::is_directory(dir)) {
+			return false;
+		}
+
+		// Iterate over the directory content
+		fs::directory_iterator end;
+		for (fs::directory_iterator it(dir); it != end; it++) {
+			const std::string fn = it->path().filename().generic_string();
+			if (!fn.empty() && fn[fn.size() - 1] != '~' &&
+			    Utils::startsWith(fn, filename)) {
+				res.push_back(it->path().generic_string());
+			}
+		}
+		return !res.empty();
+	});
+	return res;
 }
 
 std::unique_ptr<std::istream> FileLocator::doStream(

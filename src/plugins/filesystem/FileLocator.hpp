@@ -81,6 +81,10 @@ protected:
 	              const ResourceType type,
 	              const std::string &relativeTo) const override;
 
+	std::vector<std::string> doAutocomplete(
+	    const std::string &path, const ResourceType type,
+	    const std::string &relativeTo) const override;
+
 	std::unique_ptr<std::istream> doStream(
 	    const std::string &location) const override;
 
