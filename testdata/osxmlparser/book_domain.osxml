@@ -75,7 +75,7 @@
 			<childRef ref="book.paragraph"/>
 		</field>
 	</struct>
-	<struct name="paragraph" transparent="true" role="paragraph">
+	<struct name="paragraph" transparent="true">
 	<!-- implicitly:
 	<struct name="subsection" isRoot="false" cardinality="{*}"
 	                 transparent="true" isa="" attributesDescriptor="">
@@ -87,7 +87,7 @@
 			<childRef ref="book.text"/>
 		</field>
 	</struct>
-	<struct name="text" transparent="true" role="text">
+	<struct name="text" transparent="true">
 	<!-- implicitly:
 	<struct name="text" isRoot="false" cardinality="{*}"
 	                 transparent="true" isa="" attributesDescriptor="">
