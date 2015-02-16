@@ -848,17 +848,23 @@ std::pair<bool, Variant> VariantReader::parseGenericToken(
 std::pair<bool, Variant> VariantReader::parseGenericString(
     const std::string &str, Logger &logger, SourceId sourceId, size_t offs)
 {
-	CharReader reader{str, sourceId, offs};
-	LoggerFork loggerFork = logger.fork();
+	// If the given string is empty, just return it as a string (there is no
+	// other type for which something empty would be valid)
+	// TODO: How to integrate this into parseGenericToken?
+	if (!str.empty()) {
+		CharReader reader{str, sourceId, offs};
+		LoggerFork loggerFork = logger.fork();
 
-	// Try to parse a single token
-	std::pair<bool, Variant> res =
-	    parseGenericToken(reader, loggerFork, std::unordered_set<char>{}, true);
+		// Try to parse a single token
+		std::pair<bool, Variant> res = parseGenericToken(
+		    reader, loggerFork, std::unordered_set<char>{}, true);
 
-	// If the string was actually consisted of a single token, return that token
-	if (reader.atEnd()) {
-		loggerFork.commit();
-		return res;
+		// If the string was actually consisted of a single token, return that
+		// token
+		if (reader.atEnd()) {
+			loggerFork.commit();
+			return res;
+		}
 	}
 
 	// Otherwise return the given string as a string, set the location of the
