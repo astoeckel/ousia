@@ -44,7 +44,7 @@ void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
 	    transformStructuredEntity(document, doc->getRoot(), logger, pretty);
 	document->addChild(root);
 	// then serialize.
-	document->serialize(out, "<?xml version=\"1.0\"?>", pretty);
+	document->serialize(out, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>", pretty);
 }
 
 Rooted<Element> XmlTransformer::transformStructuredEntity(

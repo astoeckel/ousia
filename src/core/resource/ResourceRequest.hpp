@@ -77,6 +77,11 @@ private:
 	RttiSet parserTypes;
 
 	/**
+	 * The resource relative to which this resource is to be located.
+	 */
+	Resource relativeTo;
+
+	/**
 	 * ResourceType as deduced from the user provided values.
 	 */
 	ResourceType resourceType;
@@ -101,9 +106,12 @@ public:
 	 * @param supportedTypes specifies the types of the Node that may result
 	 * from the resource once it has been parsed. This value is not directly
 	 * provided by the user, but by the calling code.
+	 * @param relativeTo is another resource relative to which the Resource
+	 * should be looked up.
 	 */
 	ResourceRequest(const std::string &path, const std::string &mimetype,
-	                const std::string &rel, const RttiSet &supportedTypes);
+	                const std::string &rel, const RttiSet &supportedTypes,
+	                const Resource &relativeTo = NullResource);
 
 	/**
 	 * Tries to deduce all possible information and produces log messages for
@@ -127,13 +135,10 @@ public:
 	 * logged.
 	 * @param resource is the Resource descriptor that should be filled with the
 	 * actual location.
-	 * @param relativeTo is another resource relative to which the Resource
-	 * should be looked up.
 	 * @return true if a resource was found, false otherwise. Equivalent to
 	 * the value of resource.isValid().
 	 */
-	bool locate(Registry &registry, Logger &logger, Resource &resource,
-	            const Resource &relativeTo = NullResource) const;
+	bool locate(Registry &registry, Logger &logger, Resource &resource) const;
 
 	/**
 	 * Returns the requested path of the file that should be included.

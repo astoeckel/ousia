@@ -21,6 +21,7 @@
 
 #include <istream>
 #include <memory>
+#include <vector>
 
 #include "Resource.hpp"
 
@@ -60,6 +61,23 @@ protected:
 	                      const std::string &relativeTo) const = 0;
 
 	/**
+	 * Tries to autocomplete the given filename by searching for files with this
+	 * basename but different extensions. Returns a list of possible extended
+	 * paths. May return an empty list if this function is not supported.
+	 *
+	 * @param path is the given filename for which versions with extension
+	 * should be searched.
+	 * @param type is the resource type, determining the search paths in which
+	 * the resource is looked up.
+	 * @param relativeTo is an already resolved Resource relative to which the
+	 * file should be searched.
+	 * @return a list of matching, autocompleted file paths.
+	 */
+	virtual std::vector<std::string> doAutocomplete(
+	    const std::string &path, const ResourceType type,
+	    const std::string &relativeTo) const;
+
+	/**
 	 * This method returns a stream containing the data of the resource at the
 	 * given location.
 	 *
@@ -78,6 +96,41 @@ public:
 	 * Virtual destructor of the ResourceLocator interface.
 	 */
 	virtual ~ResourceLocator() {}
+
+	/**
+	 * Tries to autocomplete the given filename by searching for files with this
+	 * basename but different extensions. Returns a list of possible extended
+	 * paths. May return an empty list if this function is not supported.
+	 *
+	 * @param path is the given filename for which versions with extension
+	 * should be searched.
+	 * @param type is the resource type, determining the search paths in which
+	 * the resource is looked up.
+	 * @param relativeTo is an already resolved Resource relative to which the
+	 * file should be searched.
+	 * @return a list of matching, autocompleted file paths.
+	 */
+	std::vector<std::string> autocomplete(
+	    const std::string &path,
+	    const ResourceType type = ResourceType::UNKNOWN,
+	    const Resource &relativeTo = NullResource) const;
+
+	/**
+	 * Tries to autocomplete the given filename by searching for files with this
+	 * basename but different extensions. Returns a list of possible extended
+	 * paths. May return an empty list if this function is not supported.
+	 *
+	 * @param path is the given filename for which versions with extension
+	 * should be searched.
+	 * @param type is the resource type, determining the search paths in which
+	 * the resource is looked up.
+	 * @param relativeTo is the location of an already resolved resource
+	 * relative to which this resource should be located.
+	 * @return a list of matching, autocompleted file paths.
+	 */
+	std::vector<std::string> autocomplete(const std::string &path,
+	                                      const ResourceType type,
+	                                      const std::string &relativeTo) const;
 
 	/**
 	 * The locate function uses this ResourceLocator to search for a given
@@ -109,8 +162,7 @@ public:
 	 * @return true if a resource could be found, false otherwise.
 	 */
 	bool locate(Resource &resource, const std::string &path,
-	            const ResourceType type,
-	            const std::string &relativeTo) const;
+	            const ResourceType type, const std::string &relativeTo) const;
 
 	/**
 	 * This method returns a stream containing the data of the resource at the
@@ -123,7 +175,7 @@ public:
 	 *         C++11 compiler does not yet support move semantics for
 	 *         streams.
 	 */
-	std::unique_ptr<std::istream> stream(const std::string &location) const;	
+	std::unique_ptr<std::istream> stream(const std::string &location) const;
 };
 
 /**

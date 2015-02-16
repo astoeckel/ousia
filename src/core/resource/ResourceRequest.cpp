@@ -136,11 +136,13 @@ static RttiSet limitSupportedTypes(ResourceType resourceType,
 ResourceRequest::ResourceRequest(const std::string &path,
                                  const std::string &mimetype,
                                  const std::string &rel,
-                                 const RttiSet &supportedTypes)
+                                 const RttiSet &supportedTypes,
+                                 const Resource &relativeTo)
     : path(path),
       mimetype(mimetype),
       rel(rel),
       supportedTypes(supportedTypes),
+      relativeTo(relativeTo),
       resourceType(ResourceType::UNKNOWN),
       parser(nullptr)
 {
@@ -156,11 +158,49 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 		return false;
 	}
 
+	// Try to deduce the ResourceType from the "rel" string
+	if (!rel.empty()) {
+		resourceType = Resource::getResourceTypeByName(rel);
+		if (resourceType == ResourceType::UNKNOWN) {
+			logger.error(std::string("Unknown relation \"") + rel +
+			             std::string("\", expected one of ") +
+			             supportedResourceTypesString(supportedTypes));
+			ok = false;
+		}
+	}
+
+	// Try to deduce the ResourceType from the supportedTypes
+	if (resourceType == ResourceType::UNKNOWN) {
+		resourceType = deduceResourceType(supportedTypes);
+	}
+
+	// If the given file has no extension, try to complete it
+	std::string ext = Utils::extractFileExtension(path);
+	if (ext.empty()) {
+		std::vector<std::string> paths =
+		    registry.autocompleteResource(path, resourceType, relativeTo);
+		if (paths.size() > 1U) {
+			// There are multiple possible files
+			// TODO: Select the one which matches the other parameters
+			logger.error(std::string("Resource \"") + path +
+			             std::string("\" is ambiguous."));
+			logger.note(std::string("Possibly referenced files are:"),
+			            SourceLocation{}, MessageMode::NO_CONTEXT);
+			for (const auto &p : paths) {
+				logger.note(p, SourceLocation{}, MessageMode::NO_CONTEXT);
+			}
+			ok = false;
+		} else if (paths.size() == 1U) {
+			// Otherwise just copy the first resolved element
+			path = paths[0];
+		}
+	}
+
 	// Try to deduce the mimetype if none was given
 	if (mimetype.empty()) {
 		mimetype = registry.getMimetypeForFilename(path);
 		if (mimetype.empty()) {
-			logger.error(std::string("Filename \"") + path +
+			logger.error(std::string("Resource \"") + path +
 			             std::string(
 			                 "\" has an unknown file extension. Explicitly "
 			                 "specify a mimetype."));
@@ -187,22 +227,6 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 		}
 	}
 
-	// Try to deduce the ResourceType from the "rel" string
-	if (!rel.empty()) {
-		resourceType = Resource::getResourceTypeByName(rel);
-		if (resourceType == ResourceType::UNKNOWN) {
-			logger.error(std::string("Unknown relation \"") + rel +
-			             std::string("\", expected one of ") +
-			             supportedResourceTypesString(supportedTypes));
-			ok = false;
-		}
-	}
-
-	// Try to deduce the ResourceType from the supportedTypes
-	if (resourceType == ResourceType::UNKNOWN) {
-		resourceType = deduceResourceType(supportedTypes);
-	}
-
 	// Further limit the supportedTypes to those types that correspond to the
 	// specified resource type.
 	if (resourceType != ResourceType::UNKNOWN) {
@@ -227,8 +251,7 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 }
 
 bool ResourceRequest::locate(Registry &registry, Logger &logger,
-                             Resource &resource,
-                             const Resource &relativeTo) const
+                             Resource &resource) const
 {
 	if (!registry.locateResource(resource, path, resourceType, relativeTo)) {
 		logger.error(std::string("File not found: ") + path);

@@ -361,9 +361,10 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 		info.valid = false;
 		if (validStack) {
 			// Canonicalize the arguments (if this has not already been done),
-			// allow additional arguments
+			// allow additional arguments and numeric indices
 			Variant::mapType canonicalArgs = args;
-			targetState->arguments.validateMap(canonicalArgs, loggerFork, true);
+			targetState->arguments.validateMap(canonicalArgs, loggerFork, true,
+			                                   true);
 
 			handler->setLogger(loggerFork);
 			try {

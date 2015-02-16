@@ -1153,6 +1153,18 @@ TEST(VariantReader, parseGenericString)
 		ASSERT_EQ(0U, loc.getStart());
 		ASSERT_EQ(15U, loc.getEnd());
 	}
+
+	// Parse empty string
+	{
+		auto res = VariantReader::parseGenericString("", logger);
+		ASSERT_TRUE(res.first);
+		ASSERT_TRUE(res.second.isString());
+		ASSERT_EQ("", res.second.asString());
+
+		SourceLocation loc = res.second.getLocation();
+		ASSERT_EQ(0U, loc.getStart());
+		ASSERT_EQ(0U, loc.getEnd());
+	}
 }
 
 TEST(VariantReader, parseGenericComplex)

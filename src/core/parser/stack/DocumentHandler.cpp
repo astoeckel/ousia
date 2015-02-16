@@ -51,20 +51,15 @@ void DocumentHandler::end() { scope().pop(); }
 
 /* DocumentChildHandler */
 
-void DocumentChildHandler::preamble(Handle<Node> parentNode,
-                                    std::string &fieldName,
-                                    DocumentEntity *&parent, bool &inField)
+void DocumentChildHandler::preamble(Rooted<Node> &parentNode, size_t &fieldIdx,
+                                    DocumentEntity *&parent)
 {
 	// Check if the parent in the structure tree was an explicit field
 	// reference.
-	inField = parentNode->isa(&RttiTypes::DocumentField);
-	if (inField) {
-		fieldName = parentNode->getName();
+	if (parentNode->isa(&RttiTypes::DocumentField)) {
+		fieldIdx = parentNode.cast<DocumentField>()->fieldIdx;
 		parentNode = scope().selectOrThrow(
 		    {&RttiTypes::StructuredEntity, &RttiTypes::AnnotationEntity});
-	} else {
-		// If it wasn't an explicit reference, we use the default field.
-		fieldName = DEFAULT_FIELD_NAME;
 	}
 
 	// Reference the parent entity explicitly.
@@ -78,124 +73,235 @@ void DocumentChildHandler::preamble(Handle<Node> parentNode,
 	}
 }
 
-static void createPath(const NodeVector<Node> &path, DocumentEntity *&parent,
-                       size_t p0 = 1)
+void DocumentChildHandler::createPath(const NodeVector<Node> &path,
+                                      DocumentEntity *&parent, size_t p0)
 {
-	// TODO (@benjamin): These should be pushed onto the scope and poped once
-	// the scope is left. Otherwise stuff may not be correclty resolved.
 	size_t S = path.size();
 	for (size_t p = p0; p < S; p = p + 2) {
-		parent = static_cast<DocumentEntity *>(
-		    parent->createChildStructuredEntity(
-		                path[p].cast<StructuredClass>(), Variant::mapType{},
-		                path[p - 1]->getName(), "").get());
+		// add the field.
+		Rooted<DocumentField> field{new DocumentField(
+		    manager(), scope().getLeaf(),
+		    parent->getDescriptor()->getFieldDescriptorIndex(), true)};
+		scope().push(field);
+		// add the transparent/implicit structure element.
+		Rooted<StructuredEntity> transparent =
+		    parent->createChildStructuredEntity(path[p].cast<StructuredClass>(),
+		                                        Variant::mapType{},
+		                                        path[p - 1]->getName(), "");
+		transparent->setLocation(location());
+		transparent->setTransparent(true);
+		scope().push(transparent);
+		parent = static_cast<DocumentEntity *>(transparent.get());
 	}
+	// add the last field.
+	Rooted<DocumentField> field{new DocumentField(
+	    manager(), scope().getLeaf(),
+	    parent->getDescriptor()->getFieldDescriptorIndex(), true)};
+	scope().push(field);
 }
 
-static void createPath(const std::string &firstFieldName,
-                       const NodeVector<Node> &path, DocumentEntity *&parent)
+void DocumentChildHandler::createPath(const size_t &firstFieldIdx,
+                                      const NodeVector<Node> &path,
+                                      DocumentEntity *&parent)
 {
 	// Add the first element
-	parent = static_cast<DocumentEntity *>(
-	    parent->createChildStructuredEntity(path[0].cast<StructuredClass>(),
-	                                        Variant::mapType{}, firstFieldName,
-	                                        "").get());
+	Rooted<StructuredEntity> transparent = parent->createChildStructuredEntity(
+	    path[0].cast<StructuredClass>(), firstFieldIdx);
+	transparent->setLocation(location());
+	transparent->setTransparent(true);
+	scope().push(transparent);
+	parent = static_cast<DocumentEntity *>(transparent.get());
 
 	createPath(path, parent, 2);
 }
 
 bool DocumentChildHandler::start(Variant::mapType &args)
 {
+	// extract the special "name" attribute from the input arguments.
+	// the remaining attributes will be forwarded to the newly constructed
+	// element.
+	std::string nameAttr;
+	{
+		auto it = args.find("name");
+		if (it != args.end()) {
+			nameAttr = it->second.asString();
+			args.erase(it);
+		}
+	}
+
 	scope().setFlag(ParserFlag::POST_HEAD, true);
-	Rooted<Node> parentNode = scope().selectOrThrow(
-	    {&RttiTypes::Document, &RttiTypes::StructuredEntity,
-	     &RttiTypes::AnnotationEntity, &RttiTypes::DocumentField});
+	while (true) {
+		Rooted<Node> parentNode = scope().getLeaf();
 
-	std::string fieldName;
-	DocumentEntity *parent;
-	bool inField;
-
-	preamble(parentNode, fieldName, parent, inField);
-
-	// Try to find a FieldDescriptor for the given tag if we are not in a
-	// field already. This does _not_ try to construct transparent paths
-	// in between.
-	if (!inField && parent != nullptr &&
-	    parent->getDescriptor()->hasField(name())) {
-		Rooted<DocumentField> field{
-		    new DocumentField(parentNode->getManager(), name(), parentNode)};
-		field->setLocation(location());
-		scope().push(field);
-		return true;
-	}
-
-	// Otherwise create a new StructuredEntity
-	// TODO: Consider Anchors and AnnotationEntities
-	Rooted<StructuredClass> strct =
-	    scope().resolve<StructuredClass>(Utils::split(name(), ':'), logger());
-	if (strct == nullptr) {
-		// if we could not resolve the name, throw an exception.
-		throw LoggableException(
-		    std::string("\"") + name() + "\" could not be resolved.",
-		    location());
-	}
-
-	std::string name;
-	auto it = args.find("name");
-	if (it != args.end()) {
-		name = it->second.asString();
-		args.erase(it);
-	}
-
-	Rooted<StructuredEntity> entity;
-	if (parentNode->isa(&RttiTypes::Document)) {
-		entity = parentNode.cast<Document>()->createRootStructuredEntity(
-		    strct, args, name);
-	} else {
-		// calculate a path if transparent entities are needed in between.
-		std::string lastFieldName = fieldName;
-		if (inField) {
-			Rooted<FieldDescriptor> field =
-			    parent->getDescriptor()->getFieldDescriptor(fieldName);
-			auto pathRes =
-			    field.cast<FieldDescriptor>()->pathTo(strct, logger());
-			if (!pathRes.second) {
+		Rooted<StructuredEntity> entity;
+		// handle the root note specifically.
+		if (parentNode->isa(&RttiTypes::Document)) {
+			Rooted<StructuredClass> strct = scope().resolve<StructuredClass>(
+			    Utils::split(name(), ':'), logger());
+			if (strct == nullptr) {
+				// if we could not resolve the name, throw an exception.
 				throw LoggableException(
-				    std::string("An instance of \"") + strct->getName() +
-				        "\" is not allowed as child of field \"" + fieldName +
-				        "\"",
+				    std::string("\"") + name() + "\" could not be resolved.",
 				    location());
 			}
-			if (!pathRes.first.empty()) {
-				createPath(fieldName, pathRes.first, parent);
-				lastFieldName = DEFAULT_FIELD_NAME;
-			}
+			entity = parentNode.cast<Document>()->createRootStructuredEntity(
+			    strct, args, nameAttr);
 		} else {
-			auto path = parent->getDescriptor()->pathTo(strct, logger());
-			if (path.empty()) {
+			assert(parentNode->isa(&RttiTypes::DocumentField));
+
+			size_t fieldIdx;
+			DocumentEntity *parent;
+
+			preamble(parentNode, fieldIdx, parent);
+
+			// TODO: REMOVE
+			std::string thisName = name();
+			std::string parentClassName;
+			if (parent != nullptr) {
+				parentClassName = parent->getDescriptor()->getName();
+			}
+
+			/*
+			 * Try to find a FieldDescriptor for the given tag if we are not in
+			 * a field already. This does _not_ try to construct transparent
+			 * paths in between.
+			 */
+			{
+				ssize_t newFieldIdx =
+				    parent->getDescriptor()->getFieldDescriptorIndex(name());
+				if (newFieldIdx != -1) {
+					Rooted<DocumentField> field{new DocumentField(
+					    manager(), parentNode, newFieldIdx, false)};
+					field->setLocation(location());
+					scope().push(field);
+					isExplicitField = true;
+					return true;
+				}
+			}
+
+			// Otherwise create a new StructuredEntity
+			// TODO: Consider Anchors and AnnotationEntities
+			Rooted<StructuredClass> strct = scope().resolve<StructuredClass>(
+			    Utils::split(name(), ':'), logger());
+			if (strct == nullptr) {
+				// if we could not resolve the name, throw an exception.
+				throw LoggableException(
+				    std::string("\"") + name() + "\" could not be resolved.",
+				    location());
+			}
+
+			// calculate a path if transparent entities are needed in between.
+			Rooted<FieldDescriptor> field =
+			    parent->getDescriptor()->getFieldDescriptors()[fieldIdx];
+			size_t lastFieldIdx = fieldIdx;
+			auto pathRes = field->pathTo(strct, logger());
+			if (!pathRes.second) {
+				if (scope().getLeaf().cast<DocumentField>()->transparent) {
+					// if we have transparent elements above us in the structure
+					// tree we try to unwind them before we give up.
+					// pop the implicit field.
+					scope().pop();
+					// pop the implicit element.
+					scope().pop();
+					continue;
+				}
 				throw LoggableException(
 				    std::string("An instance of \"") + strct->getName() +
-				        "\" is not allowed as child of an instance of \"" +
+				        "\" is not allowed as child of field \"" +
+				        field->getName() + "\" of descriptor \"" +
 				        parent->getDescriptor()->getName() + "\"",
 				    location());
 			}
-
-			// create all transparent entities until the last field.
-			createPath(path, parent);
-			if (path.size() > 1) {
-				lastFieldName = DEFAULT_FIELD_NAME;
+			if (!pathRes.first.empty()) {
+				createPath(lastFieldIdx, pathRes.first, parent);
+				lastFieldIdx =
+				    parent->getDescriptor()->getFieldDescriptorIndex();
 			}
+			// create the entity for the new element at last.
+			entity = parent->createChildStructuredEntity(strct, lastFieldIdx,
+			                                             args, nameAttr);
 		}
-		// create the entity for the new element at last.
-		entity = parent->createChildStructuredEntity(strct, args, lastFieldName,
-		                                             name);
+		entity->setLocation(location());
+		scope().push(entity);
+		return true;
 	}
-	entity->setLocation(location());
-	scope().push(entity);
+}
+
+void DocumentChildHandler::end()
+{
+	// in case of explicit fields we do not want to pop something from the
+	// stack.
+	if (isExplicitField) {
+		return;
+	}
+	// pop the "main" element.
+	scope().pop();
+}
+
+bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
+{
+	if (isExplicitField) {
+		// In case of explicit fields we do not want to create another field.
+		isDefault = true;
+		return fieldIdx == 0;
+	}
+	Rooted<Node> parentNode = scope().getLeaf();
+	assert(parentNode->isa(&RttiTypes::StructuredEntity) ||
+	       parentNode->isa(&RttiTypes::AnnotationEntity));
+	size_t dummy;
+	DocumentEntity *parent;
+
+	preamble(parentNode, dummy, parent);
+
+	NodeVector<FieldDescriptor> fields =
+	    parent->getDescriptor()->getFieldDescriptors();
+
+	if (isDefault) {
+		fieldIdx = fields.size() - 1;
+	} else {
+		if (fieldIdx >= fields.size()) {
+			return false;
+		}
+		isDefault = fieldIdx == fields.size() - 1;
+	}
+	// push the field on the stack.
+	Rooted<DocumentField> field{
+	    new DocumentField(manager(), parentNode, fieldIdx, false)};
+	field->setLocation(location());
+	scope().push(field);
 	return true;
 }
 
-void DocumentChildHandler::end() { scope().pop(); }
+void DocumentChildHandler::fieldEnd()
+{
+	assert(scope().getLeaf()->isa(&RttiTypes::DocumentField));
+
+	// pop the field from the stack.
+	scope().pop();
+
+	// pop all remaining transparent elements.
+	while (scope().getLeaf()->isa(&RttiTypes::StructuredEntity) &&
+	       scope().getLeaf().cast<StructuredEntity>()->isTransparent()) {
+		// pop the transparent element.
+		scope().pop();
+		// pop the transparent field.
+		scope().pop();
+	}
+}
+
+bool DocumentChildHandler::annotationStart(const Variant &className,
+                                           Variant::mapType &args)
+{
+	// TODO: Implement
+	return false;
+}
+
+bool DocumentChildHandler::annotationEnd(const Variant &className,
+                                         const Variant &elementName)
+{
+	// TODO: Implement
+	return false;
+}
 
 bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
                                        Variant &data, Logger &logger)
@@ -226,71 +332,40 @@ bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
 
 bool DocumentChildHandler::data(Variant &data)
 {
-	Rooted<Node> parentNode = scope().selectOrThrow(
-	    {&RttiTypes::StructuredEntity, &RttiTypes::AnnotationEntity,
-	     &RttiTypes::DocumentField});
+	Rooted<Node> parentField = scope().getLeaf();
+	assert(parentField->isa(&RttiTypes::DocumentField));
 
-	std::string fieldName;
-	DocumentEntity *strctParent;
-	bool inField;
+	size_t fieldIdx;
+	DocumentEntity *parent;
 
-	preamble(parentNode, fieldName, strctParent, inField);
+	preamble(parentField, fieldIdx, parent);
 
-	Rooted<Descriptor> desc = strctParent->getDescriptor();
-	// The parent from which we need to connect to the primitive content.
-	Rooted<Node> parentClass;
+	Rooted<Descriptor> desc = parent->getDescriptor();
 
-	// We distinguish two cases here: One for fields that are given.
-	if (inField) {
-		// Retrieve the actual FieldDescriptor
-		Rooted<FieldDescriptor> field = desc->getFieldDescriptor(fieldName);
-		if (field == nullptr) {
-			logger().error(
-			    std::string("Can't handle data because no field with name \"") +
-			        fieldName + "\" exists in descriptor\"" + desc->getName() +
-			        "\".",
-			    location());
+	// Retrieve the actual FieldDescriptor
+	Rooted<FieldDescriptor> field = desc->getFieldDescriptors()[fieldIdx];
+	// If it is a primitive field directly, try to parse the content.
+	if (field->isPrimitive()) {
+		// Add it as primitive content.
+		if (!convertData(field, data, logger())) {
 			return false;
 		}
-		// If it is a primitive field directly, try to parse the content.
-		if (field->isPrimitive()) {
-			// Add it as primitive content.
-			if (!convertData(field, data, logger())) {
-				return false;
-			}
 
-			strctParent->createChildDocumentPrimitive(data, fieldName);
-			return true;
-		}
-		// If it is not primitive we need to connect via transparent elements
-		// and default fields.
-		parentClass = field;
-	} else {
-		// In case of default fields we need to construct via default fields
-		// and maybe transparent elements.
-		parentClass = desc;
+		parent->createChildDocumentPrimitive(data, fieldIdx);
+		return true;
 	}
 
 	// Search through all permitted default fields of the parent class that
 	// allow primitive content at this point and could be constructed via
 	// transparent intermediate entities.
-
-	// Retrieve all default fields at this point, either from the field
-	// descriptor or the structured class
-	NodeVector<FieldDescriptor> defaultFields;
-	if (inField) {
-		defaultFields = parentClass.cast<FieldDescriptor>()->getDefaultFields();
-	} else {
-		defaultFields = parentClass.cast<StructuredClass>()->getDefaultFields();
-	}
-
+	NodeVector<FieldDescriptor> defaultFields = field->getDefaultFields();
 	// Try to parse the data using the type specified by the respective field.
 	// If that does not work we proceed to the next possible field.
 	std::vector<LoggerFork> forks;
-	for (auto field : defaultFields) {
+	for (auto primitiveField : defaultFields) {
 		// Then try to parse the content using the type specification.
 		forks.emplace_back(logger().fork());
-		if (!convertData(field, data, forks.back())) {
+		if (!convertData(primitiveField, data, forks.back())) {
 			continue;
 		}
 
@@ -298,18 +373,12 @@ bool DocumentChildHandler::data(Variant &data)
 		forks.back().commit();
 
 		// Construct the necessary path
-		if (inField) {
-			NodeVector<Node> path =
-			    parentClass.cast<FieldDescriptor>()->pathTo(field, logger());
-			createPath(fieldName, path, strctParent);
-		} else {
-			auto pathRes = desc->pathTo(field, logger());
-			assert(pathRes.second);
-			createPath(pathRes.first, strctParent);
-		}
+		NodeVector<Node> path = field->pathTo(primitiveField, logger());
+		// TODO: Create methods with indices instead of names.
+		createPath(fieldIdx, path, parent);
 
 		// Then create the primitive element
-		strctParent->createChildDocumentPrimitive(data);
+		parent->createChildDocumentPrimitive(data);
 		return true;
 	}
 

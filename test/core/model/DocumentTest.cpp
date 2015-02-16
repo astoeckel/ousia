@@ -147,7 +147,7 @@ TEST(Document, validate)
 
 	// now let's extend the rootClass with a default field.
 	Rooted<FieldDescriptor> rootField =
-	    rootClass->createFieldDescriptor(logger);
+	    rootClass->createFieldDescriptor(logger).first;
 	// and add a child class for it.
 	Rooted<StructuredClass> childClass{
 	    new StructuredClass(mgr, "child", domain, single)};
@@ -194,7 +194,7 @@ TEST(Document, validate)
 	 * instances now.
 	 */
 	Rooted<FieldDescriptor> childField =
-	    childClass->createFieldDescriptor(logger);
+	    childClass->createFieldDescriptor(logger).first;
 	childField->addChild(childClass);
 	{
 		/*
@@ -214,7 +214,7 @@ TEST(Document, validate)
 	 */
 	Rooted<FieldDescriptor> childSubField =
 	    childSubClass->createFieldDescriptor(
-	        logger, FieldDescriptor::FieldType::TREE, "dummy", true);
+	        logger, FieldDescriptor::FieldType::TREE, "dummy", true).first;
 	// add a child pro forma to make it valid.
 	childSubField->addChild(childSubClass);
 	{
@@ -234,7 +234,7 @@ TEST(Document, validate)
 	Rooted<FieldDescriptor> primitive_field =
 	    childSubClass->createPrimitiveFieldDescriptor(
 	        sys->getIntType(), logger, FieldDescriptor::FieldType::SUBTREE,
-	        "int", false);
+	        "int", false).first;
 	{
 		/*
 		 * Now a document with one instance of the Child subclass should be

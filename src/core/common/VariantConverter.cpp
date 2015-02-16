@@ -81,7 +81,7 @@ bool VariantConverter::toBool(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var, VariantType::BOOL));
+	logger.error(msgUnexpectedType(var, VariantType::BOOL), var);
 	var = false;
 	return false;
 }
@@ -129,7 +129,7 @@ bool VariantConverter::toInt(Variant &var, Logger &logger, Mode mode)
 					}
 				}
 				catch (LoggableException ex) {
-					logger.log(ex);
+					logger.log(ex, var);
 					break;
 				}
 			}
@@ -148,7 +148,7 @@ bool VariantConverter::toInt(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var, VariantType::INT));
+	logger.error(msgUnexpectedType(var, VariantType::INT), var);
 	var = 0;
 	return false;
 }
@@ -195,7 +195,7 @@ bool VariantConverter::toDouble(Variant &var, Logger &logger, Mode mode)
 					return true;
 				}
 				catch (LoggableException ex) {
-					logger.log(ex);
+					logger.log(ex, var);
 					break;
 				}
 			}
@@ -214,7 +214,7 @@ bool VariantConverter::toDouble(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var, VariantType::DOUBLE));
+	logger.error(msgUnexpectedType(var, VariantType::DOUBLE), var);
 	var = 0.0;
 	return false;
 }
@@ -225,22 +225,22 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 	const VariantType type = var.getType();
 	switch (type) {
 		case VariantType::NULLPTR:
-			logger.warning(msgImplicitConversion(type, VariantType::STRING));
+			logger.warning(msgImplicitConversion(type, VariantType::STRING), var);
 			var = "null";
 			return true;
 		case VariantType::BOOL:
-			logger.warning(msgImplicitConversion(type, VariantType::STRING));
+			logger.warning(msgImplicitConversion(type, VariantType::STRING), var);
 			var = var.asBool() ? "true" : "false";
 			return true;
 		case VariantType::INT: {
-			logger.warning(msgImplicitConversion(type, VariantType::STRING));
+			logger.warning(msgImplicitConversion(type, VariantType::STRING), var);
 			std::stringstream ss;
 			ss << var.asInt();
 			var = ss.str().c_str();
 			return true;
 		}
 		case VariantType::DOUBLE: {
-			logger.warning(msgImplicitConversion(type, VariantType::STRING));
+			logger.warning(msgImplicitConversion(type, VariantType::STRING), var);
 			std::stringstream ss;
 			ss << var.asDouble();
 			var = ss.str().c_str();
@@ -325,7 +325,7 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign default value and log error
-	logger.error(msgUnexpectedType(var, VariantType::STRING));
+	logger.error(msgUnexpectedType(var, VariantType::STRING), var);
 	var = "";
 	return false;
 }
@@ -357,7 +357,7 @@ bool VariantConverter::toArray(Variant &var, const Rtti *innerType,
 	}
 
 	// No conversion possible, assign the default value and log an error
-	logger.error(msgUnexpectedType(var, VariantType::ARRAY));
+	logger.error(msgUnexpectedType(var, VariantType::ARRAY), var);
 	var.setArray(Variant::arrayType{});
 	return false;
 }
@@ -384,7 +384,7 @@ bool VariantConverter::toMap(Variant &var, const Rtti *innerType,
 	}
 
 	// No conversion possible, assign the default value and log an error
-	logger.error(msgUnexpectedType(var, VariantType::MAP));
+	logger.error(msgUnexpectedType(var, VariantType::MAP), var);
 	var.setMap(Variant::mapType{});
 	return false;
 }
@@ -401,7 +401,7 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 		Variant::cardinalityType &card = var.asCardinality();
 		if (value < 0) {
 			logger.error(
-			    "A value smaller 0 can not be converted to a cardinality!");
+			    "A value smaller 0 can not be converted to a cardinality!", var);
 			return false;
 		}
 		card.merge({(unsigned int)value});
@@ -432,7 +432,7 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 				if (value < 0) {
 					logger.error(
 					    "A value smaller 0 can not be converted to a "
-					    "cardinality!");
+					    "cardinality!", var);
 					return false;
 				}
 				card.merge({(unsigned int)value});
@@ -448,14 +448,14 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 					if (!startVar.isInt()) {
 						logger.error(
 						    "A non-integer can not be interpreted as the start "
-						    "of a range");
+						    "of a range", startVar);
 						return false;
 					}
 					int start = startVar.asInt();
 					if (start < 0) {
 						logger.error(
 						    "A value smaller 0 can not be converted to a "
-						    "cardinality!");
+						    "cardinality!", startVar);
 						return false;
 					}
 					it++;
@@ -466,7 +466,7 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 					if (!endVar.isInt()) {
 						logger.error(
 						    "A non-integer can not be interpreted as the end "
-						    "of a range");
+						    "of a range", endVar);
 						return false;
 					}
 					int end = endVar.asInt();
@@ -475,7 +475,7 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 						    std::string("The supposed start value ") +
 						    std::to_string(start) +
 						    " was bigger than the supposed end value " +
-						    std::to_string(end) + " of the Range.");
+						    std::to_string(end) + " of the Range.", endVar);
 						return false;
 					}
 					card.merge({(unsigned int)start, (unsigned int)end});
@@ -500,7 +500,7 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 	}
 
 	// No conversion possible, assign the default value and log an error
-	logger.error(msgUnexpectedType(var, VariantType::CARDINALITY));
+	logger.error(msgUnexpectedType(var, VariantType::CARDINALITY), var);
 	var.setCardinality(Variant::cardinalityType{});
 	return false;
 }
@@ -512,7 +512,7 @@ bool VariantConverter::toFunction(Variant &var, Logger &logger)
 	}
 
 	// No conversion possible, assign the default value and log an error
-	logger.error(msgUnexpectedType(var, VariantType::FUNCTION));
+	logger.error(msgUnexpectedType(var, VariantType::FUNCTION), var);
 	var.setFunction(std::shared_ptr<Function>{new FunctionStub()});
 	return false;
 }
@@ -527,7 +527,7 @@ bool VariantConverter::convert(Variant &var, const Rtti *type,
 	} else if (type == &RttiTypes::Nullptr) {
 		// Make sure the variant is set to null
 		if (!var.isNull()) {
-			logger.error(msgUnexpectedType(var, VariantType::NULLPTR));
+			logger.error(msgUnexpectedType(var, VariantType::NULLPTR), var);
 			var.setNull();
 			return false;
 		}
@@ -553,7 +553,7 @@ bool VariantConverter::convert(Variant &var, const Rtti *type,
 	// If none of the above primitive types is requested, we were
 	// obviously asked for a managed object.
 	if (!var.isObject()) {
-		logger.error(msgUnexpectedType(var, VariantType::OBJECT));
+		logger.error(msgUnexpectedType(var, VariantType::OBJECT), var);
 		var.setObject(nullptr);
 		return false;
 	}
@@ -561,7 +561,7 @@ bool VariantConverter::convert(Variant &var, const Rtti *type,
 	// Make sure the object type is correct
 	if (!var.getRtti()->isa(type)) {
 		logger.error(std::string("Expected object of type ") + type->name +
-		             " but got object of type " + var.getRtti()->name);
+		             " but got object of type " + var.getRtti()->name, var);
 		var.setObject(nullptr);
 		return false;
 	}

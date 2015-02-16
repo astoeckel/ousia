@@ -131,5 +131,30 @@ bool Registry::locateResource(Resource &resource, const std::string &path,
 
 	return false;
 }
+
+std::vector<std::string> Registry::autocompleteResource(
+    const std::string &path, ResourceType type,
+    const Resource &relativeTo) const
+{
+	std::vector<std::string> res;
+
+	// Try the locator of the given "relativeTo" resource first
+	if (relativeTo.isValid()) {
+		res = relativeTo.getLocator().autocomplete(path, type, relativeTo);
+		if (!res.empty()) {
+			return res;
+		}
+	}
+
+	// Iterate over all registered locators and try to autocomplete the given
+	// path
+	for (auto &locator : locators) {
+		res = locator->autocomplete(path, type, relativeTo);
+		if (!res.empty()) {
+			return res;
+		}
+	}
+	return res;
+}
 }
 
