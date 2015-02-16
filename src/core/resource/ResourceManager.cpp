@@ -101,10 +101,10 @@ NodeVector<Node> ResourceManager::parse(
 
 	// Locate the resource relative to the old resource, abort if this did not
 	// work
-	ResourceRequest req{path, mimetype, rel, supportedTypes};
+	ResourceRequest req{path, mimetype, rel, supportedTypes, relativeTo};
 	Resource resource;
 	if (!req.deduce(registry, logger) ||
-	    !req.locate(registry, logger, resource, relativeTo)) {
+	    !req.locate(registry, logger, resource)) {
 		return NodeVector<Node>{};
 	}
 
