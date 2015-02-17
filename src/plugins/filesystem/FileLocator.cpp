@@ -116,11 +116,6 @@ void FileLocator::addDefaultSearchPaths()
 #ifndef NDEBUG
 	addDefaultSearchPaths(SpecialPaths::getDebugDataDir());
 #endif
-	// also add working directory.
-	addSearchPath(".", {ResourceType::UNKNOWN, ResourceType::DOMAIN_DESC,
-	                    ResourceType::TYPESYSTEM, ResourceType::DOCUMENT,
-	                    ResourceType::ATTRIBUTES, ResourceType::STYLESHEET,
-	                    ResourceType::SCRIPT, ResourceType::DATA});
 }
 
 void FileLocator::addUnittestSearchPath(const std::string &subdir,
