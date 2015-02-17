@@ -60,7 +60,7 @@ struct OsmlStandaloneEnvironment : public StandaloneEnvironment {
 
 static TerminalLogger logger(std::cerr, true);
 
-TEST(OsmlParser, empty_document)
+TEST(OsmlParser, emptyDocument)
 {
 	OsmlStandaloneEnvironment env(logger);
 	Rooted<Node> node =
@@ -70,7 +70,7 @@ TEST(OsmlParser, empty_document)
 	ASSERT_TRUE(node->isa(&RttiTypes::Document));
 }
 
-TEST(OsmlParser, empty_domain)
+TEST(OsmlParser, emptyDomain)
 {
 	OsmlStandaloneEnvironment env(logger);
 	Rooted<Node> node =
@@ -81,7 +81,7 @@ TEST(OsmlParser, empty_domain)
 	ASSERT_EQ("testDomain", node->getName());
 }
 
-TEST(OsmlParser, empty_typesystem)
+TEST(OsmlParser, emptyTypesystem)
 {
 	OsmlStandaloneEnvironment env(logger);
 	Rooted<Node> node =
