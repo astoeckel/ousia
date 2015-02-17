@@ -1,0 +1,33 @@
+<?xml version="1.0" standalone="yes"?>
+<domain name="headings">
+
+	<import rel="domain" src="book"/>
+
+	<struct name="heading" cardinality="1" transparent="true">
+		<!-- The parent mechanism is a curious thing. Remind yourself
+		     that parent-child-relationship in this sense are mediated
+		     by fields. So we must either reference a field that is
+		     already there or declare a new one on the fly. -->
+		<parentRef ref="book.book">
+			<field name="heading" isSubtree="true" optional="true"/>
+		</parentRef>
+		<parentRef ref="book.chapter">
+			<field name="heading" isSubtree="true" optional="true"/>
+		</parentRef>
+		<parentRef ref="book.section">
+			<field name="heading" isSubtree="true" optional="true"/>
+		</parentRef>
+		<parentRef ref="book.subsection">
+			<field name="heading" isSubtree="true" optional="true"/>
+		</parentRef>
+		<parentRef ref="book.paragraph">
+			<field name="heading" isSubtree="true" optional="true"/>
+		</parentRef>
+		<!-- regarding its fields we have a problem here. We do not want to
+		     declare a new field, because in fact we want to allow every
+		     bit of content that a paragraph would allow - also considering
+		     possible extensions of paragraph by other domains.
+		     So we need to reference the default field of paragraph. -->
+		<fieldRef ref="book.paragraph.$default"/>
+	</struct>
+</domain>

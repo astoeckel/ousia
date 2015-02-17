@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<domain name="bibliography">
+
+	<import rel="domain" src="book"/>
+	<import rel="domain" src="meta"/>
+
+	<struct name="bibliography" transparent="true">
+		<field>
+			<childRef ref="bibEntry"/>
+		</field>
+		<parentRef ref="book">
+			<field name="bibliography" isSubtree="true"/>
+		</parentRef>
+	</struct>
+
+	<struct name="bibEntry">
+		<primitive name="name" type="string" isSubtree="true"/>
+		<primitive name="year" type="int" isSubtree="true"/>
+		<primitive name="journal" type="string" isSubtree="true" optional="true"/>
+		<primitive name="pages" type="cardinality" isSubtree="true" optional="true"/>
+		<!-- Here a geographical enum or something would be more exact -->
+		<primitive name="location" type="string" isSubtree="true" optional="true"/>
+		<field name="authors" optional="true">
+			<childRef ref="meta.author"/>
+		</field>
+	</struct>
+</domain>

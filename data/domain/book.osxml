@@ -1,3 +1,34 @@
 <?xml version="1.0" standalone="yes"?>
 <domain name="book">
+	<struct name="book" cardinality="{1}" isRoot="true">
+		<field>
+			<childRef ref="book.chapter"/>
+			<childRef ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="chapter">
+		<field>
+			<childRef ref="book.section"/>
+			<childRef ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="section">
+		<field>
+			<childRef ref="book.subsection"/>
+			<childRef ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="subsection">
+		<field>
+			<childRef ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="paragraph" transparent="true">
+		<field>
+			<childRef ref="book.text"/>
+		</field>
+	</struct>
+	<struct name="text" transparent="true">
+		<primitive type="string"/>
+	</struct>
 </domain>
