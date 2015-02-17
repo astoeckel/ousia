@@ -276,7 +276,7 @@ void Stack::endOverdueHandlers()
 		HandlerInfo &info = stack.back();
 
 		// Abort if this handler currently is inside a field
-		if (info.inField || !info.hadDefaultField) {
+		if (info.inField || (!info.hadDefaultField && info.valid)) {
 			return;
 		}
 
@@ -291,8 +291,9 @@ bool Stack::ensureHandlerIsInField()
 	// try to start a default field
 	HandlerInfo &info = currentInfo();
 	if (!info.inField && info.handler != nullptr) {
-		// Abort if the element already had a default field
-		if (info.hadDefaultField) {
+		// Abort if the element already had a default field or the handler is
+		// not valid
+		if (info.hadDefaultField || !info.valid) {
 			return false;
 		}
 
