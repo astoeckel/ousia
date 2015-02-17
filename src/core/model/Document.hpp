@@ -1014,6 +1014,13 @@ public:
 	}
 
 	/**
+	 * Returns a const reference to the NodeVector of referenced Typesystems.
+	 *
+	 * @return a const reference to the NodeVector of referenced Typesystems.
+	 */
+	const NodeVector<Typesystem> getTypesystems() const { return typesystems; }
+
+	/**
 	 * Adds a Typesystem reference to this Document.
 	 */
 	void referenceTypesystem(Handle<Typesystem> d)
@@ -1030,7 +1037,6 @@ public:
 		invalidate();
 		typesystems.insert(typesystems.end(), d.begin(), d.end());
 	}
-
 
 	/**
 	 * Returns true if and only if the given StructureNode is part of this

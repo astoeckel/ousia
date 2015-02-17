@@ -24,27 +24,76 @@
 namespace ousia {
 namespace xml {
 
+static Rooted<Element> createImportElement(Handle<Element> parent,
+                                           Handle<ousia::Node> referenced,
+                                           ResourceManager &resourceManager,
+                                           const std::string &rel)
+{
+	SourceLocation loc = referenced->getLocation();
+	Resource res = resourceManager.getResource(loc.getSourceId());
+	if (!res.isValid()) {
+		return nullptr;
+	}
+	Rooted<Element> import{
+	    new Element{parent->getManager(),
+	                parent,
+	                "import",
+	                {{"rel", rel}, {"src", res.getLocation()}}}};
+	return import;
+}
+
 void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
-                              Logger &logger, bool pretty)
+                              Logger &logger, ResourceManager &resourceManager,
+                              bool pretty)
 {
 	Manager &mgr = doc->getManager();
 	// the outermost tag is the document itself.
 	Rooted<Element> document{new Element{mgr, {nullptr}, "document"}};
-	// then write imports for all references domains.
+	// write imports for all referenced domains.
 	for (auto d : doc->getDomains()) {
-		Rooted<Element> import{
-		    new Element{mgr,
-		                document,
-		                "import",
-		                {{"rel", "domain"}, {"src", d->getName() + ".oxm"}}}};
-		document->addChild(import);
+		Rooted<Element> import =
+		    createImportElement(document, d, resourceManager, "domain");
+		if (import != nullptr) {
+			document->addChild(import);
+		} else {
+			logger.warning(std::string(
+			    "The location of domain \")" + d->getName() +
+			    "\" could not be retrieved using the given ResourceManager."));
+		}
+		// add the import as namespace information to the document node as well.
+		document->getAttributes().emplace(std::string("xmlns:") + d->getName(),
+		                                  import->getAttributes()["src"]);
 	}
+	// write imports for all referenced typesystems.
+	for (auto t : doc->getTypesystems()) {
+		Rooted<Element> import =
+		    createImportElement(document, t, resourceManager, "typesystem");
+		if (import != nullptr) {
+			document->addChild(import);
+		} else {
+			logger.warning(std::string(
+			    "The location of typesystem \")" + t->getName() +
+			    "\" could not be retrieved using the given ResourceManager."));
+		}
+	}
+
 	// transform the root element (and, using recursion, everything below it)
 	Rooted<Element> root =
 	    transformStructuredEntity(document, doc->getRoot(), logger, pretty);
 	document->addChild(root);
 	// then serialize.
-	document->serialize(out, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>", pretty);
+	document->serialize(
+	    out, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>",
+	    pretty);
+}
+
+static std::string toString(Variant v, bool pretty)
+{
+	if (v.isString()) {
+		return v.asString();
+	} else {
+		return VariantWriter::writeJsonToString(v, pretty);
+	}
 }
 
 Rooted<Element> XmlTransformer::transformStructuredEntity(
@@ -64,19 +113,24 @@ Rooted<Element> XmlTransformer::transformStructuredEntity(
 	    s->getDescriptor()->getAttributesDescriptor()->getAttributes();
 	std::map<std::string, std::string> xmlAttrs;
 	for (size_t a = 0; a < as.size(); a++) {
-		xmlAttrs.emplace(as[a]->getName(),
-		                 VariantWriter::writeJsonToString(attrArr[a], pretty));
+		xmlAttrs.emplace(as[a]->getName(), toString(attrArr[a], pretty));
 	}
+	// copy the name attribute.
+	if (!s->getName().empty()) {
+		xmlAttrs.emplace("name", s->getName());
+	}
+
 	// create the XML element itself.
 	Rooted<Element> elem{
-	    new Element{mgr, parent, s->getDescriptor()->getName(), xmlAttrs}};
+	    new Element{mgr, parent, s->getDescriptor()->getName(), xmlAttrs,
+	                s->getDescriptor()->getParent().cast<Domain>()->getName()}};
 	// then transform the fields.
 	NodeVector<FieldDescriptor> fieldDescs =
 	    s->getDescriptor()->getFieldDescriptors();
 	for (size_t f = 0; f < fieldDescs.size(); f++) {
 		NodeVector<StructureNode> field = s->getField(f);
 		Rooted<FieldDescriptor> fieldDesc = fieldDescs[f];
-		// if this is not the default node create an intermediate node for it.
+		// if this is not the default field create an intermediate node for it.
 		Rooted<Element> par = elem;
 		if (fieldDesc->getFieldType() != FieldDescriptor::FieldType::TREE &&
 		    !fieldDesc->isPrimitive()) {
@@ -101,23 +155,14 @@ Rooted<Element> XmlTransformer::transformStructuredEntity(
 	}
 	return elem;
 }
+
 Rooted<Text> XmlTransformer::transformPrimitive(Handle<Element> parent,
                                                 Handle<DocumentPrimitive> p,
                                                 Logger &logger, bool pretty)
 {
 	Manager &mgr = parent->getManager();
 	// transform the primitive content.
-	Variant v = p->getContent();
-	std::string textcontent =
-	    VariantWriter::writeJsonToString(p->getContent(), pretty);
-	if (v.isString() && ((textcontent[0] == '\"' &&
-	                      textcontent[textcontent.size() - 1] == '\"') ||
-	                     (textcontent[0] == '\'' &&
-	                      textcontent[textcontent.size() - 1] == '\''))) {
-		// cut the start and end quote
-		textcontent = textcontent.substr(1, textcontent.size() - 2);
-	}
-	Rooted<Text> text{new Text(mgr, parent, textcontent)};
+	Rooted<Text> text{new Text(mgr, parent, toString(p->getContent(), pretty))};
 	return text;
 }
 }

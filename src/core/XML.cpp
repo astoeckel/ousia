@@ -71,7 +71,11 @@ void Element::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 			out << '\t';
 		}
 	}
-	out << '<' << name;
+	out << '<';
+	if(!nspace.empty()){
+		out << nspace << ":";
+	}
+	out << name;
 	for (auto &a : attributes) {
 		out << ' ' << a.first << "=\"" << escapePredefinedEntities(a.second)
 		    << '\"';
@@ -95,7 +99,11 @@ void Element::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 				out << '\t';
 			}
 		}
-		out << "</" << name << ">";
+		out << "</";
+		if(!nspace.empty()){
+			out << nspace << ":";
+		}
+		out << name << ">";
 		if (pretty) {
 			out << std::endl;
 		}
@@ -125,7 +133,7 @@ namespace RttiTypes
 	        .composedOf(&XMLNode)
 	        .property("name", {&RttiTypes::String,
 	                           {[](const xml::Element *obj) {
-		                           return Variant::fromString(obj->name);
+		                           return Variant::fromString(obj->getName());
 		                       }}});
 	const Rtti XMLText = RttiBuilder<xml::Text>("XMLText").parent(&XMLNode);
 }

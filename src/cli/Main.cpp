@@ -81,14 +81,15 @@ const char *MSG_COPYING =
 const std::set<std::string> formats{"html", "xml"};
 
 static void createOutput(Handle<Document> doc, std::ostream &out,
-                         const std::string &format, Logger &logger)
+                         const std::string &format, Logger &logger,
+                         ResourceManager &resMgr)
 {
 	if (format == "html") {
 		html::DemoHTMLTransformer transform;
 		transform.writeHTML(doc, out, true);
 	} else if (format == "xml") {
 		xml::XmlTransformer transform;
-		transform.writeXml(doc, out, logger, true);
+		transform.writeXml(doc, out, logger, resMgr, true);
 	}
 }
 
@@ -247,9 +248,9 @@ int main(int argc, char **argv)
 	// write output
 	if (outputPath != "-") {
 		std::ofstream out{outputPath};
-		createOutput(doc, out, format, logger);
+		createOutput(doc, out, format, logger, resourceManager);
 	} else {
-		createOutput(doc, std::cout, format, logger);
+		createOutput(doc, std::cout, format, logger, resourceManager);
 	}
 
 	return SUCCESS;
