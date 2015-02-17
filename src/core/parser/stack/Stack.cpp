@@ -74,12 +74,12 @@ void HandlerInfo::fieldStart(bool isDefault, bool isImplicit, bool isValid)
 	inDefaultField = isDefault || isImplicit;
 	inImplicitDefaultField = isImplicit;
 	inValidField = isValid;
-	hadDefaultField = hadDefaultField || inDefaultField;
 	fieldIdx++;
 }
 
 void HandlerInfo::fieldEnd()
 {
+	hadDefaultField = hadDefaultField || inDefaultField;
 	inField = false;
 	inDefaultField = false;
 	inImplicitDefaultField = false;
@@ -269,6 +269,22 @@ void Stack::endCurrentHandler()
 	}
 }
 
+void Stack::endOverdueHandlers()
+{
+	if (!stack.empty()) {
+		// Fetch the handler info for the current top-level element
+		HandlerInfo &info = stack.back();
+
+		// Abort if this handler currently is inside a field
+		if (info.inField || !info.hadDefaultField) {
+			return;
+		}
+
+		// Otherwise end the current handler
+		endCurrentHandler();
+	}
+}
+
 bool Stack::ensureHandlerIsInField()
 {
 	// If the current handler is not in a field (and actually has a handler)
@@ -308,6 +324,10 @@ Logger &Stack::logger() { return ctx.getLogger(); }
 
 void Stack::command(const Variant &name, const Variant::mapType &args)
 {
+	// End handlers that already had a default field and are currently not
+	// active.
+	endOverdueHandlers();
+
 	// Make sure the given identifier is valid (preventing "*" from being
 	// malicously passed to this function)
 	if (!Utils::isNamespacedIdentifier(name.asString())) {
@@ -396,6 +416,10 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 
 void Stack::data(const Variant &data)
 {
+	// End handlers that already had a default field and are currently not
+	// active.
+	endOverdueHandlers();
+
 	while (true) {
 		// Check whether there is any command the data can be sent to
 		if (stack.empty()) {
@@ -414,7 +438,11 @@ void Stack::data(const Variant &data)
 		// If this field should not get any data, log an error and do not call
 		// the "data" handler
 		if (!info.inValidField) {
-			logger().error("Did not expect any data here", data);
+			// If the "hadDefaultField" flag is set, we already issued an error
+			// message
+			if (!info.hadDefaultField) {
+				logger().error("Did not expect any data here", data);
+			}
 		}
 
 		if (handlersValid() && info.inValidField) {
@@ -472,13 +500,24 @@ void Stack::fieldStart(bool isDefault)
 		return;
 	}
 
+	// If the handler already had a default field we cannot start a new field
+	// (the default field always is the last field) -- mark the command as
+	// invalid
+	if (info.hadDefaultField) {
+		logger().error(
+		    std::string("Got field start, but command \"") +
+		    currentCommandName() +
+		    std::string("\" does not have any more fields"));
+	}
+
 	// Copy the isDefault flag to a local variable, the fieldStart method will
 	// write into this variable
 	bool defaultField = isDefault;
 
 	// Do not call the "fieldStart" function if we're in an invalid subtree
+	// or the handler already had a default field
 	bool valid = false;
-	if (handlersValid()) {
+	if (handlersValid() && !info.hadDefaultField) {
 		try {
 			valid = info.handler->fieldStart(defaultField, info.fieldIdx);
 		}
@@ -499,11 +538,6 @@ void Stack::fieldStart(bool isDefault)
 
 void Stack::fieldEnd()
 {
-	// Check whether there is any command the data can be sent to
-	if (stack.empty()) {
-		throw LoggableException("No command, but got end of field.");
-	}
-
 	// Unroll the stack until the next explicitly open field
 	while (!stack.empty()) {
 		HandlerInfo &info = currentInfo();
@@ -524,7 +558,7 @@ void Stack::fieldEnd()
 
 	// Only continue if the current handler stack is in a valid state, do not
 	// call the fieldEnd function if something went wrong before
-	if (handlersValid()) {
+	if (handlersValid() && !info.hadDefaultField) {
 		try {
 			info.handler->fieldEnd();
 		}
@@ -535,11 +569,6 @@ void Stack::fieldEnd()
 
 	// This command no longer is in a field
 	info.fieldEnd();
-
-	// As soon as this command had a default field, remove it from the stack
-	if (info.hadDefaultField) {
-		endCurrentHandler();
-	}
 }
 
 void Stack::annotationStart(const Variant &className, const Variant &args)

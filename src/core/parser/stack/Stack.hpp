@@ -220,6 +220,13 @@ private:
 	HandlerInfo &lastInfo();
 
 	/**
+	 * Ends all handlers that currently are not inside a field and already had
+	 * a default field. This method is called whenever the data() and command()
+	 * events are reached.
+	 */
+	void endOverdueHandlers();
+
+	/**
 	 * Ends the current handler and removes the corresponding element from the
 	 * stack.
 	 */
