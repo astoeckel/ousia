@@ -1,0 +1,20 @@
+\begin{document}
+
+\domain#testDomain
+	\struct#test[isRoot=true]
+		\field
+			\childRef[ref=a]
+			\childRef[ref=b]
+	\struct#a
+		\field
+			\childRef[ref=b]
+	\struct#b[transparent=true]
+		\primitive[type=string,optional=true]
+
+\begin{test}
+\a
+\include{./include_child.osml}
+\b
+Test
+\end{test}
+\end{document}
