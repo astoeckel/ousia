@@ -206,6 +206,9 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 					ok = false;
 				}
 			} else {
+				// Autocompletion already tries to determine the file path, so
+				// if an empty list is returned, this means that the resource
+				// is explicitly not found
 				logger.error(std::string("Resource \"") + path +
 				             std::string("\" not found"));
 				ok = false;

@@ -71,7 +71,8 @@ protected:
 	 * the resource is looked up.
 	 * @param relativeTo is an already resolved Resource relative to which the
 	 * file should be searched.
-	 * @return a list of matching, autocompleted file paths.
+	 * @return a list of matching, autocompleted file paths. If autocomplete is
+	 * not supported, simply returns the given path as a result.
 	 */
 	virtual std::vector<std::string> doAutocomplete(
 	    const std::string &path, const ResourceType type,
@@ -108,7 +109,8 @@ public:
 	 * the resource is looked up.
 	 * @param relativeTo is an already resolved Resource relative to which the
 	 * file should be searched.
-	 * @return a list of matching, autocompleted file paths.
+	 * @return a list of matching, autocompleted file paths. If autocomplete is
+	 * not supported, simply returns the given path as a result.
 	 */
 	std::vector<std::string> autocomplete(
 	    const std::string &path,
@@ -126,7 +128,8 @@ public:
 	 * the resource is looked up.
 	 * @param relativeTo is the location of an already resolved resource
 	 * relative to which this resource should be located.
-	 * @return a list of matching, autocompleted file paths.
+	 * @return a list of matching, autocompleted file paths. If autocomplete is
+	 * not supported, simply returns the given path as a result.
 	 */
 	std::vector<std::string> autocomplete(const std::string &path,
 	                                      const ResourceType type,

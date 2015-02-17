@@ -94,8 +94,8 @@ std::vector<std::string> ResourceLocator::doAutocomplete(
     const std::string &path, const ResourceType type,
     const std::string &relativeTo) const
 {
-	// Default implementation
-	return std::vector<std::string>{};
+	// Default implementation, just return the path again
+	return std::vector<std::string>{path};
 }
 
 /* Class StaticResourceLocator */
