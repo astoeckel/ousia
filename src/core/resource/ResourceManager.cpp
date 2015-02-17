@@ -326,7 +326,7 @@ Rooted<Node> ResourceManager::getNode(Manager &mgr, const Resource &resource)
 SourceContextCallback ResourceManager::getSourceContextCallback()
 {
 	return [this](const SourceLocation &location) {
-		return this->readContext(location);
+		return this->readContext(location, 80);
 	};
 }
 }
