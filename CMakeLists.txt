@@ -319,16 +319,6 @@ IF(TEST)
 		ousia_core
 	)
 
-	ADD_EXECUTABLE(ousia_test_filesystem
-		test/plugins/filesystem/FileLocatorTest
-	)
-
-	TARGET_LINK_LIBRARIES(ousia_test_filesystem
-		${GTEST_LIBRARIES}
-		ousia_core
-		ousia_filesystem
-	)
-
 #	ADD_EXECUTABLE(ousia_test_css
 #		test/plugins/css/Tokenizer
 #		test/plugins/css/CodeTokenizerTest
@@ -341,6 +331,16 @@ IF(TEST)
 #		ousia_css
 #	)
 
+	ADD_EXECUTABLE(ousia_test_filesystem
+		test/plugins/filesystem/FileLocatorTest
+	)
+
+	TARGET_LINK_LIBRARIES(ousia_test_filesystem
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_filesystem
+	)
+
 	ADD_EXECUTABLE(ousia_test_html
 		test/plugins/html/DemoOutputTest
 	)
@@ -350,6 +350,16 @@ IF(TEST)
 		ousia_core
 		ousia_html
 	)
+
+#	ADD_EXECUTABLE(ousia_test_mozjs
+#		test/plugins/mozjs/MozJsScriptEngineTest
+#	)
+
+#	TARGET_LINK_LIBRARIES(ousia_test_mozjs
+#		${GTEST_LIBRARIES}
+#		ousia_core
+#		ousia_mozjs
+#	)
 
 	ADD_EXECUTABLE(ousia_test_osml
 		test/formats/osml/OsmlParserTest
@@ -375,24 +385,25 @@ IF(TEST)
 		ousia_filesystem
 	)
 
-#	ADD_EXECUTABLE(ousia_test_mozjs
-#		test/plugins/mozjs/MozJsScriptEngineTest
-#	)
+	ADD_EXECUTABLE(ousia_test_xml
+		test/plugins/xml/XmlOutputTest
+	)
 
-#	TARGET_LINK_LIBRARIES(ousia_test_mozjs
-#		${GTEST_LIBRARIES}
-#		ousia_core
-#		ousia_mozjs
-#	)
+	TARGET_LINK_LIBRARIES(ousia_test_xml
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_xml
+	)
 
 	# Register the unit tests
 	ADD_TEST(ousia_test_core ousia_test_core)
-	ADD_TEST(ousia_test_filesystem ousia_test_filesystem)
 #	ADD_TEST(ousia_test_css ousia_test_css)
+	ADD_TEST(ousia_test_filesystem ousia_test_filesystem)
 	ADD_TEST(ousia_test_html ousia_test_html)
+#	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
 	ADD_TEST(ousia_test_osml ousia_test_osml)
 	ADD_TEST(ousia_test_osxml ousia_test_osxml)
-#	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
+	ADD_TEST(ousia_test_xml ousia_test_xml)
 ENDIF()
 
 ################################################################################
