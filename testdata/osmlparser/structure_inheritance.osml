@@ -1,0 +1,6 @@
+\domain#test
+	\struct#a
+		\primitive[type=string]
+	\struct#b[isa=a]
+		\primitive#color[type=string,isSubtree=true]
+

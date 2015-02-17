@@ -566,7 +566,7 @@ bool Descriptor::addAndSortFieldDescriptor(Handle<FieldDescriptor> fd,
 	if (fds.find(fd) == fds.end()) {
 		invalidate();
 		// check if the previous field is a tree field already.
-		if (!fds.empty() &&
+		if (!fds.empty() && !fieldDescriptors.empty() &&
 		    fds.back()->getFieldType() == FieldDescriptor::FieldType::TREE &&
 		    fd->getFieldType() != FieldDescriptor::FieldType::TREE) {
 			// if so we add the new field before the TREE field.

@@ -111,7 +111,6 @@ TEST(OsmlParser, inlineDomain)
 	OsmlStandaloneEnvironment env(logger);
 	logger.reset();
 
-	ASSERT_FALSE(logger.hasError());
 	Rooted<Node> node =
 	    env.parse("inline_domain.osml", "", "", RttiSet{&RttiTypes::Node});
 	ASSERT_FALSE(logger.hasError());
@@ -125,7 +124,6 @@ TEST(OsmlParser, include)
 	OsmlStandaloneEnvironment env(logger);
 	logger.reset();
 
-	ASSERT_FALSE(logger.hasError());
 	Rooted<Node> node =
 	    env.parse("include_root.osml", "", "", RttiSet{&RttiTypes::Node});
 	ASSERT_FALSE(logger.hasError());
@@ -146,6 +144,19 @@ TEST(OsmlParser, includeRecursive)
 
 	ASSERT_TRUE(node != nullptr);
 	ASSERT_TRUE(node->isa(&RttiTypes::Document));
+}
+
+TEST(OsmlParser, structureInheritance)
+{
+	OsmlStandaloneEnvironment env(logger);
+	logger.reset();
+
+	Rooted<Node> node = env.parse("structure_inheritance.osml", "", "",
+	                              RttiSet{&RttiTypes::Node});
+	ASSERT_FALSE(logger.hasError());
+
+	ASSERT_TRUE(node != nullptr);
+	ASSERT_TRUE(node->isa(&RttiTypes::Domain));
 }
 }
 
