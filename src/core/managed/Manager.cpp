@@ -25,6 +25,7 @@
     defined(MANAGER_DEBUG_HIDDEN_ROOTED)
 #include <iostream>
 #include <fstream>
+#include <core/common/Exceptions.hpp>
 #include <core/common/Rtti.hpp>
 #include <core/common/Property.hpp>
 #endif
@@ -601,9 +602,9 @@ enum class EdgeType { NORMAL, DATA, AGGREGATE };
 
 void Manager::exportGraphviz(const char *filename)
 {
-	std::fstream fs(filename, std::ios_base::out);
+	std::ofstream fs(filename);
 	if (!fs.good()) {
-		throw "Error while opening output file.";
+		throw LoggableException(std::string("Error while opening target file: ") + filename);
 	}
 
 	fs << "digraph G {" << std::endl;

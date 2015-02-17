@@ -106,6 +106,10 @@ int main(int argc, char **argv)
 	std::string inputPath;
 	std::string outputPath;
 	std::string format;
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+	std::string graphvizPath;
+#endif
+
 	/*
 	 * This is a rather strange access mechanism: add_options() returns an
 	 * easy_init object that has overloaded the () operator to accept new
@@ -121,7 +125,13 @@ int main(int argc, char **argv)
 	    "output,o", po::value<std::string>(&outputPath),
 	    "The output file name. Per default the input file name will be used.")(
 	    "format,F", po::value<std::string>(&format)->required(),
-	    "The output format that shall be produced.");
+	    "The output format that shall be produced."
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+	    )(
+	    "graphviz,G", po::value<std::string>(&graphvizPath),
+	    "If set, dumps the internal object graph to the given graphviz dot file"
+#endif
+	    );
 	// "input" should be a positional option, such that we can write:
 	// ./ousia [some options] <my input file>
 	// without having to use -i or I
@@ -240,6 +250,17 @@ int main(int argc, char **argv)
 	// now all preparation is done and we can parse the input document.
 	Rooted<Node> docNode =
 	    context.import(inputPath, "", "", {&RttiTypes::Document});
+
+#ifdef MANAGER_GRAPHVIZ_EXPORT
+	if (!graphvizPath.empty()) {
+		try {
+			manager.exportGraphviz(graphvizPath.c_str());
+		} catch (LoggableException ex){
+			logger.log(ex);
+		}
+	}
+#endif
+
 	if (logger.hasError() || docNode == nullptr) {
 		logger.fatalError("Errors occured while parsing the document");
 		return ERROR_IN_DOCUMENT;
