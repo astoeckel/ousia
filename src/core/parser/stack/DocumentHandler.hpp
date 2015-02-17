@@ -93,6 +93,8 @@ public:
 class DocumentChildHandler : public Handler {
 private:
 	bool isExplicitField = false;
+	//TODO: REMOVE
+	std::string strct_name;
 
 	/**
 	 * Code shared by both the start(), fieldStart() and the data() method.

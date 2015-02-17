@@ -82,6 +82,9 @@ void DocumentChildHandler::createPath(const NodeVector<Node> &path,
 		Rooted<DocumentField> field{new DocumentField(
 		    manager(), scope().getLeaf(),
 		    parent->getDescriptor()->getFieldDescriptorIndex(), true)};
+		// TODO: REMOVE
+		logger().debug(std::string("push transparent field createPath() "),
+		               location());
 		scope().push(field);
 		// add the transparent/implicit structure element.
 		Rooted<StructuredEntity> transparent =
@@ -90,6 +93,10 @@ void DocumentChildHandler::createPath(const NodeVector<Node> &path,
 		                                        path[p - 1]->getName(), "");
 		transparent->setLocation(location());
 		transparent->setTransparent(true);
+		// TODO: REMOVE
+		logger().debug(std::string("push transparent createPath() ") +
+		                   transparent->getDescriptor()->getName(),
+		               location());
 		scope().push(transparent);
 		parent = static_cast<DocumentEntity *>(transparent.get());
 	}
@@ -97,6 +104,9 @@ void DocumentChildHandler::createPath(const NodeVector<Node> &path,
 	Rooted<DocumentField> field{new DocumentField(
 	    manager(), scope().getLeaf(),
 	    parent->getDescriptor()->getFieldDescriptorIndex(), true)};
+	// TODO: REMOVE
+	logger().debug(std::string("push transparent field createPath() "),
+					location());
 	scope().push(field);
 }
 
@@ -109,6 +119,10 @@ void DocumentChildHandler::createPath(const size_t &firstFieldIdx,
 	    path[0].cast<StructuredClass>(), firstFieldIdx);
 	transparent->setLocation(location());
 	transparent->setTransparent(true);
+	// TODO: REMOVE
+	logger().debug(std::string("push transparent createPath() ") +
+	                   transparent->getDescriptor()->getName(),
+	               location());
 	scope().push(transparent);
 	parent = static_cast<DocumentEntity *>(transparent.get());
 
@@ -173,6 +187,9 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 					Rooted<DocumentField> field{new DocumentField(
 					    manager(), parentNode, newFieldIdx, false)};
 					field->setLocation(location());
+					// TODO: REMOVE
+					logger().debug(std::string("push explicit field start() "),
+		               location());
 					scope().push(field);
 					isExplicitField = true;
 					return true;
@@ -200,8 +217,12 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 					// if we have transparent elements above us in the structure
 					// tree we try to unwind them before we give up.
 					// pop the implicit field.
+					//TODO: REMOVE
+					logger().debug("pop start() rollback",  location());
 					scope().pop();
 					// pop the implicit element.
+					//TODO: REMOVE
+					logger().debug("pop start() rollback",  location());
 					scope().pop();
 					continue;
 				}
@@ -218,10 +239,16 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 				    parent->getDescriptor()->getFieldDescriptorIndex();
 			}
 			// create the entity for the new element at last.
+			//TODO: REMOVE
+			strct_name = strct->getName();
 			entity = parent->createChildStructuredEntity(strct, lastFieldIdx,
 			                                             args, nameAttr);
 		}
 		entity->setLocation(location());
+		// TODO: REMOVE
+		logger().debug(
+		    std::string("push start() ") + entity->getDescriptor()->getName(),
+		    location());
 		scope().push(entity);
 		return true;
 	}
@@ -235,6 +262,8 @@ void DocumentChildHandler::end()
 		return;
 	}
 	// pop the "main" element.
+	// TODO: REMOVE
+	logger().debug("pop end()", location());
 	scope().pop();
 }
 
@@ -268,6 +297,10 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 	Rooted<DocumentField> field{
 	    new DocumentField(manager(), parentNode, fieldIdx, false)};
 	field->setLocation(location());
+	// TODO: REMOVE
+	logger().debug(
+	    std::string("push fieldStart() ") + fields[fieldIdx]->getName(),
+	    location());
 	scope().push(field);
 	return true;
 }
@@ -277,13 +310,25 @@ void DocumentChildHandler::fieldEnd()
 	assert(scope().getLeaf()->isa(&RttiTypes::DocumentField));
 
 	// pop the field from the stack.
+	// TODO: REMOVE
+	logger().debug("pop fieldEnd() ", location());
 	scope().pop();
 
 	// pop all remaining transparent elements.
 	while (scope().getLeaf()->isa(&RttiTypes::StructuredEntity) &&
 	       scope().getLeaf().cast<StructuredEntity>()->isTransparent()) {
+		// TODO: REMOVE
+		logger().debug(std::string("pop transparent fieldEnd() ") +
+		                   scope()
+		                       .getLeaf()
+		                       .cast<StructuredEntity>()
+		                       ->getDescriptor()
+		                       ->getName(),
+		               location());
 		// pop the transparent element.
 		scope().pop();
+		// TODO: REMOVE
+		logger().debug("pop transparent fieldEnd() ", location());
 		// pop the transparent field.
 		scope().pop();
 	}
