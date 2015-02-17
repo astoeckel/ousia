@@ -17,9 +17,13 @@
 */
 
 #include <core/common/Logger.hpp>
+
+#include <core/model/Document.hpp>
+
 #include <core/parser/stack/GenericParserStates.hpp>
 #include <core/parser/stack/Stack.hpp>
 #include <core/parser/ParserContext.hpp>
+#include <core/parser/ParserScope.hpp>
 
 #include "OsmlParser.hpp"
 #include "OsmlStreamParser.hpp"
@@ -38,6 +42,11 @@ private:
 	 * Reference at the logger.
 	 */
 	Logger &logger;
+
+	/**
+	 * Reference at the parser context.
+	 */
+	ParserContext &ctx;
 
 	/**
 	 * OsmlStreamParser instance responsible for converting the input stream
@@ -62,6 +71,7 @@ public:
 	 */
 	OsmlParserImplementation(CharReader &reader, ParserContext &ctx)
 	    : logger(ctx.getLogger()),
+	      ctx(ctx),
 	      parser(reader, logger),
 	      stack(ctx, GenericParserStates)
 	{
@@ -73,7 +83,7 @@ public:
 	void parse()
 	{
 		// Flag set to true if a "document" element needs to be created
-		bool needsDocument = true;
+		bool needsDocument = ctx.getScope().select<Document>() == nullptr;
 		while (true) {
 			OsmlStreamParser::State state = parser.parse();
 			logger.setDefaultLocation(parser.getLocation());
