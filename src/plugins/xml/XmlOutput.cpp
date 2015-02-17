@@ -55,14 +55,16 @@ void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
 		    createImportElement(document, d, resourceManager, "domain");
 		if (import != nullptr) {
 			document->addChild(import);
+			// add the import as namespace information to the document node as
+			// well.
+			document->getAttributes().emplace(
+			    std::string("xmlns:") + d->getName(),
+			    import->getAttributes()["src"]);
 		} else {
 			logger.warning(std::string(
-			    "The location of domain \")" + d->getName() +
+			    "The location of domain \"" + d->getName() +
 			    "\" could not be retrieved using the given ResourceManager."));
 		}
-		// add the import as namespace information to the document node as well.
-		document->getAttributes().emplace(std::string("xmlns:") + d->getName(),
-		                                  import->getAttributes()["src"]);
 	}
 	// write imports for all referenced typesystems.
 	for (auto t : doc->getTypesystems()) {
@@ -72,7 +74,7 @@ void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
 			document->addChild(import);
 		} else {
 			logger.warning(std::string(
-			    "The location of typesystem \")" + t->getName() +
+			    "The location of typesystem \"" + t->getName() +
 			    "\" could not be retrieved using the given ResourceManager."));
 		}
 	}
@@ -96,46 +98,50 @@ static std::string toString(Variant v, bool pretty)
 	}
 }
 
-Rooted<Element> XmlTransformer::transformStructuredEntity(
-    Handle<Element> parent, Handle<StructuredEntity> s, Logger &logger,
-    bool pretty)
-{
-	Manager &mgr = parent->getManager();
-	// TODO: Is this the right handling?
-	// copy the attributes.
-	Variant attrs = s->getAttributes();
+std::map<std::string, std::string> XmlTransformer::transformAttributes(
+    DocumentEntity *entity, Logger &logger, bool pretty)
+{  // copy the attributes.
+	Variant attrs = entity->getAttributes();
 	// build them.
-	s->getDescriptor()->getAttributesDescriptor()->build(attrs, logger);
+	entity->getDescriptor()->getAttributesDescriptor()->build(attrs, logger);
 	// get the array representation.
 	Variant::arrayType attrArr = attrs.asArray();
 	// transform them to string key-value pairs.
 	NodeVector<Attribute> as =
-	    s->getDescriptor()->getAttributesDescriptor()->getAttributes();
+	    entity->getDescriptor()->getAttributesDescriptor()->getAttributes();
 	std::map<std::string, std::string> xmlAttrs;
 	for (size_t a = 0; a < as.size(); a++) {
 		xmlAttrs.emplace(as[a]->getName(), toString(attrArr[a], pretty));
 	}
-	// copy the name attribute.
-	if (!s->getName().empty()) {
-		xmlAttrs.emplace("name", s->getName());
-	}
+	return xmlAttrs;
+}
 
-	// create the XML element itself.
-	Rooted<Element> elem{
-	    new Element{mgr, parent, s->getDescriptor()->getName(), xmlAttrs,
-	                s->getDescriptor()->getParent().cast<Domain>()->getName()}};
-	// then transform the fields.
+void XmlTransformer::addNameAttribute(Handle<ousia::Node> n,
+                                      std::map<std::string, std::string> &attrs)
+{
+	// copy the name attribute.
+	if (!n->getName().empty()) {
+		attrs.emplace("name", n->getName());
+	}
+}
+
+void XmlTransformer::transformChildren(DocumentEntity *parentEntity,
+                                       Handle<Element> parent, Logger &logger,
+                                       bool pretty)
+{
+	Manager &mgr = parent->getManager();
 	NodeVector<FieldDescriptor> fieldDescs =
-	    s->getDescriptor()->getFieldDescriptors();
+	    parentEntity->getDescriptor()->getFieldDescriptors();
 	for (size_t f = 0; f < fieldDescs.size(); f++) {
-		NodeVector<StructureNode> field = s->getField(f);
+		NodeVector<StructureNode> field = parentEntity->getField(f);
 		Rooted<FieldDescriptor> fieldDesc = fieldDescs[f];
 		// if this is not the default field create an intermediate node for it.
-		Rooted<Element> par = elem;
+		Rooted<Element> par = parent;
 		if (fieldDesc->getFieldType() != FieldDescriptor::FieldType::TREE &&
 		    !fieldDesc->isPrimitive()) {
-			par = Rooted<Element>{new Element(mgr, elem, fieldDesc->getName())};
-			elem->addChild(par);
+			par =
+			    Rooted<Element>{new Element(mgr, parent, fieldDesc->getName())};
+			parent->addChild(par);
 		}
 		for (auto c : field) {
 			// transform each child.
@@ -146,12 +152,66 @@ Rooted<Element> XmlTransformer::transformStructuredEntity(
 			} else if (c->isa(&RttiTypes::DocumentPrimitive)) {
 				child = transformPrimitive(par, c.cast<DocumentPrimitive>(),
 				                           logger, pretty);
+			} else {
+				child = transformAnchor(par, c.cast<Anchor>(), logger, pretty);
 			}
-			// TODO: Handle Anchors
 			if (child != nullptr) {
 				par->addChild(child);
 			}
 		}
+	}
+}
+
+Rooted<Element> XmlTransformer::transformStructuredEntity(
+    Handle<Element> parent, Handle<StructuredEntity> s, Logger &logger,
+    bool pretty)
+{
+	Manager &mgr = parent->getManager();
+	// transform the attributes.
+	auto attrs = transformAttributes(s.get(), logger, pretty);
+	addNameAttribute(s, attrs);
+	// create the XML element itself.
+	Rooted<Element> elem{
+	    new Element{mgr, parent, s->getDescriptor()->getName(),
+	                transformAttributes(s.get(), logger, pretty),
+	                s->getDescriptor()->getParent().cast<Domain>()->getName()}};
+	// then transform the children.
+	transformChildren(s.get(), elem, logger, pretty);
+	return elem;
+}
+
+Rooted<Element> XmlTransformer::transformAnchor(Handle<Element> parent,
+                                                Handle<Anchor> a,
+                                                Logger &logger, bool pretty)
+{
+	Rooted<Element> elem;
+	if (a->isStart()) {
+		// if this is the start anchor we append all the additional information
+		// of the annotation here.
+		// transform the attributes.
+		auto attrs =
+		    transformAttributes(a->getAnnotation().get(), logger, pretty);
+		addNameAttribute(a->getAnnotation(), attrs);
+
+		elem = Rooted<Element>{new Element(
+		    parent->getManager(), parent,
+		    a->getAnnotation()->getDescriptor()->getName(), attrs, "a:start")};
+		// and handle the children.
+		transformChildren(a->getAnnotation().get(), elem, logger, pretty);
+	} else if (a->isEnd()) {
+		/*
+		 * in principle !a->isStart() should imply a->isEnd() but if no
+		 * annotation is set both is false, so we check it to be sure.
+		 * In case of an end anchor we just create an empty element with the
+		 * annotation name.
+		 */
+		std::map<std::string, std::string> attrs;
+		addNameAttribute(a->getAnnotation(), attrs);
+		elem = Rooted<Element>{new Element(
+		    parent->getManager(), parent,
+		    a->getAnnotation()->getDescriptor()->getName(), attrs, "a:end")};
+	} else {
+		logger.warning("Ignoring disconnected Anchor", *a);
 	}
 	return elem;
 }

@@ -37,13 +37,25 @@ namespace xml {
 
 class XmlTransformer {
 private:
+	std::map<std::string, std::string> transformAttributes(
+	    DocumentEntity *entity, Logger &logger, bool pretty);
+
+	void addNameAttribute(Handle<ousia::Node> n,
+	                      std::map<std::string, std::string> &attrs);
+
+	void transformChildren(DocumentEntity *parentEntity, Handle<Element> parent,
+	                       Logger &logger, bool pretty);
+
 	Rooted<Element> transformStructuredEntity(Handle<Element> parent,
 	                                          Handle<StructuredEntity> s,
 	                                          Logger &logger, bool pretty);
 
+	Rooted<Element> transformAnchor(Handle<Element> parent, Handle<Anchor> a,
+	                                Logger &logger, bool pretty);
+
 	Rooted<Text> transformPrimitive(Handle<Element> parent,
-	                                   Handle<DocumentPrimitive> p,
-	                                   Logger &logger, bool pretty);
+	                                Handle<DocumentPrimitive> p, Logger &logger,
+	                                bool pretty);
 
 public:
 	/**
@@ -62,8 +74,8 @@ public:
 	 * @param pretty is a flag that manipulates whether newlines and tabs are
 	 *               used.
 	 */
-	void writeXml(Handle<Document> doc, std::ostream &out, Logger &logger,ResourceManager& resMgr,
-	              bool pretty);
+	void writeXml(Handle<Document> doc, std::ostream &out, Logger &logger,
+	              ResourceManager &resMgr, bool pretty);
 };
 }
 }
