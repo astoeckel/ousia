@@ -28,6 +28,7 @@
 
 #include <ostream>
 
+#include <core/resource/ResourceManager.hpp>
 #include <core/model/Document.hpp>
 #include <core/XML.hpp>
 
@@ -56,10 +57,12 @@ public:
 	 * @param out    is the output stream the XML serialization of the document
 	 *               shall be written to.
 	 * @param logger is the logger errors shall be written to.
+	 * @param resMgr is the ResourceManager to locate the domains and
+	 *               typesystems that were imported in this document.
 	 * @param pretty is a flag that manipulates whether newlines and tabs are
 	 *               used.
 	 */
-	void writeXml(Handle<Document> doc, std::ostream &out, Logger &logger,
+	void writeXml(Handle<Document> doc, std::ostream &out, Logger &logger,ResourceManager& resMgr,
 	              bool pretty);
 };
 }
