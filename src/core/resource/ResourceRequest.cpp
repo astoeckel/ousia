@@ -152,6 +152,10 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 {
 	bool ok = true;
 
+	// Check whether all node types are supported here -- this is indicated by
+	// supportedTypes containing the extremely general "Node" type.
+	bool supportsAllNodes = supportedTypes.count(&RttiTypes::Node) > 0U;
+
 	// Make sure the given file name is not empty
 	if (path.empty()) {
 		logger.error("Filename may not be empty");
@@ -227,7 +231,8 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 			logger.error(std::string("Cannot parse files of type \"") +
 			             mimetype + std::string("\""));
 			ok = false;
-		} else if (!Rtti::setIsOneOf(supportedTypes, parserTypes)) {
+		} else if (!supportsAllNodes &&
+		           !Rtti::setIsOneOf(supportedTypes, parserTypes)) {
 			logger.error(std::string("Resource of type \"") + mimetype +
 			             std::string("\" cannot be included here!"));
 			ok = false;
@@ -245,8 +250,7 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 			             std::string("\" cannot be included here"));
 			ok = false;
 		}
-	} else if (supportedTypes.size() != 1 ||
-	           *supportedTypes.begin() != &RttiTypes::Node) {
+	} else if (!supportsAllNodes) {
 		logger.warning(std::string(
 		                   "Ambiguous resource relationship, consider "
 		                   "specifying one of ") +
