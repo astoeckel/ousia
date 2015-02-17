@@ -209,8 +209,7 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 				// Autocompletion already tries to determine the file path, so
 				// if an empty list is returned, this means that the resource
 				// is explicitly not found
-				logger.error(std::string("Resource \"") + path +
-				             std::string("\" not found"));
+				logger.error(std::string("Resource not found:") + path);
 				ok = false;
 			}
 		}
@@ -262,7 +261,7 @@ bool ResourceRequest::locate(Registry &registry, Logger &logger,
                              Resource &resource) const
 {
 	if (!registry.locateResource(resource, path, resourceType, relativeTo)) {
-		logger.error(std::string("File not found: ") + path);
+		logger.error(std::string("Resource not found:") + path);
 		return false;
 	}
 	return true;
