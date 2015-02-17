@@ -19,15 +19,26 @@
 ################################################################################
 
 PROJECT(ousia)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.9)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7)
 
-# Option for enabling testing. Turn on with 'cmake -DTEST=ON'.
-# TODO: Automatically activate tests if gtest is available
-OPTION(TEST "Build all tests." OFF) # Makes boolean 'test' available.
+# Option for enabling testing. Turn on with 'cmake -DTEST=ON'. Needs gtest to
+# be available in the lib/ folder. Download using the "download_dependencies.sh"
+# script.
+OPTION(TEST "Build all tests." OFF)
+IF (EXISTS lib/gtest-1.7.0)
+	SET(TEST ON)
+ENDIF()
+
+# Set to ON to install the GtkSourceview highlighter for osml
+OPTION(INSTALL_GEDIT_HIGHLIGHTER
+	"Installs the GtkSourceview 3.0 highlighter for OSML, enables highlighting in gedit"
+	OFF)
 
 # Option for building the documentation.
 FIND_PACKAGE(Doxygen)
-OPTION(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
+OPTION(BUILD_DOCUMENTATION
+	"Create and install the HTML based API documentation (requires Doxygen)"
+	${DOXYGEN_FOUND})
 
 # Enable C++11 and all warnings
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic-errors -std=c++11")
@@ -423,3 +434,11 @@ INSTALL(DIRECTORY data/ DESTINATION share/ousia
 INSTALL(TARGETS ousia
 		RUNTIME DESTINATION bin
 )
+
+IF(INSTALL_GEDIT_HIGHLIGHTER)
+	INSTALL(FILES contrib/gtksourceview-3.0/language-specs/ousia.lang
+			DESTINATION share/gtksourceview-3.0/language-specs
+			PERMISSIONS
+				OWNER_READ GROUP_READ WORLD_READ
+				OWNER_WRITE)
+ENDIF()
