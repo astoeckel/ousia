@@ -230,30 +230,34 @@ TEST(Stack, basicTest)
 		EXPECT_EQ(&States::BodyChildren, &s.currentState());
 
 		s.fieldEnd();
-		tracker.expect(3, 1, 3, 1, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(3, 0, 3, 1, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
 
 		s.fieldEnd();
-		EXPECT_EQ("document", s.currentCommandName());
-		EXPECT_EQ(&States::Document, &s.currentState());
-		tracker.expect(3, 2, 3, 2, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
+		EXPECT_EQ("body", s.currentCommandName());
+		EXPECT_EQ(&States::Body, &s.currentState());
+		tracker.expect(3, 1, 3, 2, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
 
 		s.command("body", {});
+		EXPECT_EQ("body", s.currentCommandName());
+		EXPECT_EQ(&States::Body, &s.currentState());
+		tracker.expect(4, 2, 3, 2, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
 		s.fieldStart(true);
 		s.data("test3");
 		EXPECT_EQ("body", s.currentCommandName());
 		EXPECT_EQ(&States::Body, &s.currentState());
 		s.fieldEnd();
-		tracker.expect(4, 3, 4, 3, 0, 0, 3);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(4, 2, 4, 3, 0, 0, 3);  // sc, ec, fsc, fse, asc, aec, dc
+
+		EXPECT_EQ("body", s.currentCommandName());
+		EXPECT_EQ(&States::Body, &s.currentState());
+
+		s.fieldEnd();
+		tracker.expect(4, 3, 4, 4, 0, 0, 3);  // sc, ec, fsc, fse, asc, aec, dc
 
 		EXPECT_EQ("document", s.currentCommandName());
 		EXPECT_EQ(&States::Document, &s.currentState());
-
-		s.fieldEnd();
-		tracker.expect(4, 4, 4, 4, 0, 0, 3);  // sc, ec, fsc, fse, asc, aec, dc
-
-		EXPECT_EQ("", s.currentCommandName());
-		EXPECT_EQ(&States::None, &s.currentState());
 	}
+	tracker.expect(4, 4, 4, 4, 0, 0, 3);  // sc, ec, fsc, fse, asc, aec, dc
 	ASSERT_FALSE(logger.hasError());
 }
 
@@ -273,9 +277,13 @@ TEST(Stack, errorInvalidCommands)
 	s.fieldEnd();
 	s.fieldEnd();
 	s.fieldEnd();
+
+	logger.reset();
+	s.fieldEnd();
+	ASSERT_TRUE(logger.hasError());
+
+	EXPECT_THROW(s.data("test"), LoggableException);
 	EXPECT_EQ(&States::None, &s.currentState());
-	ASSERT_THROW(s.fieldEnd(), LoggableException);
-	ASSERT_THROW(s.data("test"), LoggableException);
 }
 
 TEST(Stack, validation)
@@ -304,27 +312,34 @@ TEST(Stack, validation)
 
 TEST(Stack, invalidCommandName)
 {
-	Stack s{env.context, States::AnyHandlers};
 	tracker.reset();
 	logger.reset();
 
+	Stack s{env.context, States::AnyHandlers};
 	s.command("a", {});
+	tracker.expect(1, 0, 0, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	s.fieldStart(true);
 	s.fieldEnd();
-	tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+	tracker.expect(1, 0, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 
 	s.command("a_", {});
+	tracker.expect(2, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	s.fieldStart(true);
 	s.fieldEnd();
-	tracker.expect(2, 2, 2, 2, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+	tracker.expect(2, 1, 2, 2, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 
 	s.command("a_:b", {});
+	tracker.expect(3, 2, 2, 2, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	s.fieldStart(true);
 	s.fieldEnd();
-	tracker.expect(3, 3, 3, 3, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+	tracker.expect(3, 2, 3, 3, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 
 	ASSERT_THROW(s.command("_a", {}), LoggableException);
+	tracker.expect(3, 3, 3, 3, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+
 	ASSERT_THROW(s.command("a:", {}), LoggableException);
+	tracker.expect(3, 3, 3, 3, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+
 	ASSERT_THROW(s.command("a:_b", {}), LoggableException);
 	tracker.expect(3, 3, 3, 3, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 }
@@ -375,8 +390,9 @@ TEST(Stack, multipleFields)
 		EXPECT_EQ("test3", tracker.dataData);
 
 		s.fieldEnd();
-		tracker.expect(1, 1, 3, 3, 0, 0, 3);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(1, 0, 3, 3, 0, 0, 3);  // sc, ec, fsc, fse, asc, aec, dc
 	}
+	tracker.expect(1, 1, 3, 3, 0, 0, 3);  // sc, ec, fsc, fse, asc, aec, dc
 	ASSERT_FALSE(logger.hasError());
 }
 
@@ -413,8 +429,8 @@ TEST(Stack, implicitDefaultFieldOnNewCommandWithExplicitDefaultField)
 		ASSERT_EQ("b", s.currentCommandName());
 		s.fieldStart(true);
 		s.fieldEnd();
-		tracker.expect(2, 1, 2, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
-		ASSERT_EQ("a", s.currentCommandName());
+		tracker.expect(2, 0, 2, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		ASSERT_EQ("b", s.currentCommandName());
 	}
 	tracker.expect(2, 2, 2, 2, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	ASSERT_FALSE(logger.hasError());
@@ -454,8 +470,8 @@ TEST(Stack, noImplicitDefaultFieldIfDefaultFieldGiven)
 		tracker.expect(1, 0, 1, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 		ASSERT_EQ("a", s.currentCommandName());
 		s.fieldEnd();
-		tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
-		ASSERT_EQ("", s.currentCommandName());
+		tracker.expect(1, 0, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		ASSERT_EQ("a", s.currentCommandName());
 
 		s.command("b", {});
 		tracker.expect(2, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
@@ -530,7 +546,7 @@ TEST(Stack, autoImplicitFieldEnd)
 		s.command("e", {});
 		s.fieldStart(true);
 		s.fieldEnd();
-		tracker.expect(5, 1, 5, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(5, 0, 5, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	}
 	tracker.expect(5, 5, 5, 5, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	ASSERT_FALSE(logger.hasError());
@@ -547,7 +563,7 @@ TEST(Stack, invalidDefaultField)
 		tracker.fieldStartResult = false;
 		s.fieldStart(true);
 		s.fieldEnd();
-		tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(1, 0, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	}
 	tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	ASSERT_FALSE(logger.hasError());
@@ -567,7 +583,7 @@ TEST(Stack, errorInvalidDefaultFieldData)
 		s.data("test");
 		ASSERT_TRUE(logger.hasError());
 		s.fieldEnd();
-		tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(1, 0, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	}
 	tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 }
@@ -674,8 +690,57 @@ TEST(Stack, fieldEndWhenImplicitDefaultFieldOpen)
 		s.command("b", {});
 		s.data("test");
 		s.fieldEnd();
-		tracker.expect(2, 2, 2, 2, 0, 0, 1);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(2, 1, 2, 2, 0, 0, 1);  // sc, ec, fsc, fse, asc, aec, dc
 	}
+	tracker.expect(2, 2, 2, 2, 0, 0, 1);  // sc, ec, fsc, fse, asc, aec, dc
+	ASSERT_FALSE(logger.hasError());
+}
+
+TEST(Stack, fieldAfterDefaultField)
+{
+	tracker.reset();
+	logger.reset();
+
+	{
+		Stack s{env.context, States::AnyHandlers};
+		s.command("a", {});
+		tracker.expect(1, 0, 0, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		s.fieldStart(true);
+		tracker.expect(1, 0, 1, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+
+		s.command("b", {});
+		tracker.expect(2, 0, 1, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+
+		s.fieldStart(false);
+		tracker.expect(2, 0, 2, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		s.data("f1");
+		tracker.expect(2, 0, 2, 0, 0, 0, 1);  // sc, ec, fsc, fse, asc, aec, dc
+		s.fieldEnd();
+		tracker.expect(2, 0, 2, 1, 0, 0, 1);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.fieldStartSetIsDefault = true;
+
+		s.fieldStart(false);
+		tracker.fieldStartSetIsDefault = false;
+		tracker.expect(2, 0, 3, 1, 0, 0, 1);  // sc, ec, fsc, fse, asc, aec, dc
+		s.data("f2");
+		tracker.expect(2, 0, 3, 1, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
+		s.fieldEnd();
+		tracker.expect(2, 0, 3, 2, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
+
+		ASSERT_FALSE(logger.hasError());
+		s.fieldStart(false);
+		ASSERT_TRUE(logger.hasError());
+		logger.reset();
+		tracker.expect(2, 0, 3, 2, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
+		s.data("f3");
+		tracker.expect(2, 0, 3, 2, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
+		s.fieldEnd();
+		tracker.expect(2, 0, 3, 2, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
+
+		s.fieldEnd();
+		tracker.expect(2, 1, 3, 3, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
+	}
+	tracker.expect(2, 2, 3, 3, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
 	ASSERT_FALSE(logger.hasError());
 }
 

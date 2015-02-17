@@ -476,7 +476,7 @@ OsxmlEventParser::OsxmlEventParser(CharReader &reader, OsxmlEvents &events,
     : reader(reader),
       events(events),
       logger(logger),
-      whitespaceMode(WhitespaceMode::TRIM),
+      whitespaceMode(WhitespaceMode::COLLAPSE),
       data(new OsxmlEventParserData())
 {
 }
