@@ -174,37 +174,42 @@ bool ResourceRequest::deduce(Registry &registry, Logger &logger)
 		resourceType = deduceResourceType(supportedTypes);
 	}
 
-	// If the given file has no extension, try to complete it
-	std::string ext = Utils::extractFileExtension(path);
-	if (ext.empty()) {
-		std::vector<std::string> paths =
-		    registry.autocompleteResource(path, resourceType, relativeTo);
-		if (paths.size() > 1U) {
-			// There are multiple possible files
-			// TODO: Select the one which matches the other parameters
-			logger.error(std::string("Resource \"") + path +
-			             std::string("\" is ambiguous."));
-			logger.note(std::string("Possibly referenced files are:"),
-			            SourceLocation{}, MessageMode::NO_CONTEXT);
-			for (const auto &p : paths) {
-				logger.note(p, SourceLocation{}, MessageMode::NO_CONTEXT);
-			}
-			ok = false;
-		} else if (paths.size() == 1U) {
-			// Otherwise just copy the first resolved element
-			path = paths[0];
-		}
-	}
-
 	// Try to deduce the mimetype if none was given
 	if (mimetype.empty()) {
 		mimetype = registry.getMimetypeForFilename(path);
 		if (mimetype.empty()) {
-			logger.error(std::string("Resource \"") + path +
-			             std::string(
-			                 "\" has an unknown file extension. Explicitly "
-			                 "specify a mimetype."));
-			ok = false;
+			// Probably the file extension was not given -- autocomplete the
+			// extension and try again
+			std::vector<std::string> paths =
+			    registry.autocompleteResource(path, resourceType, relativeTo);
+			if (paths.size() > 1U) {
+				// There are multiple possible files
+				// TODO: Select the one which matches the other parameters
+				logger.error(std::string("Resource \"") + path +
+				             std::string("\" is ambiguous"));
+				logger.note(std::string("Possible resources are:"),
+				            SourceLocation{}, MessageMode::NO_CONTEXT);
+				for (const auto &p : paths) {
+					logger.note(p, SourceLocation{}, MessageMode::NO_CONTEXT);
+				}
+				ok = false;
+			} else if (paths.size() == 1U) {
+				// Otherwise just copy the first resolved element
+				path = paths[0];
+				mimetype = registry.getMimetypeForFilename(path);
+				if (mimetype.empty()) {
+					logger.error(
+					    std::string("Resource \"") + path +
+					    std::string(
+					        "\" has an unknown file extension. Explicitly "
+					        "specify a mimetype."));
+					ok = false;
+				}
+			} else {
+				logger.error(std::string("Resource \"") + path +
+				             std::string("\" not found"));
+				ok = false;
+			}
 		}
 	}
 
