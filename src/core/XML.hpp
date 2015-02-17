@@ -113,22 +113,19 @@ public:
 class Element : public Node {
 private:
 	ManagedVector<Node> children;
+	std::map<std::string, std::string> attributes;
+	const std::string nspace;
+	const std::string name;
 
 public:
-	const std::string name;
-	std::map<std::string, std::string> attributes;
-
-	Element(Manager &mgr, Handle<Element> parent, std::string name)
-	    : Node(mgr, parent), children(this), name(std::move(name))
-	{
-	}
-
 	Element(Manager &mgr, Handle<Element> parent, std::string name,
-	        std::map<std::string, std::string> attributes)
+	        std::map<std::string, std::string> attributes = {},
+	        std::string nspace = "")
 	    : Node(mgr, parent),
 	      children(this),
-	      name(std::move(name)),
-	      attributes(std::move(attributes))
+	      attributes(std::move(attributes)),
+	      nspace(std::move(nspace)),
+	      name(std::move(name))
 	{
 	}
 
@@ -151,10 +148,16 @@ public:
 		children.insert(children.end(), c.begin(), c.end());
 	}
 
+	const std::string &getNamespace() const { return nspace; }
+
+	const std::string &getName() const { return name; }
+
 	const std::map<std::string, std::string> &getAttributes() const
 	{
 		return attributes;
 	}
+
+	std::map<std::string, std::string> &getAttributes() { return attributes; }
 };
 
 class Text : public Node {
