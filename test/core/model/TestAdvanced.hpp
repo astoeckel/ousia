@@ -65,8 +65,10 @@ static Rooted<Domain> constructHeadingDomain(Manager &mgr,
 	                                    "paragraph"};
 	for (auto &s : secclasses) {
 		Rooted<StructuredClass> desc = resolveDescriptor(bookDomain, s);
-		Rooted<FieldDescriptor> heading_field = desc->createFieldDescriptor(
-		    logger, FieldDescriptor::FieldType::SUBTREE, "heading", true).first;
+		Rooted<FieldDescriptor> heading_field =
+		    desc->createFieldDescriptor(logger,
+		                                FieldDescriptor::FieldType::SUBTREE,
+		                                "heading", true).first;
 		heading_field->addChild(heading);
 	}
 	return domain;
@@ -139,7 +141,7 @@ static bool addHeading(Logger &logger, Handle<Document> doc,
 {
 	// Add the heading.
 	Rooted<StructuredEntity> heading = buildStructuredEntity(
-	    doc, logger, parent, {"heading"}, "heading", {}, "");
+	    doc, logger, parent, {"heading"}, "heading", Variant::mapType{}, "");
 	if (heading.isNull()) {
 		return false;
 	}
@@ -193,7 +195,7 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
 	// Add the heading.
 	{
 		Rooted<StructuredEntity> heading = buildStructuredEntity(
-		    doc, logger, book, {"heading"}, "heading", {}, "");
+		    doc, logger, book, {"heading"}, "heading", Variant::mapType{}, "");
 		if (heading.isNull()) {
 			return {nullptr};
 		}
