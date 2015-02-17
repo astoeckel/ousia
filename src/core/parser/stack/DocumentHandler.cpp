@@ -428,16 +428,24 @@ bool DocumentChildHandler::data(Variant &data)
 	}
 
 	// No field was found that might take the data -- dump the error messages
-	// from the loggers
-	logger().error("Could not read data with any of the possible fields:",
-	               SourceLocation{}, MessageMode::NO_CONTEXT);
-	size_t f = 0;
-	for (auto field : defaultFields) {
-		logger().note(std::string("Field ") + Utils::join(field->path(), ".") +
-		                  std::string(":"),
-		              SourceLocation{}, MessageMode::NO_CONTEXT);
-		forks[f].commit();
-		f++;
+	// from the loggers -- or, if there were no primitive fields, clearly state
+	// this fact
+	if (defaultFields.empty()) {
+		logger().error("Got data, but structure \"" + name() +
+		                   "\" does not have any primitive field",
+		               data);
+	} else {
+		logger().error("Could not read data with any of the possible fields:",
+		               data);
+		size_t f = 0;
+		for (auto field : defaultFields) {
+			logger().note(std::string("Field ") +
+			                  Utils::join(field->path(), ".") +
+			                  std::string(":"),
+			              SourceLocation{}, MessageMode::NO_CONTEXT);
+			forks[f].commit();
+			f++;
+		}
 	}
 	return false;
 }

@@ -120,5 +120,32 @@ TEST(OsmlParser, inlineDomain)
 	ASSERT_TRUE(node->isa(&RttiTypes::Document));
 }
 
+TEST(OsmlParser, include)
+{
+	OsmlStandaloneEnvironment env(logger);
+	logger.reset();
+
+	ASSERT_FALSE(logger.hasError());
+	Rooted<Node> node =
+	    env.parse("include_root.osml", "", "", RttiSet{&RttiTypes::Node});
+	ASSERT_FALSE(logger.hasError());
+
+	ASSERT_TRUE(node != nullptr);
+	ASSERT_TRUE(node->isa(&RttiTypes::Document));
+}
+
+TEST(OsmlParser, includeRecursive)
+{
+	OsmlStandaloneEnvironment env(logger);
+	logger.reset();
+
+	ASSERT_FALSE(logger.hasError());
+	Rooted<Node> node = env.parse("include_recursive_root.osml", "", "",
+	                              RttiSet{&RttiTypes::Node});
+	ASSERT_TRUE(logger.hasError());
+
+	ASSERT_TRUE(node != nullptr);
+	ASSERT_TRUE(node->isa(&RttiTypes::Document));
+}
 }
 

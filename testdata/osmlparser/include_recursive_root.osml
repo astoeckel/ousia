@@ -1,0 +1,10 @@
+\begin{document}
+
+\domain#testDomain
+	\struct#test[isRoot=true]
+
+\begin{test}
+\include{./include_recursive.osml}
+\end{test}
+\end{document}
+
