@@ -91,6 +91,21 @@ TEST(OsmlParser, emptyTypesystem)
 	ASSERT_TRUE(node->isa(&RttiTypes::Typesystem));
 	ASSERT_EQ("testTypesystem", node->getName());
 }
+
+TEST(OsmlParser, rollbackOnInvalidElement)
+{
+	OsmlStandaloneEnvironment env(logger);
+	logger.reset();
+
+	ASSERT_FALSE(logger.hasError());
+	Rooted<Node> node =
+	    env.parse("rollback_on_invalid_element.osml", "", "", RttiSet{&RttiTypes::Node});
+	ASSERT_TRUE(logger.hasError());
+
+	ASSERT_TRUE(node != nullptr);
+	ASSERT_TRUE(node->isa(&RttiTypes::Document));
+}
+
 TEST(OsmlParser, inlineDomain)
 {
 	OsmlStandaloneEnvironment env(logger);
