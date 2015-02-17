@@ -797,8 +797,10 @@ public:
 	 * pending deferred resolutions is cleared after this function has run.
 	 *
 	 * @param logger is the logger instance into which errors should be logged.
+	 * @param postpone if set to true, postpones issuing any error messages and
+	 * waits for node resolution.
 	 */
-	bool performDeferredResolution(Logger &logger);
+	bool performDeferredResolution(Logger &logger, bool postpone = false);
 };
 }
 

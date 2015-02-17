@@ -21,6 +21,7 @@
 #include <core/common/VariantWriter.hpp>
 #include <core/model/Domain.hpp>
 #include <core/model/Typesystem.hpp>
+#include <core/model/RootNode.hpp>
 
 #include "ParserScope.hpp"
 
@@ -233,6 +234,13 @@ void ParserScope::pop()
 	}
 	flags.resize(newLen);
 
+	// Whenever a RootNode is popped from the stack, we have to perform deferred
+	// resolution -- however, postpone issuing error messages
+	if (nodes.back()->isa(&RttiTypes::RootNode)) {
+		Logger logger;
+		performDeferredResolution(logger, true);
+	}
+
 	// Remove the element from the stack
 	nodes.pop_back();
 }
@@ -424,7 +432,7 @@ bool ParserScope::resolveTypeWithValue(const std::string &name,
 	                            resultCallback);
 }
 
-bool ParserScope::performDeferredResolution(Logger &logger)
+bool ParserScope::performDeferredResolution(Logger &logger, bool postpone)
 {
 	// Repeat the resolution process as long as something has changed in the
 	// last iteration (resolving a node may cause other nodes to be resolvable).
@@ -446,8 +454,9 @@ bool ParserScope::performDeferredResolution(Logger &logger)
 		// Abort if nothing has changed in the last iteration
 		if (!hasChange) {
 			// In a last step, clear the "awaitingResolution" list to allow
-			// cyclical dependencies to be resolved
-			if (!awaitingResolution.empty()) {
+			// cyclical dependencies to be resolved -- if the postpone flag
+			// is set, do not do this
+			if (!awaitingResolution.empty() && !postpone) {
 				awaitingResolution.clear();
 			} else {
 				break;
@@ -458,6 +467,12 @@ bool ParserScope::performDeferredResolution(Logger &logger)
 	// We were successful if there are no more deferred resolutions
 	if (deferred.empty()) {
 		return true;
+	}
+
+	// If the postpone flag is set to true, we'll abort here -- this function
+	// will be called again later
+	if (postpone) {
+		return false;
 	}
 
 	// Output error messages for all elements for which resolution did not

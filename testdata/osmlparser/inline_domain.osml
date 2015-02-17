@@ -1,0 +1,14 @@
+\begin{document}
+
+\domain#testDomain
+	\struct#test[isRoot=true]
+		\field
+			\childRef[ref=a]
+	\struct#a
+
+\begin{test}
+\a
+\end{test}
+
+\end{document}
+

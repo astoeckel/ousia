@@ -91,5 +91,19 @@ TEST(OsmlParser, empty_typesystem)
 	ASSERT_TRUE(node->isa(&RttiTypes::Typesystem));
 	ASSERT_EQ("testTypesystem", node->getName());
 }
+TEST(OsmlParser, inlineDomain)
+{
+	OsmlStandaloneEnvironment env(logger);
+	logger.reset();
+
+	ASSERT_FALSE(logger.hasError());
+	Rooted<Node> node =
+	    env.parse("inline_domain.osml", "", "", RttiSet{&RttiTypes::Node});
+	ASSERT_FALSE(logger.hasError());
+
+	ASSERT_TRUE(node != nullptr);
+	ASSERT_TRUE(node->isa(&RttiTypes::Document));
+}
+
 }
 
