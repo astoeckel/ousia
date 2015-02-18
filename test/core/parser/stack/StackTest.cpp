@@ -449,10 +449,10 @@ TEST(Stack, noImplicitDefaultFieldOnIncompatibleCommand)
 
 		tracker.fieldStartResult = false;
 		s.command("b", {});
-		tracker.expect(2, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(2, 1, 1, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 		ASSERT_EQ("b", s.currentCommandName());
 	}
-	tracker.expect(2, 2, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+	tracker.expect(2, 2, 1, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	ASSERT_FALSE(logger.hasError());
 }
 
@@ -563,9 +563,9 @@ TEST(Stack, invalidDefaultField)
 		tracker.fieldStartResult = false;
 		s.fieldStart(true);
 		s.fieldEnd();
-		tracker.expect(1, 0, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(1, 0, 1, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	}
-	tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+	tracker.expect(1, 1, 1, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	ASSERT_FALSE(logger.hasError());
 }
 
@@ -583,9 +583,9 @@ TEST(Stack, errorInvalidDefaultFieldData)
 		s.data("test");
 		ASSERT_TRUE(logger.hasError());
 		s.fieldEnd();
-		tracker.expect(1, 0, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(1, 0, 1, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	}
-	tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+	tracker.expect(1, 1, 1, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 }
 
 TEST(Stack, errorInvalidFieldData)
@@ -602,9 +602,9 @@ TEST(Stack, errorInvalidFieldData)
 		ASSERT_TRUE(logger.hasError());
 		s.data("test");
 		s.fieldEnd();
-		tracker.expect(1, 0, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+		tracker.expect(1, 0, 1, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 	}
-	tracker.expect(1, 1, 1, 1, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
+	tracker.expect(1, 1, 1, 0, 0, 0, 0);  // sc, ec, fsc, fse, asc, aec, dc
 }
 
 TEST(Stack, errorFieldStartNoCommand)
@@ -743,7 +743,5 @@ TEST(Stack, fieldAfterDefaultField)
 	tracker.expect(2, 2, 3, 3, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
 	ASSERT_FALSE(logger.hasError());
 }
-
 }
 }
-

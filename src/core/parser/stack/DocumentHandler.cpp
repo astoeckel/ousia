@@ -292,6 +292,9 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 	    parent->getDescriptor()->getFieldDescriptors();
 
 	if (isDefault) {
+		if(fields.empty()){
+			return false;
+		}
 		fieldIdx = fields.size() - 1;
 	} else {
 		if (fieldIdx >= fields.size()) {
