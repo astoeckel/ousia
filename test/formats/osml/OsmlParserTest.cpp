@@ -172,5 +172,32 @@ TEST(OsmlParser, structWithNoField)
 	ASSERT_TRUE(node->isa(&RttiTypes::Document));
 }
 
+TEST(OsmlParser, invalidExplicitFields)
+{
+	OsmlStandaloneEnvironment env(logger);
+	logger.reset();
+
+	ASSERT_FALSE(logger.hasError());
+	Rooted<Node> node = env.parse("invalid_explicit_fields.osml", "", "",
+	                              RttiSet{&RttiTypes::Node});
+	ASSERT_TRUE(logger.hasError());
+
+	ASSERT_TRUE(node != nullptr);
+	ASSERT_TRUE(node->isa(&RttiTypes::Document));
+}
+
+TEST(OsmlParser, explicitFields)
+{
+	OsmlStandaloneEnvironment env(logger);
+	logger.reset();
+
+	Rooted<Node> node = env.parse("explicit_fields.osml", "", "",
+	                              RttiSet{&RttiTypes::Node});
+	ASSERT_FALSE(logger.hasError());
+
+	ASSERT_TRUE(node != nullptr);
+	ASSERT_TRUE(node->isa(&RttiTypes::Document));
+}
+
 }
 

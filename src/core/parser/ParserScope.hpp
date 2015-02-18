@@ -286,7 +286,13 @@ enum class ParserFlag {
      * Set to the boolean value "true" if the head section of a file has passed.
      * This happens once the first non-import tag is reached.
      */
-	POST_HEAD
+	POST_HEAD,
+
+	/**
+	 * Set to the boolean value "true" if explicit fields may no longer be
+	 * defined inside a structure element.
+	 */
+	POST_EXPLICIT_FIELDS
 };
 
 /**
@@ -797,6 +803,7 @@ public:
 	bool resolveFieldDescriptor(const std::string &name, Handle<Node> owner,
 	                            Logger &logger,
 	                            ResolutionResultCallback resultCallback);
+
 	/**
 	 * Tries to resolve all currently deferred resolution steps. The list of
 	 * pending deferred resolutions is cleared after this function has run.
