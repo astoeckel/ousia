@@ -253,6 +253,12 @@ static void xmlStartElementHandler(void *ref, const XML_Char *name,
 		// Convert the C string to a std::string
 		const std::string key{*(attr++)};
 
+		// Ignore xml namespace declarations
+		if (Utils::startsWith(key, "xmlns:") && parser->getData().depth == 1) {
+			attr++;
+			continue;
+		}
+
 		// Search the location of the key
 		SourceLocation keyLoc;
 		auto it = attributeOffsets.find(key);
