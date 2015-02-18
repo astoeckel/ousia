@@ -423,9 +423,14 @@ public:
 	void push(Handle<Node> node);
 
 	/**
-	 * Removes the last pushed node from the scope.
+	 * Removes the last pushed node from the scope. If the node that is popped
+	 * from the internal stack is a RootNode, pending resolutions are performed
+	 * and the RootNode is validated.
+	 *
+	 * @param logger is the Logger instance to which error messages should be
+	 * logged.
 	 */
-	void pop();
+	void pop(Logger &logger);
 
 	/**
 	 * Returns the top-level nodes. These are the nodes that are pushed onto the

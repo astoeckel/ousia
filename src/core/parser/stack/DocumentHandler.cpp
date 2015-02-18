@@ -47,7 +47,7 @@ bool DocumentHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DocumentHandler::end() { scope().pop(); }
+void DocumentHandler::end() { scope().pop(logger()); }
 
 /* DocumentChildHandler */
 
@@ -200,9 +200,9 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 					// if we have transparent elements above us in the structure
 					// tree we try to unwind them before we give up.
 					// pop the implicit field.
-					scope().pop();
+					scope().pop(logger());
 					// pop the implicit element.
-					scope().pop();
+					scope().pop(logger());
 					continue;
 				}
 				throw LoggableException(
@@ -237,7 +237,7 @@ void DocumentChildHandler::end()
 		return;
 	}
 	// pop the "main" element.
-	scope().pop();
+	scope().pop(logger());
 }
 
 bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
@@ -279,15 +279,15 @@ void DocumentChildHandler::fieldEnd()
 	assert(scope().getLeaf()->isa(&RttiTypes::DocumentField));
 
 	// pop the field from the stack.
-	scope().pop();
+	scope().pop(logger());
 
 	// pop all remaining transparent elements.
 	while (scope().getLeaf()->isa(&RttiTypes::StructuredEntity) &&
 	       scope().getLeaf().cast<StructuredEntity>()->isTransparent()) {
 		// pop the transparent element.
-		scope().pop();
+		scope().pop(logger());
 		// pop the transparent field.
-		scope().pop();
+		scope().pop(logger());
 	}
 }
 

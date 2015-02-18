@@ -53,7 +53,7 @@ bool DomainHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainHandler::end() { scope().pop(); }
+void DomainHandler::end() { scope().pop(logger()); }
 
 /* DomainStructHandler */
 
@@ -85,7 +85,7 @@ bool DomainStructHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainStructHandler::end() { scope().pop(); }
+void DomainStructHandler::end() { scope().pop(logger()); }
 
 /* DomainAnnotationHandler */
 bool DomainAnnotationHandler::start(Variant::mapType &args)
@@ -102,7 +102,7 @@ bool DomainAnnotationHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainAnnotationHandler::end() { scope().pop(); }
+void DomainAnnotationHandler::end() { scope().pop(logger()); }
 
 /* DomainAttributesHandler */
 
@@ -118,7 +118,7 @@ bool DomainAttributesHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainAttributesHandler::end() { scope().pop(); }
+void DomainAttributesHandler::end() { scope().pop(logger()); }
 
 /* DomainFieldHandler */
 
@@ -148,7 +148,7 @@ bool DomainFieldHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainFieldHandler::end() { scope().pop(); }
+void DomainFieldHandler::end() { scope().pop(logger()); }
 
 /* DomainFieldRefHandler */
 
@@ -218,7 +218,7 @@ bool DomainPrimitiveHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainPrimitiveHandler::end() { scope().pop(); }
+void DomainPrimitiveHandler::end() { scope().pop(logger()); }
 
 /* DomainChildHandler */
 
@@ -251,7 +251,7 @@ bool DomainParentHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainParentHandler::end() { scope().pop(); }
+void DomainParentHandler::end() { scope().pop(logger()); }
 
 /* DomainParentFieldHandler */
 
