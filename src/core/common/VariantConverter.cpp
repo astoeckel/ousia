@@ -262,7 +262,7 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 				// Print cardinality syntax
 				Variant::cardinalityType card = var.asCardinality();
 				std::stringstream ss;
-				ss << "<cardinality {";
+				ss << "{";
 				bool first = true;
 				for (Variant::rangeType r : card.getRanges()) {
 					if (first) {
@@ -288,7 +288,7 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 						ss << ">" << std::to_string(r.start - 1);
 					}
 				}
-				ss << "}>";
+				ss << "}";
 				var = ss.str().c_str();
 				return true;
 			}

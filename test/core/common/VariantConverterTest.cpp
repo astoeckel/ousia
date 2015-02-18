@@ -244,7 +244,7 @@ TEST(VariantConverter, toString)
 	                       VariantConverter::Mode::ALL, logger);
 	assertStringConversion(M, "{\"b\":true,\"d\":2.7,\"i\":6,\"s\":\"test\"}",
 	                       true, VariantConverter::Mode::ALL, logger);
-	assertStringConversion(C, "<cardinality {2-4, >6}>", true,
+	assertStringConversion(C, "{2-4, >6}", true,
 	                       VariantConverter::Mode::ALL, logger);
 }
 
