@@ -171,6 +171,14 @@ int main(int argc, char **argv)
 		logger.error("Currently no reading from std::in is supported!");
 		return ERROR_IN_COMMAND_LINE;
 	} else {
+		if (!fs::exists(inputPath)) {
+			logger.error("Input file \"" + inputPath + "\" does not exist");
+			return ERROR_IN_COMMAND_LINE;
+		}
+		if (!fs::is_regular_file(inputPath)) {
+			logger.error("Input file \"" + inputPath + "\" is not a regular file");
+			return ERROR_IN_COMMAND_LINE;
+		}
 		inputPath = fs::canonical(inputPath).string();
 	}
 
