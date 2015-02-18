@@ -53,7 +53,7 @@ private:
 	Rooted<Element> transformAnchor(Handle<Element> parent, Handle<Anchor> a,
 	                                Logger &logger, bool pretty);
 
-	Rooted<Text> transformPrimitive(Handle<Element> parent,
+	Rooted<Text> transformPrimitive(Handle<Element> parent,Handle<Type> type,
 	                                Handle<DocumentPrimitive> p, Logger &logger,
 	                                bool pretty);
 

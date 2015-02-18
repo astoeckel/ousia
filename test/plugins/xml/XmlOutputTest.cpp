@@ -107,5 +107,45 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	        "><book:text>blub</book:text><a:end:emphasized/"
 	        "><book:text>bla</book:text><a:end:strong/>") != std::string::npos);
 }
+
+TEST(DemoHTMLTransformer, PrimitiveSubtreeFields)
+{
+	// Construct Manager
+	TerminalLogger logger{std::cerr, true};
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// Construct a simple domain.
+	Rooted<Domain> domain{new Domain(mgr, sys, "myDomain")};
+
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, Cardinality::any(), nullptr, false, true)};
+	Rooted<FieldDescriptor> A_a =
+	    A->createPrimitiveFieldDescriptor(sys->getStringType(), logger,
+	                                      FieldDescriptor::FieldType::SUBTREE,
+	                                      "a").first;
+	Rooted<FieldDescriptor> A_b =
+	    A->createPrimitiveFieldDescriptor(sys->getStringType(), logger,
+	                                      FieldDescriptor::FieldType::SUBTREE,
+	                                      "b").first;
+	Rooted<FieldDescriptor> A_main =
+	    A->createPrimitiveFieldDescriptor(sys->getStringType(), logger).first;
+	ASSERT_TRUE(domain->validate(logger));
+	// Construct a document for it.
+	Rooted<Document> doc{new Document(mgr, "myDoc")};
+	Rooted<StructuredEntity> A_impl = doc->createRootStructuredEntity(A);
+	A_impl->createChildDocumentPrimitive("test_a", "a");
+	A_impl->createChildDocumentPrimitive("test_b", "b");
+	A_impl->createChildDocumentPrimitive("test");
+	ASSERT_TRUE(doc->validate(logger));
+	// now transform this document.
+	ResourceManager dummy;
+	XmlTransformer transformer;
+	std::stringstream out;
+	transformer.writeXml(doc, out, logger, dummy, false);
+	const std::string res = out.str();
+	ASSERT_TRUE(
+	    res.find("<myDomain:A><a>test_a</a><b>test_b</b>test</myDomain:A>") !=
+	    std::string::npos);
+}
 }
 }

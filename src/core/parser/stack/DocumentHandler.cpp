@@ -47,7 +47,7 @@ bool DocumentHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DocumentHandler::end() { scope().pop(); }
+void DocumentHandler::end() { scope().pop(logger()); }
 
 /* DocumentChildHandler */
 
@@ -98,6 +98,9 @@ void DocumentChildHandler::createPath(const NodeVector<Node> &path,
 	    manager(), scope().getLeaf(),
 	    parent->getDescriptor()->getFieldDescriptorIndex(), true)};
 	scope().push(field);
+
+	// Generally allow explicit fields in the new field
+	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, false);
 }
 
 void DocumentChildHandler::createPath(const size_t &firstFieldIdx,
@@ -113,6 +116,9 @@ void DocumentChildHandler::createPath(const size_t &firstFieldIdx,
 	parent = static_cast<DocumentEntity *>(transparent.get());
 
 	createPath(path, parent, 2);
+
+	// Generally allow explicit fields in the new field
+	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, false);
 }
 
 bool DocumentChildHandler::start(Variant::mapType &args)
@@ -136,6 +142,14 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 		Rooted<StructuredEntity> entity;
 		// handle the root note specifically.
 		if (parentNode->isa(&RttiTypes::Document)) {
+			// if we already have a root node, stop.
+			if (parentNode.cast<Document>()->getRoot() != nullptr) {
+				logger().warning(
+				    "This document already has a root node. The additional "
+				    "node is ignored.",
+				    location());
+				return false;
+			}
 			Rooted<StructuredClass> strct = scope().resolve<StructuredClass>(
 			    Utils::split(name(), ':'), logger());
 			if (strct == nullptr) {
@@ -170,12 +184,25 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 				ssize_t newFieldIdx =
 				    parent->getDescriptor()->getFieldDescriptorIndex(name());
 				if (newFieldIdx != -1) {
-					Rooted<DocumentField> field{new DocumentField(
-					    manager(), parentNode, newFieldIdx, false)};
-					field->setLocation(location());
-					scope().push(field);
-					isExplicitField = true;
-					return true;
+					// Check whether explicit fields are allowed here, if not
+					if (scope().getFlag(ParserFlag::POST_EXPLICIT_FIELDS)) {
+						logger().note(
+						    std::string(
+						        "Data or structure commands have already been "
+						        "given, command \"") +
+						        name() + std::string(
+						                     "\" is not interpreted explicit "
+						                     "field. Move explicit field "
+						                     "references to the beginning."),
+						    location());
+					} else {
+						Rooted<DocumentField> field{new DocumentField(
+						    manager(), parentNode, newFieldIdx, false)};
+						field->setLocation(location());
+						scope().push(field);
+						isExplicitField = true;
+						return true;
+					}
 				}
 			}
 
@@ -200,9 +227,9 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 					// if we have transparent elements above us in the structure
 					// tree we try to unwind them before we give up.
 					// pop the implicit field.
-					scope().pop();
+					scope().pop(logger());
 					// pop the implicit element.
-					scope().pop();
+					scope().pop(logger());
 					continue;
 				}
 				throw LoggableException(
@@ -218,11 +245,17 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 				    parent->getDescriptor()->getFieldDescriptorIndex();
 			}
 			// create the entity for the new element at last.
-			//TODO: REMOVE
+			// TODO: REMOVE
 			strct_name = strct->getName();
 			entity = parent->createChildStructuredEntity(strct, lastFieldIdx,
 			                                             args, nameAttr);
 		}
+
+		// We're past the region in which explicit fields can be defined in the
+		// parent structure element
+		scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, true);
+
+		// Bush the entity onto the stack
 		entity->setLocation(location());
 		scope().push(entity);
 		return true;
@@ -237,7 +270,7 @@ void DocumentChildHandler::end()
 		return;
 	}
 	// pop the "main" element.
-	scope().pop();
+	scope().pop(logger());
 }
 
 bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
@@ -259,6 +292,9 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 	    parent->getDescriptor()->getFieldDescriptors();
 
 	if (isDefault) {
+		if(fields.empty()){
+			return false;
+		}
 		fieldIdx = fields.size() - 1;
 	} else {
 		if (fieldIdx >= fields.size()) {
@@ -271,6 +307,10 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 	    new DocumentField(manager(), parentNode, fieldIdx, false)};
 	field->setLocation(location());
 	scope().push(field);
+
+	// Generally allow explicit fields in the new field
+	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, false);
+
 	return true;
 }
 
@@ -279,15 +319,15 @@ void DocumentChildHandler::fieldEnd()
 	assert(scope().getLeaf()->isa(&RttiTypes::DocumentField));
 
 	// pop the field from the stack.
-	scope().pop();
+	scope().pop(logger());
 
 	// pop all remaining transparent elements.
 	while (scope().getLeaf()->isa(&RttiTypes::StructuredEntity) &&
 	       scope().getLeaf().cast<StructuredEntity>()->isTransparent()) {
 		// pop the transparent element.
-		scope().pop();
+		scope().pop(logger());
 		// pop the transparent field.
-		scope().pop();
+		scope().pop(logger());
 	}
 }
 
@@ -334,6 +374,10 @@ bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
 
 bool DocumentChildHandler::data(Variant &data)
 {
+	// We're past the region in which explicit fields can be defined in the
+	// parent structure element
+	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, true);
+
 	Rooted<Node> parentField = scope().getLeaf();
 	assert(parentField->isa(&RttiTypes::DocumentField));
 

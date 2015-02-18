@@ -808,6 +808,7 @@ private:
 	 */
 	Rooted<FieldDescriptor> gatherFieldDescriptors(
 	    NodeVector<FieldDescriptor> &current,
+	    std::unordered_set<const StructuredClass *> &visited,
 	    std::set<std::string> &overriddenFields, bool hasTREE) const;
 
 protected:

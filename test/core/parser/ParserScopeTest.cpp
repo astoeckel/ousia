@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include <core/common/Logger.hpp>
 #include <core/managed/Manager.hpp>
 #include <core/model/Node.hpp>
 #include <core/parser/ParserScope.hpp>
@@ -26,6 +27,7 @@ namespace ousia {
 
 TEST(ParserScope, flags)
 {
+	Logger logger;
 	Manager mgr;
 	ParserScope scope;
 
@@ -42,9 +44,9 @@ TEST(ParserScope, flags)
 	ASSERT_TRUE(scope.getFlag(ParserFlag::POST_HEAD));
 	scope.setFlag(ParserFlag::POST_HEAD, false);
 	ASSERT_FALSE(scope.getFlag(ParserFlag::POST_HEAD));
-	scope.pop();
+	scope.pop(logger);
 	ASSERT_TRUE(scope.getFlag(ParserFlag::POST_HEAD));
-	scope.pop();
+	scope.pop(logger);
 	ASSERT_FALSE(scope.getFlag(ParserFlag::POST_HEAD));
 	scope.setFlag(ParserFlag::POST_HEAD, true);
 	ASSERT_TRUE(scope.getFlag(ParserFlag::POST_HEAD));

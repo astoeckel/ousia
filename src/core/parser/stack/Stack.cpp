@@ -16,8 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sstream>
-
 #include <core/common/Logger.hpp>
 #include <core/common/Utils.hpp>
 #include <core/common/Exceptions.hpp>
@@ -256,7 +254,9 @@ void Stack::endCurrentHandler()
 			// Make sure the fieldEnd handler is called if the element still
 			// is in a field
 			if (info.inField) {
-				info.handler->fieldEnd();
+				if (info.inValidField) {
+					info.handler->fieldEnd();
+				}
 				info.fieldEnd();
 			}
 
@@ -300,8 +300,6 @@ bool Stack::ensureHandlerIsInField()
 		// Try to start a new default field, abort if this did not work
 		bool isDefault = true;
 		if (!info.handler->fieldStart(isDefault, info.fieldIdx)) {
-			info.handler->fieldEnd();
-			endCurrentHandler();
 			return false;
 		}
 
@@ -505,10 +503,9 @@ void Stack::fieldStart(bool isDefault)
 	// (the default field always is the last field) -- mark the command as
 	// invalid
 	if (info.hadDefaultField) {
-		logger().error(
-		    std::string("Got field start, but command \"") +
-		    currentCommandName() +
-		    std::string("\" does not have any more fields"));
+		logger().error(std::string("Got field start, but command \"") +
+		               currentCommandName() +
+		               std::string("\" does not have any more fields"));
 	}
 
 	// Copy the isDefault flag to a local variable, the fieldStart method will
@@ -559,7 +556,7 @@ void Stack::fieldEnd()
 
 	// Only continue if the current handler stack is in a valid state, do not
 	// call the fieldEnd function if something went wrong before
-	if (handlersValid() && !info.hadDefaultField) {
+	if (handlersValid() && !info.hadDefaultField && info.inValidField) {
 		try {
 			info.handler->fieldEnd();
 		}
@@ -588,4 +585,3 @@ void Stack::token(Variant token)
 }
 }
 }
-

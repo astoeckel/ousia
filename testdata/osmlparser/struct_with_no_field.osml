@@ -1,0 +1,12 @@
+\document
+
+\domain#test
+	\struct#a[isRoot=true]
+		\field
+			\childRef[ref=b]
+	\struct#b
+
+\a
+	\b
+	\b
+

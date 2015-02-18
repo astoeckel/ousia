@@ -1,8 +1,0 @@
-<?xml version="1.0" standalone="yes"?>
-<typesystem name="email">
-	<struct name="email">
-		<field name="local" type="string"/>
-		<field name="domainName" type="string"/>
-		<field name="domainSuffix" type="string"/>
-	</struct>
-</typesystem>

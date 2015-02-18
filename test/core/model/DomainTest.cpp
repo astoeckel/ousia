@@ -81,6 +81,115 @@ TEST(Domain, testDomainResolving)
 	assert_path(res[0], &RttiTypes::StructuredClass, {"book", "paragraph"});
 }
 
+// i use this wrapper due to the strange behaviour of GTEST.
+static void assertFalse(bool b){
+	ASSERT_FALSE(b);
+}
+
+static Rooted<FieldDescriptor> createUnsortedPrimitiveField(
+    Handle<StructuredClass> strct, Handle<Type> type, Logger &logger, bool tree,
+    std::string name)
+{
+	FieldDescriptor::FieldType fieldType = FieldDescriptor::FieldType::SUBTREE;
+	if (tree) {
+		fieldType = FieldDescriptor::FieldType::TREE;
+	}
+
+	auto res = strct->createPrimitiveFieldDescriptor(type, logger, fieldType,
+	                                                 std::move(name));
+	assertFalse(res.second);
+	return res.first;
+}
+
+TEST(StructuredClass, getFieldDescriptors)
+{
+	/*
+	 * We construct a case with the three levels:
+	 * 1.) A has the SUBTREE fields a and b as well as a TREE field.
+	 * 2.) B is a subclass of A and has the SUBTREE fields b and c as well as
+	 *     a TREE field.
+	 * 3.) C is a subclass of B and has the SUBTREE field a.
+	 * As a result we expect C to have none of As fields, the TREE field of B,
+	 * and the SUBTREE fields a (of C) , b and c (of B).
+	 */
+	TerminalLogger logger{std::cout};
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	Rooted<Domain> domain{new Domain(mgr, sys, "myDomain")};
+
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, Cardinality::any(), nullptr, false, true)};
+	Rooted<FieldDescriptor> A_a = createUnsortedPrimitiveField(
+	    A, sys->getStringType(), logger, false, "a");
+	Rooted<FieldDescriptor> A_b = createUnsortedPrimitiveField(
+	    A, sys->getStringType(), logger, false, "b");
+	Rooted<FieldDescriptor> A_main = createUnsortedPrimitiveField(
+	    A, sys->getStringType(), logger, true, "somename");
+
+	Rooted<StructuredClass> B{new StructuredClass(
+	    mgr, "B", domain, Cardinality::any(), A, false, true)};
+	Rooted<FieldDescriptor> B_b = createUnsortedPrimitiveField(
+	    B, sys->getStringType(), logger, false, "b");
+	Rooted<FieldDescriptor> B_c = createUnsortedPrimitiveField(
+	    B, sys->getStringType(), logger, false, "c");
+	Rooted<FieldDescriptor> B_main = createUnsortedPrimitiveField(
+	    B, sys->getStringType(), logger, true, "othername");
+
+	Rooted<StructuredClass> C{new StructuredClass(
+	    mgr, "C", domain, Cardinality::any(), B, false, true)};
+	Rooted<FieldDescriptor> C_a = createUnsortedPrimitiveField(
+	    C, sys->getStringType(), logger, false, "a");
+
+	ASSERT_TRUE(domain->validate(logger));
+
+	// check all FieldDescriptors
+	{
+		NodeVector<FieldDescriptor> fds = A->getFieldDescriptors();
+		ASSERT_EQ(3, fds.size());
+		ASSERT_EQ(A_a, fds[0]);
+		ASSERT_EQ(A_b, fds[1]);
+		ASSERT_EQ(A_main, fds[2]);
+	}
+	{
+		NodeVector<FieldDescriptor> fds = B->getFieldDescriptors();
+		ASSERT_EQ(4, fds.size());
+		ASSERT_EQ(A_a, fds[0]);
+		ASSERT_EQ(B_b, fds[1]);
+		ASSERT_EQ(B_c, fds[2]);
+		ASSERT_EQ(B_main, fds[3]);
+	}
+	{
+		NodeVector<FieldDescriptor> fds = C->getFieldDescriptors();
+		ASSERT_EQ(4, fds.size());
+		ASSERT_EQ(B_b, fds[0]);
+		ASSERT_EQ(B_c, fds[1]);
+		// superclass fields come before subclass fields (except for the TREE
+		// field, which is always last).
+		ASSERT_EQ(C_a, fds[2]);
+		ASSERT_EQ(B_main, fds[3]);
+	}
+}
+
+
+TEST(StructuredClass, getFieldDescriptorsCycles)
+{
+	Logger logger;
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	Rooted<Domain> domain{new Domain(mgr, sys, "myDomain")};
+
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, Cardinality::any(), nullptr, false, true)};
+	A->addSubclass(A, logger);
+	Rooted<FieldDescriptor> A_a = createUnsortedPrimitiveField(
+	    A, sys->getStringType(), logger, false, "a");
+	ASSERT_FALSE(domain->validate(logger));
+	// if we call getFieldDescriptors that should still return a valid result.
+	NodeVector<FieldDescriptor> fds = A->getFieldDescriptors();
+	ASSERT_EQ(1, fds.size());
+	ASSERT_EQ(A_a, fds[0]);
+}
+
 Rooted<StructuredClass> getClass(const std::string name, Handle<Domain> dom)
 {
 	std::vector<ResolutionResult> res =
@@ -221,6 +330,34 @@ TEST(Descriptor, pathToAdvanced)
 	ASSERT_EQ("", path[2]->getName());
 }
 
+TEST(Descriptor, pathToCycles)
+{
+	// build a domain with a cycle.
+	Manager mgr{1};
+	Logger logger;
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// Construct the domain
+	Rooted<Domain> domain{new Domain(mgr, sys, "cycles")};
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, Cardinality::any(), {nullptr}, true, true)};
+	A->addSubclass(A, logger);
+	ASSERT_FALSE(domain->validate(logger));
+	Rooted<StructuredClass> B{new StructuredClass(
+	    mgr, "B", domain, Cardinality::any(), {nullptr}, false, true)};
+	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
+	A_field->addChild(B);
+	/*
+	 * Now try to create the path from A to B. A direct path is possible but
+	 * in the worst case this could also try to find shorter paths via an
+	 * endless repition of A instances.
+	 * As we cut the search tree at paths that are longer than our current
+	 * optimum this should not happen, though.
+	 */
+	NodeVector<Node> path = A->pathTo(B, logger);
+	ASSERT_EQ(1, path.size());
+	ASSERT_EQ(A_field, path[0]);
+}
+
 TEST(Descriptor, getDefaultFields)
 {
 	// construct a domain with lots of default fields to test.
@@ -301,6 +438,29 @@ TEST(Descriptor, getDefaultFields)
 	ASSERT_EQ(F_field, fields[1]);
 }
 
+TEST(Descriptor, getDefaultFieldsCycles)
+{
+	// build a domain with a cycle.
+	Manager mgr{1};
+	Logger logger;
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// Construct the domain
+	Rooted<Domain> domain{new Domain(mgr, sys, "cycles")};
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, Cardinality::any(), {nullptr}, true, true)};
+	A->addSubclass(A, logger);
+	ASSERT_FALSE(domain->validate(logger));
+	Rooted<FieldDescriptor> A_field =
+	    A->createPrimitiveFieldDescriptor(sys->getStringType(), logger).first;
+	/*
+	 * Now try to get the default fields of A. This should not lead to cycles
+	 * if we correctly note all already visited nodes.
+	 */
+	NodeVector<FieldDescriptor> defaultFields = A->getDefaultFields();
+	ASSERT_EQ(1, defaultFields.size());
+	ASSERT_EQ(A_field, defaultFields[0]);
+}
+
 TEST(Descriptor, getPermittedChildren)
 {
 	// analyze the book domain.
@@ -336,6 +496,31 @@ TEST(Descriptor, getPermittedChildren)
 	ASSERT_EQ(paragraph, children[1]);
 	ASSERT_EQ(text, children[2]);
 	ASSERT_EQ(sub, children[3]);
+}
+
+TEST(Descriptor, getPermittedChildrenCycles)
+{
+	// build a domain with a cycle.
+	Manager mgr{1};
+	Logger logger;
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// Construct the domain
+	Rooted<Domain> domain{new Domain(mgr, sys, "cycles")};
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, Cardinality::any(), {nullptr}, true, true)};
+	A->addSubclass(A, logger);
+	ASSERT_FALSE(domain->validate(logger));
+	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
+	// we make the cycle worse by adding A as child of itself.
+	A_field->addChild(A);
+	/*
+	 * Now try to get the permitted children of A. This should not lead to
+	 * cycles
+	 * if we correctly note all already visited nodes.
+	 */
+	NodeVector<StructuredClass> children = A->getPermittedChildren();
+	ASSERT_EQ(1, children.size());
+	ASSERT_EQ(A, children[0]);
 }
 
 TEST(StructuredClass, isSubclassOf)

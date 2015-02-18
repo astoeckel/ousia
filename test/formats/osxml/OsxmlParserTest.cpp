@@ -66,15 +66,6 @@ TEST(OsxmlParser, mismatchedTag)
 	ASSERT_TRUE(logger.hasError());
 }
 
-TEST(OsxmlParser, generic)
-{
-	XmlStandaloneEnvironment env(logger);
-	env.parse("generic.osxml", "", "", RttiSet{&RttiTypes::Node});
-#ifdef MANAGER_GRAPHVIZ_EXPORT
-	env.manager.exportGraphviz("xmlDocument.dot");
-#endif
-}
-
 static void checkAttributes(Handle<StructType> expected,
                             Handle<Descriptor> desc)
 {
@@ -347,6 +338,7 @@ static void checkText(Handle<Node> p, Handle<Node> expectedParent,
 
 TEST(OsxmlParser, documentParsing)
 {
+	logger.reset();
 	XmlStandaloneEnvironment env(logger);
 	Rooted<Node> book_document_node =
 	    env.parse("simple_book.osxml", "", "", RttiSet{&RttiTypes::Document});
@@ -391,5 +383,21 @@ TEST(OsxmlParser, documentParsing)
 		}
 	}
 }
+
+
+TEST(OsxmlParser, complexDocumentParsing)
+{
+	logger.reset();
+	XmlStandaloneEnvironment env(logger);
+	Rooted<Node> book_document_node =
+	    env.parse("complex_book.osxml", "", "", RttiSet{&RttiTypes::Document});
+	ASSERT_FALSE(logger.hasError());
+	ASSERT_FALSE(book_document_node == nullptr);
+	ASSERT_TRUE(book_document_node->isa(&RttiTypes::Document));
+	Rooted<Document> doc = book_document_node.cast<Document>();
+	ASSERT_TRUE(doc->validate(logger));
+	ASSERT_FALSE(logger.hasError());
+}
+
 }
 

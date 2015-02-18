@@ -324,21 +324,31 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	return valid;
 }
 
-static void gatherSubclasses(NodeVector<StructuredClass> &res,
-                             Handle<StructuredClass> strct)
+static void gatherSubclasses(
+    std::unordered_set<const StructuredClass *>& visited,
+    NodeVector<StructuredClass> &res, Handle<StructuredClass> strct)
 {
+	// this check is to prevent cycles.
+	if (!visited.insert(strct.get()).second) {
+		return;
+	}
 	for (auto sub : strct->getSubclasses()) {
+		// this check is to prevent cycles.
+		if(visited.count(sub.get())){
+			continue;
+		}
 		res.push_back(sub);
-		gatherSubclasses(res, sub);
+		gatherSubclasses(visited, res, sub);
 	}
 }
 
 NodeVector<StructuredClass> FieldDescriptor::getChildrenWithSubclasses() const
 {
+	std::unordered_set<const StructuredClass *> visited;
 	NodeVector<StructuredClass> res;
 	for (auto c : children) {
 		res.push_back(c);
-		gatherSubclasses(res, c);
+		gatherSubclasses(visited, res, c);
 	}
 	return res;
 }
@@ -566,8 +576,9 @@ bool Descriptor::addAndSortFieldDescriptor(Handle<FieldDescriptor> fd,
 	if (fds.find(fd) == fds.end()) {
 		invalidate();
 		// check if the previous field is a tree field already.
-		if (!fds.empty() && !fieldDescriptors.empty() &&
-		    fds.back()->getFieldType() == FieldDescriptor::FieldType::TREE &&
+		if (!fieldDescriptors.empty() &&
+		    fieldDescriptors.back()->getFieldType() ==
+		        FieldDescriptor::FieldType::TREE &&
 		    fd->getFieldType() != FieldDescriptor::FieldType::TREE) {
 			// if so we add the new field before the TREE field.
 			fieldDescriptors.insert(fieldDescriptors.end() - 1, fd);
@@ -776,8 +787,13 @@ void StructuredClass::removeSubclass(Handle<StructuredClass> sc, Logger &logger)
 
 Rooted<FieldDescriptor> StructuredClass::gatherFieldDescriptors(
     NodeVector<FieldDescriptor> &current,
+    std::unordered_set<const StructuredClass *> &visited,
     std::set<std::string> &overriddenFields, bool hasTREE) const
 {
+	// this check is to prevent cycles of inheritance to mess up this function.
+	if (!visited.insert(this).second) {
+		return nullptr;
+	}
 	Rooted<FieldDescriptor> mainField;
 	NodeVector<FieldDescriptor> tmp;
 	// first gather the non-overridden fields.
@@ -798,8 +814,8 @@ Rooted<FieldDescriptor> StructuredClass::gatherFieldDescriptors(
 
 	if (superclass != nullptr) {
 		Rooted<FieldDescriptor> super_main_field =
-		    superclass->gatherFieldDescriptors(current, overriddenFields,
-		                                       hasTREE);
+		    superclass->gatherFieldDescriptors(current, visited,
+		                                       overriddenFields, hasTREE);
 		if (!hasTREE) {
 			mainField = super_main_field;
 		}
@@ -814,9 +830,10 @@ NodeVector<FieldDescriptor> StructuredClass::getFieldDescriptors() const
 {
 	// in this case we return a NodeVector of Rooted entries without owner.
 	NodeVector<FieldDescriptor> vec;
+	std::unordered_set<const StructuredClass *> visited;
 	std::set<std::string> overriddenFields;
 	Rooted<FieldDescriptor> mainField =
-	    gatherFieldDescriptors(vec, overriddenFields, false);
+	    gatherFieldDescriptors(vec, visited, overriddenFields, false);
 	if (mainField != nullptr) {
 		vec.push_back(mainField);
 	}

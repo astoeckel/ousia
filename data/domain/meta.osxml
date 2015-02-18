@@ -9,7 +9,6 @@
 
 	<struct name="meta" cardinality="{1}" transparent="true">
 		<field>
-			<childRef ref="title"/>
 			<childRef ref="author"/>
 			<childRef ref="version"/>
 		</field>
@@ -22,20 +21,23 @@
 		<!-- One could also include "article" and other things here -->
 	</struct>
 
-	<!-- A title is just a heading -->
-	<struct name="title">
-		<field>
-			<childRef ref="heading"/>
-		</field>
-	</struct>
-
-	<!-- no explicit cardinality, because we might have multiple authors -->
-	<struct name="author">
+	<struct name="person">
 		<primitive isSubtree="true" name="firstName" type="string"/>
 		<primitive isSubtree="true" name="lastName" type="string"/>
 		<primitive isSubtree="true" name="email" type="email" optional="true"/>
 		<primitive isSubtree="true" name="affiliation" type="affiliation" optional="true"/>
 	</struct>
+
+	<!-- wrapper author tag to allow specifying no authors whatsoever. But if
+	     an author is specified it has to be at least one primary author. -->
+	<struct name="authors" transparent="true" cardinality="{0-1}">
+		<field>
+			<childRef ref="author"/>
+		</field>
+	</struct>
+
+	<!-- no explicit cardinality, because we might have multiple authors -->
+	<struct name="author" isa="person"/>
 
 	<!-- but we need at least one primary author -->
 	<struct name="primaryAuthor" cardinality="{>0}" isa="author"/>

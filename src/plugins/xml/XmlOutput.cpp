@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cassert>
+
 #include "XmlOutput.hpp"
 
 #include <core/common/Variant.hpp>
@@ -94,7 +96,7 @@ static std::string toString(Variant v, bool pretty)
 	if (v.isString()) {
 		return v.asString();
 	} else {
-		return VariantWriter::writeJsonToString(v, pretty);
+		return VariantWriter::writeOusiaToString(v, pretty);
 	}
 }
 
@@ -137,26 +139,40 @@ void XmlTransformer::transformChildren(DocumentEntity *parentEntity,
 		Rooted<FieldDescriptor> fieldDesc = fieldDescs[f];
 		// if this is not the default field create an intermediate node for it.
 		Rooted<Element> par = parent;
-		if (fieldDesc->getFieldType() != FieldDescriptor::FieldType::TREE &&
-		    !fieldDesc->isPrimitive()) {
+		if (fieldDesc->getFieldType() != FieldDescriptor::FieldType::TREE) {
 			par =
 			    Rooted<Element>{new Element(mgr, parent, fieldDesc->getName())};
 			parent->addChild(par);
 		}
-		for (auto c : field) {
-			// transform each child.
-			Rooted<Node> child;
-			if (c->isa(&RttiTypes::StructuredEntity)) {
-				child = transformStructuredEntity(
-				    par, c.cast<StructuredEntity>(), logger, pretty);
-			} else if (c->isa(&RttiTypes::DocumentPrimitive)) {
-				child = transformPrimitive(par, c.cast<DocumentPrimitive>(),
-				                           logger, pretty);
-			} else {
-				child = transformAnchor(par, c.cast<Anchor>(), logger, pretty);
+		if (!fieldDesc->isPrimitive()) {
+			for (auto c : field) {
+				// transform each child.
+				Rooted<Element> child;
+				if (c->isa(&RttiTypes::StructuredEntity)) {
+					child = transformStructuredEntity(
+					    par, c.cast<StructuredEntity>(), logger, pretty);
+				} else {
+					assert(c->isa(&RttiTypes::Anchor));
+					child =
+					    transformAnchor(par, c.cast<Anchor>(), logger, pretty);
+				}
+				if (child != nullptr) {
+					par->addChild(child);
+				}
 			}
-			if (child != nullptr) {
-				par->addChild(child);
+
+		} else {
+			// if the field is primitive we expect a single child.
+			if (field.empty()) {
+				continue;
+			}
+			assert(field.size() == 1);
+			assert(field[0]->isa(&RttiTypes::DocumentPrimitive));
+			Rooted<DocumentPrimitive> prim = field[0].cast<DocumentPrimitive>();
+			// transform the primitive content.
+			Rooted<Text> text = transformPrimitive(par, fieldDesc->getPrimitiveType(), prim, logger, pretty);
+			if(text != nullptr){
+				par->addChild(text);
 			}
 		}
 	}
@@ -217,12 +233,28 @@ Rooted<Element> XmlTransformer::transformAnchor(Handle<Element> parent,
 }
 
 Rooted<Text> XmlTransformer::transformPrimitive(Handle<Element> parent,
+                                                Handle<Type> type,
                                                 Handle<DocumentPrimitive> p,
                                                 Logger &logger, bool pretty)
 {
 	Manager &mgr = parent->getManager();
 	// transform the primitive content.
-	Rooted<Text> text{new Text(mgr, parent, toString(p->getContent(), pretty))};
+	Variant content = p->getContent();
+	if(!type->build(content, logger)){
+		return nullptr;
+	}
+	// special treatment for struct types because they get built as arrays,
+	// which is not so nice for output purposes.
+	if(type->isa(&RttiTypes::StructType)){
+		Variant::mapType map;
+		Variant::arrayType arr = content.asArray();
+		size_t a = 0;
+		for(Handle<Attribute> attr : type.cast<StructType>()->getAttributes()){
+			map.emplace(attr->getName(), arr[a++]);
+		}
+		content = std::move(map);
+	}
+	Rooted<Text> text{new Text(mgr, parent, toString(content, pretty))};
 	return text;
 }
 }
