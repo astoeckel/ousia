@@ -59,8 +59,28 @@ public:
 	 * @param var is the variant that should be serialized.
 	 * @param pretty if true, the resulting value is properly indented.
 	 */
-	static std::string writeJsonToString(const Variant &var, bool pretty = true);
+	static std::string writeJsonToString(const Variant &var,
+	                                     bool pretty = true);
 
+	/**
+	 * Dumps the Variant as re-readable ousia data. Note that the resulting
+	 * data is invalid if the Variant consists of function or object references.
+	 *
+	 * @param var is the variant that should be serialized.
+	 * @param stream is the stream the result should be written to.
+	 * @param pretty if true, the resulting value is properly indented.
+	 */
+	static void writeOusia(const Variant &var, std::ostream &stream,
+	                      bool pretty = true);
+
+	/**
+	 * Dumps the Variant as re-readable ousia data to a string.
+	 *
+	 * @param var is the variant that should be serialized.
+	 * @param pretty if true, the resulting value is properly indented.
+	 */
+	static std::string writeOusiaToString(const Variant &var,
+	                                     bool pretty = true);
 };
 }
 

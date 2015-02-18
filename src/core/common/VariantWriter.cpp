@@ -104,8 +104,9 @@ static void writeLinebreak(std::ostream &stream, bool pretty)
  * @param pretty if true, the resulting value is properly indented.
  * @param level is the current indentation level.
  */
-static void writeJsonInternal(const Variant &var, std::ostream &stream,
-                              bool pretty, int level)
+template <char ObjectStart, char ObjectEnd, char Equals>
+static void writeInternal(const Variant &var, std::ostream &stream, bool pretty,
+                          int level)
 {
 	switch (var.getType()) {
 		case VariantType::NULLPTR:
@@ -127,7 +128,8 @@ static void writeJsonInternal(const Variant &var, std::ostream &stream,
 			const Variant::arrayType &arr = var.asArray();
 			for (size_t i = 0; i < arr.size(); i++) {
 				writeIndentation(stream, pretty, level + 1);
-				writeJsonInternal(arr[i], stream, pretty, level + 1);
+				writeInternal<ObjectStart, ObjectEnd, Equals>(
+				    arr[i], stream, pretty, level + 1);
 				if (i + 1 != arr.size()) {
 					stream << ",";
 				}
@@ -139,21 +141,22 @@ static void writeJsonInternal(const Variant &var, std::ostream &stream,
 		}
 		case VariantType::MAP: {
 			writeIndentation(stream, pretty, level);
-			stream << "{";
+			stream << ObjectStart;
 			writeLinebreak(stream, pretty);
 			const Variant::mapType &map = var.asMap();
 			for (auto it = map.cbegin(); it != map.cend();) {
 				writeIndentation(stream, pretty, level + 1);
 				writeJsonString(it->first, stream);
-				stream << (pretty ? ": " : ":");
-				writeJsonInternal(it->second, stream, pretty, level + 1);
+				stream << Equals << (pretty ? " " : "");
+				writeInternal<ObjectStart, ObjectEnd, Equals>(
+				    it->second, stream, pretty, level + 1);
 				if ((++it) != map.cend()) {
 					stream << ",";
 				}
 				writeLinebreak(stream, pretty);
 			}
 			writeIndentation(stream, pretty, level);
-			stream << "}";
+			stream << ObjectEnd;
 			return;
 		}
 	}
@@ -162,7 +165,7 @@ static void writeJsonInternal(const Variant &var, std::ostream &stream,
 void VariantWriter::writeJson(const Variant &var, std::ostream &stream,
                               bool pretty)
 {
-	writeJsonInternal(var, stream, pretty, 0);
+	writeInternal<'{', '}', ':'>(var, stream, pretty, 0);
 }
 
 std::string VariantWriter::writeJsonToString(const Variant &var, bool pretty)
@@ -172,6 +175,16 @@ std::string VariantWriter::writeJsonToString(const Variant &var, bool pretty)
 	return ss.str();
 }
 
-
+void VariantWriter::writeOusia(const Variant &var, std::ostream &stream,
+                               bool pretty)
+{
+	writeInternal<'[', ']', '='>(var, stream, pretty, 0);
 }
 
+std::string VariantWriter::writeOusiaToString(const Variant &var, bool pretty)
+{
+	std::stringstream ss;
+	writeOusia(var, ss, pretty);
+	return ss.str();
+}
+}
