@@ -137,8 +137,7 @@ void XmlTransformer::transformChildren(DocumentEntity *parentEntity,
 		Rooted<FieldDescriptor> fieldDesc = fieldDescs[f];
 		// if this is not the default field create an intermediate node for it.
 		Rooted<Element> par = parent;
-		if (fieldDesc->getFieldType() != FieldDescriptor::FieldType::TREE &&
-		    !fieldDesc->isPrimitive()) {
+		if (fieldDesc->getFieldType() != FieldDescriptor::FieldType::TREE) {
 			par =
 			    Rooted<Element>{new Element(mgr, parent, fieldDesc->getName())};
 			parent->addChild(par);
