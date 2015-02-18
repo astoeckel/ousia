@@ -9,7 +9,6 @@
 
 	<struct name="meta" cardinality="{1}" transparent="true">
 		<field>
-			<childRef ref="title"/>
 			<childRef ref="author"/>
 			<childRef ref="version"/>
 		</field>
@@ -20,13 +19,6 @@
 			<field name="meta" isSubtree="true" optional="true"/>
 		</parentRef>
 		<!-- One could also include "article" and other things here -->
-	</struct>
-
-	<!-- A title is just a heading -->
-	<struct name="title">
-		<field>
-			<childRef ref="heading"/>
-		</field>
 	</struct>
 
 	<!-- no explicit cardinality, because we might have multiple authors -->
