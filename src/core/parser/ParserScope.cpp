@@ -216,7 +216,7 @@ void ParserScope::push(Handle<Node> node)
 	nodes.push_back(node);
 }
 
-void ParserScope::pop()
+void ParserScope::pop(Logger &logger)
 {
 	// Make sure pop is not called without an element on the stack
 	const size_t currentDepth = nodes.size();
@@ -235,10 +235,14 @@ void ParserScope::pop()
 	flags.resize(newLen);
 
 	// Whenever a RootNode is popped from the stack, we have to perform deferred
-	// resolution -- however, postpone issuing error messages
-	if (nodes.back()->isa(&RttiTypes::RootNode)) {
-		Logger logger;
+	// resolution and validate the subtree
+	Rooted<Node> node = nodes.back();
+	if (node->isa(&RttiTypes::RootNode)) {
+		// Perform pending resolutions -- do not issue errors now
 		performDeferredResolution(logger, true);
+
+		// Perform validation of the subtree.
+		node->validate(logger);
 	}
 
 	// Remove the element from the stack

@@ -51,7 +51,7 @@ bool TypesystemHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void TypesystemHandler::end() { scope().pop(); }
+void TypesystemHandler::end() { scope().pop(logger()); }
 
 /* TypesystemEnumHandler */
 
@@ -70,7 +70,7 @@ bool TypesystemEnumHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void TypesystemEnumHandler::end() { scope().pop(); }
+void TypesystemEnumHandler::end() { scope().pop(logger()); }
 
 /* TypesystemEnumEntryHandler */
 
@@ -112,7 +112,7 @@ bool TypesystemStructHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void TypesystemStructHandler::end() { scope().pop(); }
+void TypesystemStructHandler::end() { scope().pop(logger()); }
 
 /* TypesystemStructFieldHandler */
 

@@ -1,0 +1,16 @@
+\document
+
+\domain#test
+	\struct#a[isRoot=true]
+		\primitive#b[type=string,isSubtree=true]
+		\primitive#c[type=string,isSubtree=true]
+		\primitive#d[type=string,isSubtree=false]
+
+
+\a{!
+	\b{test}
+	\c{test}
+	test
+	test
+	test
+}
