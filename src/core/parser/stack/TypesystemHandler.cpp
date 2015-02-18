@@ -16,11 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <core/model/Typesystem.hpp>
+#include <core/model/Document.hpp>
 #include <core/model/Domain.hpp>
+#include <core/model/Typesystem.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
 
+#include "DocumentHandler.hpp"
 #include "DomainHandler.hpp"
 #include "State.hpp"
 #include "TypesystemHandler.hpp"
@@ -38,10 +40,16 @@ bool TypesystemHandler::start(Variant::mapType &args)
 	typesystem->setLocation(location());
 
 	// If the typesystem is defined inside a domain, add a reference to the
-	// typesystem to the domain
+	// typesystem to the domain -- do the same with a document, if no domain
+	// is found
 	Rooted<Domain> domain = scope().select<Domain>();
 	if (domain != nullptr) {
 		domain->reference(typesystem);
+	} else {
+		Rooted<Document> document = scope().select<Document>();
+		if (document != nullptr) {
+			document->reference(typesystem);
+		}
 	}
 
 	// Push the typesystem onto the scope, set the POST_HEAD flag to true
@@ -182,7 +190,7 @@ bool TypesystemConstantHandler::start(Variant::mapType &args)
 
 namespace States {
 const State Typesystem = StateBuilder()
-                             .parents({&None, &Domain})
+                             .parents({&None, &Domain, &Document})
                              .createdNodeType(&RttiTypes::Typesystem)
                              .elementHandler(TypesystemHandler::create)
                              .arguments({Argument::String("name", "")});
