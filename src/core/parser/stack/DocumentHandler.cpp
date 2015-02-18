@@ -142,6 +142,14 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 		Rooted<StructuredEntity> entity;
 		// handle the root note specifically.
 		if (parentNode->isa(&RttiTypes::Document)) {
+			// if we already have a root node, stop.
+			if (parentNode.cast<Document>()->getRoot() != nullptr) {
+				logger().warning(
+				    "This document already has a root node. The additional "
+				    "node is ignored.",
+				    location());
+				return false;
+			}
 			Rooted<StructuredClass> strct = scope().resolve<StructuredClass>(
 			    Utils::split(name(), ':'), logger());
 			if (strct == nullptr) {
