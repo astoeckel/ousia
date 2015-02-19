@@ -182,6 +182,10 @@ class Descriptor;
 class StructuredClass;
 class Domain;
 
+/**
+ * Magic field name used to identify the default field. The default field is
+ * either the tree field or the only subtree field.
+ */
 static const std::string DEFAULT_FIELD_NAME = "$default";
 
 /**
