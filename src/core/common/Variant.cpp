@@ -34,20 +34,20 @@ namespace ousia {
 
 bool VariantMetadata::hasLocation() const
 {
-	return locationSourceId != InvalidSourceId;
+	return data.locationSourceId != InvalidSourceId;
 }
 
 SourceLocation VariantMetadata::getLocation() const
 {
-	if (locationOffset == InvalidLocationOffset) {
-		return SourceLocation(locationSourceId);
+	if (data.locationOffset == InvalidLocationOffset) {
+		return SourceLocation(data.locationSourceId);
 	}
-	if (locationLength == InvalidLocationLength) {
-		return SourceLocation(locationSourceId, locationOffset);
+	if (data.locationLength == InvalidLocationLength) {
+		return SourceLocation(data.locationSourceId, data.locationOffset);
 	}
-	return SourceLocation(locationSourceId, locationOffset,
-	                      static_cast<size_t>(locationOffset) +
-	                          static_cast<size_t>(locationLength));
+	return SourceLocation(data.locationSourceId, data.locationOffset,
+	                      static_cast<size_t>(data.locationOffset) +
+	                          static_cast<size_t>(data.locationLength));
 }
 
 void VariantMetadata::setLocation(const SourceLocation &location)
@@ -58,11 +58,11 @@ void VariantMetadata::setLocation(const SourceLocation &location)
 	const size_t length = location.getLength();
 
 	// Copy the location, mark values that cannot be stored as invalid
-	locationSourceId =
+	data.locationSourceId =
 	    sourceId < InvalidLocationSourceId ? sourceId : InvalidLocationSourceId;
-	locationOffset =
+	data.locationOffset =
 	    offset < InvalidLocationOffset ? offset : InvalidLocationOffset;
-	locationLength =
+	data.locationLength =
 	    length < InvalidLocationLength ? length : InvalidLocationLength;
 }
 

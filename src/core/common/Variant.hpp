@@ -32,6 +32,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <limits>
 #include <string>
 #include <vector>
 #include <ostream>
@@ -75,26 +76,37 @@ enum class VariantType : uint8_t {
  * was found in 8 Bytes.
  */
 struct VariantMetadata {
-	/**
-	 * Field used to store the type of a Variant (4 Bit, space for 16 objects).
-	 */
-	uint8_t variantType : 4;
+	union {
+		struct {
+			/**
+			 * Field used to store the type of a Variant (4 Bit, space for 16
+			 * objects).
+			 */
+			uint8_t variantType : 4;
 
-	/**
-	 * Field used to store the location at which the Variant was found (30 Bit).
-	 */
-	uint32_t locationOffset : 30;  // Enough for 1GB
+			/**
+			 * Field used to store the location at which the Variant was found
+			 * (30 Bit).
+			 */
+			uint32_t locationOffset : 30;  // Enough for 1GB
 
-	/**
-	 * Field used to store the length of the value from which the variant was
-	 * parsed (14 Bit).
-	 */
-	uint16_t locationLength : 14;  // 16.000 Bytes of context
+			/**
+			 * Field used to store the length of the value from which the
+			 * variant was parsed (14 Bit).
+			 */
+			uint16_t locationLength : 14;  // 16.000 Bytes of context
 
-	/**
-	 * Unique id of the file from which the variant was parsed.
-	 */
-	uint16_t locationSourceId : 16;  // 65.000 Source files
+			/**
+			 * Unique id of the file from which the variant was parsed.
+			 */
+			uint16_t locationSourceId : 16;  // 65.000 Source files
+		} data;
+
+		/**
+		 * The metadata as 64 Bit value.
+		 */
+		uint64_t intData;
+	};
 
 	/**
 	 * Maximum byte offset for locations that can be stored.
@@ -115,10 +127,7 @@ struct VariantMetadata {
 	 * Default constructor. Sets the type to nullptr and all other fields to
 	 * invalid.
 	 */
-	VariantMetadata()
-	{
-		*(reinterpret_cast<uint64_t *>(this)) = 0xFFFFFFFFFFFFFFFFull;
-	}
+	VariantMetadata() { intData = std::numeric_limits<uint64_t>::max(); }
 
 	/**
 	 * Sets the type to the given type and all other fields to invalid.
@@ -127,7 +136,7 @@ struct VariantMetadata {
 	 */
 	VariantMetadata(VariantType type) : VariantMetadata()
 	{
-		variantType = static_cast<uint8_t>(type);
+		data.variantType = static_cast<uint8_t>(type);
 	}
 
 	/**
@@ -137,7 +146,7 @@ struct VariantMetadata {
 	 */
 	VariantType getType() const
 	{
-		return static_cast<VariantType>(variantType);
+		return static_cast<VariantType>(data.variantType);
 	}
 
 	/**
@@ -145,7 +154,10 @@ struct VariantMetadata {
 	 *
 	 * @param type is the variant type that should be stored.
 	 */
-	void setType(VariantType type) { variantType = static_cast<uint8_t>(type); }
+	void setType(VariantType type)
+	{
+		data.variantType = static_cast<uint8_t>(type);
+	}
 
 	/**
 	 * Returns true if the stored source id is not invalid.
