@@ -189,6 +189,7 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/stack/Stack
 	src/core/parser/stack/TypesystemHandler
 	src/core/parser/utils/SourceOffsetVector
+	src/core/parser/utils/Token
 	src/core/parser/utils/Tokenizer
 	src/core/parser/utils/TokenTrie
 	src/core/resource/Resource
