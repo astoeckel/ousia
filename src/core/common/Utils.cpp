@@ -21,7 +21,6 @@
 #include <string>
 
 #include "Utils.hpp"
-#include "WhitespaceHandler.hpp"
 
 namespace ousia {
 
@@ -113,13 +112,6 @@ std::string Utils::trim(const std::string &s)
 {
 	std::pair<size_t, size_t> bounds = trim(s, Utils::isWhitespace);
 	return s.substr(bounds.first, bounds.second - bounds.first);
-}
-
-std::string Utils::collapse(const std::string &s)
-{
-	CollapsingWhitespaceHandler h;
-	appendToWhitespaceHandler(h, s, 0);
-	return h.toString();
 }
 
 bool Utils::startsWith(const std::string &s, const std::string &prefix)

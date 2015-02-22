@@ -80,7 +80,7 @@ public:
 	 * \endCode
 	 *
 	 * @param name is the string that should be tested.
-	 * @return true if the string matches the regular expression given above, 
+	 * @return true if the string matches the regular expression given above,
 	 * false otherwise.
 	 */
 	static bool isIdentifier(const std::string &name);
@@ -97,7 +97,7 @@ public:
 	 * \endCode
 	 *
 	 * @param name is the string that should be tested.
-	 * @return true if the string matches the regular expression given above, 
+	 * @return true if the string matches the regular expression given above,
 	 * false otherwise.
 	 */
 	static bool isNamespacedIdentifier(const std::string &name);
@@ -186,13 +186,112 @@ public:
 	}
 
 	/**
+	 * Trims the given string and returns both the trimmed string and the start
+	 * and end location.
+	 *
+	 * @tparam T is the string type that should be used.
+	 * @param s is the container that should be trimmed.
+	 * @param len is the number of elements in the container.
+	 * @param start is an output parameter which is set to the offset at which
+	 * the collapsed version of the string starts.
+	 * @param end is an output parameter which is set to the offset at which
+	 * the collapsed version of the string ends.
+	 * @return start and end index. Note that "end" points at the character
+	 * beyond the end, thus "end" minus "start"
+	 */
+	template <class T>
+	static std::string trim(const T &s, size_t len, size_t &start, size_t &end)
+	{
+		auto res = trim(s, len, isWhitespace);
+		start = res.first;
+		end = res.second;
+		return std::string(&s[start], end - start);
+	}
+
+	/**
 	 * Collapses the whitespaces in the given string (trims the string and
 	 * replaces all whitespace characters by a single one).
 	 *
 	 * @param s is the string in which the whitespace should be collapsed.
 	 * @return a copy of s with collapsed whitespace.
 	 */
-	static std::string collapse(const std::string &s);
+	static std::string collapse(const std::string &s)
+	{
+		size_t start;
+		size_t end;
+		return collapse(s, s.size(), start, end);
+	}
+
+	/**
+	 * Collapses the whitespaces in the given string (trims the string and
+	 * replaces all whitespace characters by a single one).
+	 *
+	 * @param s is the string in which the whitespace should be collapsed.
+	 * @param start is an output parameter which is set to the offset at which
+	 * the collapsed version of the string starts.
+	 * @param end is an output parameter which is set to the offset at which
+	 * the collapsed version of the string ends.
+	 * @return a copy of s with collapsed whitespace.
+	 */
+	static std::string collapse(const std::string &s, size_t &start,
+	                            size_t &end)
+	{
+		return collapse(s, s.size(), start, end);
+	}
+
+	/**
+	 * Collapses the whitespaces in the given string (trims the string and
+	 * replaces all whitespace characters by a single one).
+	 *
+	 * @tparam T is the string type that should be used.
+	 * @param s is the string in which the whitespace should be collapsed.
+	 * @param len is the length of the input string
+	 * @param start is an output parameter which is set to the offset at which
+	 * the collapsed version of the string starts.
+	 * @param end is an output parameter which is set to the offset at which
+	 * the collapsed version of the string ends.
+	 * @return a copy of s with collapsed whitespace.
+	 */
+	template <class T>
+	static std::string collapse(const T &s, size_t len, size_t &start,
+	                            size_t &end)
+	{
+		// Result vector
+		std::vector<char> res;
+
+		// Initialize the output arguments
+		start = 0;
+		end = 0;
+
+		// Iterate over the input string and replace all whitespace sequences by
+		// a single space
+		bool hadWhitespace = false;
+		for (size_t i = 0; i < len; i++) {
+			const char c = s[i];
+			const bool whitespace = isWhitespace(c);
+			if (whitespace) {
+				hadWhitespace = !res.empty();
+			} else {
+				// Adapt the start and end position
+				if (res.empty()) {
+					start = i;
+				}
+				end = i + 1;
+
+				// Insert a space character if there was a whitespace
+				if (hadWhitespace) {
+					res.push_back(' ');
+					hadWhitespace = false;
+				}
+
+				// Insert the character
+				res.push_back(c);
+			}
+		}
+
+		// Return the result vector as string
+		return std::string(res.data(), res.size());
+	}
 
 	/**
 	 * Turns the elements of a collection into a string separated by the
@@ -287,4 +386,3 @@ public:
 }
 
 #endif /* _OUSIA_UTILS_H_ */
-
