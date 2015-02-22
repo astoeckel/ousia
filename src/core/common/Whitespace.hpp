@@ -27,9 +27,6 @@
 #ifndef _OUSIA_WHITESPACE_HPP_
 #define _OUSIA_WHITESPACE_HPP_
 
-#include <string>
-#include <utility>
-
 namespace ousia {
 
 /**
