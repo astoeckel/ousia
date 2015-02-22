@@ -109,5 +109,26 @@ TEST(Utils, endsWith)
 	ASSERT_TRUE(Utils::endsWith("foo", ""));
 }
 
+TEST(Utils, trim)
+{
+	ASSERT_EQ("", Utils::trim(""));
+	ASSERT_EQ("", Utils::trim("        "));
+	ASSERT_EQ("test", Utils::trim("test"));
+	ASSERT_EQ("test", Utils::trim("   test "));
+	ASSERT_EQ("test", Utils::trim("   test"));
+	ASSERT_EQ("test", Utils::trim("test  "));
+	ASSERT_EQ("long    test", Utils::trim("     long    test   "));
 }
 
+TEST(Utils, collapse)
+{
+	ASSERT_EQ("", Utils::collapse(""));
+	ASSERT_EQ("", Utils::collapse("        "));
+	ASSERT_EQ("test", Utils::collapse("test"));
+	ASSERT_EQ("test", Utils::collapse("   test "));
+	ASSERT_EQ("test", Utils::collapse("   test"));
+	ASSERT_EQ("test", Utils::collapse("test  "));
+	ASSERT_EQ("long test", Utils::collapse("     long    test   "));
+}
+
+}
