@@ -22,12 +22,12 @@ namespace ousia {
 
 /* Class DynamicTokenTree::Node */
 
-TokenTrie::Node::Node() : type(EmptyToken) {}
+TokenTrie::Node::Node() : type(Tokens::Empty) {}
 
 /* Class DynamicTokenTree */
 
 bool TokenTrie::registerToken(const std::string &token,
-                              TokenTypeId type) noexcept
+                              TokenId type) noexcept
 {
 	// Abort if the token is empty -- this would taint the root node
 	if (token.empty()) {
@@ -48,7 +48,7 @@ bool TokenTrie::registerToken(const std::string &token,
 	}
 
 	// If the resulting node already has a type set, we're screwed.
-	if (node->type != EmptyToken) {
+	if (node->type != Tokens::Empty) {
 		return false;
 	}
 
@@ -78,22 +78,22 @@ bool TokenTrie::unregisterToken(const std::string &token) noexcept
 
 		// Reset the subtree handler if this node has another type
 		node = it->second.get();
-		if ((node->type != EmptyToken || node->children.size() > 1) &&
+		if ((node->type != Tokens::Empty || node->children.size() > 1) &&
 		    (i + 1 != token.size())) {
 			subtreeRoot = node;
 			subtreeKey = token[i + 1];
 		}
 	}
 
-	// If the node type is already EmptyToken, we cannot do anything here
-	if (node->type == EmptyToken) {
+	// If the node type is already Tokens::Empty, we cannot do anything here
+	if (node->type == Tokens::Empty) {
 		return false;
 	}
 
 	// If the target node has children, we cannot delete the subtree. Set the
-	// type to EmptyToken instead
+	// type to Tokens::Empty instead
 	if (!node->children.empty()) {
-		node->type = EmptyToken;
+		node->type = Tokens::Empty;
 		return true;
 	}
 
@@ -102,14 +102,14 @@ bool TokenTrie::unregisterToken(const std::string &token) noexcept
 	return true;
 }
 
-TokenTypeId TokenTrie::hasToken(const std::string &token) const noexcept
+TokenId TokenTrie::hasToken(const std::string &token) const noexcept
 {
 	Node const *node = &root;
 	for (size_t i = 0; i < token.size(); i++) {
 		const char c = token[i];
 		auto it = node->children.find(c);
 		if (it == node->children.end()) {
-			return EmptyToken;
+			return Tokens::Empty;
 		}
 		node = it->second.get();
 	}

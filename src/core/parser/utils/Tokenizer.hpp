@@ -35,66 +35,13 @@
 #include <core/common/Location.hpp>
 #include <core/common/Whitespace.hpp>
 
+#include "Token.hpp"
 #include "TokenTrie.hpp"
 
 namespace ousia {
 
 // Forward declarations
 class CharReader;
-
-/**
- * The Token structure describes a token discovered by the Tokenizer.
- */
-struct Token {
-	/**
-	 * Id of the type of this token.
-	 */
-	TokenTypeId type;
-
-	/**
-	 * String that was matched.
-	 */
-	std::string content;
-
-	/**
-	 * Location from which the string was extracted.
-	 */
-	SourceLocation location;
-
-	/**
-	 * Default constructor.
-	 */
-	Token() : type(EmptyToken) {}
-
-	/**
-	 * Constructor of the Token struct.
-	 *
-	 * @param id represents the token type.
-	 * @param content is the string content that has been extracted.
-	 * @param location is the location of the extracted string content in the
-	 * source file.
-	 */
-	Token(TokenTypeId type, const std::string &content,
-	             SourceLocation location)
-	    : type(type), content(content), location(location)
-	{
-	}
-
-	/**
-	 * Constructor of the Token struct, only initializes the token type
-	 *
-	 * @param type is the id corresponding to the type of the token.
-	 */
-	Token(TokenTypeId type) : type(type) {}
-
-	/**
-	 * The getLocation function allows the tokens to be directly passed as
-	 * parameter to Logger or LoggableException instances.
-	 *
-	 * @return a reference at the location field
-	 */
-	const SourceLocation &getLocation() const { return location; }
-};
 
 /**
  * The Tokenizer is used to extract tokens and chunks of text from a
@@ -123,7 +70,7 @@ private:
 	/**
 	 * Next index in the tokens list where to search for a new token id.
 	 */
-	size_t nextTokenTypeId;
+	size_t nextTokenId;
 
 	/**
 	 * Templated function used internally to read the current token. The
@@ -158,31 +105,31 @@ public:
 	 * @return a unique identifier for the registered token or EmptyToken if
 	 * an error occured.
 	 */
-	TokenTypeId registerToken(const std::string &token);
+	TokenId registerToken(const std::string &token);
 
 	/**
-	 * Unregisters the token belonging to the given TokenTypeId.
+	 * Unregisters the token belonging to the given TokenId.
 	 *
 	 * @param type is the token type that should be unregistered. The
-	 *TokenTypeId
+	 *TokenId
 	 * must have been returned by registerToken.
 	 * @return true if the operation was successful, false otherwise (e.g.
 	 * because the given TokenDescriptor was already unregistered).
 	 */
-	bool unregisterToken(TokenTypeId type);
+	bool unregisterToken(TokenId type);
 
 	/**
-	 * Returns the token that was registered under the given TokenTypeId id or
+	 * Returns the token that was registered under the given TokenId id or
 	 *an
-	 * empty string if an invalid TokenTypeId id is given.
+	 * empty string if an invalid TokenId id is given.
 	 *
-	 * @param type is the TokenTypeId id for which the corresponding token
+	 * @param type is the TokenId id for which the corresponding token
 	 *string
 	 * should be returned.
 	 * @return the registered token string or an empty string if the given type
 	 * was invalid.
 	 */
-	std::string getTokenString(TokenTypeId type);
+	std::string getTokenString(TokenId type);
 
 	/**
 	 * Sets the whitespace mode.

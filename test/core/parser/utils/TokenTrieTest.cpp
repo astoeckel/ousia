@@ -22,10 +22,10 @@
 
 namespace ousia {
 
-static const TokenTypeId t1 = 0;
-static const TokenTypeId t2 = 1;
-static const TokenTypeId t3 = 2;
-static const TokenTypeId t4 = 3;
+static const TokenId t1 = 0;
+static const TokenId t2 = 1;
+static const TokenId t3 = 2;
+static const TokenId t4 = 3;
 
 TEST(TokenTrie, registerToken)
 {
@@ -46,8 +46,8 @@ TEST(TokenTrie, registerToken)
 	ASSERT_EQ(t2, tree.hasToken("ab"));
 	ASSERT_EQ(t3, tree.hasToken("b"));
 	ASSERT_EQ(t4, tree.hasToken("hello"));
-	ASSERT_EQ(EmptyToken, tree.hasToken(""));
-	ASSERT_EQ(EmptyToken, tree.hasToken("abc"));
+	ASSERT_EQ(Tokens::Empty, tree.hasToken(""));
+	ASSERT_EQ(Tokens::Empty, tree.hasToken("abc"));
 }
 
 TEST(TokenTrie, unregisterToken)
@@ -70,23 +70,23 @@ TEST(TokenTrie, unregisterToken)
 	ASSERT_TRUE(tree.unregisterToken("a"));
 	ASSERT_FALSE(tree.unregisterToken("a"));
 
-	ASSERT_EQ(EmptyToken, tree.hasToken("a"));
+	ASSERT_EQ(Tokens::Empty, tree.hasToken("a"));
 	ASSERT_EQ(t2, tree.hasToken("ab"));
 	ASSERT_EQ(t3, tree.hasToken("b"));
 
 	ASSERT_TRUE(tree.unregisterToken("b"));
 	ASSERT_FALSE(tree.unregisterToken("b"));
 
-	ASSERT_EQ(EmptyToken, tree.hasToken("a"));
+	ASSERT_EQ(Tokens::Empty, tree.hasToken("a"));
 	ASSERT_EQ(t2, tree.hasToken("ab"));
-	ASSERT_EQ(EmptyToken, tree.hasToken("b"));
+	ASSERT_EQ(Tokens::Empty, tree.hasToken("b"));
 
 	ASSERT_TRUE(tree.unregisterToken("ab"));
 	ASSERT_FALSE(tree.unregisterToken("ab"));
 
-	ASSERT_EQ(EmptyToken, tree.hasToken("a"));
-	ASSERT_EQ(EmptyToken, tree.hasToken("ab"));
-	ASSERT_EQ(EmptyToken, tree.hasToken("b"));
+	ASSERT_EQ(Tokens::Empty, tree.hasToken("a"));
+	ASSERT_EQ(Tokens::Empty, tree.hasToken("ab"));
+	ASSERT_EQ(Tokens::Empty, tree.hasToken("b"));
 }
 }
 

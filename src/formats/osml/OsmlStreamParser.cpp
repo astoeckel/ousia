@@ -33,47 +33,47 @@ public:
 	/**
 	 * Id of the backslash token.
 	 */
-	TokenTypeId Backslash;
+	TokenId Backslash;
 
 	/**
 	 * Id of the line comment token.
 	 */
-	TokenTypeId LineComment;
+	TokenId LineComment;
 
 	/**
 	 * Id of the block comment start token.
 	 */
-	TokenTypeId BlockCommentStart;
+	TokenId BlockCommentStart;
 
 	/**
 	 * Id of the block comment end token.
 	 */
-	TokenTypeId BlockCommentEnd;
+	TokenId BlockCommentEnd;
 
 	/**
 	 * Id of the field start token.
 	 */
-	TokenTypeId FieldStart;
+	TokenId FieldStart;
 
 	/**
 	 * Id of the field end token.
 	 */
-	TokenTypeId FieldEnd;
+	TokenId FieldEnd;
 
 	/**
 	 * Id of the default field start token.
 	 */
-	TokenTypeId DefaultFieldStart;
+	TokenId DefaultFieldStart;
 
 	/**
 	 * Id of the annotation start token.
 	 */
-	TokenTypeId AnnotationStart;
+	TokenId AnnotationStart;
 
 	/**
 	 * Id of the annotation end token.
 	 */
-	TokenTypeId AnnotationEnd;
+	TokenId AnnotationEnd;
 
 	/**
 	 * Registers the plain format tokens in the internal tokenizer.
@@ -92,7 +92,7 @@ public:
 	}
 };
 
-static const PlainFormatTokens Tokens;
+static const PlainFormatTokens OsmlTokens;
 
 /**
  * Class used internally to collect data issued via "DATA" event.
@@ -179,7 +179,7 @@ public:
 };
 
 OsmlStreamParser::OsmlStreamParser(CharReader &reader, Logger &logger)
-    : reader(reader), logger(logger), tokenizer(Tokens)
+    : reader(reader), logger(logger), tokenizer(OsmlTokens)
 {
 	// Place an intial command representing the complete file on the stack
 	commands.push(Command{"", Variant::mapType{}, true, true, true, false});
@@ -489,13 +489,13 @@ void OsmlStreamParser::parseBlockComment()
 	Token token;
 	size_t depth = 1;
 	while (tokenizer.read(reader, token)) {
-		if (token.type == Tokens.BlockCommentEnd) {
+		if (token.id == OsmlTokens.BlockCommentEnd) {
 			depth--;
 			if (depth == 0) {
 				return;
 			}
 		}
-		if (token.type == Tokens.BlockCommentStart) {
+		if (token.id == OsmlTokens.BlockCommentStart) {
 			depth++;
 		}
 	}
@@ -581,10 +581,11 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 	// Read tokens until the outer loop should be left
 	Token token;
 	while (tokenizer.peek(reader, token)) {
-		const TokenTypeId type = token.type;
+		const TokenId type = token.id;
 
 		// Special handling for Backslash and Text
-		if (type == Tokens.Backslash || type == Tokens.AnnotationStart) {
+		if (type == OsmlTokens.Backslash ||
+		    type == OsmlTokens.AnnotationStart) {
 			// Before appending anything to the output data or starting a new
 			// command, check whether FIELD_START has to be issued, as the
 			// current command is a command with range
@@ -611,7 +612,7 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 
 				// Parse the actual command
 				State res = parseCommand(token.location.getStart(),
-				                         type == Tokens.AnnotationStart);
+				                         type == OsmlTokens.AnnotationStart);
 				switch (res) {
 					case State::ERROR:
 						throw LoggableException(
@@ -631,7 +632,7 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 
 			// If this was an annotation start token, add the parsed < to the
 			// output
-			if (type == Tokens.AnnotationStart) {
+			if (type == OsmlTokens.AnnotationStart) {
 				handler.append('<', token.location.getStart(),
 				               token.location.getStart() + 1);
 			}
@@ -640,7 +641,7 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 			               reader.getPeekOffset());
 			reader.consumePeek();
 			continue;
-		} else if (type == TextToken) {
+		} else if (type == Tokens::Data) {
 			// Check whether FIELD_START has to be issued before appending text
 			if (checkIssueFieldStart()) {
 				location = token.location;
@@ -667,11 +668,11 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 		// Update the location to the current token location
 		location = token.location;
 
-		if (token.type == Tokens.LineComment) {
+		if (token.id == OsmlTokens.LineComment) {
 			parseLineComment();
-		} else if (token.type == Tokens.BlockCommentStart) {
+		} else if (token.id == OsmlTokens.BlockCommentStart) {
 			parseBlockComment();
-		} else if (token.type == Tokens.FieldStart) {
+		} else if (token.id == OsmlTokens.FieldStart) {
 			Command &cmd = commands.top();
 			if (!cmd.inField) {
 				cmd.inField = true;
@@ -682,7 +683,7 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 			    "start the field. Write \"\\{\" to insert this sequence as "
 			    "text.",
 			    token);
-		} else if (token.type == Tokens.FieldEnd) {
+		} else if (token.id == OsmlTokens.FieldEnd) {
 			if (closeField()) {
 				return State::FIELD_END;
 			}
@@ -690,7 +691,7 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 			    "Got field end token \"}\", but there is no field to end. "
 			    "Write \"\\}\" to insert this sequence as text.",
 			    token);
-		} else if (token.type == Tokens.DefaultFieldStart) {
+		} else if (token.id == OsmlTokens.DefaultFieldStart) {
 			// Try to start a default field the first time the token is reached
 			Command &topCmd = commands.top();
 			if (!topCmd.inField) {
@@ -703,7 +704,7 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 			    "which to start the field. Write \"\\{!\" to insert this "
 			    "sequence as text",
 			    token);
-		} else if (token.type == Tokens.AnnotationEnd) {
+		} else if (token.id == OsmlTokens.AnnotationEnd) {
 			// We got a single annotation end token "\>" -- simply issue the
 			// ANNOTATION_END event
 			Variant annotationName = Variant::fromString("");
@@ -751,4 +752,3 @@ bool OsmlStreamParser::inDefaultField() const
 	return commands.top().inRangeField || commands.top().inDefaultField;
 }
 }
-

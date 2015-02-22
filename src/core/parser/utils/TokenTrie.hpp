@@ -33,22 +33,9 @@
 #include <limits>
 #include <unordered_map>
 
+#include "Token.hpp"
+
 namespace ousia {
-
-/**
- * The TokenTypeId is used to give each token type a unique id.
- */
-using TokenTypeId = uint32_t;
-
-/**
- * Token which is not a token.
- */
-constexpr TokenTypeId EmptyToken = std::numeric_limits<TokenTypeId>::max();
-
-/**
- * Token which represents a text token.
- */
-constexpr TokenTypeId TextToken = std::numeric_limits<TokenTypeId>::max() - 1;
 
 /**
  * The Tokenizer internally uses a TokenTrie to be efficiently able to identify
@@ -91,7 +78,7 @@ public:
 		 * Reference at the corresponding token descriptor. Set to nullptr if
 		 * no token is attached to this node.
 		 */
-		TokenTypeId type;
+		TokenId type;
 
 		/**
 		 * Default constructor, initializes the descriptor with nullptr.
@@ -115,7 +102,7 @@ public:
 	 * @param type is the descriptor that should be set for this token.
 	 * @return true if the operation is successful, false otherwise.
 	 */
-	bool registerToken(const std::string &token, TokenTypeId type) noexcept;
+	bool registerToken(const std::string &token, TokenId type) noexcept;
 
 	/**
 	 * Unregisters the token from the token tree. Returns true if the token was
@@ -134,7 +121,7 @@ public:
 	 * @return the attached token descriptor or nullptr if the given token is
 	 * not found.
 	 */
-	TokenTypeId hasToken(const std::string &token) const noexcept;
+	TokenId hasToken(const std::string &token) const noexcept;
 
 	/**
 	 * Returns a reference at the root node to be used for traversing the token

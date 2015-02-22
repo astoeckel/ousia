@@ -27,18 +27,18 @@ TEST(Tokenizer, tokenRegistration)
 {
 	Tokenizer tokenizer;
 
-	ASSERT_EQ(EmptyToken, tokenizer.registerToken(""));
+	ASSERT_EQ(Tokens::Empty, tokenizer.registerToken(""));
 
 	ASSERT_EQ(0U, tokenizer.registerToken("a"));
-	ASSERT_EQ(EmptyToken, tokenizer.registerToken("a"));
+	ASSERT_EQ(Tokens::Empty, tokenizer.registerToken("a"));
 	ASSERT_EQ("a", tokenizer.getTokenString(0U));
 
 	ASSERT_EQ(1U, tokenizer.registerToken("b"));
-	ASSERT_EQ(EmptyToken, tokenizer.registerToken("b"));
+	ASSERT_EQ(Tokens::Empty, tokenizer.registerToken("b"));
 	ASSERT_EQ("b", tokenizer.getTokenString(1U));
 
 	ASSERT_EQ(2U, tokenizer.registerToken("c"));
-	ASSERT_EQ(EmptyToken, tokenizer.registerToken("c"));
+	ASSERT_EQ(Tokens::Empty, tokenizer.registerToken("c"));
 	ASSERT_EQ("c", tokenizer.getTokenString(2U));
 
 	ASSERT_TRUE(tokenizer.unregisterToken(1U));
@@ -46,7 +46,7 @@ TEST(Tokenizer, tokenRegistration)
 	ASSERT_EQ("", tokenizer.getTokenString(1U));
 
 	ASSERT_EQ(1U, tokenizer.registerToken("d"));
-	ASSERT_EQ(EmptyToken, tokenizer.registerToken("d"));
+	ASSERT_EQ(Tokens::Empty, tokenizer.registerToken("d"));
 	ASSERT_EQ("d", tokenizer.getTokenString(1U));
 }
 
@@ -60,7 +60,7 @@ TEST(Tokenizer, textTokenPreserveWhitespace)
 
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ(" this \t is only a  \n\n test   text   ", token.content);
 
 		SourceLocation loc = token.location;
@@ -78,7 +78,7 @@ TEST(Tokenizer, textTokenPreserveWhitespace)
 
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ("this \t is only a  \n\n test   text", token.content);
 
 		SourceLocation loc = token.location;
@@ -99,7 +99,7 @@ TEST(Tokenizer, textTokenTrimWhitespace)
 
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ("this \t is only a  \n\n test   text", token.content);
 
 		SourceLocation loc = token.location;
@@ -117,7 +117,7 @@ TEST(Tokenizer, textTokenTrimWhitespace)
 
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ("this \t is only a  \n\n test   text", token.content);
 
 		SourceLocation loc = token.location;
@@ -138,7 +138,7 @@ TEST(Tokenizer, textTokenCollapseWhitespace)
 
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ("this is only a test text", token.content);
 
 		SourceLocation loc = token.location;
@@ -156,7 +156,7 @@ TEST(Tokenizer, textTokenCollapseWhitespace)
 
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ("this is only a test text", token.content);
 
 		SourceLocation loc = token.location;
@@ -172,14 +172,14 @@ TEST(Tokenizer, simpleReadToken)
 	CharReader reader{"test1:test2"};
 	Tokenizer tokenizer;
 
-	const TokenTypeId tid = tokenizer.registerToken(":");
+	const TokenId tid = tokenizer.registerToken(":");
 	ASSERT_EQ(0U, tid);
 
 	{
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ("test1", token.content);
 
 		SourceLocation loc = token.location;
@@ -195,7 +195,7 @@ TEST(Tokenizer, simpleReadToken)
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
-		ASSERT_EQ(tid, token.type);
+		ASSERT_EQ(tid, token.id);
 		ASSERT_EQ(":", token.content);
 
 		SourceLocation loc = token.location;
@@ -211,7 +211,7 @@ TEST(Tokenizer, simpleReadToken)
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ("test2", token.content);
 
 		SourceLocation loc = token.location;
@@ -228,14 +228,14 @@ TEST(Tokenizer, simplePeekToken)
 	CharReader reader{"test1:test2"};
 	Tokenizer tokenizer;
 
-	const TokenTypeId tid = tokenizer.registerToken(":");
+	const TokenId tid = tokenizer.registerToken(":");
 	ASSERT_EQ(0U, tid);
 
 	{
 		Token token;
 		ASSERT_TRUE(tokenizer.peek(reader, token));
 
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ("test1", token.content);
 
 		SourceLocation loc = token.location;
@@ -249,7 +249,7 @@ TEST(Tokenizer, simplePeekToken)
 		Token token;
 		ASSERT_TRUE(tokenizer.peek(reader, token));
 
-		ASSERT_EQ(tid, token.type);
+		ASSERT_EQ(tid, token.id);
 		ASSERT_EQ(":", token.content);
 
 		SourceLocation loc = token.location;
@@ -263,7 +263,7 @@ TEST(Tokenizer, simplePeekToken)
 		Token token;
 		ASSERT_TRUE(tokenizer.peek(reader, token));
 
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ("test2", token.content);
 
 		SourceLocation loc = token.location;
@@ -277,7 +277,7 @@ TEST(Tokenizer, simplePeekToken)
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ("test1", token.content);
 
 		SourceLocation loc = token.location;
@@ -291,7 +291,7 @@ TEST(Tokenizer, simplePeekToken)
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
-		ASSERT_EQ(tid, token.type);
+		ASSERT_EQ(tid, token.id);
 		ASSERT_EQ(":", token.content);
 
 		SourceLocation loc = token.location;
@@ -305,7 +305,7 @@ TEST(Tokenizer, simplePeekToken)
 		Token token;
 		ASSERT_TRUE(tokenizer.read(reader, token));
 
-		ASSERT_EQ(TextToken, token.type);
+		ASSERT_EQ(Tokens::Data, token.id);
 		ASSERT_EQ("test2", token.content);
 
 		SourceLocation loc = token.location;
@@ -321,8 +321,8 @@ TEST(Tokenizer, ambiguousTokens)
 	CharReader reader{"abc"};
 	Tokenizer tokenizer;
 
-	TokenTypeId t1 = tokenizer.registerToken("abd");
-	TokenTypeId t2 = tokenizer.registerToken("bc");
+	TokenId t1 = tokenizer.registerToken("abd");
+	TokenId t2 = tokenizer.registerToken("bc");
 
 	ASSERT_EQ(0U, t1);
 	ASSERT_EQ(1U, t2);
@@ -330,7 +330,7 @@ TEST(Tokenizer, ambiguousTokens)
 	Token token;
 	ASSERT_TRUE(tokenizer.read(reader, token));
 
-	ASSERT_EQ(TextToken, token.type);
+	ASSERT_EQ(Tokens::Data, token.id);
 	ASSERT_EQ("a", token.content);
 
 	SourceLocation loc = token.location;
@@ -339,7 +339,7 @@ TEST(Tokenizer, ambiguousTokens)
 
 	ASSERT_TRUE(tokenizer.read(reader, token));
 
-	ASSERT_EQ(t2, token.type);
+	ASSERT_EQ(t2, token.id);
 	ASSERT_EQ("bc", token.content);
 
 	loc = token.location;
@@ -356,22 +356,22 @@ TEST(Tokenizer, commentTestWhitespacePreserve)
 	//                 0        1         2
 	Tokenizer tokenizer(WhitespaceMode::PRESERVE);
 
-	const TokenTypeId t1 = tokenizer.registerToken("/");
-	const TokenTypeId t2 = tokenizer.registerToken("/*");
-	const TokenTypeId t3 = tokenizer.registerToken("*/");
+	const TokenId t1 = tokenizer.registerToken("/");
+	const TokenId t2 = tokenizer.registerToken("/*");
+	const TokenId t3 = tokenizer.registerToken("*/");
 
 	std::vector<Token> expected = {
-	    {TextToken, "Test", SourceLocation{0, 0, 4}},
+	    {Tokens::Data, "Test", SourceLocation{0, 0, 4}},
 	    {t1, "/", SourceLocation{0, 4, 5}},
-	    {TextToken, "Test ", SourceLocation{0, 5, 10}},
+	    {Tokens::Data, "Test ", SourceLocation{0, 5, 10}},
 	    {t2, "/*", SourceLocation{0, 10, 12}},
-	    {TextToken, " Block Comment ", SourceLocation{0, 12, 27}},
+	    {Tokens::Data, " Block Comment ", SourceLocation{0, 12, 27}},
 	    {t3, "*/", SourceLocation{0, 27, 29}}};
 
 	Token t;
 	for (auto &te : expected) {
 		EXPECT_TRUE(tokenizer.read(reader, t));
-		EXPECT_EQ(te.type, t.type);
+		EXPECT_EQ(te.id, t.id);
 		EXPECT_EQ(te.content, t.content);
 		EXPECT_EQ(te.location.getSourceId(), t.location.getSourceId());
 		EXPECT_EQ(te.location.getStart(), t.location.getStart());
@@ -387,22 +387,22 @@ TEST(Tokenizer, commentTestWhitespaceCollapse)
 	//                 0        1         2
 	Tokenizer tokenizer(WhitespaceMode::COLLAPSE);
 
-	const TokenTypeId t1 = tokenizer.registerToken("/");
-	const TokenTypeId t2 = tokenizer.registerToken("/*");
-	const TokenTypeId t3 = tokenizer.registerToken("*/");
+	const TokenId t1 = tokenizer.registerToken("/");
+	const TokenId t2 = tokenizer.registerToken("/*");
+	const TokenId t3 = tokenizer.registerToken("*/");
 
 	std::vector<Token> expected = {
-	    {TextToken, "Test", SourceLocation{0, 0, 4}},
+	    {Tokens::Data, "Test", SourceLocation{0, 0, 4}},
 	    {t1, "/", SourceLocation{0, 4, 5}},
-	    {TextToken, "Test", SourceLocation{0, 5, 9}},
+	    {Tokens::Data, "Test", SourceLocation{0, 5, 9}},
 	    {t2, "/*", SourceLocation{0, 10, 12}},
-	    {TextToken, "Block Comment", SourceLocation{0, 13, 26}},
+	    {Tokens::Data, "Block Comment", SourceLocation{0, 13, 26}},
 	    {t3, "*/", SourceLocation{0, 27, 29}}};
 
 	Token t;
 	for (auto &te : expected) {
 		EXPECT_TRUE(tokenizer.read(reader, t));
-		EXPECT_EQ(te.type, t.type);
+		EXPECT_EQ(te.id, t.id);
 		EXPECT_EQ(te.content, t.content);
 		EXPECT_EQ(te.location.getSourceId(), t.location.getSourceId());
 		EXPECT_EQ(te.location.getStart(), t.location.getStart());

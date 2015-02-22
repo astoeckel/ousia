@@ -61,7 +61,7 @@ struct TokenMatch {
 	/**
 	 * Returns true if this TokenMatch instance actually represents a match.
 	 */
-	bool hasMatch() { return token.type != EmptyToken; }
+	bool hasMatch() { return token.id != Tokens::Empty; }
 };
 
 /* Internal class TokenLookup */
@@ -138,7 +138,7 @@ public:
 		// Check whether the new node represents a complete token a whether it
 		// is longer than the current token. If yes, replace the current token.
 		node = it->second.get();
-		if (node->type != EmptyToken) {
+		if (node->type != Tokens::Empty) {
 			const std::string &str = tokens[node->type];
 			size_t len = str.size();
 			if (len > match.token.content.size()) {
@@ -157,14 +157,14 @@ public:
 };
 
 /**
- * Transforms the given token into a text token containing the extracted
+ * Transforms the given token into a data token containing the extracted
  * text.
  *
  * @param handler is the WhitespaceHandler containing the collected data.
  * @param token is the output token to which the text should be written.
  * @param sourceId is the source id of the underlying file.
  */
-static void buildTextToken(const WhitespaceHandler &handler, TokenMatch &match,
+static void buildDataToken(const WhitespaceHandler &handler, TokenMatch &match,
                            SourceId sourceId)
 {
 	if (match.hasMatch()) {
@@ -177,14 +177,14 @@ static void buildTextToken(const WhitespaceHandler &handler, TokenMatch &match,
 		match.token.location =
 		    SourceLocation{sourceId, handler.textStart, handler.textEnd};
 	}
-	match.token.type = TextToken;
+	match.token.id = Tokens::Data;
 }
 }
 
 /* Class Tokenizer */
 
 Tokenizer::Tokenizer(WhitespaceMode whitespaceMode)
-    : whitespaceMode(whitespaceMode), nextTokenTypeId(0)
+    : whitespaceMode(whitespaceMode), nextTokenId(0)
 {
 }
 
@@ -248,7 +248,7 @@ bool Tokenizer::next(CharReader &reader, Token &token)
 
 	// If we found text, emit that text
 	if (textHandler.hasText() && (!match.hasMatch() || match.textLength > 0)) {
-		buildTextToken(textHandler, match, sourceId);
+		buildDataToken(textHandler, match, sourceId);
 	}
 
 	// Move the read/peek cursor to the end of the token, abort if an error
@@ -299,16 +299,16 @@ bool Tokenizer::peek(CharReader &reader, Token &token)
 	return false;
 }
 
-TokenTypeId Tokenizer::registerToken(const std::string &token)
+TokenId Tokenizer::registerToken(const std::string &token)
 {
 	// Abort if an empty token should be registered
 	if (token.empty()) {
-		return EmptyToken;
+		return Tokens::Empty;
 	}
 
 	// Search for a new slot in the tokens list
-	TokenTypeId type = EmptyToken;
-	for (size_t i = nextTokenTypeId; i < tokens.size(); i++) {
+	TokenId type = Tokens::Empty;
+	for (size_t i = nextTokenId; i < tokens.size(); i++) {
 		if (tokens[i].empty()) {
 			tokens[i] = token;
 			type = i;
@@ -318,37 +318,37 @@ TokenTypeId Tokenizer::registerToken(const std::string &token)
 
 	// No existing slot was found, add a new one -- make sure we do not
 	// override the special token type handles
-	if (type == EmptyToken) {
+	if (type == Tokens::Empty) {
 		type = tokens.size();
-		if (type == TextToken || type == EmptyToken) {
+		if (type == Tokens::Data || type == Tokens::Empty) {
 			throw OusiaException{"Token type ids depleted!"};
 		}
 		tokens.emplace_back(token);
 	}
-	nextTokenTypeId = type + 1;
+	nextTokenId = type + 1;
 
 	// Try to register the token in the trie -- if this fails, remove it
 	// from the tokens list
 	if (!trie.registerToken(token, type)) {
 		tokens[type] = std::string{};
-		nextTokenTypeId = type;
-		return EmptyToken;
+		nextTokenId = type;
+		return Tokens::Empty;
 	}
 	return type;
 }
 
-bool Tokenizer::unregisterToken(TokenTypeId type)
+bool Tokenizer::unregisterToken(TokenId type)
 {
 	// Unregister the token from the trie, abort if an invalid type is given
 	if (type < tokens.size() && trie.unregisterToken(tokens[type])) {
 		tokens[type] = std::string{};
-		nextTokenTypeId = type;
+		nextTokenId = type;
 		return true;
 	}
 	return false;
 }
 
-std::string Tokenizer::getTokenString(TokenTypeId type)
+std::string Tokenizer::getTokenString(TokenId type)
 {
 	if (type < tokens.size()) {
 		return tokens[type];
