@@ -101,8 +101,10 @@ static std::string toString(Variant v, bool pretty)
 }
 
 std::map<std::string, std::string> XmlTransformer::transformAttributes(
-    DocumentEntity *entity, Logger &logger, bool pretty)
-{  // copy the attributes.
+    const std::string &name, DocumentEntity *entity, Logger &logger,
+    bool pretty)
+{
+	// copy the attributes.
 	Variant attrs = entity->getAttributes();
 	// build them.
 	entity->getDescriptor()->getAttributesDescriptor()->build(attrs, logger);
@@ -112,6 +114,13 @@ std::map<std::string, std::string> XmlTransformer::transformAttributes(
 	NodeVector<Attribute> as =
 	    entity->getDescriptor()->getAttributesDescriptor()->getAttributes();
 	std::map<std::string, std::string> xmlAttrs;
+
+	// Write the element name if one was given
+	if (!name.empty()) {
+		xmlAttrs.emplace("name", name);
+	}
+
+	// Write other user defined properties
 	for (size_t a = 0; a < as.size(); a++) {
 		xmlAttrs.emplace(as[a]->getName(), toString(attrArr[a], pretty));
 	}
@@ -170,8 +179,9 @@ void XmlTransformer::transformChildren(DocumentEntity *parentEntity,
 			assert(field[0]->isa(&RttiTypes::DocumentPrimitive));
 			Rooted<DocumentPrimitive> prim = field[0].cast<DocumentPrimitive>();
 			// transform the primitive content.
-			Rooted<Text> text = transformPrimitive(par, fieldDesc->getPrimitiveType(), prim, logger, pretty);
-			if(text != nullptr){
+			Rooted<Text> text = transformPrimitive(
+			    par, fieldDesc->getPrimitiveType(), prim, logger, pretty);
+			if (text != nullptr) {
 				par->addChild(text);
 			}
 		}
@@ -184,12 +194,12 @@ Rooted<Element> XmlTransformer::transformStructuredEntity(
 {
 	Manager &mgr = parent->getManager();
 	// transform the attributes.
-	auto attrs = transformAttributes(s.get(), logger, pretty);
+	auto attrs = transformAttributes(s->getName(), s.get(), logger, pretty);
 	addNameAttribute(s, attrs);
 	// create the XML element itself.
 	Rooted<Element> elem{
 	    new Element{mgr, parent, s->getDescriptor()->getName(),
-	                transformAttributes(s.get(), logger, pretty),
+	                transformAttributes(s->getName(), s.get(), logger, pretty),
 	                s->getDescriptor()->getParent().cast<Domain>()->getName()}};
 	// then transform the children.
 	transformChildren(s.get(), elem, logger, pretty);
@@ -206,7 +216,7 @@ Rooted<Element> XmlTransformer::transformAnchor(Handle<Element> parent,
 		// of the annotation here.
 		// transform the attributes.
 		auto attrs =
-		    transformAttributes(a->getAnnotation().get(), logger, pretty);
+		    transformAttributes("", a->getAnnotation().get(), logger, pretty);
 		addNameAttribute(a->getAnnotation(), attrs);
 
 		elem = Rooted<Element>{new Element(
@@ -240,16 +250,17 @@ Rooted<Text> XmlTransformer::transformPrimitive(Handle<Element> parent,
 	Manager &mgr = parent->getManager();
 	// transform the primitive content.
 	Variant content = p->getContent();
-	if(!type->build(content, logger)){
+	if (!type->build(content, logger)) {
 		return nullptr;
 	}
 	// special treatment for struct types because they get built as arrays,
 	// which is not so nice for output purposes.
-	if(type->isa(&RttiTypes::StructType)){
+	if (type->isa(&RttiTypes::StructType)) {
 		Variant::mapType map;
 		Variant::arrayType arr = content.asArray();
 		size_t a = 0;
-		for(Handle<Attribute> attr : type.cast<StructType>()->getAttributes()){
+		for (Handle<Attribute> attr :
+		     type.cast<StructType>()->getAttributes()) {
 			map.emplace(attr->getName(), arr[a++]);
 		}
 		content = std::move(map);

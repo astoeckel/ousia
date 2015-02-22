@@ -38,7 +38,8 @@ namespace xml {
 class XmlTransformer {
 private:
 	std::map<std::string, std::string> transformAttributes(
-	    DocumentEntity *entity, Logger &logger, bool pretty);
+	    const std::string &name, DocumentEntity *entity, Logger &logger,
+	    bool pretty);
 
 	void addNameAttribute(Handle<ousia::Node> n,
 	                      std::map<std::string, std::string> &attrs);
@@ -53,7 +54,7 @@ private:
 	Rooted<Element> transformAnchor(Handle<Element> parent, Handle<Anchor> a,
 	                                Logger &logger, bool pretty);
 
-	Rooted<Text> transformPrimitive(Handle<Element> parent,Handle<Type> type,
+	Rooted<Text> transformPrimitive(Handle<Element> parent, Handle<Type> type,
 	                                Handle<DocumentPrimitive> p, Logger &logger,
 	                                bool pretty);
 
