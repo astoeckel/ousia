@@ -66,13 +66,82 @@ static std::string escapePredefinedEntities(const std::string &input)
 
 void Element::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 {
+	bool hasText = false;
 	if (pretty) {
+		// print tabs at the beginning, if we are in pretty mode.
 		for (unsigned int t = 0; t < tabdepth; t++) {
 			out << '\t';
 		}
+		/*
+		 * if we are in pretty mode we also need to check if we have a text
+		 * node as child.
+		 * If so this changes our further output processing because of the way
+		 * XML treats primitive data: The structure
+		 *
+		 * \code{.xml}
+		 * <Element name="A">
+		 *   <Text>content</Text>
+		 *   <Text>content2</Text>
+		 * </Element>
+		 * \endcode
+		 *
+		 * has to be serialized as
+		 *
+		 * \code{.xml}
+		 * <A>contentcontent2</A>
+		 * \endcode
+		 *
+		 * because otherwise we introduce whitespaces and newlines where no
+		 * such things had been before.
+		 *
+		 * On the other hand the structure
+		 *
+		 * \code{.xml}
+		 * <Element name="A">
+		 *   <Element name="B">
+		 *     <Text>content</Text>
+		 *   </Element>
+		 * </Element>
+		 * \endcode
+		 *
+		 * Can be serialized as
+		 *
+		 * \code{.xml}
+		 * <A>
+		 *   <B>content</B>
+		 * </A>
+		 * \endcode
+		 *
+		 * As last example consider the case
+		 *
+		 * \code{.xml}
+		 * <Element name="A">
+		 *   <Element name="B">
+		 *     <Text>content</Text>
+		 *   </Element>
+		 *   <Text>content2</Text>
+		 * </Element>
+		 * \endcode
+		 *
+		 * Here the A-Element again has primitive text content, such that we
+		 * are not allowed to prettify. It has to be serialized like this:
+		 *
+		 * \code{.xml}
+		 * <A><B>content</B>content2</A>
+		 * \endcode
+		 *
+		 *
+		 */
+		for (auto n : children) {
+			if (n->isa(&RttiTypes::XMLText)) {
+				hasText = true;
+				break;
+			}
+		}
 	}
+
 	out << '<';
-	if(!nspace.empty()){
+	if (!nspace.empty()) {
 		out << nspace << ":";
 	}
 	out << name;
@@ -88,19 +157,19 @@ void Element::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 		}
 	} else {
 		out << ">";
-		if (pretty) {
+		if (pretty && !hasText) {
 			out << std::endl;
 		}
-		for (auto &n : children) {
-			n->doSerialize(out, tabdepth + 1, pretty);
+		for (auto n : children) {
+			n->doSerialize(out, tabdepth + 1, pretty && !hasText);
 		}
-		if (pretty) {
+		if (pretty && !hasText) {
 			for (unsigned int t = 0; t < tabdepth; t++) {
 				out << '\t';
 			}
 		}
 		out << "</";
-		if(!nspace.empty()){
+		if (!nspace.empty()) {
 			out << nspace << ":";
 		}
 		out << name << ">";
@@ -112,29 +181,20 @@ void Element::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 
 void Text::doSerialize(std::ostream &out, unsigned int tabdepth, bool pretty)
 {
-	if (pretty) {
-		for (unsigned int t = 0; t < tabdepth; t++) {
-			out << '\t';
-		}
-	}
 	out << escapePredefinedEntities(text);
-	if (pretty) {
-		out << std::endl;
-	}
 }
 }
 
-namespace RttiTypes
-{
-	const Rtti XMLNode = RttiBuilder<xml::Node>("XMLNode");
-	const Rtti XMLElement =
-	    RttiBuilder<xml::Element>("XMLElement")
-	        .parent(&XMLNode)
-	        .composedOf(&XMLNode)
-	        .property("name", {&RttiTypes::String,
-	                           {[](const xml::Element *obj) {
-		                           return Variant::fromString(obj->getName());
-		                       }}});
-	const Rtti XMLText = RttiBuilder<xml::Text>("XMLText").parent(&XMLNode);
+namespace RttiTypes {
+const Rtti XMLNode = RttiBuilder<xml::Node>("XMLNode");
+const Rtti XMLElement =
+    RttiBuilder<xml::Element>("XMLElement")
+        .parent(&XMLNode)
+        .composedOf(&XMLNode)
+        .property("name", {&RttiTypes::String,
+                           {[](const xml::Element *obj) {
+	                           return Variant::fromString(obj->getName());
+	                       }}});
+const Rtti XMLText = RttiBuilder<xml::Text>("XMLText").parent(&XMLNode);
 }
 }

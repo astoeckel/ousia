@@ -42,29 +42,21 @@ TEST(XMLNode, testSerialize)
 	body->addChild(div);
 	Rooted<Element> p{new Element{mgr, div, "p"}};
 	div->addChild(p);
-	p->addChild(new Text(mgr, p, "my text"));
-	Rooted<Element> p2{new Element{mgr, div, "p"}};
-	div->addChild(p2);
-	p2->addChild(new Text(mgr, p2, "my text"));
+	p->addChild(new Text(mgr, p, "A"));
+	div->addChild(new Text(mgr, div, "B"));
+	Rooted<Element> myTag{new Element{mgr, div, "myTag", {}, "myNameSpace"}};
+	div->addChild(myTag);
+	myTag->addChild(new Text(mgr, myTag, "C"));
 
 	// Now this is what we expect to see:
 	std::string expected{
 	    "<?xml version=\"1.0\"?>\n"
 	    "<html>\n"
 	    "\t<head>\n"
-	    "\t\t<title>\n"
-	    "\t\t\tmy title\n"
-	    "\t\t</title>\n"
+	    "\t\t<title>my title</title>\n"
 	    "\t</head>\n"
 	    "\t<body>\n"
-	    "\t\t<div class=\"content\" id=\"1\">\n"
-	    "\t\t\t<p>\n"
-	    "\t\t\t\tmy text\n"
-	    "\t\t\t</p>\n"
-	    "\t\t\t<p>\n"
-	    "\t\t\t\tmy text\n"
-	    "\t\t\t</p>\n"
-	    "\t\t</div>\n"
+	    "\t\t<div class=\"content\" id=\"1\"><p>A</p>B<myNameSpace:myTag>C</myNameSpace:myTag></div>\n"
 	    "\t</body>\n"
 	    "</html>\n"};
 
