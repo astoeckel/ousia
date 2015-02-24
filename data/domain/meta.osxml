@@ -9,7 +9,7 @@
 
 	<struct name="meta" cardinality="{1}" transparent="true">
 		<field>
-			<childRef ref="author"/>
+			<childRef ref="authors"/>
 			<childRef ref="version"/>
 		</field>
 		<parentRef ref="book">
@@ -23,6 +23,7 @@
 
 	<struct name="person">
 		<primitive isSubtree="true" name="firstName" type="string"/>
+		<primitive isSubtree="true" name="secondNames" type="string[]" optional="true"/>
 		<primitive isSubtree="true" name="lastName" type="string"/>
 		<primitive isSubtree="true" name="email" type="email" optional="true"/>
 		<primitive isSubtree="true" name="affiliation" type="affiliation" optional="true"/>
