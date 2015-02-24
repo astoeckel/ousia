@@ -206,7 +206,7 @@ bool DomainPrimitiveHandler::start(Variant::mapType &args)
 	}
 
 	const std::string &type = args["type"].asString();
-	scope().resolve<Type>(type, res.first, logger(),
+	scope().resolveType(type, res.first, logger(),
 	                      [](Handle<Node> type, Handle<Node> field,
 	                         Logger &logger) {
 		if (type != nullptr) {
