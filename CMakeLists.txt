@@ -158,6 +158,7 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Rtti
 	src/core/common/RttiBuilder
 	src/core/common/SourceContextReader
+	src/core/common/Token
 	src/core/common/Utils
 	src/core/common/Variant
 	src/core/common/VariantConverter
@@ -189,7 +190,6 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/stack/Stack
 	src/core/parser/stack/TypesystemHandler
 	src/core/parser/utils/SourceOffsetVector
-	src/core/parser/utils/Token
 	src/core/parser/utils/TokenizedData
 	src/core/parser/utils/Tokenizer
 	src/core/parser/utils/TokenTrie

@@ -110,19 +110,19 @@ private:
 	std::vector<char> buf;
 
 	/**
-	 * Vector containing all token marks.
-	 */
-	std::vector<TokenMark> marks;
-
-	/**
 	 * Vector storing all the character offsets efficiently.
 	 */
 	SourceOffsetVector offsets;
 
 	/**
+	 * Vector containing all token marks.
+	 */
+	mutable std::vector<TokenMark> marks;
+
+	/**
 	 * Flag indicating whether the internal "marks" vector is sorted.
 	 */
-	bool sorted;
+	mutable bool sorted;
 
 public:
 	/**
@@ -150,9 +150,12 @@ public:
 		// Extend the text regions, interpolate the source position (this may
 		// yield incorrect results)
 		const size_t size = buf.size();
-		for (SourceOffset offs = offsStart; offs < offsStart + data.size();
-		     offs++) {
-			offsets.storeOffset(offs, offs + 1);
+		for (size_t i = 0; i < data.size(); i++) {
+			if (offsStart != InvalidSourceOffset) {
+				offsets.storeOffset(offsStart + i, offsStart + i + 1);
+			} else {
+				offsets.storeOffset(InvalidSourceOffset, InvalidSourceOffset);
+			}
 		}
 
 		return size;
@@ -213,7 +216,7 @@ public:
 	 * available.
 	 */
 	bool next(Token &token, WhitespaceMode mode,
-	          const std::unordered_set<TokenId> &tokens, size_t &cursor)
+	          const std::unordered_set<TokenId> &tokens, size_t &cursor) const
 	{
 		// Sort the "marks" vector if it has not been sorted yet.
 		if (!sorted) {
@@ -222,10 +225,11 @@ public:
 		}
 
 		// Fetch the next larger TokenMark instance, make sure the token is in
-		// the "enabled" list
+		// the "enabled" list and within the buffer range
 		auto it =
 		    std::lower_bound(marks.begin(), marks.end(), TokenMark(cursor));
-		while (it != marks.end() && tokens.count(it->id) == 0) {
+		while (it != marks.end() && (tokens.count(it->id) == 0 ||
+		                             it->bufStart + it->len > buf.size())) {
 			it++;
 		}
 
@@ -304,11 +308,58 @@ public:
 	}
 
 	/**
+	 * Resets the TokenizedDataImpl instance to the state it had when it was
+	 * constructred.
+	 */
+	void clear()
+	{
+		buf.clear();
+		marks.clear();
+		offsets.clear();
+		sorted = true;
+	}
+
+	/**
+	 * Trims the length of the TokenizedDataImpl instance to the given length.
+	 *
+	 * @param length is the number of characters to which the TokenizedData
+	 * instance should be trimmed.
+	 */
+	void trim(size_t length)
+	{
+		if (length < size()) {
+			buf.resize(length);
+			offsets.trim(length);
+		}
+	}
+
+	/**
 	 * Returns the current size of the internal buffer.
 	 *
 	 * @return the size of the internal character buffer.
 	 */
-	size_t getSize() { return buf.size(); }
+	size_t size() const { return buf.size(); }
+
+	/**
+	 * Returns true if no data is in the data buffer.
+	 *
+	 * @return true if the "buf" instance has no data.
+	 */
+	bool empty() const { return buf.empty(); }
+
+	/**
+	 * Returns the current location of all data in the buffer.
+	 *
+	 * @return the location of the entire data represented by this instance.
+	 */
+	SourceLocation getLocation() const
+	{
+		if (empty()) {
+			return SourceLocation{sourceId};
+		}
+		return SourceLocation{sourceId, offsets.loadOffset(0).first,
+		                      offsets.loadOffset(size()).second};
+	}
 };
 
 /* Class TokenizedData */
@@ -335,7 +386,7 @@ size_t TokenizedData::append(char c, SourceOffset offsStart,
 
 void TokenizedData::mark(TokenId id, TokenLength len)
 {
-	impl->mark(id, impl->getSize() - len, len);
+	impl->mark(id, impl->size() - len, len);
 }
 
 void TokenizedData::mark(TokenId id, size_t bufStart, TokenLength len)
@@ -343,23 +394,67 @@ void TokenizedData::mark(TokenId id, size_t bufStart, TokenLength len)
 	impl->mark(id, bufStart, len);
 }
 
-bool TokenizedData::next(Token &token, WhitespaceMode mode)
+void TokenizedData::clear()
 {
-	return impl->next(token, mode, tokens, cursor);
+	impl->clear();
+	tokens.clear();
+	cursor = 0;
 }
 
-bool TokenizedData::text(Token &token, WhitespaceMode mode)
+void TokenizedData::trim(size_t length) { impl->trim(length); }
+
+size_t TokenizedData::size() const { return impl->size(); }
+
+bool TokenizedData::empty() const { return impl->empty(); }
+
+SourceLocation TokenizedData::getLocation() const
+{
+	return impl->getLocation();
+}
+
+TokenizedDataReader reader() const
+{
+	return TokenizedDataReader(impl, std::unordered_set<TokenId>{}, 0, 0);
+}
+
+/* Class TokenizedDataReader */
+
+TokenizedDataReaderFork TokenizedDataReader::fork()
+{
+	return TokenizedDataReaderFork(*this, impl, tokens, readCursor, peekCursor);
+}
+
+bool TokenizedDataReader::atEnd() const { return readCursor >= size(); }
+
+bool TokenizedData::read(Token &token, const TokenSet &tokens,
+                         WhitespaceMode mode)
+{
+	peekCursor = readCursor;
+	return impl->next(token, mode, tokens, readCursor);
+}
+
+bool TokenizedData::peek(Token &token, const TokenSet &tokens,
+                         WhitespaceMode mode)
+{
+	return impl->next(token, mode, tokens, peekCursor);
+}
+
+Variant TokenizedData::text(WhitespaceMode mode)
 {
 	// Copy the current cursor position to not update the actual cursor position
 	// if the operation was not successful
 	size_t cursorCopy = cursor;
+	Token token;
 	if (!impl->next(token, mode, tokens, cursorCopy) ||
 	    token.id != Tokens::Data) {
-		return false;
+		return Variant{nullptr};
 	}
 
-	// There is indeed a text token, update the internal cursor position
+	// There is indeed a text token, update the internal cursor position and
+	// return the token as variant.
 	cursor = cursorCopy;
-	return true;
+	Variant res = Variant::fromString(token.content);
+	res.setLocation(token.getLocation());
+	return res;
 }
 }

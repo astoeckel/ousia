@@ -380,14 +380,14 @@ TEST(TokenizedData, textPreserveWhitespace)
 
 	data.enableToken(5);
 
-	Token token;
-	ASSERT_TRUE(data.text(token, WhitespaceMode::PRESERVE));
-	EXPECT_EQ(Tokens::Data, token.id);
-	EXPECT_EQ("  ", token.content);
-	EXPECT_EQ(0U, token.getLocation().getStart());
-	EXPECT_EQ(2U, token.getLocation().getEnd());
-	EXPECT_EQ(InvalidSourceId, token.getLocation().getSourceId());
+	Variant text;
+	text = data.text(WhitespaceMode::PRESERVE);
+	EXPECT_EQ("  ", text.asString());
+	EXPECT_EQ(0U, text.getLocation().getStart());
+	EXPECT_EQ(2U, text.getLocation().getEnd());
+	EXPECT_EQ(InvalidSourceId, text.getLocation().getSourceId());
 
+	Token token;
 	ASSERT_TRUE(data.next(token, WhitespaceMode::PRESERVE));
 	EXPECT_EQ(5U, token.id);
 	EXPECT_EQ("$$", token.content);
@@ -395,14 +395,13 @@ TEST(TokenizedData, textPreserveWhitespace)
 	EXPECT_EQ(4U, token.getLocation().getEnd());
 	EXPECT_EQ(InvalidSourceId, token.getLocation().getSourceId());
 
-	ASSERT_TRUE(data.text(token, WhitespaceMode::PRESERVE));
-	EXPECT_EQ(Tokens::Data, token.id);
-	EXPECT_EQ("  ", token.content);
-	EXPECT_EQ(4U, token.getLocation().getStart());
-	EXPECT_EQ(6U, token.getLocation().getEnd());
-	EXPECT_EQ(InvalidSourceId, token.getLocation().getSourceId());
+	text = data.text(WhitespaceMode::PRESERVE);
+	EXPECT_EQ("  ", text.asString());
+	EXPECT_EQ(4U, text.getLocation().getStart());
+	EXPECT_EQ(6U, text.getLocation().getEnd());
+	EXPECT_EQ(InvalidSourceId, text.getLocation().getSourceId());
 
-	ASSERT_FALSE(data.text(token, WhitespaceMode::PRESERVE));
+	ASSERT_EQ(nullptr, data.text(WhitespaceMode::PRESERVE));
 	ASSERT_FALSE(data.next(token, WhitespaceMode::PRESERVE));
 }
 
@@ -416,7 +415,7 @@ TEST(TokenizedData, textTrimWhitespace)
 	data.enableToken(5);
 
 	Token token;
-	ASSERT_FALSE(data.text(token, WhitespaceMode::TRIM));
+	ASSERT_EQ(nullptr, data.text(WhitespaceMode::TRIM));
 
 	ASSERT_TRUE(data.next(token, WhitespaceMode::TRIM));
 	EXPECT_EQ(5U, token.id);
@@ -425,7 +424,7 @@ TEST(TokenizedData, textTrimWhitespace)
 	EXPECT_EQ(4U, token.getLocation().getEnd());
 	EXPECT_EQ(InvalidSourceId, token.getLocation().getSourceId());
 
-	ASSERT_FALSE(data.text(token, WhitespaceMode::TRIM));
+	ASSERT_EQ(nullptr, data.text(WhitespaceMode::TRIM));
 	ASSERT_FALSE(data.next(token, WhitespaceMode::TRIM));
 }
 
@@ -439,7 +438,7 @@ TEST(TokenizedData, textCollapseWhitespace)
 	data.enableToken(5);
 
 	Token token;
-	ASSERT_FALSE(data.text(token, WhitespaceMode::COLLAPSE));
+	ASSERT_EQ(nullptr, data.text(WhitespaceMode::COLLAPSE));
 
 	ASSERT_TRUE(data.next(token, WhitespaceMode::COLLAPSE));
 	EXPECT_EQ(5U, token.id);
@@ -448,7 +447,7 @@ TEST(TokenizedData, textCollapseWhitespace)
 	EXPECT_EQ(4U, token.getLocation().getEnd());
 	EXPECT_EQ(InvalidSourceId, token.getLocation().getSourceId());
 
-	ASSERT_FALSE(data.text(token, WhitespaceMode::COLLAPSE));
+	ASSERT_EQ(nullptr, data.text(WhitespaceMode::COLLAPSE));
 	ASSERT_FALSE(data.next(token, WhitespaceMode::COLLAPSE));
 }
 
@@ -460,15 +459,15 @@ TEST(TokenizedData, appendChars)
 	ASSERT_EQ(3U, data.append('s', 8, 10));
 	ASSERT_EQ(4U, data.append('t', 10, 12));
 
-	Token token;
-	ASSERT_TRUE(data.text(token, WhitespaceMode::COLLAPSE));
-	EXPECT_EQ(Tokens::Data, token.id);
-	EXPECT_EQ("test", token.content);
-	EXPECT_EQ(5U, token.getLocation().getStart());
-	EXPECT_EQ(12U, token.getLocation().getEnd());
-	EXPECT_EQ(InvalidSourceId, token.getLocation().getSourceId());
+	Variant text = data.text(WhitespaceMode::COLLAPSE);
+	ASSERT_EQ("test", text.asString());
+	EXPECT_EQ(5U, text.getLocation().getStart());
+	EXPECT_EQ(12U, text.getLocation().getEnd());
+	EXPECT_EQ(InvalidSourceId, text.getLocation().getSourceId());
 
-	ASSERT_FALSE(data.text(token, WhitespaceMode::COLLAPSE));
+	ASSERT_EQ(nullptr, data.text(WhitespaceMode::PRESERVE));
+
+	Token token;
 	ASSERT_FALSE(data.next(token, WhitespaceMode::COLLAPSE));
 }
 
@@ -480,15 +479,16 @@ TEST(TokenizedData, copy)
 	data.mark(6, 3, 1);
 	data.enableToken(6);
 
+	Variant text;
 	Token token;
-	ASSERT_TRUE(data.text(token, WhitespaceMode::COLLAPSE));
-	EXPECT_EQ(Tokens::Data, token.id);
-	EXPECT_EQ("a", token.content);
-	EXPECT_EQ(1U, token.getLocation().getStart());
-	EXPECT_EQ(2U, token.getLocation().getEnd());
-	EXPECT_EQ(InvalidSourceId, token.getLocation().getSourceId());
 
-	ASSERT_FALSE(data.text(token, WhitespaceMode::COLLAPSE));
+	text = data.text(WhitespaceMode::COLLAPSE);
+	ASSERT_EQ("a", text.asString());
+	EXPECT_EQ(1U, text.getLocation().getStart());
+	EXPECT_EQ(2U, text.getLocation().getEnd());
+	EXPECT_EQ(InvalidSourceId, text.getLocation().getSourceId());
+
+	ASSERT_EQ(nullptr, data.text(WhitespaceMode::COLLAPSE));
 
 	TokenizedData dataCopy = data;
 
@@ -506,21 +506,19 @@ TEST(TokenizedData, copy)
 	EXPECT_EQ(4U, token.getLocation().getEnd());
 	EXPECT_EQ(InvalidSourceId, token.getLocation().getSourceId());
 
-	ASSERT_TRUE(data.text(token, WhitespaceMode::PRESERVE));
-	EXPECT_EQ(Tokens::Data, token.id);
-	EXPECT_EQ(" b ", token.content);
-	EXPECT_EQ(4U, token.getLocation().getStart());
-	EXPECT_EQ(7U, token.getLocation().getEnd());
-	EXPECT_EQ(InvalidSourceId, token.getLocation().getSourceId());
+	text = data.text(WhitespaceMode::PRESERVE);
+	ASSERT_EQ(" b ", text.asString());
+	EXPECT_EQ(4U, text.getLocation().getStart());
+	EXPECT_EQ(7U, text.getLocation().getEnd());
+	EXPECT_EQ(InvalidSourceId, text.getLocation().getSourceId());
 	ASSERT_FALSE(data.next(token));
 
-	ASSERT_TRUE(dataCopy.text(token, WhitespaceMode::COLLAPSE));
-	EXPECT_EQ(Tokens::Data, token.id);
-	EXPECT_EQ("b", token.content);
-	EXPECT_EQ(5U, token.getLocation().getStart());
-	EXPECT_EQ(6U, token.getLocation().getEnd());
-	EXPECT_EQ(InvalidSourceId, token.getLocation().getSourceId());
-	ASSERT_FALSE(dataCopy.next(token));
+	text = dataCopy.text(WhitespaceMode::COLLAPSE);
+	ASSERT_EQ("b", text.asString());
+	EXPECT_EQ(5U, text.getLocation().getStart());
+	EXPECT_EQ(6U, text.getLocation().getEnd());
+	EXPECT_EQ(InvalidSourceId, text.getLocation().getSourceId());
+	ASSERT_FALSE(data.next(token));
 }
 }
 

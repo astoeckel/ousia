@@ -22,12 +22,12 @@ namespace ousia {
 
 /* Class DynamicTokenTree::Node */
 
-TokenTrie::Node::Node() : type(Tokens::Empty) {}
+TokenTrie::Node::Node() : id(Tokens::Empty) {}
 
 /* Class DynamicTokenTree */
 
 bool TokenTrie::registerToken(const std::string &token,
-                              TokenId type) noexcept
+                              TokenId id) noexcept
 {
 	// Abort if the token is empty -- this would taint the root node
 	if (token.empty()) {
@@ -48,12 +48,12 @@ bool TokenTrie::registerToken(const std::string &token,
 	}
 
 	// If the resulting node already has a type set, we're screwed.
-	if (node->type != Tokens::Empty) {
+	if (node->id != Tokens::Empty) {
 		return false;
 	}
 
 	// Otherwise just set the type to the given type.
-	node->type = type;
+	node->id = id;
 	return true;
 }
 
@@ -78,7 +78,7 @@ bool TokenTrie::unregisterToken(const std::string &token) noexcept
 
 		// Reset the subtree handler if this node has another type
 		node = it->second.get();
-		if ((node->type != Tokens::Empty || node->children.size() > 1) &&
+		if ((node->id != Tokens::Empty || node->children.size() > 1) &&
 		    (i + 1 != token.size())) {
 			subtreeRoot = node;
 			subtreeKey = token[i + 1];
@@ -86,14 +86,14 @@ bool TokenTrie::unregisterToken(const std::string &token) noexcept
 	}
 
 	// If the node type is already Tokens::Empty, we cannot do anything here
-	if (node->type == Tokens::Empty) {
+	if (node->id == Tokens::Empty) {
 		return false;
 	}
 
 	// If the target node has children, we cannot delete the subtree. Set the
 	// type to Tokens::Empty instead
 	if (!node->children.empty()) {
-		node->type = Tokens::Empty;
+		node->id = Tokens::Empty;
 		return true;
 	}
 
@@ -113,7 +113,7 @@ TokenId TokenTrie::hasToken(const std::string &token) const noexcept
 		}
 		node = it->second.get();
 	}
-	return node->type;
+	return node->id;
 }
 }
 

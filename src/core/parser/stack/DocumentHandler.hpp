@@ -167,7 +167,7 @@ public:
 
 	bool start(Variant::mapType &args) override;
 	void end() override;
-	bool data(Variant &data) override;
+	bool data(TokenizedData &data) override;
 
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
 

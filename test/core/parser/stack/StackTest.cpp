@@ -24,6 +24,7 @@
 #include <core/parser/stack/Handler.hpp>
 #include <core/parser/stack/Stack.hpp>
 #include <core/parser/stack/State.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 
 #include <core/StandaloneEnvironment.hpp>
 
@@ -53,7 +54,7 @@ struct Tracker {
 	Variant::mapType annotationStartArgs;
 	Variant annotationEndClassName;
 	Variant annotationEndElementName;
-	Variant dataData;
+	TokenizedData dataData;
 
 	bool startResult;
 	bool fieldStartSetIsDefault;
@@ -81,7 +82,7 @@ struct Tracker {
 		annotationStartArgs = Variant::mapType{};
 		annotationEndClassName = Variant::fromString(std::string{});
 		annotationEndElementName = Variant::fromString(std::string{});
-		dataData = Variant::fromString(std::string{});
+		dataData = TokenizedData();
 
 		startResult = true;
 		fieldStartSetIsDefault = false;
@@ -157,7 +158,7 @@ public:
 		return tracker.annotationEndResult;
 	}
 
-	bool data(Variant &data) override
+	bool data(TokenizedData &data) override
 	{
 		tracker.dataCount++;
 		tracker.dataData = data;
@@ -363,7 +364,7 @@ TEST(Stack, multipleFields)
 
 		s.data("test");
 		tracker.expect(1, 0, 1, 0, 0, 0, 1);  // sc, ec, fsc, fse, asc, aec, dc
-		EXPECT_EQ("test", tracker.dataData);
+		EXPECT_EQ("test", tracker.dataData.text().asString());
 
 		s.fieldEnd();
 		tracker.expect(1, 0, 1, 1, 0, 0, 1);  // sc, ec, fsc, fse, asc, aec, dc
@@ -375,7 +376,7 @@ TEST(Stack, multipleFields)
 
 		s.data("test2");
 		tracker.expect(1, 0, 2, 1, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
-		EXPECT_EQ("test2", tracker.dataData);
+		EXPECT_EQ("test2", tracker.dataData.text().asString());
 
 		s.fieldEnd();
 		tracker.expect(1, 0, 2, 2, 0, 0, 2);  // sc, ec, fsc, fse, asc, aec, dc
@@ -387,7 +388,7 @@ TEST(Stack, multipleFields)
 
 		s.data("test3");
 		tracker.expect(1, 0, 3, 2, 0, 0, 3);  // sc, ec, fsc, fse, asc, aec, dc
-		EXPECT_EQ("test3", tracker.dataData);
+		EXPECT_EQ("test3", tracker.dataData.text().asString());
 
 		s.fieldEnd();
 		tracker.expect(1, 0, 3, 3, 0, 0, 3);  // sc, ec, fsc, fse, asc, aec, dc

@@ -21,6 +21,7 @@
 #include <core/frontend/TerminalLogger.hpp>
 #include <core/common/CharReader.hpp>
 #include <core/common/Variant.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 
 #include <formats/osxml/OsxmlEventParser.hpp>
 
@@ -74,13 +75,11 @@ public:
 };
 
 static std::vector<std::pair<OsxmlEvent, Variant>> parseXml(
-    const char *testString,
-    WhitespaceMode whitespaceMode = WhitespaceMode::TRIM)
+    const char *testString)
 {
 	TestOsxmlEventListener listener;
 	CharReader reader(testString);
 	OsxmlEventParser parser(reader, listener, logger);
-	parser.setWhitespaceMode(whitespaceMode);
 	parser.parse();
 	return listener.events;
 }
@@ -157,7 +156,7 @@ TEST(OsxmlEventParser, magicTopLevelTagInside)
 	ASSERT_EQ(expectedEvents, events);
 }
 
-TEST(OsxmlEventParser, commandWithDataPreserveWhitespace)
+TEST(OsxmlEventParser, commandWithData)
 {
 	const char *testString = "<a>  hello  \n world </a>";
 	//                        012345678901 234567890123
@@ -168,50 +167,12 @@ TEST(OsxmlEventParser, commandWithDataPreserveWhitespace)
 	    {OsxmlEvent::DATA, Variant::arrayType{"  hello  \n world "}},
 	    {OsxmlEvent::FIELD_END, Variant::arrayType{}}};
 
-	auto events = parseXml(testString, WhitespaceMode::PRESERVE);
+	auto events = parseXml(testString);
 	ASSERT_EQ(expectedEvents, events);
 
 	// Check the location of the text
 	ASSERT_EQ(3U, events[1].second.asArray()[0].getLocation().getStart());
 	ASSERT_EQ(20U, events[1].second.asArray()[0].getLocation().getEnd());
-}
-
-TEST(OsxmlEventParser, commandWithDataTrimWhitespace)
-{
-	const char *testString = "<a>  hello  \n world </a>";
-	//                        012345678901 234567890123
-	//                        0         1          2
-
-	std::vector<std::pair<OsxmlEvent, Variant>> expectedEvents{
-	    {OsxmlEvent::COMMAND, Variant::arrayType{"a", Variant::mapType{}}},
-	    {OsxmlEvent::DATA, Variant::arrayType{"hello  \n world"}},
-	    {OsxmlEvent::FIELD_END, Variant::arrayType{}}};
-
-	auto events = parseXml(testString, WhitespaceMode::TRIM);
-	ASSERT_EQ(expectedEvents, events);
-
-	// Check the location of the text
-	ASSERT_EQ(5U, events[1].second.asArray()[0].getLocation().getStart());
-	ASSERT_EQ(19U, events[1].second.asArray()[0].getLocation().getEnd());
-}
-
-TEST(OsxmlEventParser, commandWithDataCollapseWhitespace)
-{
-	const char *testString = "<a>  hello  \n world </a>";
-	//                        012345678901 234567890123
-	//                        0         1          2
-
-	std::vector<std::pair<OsxmlEvent, Variant>> expectedEvents{
-	    {OsxmlEvent::COMMAND, Variant::arrayType{"a", Variant::mapType{}}},
-	    {OsxmlEvent::DATA, Variant::arrayType{"hello world"}},
-	    {OsxmlEvent::FIELD_END, Variant::arrayType{}}};
-
-	auto events = parseXml(testString, WhitespaceMode::COLLAPSE);
-	ASSERT_EQ(expectedEvents, events);
-
-	// Check the location of the text
-	ASSERT_EQ(5U, events[1].second.asArray()[0].getLocation().getStart());
-	ASSERT_EQ(19U, events[1].second.asArray()[0].getLocation().getEnd());
 }
 }
 

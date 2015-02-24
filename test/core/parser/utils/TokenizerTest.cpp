@@ -20,6 +20,7 @@
 
 #include <core/common/CharReader.hpp>
 #include <core/parser/utils/Tokenizer.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 
 namespace ousia {
 
@@ -31,23 +32,40 @@ TEST(Tokenizer, tokenRegistration)
 
 	ASSERT_EQ(0U, tokenizer.registerToken("a"));
 	ASSERT_EQ(Tokens::Empty, tokenizer.registerToken("a"));
-	ASSERT_EQ("a", tokenizer.getTokenString(0U));
+	ASSERT_EQ("a", tokenizer.lookupToken(0U).string);
 
 	ASSERT_EQ(1U, tokenizer.registerToken("b"));
 	ASSERT_EQ(Tokens::Empty, tokenizer.registerToken("b"));
-	ASSERT_EQ("b", tokenizer.getTokenString(1U));
+	ASSERT_EQ("b", tokenizer.lookupToken(1U).string);
 
 	ASSERT_EQ(2U, tokenizer.registerToken("c"));
 	ASSERT_EQ(Tokens::Empty, tokenizer.registerToken("c"));
-	ASSERT_EQ("c", tokenizer.getTokenString(2U));
+	ASSERT_EQ("c", tokenizer.lookupToken(2U).string);
 
 	ASSERT_TRUE(tokenizer.unregisterToken(1U));
 	ASSERT_FALSE(tokenizer.unregisterToken(1U));
-	ASSERT_EQ("", tokenizer.getTokenString(1U));
+	ASSERT_EQ("", tokenizer.lookupToken(1U).string);
 
 	ASSERT_EQ(1U, tokenizer.registerToken("d"));
 	ASSERT_EQ(Tokens::Empty, tokenizer.registerToken("d"));
-	ASSERT_EQ("d", tokenizer.getTokenString(1U));
+	ASSERT_EQ("d", tokenizer.lookupToken(1U).string);
+}
+
+void expectData(const std::string &expected, SourceOffset tokenStart,
+                SourceOffset tokenEnd, SourceOffset textStart,
+                SourceOffset textEnd, const Token &token, TokenizedData &data,
+                WhitespaceMode mode = WhitespaceMode::PRESERVE)
+{
+	ASSERT_EQ(Tokens::Data, token.id);
+
+	Variant text = data.text(mode);
+	ASSERT_TRUE(text.isString());
+
+	EXPECT_EQ(expected, text.asString());
+	EXPECT_EQ(tokenStart, token.location.getStart());
+	EXPECT_EQ(tokenEnd, token.location.getEnd());
+	EXPECT_EQ(textStart, text.getLocation().getStart());
+	EXPECT_EQ(textEnd, text.getLocation().getEnd());
 }
 
 TEST(Tokenizer, textTokenPreserveWhitespace)
@@ -56,36 +74,34 @@ TEST(Tokenizer, textTokenPreserveWhitespace)
 		CharReader reader{" this \t is only a  \n\n test   text   "};
 		//                 012345 6789012345678 9 0123456789012345
 		//                 0          1           2         3
-		Tokenizer tokenizer{WhitespaceMode::PRESERVE};
+		Tokenizer tokenizer;
 
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ(" this \t is only a  \n\n test   text   ", token.content);
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
-		SourceLocation loc = token.location;
-		ASSERT_EQ(0U, loc.getStart());
-		ASSERT_EQ(36U, loc.getEnd());
+		expectData(" this \t is only a  \n\n test   text   ", 0, 36, 0, 36,
+		           token, data, WhitespaceMode::PRESERVE);
 
-		ASSERT_FALSE(tokenizer.read(reader, token));
+		data.clear();
+		ASSERT_FALSE(tokenizer.read(reader, token, data));
 	}
 
 	{
 		CharReader reader{"this \t is only a  \n\n test   text"};
 		//                 01234 5678901234567 8 9012345678901
 		//                 0          1           2         3
-		Tokenizer tokenizer{WhitespaceMode::PRESERVE};
+		Tokenizer tokenizer;
 
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ("this \t is only a  \n\n test   text", token.content);
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
-		SourceLocation loc = token.location;
-		ASSERT_EQ(0U, loc.getStart());
-		ASSERT_EQ(32U, loc.getEnd());
+		expectData("this \t is only a  \n\n test   text", 0, 32, 0, 32,
+		           token, data, WhitespaceMode::PRESERVE);
 
-		ASSERT_FALSE(tokenizer.read(reader, token));
+		data.clear();
+		ASSERT_FALSE(tokenizer.read(reader, token, data));
 	}
 }
 
@@ -95,36 +111,34 @@ TEST(Tokenizer, textTokenTrimWhitespace)
 		CharReader reader{" this \t is only a  \n\n test   text   "};
 		//                 012345 6789012345678 9 0123456789012345
 		//                 0          1           2         3
-		Tokenizer tokenizer{WhitespaceMode::TRIM};
+		Tokenizer tokenizer;
 
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ("this \t is only a  \n\n test   text", token.content);
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
-		SourceLocation loc = token.location;
-		ASSERT_EQ(1U, loc.getStart());
-		ASSERT_EQ(33U, loc.getEnd());
+		expectData("this \t is only a  \n\n test   text", 0, 36, 1, 33, token,
+		           data, WhitespaceMode::TRIM);
 
-		ASSERT_FALSE(tokenizer.read(reader, token));
+		data.clear();
+		ASSERT_FALSE(tokenizer.read(reader, token, data));
 	}
 
 	{
 		CharReader reader{"this \t is only a  \n\n test   text"};
 		//                 01234 5678901234567 8 9012345678901
 		//                 0          1           2         3
-		Tokenizer tokenizer{WhitespaceMode::TRIM};
+		Tokenizer tokenizer;
 
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ("this \t is only a  \n\n test   text", token.content);
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
-		SourceLocation loc = token.location;
-		ASSERT_EQ(0U, loc.getStart());
-		ASSERT_EQ(32U, loc.getEnd());
+		expectData("this \t is only a  \n\n test   text", 0, 32, 0, 32,
+		           token, data, WhitespaceMode::TRIM);
 
-		ASSERT_FALSE(tokenizer.read(reader, token));
+		data.clear();
+		ASSERT_FALSE(tokenizer.read(reader, token, data));
 	}
 }
 
@@ -134,36 +148,34 @@ TEST(Tokenizer, textTokenCollapseWhitespace)
 		CharReader reader{" this \t is only a  \n\n test   text   "};
 		//                 012345 6789012345678 9 0123456789012345
 		//                 0          1           2         3
-		Tokenizer tokenizer{WhitespaceMode::COLLAPSE};
+		Tokenizer tokenizer;
 
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ("this is only a test text", token.content);
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
-		SourceLocation loc = token.location;
-		ASSERT_EQ(1U, loc.getStart());
-		ASSERT_EQ(33U, loc.getEnd());
+		expectData("this is only a test text", 0, 36, 1, 33, token, data,
+		           WhitespaceMode::COLLAPSE);
 
-		ASSERT_FALSE(tokenizer.read(reader, token));
+		data.clear();
+		ASSERT_FALSE(tokenizer.read(reader, token, data));
 	}
 
 	{
 		CharReader reader{"this \t is only a  \n\n test   text"};
 		//                 01234 5678901234567 8 9012345678901
 		//                 0          1           2         3
-		Tokenizer tokenizer{WhitespaceMode::COLLAPSE};
+		Tokenizer tokenizer;
 
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
-		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ("this is only a test text", token.content);
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
-		SourceLocation loc = token.location;
-		ASSERT_EQ(0U, loc.getStart());
-		ASSERT_EQ(32U, loc.getEnd());
+		expectData("this is only a test text", 0, 32, 0, 32, token, data,
+		           WhitespaceMode::COLLAPSE);
 
-		ASSERT_FALSE(tokenizer.read(reader, token));
+		data.clear();
+		ASSERT_FALSE(tokenizer.read(reader, token, data));
 	}
 }
 
@@ -177,14 +189,12 @@ TEST(Tokenizer, simpleReadToken)
 
 	{
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
 		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ("test1", token.content);
 
-		SourceLocation loc = token.location;
-		ASSERT_EQ(0U, loc.getStart());
-		ASSERT_EQ(5U, loc.getEnd());
+		expectData("test1", 0, 5, 0, 5, token, data);
 
 		char c;
 		ASSERT_TRUE(reader.peek(c));
@@ -193,7 +203,8 @@ TEST(Tokenizer, simpleReadToken)
 
 	{
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
 		ASSERT_EQ(tid, token.id);
 		ASSERT_EQ(":", token.content);
@@ -209,14 +220,10 @@ TEST(Tokenizer, simpleReadToken)
 
 	{
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
-		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ("test2", token.content);
-
-		SourceLocation loc = token.location;
-		ASSERT_EQ(6U, loc.getStart());
-		ASSERT_EQ(11U, loc.getEnd());
+		expectData("test2", 6, 11, 6, 11, token, data);
 
 		char c;
 		ASSERT_FALSE(reader.peek(c));
@@ -233,21 +240,17 @@ TEST(Tokenizer, simplePeekToken)
 
 	{
 		Token token;
-		ASSERT_TRUE(tokenizer.peek(reader, token));
-
-		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ("test1", token.content);
-
-		SourceLocation loc = token.location;
-		ASSERT_EQ(0U, loc.getStart());
-		ASSERT_EQ(5U, loc.getEnd());
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.peek(reader, token, data));
+		expectData("test1", 0, 5, 0, 5, token, data);
 		ASSERT_EQ(0U, reader.getOffset());
 		ASSERT_EQ(5U, reader.getPeekOffset());
 	}
 
 	{
 		Token token;
-		ASSERT_TRUE(tokenizer.peek(reader, token));
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.peek(reader, token, data));
 
 		ASSERT_EQ(tid, token.id);
 		ASSERT_EQ(":", token.content);
@@ -261,35 +264,26 @@ TEST(Tokenizer, simplePeekToken)
 
 	{
 		Token token;
-		ASSERT_TRUE(tokenizer.peek(reader, token));
-
-		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ("test2", token.content);
-
-		SourceLocation loc = token.location;
-		ASSERT_EQ(6U, loc.getStart());
-		ASSERT_EQ(11U, loc.getEnd());
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.peek(reader, token, data));
+		expectData("test2", 6, 11, 6, 11, token, data);
 		ASSERT_EQ(0U, reader.getOffset());
 		ASSERT_EQ(11U, reader.getPeekOffset());
 	}
 
 	{
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
-
-		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ("test1", token.content);
-
-		SourceLocation loc = token.location;
-		ASSERT_EQ(0U, loc.getStart());
-		ASSERT_EQ(5U, loc.getEnd());
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
+		expectData("test1", 0, 5, 0, 5, token, data);
 		ASSERT_EQ(5U, reader.getOffset());
 		ASSERT_EQ(5U, reader.getPeekOffset());
 	}
 
 	{
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
 		ASSERT_EQ(tid, token.id);
 		ASSERT_EQ(":", token.content);
@@ -303,14 +297,9 @@ TEST(Tokenizer, simplePeekToken)
 
 	{
 		Token token;
-		ASSERT_TRUE(tokenizer.read(reader, token));
-
-		ASSERT_EQ(Tokens::Data, token.id);
-		ASSERT_EQ("test2", token.content);
-
-		SourceLocation loc = token.location;
-		ASSERT_EQ(6U, loc.getStart());
-		ASSERT_EQ(11U, loc.getEnd());
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
+		expectData("test2", 6, 11, 6, 11, token, data);
 		ASSERT_EQ(11U, reader.getOffset());
 		ASSERT_EQ(11U, reader.getPeekOffset());
 	}
@@ -320,6 +309,7 @@ TEST(Tokenizer, ambiguousTokens)
 {
 	CharReader reader{"abc"};
 	Tokenizer tokenizer;
+	TokenizedData data;
 
 	TokenId t1 = tokenizer.registerToken("abd");
 	TokenId t2 = tokenizer.registerToken("bc");
@@ -328,16 +318,17 @@ TEST(Tokenizer, ambiguousTokens)
 	ASSERT_EQ(1U, t2);
 
 	Token token;
-	ASSERT_TRUE(tokenizer.read(reader, token));
+	data.clear();
+	ASSERT_TRUE(tokenizer.read(reader, token, data));
 
-	ASSERT_EQ(Tokens::Data, token.id);
-	ASSERT_EQ("a", token.content);
+	expectData("a", 0, 1, 0, 1, token, data);
 
 	SourceLocation loc = token.location;
 	ASSERT_EQ(0U, loc.getStart());
 	ASSERT_EQ(1U, loc.getEnd());
 
-	ASSERT_TRUE(tokenizer.read(reader, token));
+	data.clear();
+	ASSERT_TRUE(tokenizer.read(reader, token, data));
 
 	ASSERT_EQ(t2, token.id);
 	ASSERT_EQ("bc", token.content);
@@ -346,7 +337,8 @@ TEST(Tokenizer, ambiguousTokens)
 	ASSERT_EQ(1U, loc.getStart());
 	ASSERT_EQ(3U, loc.getEnd());
 
-	ASSERT_FALSE(tokenizer.read(reader, token));
+	data.clear();
+	ASSERT_FALSE(tokenizer.read(reader, token, data));
 }
 
 TEST(Tokenizer, commentTestWhitespacePreserve)
@@ -354,7 +346,7 @@ TEST(Tokenizer, commentTestWhitespacePreserve)
 	CharReader reader{"Test/Test /* Block Comment */", 0};
 	//                 012345678901234567890123456789
 	//                 0        1         2
-	Tokenizer tokenizer(WhitespaceMode::PRESERVE);
+	Tokenizer tokenizer;
 
 	const TokenId t1 = tokenizer.registerToken("/");
 	const TokenId t2 = tokenizer.registerToken("/*");
@@ -370,45 +362,23 @@ TEST(Tokenizer, commentTestWhitespacePreserve)
 
 	Token t;
 	for (auto &te : expected) {
-		EXPECT_TRUE(tokenizer.read(reader, t));
+		TokenizedData data(0);
+		EXPECT_TRUE(tokenizer.read(reader, t, data));
 		EXPECT_EQ(te.id, t.id);
-		EXPECT_EQ(te.content, t.content);
+		if (te.id != Tokens::Data) {
+			EXPECT_EQ(te.content, t.content);
+		} else {
+			Variant text = data.text(WhitespaceMode::PRESERVE);
+			ASSERT_TRUE(text.isString());
+			EXPECT_EQ(te.content, text.asString());
+		}
 		EXPECT_EQ(te.location.getSourceId(), t.location.getSourceId());
 		EXPECT_EQ(te.location.getStart(), t.location.getStart());
 		EXPECT_EQ(te.location.getEnd(), t.location.getEnd());
 	}
-	ASSERT_FALSE(tokenizer.read(reader, t));
-}
 
-TEST(Tokenizer, commentTestWhitespaceCollapse)
-{
-	CharReader reader{"Test/Test /* Block Comment */", 0};
-	//                 012345678901234567890123456789
-	//                 0        1         2
-	Tokenizer tokenizer(WhitespaceMode::COLLAPSE);
-
-	const TokenId t1 = tokenizer.registerToken("/");
-	const TokenId t2 = tokenizer.registerToken("/*");
-	const TokenId t3 = tokenizer.registerToken("*/");
-
-	std::vector<Token> expected = {
-	    {Tokens::Data, "Test", SourceLocation{0, 0, 4}},
-	    {t1, "/", SourceLocation{0, 4, 5}},
-	    {Tokens::Data, "Test", SourceLocation{0, 5, 9}},
-	    {t2, "/*", SourceLocation{0, 10, 12}},
-	    {Tokens::Data, "Block Comment", SourceLocation{0, 13, 26}},
-	    {t3, "*/", SourceLocation{0, 27, 29}}};
-
-	Token t;
-	for (auto &te : expected) {
-		EXPECT_TRUE(tokenizer.read(reader, t));
-		EXPECT_EQ(te.id, t.id);
-		EXPECT_EQ(te.content, t.content);
-		EXPECT_EQ(te.location.getSourceId(), t.location.getSourceId());
-		EXPECT_EQ(te.location.getStart(), t.location.getStart());
-		EXPECT_EQ(te.location.getEnd(), t.location.getEnd());
-	}
-	ASSERT_FALSE(tokenizer.read(reader, t));
+	TokenizedData data;
+	ASSERT_FALSE(tokenizer.read(reader, t, data));
 }
 }
 

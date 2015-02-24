@@ -18,6 +18,7 @@
 
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 #include <core/parser/ParserContext.hpp>
 
 #include "Callbacks.hpp"
@@ -130,7 +131,7 @@ bool EmptyHandler::annotationEnd(const Variant &className,
 	return true;
 }
 
-bool EmptyHandler::data(Variant &data)
+bool EmptyHandler::data(TokenizedData &data)
 {
 	// Support any data
 	return true;
@@ -184,10 +185,13 @@ bool StaticHandler::annotationEnd(const Variant &className,
 	return false;
 }
 
-bool StaticHandler::data(Variant &data)
+bool StaticHandler::data(TokenizedData &data)
 {
-	logger().error("Did not expect any data here", data);
-	return false;
+	if (data.text(WhitespaceMode::TRIM) != nullptr) {
+		logger().error("Did not expect any data here", data);
+		return false;
+	}
+	return true;
 }
 
 /* Class StaticFieldHandler */
@@ -227,12 +231,19 @@ void StaticFieldHandler::end()
 	}
 }
 
-bool StaticFieldHandler::data(Variant &data)
+bool StaticFieldHandler::data(TokenizedData &data)
 {
+	Variant text = data.text(WhitespaceMode::TRIM);
+	if (text == nullptr) {
+		// Providing no data here is ok as long as the "doHandle" callback
+		// function has already been called
+		return handled;
+	}
+
 	// Call the doHandle function if this has not been done before
 	if (!handled) {
 		handled = true;
-		doHandle(data, args);
+		doHandle(text, args);
 		return true;
 	}
 
@@ -240,7 +251,7 @@ bool StaticFieldHandler::data(Variant &data)
 	logger().error(
 	    std::string("Found data, but the corresponding argument \"") + argName +
 	        std::string("\" was already specified"),
-	    data);
+	    text);
 
 	// Print the location at which the attribute was originally specified
 	auto it = args.find(argName);
