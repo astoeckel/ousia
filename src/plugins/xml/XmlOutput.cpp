@@ -60,8 +60,7 @@ void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
 			// add the import as namespace information to the document node as
 			// well.
 			document->getAttributes().emplace(
-			    std::string("xmlns:") + d->getName(),
-			    import->getAttributes()["src"]);
+			    std::string("xmlns:") + d->getName(), d->getName());
 		} else {
 			logger.warning(std::string(
 			    "The location of domain \"" + d->getName() +
