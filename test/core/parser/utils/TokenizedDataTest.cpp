@@ -20,44 +20,9 @@
 
 #include <core/parser/utils/TokenizedData.hpp>
 
+#include "TokenizedDataTestUtils.hpp"
+
 namespace ousia {
-
-void assertToken(TokenizedDataReader &reader, TokenId id,
-                 const std::string &text, const TokenSet &tokens = TokenSet{},
-                 WhitespaceMode mode = WhitespaceMode::TRIM,
-                 SourceOffset start = InvalidSourceOffset,
-                 SourceOffset end = InvalidSourceOffset,
-                 SourceId sourceId = InvalidSourceId)
-{
-	Token token;
-	ASSERT_TRUE(reader.read(token, tokens, mode));
-	EXPECT_EQ(id, token.id);
-	EXPECT_EQ(text, token.content);
-	if (start != InvalidSourceOffset) {
-		EXPECT_EQ(start, token.getLocation().getStart());
-	}
-	if (end != InvalidSourceOffset) {
-		EXPECT_EQ(end, token.getLocation().getEnd());
-	}
-	EXPECT_EQ(sourceId, token.getLocation().getSourceId());
-}
-
-void assertText(TokenizedDataReader &reader, const std::string &text,
-                const TokenSet &tokens = TokenSet{},
-                WhitespaceMode mode = WhitespaceMode::TRIM,
-                SourceOffset start = InvalidSourceOffset,
-                SourceOffset end = InvalidSourceOffset,
-                SourceId id = InvalidSourceId)
-{
-	assertToken(reader, Tokens::Data, text, tokens, mode, start, end, id);
-}
-
-void assertEnd(TokenizedDataReader &reader)
-{
-	Token token;
-	ASSERT_TRUE(reader.atEnd());
-	ASSERT_FALSE(reader.read(token));
-}
 
 TEST(TokenizedData, dataWhitespacePreserve)
 {
