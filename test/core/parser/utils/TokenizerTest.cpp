@@ -22,6 +22,8 @@
 #include <core/parser/utils/Tokenizer.hpp>
 #include <core/parser/utils/TokenizedData.hpp>
 
+#include "TokenizedDataTestUtils.hpp"
+
 namespace ousia {
 
 TEST(Tokenizer, tokenRegistration)
@@ -58,14 +60,16 @@ void expectData(const std::string &expected, SourceOffset tokenStart,
 {
 	ASSERT_EQ(Tokens::Data, token.id);
 
-	Variant text = data.text(mode);
-	ASSERT_TRUE(text.isString());
+	Token textToken;
+	TokenizedDataReader reader = data.reader();
+	ASSERT_TRUE(reader.read(textToken, TokenSet{}, mode));
 
-	EXPECT_EQ(expected, text.asString());
+	EXPECT_EQ(expected, textToken.content);
 	EXPECT_EQ(tokenStart, token.location.getStart());
 	EXPECT_EQ(tokenEnd, token.location.getEnd());
-	EXPECT_EQ(textStart, text.getLocation().getStart());
-	EXPECT_EQ(textEnd, text.getLocation().getEnd());
+	EXPECT_EQ(textStart, textToken.getLocation().getStart());
+	EXPECT_EQ(textEnd, textToken.getLocation().getEnd());
+	EXPECT_TRUE(reader.atEnd());
 }
 
 TEST(Tokenizer, textTokenPreserveWhitespace)
@@ -97,8 +101,8 @@ TEST(Tokenizer, textTokenPreserveWhitespace)
 		TokenizedData data;
 		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
-		expectData("this \t is only a  \n\n test   text", 0, 32, 0, 32,
-		           token, data, WhitespaceMode::PRESERVE);
+		expectData("this \t is only a  \n\n test   text", 0, 32, 0, 32, token,
+		           data, WhitespaceMode::PRESERVE);
 
 		data.clear();
 		ASSERT_FALSE(tokenizer.read(reader, token, data));
@@ -134,8 +138,8 @@ TEST(Tokenizer, textTokenTrimWhitespace)
 		TokenizedData data;
 		ASSERT_TRUE(tokenizer.read(reader, token, data));
 
-		expectData("this \t is only a  \n\n test   text", 0, 32, 0, 32,
-		           token, data, WhitespaceMode::TRIM);
+		expectData("this \t is only a  \n\n test   text", 0, 32, 0, 32, token,
+		           data, WhitespaceMode::TRIM);
 
 		data.clear();
 		ASSERT_FALSE(tokenizer.read(reader, token, data));
@@ -368,9 +372,12 @@ TEST(Tokenizer, commentTestWhitespacePreserve)
 		if (te.id != Tokens::Data) {
 			EXPECT_EQ(te.content, t.content);
 		} else {
-			Variant text = data.text(WhitespaceMode::PRESERVE);
-			ASSERT_TRUE(text.isString());
-			EXPECT_EQ(te.content, text.asString());
+			TokenizedDataReader dataReader = data.reader();
+			Token textToken;
+			ASSERT_TRUE(dataReader.read(textToken, TokenSet{},
+			                            WhitespaceMode::PRESERVE));
+			EXPECT_TRUE(dataReader.atEnd());
+			EXPECT_EQ(te.content, textToken.content);
 		}
 		EXPECT_EQ(te.location.getSourceId(), t.location.getSourceId());
 		EXPECT_EQ(te.location.getStart(), t.location.getStart());
@@ -379,6 +386,69 @@ TEST(Tokenizer, commentTestWhitespacePreserve)
 
 	TokenizedData data;
 	ASSERT_FALSE(tokenizer.read(reader, t, data));
+}
+
+TEST(Tokenizer, nonPrimaryTokens)
+{
+	CharReader reader{
+	    "<<switch to $inline \\math mode$ they said, see the world they "
+	    "said>>"};
+	//   012345678901234567890 12345678901234567890123456789012345678901234567
+	//   0         1         2          3         4         5         6
+
+	Tokenizer tokenizer;
+
+	TokenId tBackslash = tokenizer.registerToken("\\");
+	TokenId tDollar = tokenizer.registerToken("$", false);
+	TokenId tSpeechStart = tokenizer.registerToken("<<", false);
+	TokenId tSpeechEnd = tokenizer.registerToken(">>", false);
+
+	TokenSet tokens = TokenSet{tDollar, tSpeechStart, tSpeechEnd};
+
+	Token token, textToken;
+	{
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
+		ASSERT_EQ(Tokens::Data, token.id);
+
+		TokenizedDataReader dataReader = data.reader();
+		assertToken(dataReader, tSpeechStart, "<<", tokens,
+		            WhitespaceMode::TRIM, 0, 2);
+		assertText(dataReader, "switch to", tokens, WhitespaceMode::TRIM, 2,
+		           11);
+		assertToken(dataReader, tDollar, "$", tokens, WhitespaceMode::TRIM, 12,
+		            13);
+		assertText(dataReader, "inline", tokens, WhitespaceMode::TRIM, 13, 19);
+		assertEnd(dataReader);
+	}
+
+	{
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
+		ASSERT_EQ(tBackslash, token.id);
+		ASSERT_EQ(20U, token.location.getStart());
+		ASSERT_EQ(21U, token.location.getEnd());
+	}
+
+	{
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
+		ASSERT_EQ(Tokens::Data, token.id);
+
+		TokenizedDataReader dataReader = data.reader();
+		assertText(dataReader, "math mode", tokens, WhitespaceMode::TRIM, 21,
+		           30);
+		assertToken(dataReader, tDollar, "$", tokens, WhitespaceMode::TRIM, 30,
+		            31);
+		assertText(dataReader, "they said, see the world they said", tokens,
+		           WhitespaceMode::TRIM, 32, 66);
+		assertToken(dataReader, tSpeechEnd, ">>", tokens, WhitespaceMode::TRIM,
+		            66, 68);
+		assertEnd(dataReader);
+	}
+
+	TokenizedData data;
+	ASSERT_FALSE(tokenizer.read(reader, token, data));
 }
 }
 

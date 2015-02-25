@@ -327,7 +327,7 @@ IF(TEST)
 		test/core/parser/stack/StateTest
 		test/core/parser/utils/SourceOffsetVectorTest
 		test/core/parser/utils/TokenizedDataTest
-#		test/core/parser/utils/TokenizerTest
+		test/core/parser/utils/TokenizerTest
 		test/core/parser/utils/TokenTrieTest
 		test/core/resource/ResourceLocatorTest
 		test/core/resource/ResourceRequestTest
