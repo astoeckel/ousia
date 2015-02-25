@@ -26,6 +26,12 @@
 #include "TokenizedData.hpp"
 
 namespace ousia {
+/**
+ * Maximum token length.
+ */
+constexpr TokenLength MaxTokenLength =
+	std::numeric_limits<TokenLength>::max();
+
 namespace {
 /**
  * Structure used to represent the position of a token in the internal
@@ -51,12 +57,6 @@ struct TokenMark {
 	 * Specifies whether the token is special or not.
 	 */
 	bool special;
-
-	/**
-	 * Maximum token length.
-	 */
-	static constexpr TokenLength MaxTokenLength =
-	    std::numeric_limits<TokenLength>::max();
 
 	/**
 	 * Constructor of the TokenMark structure, initializes all members with the
@@ -450,6 +450,7 @@ public:
 		protectedChars.clear();
 		offsets.clear();
 		marks.clear();
+		firstLinebreak = 0;
 		currentIndentation = 0;
 		lastIndentation = 0;
 		numLinebreaks = 1;  // Assume the stream starts with a linebreak
