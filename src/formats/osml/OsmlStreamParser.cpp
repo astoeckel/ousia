@@ -94,92 +94,11 @@ public:
 
 static const PlainFormatTokens OsmlTokens;
 
-/**
- * Class used internally to collect data issued via "DATA" event.
- */
-class DataHandler {
-private:
-	/**
-	 * Internal character buffer.
-	 */
-	std::vector<char> buf;
-
-	/**
-	 * Start location of the character data.
-	 */
-	SourceOffset start;
-
-	/**
-	 * End location of the character data.
-	 */
-	SourceOffset end;
-
-public:
-	/**
-	 * Default constructor, initializes start and end with zeros.
-	 */
-	DataHandler() : start(0), end(0) {}
-
-	/**
-	 * Returns true if the internal buffer is empty.
-	 *
-	 * @return true if no characters were added to the internal buffer, false
-	 * otherwise.
-	 */
-	bool isEmpty() { return buf.empty(); }
-
-	/**
-	 * Appends a single character to the internal buffer.
-	 *
-	 * @param c is the character that should be added to the internal buffer.
-	 * @param charStart is the start position of the character.
-	 * @param charEnd is the end position of the character.
-	 */
-	void append(char c, SourceOffset charStart, SourceOffset charEnd)
-	{
-		if (isEmpty()) {
-			start = charStart;
-		}
-		buf.push_back(c);
-		end = charEnd;
-	}
-
-	/**
-	 * Appends a string to the internal buffer.
-	 *
-	 * @param s is the string that should be added to the internal buffer.
-	 * @param stringStart is the start position of the string.
-	 * @param stringEnd is the end position of the string.
-	 */
-	void append(const std::string &s, SourceOffset stringStart,
-	            SourceOffset stringEnd)
-	{
-		if (isEmpty()) {
-			start = stringStart;
-		}
-		std::copy(s.c_str(), s.c_str() + s.size(), back_inserter(buf));
-		end = stringEnd;
-	}
-
-	/**
-	 * Converts the internal buffer to a variant with attached location
-	 * information.
-	 *
-	 * @param sourceId is the source id which is needed for building the
-	 * location information.
-	 * @return a Variant with the internal buffer content as string and
-	 * the correct start and end location.
-	 */
-	Variant toVariant(SourceId sourceId)
-	{
-		Variant res = Variant::fromString(std::string(buf.data(), buf.size()));
-		res.setLocation({sourceId, start, end});
-		return res;
-	}
-};
-
 OsmlStreamParser::OsmlStreamParser(CharReader &reader, Logger &logger)
-    : reader(reader), logger(logger), tokenizer(OsmlTokens)
+    : reader(reader),
+      logger(logger),
+      tokenizer(OsmlTokens),
+      data(reader.getSourceId())
 {
 	// Place an intial command representing the complete file on the stack
 	commands.push(Command{"", Variant::mapType{}, true, true, true, false});
@@ -188,7 +107,7 @@ OsmlStreamParser::OsmlStreamParser(CharReader &reader, Logger &logger)
 Variant OsmlStreamParser::parseIdentifier(size_t start, bool allowNSSep)
 {
 	bool first = true;
-	bool hasCharSiceNSSep = false;
+	bool hasCharSinceNSSep = false;
 	std::vector<char> identifier;
 	size_t end = reader.getPeekOffset();
 	char c, c2;
@@ -197,7 +116,7 @@ Variant OsmlStreamParser::parseIdentifier(size_t start, bool allowNSSep)
 		if ((first && Utils::isIdentifierStartCharacter(c)) ||
 		    (!first && Utils::isIdentifierCharacter(c))) {
 			identifier.push_back(c);
-		} else if (c == ':' && hasCharSiceNSSep && reader.fetchPeek(c2) &&
+		} else if (c == ':' && hasCharSinceNSSep && reader.fetchPeek(c2) &&
 		           Utils::isIdentifierStartCharacter(c2)) {
 			identifier.push_back(c);
 		} else {
@@ -214,8 +133,8 @@ Variant OsmlStreamParser::parseIdentifier(size_t start, bool allowNSSep)
 		// This is no longer the first character
 		first = false;
 
-		// Advance the hasCharSiceNSSep flag
-		hasCharSiceNSSep = allowNSSep && (c != ':');
+		// Advance the hasCharSinceNSSep flag
+		hasCharSinceNSSep = allowNSSep && (c != ':');
 
 		end = reader.getPeekOffset();
 		reader.consumePeek();
@@ -488,7 +407,10 @@ void OsmlStreamParser::parseBlockComment()
 {
 	Token token;
 	size_t depth = 1;
-	while (tokenizer.read(reader, token)) {
+	while (tokenizer.read(reader, token, data)) {
+		// Throw the comment data away
+		data.clear();
+
 		if (token.id == OsmlTokens.BlockCommentEnd) {
 			depth--;
 			if (depth == 0) {
@@ -514,10 +436,9 @@ void OsmlStreamParser::parseLineComment()
 	}
 }
 
-bool OsmlStreamParser::checkIssueData(DataHandler &handler)
+bool OsmlStreamParser::checkIssueData()
 {
-	if (!handler.isEmpty()) {
-		data = handler.toVariant(reader.getSourceId());
+	if (!data.empty()) {
 		location = data.getLocation();
 		reader.resetPeek();
 		return true;
@@ -575,12 +496,12 @@ bool OsmlStreamParser::closeField()
 
 OsmlStreamParser::State OsmlStreamParser::parse()
 {
-	// Handler for incomming data
-	DataHandler handler;
+	// Reset the data handler
+	data.clear();
 
 	// Read tokens until the outer loop should be left
 	Token token;
-	while (tokenizer.peek(reader, token)) {
+	while (tokenizer.peek(reader, token, data)) {
 		const TokenId type = token.id;
 
 		// Special handling for Backslash and Text
@@ -606,7 +527,7 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 			// Try to parse a command
 			if (Utils::isIdentifierStartCharacter(c)) {
 				// Make sure to issue any data before it is to late
-				if (checkIssueData(handler)) {
+				if (checkIssueData()) {
 					return State::DATA;
 				}
 
@@ -633,12 +554,11 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 			// If this was an annotation start token, add the parsed < to the
 			// output
 			if (type == OsmlTokens.AnnotationStart) {
-				handler.append('<', token.location.getStart(),
-				               token.location.getStart() + 1);
+				data.append('<', token.location.getStart(),
+				            token.location.getStart() + 1);
 			}
 
-			handler.append(c, token.location.getStart(),
-			               reader.getPeekOffset());
+			data.append(c, token.location.getStart(), reader.getPeekOffset());
 			reader.consumePeek();
 			continue;
 		} else if (type == Tokens::Data) {
@@ -647,18 +567,13 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 				location = token.location;
 				return State::FIELD_START;
 			}
-
-			// Append the text to the data handler
-			handler.append(token.content, token.location.getStart(),
-			               token.location.getEnd());
-
 			reader.consumePeek();
 			continue;
 		}
 
 		// A non-text token was reached, make sure all pending data commands
 		// have been issued
-		if (checkIssueData(handler)) {
+		if (checkIssueData()) {
 			return State::DATA;
 		}
 
@@ -676,34 +591,36 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 			Command &cmd = commands.top();
 			if (!cmd.inField) {
 				cmd.inField = true;
-				return State::FIELD_START;
 			}
-			logger.error(
+			return State::FIELD_START;
+/*			logger.error(
 			    "Got field start token \"{\", but no command for which to "
 			    "start the field. Write \"\\{\" to insert this sequence as "
 			    "text.",
-			    token);
+			    token);*/
 		} else if (token.id == OsmlTokens.FieldEnd) {
-			if (closeField()) {
+			closeField();
+			return State::FIELD_END;
+/*			if (closeField()) {
 				return State::FIELD_END;
 			}
 			logger.error(
 			    "Got field end token \"}\", but there is no field to end. "
 			    "Write \"\\}\" to insert this sequence as text.",
-			    token);
+			    token);*/
 		} else if (token.id == OsmlTokens.DefaultFieldStart) {
 			// Try to start a default field the first time the token is reached
 			Command &topCmd = commands.top();
 			if (!topCmd.inField) {
 				topCmd.inField = true;
 				topCmd.inDefaultField = true;
-				return State::FIELD_START;
 			}
-			logger.error(
+			return State::FIELD_START;
+/*			logger.error(
 			    "Got default field start token \"{!\", but no command for "
 			    "which to start the field. Write \"\\{!\" to insert this "
 			    "sequence as text",
-			    token);
+			    token);*/
 		} else if (token.id == OsmlTokens.AnnotationEnd) {
 			// We got a single annotation end token "\>" -- simply issue the
 			// ANNOTATION_END event
@@ -717,7 +634,7 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 	}
 
 	// Issue available data
-	if (checkIssueData(handler)) {
+	if (checkIssueData()) {
 		return State::DATA;
 	}
 
@@ -735,6 +652,14 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 
 	location = SourceLocation{reader.getSourceId(), reader.getOffset()};
 	return State::END;
+}
+
+Variant OsmlStreamParser::getText(WhitespaceMode mode)
+{
+	TokenizedData dataFork = data;
+	Variant text = dataFork.text(mode);
+	location = text.getLocation();
+	return text;
 }
 
 const Variant &OsmlStreamParser::getCommandName() const

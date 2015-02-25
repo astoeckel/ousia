@@ -29,17 +29,19 @@
 #ifndef _OUSIA_OSML_STREAM_PARSER_HPP_
 #define _OUSIA_OSML_STREAM_PARSER_HPP_
 
-#include <stack>
+#include <memory>
 
 #include <core/common/Variant.hpp>
+#include <core/common/Whitespace.hpp>
 #include <core/parser/utils/Tokenizer.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 
 namespace ousia {
 
 // Forward declarations
 class CharReader;
 class Logger;
-class DataHandler;
+class OsmlStreamParserImpl;
 
 /**
  * The OsmlStreamParser class provides a low-level reader for the TeX-esque osml
@@ -137,26 +139,15 @@ public:
 		Variant arguments;
 
 		/**
+		 * Vector used as stack for holding the number of opening/closing braces
+		 * and the corresponding "isDefaultField" flag.
+		 */
+		std::vector<bool> fields;
+
+		/**
 		 * Set to true if this is a command with clear begin and end.
 		 */
-		bool hasRange : 1;
-
-		/**
-		 * Set to true if we are currently inside a field of this command.
-		 */
-		bool inField : 1;
-
-		/**
-		 * Set to true if we are currently in the range field of the command
-		 * (implies inField being set to true).
-		 */
-		bool inRangeField : 1;
-
-		/**
-		 * Set to true if we are currently in a field that has been especially
-		 * marked as default field (using the "|") syntax.
-		 */
-		bool inDefaultField : 1;
+		bool hasRange;
 
 		/**
 		 * Default constructor.
@@ -164,7 +155,6 @@ public:
 		Command()
 		    : hasRange(false),
 		      inField(false),
-		      inRangeField(false),
 		      inDefaultField()
 		{
 		}
@@ -178,15 +168,10 @@ public:
 		 * command.
 		 * @param hasRange should be set to true if this is a command with
 		 * explicit range.
-		 * @param inField is set to true if we currently are inside a field
-		 * of this command.
-		 * @param inRangeField is set to true if we currently are inside the
-		 * outer field of a ranged command.
 		 * @param inDefaultField is set to true if we currently are in a
 		 * specially marked default field.
 		 */
-		Command(Variant name, Variant arguments, bool hasRange,
-		        bool inField, bool inRangeField, bool inDefaultField)
+		Command(Variant name, Variant arguments, bool hasRange)
 		    : name(std::move(name)),
 		      arguments(std::move(arguments)),
 		      hasRange(hasRange),
@@ -215,25 +200,20 @@ private:
 	Tokenizer tokenizer;
 
 	/**
+	 * Variant containing the tokenized data that was returned from the
+	 * tokenizer as data.
+	 */
+	TokenizedData data;
+
+	/**
 	 * Stack containing the current commands.
 	 */
 	std::stack<Command> commands;
 
 	/**
-	 * Variant containing the data that has been read (always is a string,
-	 * contains the exact location of the data in the source file).
+	 * Pointer at 
 	 */
-	Variant data;
-
-	/**
-	 * Contains the location of the last token.
-	 */
-	SourceLocation location;
-
-	/**
-	 * Contains the field index of the current command.
-	 */
-	size_t fieldIdx;
+	std::unique_ptr<OsmlStreamParserImpl> impl;
 
 	/**
 	 * Function used internall to parse an identifier.
@@ -291,12 +271,10 @@ private:
 	/**
 	 * Checks whether there is any data pending to be issued, if yes, issues it.
 	 *
-	 * @param handler is the data handler that contains the data that may be
-	 * returned to the user.
 	 * @return true if there was any data and DATA should be returned by the
 	 * parse function, false otherwise.
 	 */
-	bool checkIssueData(DataHandler &handler);
+	bool checkIssueData();
 
 	/**
 	 * Called before any data is appended to the internal data handler. Checks
@@ -328,6 +306,12 @@ public:
 	OsmlStreamParser(CharReader &reader, Logger &logger);
 
 	/**
+	 * Destructor of the OsmlStreamParser, needed to destroy the incomplete
+	 * OsmlStreamParserImpl.
+	 */
+	~OsmlStreamParser();
+
+	/**
 	 * Continues parsing. Returns one of the states defined in the State enum.
 	 * Callers should stop once the State::END state is reached. Use the getter
 	 * functions to get more information about the current state, such as the
@@ -344,7 +328,19 @@ public:
 	 * @return a reference at a variant containing the data parsed by the
 	 * "parse" function.
 	 */
-	const Variant &getData() const { return data; }
+	const TokenizedData &getData() const { return data; }
+
+	/**
+	 * Returns the complete content of the internal TokenizedData instance as
+	 * a single string Variant. This method is mainly used in the unit tests for
+	 * this class, it simply calls the text() method of TokenizedData.
+	 *
+	 * @param mode is the WhitespaceMode that should be used for returning the
+	 * text.
+	 * @return a string variant containing the text content of the internal
+	 * TokenizedData instance or a nullptr variant if there is no text.
+	 */
+	Variant getText(WhitespaceMode mode = WhitespaceMode::COLLAPSE);
 
 	/**
 	 * Returns a reference at the internally stored command name. Only valid if
@@ -371,13 +367,6 @@ public:
 	 * syntax).
 	 */
 	bool inDefaultField() const;
-
-	/**
-	 * Returns a reference at the char reader.
-	 *
-	 * @return the last internal token location.
-	 */
-	const SourceLocation &getLocation() const { return location; }
 };
 }
 

@@ -158,6 +158,7 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Rtti
 	src/core/common/RttiBuilder
 	src/core/common/SourceContextReader
+	src/core/common/Token
 	src/core/common/Utils
 	src/core/common/Variant
 	src/core/common/VariantConverter
@@ -180,16 +181,15 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/ParserContext
 	src/core/parser/ParserScope
 	src/core/parser/stack/Callbacks
-	src/core/parser/stack/DocumentHandler
-	src/core/parser/stack/DomainHandler
-	src/core/parser/stack/GenericParserStates
-	src/core/parser/stack/Handler
-	src/core/parser/stack/ImportIncludeHandler
+#	src/core/parser/stack/DocumentHandler
+#	src/core/parser/stack/DomainHandler
+#	src/core/parser/stack/GenericParserStates
+#	src/core/parser/stack/Handler
+#	src/core/parser/stack/ImportIncludeHandler
 	src/core/parser/stack/State
-	src/core/parser/stack/Stack
-	src/core/parser/stack/TypesystemHandler
+#	src/core/parser/stack/Stack
+#	src/core/parser/stack/TypesystemHandler
 	src/core/parser/utils/SourceOffsetVector
-	src/core/parser/utils/Token
 	src/core/parser/utils/TokenizedData
 	src/core/parser/utils/Tokenizer
 	src/core/parser/utils/TokenTrie
@@ -212,19 +212,19 @@ ADD_LIBRARY(ousia_core
 #	ousia_core
 #)
 
-ADD_LIBRARY(ousia_osml
-	src/formats/osml/OsmlParser
-	src/formats/osml/OsmlStreamParser
-)
+#ADD_LIBRARY(ousia_osml
+#	src/formats/osml/OsmlParser
+#	src/formats/osml/OsmlStreamParser
+#)
 
-TARGET_LINK_LIBRARIES(ousia_osml
-	ousia_core
-)
+#TARGET_LINK_LIBRARIES(ousia_osml
+#	ousia_core
+#)
 
 ADD_LIBRARY(ousia_osxml
 	src/formats/osxml/OsxmlAttributeLocator
 	src/formats/osxml/OsxmlEventParser
-	src/formats/osxml/OsxmlParser
+#	src/formats/osxml/OsxmlParser
 )
 
 TARGET_LINK_LIBRARIES(ousia_osxml
@@ -273,19 +273,19 @@ TARGET_LINK_LIBRARIES(ousia_xml
 
 # Command line interface
 
-ADD_EXECUTABLE(ousia
-	src/cli/Main
-)
+#ADD_EXECUTABLE(ousia
+#	src/cli/Main
+#)
 
-TARGET_LINK_LIBRARIES(ousia
-	ousia_core
-	ousia_filesystem
-	ousia_html
-	ousia_xml
-	ousia_osml
-	ousia_osxml
-	${Boost_LIBRARIES}
-)
+#TARGET_LINK_LIBRARIES(ousia
+#	ousia_core
+#	ousia_filesystem
+#	ousia_html
+#	ousia_xml
+#	ousia_osml
+#	ousia_osxml
+#	${Boost_LIBRARIES}
+#)
 
 # If testing is enabled, build the unit tests
 IF(TEST)
@@ -323,11 +323,11 @@ IF(TEST)
 		test/core/model/StyleTest
 		test/core/model/TypesystemTest
 		test/core/parser/ParserScopeTest
-		test/core/parser/stack/StackTest
+#		test/core/parser/stack/StackTest
 		test/core/parser/stack/StateTest
 		test/core/parser/utils/SourceOffsetVectorTest
 		test/core/parser/utils/TokenizedDataTest
-		test/core/parser/utils/TokenizerTest
+#		test/core/parser/utils/TokenizerTest
 		test/core/parser/utils/TokenTrieTest
 		test/core/resource/ResourceLocatorTest
 		test/core/resource/ResourceRequestTest
@@ -383,29 +383,29 @@ IF(TEST)
 #		ousia_mozjs
 #	)
 
-	ADD_EXECUTABLE(ousia_test_osml
-		test/formats/osml/OsmlParserTest
-		test/formats/osml/OsmlStreamParserTest
-	)
+#	ADD_EXECUTABLE(ousia_test_osml
+#		test/formats/osml/OsmlParserTest
+#		test/formats/osml/OsmlStreamParserTest
+#	)
 
-	TARGET_LINK_LIBRARIES(ousia_test_osml
-		${GTEST_LIBRARIES}
-		ousia_core
-		ousia_osml
-		ousia_filesystem
-	)
+#	TARGET_LINK_LIBRARIES(ousia_test_osml
+#		${GTEST_LIBRARIES}
+#		ousia_core
+#		ousia_osml
+#		ousia_filesystem
+#	)
 
-	ADD_EXECUTABLE(ousia_test_osxml
-		test/formats/osxml/OsxmlEventParserTest
-		test/formats/osxml/OsxmlParserTest
-	)
+#	ADD_EXECUTABLE(ousia_test_osxml
+#		test/formats/osxml/OsxmlEventParserTest
+#		test/formats/osxml/OsxmlParserTest
+#	)
 
-	TARGET_LINK_LIBRARIES(ousia_test_osxml
-		${GTEST_LIBRARIES}
-		ousia_core
-		ousia_osxml
-		ousia_filesystem
-	)
+#	TARGET_LINK_LIBRARIES(ousia_test_osxml
+#		${GTEST_LIBRARIES}
+#		ousia_core
+#		ousia_osxml
+#		ousia_filesystem
+#	)
 
 	ADD_EXECUTABLE(ousia_test_xml
 		test/plugins/xml/XmlOutputTest
@@ -423,8 +423,8 @@ IF(TEST)
 	ADD_TEST(ousia_test_filesystem ousia_test_filesystem)
 	ADD_TEST(ousia_test_html ousia_test_html)
 #	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
-	ADD_TEST(ousia_test_osml ousia_test_osml)
-	ADD_TEST(ousia_test_osxml ousia_test_osxml)
+#	ADD_TEST(ousia_test_osml ousia_test_osml)
+#	ADD_TEST(ousia_test_osxml ousia_test_osxml)
 	ADD_TEST(ousia_test_xml ousia_test_xml)
 ENDIF()
 
@@ -442,9 +442,9 @@ INSTALL(DIRECTORY data/ DESTINATION share/ousia
 				OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
 )
 
-INSTALL(TARGETS ousia
-		RUNTIME DESTINATION bin
-)
+#INSTALL(TARGETS ousia
+#		RUNTIME DESTINATION bin
+#)
 
 IF(INSTALL_GEDIT_HIGHLIGHTER)
 	INSTALL(FILES contrib/gtksourceview-3.0/language-specs/ousia.lang

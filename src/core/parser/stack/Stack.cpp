@@ -19,6 +19,7 @@
 #include <core/common/Logger.hpp>
 #include <core/common/Utils.hpp>
 #include <core/common/Exceptions.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
 
@@ -413,16 +414,24 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 	}
 }
 
-void Stack::data(const Variant &data)
+void Stack::data(TokenizedData data)
 {
-	// End handlers that already had a default field and are currently not
-	// active.
-	endOverdueHandlers();
+	// TODO: Rewrite this function for token handling
+	// TODO: This loop needs to be refactored out
+	while (!data.atEnd()) {
+		// End handlers that already had a default field and are currently not
+		// active.
+		endOverdueHandlers();
 
-	while (true) {
-		// Check whether there is any command the data can be sent to
+		const bool hasNonWhitespaceText = data.hasNonWhitespaceText();
+
+		// Check whether there is any command the data can be sent to -- if not,
+		// make sure the data actually is data
 		if (stack.empty()) {
-			throw LoggableException("No command here to receive data.", data);
+			if (hasNonWhitespaceText) {
+				throw LoggableException("No command here to receive data.", data);
+			}
+			return;
 		}
 
 		// Fetch the current command handler information
@@ -440,7 +449,10 @@ void Stack::data(const Variant &data)
 			// If the "hadDefaultField" flag is set, we already issued an error
 			// message
 			if (!info.hadDefaultField) {
-				logger().error("Did not expect any data here", data);
+				if (hasNonWhitespaceText) {
+					logger().error("Did not expect any data here", data);
+				}
+				return;
 			}
 		}
 
@@ -454,8 +466,16 @@ void Stack::data(const Variant &data)
 			// Pass the data to the current Handler instance
 			bool valid = false;
 			try {
-				Variant dataCopy = data;
-				valid = info.handler->data(dataCopy);
+				// Create a fork of the TokenizedData and let the handler work
+				// on it
+				TokenizedData dataFork = data;
+				valid = info.handler->data(dataFork);
+
+				// If the data was validly handled by the handler, commit the
+				// change
+				if (valid) {
+					data = dataFork;
+				}
 			}
 			catch (LoggableException ex) {
 				loggerFork.log(ex);
@@ -480,6 +500,19 @@ void Stack::data(const Variant &data)
 		// There was no reason to unroll the stack any further, so continue
 		return;
 	}
+}
+
+void Stack::data(const Variant &stringData)
+{
+	// Fetch the SourceLocation of the given stringData variant
+	SourceLocation loc = stringData.getLocation();
+
+	// Create a TokenizedData instance and feed the given string data into it
+	TokenizedData tokenizedData(loc.getSourceId());
+	tokenizedData.append(stringData.asString(), loc.getStart());
+
+	// Call the actual "data" method
+	data(tokenizedData);
 }
 
 void Stack::fieldStart(bool isDefault)

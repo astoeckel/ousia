@@ -30,11 +30,21 @@ namespace ousia {
 static TerminalLogger logger(std::cerr, true);
 // static ConcreteLogger logger;
 
+static OsmlStreamParser::State skipEmptyData(OsmlStreamParser &reader)
+{
+	OsmlStreamParser::State res = reader.parse();
+	if (res == OsmlStreamParser::State::DATA) {
+		EXPECT_FALSE(reader.getData().hasNonWhitespaceText());
+		res = reader.parse();
+	}
+	return res;
+}
+
 static void assertCommand(OsmlStreamParser &reader, const std::string &name,
                           SourceOffset start = InvalidSourceOffset,
                           SourceOffset end = InvalidSourceOffset)
 {
-	ASSERT_EQ(OsmlStreamParser::State::COMMAND, reader.parse());
+	ASSERT_EQ(OsmlStreamParser::State::COMMAND, skipEmptyData(reader));
 	EXPECT_EQ(name, reader.getCommandName().asString());
 	if (start != InvalidSourceOffset) {
 		EXPECT_EQ(start, reader.getCommandName().getLocation().getStart());
@@ -57,16 +67,19 @@ static void assertCommand(OsmlStreamParser &reader, const std::string &name,
 
 static void assertData(OsmlStreamParser &reader, const std::string &data,
                        SourceOffset start = InvalidSourceOffset,
-                       SourceOffset end = InvalidSourceOffset)
+                       SourceOffset end = InvalidSourceOffset,
+                       WhitespaceMode mode = WhitespaceMode::COLLAPSE)
 {
 	ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-	EXPECT_EQ(data, reader.getData().asString());
+	Variant text = reader.getText(mode);
+	ASSERT_TRUE(text.isString());
+	EXPECT_EQ(data, text.asString());
 	if (start != InvalidSourceOffset) {
-		EXPECT_EQ(start, reader.getData().getLocation().getStart());
+		EXPECT_EQ(start, text.getLocation().getStart());
 		EXPECT_EQ(start, reader.getLocation().getStart());
 	}
 	if (end != InvalidSourceOffset) {
-		EXPECT_EQ(end, reader.getData().getLocation().getEnd());
+		EXPECT_EQ(end, text.getLocation().getEnd());
 		EXPECT_EQ(end, reader.getLocation().getEnd());
 	}
 }
@@ -75,7 +88,7 @@ static void assertFieldStart(OsmlStreamParser &reader, bool defaultField,
                              SourceOffset start = InvalidSourceOffset,
                              SourceOffset end = InvalidSourceOffset)
 {
-	ASSERT_EQ(OsmlStreamParser::State::FIELD_START, reader.parse());
+	ASSERT_EQ(OsmlStreamParser::State::FIELD_START, skipEmptyData(reader));
 	EXPECT_EQ(defaultField, reader.inDefaultField());
 	if (start != InvalidSourceOffset) {
 		EXPECT_EQ(start, reader.getLocation().getStart());
@@ -89,7 +102,7 @@ static void assertFieldEnd(OsmlStreamParser &reader,
                            SourceOffset start = InvalidSourceOffset,
                            SourceOffset end = InvalidSourceOffset)
 {
-	ASSERT_EQ(OsmlStreamParser::State::FIELD_END, reader.parse());
+	ASSERT_EQ(OsmlStreamParser::State::FIELD_END, skipEmptyData(reader));
 	if (start != InvalidSourceOffset) {
 		EXPECT_EQ(start, reader.getLocation().getStart());
 	}
@@ -103,7 +116,7 @@ static void assertAnnotationStart(OsmlStreamParser &reader,
                                   SourceOffset start = InvalidSourceOffset,
                                   SourceOffset end = InvalidSourceOffset)
 {
-	ASSERT_EQ(OsmlStreamParser::State::ANNOTATION_START, reader.parse());
+	ASSERT_EQ(OsmlStreamParser::State::ANNOTATION_START, skipEmptyData(reader));
 	EXPECT_EQ(name, reader.getCommandName().asString());
 	if (start != InvalidSourceOffset) {
 		EXPECT_EQ(start, reader.getCommandName().getLocation().getStart());
@@ -131,7 +144,7 @@ static void assertAnnotationEnd(OsmlStreamParser &reader,
                                 SourceOffset start = InvalidSourceOffset,
                                 SourceOffset end = InvalidSourceOffset)
 {
-	ASSERT_EQ(OsmlStreamParser::State::ANNOTATION_END, reader.parse());
+	ASSERT_EQ(OsmlStreamParser::State::ANNOTATION_END, skipEmptyData(reader));
 	ASSERT_EQ(name, reader.getCommandName().asString());
 	if (!elementName.empty()) {
 		ASSERT_EQ(1U, reader.getCommandArguments().asMap().size());
@@ -152,7 +165,7 @@ static void assertEnd(OsmlStreamParser &reader,
                       SourceOffset start = InvalidSourceOffset,
                       SourceOffset end = InvalidSourceOffset)
 {
-	ASSERT_EQ(OsmlStreamParser::State::END, reader.parse());
+	ASSERT_EQ(OsmlStreamParser::State::END, skipEmptyData(reader));
 	if (start != InvalidSourceOffset) {
 		EXPECT_EQ(start, reader.getLocation().getStart());
 	}
@@ -205,26 +218,14 @@ TEST(OsmlStreamParser, whitespaceEliminationWithLinebreak)
 	assertData(reader, "hello world", 1, 14);
 }
 
-TEST(OsmlStreamParser, escapeWhitespace)
-{
-	const char *testString = " hello\\ \\ world ";
-	//                        012345 67 89012345
-	//                        0           1
-	CharReader charReader(testString);
-
-	OsmlStreamParser reader(charReader, logger);
-
-	assertData(reader, "hello  world", 1, 15);
-}
-
 static void testEscapeSpecialCharacter(const std::string &c)
 {
 	CharReader charReader(std::string("\\") + c);
 	OsmlStreamParser reader(charReader, logger);
 	EXPECT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-	EXPECT_EQ(c, reader.getData().asString());
+	EXPECT_EQ(c, reader.getText().asString());
 
-	SourceLocation loc = reader.getData().getLocation();
+	SourceLocation loc = reader.getText().getLocation();
 	EXPECT_EQ(0U, loc.getStart());
 	EXPECT_EQ(1U + c.size(), loc.getEnd());
 }
@@ -253,16 +254,16 @@ TEST(OsmlStreamParser, singleLineComment)
 	OsmlStreamParser reader(charReader, logger);
 	{
 		ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-		ASSERT_EQ("a", reader.getData().asString());
-		SourceLocation loc = reader.getData().getLocation();
+		ASSERT_EQ("a", reader.getText().asString());
+		SourceLocation loc = reader.getText().getLocation();
 		ASSERT_EQ(0U, loc.getStart());
 		ASSERT_EQ(1U, loc.getEnd());
 	}
 
 	{
 		ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-		ASSERT_EQ("b", reader.getData().asString());
-		SourceLocation loc = reader.getData().getLocation();
+		ASSERT_EQ("b", reader.getText().asString());
+		SourceLocation loc = reader.getText().getLocation();
 		ASSERT_EQ(33U, loc.getStart());
 		ASSERT_EQ(34U, loc.getEnd());
 	}
@@ -279,16 +280,16 @@ TEST(OsmlStreamParser, multilineComment)
 	OsmlStreamParser reader(charReader, logger);
 	{
 		ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-		ASSERT_EQ("a", reader.getData().asString());
-		SourceLocation loc = reader.getData().getLocation();
+		ASSERT_EQ("a", reader.getText().asString());
+		SourceLocation loc = reader.getText().getLocation();
 		ASSERT_EQ(0U, loc.getStart());
 		ASSERT_EQ(1U, loc.getEnd());
 	}
 
 	{
 		ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-		ASSERT_EQ("b", reader.getData().asString());
-		SourceLocation loc = reader.getData().getLocation();
+		ASSERT_EQ("b", reader.getText().asString());
+		SourceLocation loc = reader.getText().getLocation();
 		ASSERT_EQ(40U, loc.getStart());
 		ASSERT_EQ(41U, loc.getEnd());
 	}
@@ -305,16 +306,16 @@ TEST(OsmlStreamParser, nestedMultilineComment)
 	OsmlStreamParser reader(charReader, logger);
 	{
 		ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-		ASSERT_EQ("a", reader.getData().asString());
-		SourceLocation loc = reader.getData().getLocation();
+		ASSERT_EQ("a", reader.getText().asString());
+		SourceLocation loc = reader.getText().getLocation();
 		ASSERT_EQ(0U, loc.getStart());
 		ASSERT_EQ(1U, loc.getEnd());
 	}
 
 	{
 		ASSERT_EQ(OsmlStreamParser::State::DATA, reader.parse());
-		ASSERT_EQ("b", reader.getData().asString());
-		SourceLocation loc = reader.getData().getLocation();
+		ASSERT_EQ("b", reader.getText().asString());
+		SourceLocation loc = reader.getText().getLocation();
 		ASSERT_EQ(40U, loc.getStart());
 		ASSERT_EQ(41U, loc.getEnd());
 	}
@@ -569,8 +570,11 @@ TEST(OsmlStreamParser, multipleCommands)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "a", 0, 2);
+	assertData(reader, " ", 2, 3, WhitespaceMode::PRESERVE);
 	assertCommand(reader, "b", 3, 5);
+	assertData(reader, " ", 5, 6, WhitespaceMode::PRESERVE);
 	assertCommand(reader, "c", 6, 8);
+	assertData(reader, " ", 8, 9, WhitespaceMode::PRESERVE);
 	assertCommand(reader, "d", 9, 11);
 	assertEnd(reader, 11, 11);
 }
@@ -584,10 +588,13 @@ TEST(OsmlStreamParser, fieldsWithSpaces)
 	OsmlStreamParser reader(charReader, logger);
 
 	assertCommand(reader, "a", 0, 2);
+	assertData(reader, " ", 2, 3, WhitespaceMode::PRESERVE);
 	assertFieldStart(reader, false, 3, 4);
 	assertCommand(reader, "b", 4, 6);
+	assertData(reader, " ", 6, 7, WhitespaceMode::PRESERVE);
 	assertCommand(reader, "c", 7, 9);
 	assertFieldEnd(reader, 9, 10);
+	assertData(reader, "   \n\n {", 10, 12, WhitespaceMode::PRESERVE);
 	assertFieldStart(reader, false, 16, 17);
 	assertCommand(reader, "d", 17, 19);
 	assertFieldEnd(reader, 19, 20);

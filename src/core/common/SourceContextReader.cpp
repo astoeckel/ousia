@@ -149,8 +149,9 @@ SourceContext SourceContextReader::readContext(CharReader &reader,
 	ctx.relLen = end - start;           // end >= start (I2)
 
 	// Remove linebreaks at the beginning and the end
-	const std::pair<size_t, size_t> b =
-	    Utils::trim(lineBuf, Utils::isLinebreak);
+	const std::pair<size_t, size_t> b = Utils::trim(
+	    lineBuf,
+	    [&lineBuf](size_t i) { return Utils::isLinebreak(lineBuf[i]); });
 	ssize_t s = b.first, e = b.second;
 	s = std::min(s, static_cast<ssize_t>(ctx.relPos));
 

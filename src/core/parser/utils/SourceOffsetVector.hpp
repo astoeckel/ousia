@@ -127,7 +127,7 @@ public:
 	 * read.
 	 * @return a pair containing start and end source offset.
 	 */
-	std::pair<SourceOffset, SourceOffset> loadOffset(size_t idx)
+	std::pair<SourceOffset, SourceOffset> loadOffset(size_t idx) const
 	{
 		// Special treatment for the last character
 		const size_t count = lens.size();
@@ -157,7 +157,31 @@ public:
 	/**
 	 * Returns the number of characters for which offsets are stored.
 	 */
-	size_t size() { return lens.size(); }
+	size_t size() const { return lens.size(); }
+
+	/**
+	 * Trims the length of the TokenizedData instance to the given length.
+	 * Removes all token matches that lie within the trimmed region.
+	 *
+	 * @param length is the number of characters to which the TokenizedData
+	 * instance should be trimmed.
+	 */
+	void trim(size_t length) {
+		if (length < size()) {
+			lens.resize(length);
+			offsets.resize((length >> LOG2_OFFSET_INTERVAL) + 1);
+		}
+	}
+
+	/**
+	 * Resets the SourceOffsetVector to the state it had when it was
+	 * constructed.
+	 */
+	void clear() {
+		lens.clear();
+		offsets.clear();
+		lastEnd = 0;
+	}
 };
 }
 

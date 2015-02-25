@@ -31,6 +31,7 @@ namespace ousia {
 class ParserScope;
 class ParserContext;
 class Logger;
+class TokenizedData;
 
 namespace parser_stack {
 
@@ -158,40 +159,63 @@ protected:
 	 */
 	const std::string &name() const;
 
-public:
 	/**
-	 * Virtual destructor.
+	 * Calls the corresponding function in the Callbacks instance. Sets the
+	 * whitespace mode that specifies how string data should be processed. The
+	 * calls to this function are placed on a stack by the underlying Stack
+	 * class. This function should be called from the "fieldStart" callback and
+	 * the "start" callback. If no whitespace mode is pushed in the "start"
+	 * method the whitespace mode "TRIM" is implicitly assumed.
+	 *
+	 * @param whitespaceMode specifies one of the three WhitespaceMode constants
+	 * PRESERVE, TRIM or COLLAPSE.
 	 */
-	virtual ~Handler();
+	void pushWhitespaceMode(WhitespaceMode whitespaceMode);
+
+	/**
+	 * Pops a previously pushed whitespace mode. Calls to this function should
+	 * occur in the "end" callback and the "fieldEnd" callback. This function
+	 * can only undo pushs that were performed by the pushWhitespaceMode()
+	 * method of the same handler.
+	 */
+	void popWhitespaceMode();
 
 	/**
 	 * Calls the corresponding function in the Callbacks instance. Sets the
 	 * whitespace mode that specifies how string data should be processed. The
 	 * calls to this function are placed on a stack by the underlying Stack
-	 * class.
+	 * class. This function should be called from the "fieldStart" callback and
+	 * the "start" callback. If no whitespace mode is pushed in the "start"
+	 * method the whitespace mode "TRIM" is implicitly assumed.
 	 *
-	 * @param whitespaceMode specifies one of the three WhitespaceMode constants
-	 * PRESERVE, TRIM or COLLAPSE.
+	 * @param tokens is a list of tokens that should be reported to this handler
+	 * instance via the "token" method.
 	 */
-	void setWhitespaceMode(WhitespaceMode whitespaceMode);
+	void pushTokens(const std::vector<std::string> &tokens);
 
 	/**
-	 * Calls the corresponding function in the Callbacks instance.
-	 * Registers the given token as token that should be reported to the handler
-	 * using the "token" function.
-	 *
-	 * @param token is the token string that should be reported.
+	 * Pops a previously pushed whitespace mode. Calls to this function should
+	 * occur in the "end" callback and the "fieldEnd" callback. This function
+	 * can only undo pushs that were performed by the pushWhitespaceMode()
+	 * method of the same handler.
 	 */
-	void registerToken(const std::string &token);
+	void popWhitespaceMode();
+
 
 	/**
-	 * Calls the corresponding function in the Callbacks instance.
-	 * Unregisters the given token, it will no longer be reported to the handler
-	 * using the "token" function.
-	 *
-	 * @param token is the token string that should be unregistered.
+	 * Calls the corresponding function in the Callbacks instance. This method
+	 * registers the given tokens as tokens that are generally available, tokens
+	 * must be explicitly enabled using the "pushTokens" and "popTokens" method.
+	 * Tokens that have not been registered are not guaranteed to be reported,
+	 * even though they are 
 	 */
-	void unregisterToken(const std::string &token);
+	void registerTokens(const std::vector<std::string> &tokens);
+
+public:
+	/**
+	 * Virtual destructor.
+	 */
+	virtual ~Handler();
 
 	/**
 	 * Returns the command name for which the handler was created.
@@ -299,11 +323,11 @@ public:
 	 * Handler instance. Should return true if the data could be handled, false
 	 * otherwise.
 	 *
-	 * @param data is a string variant containing the character data and its
-	 * location.
+	 * @param data is an instance of TokenizedData containing the segmented
+	 * character data and its location.
 	 * @return true if the data could be handled, false otherwise.
 	 */
-	virtual bool data(Variant &data) = 0;
+	virtual bool data(TokenizedData &data) = 0;
 };
 
 /**
@@ -333,7 +357,7 @@ public:
 	                     Variant::mapType &args) override;
 	bool annotationEnd(const Variant &className,
 	                   const Variant &elementName) override;
-	bool data(Variant &data) override;
+	bool data(TokenizedData &data) override;
 
 	/**
 	 * Creates an instance of the EmptyHandler class.
@@ -359,7 +383,7 @@ public:
 	                     Variant::mapType &args) override;
 	bool annotationEnd(const Variant &className,
 	                   const Variant &elementName) override;
-	bool data(Variant &data) override;
+	bool data(TokenizedData &data) override;
 };
 
 /**
@@ -412,7 +436,7 @@ protected:
 public:
 	bool start(Variant::mapType &args) override;
 	void end() override;
-	bool data(Variant &data) override;
+	bool data(TokenizedData &data) override;
 };
 }
 }

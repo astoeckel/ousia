@@ -25,7 +25,6 @@
 #include <core/common/Variant.hpp>
 #include <core/common/VariantReader.hpp>
 #include <core/common/Utils.hpp>
-#include <core/common/WhitespaceHandler.hpp>
 
 #include "OsxmlAttributeLocator.hpp"
 #include "OsxmlEventParser.hpp"
@@ -55,17 +54,6 @@ public:
 	 * Current character data buffer.
 	 */
 	std::vector<char> textBuf;
-
-	/**
-	 * Current whitespace buffer (for the trimming whitspace mode)
-	 */
-	std::vector<char> whitespaceBuf;
-
-	/**
-	 * Flag indicating whether a whitespace character was present (for the
-	 * collapsing whitespace mode).
-	 */
-	bool hasWhitespace;
 
 	/**
 	 * Current character data start.
@@ -394,33 +382,17 @@ static void xmlCharacterDataHandler(void *ref, const XML_Char *s, int len)
 	SourceLocation loc = xmlSyncLoggerPosition(p, ulen);
 
 	// Fetch some variables for convenience
-	const WhitespaceMode mode = parser->getWhitespaceMode();
 	OsxmlEventParserData &data = parser->getData();
 	std::vector<char> &textBuf = data.textBuf;
-	std::vector<char> &whitespaceBuf = data.whitespaceBuf;
-	bool &hasWhitespace = data.hasWhitespace;
-	size_t &textStart = data.textStart;
-	size_t &textEnd = data.textEnd;
 
-	size_t pos = loc.getStart();
-	for (size_t i = 0; i < ulen; i++, pos++) {
-		switch (mode) {
-			case WhitespaceMode::PRESERVE:
-				PreservingWhitespaceHandler::append(s[i], pos, pos + 1, textBuf,
-				                                    textStart, textEnd);
-				break;
-			case WhitespaceMode::TRIM:
-				TrimmingWhitespaceHandler::append(s[i], pos, pos + 1, textBuf,
-				                                  textStart, textEnd,
-				                                  whitespaceBuf);
-				break;
-			case WhitespaceMode::COLLAPSE:
-				CollapsingWhitespaceHandler::append(s[i], pos, pos + 1, textBuf,
-				                                    textStart, textEnd,
-				                                    hasWhitespace);
-				break;
-		}
+	// Update start and end position
+	if (textBuf.empty()) {
+		data.textStart = loc.getStart();
 	}
+	data.textEnd = loc.getEnd();
+
+	// Insert the data into the text buffer
+	textBuf.insert(textBuf.end(), &s[0], &s[ulen]);
 }
 
 /* Class OsxmlEvents */
@@ -430,11 +402,7 @@ OsxmlEvents::~OsxmlEvents() {}
 /* Class OsxmlEventParser */
 
 OsxmlEventParserData::OsxmlEventParserData()
-    : depth(0),
-      annotationEndTagDepth(-1),
-      hasWhitespace(false),
-      textStart(0),
-      textEnd(0)
+    : depth(0), annotationEndTagDepth(-1), textStart(0), textEnd(0)
 {
 }
 
@@ -466,8 +434,6 @@ Variant OsxmlEventParserData::getText(SourceId sourceId)
 
 	// Reset the text buffers
 	textBuf.clear();
-	whitespaceBuf.clear();
-	hasWhitespace = false;
 	textStart = 0;
 	textEnd = 0;
 
@@ -482,7 +448,6 @@ OsxmlEventParser::OsxmlEventParser(CharReader &reader, OsxmlEvents &events,
     : reader(reader),
       events(events),
       logger(logger),
-      whitespaceMode(WhitespaceMode::COLLAPSE),
       data(new OsxmlEventParserData())
 {
 }
@@ -530,16 +495,6 @@ void OsxmlEventParser::parse()
 			break;
 		}
 	}
-}
-
-void OsxmlEventParser::setWhitespaceMode(WhitespaceMode whitespaceMode)
-{
-	this->whitespaceMode = whitespaceMode;
-}
-
-WhitespaceMode OsxmlEventParser::getWhitespaceMode() const
-{
-	return whitespaceMode;
 }
 
 CharReader &OsxmlEventParser::getReader() const { return reader; }

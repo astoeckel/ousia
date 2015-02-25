@@ -25,6 +25,7 @@
 #include <core/model/Domain.hpp>
 #include <core/model/Project.hpp>
 #include <core/model/Typesystem.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
 
@@ -372,8 +373,15 @@ bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
 	return valid && scope().resolveValue(data, type, logger);
 }
 
-bool DocumentChildHandler::data(Variant &data)
+bool DocumentChildHandler::data(TokenizedData &data)
 {
+	// TODO: Handle this correctly
+	Variant text = data.text(WhitespaceMode::TRIM);
+	if (text == nullptr) {
+		// For now, except "no data" as success
+		return true;
+	}
+
 	// We're past the region in which explicit fields can be defined in the
 	// parent structure element
 	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, true);
@@ -393,11 +401,11 @@ bool DocumentChildHandler::data(Variant &data)
 	// If it is a primitive field directly, try to parse the content.
 	if (field->isPrimitive()) {
 		// Add it as primitive content.
-		if (!convertData(field, data, logger())) {
+		if (!convertData(field, text, logger())) {
 			return false;
 		}
 
-		parent->createChildDocumentPrimitive(data, fieldIdx);
+		parent->createChildDocumentPrimitive(text, fieldIdx);
 		return true;
 	}
 
@@ -411,7 +419,7 @@ bool DocumentChildHandler::data(Variant &data)
 	for (auto primitiveField : defaultFields) {
 		// Then try to parse the content using the type specification.
 		forks.emplace_back(logger().fork());
-		if (!convertData(primitiveField, data, forks.back())) {
+		if (!convertData(primitiveField, text, forks.back())) {
 			continue;
 		}
 
@@ -424,7 +432,7 @@ bool DocumentChildHandler::data(Variant &data)
 		createPath(fieldIdx, path, parent);
 
 		// Then create the primitive element
-		parent->createChildDocumentPrimitive(data);
+		parent->createChildDocumentPrimitive(text);
 		return true;
 	}
 
@@ -434,10 +442,10 @@ bool DocumentChildHandler::data(Variant &data)
 	if (defaultFields.empty()) {
 		logger().error("Got data, but structure \"" + name() +
 		                   "\" does not have any primitive field",
-		               data);
+		               text);
 	} else {
 		logger().error("Could not read data with any of the possible fields:",
-		               data);
+		               text);
 		size_t f = 0;
 		for (auto field : defaultFields) {
 			logger().note(std::string("Field ") +

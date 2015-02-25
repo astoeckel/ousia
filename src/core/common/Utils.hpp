@@ -124,14 +124,6 @@ public:
 	static bool hasNonWhitepaceChar(const std::string &s);
 
 	/**
-	 * Removes whitespace at the beginning and the end of the given string.
-	 *
-	 * @param s is the string that should be trimmed.
-	 * @return a trimmed copy of s.
-	 */
-	static std::string trim(const std::string &s);
-
-	/**
 	 * Trims the given string or vector of chars by returning the start and end
 	 * index.
 	 *
@@ -153,8 +145,8 @@ public:
 	 *
 	 * @param s is the container that should be trimmed.
 	 * @param len is the number of elements in the container.
-	 * @param f is a function that returns true for values that should be
-	 * removed.
+	 * @param f is a function that returns true for values at a certain index
+	 * that should be removed.
 	 * @return start and end index. Note that "end" points at the character
 	 * beyond the end, thus "end" minus "start"
 	 */
@@ -163,7 +155,7 @@ public:
 	{
 		size_t start = 0;
 		for (size_t i = 0; i < len; i++) {
-			if (!f(s[i])) {
+			if (!f(i)) {
 				start = i;
 				break;
 			}
@@ -171,7 +163,7 @@ public:
 
 		size_t end = 0;
 		for (ssize_t i = len - 1; i >= static_cast<ssize_t>(start); i--) {
-			if (!f(s[i])) {
+			if (!f(i)) {
 				end = i + 1;
 				break;
 			}
@@ -198,14 +190,30 @@ public:
 	 * the collapsed version of the string ends.
 	 * @return start and end index. Note that "end" points at the character
 	 * beyond the end, thus "end" minus "start"
+	 * @param f is a function that returns true for values at a certain index
+	 * that should be removed.
 	 */
-	template <class T>
-	static std::string trim(const T &s, size_t len, size_t &start, size_t &end)
+	template <class T, class Filter>
+	static std::string trim(const T &s, size_t len, size_t &start, size_t &end,
+	                        Filter f)
 	{
-		auto res = trim(s, len, isWhitespace);
+		auto res = trim(s, len, f);
 		start = res.first;
 		end = res.second;
 		return std::string(&s[start], end - start);
+	}
+
+	/**
+	 * Removes whitespace at the beginning and the end of the given string.
+	 *
+	 * @param s is the string that should be trimmed.
+	 * @return a trimmed copy of s.
+	 */
+	static std::string trim(const std::string &s)
+	{
+		std::pair<size_t, size_t> bounds =
+		    trim(s, [&s](size_t i) { return isWhitespace(s[i]); });
+		return s.substr(bounds.first, bounds.second - bounds.first);
 	}
 
 	/**
@@ -219,7 +227,8 @@ public:
 	{
 		size_t start;
 		size_t end;
-		return collapse(s, s.size(), start, end);
+		return collapse(s, s.size(), start, end,
+		                [&s](size_t i) { return isWhitespace(s[i]); });
 	}
 
 	/**
@@ -236,7 +245,8 @@ public:
 	static std::string collapse(const std::string &s, size_t &start,
 	                            size_t &end)
 	{
-		return collapse(s, s.size(), start, end);
+		return collapse(s, s.size(), start, end,
+		                [&s](size_t i) { return isWhitespace(s[i]); });
 	}
 
 	/**
@@ -244,6 +254,8 @@ public:
 	 * replaces all whitespace characters by a single one).
 	 *
 	 * @tparam T is the string type that should be used.
+	 * @tparam Filter is a filter function used for detecting the character
+	 * indices that might be removed.
 	 * @param s is the string in which the whitespace should be collapsed.
 	 * @param len is the length of the input string
 	 * @param start is an output parameter which is set to the offset at which
@@ -252,9 +264,9 @@ public:
 	 * the collapsed version of the string ends.
 	 * @return a copy of s with collapsed whitespace.
 	 */
-	template <class T>
+	template <class T, class Filter>
 	static std::string collapse(const T &s, size_t len, size_t &start,
-	                            size_t &end)
+	                            size_t &end, Filter f)
 	{
 		// Result vector
 		std::vector<char> res;
@@ -268,8 +280,7 @@ public:
 		bool hadWhitespace = false;
 		for (size_t i = 0; i < len; i++) {
 			const char c = s[i];
-			const bool whitespace = isWhitespace(c);
-			if (whitespace) {
+			if (f(i)) {
 				hadWhitespace = !res.empty();
 			} else {
 				// Adapt the start and end position

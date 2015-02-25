@@ -44,6 +44,7 @@ namespace ousia {
 // Forward declarations
 class ParserContext;
 class Logger;
+class TokenizedData;
 
 namespace parser_stack {
 
@@ -292,13 +293,24 @@ public:
 	void command(const Variant &name, const Variant::mapType &args);
 
 	/**
-	 * Function that shuold be called whenever character data is found in the
+	 * Function that should be called whenever character data is found in the
 	 * input stream. May only be called if the currently is a command on the
 	 * stack.
 	 *
-	 * @param data is a string variant containing the data that has been found.
+	 * @param data is a TokenizedData instance containing the pre-segmented data
+	 * that should be read.
 	 */
-	void data(const Variant &data);
+	void data(TokenizedData data);
+
+	/**
+	 * Function that shuold be called whenever character data is found in the
+	 * input stream. The given string variant is converted into a TokenizedData
+	 * instance internally.
+	 *
+	 * @param stringData is a string variant containing the data that has been
+	 * found.
+	 */
+	void data(const Variant &stringData);
 
 	/**
 	 * Function that should be called whenever a new field starts. Fields of the

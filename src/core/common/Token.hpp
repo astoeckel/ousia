@@ -30,6 +30,7 @@
 #include <cstdint>
 #include <limits>
 #include <string>
+#include <unordered_set>
 
 #include <core/common/Location.hpp>
 
@@ -44,6 +45,11 @@ using TokenId = uint32_t;
  * Type used for storing token lengths.
  */
 using TokenLength = uint16_t;
+
+/**
+ * Type used for storing token sets.
+ */
+using TokenSet = std::unordered_set<TokenId>;
 
 /**
  * Namespace containing constants for TokenId instances with special meaning.
@@ -66,15 +72,29 @@ constexpr TokenId Newline = std::numeric_limits<TokenId>::max() - 2;
 
 /**
  * Token which represents a paragraph token -- issued if two consecutive
- * newlines occur with optionally any amout of whitespace between them.
+ * newlines occur with optionally any amout of whitespace between them. The
+ * paragraph token is not repeated until more text is reached.
  */
 constexpr TokenId Paragraph = std::numeric_limits<TokenId>::max() - 3;
 
 /**
- * Token which represents an indentation token -- issued if the indentation of
- * this line is larget than the indentation of the previous line.
+ * Token which represents a section token -- issued if three or more
+ * consecutive newlines occur with optionally any amout of whitespace between
+ * them. The section token is not repeated until more text is reached.
  */
-constexpr TokenId Indentation = std::numeric_limits<TokenId>::max() - 4;
+constexpr TokenId Section = std::numeric_limits<TokenId>::max() - 4;
+
+/**
+ * Token which represents an indentation token -- issued if the indentation of
+ * this line is larger than the indentation of the previous line.
+ */
+constexpr TokenId Indent = std::numeric_limits<TokenId>::max() - 5;
+
+/**
+ * Token which represents an dedentation -- issued if the indentation of
+ * this line is smaller than the indentation of the previous line.
+ */
+constexpr TokenId Dedent = std::numeric_limits<TokenId>::max() - 6;
 
 /**
  * Maximum token id to be used. Tokens allocated for users should not surpass
@@ -109,6 +129,17 @@ struct Token {
 	Token() : id(Tokens::Empty) {}
 
 	/**
+	 * Constructor of a "data" token with no explicit content.
+	 *
+	 * @param location is the location of the extracted string content in the
+	 * source file.
+	 */
+	Token(SourceLocation location)
+	    : id(Tokens::Data), location(location)
+	{
+	}
+
+	/**
 	 * Constructor of the Token struct.
 	 *
 	 * @param id represents the token id.
@@ -127,6 +158,14 @@ struct Token {
 	 * @param id is the id corresponding to the id of the token.
 	 */
 	Token(TokenId id) : id(id) {}
+
+	/**
+	 * Returns true if this token is special.
+	 *
+	 * @return true if the TokenId indicates that this token is a "special"
+	 * token.
+	 */
+	bool isSpecial() const {return id > Tokens::MaxTokenId;}
 
 	/**
 	 * The getLocation function allows the tokens to be directly passed as

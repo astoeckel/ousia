@@ -32,8 +32,6 @@
 #include <memory>
 #include <string>
 
-#include <core/common/Whitespace.hpp>
-
 namespace ousia {
 
 // Forward declarations
@@ -99,13 +97,10 @@ public:
 	virtual void fieldEnd() = 0;
 
 	/**
-	 * Called whenever data is found. Whitespace data is handled as specified
-	 * and the data has been parsed to the specified variant type. This function
-	 * is not called if the parsing failed, the parser prints an error message
-	 * instead.
+	 * Called whenever string data is found.
 	 *
-	 * @param data is the already parsed data that should be passed to the
-	 * handler.
+	 * @param data is a Variant containing the string data that was found in the
+	 * XML file.
 	 */
 	virtual void data(const Variant &data) = 0;
 };
@@ -133,11 +128,6 @@ private:
 	 * be logged.
 	 */
 	Logger &logger;
-
-	/**
-	 * Current whitespace mode.
-	 */
-	WhitespaceMode whitespaceMode;
 
 	/**
 	 * Data to be used by the internal functions.
@@ -169,21 +159,6 @@ public:
 	 * happens.
 	 */
 	void parse();
-
-	/**
-	 * Sets the whitespace handling mode.
-	 *
-	 * @param whitespaceMode defines how whitespace in the data should be
-	 * handled.
-	 */
-	void setWhitespaceMode(WhitespaceMode whitespaceMode);
-
-	/**
-	 * Returns the current whitespace handling mode.
-	 *
-	 * @return the currently set whitespace handling mode.
-	 */
-	WhitespaceMode getWhitespaceMode() const;
 
 	/**
 	 * Returns the internal CharReader reference.
