@@ -19,66 +19,42 @@
 #include <core/common/CharReader.hpp>
 #include <core/common/Logger.hpp>
 #include <core/common/Utils.hpp>
+#include <core/common/Variant.hpp>
 #include <core/common/VariantReader.hpp>
+
+#include <core/parser/utils/Tokenizer.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 
 #include "OsmlStreamParser.hpp"
 
+#include <stack>
+#include <vector>
+
 namespace ousia {
 
+namespace {
 /**
- * Plain format default tokenizer.
+ * Osml format default tokenizer. Registers the primary tokens in its
+ * constructor. A single, static instance of this class is created as
+ * "OsmlTokens", which is copied to the Tokenizer instance of
+ * OsmlStreamParserImpl.
  */
-class PlainFormatTokens : public Tokenizer {
+class OsmlFormatTokens : public Tokenizer {
 public:
-	/**
-	 * Id of the backslash token.
-	 */
 	TokenId Backslash;
-
-	/**
-	 * Id of the line comment token.
-	 */
 	TokenId LineComment;
-
-	/**
-	 * Id of the block comment start token.
-	 */
 	TokenId BlockCommentStart;
-
-	/**
-	 * Id of the block comment end token.
-	 */
 	TokenId BlockCommentEnd;
-
-	/**
-	 * Id of the field start token.
-	 */
 	TokenId FieldStart;
-
-	/**
-	 * Id of the field end token.
-	 */
 	TokenId FieldEnd;
-
-	/**
-	 * Id of the default field start token.
-	 */
 	TokenId DefaultFieldStart;
-
-	/**
-	 * Id of the annotation start token.
-	 */
 	TokenId AnnotationStart;
-
-	/**
-	 * Id of the annotation end token.
-	 */
 	TokenId AnnotationEnd;
 
 	/**
 	 * Registers the plain format tokens in the internal tokenizer.
 	 */
-	PlainFormatTokens()
+	OsmlFormatTokens()
 	{
 		Backslash = registerToken("\\");
 		LineComment = registerToken("%");
@@ -92,19 +68,362 @@ public:
 	}
 };
 
-static const PlainFormatTokens OsmlTokens;
+/**
+ * Instance of OsmlFormatTokens used to initialize the internal tokenizer
+ * instance of OsmlStreamParserImpl.
+ */
+static const OsmlFormatTokens OsmlTokens;
 
-OsmlStreamParser::OsmlStreamParser(CharReader &reader, Logger &logger)
-    : reader(reader),
-      logger(logger),
-      tokenizer(OsmlTokens),
-      data(reader.getSourceId())
-{
-	// Place an intial command representing the complete file on the stack
-	commands.push(Command{"", Variant::mapType{}, true, true, true, false});
+/**
+ * Structure representing a field.
+ */
+struct Field {
+	/**
+	 * Specifies whether this field was marked as default field.
+	 */
+	bool defaultField;
+
+	/**
+	 * Location at which the field was started.
+	 */
+	SourceLocation location;
+
+	/**
+	 * Constructor of the Field structure, initializes all member variables with
+	 * the given values.
+	 *
+	 * @param defaultField is a flag specifying whether this field is a default
+	 * field.
+	 * @param location specifies the location at which the field was started.
+	 */
+	Field(bool defaultField = false,
+	      const SourceLocation &location = SourceLocation{})
+	    : defaultField(defaultField), location(location)
+	{
+	}
+};
+
+/**
+ * Entry used for the command stack.
+ */
+class Command {
+private:
+	/**
+	 * Name and location of the current command.
+	 */
+	Variant name;
+
+	/**
+	 * Arguments that were passed to the command.
+	 */
+	Variant arguments;
+
+	/**
+	 * Vector used as stack for holding the number of opening/closing braces
+	 * and the corresponding "isDefaultField" flag.
+	 */
+	std::vector<Field> fields;
+
+	/**
+	 * Set to true if this is a command with clear begin and end.
+	 */
+	bool hasRange;
+
+public:
+	/**
+	 * Default constructor, marks this command as normal, non-range command.
+	 */
+	Command() : hasRange(false) {}
+
+	/**
+	 * Constructor of the Command class.
+	 *
+	 * @param name is a string variant with name and location of the
+	 * command.
+	 * @param arguments is a map variant with the arguments given to the
+	 * command.
+	 * @param hasRange should be set to true if this is a command with
+	 * explicit range.
+	 */
+	Command(Variant name, Variant arguments, bool hasRange)
+	    : name(std::move(name)),
+	      arguments(std::move(arguments)),
+	      hasRange(hasRange)
+	{
+	}
+
+	/**
+	 * Returns a reference at the variant representing name and location of the
+	 * command.
+	 *
+	 * @return a variant containing name and location of the command.
+	 */
+	const Variant &getName() const { return name; }
+
+	/**
+	 * Returns a reference at the variant containing name, value and location of
+	 * the arguments.
+	 *
+	 * @return the arguments stored for the command.
+	 */
+	const Variant &getArguments() const { return arguments; }
+
+	/**
+	 * Returns a reference at the internal field list. This list should be used
+	 * for printing error messages when fields are still open although the outer
+	 * range field closes.
+	 *
+	 * @return a const reference at the internal field vector.
+	 */
+	const std::vector<Field> &getFields() const { return fields; }
+
+	/**
+	 * Returns true if this command is currently in a default field.
+	 *
+	 * @return true if the current field on the field stack was explicitly
+	 * marked as default field. If the field stack is empty, true is returned
+	 * if this is a range command.
+	 */
+	bool inDefaultField() const
+	{
+		return (!fields.empty() && fields.back().defaultField) ||
+		       (fields.empty() && hasRange);
+	}
+
+	/**
+	 * Returns true if this command currently is in any field.
+	 *
+	 * @return true if a field is on the stack or this is a range commands.
+	 * Range commands always are in a field.
+	 */
+	bool inField() const { return !fields.empty() || hasRange; }
+
+	/**
+	 * Returns true if this command currently is in a range field.
+	 *
+	 * @return true if the command has a range and no other ranges are on the
+	 * stack.
+	 */
+	bool inRangeField() const { return fields.empty() && hasRange; }
+
+	/**
+	 * Returns true if this command currently is in a non-range field.
+	 *
+	 * @return true if the command is in a field, but the field is not the field
+	 * constructed by the "range"
+	 */
+	bool inNonRangeField() const { return !fields.empty(); }
+
+	/**
+	 * Pushes another field onto the field stack of this command.
+	 *
+	 * @param defaultField if true, explicitly marks this field as default
+	 * field.
+	 * @param location is the source location at which the field was started.
+	 * Used for error messages in which the user is notified about an error with
+	 * too few closing fields.
+	 */
+	void pushField(bool defaultField = false,
+	               const SourceLocation &location = SourceLocation{})
+	{
+		fields.emplace_back(defaultField, location);
+	}
+
+	/**
+	 * Removes another field from the field stack of this command, returns true
+	 * if the operation was successful.
+	 *
+	 * @return true if there was a field to pop on the stack, false otherwise.
+	 */
+	bool popField()
+	{
+		if (!fields.empty()) {
+			fields.pop_back();
+			return true;
+		}
+		return false;
+	}
+};
 }
 
-Variant OsmlStreamParser::parseIdentifier(size_t start, bool allowNSSep)
+/* Class OsmlStreamParserImpl */
+
+/**
+ * Internal implementation of OsmlStreamParser.
+ */
+class OsmlStreamParserImpl {
+public:
+	/**
+	 * State enum compatible with OsmlStreamParserState but extended by two more
+	 * entries (END and NONE).
+	 */
+	enum class State : uint8_t {
+		COMMAND_START = 0,
+		COMMAND_END = 1,
+		FIELD_START = 2,
+		FIELD_END = 3,
+		ANNOTATION_START = 4,
+		ANNOTATION_END = 5,
+		DATA = 6,
+		END = 7,
+		RECOVERABLE_ERROR = 8,
+		IRRECOVERABLE_ERROR = 9
+	};
+
+private:
+	/**
+	 * Reference to the CharReader instance from which the incomming bytes are
+	 * read.
+	 */
+	CharReader &reader;
+
+	/**
+	 * Reference at the logger instance to which all error messages are sent.
+	 */
+	Logger &logger;
+
+	/**
+	 * Tokenizer instance used to read individual tokens from the text.
+	 */
+	Tokenizer tokenizer;
+
+	/**
+	 * Stack containing the current commands.
+	 */
+	std::stack<Command> commands;
+
+	/**
+	 * Variant containing the tokenized data that was returned from the
+	 * tokenizer as data.
+	 */
+	TokenizedData data;
+
+	/**
+	 * Variable containing the current location of the parser.
+	 */
+	SourceLocation location;
+
+	/**
+	 * Function used internally to parse an identifier.
+	 *
+	 * @param start is the start byte offset of the identifier (including the
+	 * backslash).
+	 * @param allowNSSep should be set to true if the namespace separator is
+	 * allowed in the identifier name. Issues error if the namespace separator
+	 * is placed incorrectly.
+	 */
+	Variant parseIdentifier(size_t start, bool allowNSSep = false);
+
+	/**
+	 * Function used internally to handle the special "\begin" command.
+	 *
+	 * @return an internal State specifying whether an error occured (return
+	 * values State::REOVERABLE_ERROR or State::IRRECOVERABLE_ERROR) or a
+	 * command was actually started (return value State::COMMAND_START).
+	 */
+	State parseBeginCommand();
+
+	/**
+	 * Function used internally to handle the special "\end" command.
+	 *
+	 * @return an internal State specifying whether an error occured (return
+	 * values State::REOVERABLE_ERROR or State::IRRECOVERABLE_ERROR) or a
+	 * command was actually ended (return value State::COMMAND_END).
+	 */
+	State parseEndCommand();
+
+	/**
+	 * Parses the command arguments. Handles errors if the name of the command
+	 * was given using the hash notation and as a name field.
+	 *
+	 * @param commandArgName is the name argument that was given using the hash
+	 * notation.
+	 * @return a map variant containing the arguments.
+	 */
+	Variant parseCommandArguments(Variant commandArgName);
+
+	/**
+	 * Function used internally to parse a command.
+	 *
+	 * @param start is the start byte offset of the command (including the
+	 * backslash)
+	 * @param isAnnotation if true, the command is not returned as command, but
+	 * as annotation start.
+	 * @return true if a command was actuall parsed, false otherwise.
+	 */
+	State parseCommand(size_t start, bool isAnnotation);
+
+	/**
+	 * Function used internally to parse a block comment.
+	 */
+	void parseBlockComment();
+
+	/**
+	 * Function used internally to parse a generic comment.
+	 */
+	void parseLineComment();
+
+	/**
+	 * Pushes the parsed command onto the command stack.
+	 */
+	void pushCommand(Variant commandName, Variant commandArguments,
+	                 bool hasRange);
+
+	/**
+	 * Checks whether there is any data pending to be issued, if yes, resets the
+	 * currently peeked characters and returns true.
+	 *
+	 * @return true if there was any data and DATA should be returned by the
+	 * parse function, false otherwise.
+	 */
+	bool checkIssueData();
+
+	/**
+	 * Returns a reference at the current command at the top of the command
+	 * stack.
+	 *
+	 * @return a reference at the top command in the command stack.
+	 */
+	Command &cmd() { return commands.top(); }
+
+	/**
+	 * Returns a reference at the current command at the top of the command
+	 * stack.
+	 *
+	 * @return a reference at the top command in the command stack.
+	 */
+	const Command &cmd() const { return commands.top(); }
+
+public:
+	/**
+	 * Constructor of the OsmlStreamParserImpl class. Attaches the new
+	 * OsmlStreamParserImpl to the given CharReader and Logger instances.
+	 *
+	 * @param reader is the reader instance from which incomming characters
+	 * should be read.
+	 * @param logger is the logger instance to which errors should be written.
+	 */
+	OsmlStreamParserImpl(CharReader &reader, Logger &logger);
+
+	State parse();
+
+	const TokenizedData &getData() const { return data; }
+	const Variant &getCommandName() const { return cmd().getName(); }
+	const Variant &getCommandArguments() const { return cmd().getArguments(); }
+	const SourceLocation &getLocation() const { return location; }
+	bool inRangeCommand() const { return cmd().inRangeField(); };
+	bool inDefaultField() const { return cmd().inDefaultField(); }
+};
+
+/* Class OsmlStreamParserImpl */
+
+OsmlStreamParserImpl::OsmlStreamParserImpl(CharReader &reader, Logger &logger)
+    : reader(reader), logger(logger), tokenizer(OsmlTokens)
+{
+	commands.emplace("", Variant::mapType{}, true);
+}
+
+Variant OsmlStreamParserImpl::parseIdentifier(size_t start, bool allowNSSep)
 {
 	bool first = true;
 	bool hasCharSinceNSSep = false;
@@ -147,20 +466,20 @@ Variant OsmlStreamParser::parseIdentifier(size_t start, bool allowNSSep)
 	return res;
 }
 
-OsmlStreamParser::State OsmlStreamParser::parseBeginCommand()
+OsmlStreamParserImpl::State OsmlStreamParserImpl::parseBeginCommand()
 {
 	// Expect a '{' after the command
 	reader.consumeWhitespace();
 	if (!reader.expect('{')) {
 		logger.error("Expected \"{\" after \\begin", reader);
-		return State::NONE;
+		return State::RECOVERABLE_ERROR;
 	}
 
 	// Parse the name of the command that should be opened
 	Variant commandName = parseIdentifier(reader.getOffset(), true);
 	if (commandName.asString().empty()) {
 		logger.error("Expected identifier", commandName);
-		return State::ERROR;
+		return State::IRRECOVERABLE_ERROR;
 	}
 
 	// Check whether the next character is a '#', indicating the start of the
@@ -176,7 +495,7 @@ OsmlStreamParser::State OsmlStreamParser::parseBeginCommand()
 
 	if (!reader.expect('}')) {
 		logger.error("Expected \"}\"", reader);
-		return State::ERROR;
+		return State::IRRECOVERABLE_ERROR;
 	}
 
 	// Parse the arguments
@@ -185,28 +504,15 @@ OsmlStreamParser::State OsmlStreamParser::parseBeginCommand()
 	// Push the command onto the command stack
 	pushCommand(std::move(commandName), std::move(commandArguments), true);
 
-	return State::COMMAND;
+	return State::COMMAND_START;
 }
 
-static bool checkStillInField(const OsmlStreamParser::Command &cmd,
-                              const Variant &endName, Logger &logger)
-{
-	if (cmd.inField && !cmd.inRangeField) {
-		logger.error(std::string("\\end in open field of command \"") +
-		                 cmd.name.asString() + std::string("\""),
-		             endName);
-		logger.note(std::string("Open command started here:"), cmd.name);
-		return true;
-	}
-	return false;
-}
-
-OsmlStreamParser::State OsmlStreamParser::parseEndCommand()
+OsmlStreamParserImpl::State OsmlStreamParserImpl::parseEndCommand()
 {
 	// Expect a '{' after the command
 	if (!reader.expect('{')) {
 		logger.error("Expected \"{\" after \\end", reader);
-		return State::NONE;
+		return State::RECOVERABLE_ERROR;
 	}
 
 	// Fetch the name of the command that should be ended here
@@ -215,26 +521,30 @@ OsmlStreamParser::State OsmlStreamParser::parseEndCommand()
 	// Make sure the given command name is not empty
 	if (name.asString().empty()) {
 		logger.error("Expected identifier", name);
-		return State::ERROR;
+		return State::IRRECOVERABLE_ERROR;
 	}
 
 	// Make sure the command name is terminated with a '}'
 	if (!reader.expect('}')) {
 		logger.error("Expected \"}\"", reader);
-		return State::ERROR;
+		return State::IRRECOVERABLE_ERROR;
 	}
 
-	// Unroll the command stack up to the last range command
-	while (!commands.top().hasRange) {
-		if (checkStillInField(commands.top(), name, logger)) {
-			return State::ERROR;
+	// Unroll the command stack up to the last range command, make sure we do
+	// not intersect with any open field
+	while (!cmd().inRangeField()) {
+		if (cmd().inField()) {
+			logger.error(std::string("\\end in open field of command \"") +
+			                 cmd().getName().asString() + std::string("\""),
+			             name);
+			const std::vector<Field> &fields = cmd().getFields();
+			for (const Field &field : fields) {
+				logger.note(std::string("Still open field started here: "),
+				            field.location);
+			}
+			return State::IRRECOVERABLE_ERROR;
 		}
 		commands.pop();
-	}
-
-	// Make sure we're not in an open field of this command
-	if (checkStillInField(commands.top(), name, logger)) {
-		return State::ERROR;
 	}
 
 	// Special error message if the top-level command is reached
@@ -242,29 +552,27 @@ OsmlStreamParser::State OsmlStreamParser::parseEndCommand()
 		logger.error(std::string("Cannot end command \"") + name.asString() +
 		                 std::string("\" here, no command open"),
 		             name);
-		return State::ERROR;
+		return State::IRRECOVERABLE_ERROR;
 	}
 
-	// Inform the about command mismatches
-	const Command &cmd = commands.top();
-	if (commands.top().name.asString() != name.asString()) {
-		logger.error(std::string("Trying to end command \"") +
-		                 cmd.name.asString() +
+	// Inform the user about command mismatches, copy the current command
+	// descriptor before popping it from the stack
+	if (getCommandName().asString() != name.asString()) {
+		logger.error(std::string("Trying to end command \"") + name.asString() +
 		                 std::string("\", but open command is \"") +
-		                 name.asString() + std::string("\""),
+		                 getCommandName().asString() + std::string("\""),
 		             name);
-		logger.note("Last command was opened here:", cmd.name);
-		return State::ERROR;
+		logger.note("Open command started here:", getCommandName());
+		return State::IRRECOVERABLE_ERROR;
 	}
 
-	// Set the location to the location of the command that was ended, then end
-	// the current command
+	// End the current command
 	location = name.getLocation();
 	commands.pop();
-	return cmd.inRangeField ? State::FIELD_END : State::NONE;
+	return State::COMMAND_END;
 }
 
-Variant OsmlStreamParser::parseCommandArguments(Variant commandArgName)
+Variant OsmlStreamParserImpl::parseCommandArguments(Variant commandArgName)
 {
 	// Parse the arguments using the universal VariantReader
 	Variant commandArguments;
@@ -290,29 +598,14 @@ Variant OsmlStreamParser::parseCommandArguments(Variant commandArgName)
 	return commandArguments;
 }
 
-void OsmlStreamParser::pushCommand(Variant commandName,
-                                   Variant commandArguments, bool hasRange)
-{
-	// Store the location on the stack
-	location = commandName.getLocation();
-
-	// Place the command on the command stack, remove the last commands if we're
-	// not currently inside a field of these commands
-	while (!commands.top().inField) {
-		commands.pop();
-	}
-	commands.push(Command{std::move(commandName), std::move(commandArguments),
-	                      hasRange, false, false, false});
-}
-
-OsmlStreamParser::State OsmlStreamParser::parseCommand(size_t start,
-                                                       bool isAnnotation)
+OsmlStreamParserImpl::State OsmlStreamParserImpl::parseCommand(
+    size_t start, bool isAnnotation)
 {
 	// Parse the commandName as a first identifier
 	Variant commandName = parseIdentifier(start, true);
 	if (commandName.asString().empty()) {
 		logger.error("Empty command name", reader);
-		return State::NONE;
+		return State::RECOVERABLE_ERROR;
 	}
 
 	// Handle the special "begin" and "end" commands
@@ -322,7 +615,7 @@ OsmlStreamParser::State OsmlStreamParser::parseCommand(size_t start,
 	const bool isEnd = commandNameComponents[0] == "end";
 
 	// Parse the begin or end command
-	State res = State::COMMAND;
+	State res = State::COMMAND_START;
 	if (isBegin || isEnd) {
 		if (commandNameComponents.size() > 1) {
 			logger.error(
@@ -378,12 +671,13 @@ OsmlStreamParser::State OsmlStreamParser::parseCommand(size_t start,
 		} else {
 			// Make sure no arguments apart from the "name" argument are given
 			// to an annotation end
-			Variant::mapType &map = commands.top().arguments.asMap();
+			const Variant::mapType &map = getCommandArguments().asMap();
 			if (!map.empty()) {
 				if (map.count("name") == 0 || map.size() > 1U) {
 					logger.error(
 					    "An annotation end command may not have any arguments "
-					    "other than \"name\"");
+					    "other than \"name\"",
+					    reader);
 					return res;
 				}
 			}
@@ -397,13 +691,13 @@ OsmlStreamParser::State OsmlStreamParser::parseCommand(size_t start,
 
 	// If we're starting an annotation, return the command as annotation start
 	// instead of command
-	if (isAnnotation && res == State::COMMAND) {
+	if (isAnnotation && res == State::COMMAND_START) {
 		return State::ANNOTATION_START;
 	}
 	return res;
 }
 
-void OsmlStreamParser::parseBlockComment()
+void OsmlStreamParserImpl::parseBlockComment()
 {
 	Token token;
 	size_t depth = 1;
@@ -426,7 +720,7 @@ void OsmlStreamParser::parseBlockComment()
 	logger.error("File ended while being in a block comment", reader);
 }
 
-void OsmlStreamParser::parseLineComment()
+void OsmlStreamParserImpl::parseLineComment()
 {
 	char c;
 	while (reader.read(c)) {
@@ -436,7 +730,24 @@ void OsmlStreamParser::parseLineComment()
 	}
 }
 
-bool OsmlStreamParser::checkIssueData()
+void OsmlStreamParserImpl::pushCommand(Variant commandName,
+                                       Variant commandArguments, bool hasRange)
+{
+	// Store the location of the command
+	location = commandName.getLocation();
+
+	// Place the command on the command stack, remove the last commands if we're
+	// not currently inside a field of these commands
+	while (!cmd().inField()) {
+		commands.pop();
+	}
+
+	// Push the new command onto the command stack
+	commands.emplace(std::move(commandName), std::move(commandArguments),
+	                 hasRange);
+}
+
+bool OsmlStreamParserImpl::checkIssueData()
 {
 	if (!data.empty()) {
 		location = data.getLocation();
@@ -446,55 +757,7 @@ bool OsmlStreamParser::checkIssueData()
 	return false;
 }
 
-bool OsmlStreamParser::checkIssueFieldStart()
-{
-	// Fetch the current command, and check whether we're currently inside a
-	// field of this command
-	Command &cmd = commands.top();
-	if (!cmd.inField) {
-		// If this is a range command, we're now implicitly inside the field of
-		// this command -- we'll have to issue a field start command!
-		if (cmd.hasRange) {
-			cmd.inField = true;
-			cmd.inRangeField = true;
-			reader.resetPeek();
-			return true;
-		}
-
-		// This was not a range command, so obviously we're now inside within
-		// a field of some command -- so unroll the commands stack until a
-		// command with open field is reached
-		while (!commands.top().inField) {
-			commands.pop();
-		}
-	}
-	return false;
-}
-
-bool OsmlStreamParser::closeField()
-{
-	// Try to end an open field of the current command -- if the current command
-	// is not inside an open field, end this command and try to close the next
-	// one
-	for (int i = 0; i < 2 && commands.size() > 1; i++) {
-		Command &cmd = commands.top();
-		if (!cmd.inRangeField) {
-			if (cmd.inField) {
-				cmd.inField = false;
-				if (cmd.inDefaultField) {
-					commands.pop();
-				}
-				return true;
-			}
-			commands.pop();
-		} else {
-			return false;
-		}
-	}
-	return false;
-}
-
-OsmlStreamParser::State OsmlStreamParser::parse()
+OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 {
 	// Reset the data handler
 	data.clear();
@@ -507,14 +770,6 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 		// Special handling for Backslash and Text
 		if (type == OsmlTokens.Backslash ||
 		    type == OsmlTokens.AnnotationStart) {
-			// Before appending anything to the output data or starting a new
-			// command, check whether FIELD_START has to be issued, as the
-			// current command is a command with range
-			if (checkIssueFieldStart()) {
-				location = token.location;
-				return State::FIELD_START;
-			}
-
 			// Check whether a command starts now, without advancing the peek
 			// cursor
 			char c;
@@ -535,11 +790,11 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 				State res = parseCommand(token.location.getStart(),
 				                         type == OsmlTokens.AnnotationStart);
 				switch (res) {
-					case State::ERROR:
+					case State::IRRECOVERABLE_ERROR:
 						throw LoggableException(
 						    "Last error was irrecoverable, ending parsing "
 						    "process");
-					case State::NONE:
+					case State::RECOVERABLE_ERROR:
 						continue;
 					default:
 						return res;
@@ -558,15 +813,12 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 				            token.location.getStart() + 1);
 			}
 
-			data.append(c, token.location.getStart(), reader.getPeekOffset());
+			// Append the character to the output data, mark it as protected
+			data.append(c, token.location.getStart(), reader.getPeekOffset(),
+			            true);
 			reader.consumePeek();
 			continue;
 		} else if (type == Tokens::Data) {
-			// Check whether FIELD_START has to be issued before appending text
-			if (checkIssueFieldStart()) {
-				location = token.location;
-				return State::FIELD_START;
-			}
 			reader.consumePeek();
 			continue;
 		}
@@ -580,7 +832,7 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 		// We will handle the token now, consume the peeked characters
 		reader.consumePeek();
 
-		// Update the location to the current token location
+		// Synchronize the location with the current token location
 		location = token.location;
 
 		if (token.id == OsmlTokens.LineComment) {
@@ -588,39 +840,27 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 		} else if (token.id == OsmlTokens.BlockCommentStart) {
 			parseBlockComment();
 		} else if (token.id == OsmlTokens.FieldStart) {
-			Command &cmd = commands.top();
-			if (!cmd.inField) {
-				cmd.inField = true;
-			}
+			cmd().pushField(false, token.location);
 			return State::FIELD_START;
-/*			logger.error(
-			    "Got field start token \"{\", but no command for which to "
-			    "start the field. Write \"\\{\" to insert this sequence as "
-			    "text.",
-			    token);*/
 		} else if (token.id == OsmlTokens.FieldEnd) {
-			closeField();
-			return State::FIELD_END;
-/*			if (closeField()) {
+			// Remove all commands from the list that currently are not in any
+			// field
+			while (!cmd().inField()) {
+				commands.pop();
+			}
+
+			// If the remaining command is not in a range field, remove this
+			// command
+			if (cmd().inNonRangeField()) {
+				cmd().popField();
 				return State::FIELD_END;
 			}
 			logger.error(
-			    "Got field end token \"}\", but there is no field to end. "
-			    "Write \"\\}\" to insert this sequence as text.",
-			    token);*/
+			    "Got field end token \"}\", but there is no field to end.",
+			    token);
 		} else if (token.id == OsmlTokens.DefaultFieldStart) {
-			// Try to start a default field the first time the token is reached
-			Command &topCmd = commands.top();
-			if (!topCmd.inField) {
-				topCmd.inField = true;
-				topCmd.inDefaultField = true;
-			}
+			cmd().pushField(true, token.location);
 			return State::FIELD_START;
-/*			logger.error(
-			    "Got default field start token \"{!\", but no command for "
-			    "which to start the field. Write \"\\{!\" to insert this "
-			    "sequence as text",
-			    token);*/
 		} else if (token.id == OsmlTokens.AnnotationEnd) {
 			// We got a single annotation end token "\>" -- simply issue the
 			// ANNOTATION_END event
@@ -641,11 +881,25 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 	// Make sure all open commands and fields have been ended at the end of the
 	// stream
 	while (commands.size() > 1) {
-		Command &cmd = commands.top();
-		if (cmd.inField || cmd.hasRange) {
-			logger.error("Reached end of stream, but command \"" +
-			                 cmd.name.asString() + "\" has not been ended",
-			             cmd.name);
+		if (cmd().inField()) {
+			// If the stream ended with an open range field, issue information
+			// about the range field
+			if (cmd().inRangeField()) {
+				// Inform about the still open command itself
+				logger.error("Reached end of stream, but command \"" +
+				                 getCommandName().asString() +
+				                 "\" has not been ended",
+				             getCommandName());
+			} else {
+				// Issue information about still open fields
+				const std::vector<Field> &fields = cmd().getFields();
+				if (!fields.empty()) {
+					logger.error(
+					    std::string(
+					        "Reached end of stream, but field is still open."),
+					    fields.back().location);
+				}
+			}
 		}
 		commands.pop();
 	}
@@ -654,26 +908,45 @@ OsmlStreamParser::State OsmlStreamParser::parse()
 	return State::END;
 }
 
-Variant OsmlStreamParser::getText(WhitespaceMode mode)
+/* Class OsmlStreamParser */
+
+OsmlStreamParser::OsmlStreamParser(CharReader &reader, Logger &logger)
+    : impl(new OsmlStreamParserImpl(reader, logger))
 {
-	TokenizedData dataFork = data;
-	Variant text = dataFork.text(mode);
-	location = text.getLocation();
-	return text;
+}
+
+OsmlStreamParser::~OsmlStreamParser()
+{
+	// Stub needed because OsmlStreamParserImpl is incomplete in header
+}
+
+OsmlStreamParser::State OsmlStreamParser::parse()
+{
+	return static_cast<State>(impl->parse());
+}
+
+const TokenizedData &OsmlStreamParser::getData() const
+{
+	return impl->getData();
 }
 
 const Variant &OsmlStreamParser::getCommandName() const
 {
-	return commands.top().name;
+	return impl->getCommandName();
 }
 
 const Variant &OsmlStreamParser::getCommandArguments() const
 {
-	return commands.top().arguments;
+	return impl->getCommandArguments();
 }
 
-bool OsmlStreamParser::inDefaultField() const
+const SourceLocation &OsmlStreamParser::getLocation() const
 {
-	return commands.top().inRangeField || commands.top().inDefaultField;
+	return impl->getLocation();
 }
+
+bool OsmlStreamParser::inDefaultField() const { return impl->inDefaultField(); }
+
+bool OsmlStreamParser::inRangeCommand() const { return impl->inRangeCommand(); }
+
 }

@@ -212,14 +212,14 @@ ADD_LIBRARY(ousia_core
 #	ousia_core
 #)
 
-#ADD_LIBRARY(ousia_osml
+ADD_LIBRARY(ousia_osml
 #	src/formats/osml/OsmlParser
-#	src/formats/osml/OsmlStreamParser
-#)
+	src/formats/osml/OsmlStreamParser
+)
 
-#TARGET_LINK_LIBRARIES(ousia_osml
-#	ousia_core
-#)
+TARGET_LINK_LIBRARIES(ousia_osml
+	ousia_core
+)
 
 ADD_LIBRARY(ousia_osxml
 	src/formats/osxml/OsxmlAttributeLocator
@@ -383,17 +383,17 @@ IF(TEST)
 #		ousia_mozjs
 #	)
 
-#	ADD_EXECUTABLE(ousia_test_osml
+	ADD_EXECUTABLE(ousia_test_osml
 #		test/formats/osml/OsmlParserTest
-#		test/formats/osml/OsmlStreamParserTest
-#	)
+		test/formats/osml/OsmlStreamParserTest
+	)
 
-#	TARGET_LINK_LIBRARIES(ousia_test_osml
-#		${GTEST_LIBRARIES}
-#		ousia_core
-#		ousia_osml
-#		ousia_filesystem
-#	)
+	TARGET_LINK_LIBRARIES(ousia_test_osml
+		${GTEST_LIBRARIES}
+		ousia_core
+		ousia_osml
+		ousia_filesystem
+	)
 
 #	ADD_EXECUTABLE(ousia_test_osxml
 #		test/formats/osxml/OsxmlEventParserTest
@@ -423,7 +423,7 @@ IF(TEST)
 	ADD_TEST(ousia_test_filesystem ousia_test_filesystem)
 	ADD_TEST(ousia_test_html ousia_test_html)
 #	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
-#	ADD_TEST(ousia_test_osml ousia_test_osml)
+	ADD_TEST(ousia_test_osml ousia_test_osml)
 #	ADD_TEST(ousia_test_osxml ousia_test_osxml)
 	ADD_TEST(ousia_test_xml ousia_test_xml)
 ENDIF()

@@ -29,12 +29,8 @@
 #ifndef _OUSIA_OSML_STREAM_PARSER_HPP_
 #define _OUSIA_OSML_STREAM_PARSER_HPP_
 
+#include <cstdint>
 #include <memory>
-
-#include <core/common/Variant.hpp>
-#include <core/common/Whitespace.hpp>
-#include <core/parser/utils/Tokenizer.hpp>
-#include <core/parser/utils/TokenizedData.hpp>
 
 namespace ousia {
 
@@ -42,17 +38,20 @@ namespace ousia {
 class CharReader;
 class Logger;
 class OsmlStreamParserImpl;
+class TokenizedData;
+class Variant;
 
 /**
  * The OsmlStreamParser class provides a low-level reader for the TeX-esque osml
  * format. The parser is constructed around a "parse" function, which reads data
  * from the underlying CharReader until a new state is reached and indicates
  * this state in a return value. The calling code then has to pull corresponding
- * data from the stream reader. The reader makes sure the incommind file is
+ * data from the stream reader. The reader makes sure the incomming stream is
  * syntactically valid and tries to recorver from most errors. If an error is
  * irrecoverable (this is the case for errors with wrong nesting of commands or
  * fields, as this would lead to too many consecutive errors) a
- * LoggableException is thrown.
+ * LoggableException is thrown. The OsmlStreamParser can be compared to a SAX
+ * parser for XML.
  */
 class OsmlStreamParser {
 public:
@@ -60,39 +59,21 @@ public:
 	 * Enum used to indicate which state the OsmlStreamParser class is in
 	 * after calling the "parse" function.
 	 */
-	enum class State {
+	enum class State : uint8_t {
 		/**
-	     * State returned if a fully featured command has been read. A command
-	     * consists of the command name and its arguments (which optionally
-	     * includes the name).
+	     * State returned if the start of a command has been read. Use the
+	     * getCommandName(), getCommandArguments() and inRangeCommand()
+	     * functions the retrieve more information about the command that was
+	     * just started.
 	     */
-		COMMAND,
+		COMMAND_START = 0,
 
 		/**
-	     * State returned if data is given. The reader must decide which field
-	     * or command this should be routed to. Trailing or leading whitespace
-	     * has been removed. Only called if the data is non-empty.
+	     * State returned if a range command has just ended. This state is not
+	     * returned for non-range commands (as the actual end of a command is
+	     * context dependant).
 	     */
-		DATA,
-
-		/**
-	     * A user-defined entity has been found. The entity sequence is stored
-	     * in the command name.
-	     */
-		ENTITY,
-
-		/**
-	     * State returned if an annotation was started. An annotation consists
-	     * of the command name and its arguments (which optionally include the
-	     * name).
-	     */
-		ANNOTATION_START,
-
-		/**
-	     * State returned if an annotation ends. The reader indicates which
-	     * annotation ends.
-	     */
-		ANNOTATION_END,
+		COMMAND_END = 1,
 
 		/**
 	     * State returned if a new field started. The reader assures that the
@@ -100,199 +81,46 @@ public:
 	     * is not started if data has been given outside of a field. The
 	     * field number is set to the current field index.
 	     */
-		FIELD_START,
+		FIELD_START = 2,
 
 		/**
 	     * State returned if the current field ends. The reader assures that a
 	     * field was actually open.
 	     */
-		FIELD_END,
+		FIELD_END = 3,
+
+		/**
+	     * State returned if an annotation was started. An annotation consists
+	     * of the command name and its arguments (which optionally include the
+	     * name).
+	     */
+		ANNOTATION_START = 4,
+
+		/**
+	     * State returned if an annotation ends. The reader indicates which
+	     * annotation ends.
+	     */
+		ANNOTATION_END = 5,
+
+		/**
+	     * State returned if data is given. The reader must decide which field
+	     * or command this should be routed to. Trailing or leading whitespace
+	     * has been removed. Only called if the data is non-empty.
+	     */
+		DATA = 6,
 
 		/**
 	     * The end of the stream has been reached.
 	     */
-		END,
-
-		/**
-	     * Returned from internal functions if nothing should be done.
-	     */
-		NONE,
-
-		/**
-	     * Returned from internal function to indicate irrecoverable errors.
-	     */
-		ERROR
-	};
-
-	/**
-	 * Entry used for the command stack.
-	 */
-	struct Command {
-		/**
-		 * Name and location of the current command.
-		 */
-		Variant name;
-
-		/**
-		 * Arguments that were passed to the command.
-		 */
-		Variant arguments;
-
-		/**
-		 * Vector used as stack for holding the number of opening/closing braces
-		 * and the corresponding "isDefaultField" flag.
-		 */
-		std::vector<bool> fields;
-
-		/**
-		 * Set to true if this is a command with clear begin and end.
-		 */
-		bool hasRange;
-
-		/**
-		 * Default constructor.
-		 */
-		Command()
-		    : hasRange(false),
-		      inField(false),
-		      inDefaultField()
-		{
-		}
-
-		/**
-		 * Constructor of the Command class.
-		 *
-		 * @param name is a string variant with name and location of the
-		 * command.
-		 * @param arguments is a map variant with the arguments given to the
-		 * command.
-		 * @param hasRange should be set to true if this is a command with
-		 * explicit range.
-		 * @param inDefaultField is set to true if we currently are in a
-		 * specially marked default field.
-		 */
-		Command(Variant name, Variant arguments, bool hasRange)
-		    : name(std::move(name)),
-		      arguments(std::move(arguments)),
-		      hasRange(hasRange),
-		      inField(inField),
-		      inRangeField(inRangeField),
-		      inDefaultField(inDefaultField)
-		{
-		}
+		END = 7
 	};
 
 private:
 	/**
-	 * Reference to the CharReader instance from which the incomming bytes are
-	 * read.
-	 */
-	CharReader &reader;
-
-	/**
-	 * Reference at the logger instance to which all error messages are sent.
-	 */
-	Logger &logger;
-
-	/**
-	 * Tokenizer instance used to read individual tokens from the text.
-	 */
-	Tokenizer tokenizer;
-
-	/**
-	 * Variant containing the tokenized data that was returned from the
-	 * tokenizer as data.
-	 */
-	TokenizedData data;
-
-	/**
-	 * Stack containing the current commands.
-	 */
-	std::stack<Command> commands;
-
-	/**
-	 * Pointer at 
+	 * Pointer at the class containing the internal implementation (according
+	 * to the PIMPL idiom).
 	 */
 	std::unique_ptr<OsmlStreamParserImpl> impl;
-
-	/**
-	 * Function used internall to parse an identifier.
-	 *
-	 * @param start is the start byte offset of the identifier (including the
-	 * backslash).
-	 * @param allowNSSep should be set to true if the namespace separator is
-	 * allowed in the identifier name. Issues error if the namespace separator
-	 * is placed incorrectly.
-	 */
-	Variant parseIdentifier(size_t start, bool allowNSSep = false);
-
-	/**
-	 * Function used internally to handle the special "\begin" command.
-	 */
-	State parseBeginCommand();
-
-	/**
-	 * Function used internally to handle the special "\end" command.
-	 */
-	State parseEndCommand();
-
-	/**
-	 * Pushes the parsed command onto the command stack.
-	 */
-	void pushCommand(Variant commandName, Variant commandArguments,
-	                 bool hasRange);
-
-	/**
-	 * Parses the command arguments.
-	 */
-	Variant parseCommandArguments(Variant commandArgName);
-
-	/**
-	 * Function used internally to parse a command.
-	 *
-	 * @param start is the start byte offset of the command (including the
-	 * backslash)
-	 * @param isAnnotation if true, the command is not returned as command, but
-	 * as annotation start.
-	 * @return true if a command was actuall parsed, false otherwise.
-	 */
-	State parseCommand(size_t start, bool isAnnotation);
-
-	/**
-	 * Function used internally to parse a block comment.
-	 */
-	void parseBlockComment();
-
-	/**
-	 * Function used internally to parse a generic comment.
-	 */
-	void parseLineComment();
-
-	/**
-	 * Checks whether there is any data pending to be issued, if yes, issues it.
-	 *
-	 * @return true if there was any data and DATA should be returned by the
-	 * parse function, false otherwise.
-	 */
-	bool checkIssueData();
-
-	/**
-	 * Called before any data is appended to the internal data handler. Checks
-	 * whether a new field should be started or implicitly ended.
-	 *
-	 * @return true if FIELD_START should be returned by the parse function.
-	 */
-	bool checkIssueFieldStart();
-
-	/**
-	 * Closes a currently open field. Note that the command will be removed from
-	 * the internal command stack if the field that is being closed is a
-	 * field marked as default field.
-	 *
-	 * @return true if the field could be closed, false if there was no field
-	 * to close.
-	 */
-	bool closeField();
 
 public:
 	/**
@@ -322,29 +150,9 @@ public:
 	State parse();
 
 	/**
-	 * Returns a reference at the internally stored data. Only valid if
-	 * State::DATA was returned by the "parse" function.
-	 *
-	 * @return a reference at a variant containing the data parsed by the
-	 * "parse" function.
-	 */
-	const TokenizedData &getData() const { return data; }
-
-	/**
-	 * Returns the complete content of the internal TokenizedData instance as
-	 * a single string Variant. This method is mainly used in the unit tests for
-	 * this class, it simply calls the text() method of TokenizedData.
-	 *
-	 * @param mode is the WhitespaceMode that should be used for returning the
-	 * text.
-	 * @return a string variant containing the text content of the internal
-	 * TokenizedData instance or a nullptr variant if there is no text.
-	 */
-	Variant getText(WhitespaceMode mode = WhitespaceMode::COLLAPSE);
-
-	/**
 	 * Returns a reference at the internally stored command name. Only valid if
-	 * State::COMMAND was returned by the "parse" function.
+	 * State::COMMAND_START, State::ANNOTATION_START or State::ANNOTATION_END
+	 * was returned by the "parse" function.
 	 *
 	 * @return a reference at a variant containing name and location of the
 	 * parsed command.
@@ -353,7 +161,8 @@ public:
 
 	/**
 	 * Returns a reference at the internally stored command name. Only valid if
-	 * State::COMMAND was returned by the "parse" function.
+	 * State::COMMAND_START, State::ANNOTATION_START or State::ANNOTATION_END
+	 * was returned by the "parse" function.
 	 *
 	 * @return a reference at a variant containing arguments given to the
 	 * command.
@@ -361,10 +170,37 @@ public:
 	const Variant &getCommandArguments() const;
 
 	/**
+	 * Returns a reference at the internally stored data. Only valid if
+	 * State::DATA was returned by the "parse" function.
+	 *
+	 * @return a reference at a variant containing the data parsed by the
+	 * "parse" function.
+	 */
+	const TokenizedData &getData() const;
+
+	/**
+	 * Returns the location of the current token.
+	 */
+	const SourceLocation &getLocation() const;
+
+	/**
+	 * Returns true if the currently started command is a range command, only
+	 * valid if State::COMMAND_START was returned by the "parse" function.
+	 *
+	 * @return true if the command is started is a range command, false
+	 * otherwise.
+	 */
+	bool inRangeCommand() const;
+
+	/**
 	 * Returns true if the current field is the "default" field. This is true if
 	 * the parser either is in the outer range of a range command or inside a
-	 * field that has been especially marked as "default" field (using the "|"
-	 * syntax).
+	 * field that has been especially marked as "default" field (using the "{!"
+	 * syntax). Only valid if State::FIELD_START was returned by the "parse"
+	 * function.
+	 *
+	 * @return true if the current field was marked as default field (using the
+	 * "{!" syntax).
 	 */
 	bool inDefaultField() const;
 };
