@@ -156,7 +156,6 @@ public:
 		return res;
 	}
 };
-
 }
 
 /* Class Tokenizer */
@@ -252,6 +251,9 @@ bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
 
 		// Create a token containing the data location
 		bestMatch.token = Token{data.getLocation()};
+	} else if (bestMatch.hasMatch() &&
+	           bestMatch.dataStartOffset == initialDataSize) {
+		data.trim(initialDataSize);
 	}
 
 	// Move the read/peek cursor to the end of the token, abort if an error
@@ -269,6 +271,7 @@ bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
 		} else {
 			reader.seekPeekCursor(end);
 		}
+
 		token = bestMatch.token;
 	} else {
 		token = Token{};
