@@ -450,5 +450,32 @@ TEST(Tokenizer, nonPrimaryTokens)
 	TokenizedData data;
 	ASSERT_FALSE(tokenizer.read(reader, token, data));
 }
+
+
+TEST(Tokenizer, ambiguousTokens2)
+{
+	CharReader reader{"<\\"};
+
+	Tokenizer tokenizer;
+
+	TokenId tBackslash = tokenizer.registerToken("\\");
+	TokenId tAnnotationStart = tokenizer.registerToken("<\\");
+
+	TokenSet tokens = TokenSet{tBackslash, tAnnotationStart};
+	Token token;
+	{
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
+		ASSERT_EQ("<\\", token.content);
+		ASSERT_EQ(tAnnotationStart, token.id);
+		ASSERT_TRUE(data.empty());
+	}
+
+	{
+		TokenizedData data;
+		ASSERT_FALSE(tokenizer.read(reader, token, data));
+	}
+}
+
 }
 
