@@ -467,6 +467,7 @@ public:
 	{
 		if (length < size()) {
 			buf.resize(length);
+			protectedChars.resize(length);
 			offsets.trim(length);
 		}
 	}
