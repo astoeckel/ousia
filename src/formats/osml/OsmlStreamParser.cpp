@@ -127,7 +127,7 @@ private:
 	/**
 	 * Set to true if this is a command with clear begin and end.
 	 */
-	bool hasRange;
+	bool hasRange: 1;
 
 public:
 	/**
@@ -259,7 +259,7 @@ public:
 	 */
 	enum class State : uint8_t {
 		COMMAND_START = 0,
-		COMMAND_END = 1,
+		RANGE_END = 1,
 		FIELD_START = 2,
 		FIELD_END = 3,
 		ANNOTATION_START = 4,
@@ -328,7 +328,7 @@ private:
 	 *
 	 * @return an internal State specifying whether an error occured (return
 	 * values State::REOVERABLE_ERROR or State::IRRECOVERABLE_ERROR) or a
-	 * command was actually ended (return value State::COMMAND_END).
+	 * command was actually ended (return value State::RANGE_END).
 	 */
 	State parseEndCommand();
 
@@ -569,7 +569,7 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parseEndCommand()
 	// End the current command
 	location = name.getLocation();
 	commands.pop();
-	return State::COMMAND_END;
+	return State::RANGE_END;
 }
 
 Variant OsmlStreamParserImpl::parseCommandArguments(Variant commandArgName)
@@ -808,14 +808,15 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 
 			// If this was an annotation start token, add the parsed < to the
 			// output
+			SourceOffset charStart = token.location.getStart();
+			SourceOffset charEnd = reader.getPeekOffset();
 			if (type == OsmlTokens.AnnotationStart) {
-				data.append('<', token.location.getStart(),
-				            token.location.getStart() + 1);
+				data.append('<', charStart, charStart + 1);
+				charStart = charStart + 1;
 			}
 
 			// Append the character to the output data, mark it as protected
-			data.append(c, token.location.getStart(), reader.getPeekOffset(),
-			            true);
+			data.append(c, charStart, charEnd, true);
 			reader.consumePeek();
 			continue;
 		} else if (type == Tokens::Data) {
@@ -880,11 +881,12 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 
 	// Make sure all open commands and fields have been ended at the end of the
 	// stream
-	while (commands.size() > 1) {
+	while (true) {
+		bool topLevelCommand = commands.size() == 1U;
 		if (cmd().inField()) {
 			// If the stream ended with an open range field, issue information
 			// about the range field
-			if (cmd().inRangeField()) {
+			if (cmd().inRangeField() && !topLevelCommand) {
 				// Inform about the still open command itself
 				logger.error("Reached end of stream, but command \"" +
 				                 getCommandName().asString() +
@@ -901,7 +903,11 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 				}
 			}
 		}
-		commands.pop();
+		if (!topLevelCommand) {
+			commands.pop();
+		} else {
+			break;
+		}
 	}
 
 	location = SourceLocation{reader.getSourceId(), reader.getOffset()};

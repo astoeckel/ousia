@@ -69,11 +69,11 @@ public:
 		COMMAND_START = 0,
 
 		/**
-	     * State returned if a range command has just ended. This state is not
-	     * returned for non-range commands (as the actual end of a command is
-	     * context dependant).
+	     * State returned if a range command or range annotation has just ended.
+	     * This state is not returned for non-range commands (as the actual end
+	     * of a command is context dependent).
 	     */
-		COMMAND_END = 1,
+		RANGE_END = 1,
 
 		/**
 	     * State returned if a new field started. The reader assures that the
@@ -185,7 +185,8 @@ public:
 
 	/**
 	 * Returns true if the currently started command is a range command, only
-	 * valid if State::COMMAND_START was returned by the "parse" function.
+	 * valid if State::COMMAND_START or State::ANNOTATION_START was returned by
+	 * the "parse" function.
 	 *
 	 * @return true if the command is started is a range command, false
 	 * otherwise.
