@@ -170,6 +170,11 @@ public:
 		if (length < size()) {
 			lens.resize(length);
 			offsets.resize((length >> LOG2_OFFSET_INTERVAL) + 1);
+			if (length > 0) {
+				lastEnd = loadOffset(length - 1).second;
+			} else {
+				lastEnd = 0;
+			}
 		}
 	}
 
