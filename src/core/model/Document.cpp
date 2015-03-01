@@ -723,7 +723,7 @@ void Document::doResolve(ResolutionState &state)
 	if (root != nullptr) {
 		continueResolveCompositum(root, state);
 	}
-	continueResolveReferences(domains, state);
+	continueResolveReferences(ontologies, state);
 	continueResolveReferences(typesystems, state);
 }
 
@@ -761,8 +761,8 @@ bool Document::doValidate(Logger &logger) const
 
 void Document::doReference(Handle<Node> node)
 {
-	if (node->isa(&RttiTypes::Domain)) {
-		referenceDomain(node.cast<Domain>());
+	if (node->isa(&RttiTypes::Ontology)) {
+		referenceOntology(node.cast<Ontology>());
 	}
 	if (node->isa(&RttiTypes::Typesystem)) {
 		referenceTypesystem(node.cast<Typesystem>());
@@ -771,7 +771,7 @@ void Document::doReference(Handle<Node> node)
 
 RttiSet Document::doGetReferenceTypes() const
 {
-	return RttiSet{&RttiTypes::Domain, &RttiTypes::Typesystem};
+	return RttiSet{&RttiTypes::Ontology, &RttiTypes::Typesystem};
 }
 
 Rooted<StructuredEntity> Document::createRootStructuredEntity(

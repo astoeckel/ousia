@@ -22,7 +22,7 @@
 #include <core/common/Utils.hpp>
 #include <core/common/VariantReader.hpp>
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 #include <core/model/Project.hpp>
 #include <core/model/Typesystem.hpp>
 #include <core/parser/ParserScope.hpp>

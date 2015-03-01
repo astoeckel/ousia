@@ -38,12 +38,12 @@ TEST(FileLocator, addSearchPath)
 
 	// Add one path for three types.
 	instance.addSearchPath(".",
-	                       {ResourceType::DOMAIN_DESC, ResourceType::SCRIPT,
+	                       {ResourceType::ONTOLOGY, ResourceType::SCRIPT,
 	                        ResourceType::TYPESYSTEM});
 
 	ASSERT_EQ(3U, instance.getSearchPaths().size());
 
-	auto it = instance.getSearchPaths().find(ResourceType::DOMAIN_DESC);
+	auto it = instance.getSearchPaths().find(ResourceType::ONTOLOGY);
 
 	ASSERT_EQ(1U, it->second.size());
 	ASSERT_EQ(canonicalPath, it->second[0]);
@@ -64,12 +64,12 @@ TEST(FileLocator, addSearchPath)
 	// Adding the path another time should not increase the number of found
 	// paths, except for new resource types
 	instance.addSearchPath(
-	    canonicalPath, {ResourceType::DOMAIN_DESC, ResourceType::SCRIPT,
+	    canonicalPath, {ResourceType::ONTOLOGY, ResourceType::SCRIPT,
 	                    ResourceType::TYPESYSTEM, ResourceType::ATTRIBUTES});
 
 	ASSERT_EQ(4U, instance.getSearchPaths().size());
 
-	it = instance.getSearchPaths().find(ResourceType::DOMAIN_DESC);
+	it = instance.getSearchPaths().find(ResourceType::ONTOLOGY);
 
 	ASSERT_EQ(1U, it->second.size());
 	ASSERT_EQ(canonicalPath, it->second[0]);
@@ -93,11 +93,11 @@ TEST(FileLocator, addSearchPath)
 
 	std::string canonicalPath2 = fs::canonical("..").generic_string();
 
-	instance.addSearchPath("..", {ResourceType::DOMAIN_DESC});
+	instance.addSearchPath("..", {ResourceType::ONTOLOGY});
 
 	ASSERT_EQ(4U, instance.getSearchPaths().size());
 
-	it = instance.getSearchPaths().find(ResourceType::DOMAIN_DESC);
+	it = instance.getSearchPaths().find(ResourceType::ONTOLOGY);
 
 	ASSERT_EQ(2U, it->second.size());
 	ASSERT_EQ(canonicalPath, it->second[0]);
@@ -106,7 +106,7 @@ TEST(FileLocator, addSearchPath)
 
 void assert_located(const FileLocator &instance, const std::string &path,
                     const std::string &relativeTo,
-                    ResourceType type = ResourceType::DOMAIN_DESC)
+                    ResourceType type = ResourceType::ONTOLOGY)
 {
 	Resource res;
 	ASSERT_TRUE(instance.locate(res, path, type, relativeTo));
@@ -117,7 +117,7 @@ void assert_located(const FileLocator &instance, const std::string &path,
 
 void assert_not_located(const FileLocator &instance, const std::string &path,
                         const std::string &relativeTo,
-                        ResourceType type = ResourceType::DOMAIN_DESC)
+                        ResourceType type = ResourceType::ONTOLOGY)
 {
 	Resource res;
 	ASSERT_FALSE(instance.locate(res, path, type, relativeTo));
@@ -134,7 +134,7 @@ TEST(FileLocator, locate)
 	assert_not_located(locator, "c.txt", "");
 
 	// Add the respective search path
-	locator.addUnittestSearchPath("filesystem/b", ResourceType::DOMAIN_DESC);
+	locator.addUnittestSearchPath("filesystem/b", ResourceType::ONTOLOGY);
 
 	// Now we should be able to find both.
 	assert_located(locator, "a.txt", "");
@@ -217,8 +217,8 @@ TEST(FileLocator, testDefaultSearchPaths)
 	locator.addDefaultSearchPaths();
 
 	assert_not_located(locator, "book.osxml", "", ResourceType::UNKNOWN);
-	assert_located(locator, "domain/book.osxml", "", ResourceType::UNKNOWN);
-	assert_located(locator, "book.osxml", "", ResourceType::DOMAIN_DESC);
+	assert_located(locator, "ontology/book.osxml", "", ResourceType::UNKNOWN);
+	assert_located(locator, "book.osxml", "", ResourceType::ONTOLOGY);
 	assert_not_located(locator, "color.osxml", "", ResourceType::UNKNOWN);
 	assert_located(locator, "typesystem/color.osxml", "",
 	               ResourceType::UNKNOWN);

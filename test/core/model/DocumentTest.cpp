@@ -23,10 +23,10 @@
 #include <core/common/Rtti.hpp>
 #include <core/frontend/TerminalLogger.hpp>
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 
 #include "TestDocument.hpp"
-#include "TestDomain.hpp"
+#include "TestOntology.hpp"
 
 namespace ousia {
 
@@ -36,10 +36,10 @@ TEST(Document, construct)
 	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Get the domain.
-	Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
+	// Get the ontology.
+	Rooted<Ontology> ontology = constructBookOntology(mgr, sys, logger);
 	// Construct the document.
-	Rooted<Document> doc = constructBookDocument(mgr, logger, domain);
+	Rooted<Document> doc = constructBookDocument(mgr, logger, ontology);
 
 	// Check the document content.
 	ASSERT_FALSE(doc.isNull());
@@ -111,22 +111,22 @@ TEST(Document, construct)
 
 TEST(Document, validate)
 {
-	// Let's start with a trivial domain and a trivial document.
+	// Let's start with a trivial ontology and a trivial document.
 	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	Rooted<Domain> domain{new Domain(mgr, sys, "trivial")};
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "trivial")};
 	Cardinality single;
 	single.merge({1});
 	// Set up the "root" StructuredClass.
 	Rooted<StructuredClass> rootClass{new StructuredClass(
-	    mgr, "root", domain, single, {nullptr}, false, true)};
+	    mgr, "root", ontology, single, {nullptr}, false, true)};
 
 	// set up a document for it.
 	{
 		// first an invalid one, which is empty.
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->referenceDomain(domain);
+		doc->referenceOntology(ontology);
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
 		ASSERT_FALSE(doc->validate(logger));
 		// then add a root, which should make it valid.
@@ -138,7 +138,7 @@ TEST(Document, validate)
 	{
 		// A root with an invalid name, however, should make it invalid
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->referenceDomain(domain);
+		doc->referenceOntology(ontology);
 		Rooted<StructuredEntity> root = buildRootStructuredEntity(
 		    doc, logger, {"root"}, {}, "my invalid root");
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
@@ -150,7 +150,7 @@ TEST(Document, validate)
 	    rootClass->createFieldDescriptor(logger).first;
 	// and add a child class for it.
 	Rooted<StructuredClass> childClass{
-	    new StructuredClass(mgr, "child", domain, single)};
+	    new StructuredClass(mgr, "child", ontology, single)};
 	rootField->addChild(childClass);
 	{
 		/*
@@ -158,7 +158,7 @@ TEST(Document, validate)
 		 * document should be invalid again.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->referenceDomain(domain);
+		doc->referenceOntology(ontology);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
@@ -173,16 +173,16 @@ TEST(Document, validate)
 		ASSERT_FALSE(doc->validate(logger));
 	}
 	/*
-	 * Add a further extension to the domain: We add a subclass to child.
+	 * Add a further extension to the ontology: We add a subclass to child.
 	 */
 	Rooted<StructuredClass> childSubClass{
-	    new StructuredClass(mgr, "childSub", domain, single, childClass)};
+	    new StructuredClass(mgr, "childSub", ontology, single, childClass)};
 	{
 		/*
 		 * A document with one instance of the Child subclass should be valid.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->referenceDomain(domain);
+		doc->referenceOntology(ontology);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		buildStructuredEntity(doc, logger, root, {"childSub"});
@@ -202,7 +202,7 @@ TEST(Document, validate)
 		 * invalid, because it has no children of itself.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->referenceDomain(domain);
+		doc->referenceOntology(ontology);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		buildStructuredEntity(doc, logger, root, {"childSub"});
@@ -223,7 +223,7 @@ TEST(Document, validate)
 		 * valid, because of the override.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->referenceDomain(domain);
+		doc->referenceOntology(ontology);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		buildStructuredEntity(doc, logger, root, {"childSub"});
@@ -241,7 +241,7 @@ TEST(Document, validate)
 		 * invalid again, because we are missing the primitive content.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->referenceDomain(domain);
+		doc->referenceOntology(ontology);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		Rooted<StructuredEntity> child =
@@ -259,14 +259,14 @@ TEST(Document, validate)
 		ASSERT_TRUE(doc->validate(logger));
 	}
 
-	// Now add an Annotation class to the domain.
-	Rooted<AnnotationClass> annoClass{new AnnotationClass(mgr, "anno", domain)};
+	// Now add an Annotation class to the ontology.
+	Rooted<AnnotationClass> annoClass{new AnnotationClass(mgr, "anno", ontology)};
 	{
 		/*
 		 * Create a valid document in itself.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-		doc->referenceDomain(domain);
+		doc->referenceOntology(ontology);
 		Rooted<StructuredEntity> root =
 		    buildRootStructuredEntity(doc, logger, {"root"});
 		Rooted<Anchor> start{new Anchor(mgr, root)};

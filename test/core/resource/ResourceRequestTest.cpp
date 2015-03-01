@@ -31,7 +31,7 @@ namespace ousia {
 
 namespace RttiTypes {
 extern const Rtti Document;
-extern const Rtti Domain;
+extern const Rtti Ontology;
 extern const Rtti Typesystem;
 }
 
@@ -62,12 +62,12 @@ struct TestSetup {
 
 	TestSetup()
 	{
-		registry.registerExtension("domain", "application/domain");
+		registry.registerExtension("ontology", "application/ontology");
 		registry.registerExtension("typesystem", "application/typesystem");
 		registry.registerExtension("document", "application/document");
 		registry.registerParser(
-		    {"application/domain", "application/typesystem"},
-		    {&RttiTypes::Domain, &RttiTypes::Typesystem}, &pModule);
+		    {"application/ontology", "application/typesystem"},
+		    {&RttiTypes::Ontology, &RttiTypes::Typesystem}, &pModule);
 		registry.registerParser({"application/document"},
 		                        {&RttiTypes::Document}, &pDocument);
 	}
@@ -78,16 +78,16 @@ TEST(ResourceRequest, deduction)
 {
 	TestSetup t;
 
-	ResourceRequest req("test.domain", "", "", {&RttiTypes::Domain});
+	ResourceRequest req("test.ontology", "", "", {&RttiTypes::Ontology});
 
 	ASSERT_TRUE(req.deduce(t.registry, logger));
 
-	ASSERT_EQ("test.domain", req.getPath());
-	ASSERT_EQ("application/domain", req.getMimetype());
-	ASSERT_EQ(RttiSet({&RttiTypes::Domain}), req.getSupportedTypes());
-	ASSERT_EQ(ResourceType::DOMAIN_DESC, req.getResourceType());
+	ASSERT_EQ("test.ontology", req.getPath());
+	ASSERT_EQ("application/ontology", req.getMimetype());
+	ASSERT_EQ(RttiSet({&RttiTypes::Ontology}), req.getSupportedTypes());
+	ASSERT_EQ(ResourceType::ONTOLOGY, req.getResourceType());
 	ASSERT_EQ(&t.pModule, req.getParser());
-	ASSERT_EQ(RttiSet({&RttiTypes::Domain, &RttiTypes::Typesystem}),
+	ASSERT_EQ(RttiSet({&RttiTypes::Ontology, &RttiTypes::Typesystem}),
 	          req.getParserTypes());
 }
 
@@ -95,17 +95,17 @@ TEST(ResourceRequest, deductionWithMimetype)
 {
 	TestSetup t;
 
-	ResourceRequest req("test.domain", "application/typesystem", "",
+	ResourceRequest req("test.ontology", "application/typesystem", "",
 	                    {&RttiTypes::Typesystem});
 
 	ASSERT_TRUE(req.deduce(t.registry, logger));
 
-	ASSERT_EQ("test.domain", req.getPath());
+	ASSERT_EQ("test.ontology", req.getPath());
 	ASSERT_EQ("application/typesystem", req.getMimetype());
 	ASSERT_EQ(RttiSet({&RttiTypes::Typesystem}), req.getSupportedTypes());
 	ASSERT_EQ(ResourceType::TYPESYSTEM, req.getResourceType());
 	ASSERT_EQ(&t.pModule, req.getParser());
-	ASSERT_EQ(RttiSet({&RttiTypes::Domain, &RttiTypes::Typesystem}),
+	ASSERT_EQ(RttiSet({&RttiTypes::Ontology, &RttiTypes::Typesystem}),
 	          req.getParserTypes());
 }
 
@@ -113,18 +113,18 @@ TEST(ResourceRequest, deductionWithUnknownResourceType)
 {
 	TestSetup t;
 
-	ResourceRequest req("test.domain", "", "",
-	                    {&RttiTypes::Domain, &RttiTypes::Typesystem});
+	ResourceRequest req("test.ontology", "", "",
+	                    {&RttiTypes::Ontology, &RttiTypes::Typesystem});
 
 	ASSERT_TRUE(req.deduce(t.registry, logger));
 
-	ASSERT_EQ("test.domain", req.getPath());
-	ASSERT_EQ("application/domain", req.getMimetype());
-	ASSERT_EQ(RttiSet({&RttiTypes::Domain, &RttiTypes::Typesystem}),
+	ASSERT_EQ("test.ontology", req.getPath());
+	ASSERT_EQ("application/ontology", req.getMimetype());
+	ASSERT_EQ(RttiSet({&RttiTypes::Ontology, &RttiTypes::Typesystem}),
 	          req.getSupportedTypes());
 	ASSERT_EQ(ResourceType::UNKNOWN, req.getResourceType());
 	ASSERT_EQ(&t.pModule, req.getParser());
-	ASSERT_EQ(RttiSet({&RttiTypes::Domain, &RttiTypes::Typesystem}),
+	ASSERT_EQ(RttiSet({&RttiTypes::Ontology, &RttiTypes::Typesystem}),
 	          req.getParserTypes());
 }
 
@@ -132,17 +132,17 @@ TEST(ResourceRequest, deductionWithRel)
 {
 	TestSetup t;
 
-	ResourceRequest req("test.domain", "", "domain",
-	                    {&RttiTypes::Domain, &RttiTypes::Typesystem});
+	ResourceRequest req("test.ontology", "", "ontology",
+	                    {&RttiTypes::Ontology, &RttiTypes::Typesystem});
 
 	ASSERT_TRUE(req.deduce(t.registry, logger));
 
-	ASSERT_EQ("test.domain", req.getPath());
-	ASSERT_EQ("application/domain", req.getMimetype());
-	ASSERT_EQ(RttiSet({&RttiTypes::Domain}), req.getSupportedTypes());
-	ASSERT_EQ(ResourceType::DOMAIN_DESC, req.getResourceType());
+	ASSERT_EQ("test.ontology", req.getPath());
+	ASSERT_EQ("application/ontology", req.getMimetype());
+	ASSERT_EQ(RttiSet({&RttiTypes::Ontology}), req.getSupportedTypes());
+	ASSERT_EQ(ResourceType::ONTOLOGY, req.getResourceType());
 	ASSERT_EQ(&t.pModule, req.getParser());
-	ASSERT_EQ(RttiSet({&RttiTypes::Domain, &RttiTypes::Typesystem}),
+	ASSERT_EQ(RttiSet({&RttiTypes::Ontology, &RttiTypes::Typesystem}),
 	          req.getParserTypes());
 }
 }

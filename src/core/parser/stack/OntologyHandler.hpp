@@ -17,10 +17,10 @@
 */
 
 /**
- * @file DomainHandler.hpp
+ * @file OntologyHandler.hpp
  *
- * Contains the Handler classes used for parsing Domain descriptors. This
- * includes the "domain" tag and all describing tags below the "domain" tag.
+ * Contains the Handler classes used for parsing Ontology descriptors. This
+ * includes the "ontology" tag and all describing tags below the "ontology" tag.
  *
  * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
  */
@@ -42,7 +42,7 @@ namespace parser_stack {
 
 // TODO: Documentation
 
-class DomainHandler : public StaticHandler {
+class OntologyHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
@@ -51,11 +51,11 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new DomainHandler{handlerData};
+		return new OntologyHandler{handlerData};
 	}
 };
 
-class DomainStructHandler : public StaticHandler {
+class OntologyStructHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
@@ -64,11 +64,11 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new DomainStructHandler{handlerData};
+		return new OntologyStructHandler{handlerData};
 	}
 };
 
-class DomainAnnotationHandler : public StaticHandler {
+class OntologyAnnotationHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
@@ -77,11 +77,11 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new DomainAnnotationHandler{handlerData};
+		return new OntologyAnnotationHandler{handlerData};
 	}
 };
 
-class DomainAttributesHandler : public StaticHandler {
+class OntologyAttributesHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
@@ -90,11 +90,11 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new DomainAttributesHandler{handlerData};
+		return new OntologyAttributesHandler{handlerData};
 	}
 };
 
-class DomainFieldHandler : public StaticHandler {
+class OntologyFieldHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
@@ -103,11 +103,11 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new DomainFieldHandler{handlerData};
+		return new OntologyFieldHandler{handlerData};
 	}
 };
 
-class DomainFieldRefHandler : public StaticHandler {
+class OntologyFieldRefHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
@@ -116,11 +116,11 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new DomainFieldRefHandler{handlerData};
+		return new OntologyFieldRefHandler{handlerData};
 	}
 };
 
-class DomainPrimitiveHandler : public StaticHandler {
+class OntologyPrimitiveHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
@@ -129,11 +129,11 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new DomainPrimitiveHandler{handlerData};
+		return new OntologyPrimitiveHandler{handlerData};
 	}
 };
 
-class DomainChildHandler : public StaticHandler {
+class OntologyChildHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
@@ -141,16 +141,16 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new DomainChildHandler{handlerData};
+		return new OntologyChildHandler{handlerData};
 	}
 };
 
-class DomainParent : public Node {
+class OntologyParent : public Node {
 public:
 	using Node::Node;
 };
 
-class DomainParentHandler : public StaticHandler {
+class OntologyParentHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
@@ -159,11 +159,11 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new DomainParentHandler{handlerData};
+		return new OntologyParentHandler{handlerData};
 	}
 };
 
-class DomainParentFieldHandler : public StaticHandler {
+class OntologyParentFieldHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
@@ -171,11 +171,11 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new DomainParentFieldHandler{handlerData};
+		return new OntologyParentFieldHandler{handlerData};
 	}
 };
 
-class DomainParentFieldRefHandler : public StaticHandler {
+class OntologyParentFieldRefHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
@@ -183,75 +183,75 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new DomainParentFieldRefHandler{handlerData};
+		return new OntologyParentFieldRefHandler{handlerData};
 	}
 };
 
 namespace States {
 /**
- * State representing a "domain" struct.
+ * State representing a "ontology" struct.
  */
-extern const State Domain;
+extern const State Ontology;
 
 /**
- * State representing a "struct" tag within a domain description.
+ * State representing a "struct" tag within a ontology description.
  */
-extern const State DomainStruct;
+extern const State OntologyStruct;
 
 /**
- * State representing an "annotation" tag within a domain description.
+ * State representing an "annotation" tag within a ontology description.
  */
-extern const State DomainAnnotation;
+extern const State OntologyAnnotation;
 
 /**
  * State representing an "attributes" tag within a structure or annotation.
  */
-extern const State DomainAttributes;
+extern const State OntologyAttributes;
 
 /**
  * State representing an "attribute" tag within the "attributes".
  */
-extern const State DomainAttribute;
+extern const State OntologyAttribute;
 
 /**
  * State representing a "field" tag within a structure or annotation.
  */
-extern const State DomainField;
+extern const State OntologyField;
 
 /**
  * State representing a "fieldref" tag within a structure or annotation.
  */
-extern const State DomainFieldRef;
+extern const State OntologyFieldRef;
 
 /**
  * State representing a "primitive" tag within a structure or annotation.
  */
-extern const State DomainStructPrimitive;
+extern const State OntologyStructPrimitive;
 
 /**
  * State representing a "child" tag within a structure or annotation.
  */
-extern const State DomainStructChild;
+extern const State OntologyStructChild;
 
 /**
  * State representing a "parent" tag within a structure or annotation.
  */
-extern const State DomainStructParent;
+extern const State OntologyStructParent;
 
 /**
  * State representing a "field" tag within a "parent" tag.
  */
-extern const State DomainStructParentField;
+extern const State OntologyStructParentField;
 
 /**
  * State representing a "fieldRef" tag within a "parent" tag.
  */
-extern const State DomainStructParentFieldRef;
+extern const State OntologyStructParentFieldRef;
 }
 }
 
 namespace RttiTypes {
-extern const Rtti DomainParent;
+extern const Rtti OntologyParent;
 }
 }
 #endif

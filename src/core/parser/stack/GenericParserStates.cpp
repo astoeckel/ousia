@@ -17,7 +17,7 @@
 */
 
 #include "DocumentHandler.hpp"
-#include "DomainHandler.hpp"
+#include "OntologyHandler.hpp"
 #include "GenericParserStates.hpp"
 #include "ImportIncludeHandler.hpp"
 #include "TypesystemHandler.hpp"
@@ -28,18 +28,18 @@ namespace parser_stack {
 const std::multimap<std::string, const State *> GenericParserStates{
     {"document", &States::Document},
     {"*", &States::DocumentChild},
-    {"domain", &States::Domain},
-    {"struct", &States::DomainStruct},
-    {"annotation", &States::DomainAnnotation},
-    {"attributes", &States::DomainAttributes},
-    {"attribute", &States::DomainAttribute},
-    {"field", &States::DomainField},
-    {"fieldRef", &States::DomainFieldRef},
-    {"primitive", &States::DomainStructPrimitive},
-    {"childRef", &States::DomainStructChild},
-    {"parentRef", &States::DomainStructParent},
-    {"field", &States::DomainStructParentField},
-    {"fieldRef", &States::DomainStructParentFieldRef},
+    {"ontology", &States::Ontology},
+    {"struct", &States::OntologyStruct},
+    {"annotation", &States::OntologyAnnotation},
+    {"attributes", &States::OntologyAttributes},
+    {"attribute", &States::OntologyAttribute},
+    {"field", &States::OntologyField},
+    {"fieldRef", &States::OntologyFieldRef},
+    {"primitive", &States::OntologyStructPrimitive},
+    {"childRef", &States::OntologyStructChild},
+    {"parentRef", &States::OntologyStructParent},
+    {"field", &States::OntologyStructParentField},
+    {"fieldRef", &States::OntologyStructParentFieldRef},
     {"typesystem", &States::Typesystem},
     {"enum", &States::TypesystemEnum},
     {"entry", &States::TypesystemEnumEntry},

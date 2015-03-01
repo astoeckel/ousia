@@ -19,7 +19,7 @@
 #include <core/common/Exceptions.hpp>
 #include <core/common/Utils.hpp>
 #include <core/common/VariantWriter.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 #include <core/model/Typesystem.hpp>
 #include <core/model/RootNode.hpp>
 

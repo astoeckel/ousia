@@ -19,27 +19,27 @@
 #ifndef _MODEL_TEST_DOMAIN_HPP_
 #define _MODEL_TEST_DOMAIN_HPP_
 
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 #include <core/model/Typesystem.hpp>
 
 namespace ousia {
 /**
- * This constructs the "book" domain for test purposes. The structure of the
- * domain is fairly simple and can be seen from the construction itself.
+ * This constructs the "book" ontology for test purposes. The structure of the
+ * ontology is fairly simple and can be seen from the construction itself.
  */
-static Rooted<Domain> constructBookDomain(Manager &mgr,
+static Rooted<Ontology> constructBookOntology(Manager &mgr,
                                           Handle<SystemTypesystem> sys,
                                           Logger &logger)
 {
-	// Start with the Domain itself.
-	Rooted<Domain> domain{new Domain(mgr, sys, "book")};
+	// Start with the Ontology itself.
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "book")};
 	// Set up the cardinalities we'll need.
 	Cardinality single;
 	single.merge({1});
 
 	// Set up the "book" node.
 	Rooted<StructuredClass> book{new StructuredClass(
-	    mgr, "book", domain, single, {nullptr}, false, true)};
+	    mgr, "book", ontology, single, {nullptr}, false, true)};
 
 	// The structure field of it.
 	Rooted<FieldDescriptor> book_field =
@@ -47,7 +47,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// From there on the "section".
 	Rooted<StructuredClass> section{
-	    new StructuredClass(mgr, "section", domain, Cardinality::any())};
+	    new StructuredClass(mgr, "section", ontology, Cardinality::any())};
 	book_field->addChild(section);
 
 	// And the field of it.
@@ -56,7 +56,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// We also add the "paragraph", which is transparent.
 	Rooted<StructuredClass> paragraph{new StructuredClass(
-	    mgr, "paragraph", domain, Cardinality::any(), {nullptr}, true)};
+	    mgr, "paragraph", ontology, Cardinality::any(), {nullptr}, true)};
 	section_field->addChild(paragraph);
 	book_field->addChild(paragraph);
 
@@ -66,7 +66,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// We append "subsection" to section.
 	Rooted<StructuredClass> subsection{
-	    new StructuredClass(mgr, "subsection", domain, Cardinality::any())};
+	    new StructuredClass(mgr, "subsection", ontology, Cardinality::any())};
 	section_field->addChild(subsection);
 
 	// And the field of it.
@@ -78,7 +78,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 
 	// Finally we add the "text" node, which is transparent as well.
 	Rooted<StructuredClass> text{new StructuredClass(
-	    mgr, "text", domain, Cardinality::any(), {nullptr}, true)};
+	    mgr, "text", ontology, Cardinality::any(), {nullptr}, true)};
 	paragraph_field->addChild(text);
 
 	// ... and has a primitive field.
@@ -86,7 +86,7 @@ static Rooted<Domain> constructBookDomain(Manager &mgr,
 	    text->createPrimitiveFieldDescriptor(sys->getStringType(), logger)
 	        .first;
 
-	return domain;
+	return ontology;
 }
 }
 

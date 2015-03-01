@@ -51,10 +51,10 @@ void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
 	Manager &mgr = doc->getManager();
 	// the outermost tag is the document itself.
 	Rooted<Element> document{new Element{mgr, {nullptr}, "document"}};
-	// write imports for all referenced domains.
-	for (auto d : doc->getDomains()) {
+	// write imports for all referenced ontologies.
+	for (auto d : doc->getOntologys()) {
 		Rooted<Element> import =
-		    createImportElement(document, d, resourceManager, "domain");
+		    createImportElement(document, d, resourceManager, "ontology");
 		if (import != nullptr) {
 			document->addChild(import);
 			// add the import as namespace information to the document node as
@@ -63,7 +63,7 @@ void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
 			    std::string("xmlns:") + d->getName(), d->getName());
 		} else {
 			logger.warning(std::string(
-			    "The location of domain \"" + d->getName() +
+			    "The location of ontology \"" + d->getName() +
 			    "\" could not be retrieved using the given ResourceManager."));
 		}
 	}
@@ -199,7 +199,7 @@ Rooted<Element> XmlTransformer::transformStructuredEntity(
 	Rooted<Element> elem{
 	    new Element{mgr, parent, s->getDescriptor()->getName(),
 	                transformAttributes(s->getName(), s.get(), logger, pretty),
-	                s->getDescriptor()->getParent().cast<Domain>()->getName()}};
+	                s->getDescriptor()->getParent().cast<Ontology>()->getName()}};
 	// then transform the children.
 	transformChildren(s.get(), elem, logger, pretty);
 	return elem;

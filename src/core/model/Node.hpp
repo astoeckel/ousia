@@ -88,7 +88,7 @@ struct ResolutionResult {
 
 	/**
 	 * Root node of the subtree in which the node was found. This e.g. points to
-	 * the Domain in which a Structure was defined or the Typesystem in which a
+	 * the Ontology in which a Structure was defined or the Typesystem in which a
 	 * Type was defined. May be nullptr.
 	 */
 	Rooted<Node> resolutionRoot;
@@ -119,7 +119,7 @@ class ResolutionState;
 
 /**
  * The Node class builds the base class for any Node within the DOM graph. A
- * node may either be a descriptive node (such as a domain description etc.)
+ * node may either be a descriptive node (such as a ontology description etc.)
  * or a document element. Each node is identified by acharacteristic name and
  * a parent element. Note that the node name is not required to be unique. Nodes
  * without parent are considered root nodes.

@@ -62,7 +62,7 @@ public:
 	/**
 	 * This writes an XML serialization of the given document to the given
 	 * output stream. The serialization is  equivalent to the input XML format,
-	 * safe for the domain references. TODO: Can we change this? If so: how?
+	 * safe for the ontology references. TODO: Can we change this? If so: how?
 	 * Note, though, that the serialization will not exploit transparency.
 	 * TODO: Can we change that?
 	 *
@@ -70,7 +70,7 @@ public:
 	 * @param out    is the output stream the XML serialization of the document
 	 *               shall be written to.
 	 * @param logger is the logger errors shall be written to.
-	 * @param resMgr is the ResourceManager to locate the domains and
+	 * @param resMgr is the ResourceManager to locate the ontologies and
 	 *               typesystems that were imported in this document.
 	 * @param pretty is a flag that manipulates whether newlines and tabs are
 	 *               used.

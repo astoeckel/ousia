@@ -17,11 +17,11 @@
 */
 
 /**
- * @file Domain.hpp
+ * @file Ontology.hpp
  *
- * This header contains the class hierarchy of descriptor classes for domains.
- * Properly connected instances of these classes with a Domain node as root
- * describe a semantic Domain in a formal way. It specifies the allowed (tree)
+ * This header contains the class hierarchy of descriptor classes for ontologies.
+ * Properly connected instances of these classes with a Ontology node as root
+ * describe a semantic Ontology in a formal way. It specifies the allowed (tree)
  * structure of a document by means of StructuredClasses as well as the allowed
  * Annotations by means of AnnotationClasses.
  *
@@ -33,7 +33,7 @@
  * book and one for the actual structure. Consider the following XML:
  *
  * \code{.xml}
- * <domain name="book">
+ * <ontology name="book">
  * 	<struct name="book" cardinality="1" isRoot="true">
  * 		<field>
  * 			<childRef ref="book.chapter"/>
@@ -65,7 +65,7 @@
  * 	<struct name="text" transparent="true">
  * 		<primitive type="string"/>
  * 	</struct>
- * </domain>
+ * </ontology>
  * \endcode
  *
  * Note that we define one field as the TREE (meaning the main or default
@@ -95,12 +95,12 @@
  * the proper StructuredClass. This can be regulated by the "cardinality"
  * property of a StructuredClass.
  *
- * It is possible to add further fields, like we would in the "headings" domain
+ * It is possible to add further fields, like we would in the "headings" ontology
  * to add titles to our structure.
  *
  * \code{.xml}
- * <domain name="headings">
- *	<import rel="domain" src="./book_domain.osxml"/>
+ * <ontology name="headings">
+ *	<import rel="ontology" src="./book_ontology.osxml"/>
  * 	<struct name="heading" cardinality="1" transparent="true">
  * 		<parentRef ref="book.book">
  * 			<field name="heading" isSubtree="true" optional="true"/>
@@ -108,7 +108,7 @@
  * 		...
  * 		<fieldRef name="book.paragraph.">
  * 	</struct>
- * </domain>
+ * </ontology>
  * \endcode
  *
  * This would change the context free grammar as follows:
@@ -119,14 +119,14 @@
  * \endcode
  *
  * AnnotationClasses on the other hand do not specify a context free grammar.
- * They merely specify what kinds of Annotations are allowed within this domain
+ * They merely specify what kinds of Annotations are allowed within this ontology
  * and which fields or attributes they have. Note that Annotations are allowed
  * to define structured children that manifest e.g. meta information of that
- * Annotation. An example for that would be the "comment" domain:
+ * Annotation. An example for that would be the "comment" ontology:
  *
  * \code{.xml}
- * <domain name="comments">
- *	<import rel="domain" src="./book_domain.osxml"/>
+ * <ontology name="comments">
+ *	<import rel="ontology" src="./book_ontology.osxml"/>
  *
  *	<annotation name="comment">
  *		<field name="content" isSubtree="true">
@@ -156,7 +156,7 @@
  *			<childRef ref="reply"/>
  *		</field>
  *	</struct>
- * </domain>
+ * </ontology>
  * \endcode
  *
  * Here we have comment annotations, which have a reply tree as sub structure.
@@ -180,7 +180,7 @@ namespace ousia {
 class Rtti;
 class Descriptor;
 class StructuredClass;
-class Domain;
+class Ontology;
 
 /**
  * Magic field name used to identify the default field. The default field is
@@ -481,8 +481,8 @@ protected:
 	bool doValidate(Logger &logger) const override;
 
 public:
-	Descriptor(Manager &mgr, std::string name, Handle<Domain> domain)
-	    : Node(mgr, std::move(name), domain),
+	Descriptor(Manager &mgr, std::string name, Handle<Ontology> ontology)
+	    : Node(mgr, std::move(name), ontology),
 	      attributesDescriptor(acquire(new StructType(mgr, "", nullptr))),
 	      fieldDescriptors(this)
 	{
@@ -490,10 +490,10 @@ public:
 
 	/**
 	 * Returns a reference to the StructType that specifies the attribute keys
-	 * as well as value domains for this Descriptor.
+	 * as well as value ontologies for this Descriptor.
 	 *
 	 * @return a reference to the StructType that specifies the attribute keys
-	 *         as well as value domains for this Descriptor.
+	 *         as well as value ontologies for this Descriptor.
 	 */
 	Rooted<StructType> getAttributesDescriptor() const
 	{
@@ -645,7 +645,7 @@ public:
 
 	/**
 	 * This tries to construct the shortest possible path of this Descriptor
-	 * to the given child Descriptor. As an example consider the book domain
+	 * to the given child Descriptor. As an example consider the book ontology
 	 * from above.
 	 *
 	 * First consider the call book->pathTo(chapter). This is an easy example:
@@ -729,17 +729,17 @@ public:
 
 /**
  * A StructuredClass specifies nodes in the StructureTree of a document that
- * implements this domain. For more information on the StructureTree please
+ * implements this ontology. For more information on the StructureTree please
  * consult the Header documentation above.
  *
- * Note that a StructuredClass may "invade" an existing Domain description by
+ * Note that a StructuredClass may "invade" an existing Ontology description by
  * defining itself as a viable child in one existing field. Consider the
- * example of the "heading" domain from the header documentation again:
+ * example of the "heading" ontology from the header documentation again:
  *
  * \code{.xml}
- * <domain name="headings">
+ * <ontology name="headings">
  * 	<head>
- * 		<import rel="domain" src="book.oxm"/>
+ * 		<import rel="ontology" src="book.oxm"/>
  * 	</head>
  * 	<structs>
  * 		<struct name="heading" cardinality="0-1" transparent="true">
@@ -753,14 +753,14 @@ public:
  * 				<fieldRef name="book.paragraph.">
  * 			</fields>
  * 	</structs>
- * </domain>
+ * </ontology>
  * \endcode
  *
- * The "parent" construct allows to "invade" another domain.
+ * The "parent" construct allows to "invade" another ontology.
  *
- * This does indeed interfere with an existing domain and one must carefully
+ * This does indeed interfere with an existing ontology and one must carefully
  * craft such parent references to not create undesired side effects. However
- * they provide the most convenient mechanism to extend existing domains
+ * they provide the most convenient mechanism to extend existing ontologies
  * without having to rewrite them.
  *
  * Another important factor is the 'transparent' flag. Transparent
@@ -798,7 +798,7 @@ public:
  * Inheritance therefore also goes for fields.
  */
 class StructuredClass : public Descriptor {
-	friend Domain;
+	friend Ontology;
 
 private:
 	const Variant cardinality;
@@ -824,7 +824,7 @@ public:
 	 *
 	 * @param mgr                  is the current Manager.
 	 * @param name                 is the name of the StructuredClass.
-	 * @param domain               is the Domain this StructuredClass belongs
+	 * @param ontology               is the Ontology this StructuredClass belongs
 	 *                             to.
 	 * @param cardinality          specifies how often an element of this type
 	 *                             may occur at a specific point in the
@@ -846,7 +846,7 @@ public:
 	 *                             allowed to be at the root of a Document.
 	 */
 	StructuredClass(Manager &mgr, std::string name,
-	                Handle<Domain> domain = nullptr,
+	                Handle<Ontology> ontology = nullptr,
 	                Variant cardinality = Cardinality::any(),
 	                Handle<StructuredClass> superclass = nullptr,
 	                bool transparent = false, bool root = false);
@@ -972,7 +972,7 @@ public:
  * This class has no special properties and is in essence just a Descriptor.
  */
 class AnnotationClass : public Descriptor {
-	friend Domain;
+	friend Ontology;
 
 public:
 	/**
@@ -983,18 +983,18 @@ public:
 	 * @param name                 is a name for this AnnotationClass that will
 	 *                             be used for later references to this
 	 *                             AnnotationClass.
-	 * @param domain               is the Domain this AnnotationClass belongs
+	 * @param ontology               is the Ontology this AnnotationClass belongs
 	 *                             to.
 	 */
-	AnnotationClass(Manager &mgr, std::string name, Handle<Domain> domain);
+	AnnotationClass(Manager &mgr, std::string name, Handle<Ontology> ontology);
 };
 
 /**
- * A Domain node specifies which StructuredClasses and which AnnotationClasses
- * are part of this domain. TODO: Do we want to be able to restrict Annotations
+ * A Ontology node specifies which StructuredClasses and which AnnotationClasses
+ * are part of this ontology. TODO: Do we want to be able to restrict Annotations
  * to certain Structures?
  */
-class Domain : public RootNode {
+class Ontology : public RootNode {
 	friend StructuredClass;
 	friend AnnotationClass;
 
@@ -1002,7 +1002,7 @@ private:
 	NodeVector<StructuredClass> structuredClasses;
 	NodeVector<AnnotationClass> annotationClasses;
 	NodeVector<Typesystem> typesystems;
-	NodeVector<Domain> domains;
+	NodeVector<Ontology> ontologies;
 
 protected:
 	void doResolve(ResolutionState &state) override;
@@ -1012,81 +1012,81 @@ protected:
 
 public:
 	/**
-	 * The constructor for a new domain. Note that this is an empty Domain and
+	 * The constructor for a new ontology. Note that this is an empty Ontology and
 	 * still has to be filled with StructuredClasses and AnnotationClasses.
 	 *
 	 * @param mgr  is the Manager instance.
-	 * @param name is a name for this domain which will be used for later
-	 *             references to this Domain.
+	 * @param name is a name for this ontology which will be used for later
+	 *             references to this Ontology.
 	 */
-	Domain(Manager &mgr, std::string name = "")
+	Ontology(Manager &mgr, std::string name = "")
 	    : RootNode(mgr, std::move(name), nullptr),
 	      structuredClasses(this),
 	      annotationClasses(this),
 	      typesystems(this),
-	      domains(this)
+	      ontologies(this)
 	{
 	}
 
 	/**
-	 * The constructor for a new domain. Note that this is an empty Domain and
+	 * The constructor for a new ontology. Note that this is an empty Ontology and
 	 * still has to be filled with StructuredClasses and AnnotationClasses.
 	 *
 	 * @param mgr  is the Manager instance.
 	 * @param sys  is the SystemTypesystem instance.
-	 * @param name is a name for this domain which will be used for later
-	 *             references to this Domain.
+	 * @param name is a name for this ontology which will be used for later
+	 *             references to this Ontology.
 	 */
-	Domain(Manager &mgr, Handle<SystemTypesystem> sys, std::string name = "")
-	    : Domain(mgr, std::move(name))
+	Ontology(Manager &mgr, Handle<SystemTypesystem> sys, std::string name = "")
+	    : Ontology(mgr, std::move(name))
 	{
 		referenceTypesystem(sys);
 	}
 
 	/**
-	 * Creates a new Domain and returns it.
+	 * Creates a new Ontology and returns it.
 	 *
 	 * @param mgr  is the Manager instance.
-	 * @param name is a name for this domain which will be used for later
-	 *             references to this Domain.
+	 * @param name is a name for this ontology which will be used for later
+	 *             references to this Ontology.
 	 */
-	static Rooted<Domain> createEmptyDomain(Manager &mgr, std::string name)
+	static Rooted<Ontology> createEmptyOntology(Manager &mgr, std::string name)
 	{
-		return Rooted<Domain>{new Domain(mgr, std::move(name))};
+		return Rooted<Ontology>{new Ontology(mgr, std::move(name))};
 	}
 
 	/**
 	 * Returns a const reference to the NodeVector of StructuredClasses that are
-	 * part of this Domain.
+	 * part of this Ontology.
 	 *
 	 * @return a const reference to the NodeVector of StructuredClasses that are
-	 * part of this Domain.
+	 * part of this Ontology.
 	 */
 	const NodeVector<StructuredClass> &getStructureClasses() const
 	{
 		return structuredClasses;
 	}
 	/**
-	 * Adds a StructuredClass to this domain. This also sets the parent of the
-	 * given StructuredClass if it is not set to this Domain already and removes
-	 * it from the old Domain.
+	 * Adds a StructuredClass to this ontology. This also sets the parent of the
+	 * given StructuredClass if it is not set to this Ontology already and removes
+	 * it from the old Ontology.
 	 *
 	 * @param s is some StructuredClass.
 	 */
 	void addStructuredClass(Handle<StructuredClass> s);
 
 	/**
-	 * Removes a StructuredClass from this domain. This also sets the parent of
+	 * Removes a StructuredClass from this ontology. This also sets the parent of
 	 * the given StructuredClass to null.
 	 *
 	 * @param s is some StructuredClass.
 	 * @return  true if the given StructuredClass was removed and false if this
-	 *          Domain did not have the given StructuredClass as child.
+	 *          Ontology did not have the given StructuredClass as child.
 	 */
 	bool removeStructuredClass(Handle<StructuredClass> s);
 
 	/**
-	 * This creates a new StructuredClass and appends it to this Domain.
+	 * This creates a new StructuredClass and appends it to this Ontology.
 	 *
 	 * @param name                 is the name of the StructuredClass.
 	 * @param cardinality          specifies how often an element of this type
@@ -1117,36 +1117,36 @@ public:
 
 	/**
 	 * Returns a const reference to the NodeVector of AnnotationClasses that are
-	 * part of this Domain.
+	 * part of this Ontology.
 	 *
 	 * @return a const reference to the NodeVector of AnnotationClasses that are
-	 * part of this Domain.
+	 * part of this Ontology.
 	 */
 	const NodeVector<AnnotationClass> &getAnnotationClasses() const
 	{
 		return annotationClasses;
 	}
 	/**
-	 * Adds an AnnotationClass to this domain. This also sets the parent of the
-	 * given AnnotationClass if it is not set to this Domain already and removes
-	 * it from the old Domain.
+	 * Adds an AnnotationClass to this ontology. This also sets the parent of the
+	 * given AnnotationClass if it is not set to this Ontology already and removes
+	 * it from the old Ontology.
 	 *
 	 * @param a is some AnnotationClass.
 	 */
 	void addAnnotationClass(Handle<AnnotationClass> a);
 
 	/**
-	 * Removes a AnnotationClass from this domain. This also sets the parent of
+	 * Removes a AnnotationClass from this ontology. This also sets the parent of
 	 * the given AnnotationClass to null.
 	 *
 	 * @param a is some AnnotationClass.
 	 * @return  true if the given AnnotationClass was removed and false if this
-	 *          Domain did not have the given AnnotationClass as child.
+	 *          Ontology did not have the given AnnotationClass as child.
 	 */
 	bool removeAnnotationClass(Handle<AnnotationClass> a);
 
 	/**
-	 * This creates a new AnnotationClass and appends it to this Domain.
+	 * This creates a new AnnotationClass and appends it to this Ontology.
 	 *
 	 * @param name                 is a name for this AnnotationClass that will
 	 *                             be used for later references to this
@@ -1156,20 +1156,20 @@ public:
 
 	/**
 	 * Returns a const reference to the NodeVector of TypeSystems that are
-	 * references in this Domain.
+	 * references in this Ontology.
 	 *
 	 * @return a const reference to the NodeVector of TypeSystems that are
-	 * references in this Domain.
+	 * references in this Ontology.
 	 */
 	const NodeVector<Typesystem> &getTypesystems() const { return typesystems; }
 
 	/**
-	 * Adds a Typesystem reference to this Domain.
+	 * Adds a Typesystem reference to this Ontology.
 	 */
 	void referenceTypesystem(Handle<Typesystem> t) { typesystems.push_back(t); }
 
 	/**
-	 * Adds multiple Typesystem references to this Domain.
+	 * Adds multiple Typesystem references to this Ontology.
 	 */
 	void referenceTypesystems(const std::vector<Handle<Typesystem>> &ts)
 	{
@@ -1177,16 +1177,16 @@ public:
 	}
 
 	/**
-	 * Adds a Domain reference to this Domain.
+	 * Adds a Ontology reference to this Ontology.
 	 */
-	void referenceDomain(Handle<Domain> d) { domains.push_back(d); }
+	void referenceOntology(Handle<Ontology> d) { ontologies.push_back(d); }
 
 	/**
-	 * Adds multiple Domain references to this Domain.
+	 * Adds multiple Ontology references to this Ontology.
 	 */
-	void referenceDomains(const std::vector<Handle<Domain>> &ds)
+	void referenceOntologys(const std::vector<Handle<Ontology>> &ds)
 	{
-		domains.insert(domains.end(), ds.begin(), ds.end());
+		ontologies.insert(ontologies.end(), ds.begin(), ds.end());
 	}
 };
 
@@ -1196,7 +1196,7 @@ extern const Rtti FieldDescriptor;
 extern const Rtti Descriptor;
 extern const Rtti StructuredClass;
 extern const Rtti AnnotationClass;
-extern const Rtti Domain;
+extern const Rtti Ontology;
 }
 }
 

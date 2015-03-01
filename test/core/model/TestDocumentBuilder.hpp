@@ -23,7 +23,7 @@
 
 #include <core/common/Logger.hpp>
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 #include <core/model/Typesystem.hpp>
 
 namespace ousia {
@@ -81,7 +81,7 @@ static Rooted<Descriptor> resolveDescriptor(Handle<Document> doc,
  * @param name       is the name of this StructuredEntity (empty per
  *                   default).
  * @return           the newly created StructuredEntity or a nullptr if some
- *                   input handle was empty or the given domains did not
+ *                   input handle was empty or the given ontologies did not
  *                   contain a StructuredClass with the given name.
  */
 Rooted<StructuredEntity> buildRootStructuredEntity(
@@ -112,7 +112,7 @@ Rooted<StructuredEntity> buildRootStructuredEntity(
  * This builds a StructuredEntity as child of the given DocumentEntity. It
  * automatically appends the newly build entity to its parent.
  *
- * @param document   is the document this entity shall be build for. The domains
+ * @param document   is the document this entity shall be build for. The ontologies
  *                   referenced here are the basis to resolve the given path.
  * @param logger     is the current logger.
  * @param parent     is the parent DocumentEntity. The newly constructed
@@ -126,7 +126,7 @@ Rooted<StructuredEntity> buildRootStructuredEntity(
  * @param name       is the name of this StructuredEntity (empty per
  *                   default).
  * @return           the newly created StructuredEntity or a nullptr if some
- *                   input handle was empty or the given domains did not
+ *                   input handle was empty or the given ontologies did not
  *                   contain a StructuredClass with the given name.
  */
 Rooted<StructuredEntity> buildStructuredEntity(
@@ -167,7 +167,7 @@ Rooted<StructuredEntity> buildStructuredEntity(
  * This builds an AnnotationEntity as child of the given Document. It
  * automatically appends the newly build entity to its parent.
  *
- * @param document   is the document this entity shall be build for. The domains
+ * @param document   is the document this entity shall be build for. The ontologies
  *                   referenced here are the basis to resolve the given path.
  * @param logger     is the current logger.
  * @param path       is the name of the AnnotationClass or a path specifying it
@@ -179,7 +179,7 @@ Rooted<StructuredEntity> buildStructuredEntity(
  * @param name       is the name of this AnnotationEntity (empty per
  *                   default).
  * @return           the newly created AnnotationEntity or a nullptr if some
- *                   input handle was empty or the given domains did not
+ *                   input handle was empty or the given ontologies did not
  *                   contain a AnnotationClass with the given name.
  */
 Rooted<AnnotationEntity> buildAnnotationEntity(

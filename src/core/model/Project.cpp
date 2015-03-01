@@ -18,7 +18,7 @@
 
 #include <core/common/RttiBuilder.hpp>
 
-#include "Domain.hpp"
+#include "Ontology.hpp"
 #include "Document.hpp"
 #include "Project.hpp"
 #include "Typesystem.hpp"
@@ -69,9 +69,9 @@ Rooted<Document> Project::createDocument(const std::string &name)
 	return document;
 }
 
-Rooted<Domain> Project::createDomain(const std::string &name)
+Rooted<Ontology> Project::createOntology(const std::string &name)
 {
-	return Rooted<Domain>{new Domain(getManager(), systemTypesystem, name)};
+	return Rooted<Ontology>{new Ontology(getManager(), systemTypesystem, name)};
 }
 
 void Project::referenceDocument(Handle<Document> document)

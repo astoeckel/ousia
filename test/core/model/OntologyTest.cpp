@@ -22,9 +22,9 @@
 
 #include <core/common/Rtti.hpp>
 #include <core/frontend/TerminalLogger.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 
-#include "TestDomain.hpp"
+#include "TestOntology.hpp"
 
 namespace ousia {
 
@@ -38,45 +38,45 @@ void assert_path(const ResolutionResult &res, const Rtti *expected_type,
 	ASSERT_EQ(expected_path, res.node->path());
 }
 
-TEST(Domain, testDomainResolving)
+TEST(Ontology, testOntologyResolving)
 {
 	// Construct Manager
 	Logger logger;
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Get the domain.
-	Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
+	// Get the ontology.
+	Rooted<Ontology> ontology = constructBookOntology(mgr, sys, logger);
 
 	std::vector<ResolutionResult> res;
 
-	// There is one domain called "book"
-	res = domain->resolve(&RttiTypes::Domain, "book");
+	// There is one ontology called "book"
+	res = ontology->resolve(&RttiTypes::Ontology, "book");
 	ASSERT_EQ(1U, res.size());
-	assert_path(res[0], &RttiTypes::Domain, {"book"});
+	assert_path(res[0], &RttiTypes::Ontology, {"book"});
 
-	// There is one domain called "book"
-	res = domain->resolve(&RttiTypes::StructuredClass, "book");
+	// There is one ontology called "book"
+	res = ontology->resolve(&RttiTypes::StructuredClass, "book");
 	ASSERT_EQ(1U, res.size());
 	assert_path(res[0], &RttiTypes::StructuredClass, {"book", "book"});
 
 	// If we explicitly ask for the "book, book" path, then only the
 	// StructuredClass should be returned.
-	res = domain->resolve(&RttiTypes::Domain,
+	res = ontology->resolve(&RttiTypes::Ontology,
 	                      std::vector<std::string>{"book", "book"});
 	ASSERT_EQ(0U, res.size());
 
-	res = domain->resolve(&RttiTypes::StructuredClass,
+	res = ontology->resolve(&RttiTypes::StructuredClass,
 	                      std::vector<std::string>{"book", "book"});
 	ASSERT_EQ(1U, res.size());
 
 	// If we ask for "section" the result should be unique as well.
-	res = domain->resolve(&RttiTypes::StructuredClass, "section");
+	res = ontology->resolve(&RttiTypes::StructuredClass, "section");
 	ASSERT_EQ(1U, res.size());
 	assert_path(res[0], &RttiTypes::StructuredClass, {"book", "section"});
 
-	// If we ask for "paragraph" it is referenced two times in the Domain graph,
+	// If we ask for "paragraph" it is referenced two times in the Ontology graph,
 	// but should be returned only once.
-	res = domain->resolve(&RttiTypes::StructuredClass, "paragraph");
+	res = ontology->resolve(&RttiTypes::StructuredClass, "paragraph");
 	ASSERT_EQ(1U, res.size());
 	assert_path(res[0], &RttiTypes::StructuredClass, {"book", "paragraph"});
 }
@@ -115,10 +115,10 @@ TEST(StructuredClass, getFieldDescriptors)
 	TerminalLogger logger{std::cout};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	Rooted<Domain> domain{new Domain(mgr, sys, "myDomain")};
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "myOntology")};
 
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, Cardinality::any(), nullptr, false, true)};
+	    mgr, "A", ontology, Cardinality::any(), nullptr, false, true)};
 	Rooted<FieldDescriptor> A_a = createUnsortedPrimitiveField(
 	    A, sys->getStringType(), logger, false, "a");
 	Rooted<FieldDescriptor> A_b = createUnsortedPrimitiveField(
@@ -127,7 +127,7 @@ TEST(StructuredClass, getFieldDescriptors)
 	    A, sys->getStringType(), logger, true, "somename");
 
 	Rooted<StructuredClass> B{new StructuredClass(
-	    mgr, "B", domain, Cardinality::any(), A, false, true)};
+	    mgr, "B", ontology, Cardinality::any(), A, false, true)};
 	Rooted<FieldDescriptor> B_b = createUnsortedPrimitiveField(
 	    B, sys->getStringType(), logger, false, "b");
 	Rooted<FieldDescriptor> B_c = createUnsortedPrimitiveField(
@@ -136,11 +136,11 @@ TEST(StructuredClass, getFieldDescriptors)
 	    B, sys->getStringType(), logger, true, "othername");
 
 	Rooted<StructuredClass> C{new StructuredClass(
-	    mgr, "C", domain, Cardinality::any(), B, false, true)};
+	    mgr, "C", ontology, Cardinality::any(), B, false, true)};
 	Rooted<FieldDescriptor> C_a = createUnsortedPrimitiveField(
 	    C, sys->getStringType(), logger, false, "a");
 
-	ASSERT_TRUE(domain->validate(logger));
+	ASSERT_TRUE(ontology->validate(logger));
 
 	// check all FieldDescriptors
 	{
@@ -176,21 +176,21 @@ TEST(StructuredClass, getFieldDescriptorsCycles)
 	Logger logger;
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	Rooted<Domain> domain{new Domain(mgr, sys, "myDomain")};
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "myOntology")};
 
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, Cardinality::any(), nullptr, false, true)};
+	    mgr, "A", ontology, Cardinality::any(), nullptr, false, true)};
 	A->addSubclass(A, logger);
 	Rooted<FieldDescriptor> A_a = createUnsortedPrimitiveField(
 	    A, sys->getStringType(), logger, false, "a");
-	ASSERT_FALSE(domain->validate(logger));
+	ASSERT_FALSE(ontology->validate(logger));
 	// if we call getFieldDescriptors that should still return a valid result.
 	NodeVector<FieldDescriptor> fds = A->getFieldDescriptors();
 	ASSERT_EQ(1, fds.size());
 	ASSERT_EQ(A_a, fds[0]);
 }
 
-Rooted<StructuredClass> getClass(const std::string name, Handle<Domain> dom)
+Rooted<StructuredClass> getClass(const std::string name, Handle<Ontology> dom)
 {
 	std::vector<ResolutionResult> res =
 	    dom->resolve(&RttiTypes::StructuredClass, name);
@@ -199,23 +199,23 @@ Rooted<StructuredClass> getClass(const std::string name, Handle<Domain> dom)
 
 TEST(Descriptor, pathTo)
 {
-	// Start with some easy examples from the book domain.
+	// Start with some easy examples from the book ontology.
 	TerminalLogger logger{std::cout};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Get the domain.
-	Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
+	// Get the ontology.
+	Rooted<Ontology> ontology = constructBookOntology(mgr, sys, logger);
 
 	// get the book node and the section node.
-	Rooted<StructuredClass> book = getClass("book", domain);
-	Rooted<StructuredClass> section = getClass("section", domain);
+	Rooted<StructuredClass> book = getClass("book", ontology);
+	Rooted<StructuredClass> section = getClass("section", ontology);
 	// get the path in between.
 	NodeVector<Node> path = book->pathTo(section, logger);
 	ASSERT_EQ(1U, path.size());
 	ASSERT_TRUE(path[0]->isa(&RttiTypes::FieldDescriptor));
 
 	// get the text node.
-	Rooted<StructuredClass> text = getClass("text", domain);
+	Rooted<StructuredClass> text = getClass("text", ontology);
 	// get the path between book and text via paragraph.
 	path = book->pathTo(text, logger);
 	ASSERT_EQ(3U, path.size());
@@ -225,7 +225,7 @@ TEST(Descriptor, pathTo)
 	ASSERT_TRUE(path[2]->isa(&RttiTypes::FieldDescriptor));
 
 	// get the subsection node.
-	Rooted<StructuredClass> subsection = getClass("subsection", domain);
+	Rooted<StructuredClass> subsection = getClass("subsection", ontology);
 	// try to get the path between book and subsection.
 	path = book->pathTo(subsection, logger);
 	// this should be impossible.
@@ -247,7 +247,7 @@ TEST(Descriptor, pathTo)
 TEST(Descriptor, pathToAdvanced)
 {
 	/*
-	 * Now we build a really nasty domain with lots of transparency
+	 * Now we build a really nasty ontology with lots of transparency
 	 * and inheritance. The basic idea is to have three paths from start to
 	 * finish, where one is blocked by overriding fields and the longer valid
 	 * one is found first such that it has to be replaced by the shorter one
@@ -269,30 +269,30 @@ TEST(Descriptor, pathToAdvanced)
 	Manager mgr{1};
 	TerminalLogger logger{std::cout};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Construct the domain
-	Rooted<Domain> domain{new Domain(mgr, sys, "nasty")};
+	// Construct the ontology
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "nasty")};
 
 	// Let's create the classes that we need first
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, Cardinality::any(), {nullptr}, false, true)};
+	    mgr, "A", ontology, Cardinality::any(), {nullptr}, false, true)};
 
 	Rooted<StructuredClass> start{new StructuredClass(
-	    mgr, "start", domain, Cardinality::any(), A, false, false)};
+	    mgr, "start", ontology, Cardinality::any(), A, false, false)};
 
 	Rooted<StructuredClass> B{new StructuredClass(
-	    mgr, "B", domain, Cardinality::any(), {nullptr}, true, false)};
+	    mgr, "B", ontology, Cardinality::any(), {nullptr}, true, false)};
 
 	Rooted<StructuredClass> C{new StructuredClass(
-	    mgr, "C", domain, Cardinality::any(), B, true, false)};
+	    mgr, "C", ontology, Cardinality::any(), B, true, false)};
 
 	Rooted<StructuredClass> D{new StructuredClass(
-	    mgr, "D", domain, Cardinality::any(), {nullptr}, true, false)};
+	    mgr, "D", ontology, Cardinality::any(), {nullptr}, true, false)};
 
 	Rooted<StructuredClass> E{new StructuredClass(
-	    mgr, "E", domain, Cardinality::any(), {nullptr}, true, false)};
+	    mgr, "E", ontology, Cardinality::any(), {nullptr}, true, false)};
 
 	Rooted<StructuredClass> target{
-	    new StructuredClass(mgr, "target", domain, Cardinality::any())};
+	    new StructuredClass(mgr, "target", ontology, Cardinality::any())};
 
 	// We create a field for A
 	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
@@ -312,11 +312,11 @@ TEST(Descriptor, pathToAdvanced)
 	Rooted<FieldDescriptor> E_field = E->createFieldDescriptor(logger).first;
 	E_field->addChild(target);
 
-	ASSERT_TRUE(domain->validate(logger));
+	ASSERT_TRUE(ontology->validate(logger));
 
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	// dump the manager state
-	mgr.exportGraphviz("nastyDomain.dot");
+	mgr.exportGraphviz("nastyOntology.dot");
 #endif
 
 	// and now we should be able to find the shortest path as suggested
@@ -332,18 +332,18 @@ TEST(Descriptor, pathToAdvanced)
 
 TEST(Descriptor, pathToCycles)
 {
-	// build a domain with a cycle.
+	// build a ontology with a cycle.
 	Manager mgr{1};
 	Logger logger;
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Construct the domain
-	Rooted<Domain> domain{new Domain(mgr, sys, "cycles")};
+	// Construct the ontology
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "cycles")};
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, Cardinality::any(), {nullptr}, true, true)};
+	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, true)};
 	A->addSubclass(A, logger);
-	ASSERT_FALSE(domain->validate(logger));
+	ASSERT_FALSE(ontology->validate(logger));
 	Rooted<StructuredClass> B{new StructuredClass(
-	    mgr, "B", domain, Cardinality::any(), {nullptr}, false, true)};
+	    mgr, "B", ontology, Cardinality::any(), {nullptr}, false, true)};
 	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
 	A_field->addChild(B);
 	/*
@@ -360,16 +360,16 @@ TEST(Descriptor, pathToCycles)
 
 TEST(Descriptor, getDefaultFields)
 {
-	// construct a domain with lots of default fields to test.
+	// construct a ontology with lots of default fields to test.
 	// start with a single structure class.
 	Manager mgr{1};
 	TerminalLogger logger{std::cout};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Construct the domain
-	Rooted<Domain> domain{new Domain(mgr, sys, "nasty")};
+	// Construct the ontology
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "nasty")};
 
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, Cardinality::any(), nullptr, false, true)};
+	    mgr, "A", ontology, Cardinality::any(), nullptr, false, true)};
 
 	// in this trivial case no field should be found.
 	ASSERT_TRUE(A->getDefaultFields().empty());
@@ -385,7 +385,7 @@ TEST(Descriptor, getDefaultFields)
 	// remove that field from A and add it to another class.
 
 	Rooted<StructuredClass> B{new StructuredClass(
-	    mgr, "B", domain, Cardinality::any(), nullptr, false, true)};
+	    mgr, "B", ontology, Cardinality::any(), nullptr, false, true)};
 
 	B->moveFieldDescriptor(A_prim_field, logger);
 
@@ -405,7 +405,7 @@ TEST(Descriptor, getDefaultFields)
 	// add a transparent child class.
 
 	Rooted<StructuredClass> C{new StructuredClass(
-	    mgr, "C", domain, Cardinality::any(), nullptr, true, false)};
+	    mgr, "C", ontology, Cardinality::any(), nullptr, true, false)};
 	A_field->addChild(C);
 
 	// add a primitive field for it.
@@ -420,14 +420,14 @@ TEST(Descriptor, getDefaultFields)
 	// add another transparent child class to A with a daughter class that has
 	// in turn a subclass with a primitive field.
 	Rooted<StructuredClass> D{new StructuredClass(
-	    mgr, "D", domain, Cardinality::any(), nullptr, true, false)};
+	    mgr, "D", ontology, Cardinality::any(), nullptr, true, false)};
 	A_field->addChild(D);
 	Rooted<FieldDescriptor> D_field = D->createFieldDescriptor(logger).first;
 	Rooted<StructuredClass> E{new StructuredClass(
-	    mgr, "E", domain, Cardinality::any(), nullptr, true, false)};
+	    mgr, "E", ontology, Cardinality::any(), nullptr, true, false)};
 	D_field->addChild(E);
 	Rooted<StructuredClass> F{new StructuredClass(
-	    mgr, "E", domain, Cardinality::any(), E, true, false)};
+	    mgr, "E", ontology, Cardinality::any(), E, true, false)};
 	Rooted<FieldDescriptor> F_field =
 	    F->createPrimitiveFieldDescriptor(sys->getStringType(), logger).first;
 
@@ -440,16 +440,16 @@ TEST(Descriptor, getDefaultFields)
 
 TEST(Descriptor, getDefaultFieldsCycles)
 {
-	// build a domain with a cycle.
+	// build a ontology with a cycle.
 	Manager mgr{1};
 	Logger logger;
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Construct the domain
-	Rooted<Domain> domain{new Domain(mgr, sys, "cycles")};
+	// Construct the ontology
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "cycles")};
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, Cardinality::any(), {nullptr}, true, true)};
+	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, true)};
 	A->addSubclass(A, logger);
-	ASSERT_FALSE(domain->validate(logger));
+	ASSERT_FALSE(ontology->validate(logger));
 	Rooted<FieldDescriptor> A_field =
 	    A->createPrimitiveFieldDescriptor(sys->getStringType(), logger).first;
 	/*
@@ -463,17 +463,17 @@ TEST(Descriptor, getDefaultFieldsCycles)
 
 TEST(Descriptor, getPermittedChildren)
 {
-	// analyze the book domain.
+	// analyze the book ontology.
 	TerminalLogger logger{std::cout};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Get the domain.
-	Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
+	// Get the ontology.
+	Rooted<Ontology> ontology = constructBookOntology(mgr, sys, logger);
 	// get the relevant classes.
-	Rooted<StructuredClass> book = getClass("book", domain);
-	Rooted<StructuredClass> section = getClass("section", domain);
-	Rooted<StructuredClass> paragraph = getClass("paragraph", domain);
-	Rooted<StructuredClass> text = getClass("text", domain);
+	Rooted<StructuredClass> book = getClass("book", ontology);
+	Rooted<StructuredClass> section = getClass("section", ontology);
+	Rooted<StructuredClass> paragraph = getClass("paragraph", ontology);
+	Rooted<StructuredClass> text = getClass("text", ontology);
 	/*
 	 * as permitted children we expect section, paragraph and text in exactly
 	 * that order. section should be before paragraph because of declaration
@@ -488,7 +488,7 @@ TEST(Descriptor, getPermittedChildren)
 
 	// Now we add a subclass to text.
 	Rooted<StructuredClass> sub{new StructuredClass(
-	    mgr, "Subclass", domain, Cardinality::any(), text, true, false)};
+	    mgr, "Subclass", ontology, Cardinality::any(), text, true, false)};
 	// And that should be in the result list as well now.
 	children = book->getPermittedChildren();
 	ASSERT_EQ(4U, children.size());
@@ -500,16 +500,16 @@ TEST(Descriptor, getPermittedChildren)
 
 TEST(Descriptor, getPermittedChildrenCycles)
 {
-	// build a domain with a cycle.
+	// build a ontology with a cycle.
 	Manager mgr{1};
 	Logger logger;
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Construct the domain
-	Rooted<Domain> domain{new Domain(mgr, sys, "cycles")};
+	// Construct the ontology
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "cycles")};
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, Cardinality::any(), {nullptr}, true, true)};
+	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, true)};
 	A->addSubclass(A, logger);
-	ASSERT_FALSE(domain->validate(logger));
+	ASSERT_FALSE(ontology->validate(logger));
 	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
 	// we make the cycle worse by adding A as child of itself.
 	A_field->addChild(A);
@@ -528,21 +528,21 @@ TEST(StructuredClass, isSubclassOf)
 	// create an inheritance hierarchy.
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	Rooted<Domain> domain{new Domain(mgr, sys, "inheritance")};
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "inheritance")};
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, Cardinality::any(), {nullptr}, false, true)};
+	    mgr, "A", ontology, Cardinality::any(), {nullptr}, false, true)};
 	// first branch
 	Rooted<StructuredClass> B{
-	    new StructuredClass(mgr, "B", domain, Cardinality::any(), A)};
+	    new StructuredClass(mgr, "B", ontology, Cardinality::any(), A)};
 	Rooted<StructuredClass> C{
-	    new StructuredClass(mgr, "C", domain, Cardinality::any(), B)};
+	    new StructuredClass(mgr, "C", ontology, Cardinality::any(), B)};
 	// second branch
 	Rooted<StructuredClass> D{
-	    new StructuredClass(mgr, "D", domain, Cardinality::any(), A)};
+	    new StructuredClass(mgr, "D", ontology, Cardinality::any(), A)};
 	Rooted<StructuredClass> E{
-	    new StructuredClass(mgr, "E", domain, Cardinality::any(), D)};
+	    new StructuredClass(mgr, "E", ontology, Cardinality::any(), D)};
 	Rooted<StructuredClass> F{
-	    new StructuredClass(mgr, "F", domain, Cardinality::any(), D)};
+	    new StructuredClass(mgr, "F", ontology, Cardinality::any(), D)};
 
 	// check function results
 	ASSERT_FALSE(A->isSubclassOf(A));
@@ -588,102 +588,102 @@ TEST(StructuredClass, isSubclassOf)
 	ASSERT_FALSE(F->isSubclassOf(F));
 }
 
-TEST(Domain, validate)
+TEST(Ontology, validate)
 {
 	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// start with an easy example: Our book domain should be valid.
+	// start with an easy example: Our book ontology should be valid.
 	{
-		Rooted<Domain> domain = constructBookDomain(mgr, sys, logger);
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		Rooted<Ontology> ontology = constructBookOntology(mgr, sys, logger);
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 	}
 	{
-		// Even easier: An empty domain should be valid.
-		Rooted<Domain> domain{new Domain(mgr, sys, "domain")};
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		// Even easier: An empty ontology should be valid.
+		Rooted<Ontology> ontology{new Ontology(mgr, sys, "ontology")};
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 		// if we add a StructureClass it should be valid still.
 		Rooted<StructuredClass> base{
-		    new StructuredClass(mgr, "myClass", domain)};
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		    new StructuredClass(mgr, "myClass", ontology)};
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 		// if we tamper with the name, however, it shouldn't be valid anymore.
 		base->setName("");
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_FALSE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_FALSE(ontology->validate(logger));
 		base->setName("my class");
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_FALSE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_FALSE(ontology->validate(logger));
 		base->setName("myClass");
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 		// Let's add a primitive field (without a primitive type at first)
 		Rooted<FieldDescriptor> base_field =
 		    base->createPrimitiveFieldDescriptor(nullptr, logger).first;
 		// this should not be valid.
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_FALSE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_FALSE(ontology->validate(logger));
 		// but it should be if we set the type.
 		base_field->setPrimitiveType(sys->getStringType());
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 		// add a subclass for our base class.
-		Rooted<StructuredClass> sub{new StructuredClass(mgr, "sub", domain)};
+		Rooted<StructuredClass> sub{new StructuredClass(mgr, "sub", ontology)};
 		// this should be valid in itself.
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 		// and still if we add a superclass.
 		sub->setSuperclass(base, logger);
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 		// and still if we remove the subclass from the base class.
 		base->removeSubclass(sub, logger);
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 		ASSERT_EQ(nullptr, sub->getSuperclass());
 		// and still if we re-add it.
 		base->addSubclass(sub, logger);
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 		ASSERT_EQ(base, sub->getSuperclass());
 		// add a non-primitive field to the child class.
 		Rooted<FieldDescriptor> sub_field =
 		    sub->createFieldDescriptor(logger).first;
 		// this should not be valid because we allow no children.
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_FALSE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_FALSE(ontology->validate(logger));
 		// we should also be able to add a child and make it valid.
 		sub_field->addChild(base);
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 		// it should be invalid if we add it twice.
 		sub_field->addChild(base);
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_FALSE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_FALSE(ontology->validate(logger));
 		// and valid again if we remove it once.
 		sub_field->removeChild(base);
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 		// if we set a primitive type it should be invalid
 		sub_field->setPrimitiveType(sys->getStringType());
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_FALSE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_FALSE(ontology->validate(logger));
 		// and valid again if we unset it.
 		sub_field->setPrimitiveType(nullptr);
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 		// It should be invalid if we set another TREE field.
 		Rooted<FieldDescriptor> sub_field2 =
 		    sub->createFieldDescriptor(logger, FieldDescriptor::FieldType::TREE,
 		                               "test", false).first;
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_FALSE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_FALSE(ontology->validate(logger));
 		// but valid again if we remove it
 		sub->removeFieldDescriptor(sub_field2);
-		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
-		ASSERT_TRUE(domain->validate(logger));
+		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
+		ASSERT_TRUE(ontology->validate(logger));
 	}
 }
 }

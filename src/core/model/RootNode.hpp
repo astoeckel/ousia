@@ -37,7 +37,7 @@ namespace ousia {
 
 /**
  * The RootNode class represents a Node that may be a Root node (such as
- * Documents, Typesystems and Domains). Root nodes have the property, that the
+ * Documents, Typesystems and Ontologys). Root nodes have the property, that the
  * allow importing/referencing other Nodes.
  */
 class RootNode : public Node {

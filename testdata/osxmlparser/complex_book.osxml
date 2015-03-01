@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <document>
 
-	<import rel="domain" src="book"/>
-	<import rel="domain" src="headings"/>
-	<import rel="domain" src="meta"/>
-	<import rel="domain" src="bibliography"/>
-	<!--<import rel="domain" src="emphasis.oxm"/>
-	<import rel="domain" src="comments.oxm"/>
+	<import rel="ontology" src="book"/>
+	<import rel="ontology" src="headings"/>
+	<import rel="ontology" src="meta"/>
+	<import rel="ontology" src="bibliography"/>
+	<!--<import rel="ontology" src="emphasis.oxm"/>
+	<import rel="ontology" src="comments.oxm"/>
 	<alias tag="paragraph" aka="p"/>
 	<alias tag="emphasized" aka="em"/>-->
 	

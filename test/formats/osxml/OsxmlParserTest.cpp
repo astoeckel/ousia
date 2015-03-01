@@ -23,7 +23,7 @@
 #include <core/common/CharReader.hpp>
 #include <core/common/SourceContextReader.hpp>
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 #include <core/model/Node.hpp>
 #include <core/model/Project.hpp>
 #include <core/frontend/TerminalLogger.hpp>
@@ -36,7 +36,7 @@ namespace ousia {
 
 namespace RttiTypes {
 extern const Rtti Document;
-extern const Rtti Domain;
+extern const Rtti Ontology;
 extern const Rtti Typesystem;
 }
 
@@ -88,7 +88,7 @@ static void checkAttributes(Handle<StructType> expected,
 }
 
 static void checkStructuredClass(
-    Handle<Node> n, const std::string &name, Handle<Domain> domain,
+    Handle<Node> n, const std::string &name, Handle<Ontology> ontology,
     Variant cardinality = Cardinality::any(),
     Handle<StructType> attributesDescriptor = nullptr,
     Handle<StructuredClass> superclass = nullptr, bool transparent = false,
@@ -98,7 +98,7 @@ static void checkStructuredClass(
 	Handle<StructuredClass> sc = n.cast<StructuredClass>();
 	ASSERT_FALSE(sc == nullptr);
 	ASSERT_EQ(name, sc->getName());
-	ASSERT_EQ(domain, sc->getParent());
+	ASSERT_EQ(ontology, sc->getParent());
 	ASSERT_EQ(cardinality, sc->getCardinality());
 	ASSERT_EQ(transparent, sc->isTransparent());
 	ASSERT_EQ(root, sc->hasRootPermission());
@@ -106,44 +106,44 @@ static void checkStructuredClass(
 }
 
 static Rooted<StructuredClass> checkStructuredClass(
-    const std::string &resolve, const std::string &name, Handle<Domain> domain,
+    const std::string &resolve, const std::string &name, Handle<Ontology> ontology,
     Variant cardinality = Cardinality::any(),
     Handle<StructType> attributesDescriptor = nullptr,
     Handle<StructuredClass> superclass = nullptr, bool transparent = false,
     bool root = false)
 {
-	auto res = domain->resolve(&RttiTypes::StructuredClass, resolve);
+	auto res = ontology->resolve(&RttiTypes::StructuredClass, resolve);
 	if (res.size() != 1) {
 		throw OusiaException("resolution error!");
 	}
 	Handle<StructuredClass> sc = res[0].node.cast<StructuredClass>();
-	checkStructuredClass(sc, name, domain, cardinality, attributesDescriptor,
+	checkStructuredClass(sc, name, ontology, cardinality, attributesDescriptor,
 	                     superclass, transparent, root);
 	return sc;
 }
 
 static void checkAnnotationClass(
-    Handle<Node> n, const std::string &name, Handle<Domain> domain,
+    Handle<Node> n, const std::string &name, Handle<Ontology> ontology,
     Handle<StructType> attributesDescriptor = nullptr)
 {
 	ASSERT_FALSE(n == nullptr);
 	Handle<AnnotationClass> ac = n.cast<AnnotationClass>();
 	ASSERT_FALSE(ac == nullptr);
 	ASSERT_EQ(name, ac->getName());
-	ASSERT_EQ(domain, ac->getParent());
+	ASSERT_EQ(ontology, ac->getParent());
 	checkAttributes(attributesDescriptor, ac);
 }
 
 static Rooted<AnnotationClass> checkAnnotationClass(
-    const std::string &resolve, const std::string &name, Handle<Domain> domain,
+    const std::string &resolve, const std::string &name, Handle<Ontology> ontology,
     Handle<StructType> attributesDescriptor = nullptr)
 {
-	auto res = domain->resolve(&RttiTypes::AnnotationClass, resolve);
+	auto res = ontology->resolve(&RttiTypes::AnnotationClass, resolve);
 	if (res.size() != 1) {
 		throw OusiaException("resolution error!");
 	}
 	Handle<AnnotationClass> ac = res[0].node.cast<AnnotationClass>();
-	checkAnnotationClass(ac, name, domain, attributesDescriptor);
+	checkAnnotationClass(ac, name, ontology, attributesDescriptor);
 	return ac;
 }
 
@@ -192,33 +192,33 @@ static void checkFieldDescriptor(
 	                     optional);
 }
 
-TEST(OsxmlParser, domainParsing)
+TEST(OsxmlParser, ontologyParsing)
 {
 	XmlStandaloneEnvironment env(logger);
-	Rooted<Node> book_domain_node =
-	    env.parse("book_domain.osxml", "", "", RttiSet{&RttiTypes::Domain});
-	ASSERT_FALSE(book_domain_node == nullptr);
+	Rooted<Node> book_ontology_node =
+	    env.parse("book_ontology.osxml", "", "", RttiSet{&RttiTypes::Ontology});
+	ASSERT_FALSE(book_ontology_node == nullptr);
 	ASSERT_FALSE(logger.hasError());
-	// check the domain node.
-	Rooted<Domain> book_domain = book_domain_node.cast<Domain>();
-	ASSERT_EQ("book", book_domain->getName());
+	// check the ontology node.
+	Rooted<Ontology> book_ontology = book_ontology_node.cast<Ontology>();
+	ASSERT_EQ("book", book_ontology->getName());
 	// get the book struct node.
 	Cardinality single;
 	single.merge({1});
 	Rooted<StructuredClass> book = checkStructuredClass(
-	    "book", "book", book_domain, single, nullptr, nullptr, false, true);
+	    "book", "book", book_ontology, single, nullptr, nullptr, false, true);
 	// get the chapter struct node.
 	Rooted<StructuredClass> chapter =
-	    checkStructuredClass("chapter", "chapter", book_domain);
+	    checkStructuredClass("chapter", "chapter", book_ontology);
 	Rooted<StructuredClass> section =
-	    checkStructuredClass("section", "section", book_domain);
+	    checkStructuredClass("section", "section", book_ontology);
 	Rooted<StructuredClass> subsection =
-	    checkStructuredClass("subsection", "subsection", book_domain);
+	    checkStructuredClass("subsection", "subsection", book_ontology);
 	Rooted<StructuredClass> paragraph =
-	    checkStructuredClass("paragraph", "paragraph", book_domain,
+	    checkStructuredClass("paragraph", "paragraph", book_ontology,
 	                         Cardinality::any(), nullptr, nullptr, true, false);
 	Rooted<StructuredClass> text =
-	    checkStructuredClass("text", "text", book_domain, Cardinality::any(),
+	    checkStructuredClass("text", "text", book_ontology, Cardinality::any(),
 	                         nullptr, nullptr, true, false);
 
 	// check the FieldDescriptors.
@@ -231,19 +231,19 @@ TEST(OsxmlParser, domainParsing)
 	    text, {}, "", FieldDescriptor::FieldType::TREE,
 	    env.project->getSystemTypesystem()->getStringType(), false);
 
-	// check parent handling using the headings domain.
-	Rooted<Node> headings_domain_node =
-	    env.parse("headings_domain.osxml", "", "", RttiSet{&RttiTypes::Domain});
-	ASSERT_FALSE(headings_domain_node == nullptr);
+	// check parent handling using the headings ontology.
+	Rooted<Node> headings_ontology_node =
+	    env.parse("headings_ontology.osxml", "", "", RttiSet{&RttiTypes::Ontology});
+	ASSERT_FALSE(headings_ontology_node == nullptr);
 	ASSERT_FALSE(logger.hasError());
-	Rooted<Domain> headings_domain = headings_domain_node.cast<Domain>();
+	Rooted<Ontology> headings_ontology = headings_ontology_node.cast<Ontology>();
 	// now there should be a heading struct.
 	Rooted<StructuredClass> heading =
-	    checkStructuredClass("heading", "heading", headings_domain, single,
+	    checkStructuredClass("heading", "heading", headings_ontology, single,
 	                         nullptr, nullptr, true, false);
 	// which should be a reference to the paragraph descriptor.
 	checkFieldDescriptor(heading, paragraph, {text});
-	// and each struct in the book domain (except for text) should have a
+	// and each struct in the book ontology (except for text) should have a
 	// heading field now.
 	checkFieldDescriptor(book, {heading}, "heading",
 	                     FieldDescriptor::FieldType::SUBTREE, nullptr, true);
@@ -256,21 +256,21 @@ TEST(OsxmlParser, domainParsing)
 	checkFieldDescriptor(paragraph, {heading}, "heading",
 	                     FieldDescriptor::FieldType::SUBTREE, nullptr, true);
 
-	// check annotation handling using the comments domain.
-	Rooted<Node> comments_domain_node =
-	    env.parse("comments_domain.osxml", "", "", RttiSet{&RttiTypes::Domain});
-	ASSERT_FALSE(comments_domain_node == nullptr);
+	// check annotation handling using the comments ontology.
+	Rooted<Node> comments_ontology_node =
+	    env.parse("comments_ontology.osxml", "", "", RttiSet{&RttiTypes::Ontology});
+	ASSERT_FALSE(comments_ontology_node == nullptr);
 	ASSERT_FALSE(logger.hasError());
-	Rooted<Domain> comments_domain = comments_domain_node.cast<Domain>();
+	Rooted<Ontology> comments_ontology = comments_ontology_node.cast<Ontology>();
 	// now we should be able to find a comment annotation.
 	Rooted<AnnotationClass> comment_anno =
-	    checkAnnotationClass("comment", "comment", comments_domain);
+	    checkAnnotationClass("comment", "comment", comments_ontology);
 	// as well as a comment struct
 	Rooted<StructuredClass> comment =
-	    checkStructuredClass("comment", "comment", comments_domain);
+	    checkStructuredClass("comment", "comment", comments_ontology);
 	// and a reply struct
 	Rooted<StructuredClass> reply =
-	    checkStructuredClass("reply", "reply", comments_domain);
+	    checkStructuredClass("reply", "reply", comments_ontology);
 	// check the fields for each of them.
 	{
 		std::vector<Rooted<Descriptor>> descs{comment_anno, comment, reply};

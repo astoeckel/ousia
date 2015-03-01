@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<domain name="lists">
-	<import rel="domain" src="book"/>
+<ontology name="lists">
+	<import rel="ontology" src="book"/>
 
 	<struct name="ul" isa="book.paragraph">
 		<!-- Here we solve the problem of parents using the isa
@@ -23,4 +23,4 @@
 			<childRef name="book.paragaph"/>
 		</field>
 	</struct>
-</domain>
+</ontology>

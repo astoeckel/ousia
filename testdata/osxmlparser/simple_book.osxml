@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <document>
-	<import rel="domain" src="book_domain.osxml"/>
+	<import rel="ontology" src="book_ontology.osxml"/>
 	<book>
 		This might be some introductory text or a dedication.
-		<!-- Note that a better version of the book domain might specify
+		<!-- Note that a better version of the book ontology might specify
 			 headings here. -->
 		<chapter name="myFirstChapter">
 			Here we might have an introduction to the chapter.

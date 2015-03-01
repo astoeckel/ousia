@@ -1,7 +1,7 @@
 <?xml version="1.0" standalone="yes"?>
-<domain name="headings">
+<ontology name="headings">
 
-	<import rel="domain" src="book"/>
+	<import rel="ontology" src="book"/>
 
 	<struct name="heading" cardinality="1" transparent="true">
 		<!-- The parent mechanism is a curious thing. Remind yourself
@@ -26,8 +26,8 @@
 		<!-- regarding its fields we have a problem here. We do not want to
 		     declare a new field, because in fact we want to allow every
 		     bit of content that a paragraph would allow - also considering
-		     possible extensions of paragraph by other domains.
+		     possible extensions of paragraph by other ontologys.
 		     So we need to reference the default field of paragraph. -->
 		<fieldRef ref="book.paragraph.$default"/>
 	</struct>
-</domain>
+</ontology>

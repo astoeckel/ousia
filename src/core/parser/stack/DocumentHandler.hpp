@@ -46,7 +46,7 @@ namespace parser_stack {
 /**
  * The DocumentHandler class parses the "document" tag that is used to introduce
  * a new document. Note that this tag is not mandatory in osml files -- if the
- * first command is not a typesystem, domain or any other declarative command,
+ * first command is not a typesystem, ontology or any other declarative command,
  * the DocumentHandler will be implicitly called.
  */
 class DocumentHandler : public StaticHandler {

@@ -169,7 +169,7 @@ ADD_LIBRARY(ousia_core
 	src/core/managed/Managed
 	src/core/managed/Manager
 	src/core/model/Document
-	src/core/model/Domain
+	src/core/model/Ontology
 	src/core/model/Index
 	src/core/model/Node
 	src/core/model/Project
@@ -181,7 +181,7 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/ParserScope
 	src/core/parser/stack/Callbacks
 	src/core/parser/stack/DocumentHandler
-	src/core/parser/stack/DomainHandler
+	src/core/parser/stack/OntologyHandler
 	src/core/parser/stack/GenericParserStates
 	src/core/parser/stack/Handler
 	src/core/parser/stack/ImportIncludeHandler
@@ -316,7 +316,7 @@ IF(TEST)
 		test/core/managed/ManagedTest
 		test/core/managed/ManagerTest
 		test/core/managed/VariantObjectTest
-		test/core/model/DomainTest
+		test/core/model/OntologyTest
 		test/core/model/DocumentTest
 		test/core/model/IndexTest
 		test/core/model/NodeTest

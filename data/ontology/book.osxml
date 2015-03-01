@@ -1,5 +1,5 @@
 <?xml version="1.0" standalone="yes"?>
-<domain name="book">
+<ontology name="book">
 	<struct name="book" cardinality="{1}" isRoot="true">
 		<field>
 			<childRef ref="book.chapter"/>
@@ -31,4 +31,4 @@
 	<struct name="text" transparent="true">
 		<primitive type="string"/>
 	</struct>
-</domain>
+</ontology>

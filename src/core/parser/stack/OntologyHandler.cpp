@@ -18,52 +18,52 @@
 
 #include <core/common/RttiBuilder.hpp>
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 #include <core/model/Project.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
 
 #include "DocumentHandler.hpp"
-#include "DomainHandler.hpp"
+#include "OntologyHandler.hpp"
 #include "State.hpp"
 #include "TypesystemHandler.hpp"
 
 namespace ousia {
 namespace parser_stack {
 
-/* DomainHandler */
+/* OntologyHandler */
 
-bool DomainHandler::start(Variant::mapType &args)
+bool OntologyHandler::start(Variant::mapType &args)
 {
-	// Create the Domain node
-	Rooted<Domain> domain =
-	    context().getProject()->createDomain(args["name"].asString());
-	domain->setLocation(location());
+	// Create the Ontology node
+	Rooted<Ontology> ontology =
+	    context().getProject()->createOntology(args["name"].asString());
+	ontology->setLocation(location());
 
-	// If the domain is defined inside a document, add the reference to the
+	// If the ontology is defined inside a document, add the reference to the
 	// document
 	Rooted<Document> document = scope().select<Document>();
 	if (document != nullptr) {
-		document->reference(domain);
+		document->reference(ontology);
 	}
 
 	// Push the typesystem onto the scope, set the POST_HEAD flag to true
-	scope().push(domain);
+	scope().push(ontology);
 	scope().setFlag(ParserFlag::POST_HEAD, false);
 	return true;
 }
 
-void DomainHandler::end() { scope().pop(logger()); }
+void OntologyHandler::end() { scope().pop(logger()); }
 
-/* DomainStructHandler */
+/* OntologyStructHandler */
 
-bool DomainStructHandler::start(Variant::mapType &args)
+bool OntologyStructHandler::start(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
-	Rooted<Domain> domain = scope().selectOrThrow<Domain>();
+	Rooted<Ontology> ontology = scope().selectOrThrow<Ontology>();
 
-	Rooted<StructuredClass> structuredClass = domain->createStructuredClass(
+	Rooted<StructuredClass> structuredClass = ontology->createStructuredClass(
 	    args["name"].asString(), args["cardinality"].asCardinality(), nullptr,
 	    args["transparent"].asBool(), args["isRoot"].asBool());
 	structuredClass->setLocation(location());
@@ -85,28 +85,28 @@ bool DomainStructHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainStructHandler::end() { scope().pop(logger()); }
+void OntologyStructHandler::end() { scope().pop(logger()); }
 
-/* DomainAnnotationHandler */
-bool DomainAnnotationHandler::start(Variant::mapType &args)
+/* OntologyAnnotationHandler */
+bool OntologyAnnotationHandler::start(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
-	Rooted<Domain> domain = scope().selectOrThrow<Domain>();
+	Rooted<Ontology> ontology = scope().selectOrThrow<Ontology>();
 
 	Rooted<AnnotationClass> annotationClass =
-	    domain->createAnnotationClass(args["name"].asString());
+	    ontology->createAnnotationClass(args["name"].asString());
 	annotationClass->setLocation(location());
 
 	scope().push(annotationClass);
 	return true;
 }
 
-void DomainAnnotationHandler::end() { scope().pop(logger()); }
+void OntologyAnnotationHandler::end() { scope().pop(logger()); }
 
-/* DomainAttributesHandler */
+/* OntologyAttributesHandler */
 
-bool DomainAttributesHandler::start(Variant::mapType &args)
+bool OntologyAttributesHandler::start(Variant::mapType &args)
 {
 	// Fetch the current typesystem and create the struct node
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
@@ -118,11 +118,11 @@ bool DomainAttributesHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainAttributesHandler::end() { scope().pop(logger()); }
+void OntologyAttributesHandler::end() { scope().pop(logger()); }
 
-/* DomainFieldHandler */
+/* OntologyFieldHandler */
 
-bool DomainFieldHandler::start(Variant::mapType &args)
+bool OntologyFieldHandler::start(Variant::mapType &args)
 {
 	FieldDescriptor::FieldType type;
 	if (args["isSubtree"].asBool()) {
@@ -148,11 +148,11 @@ bool DomainFieldHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainFieldHandler::end() { scope().pop(logger()); }
+void OntologyFieldHandler::end() { scope().pop(logger()); }
 
-/* DomainFieldRefHandler */
+/* OntologyFieldRefHandler */
 
-bool DomainFieldRefHandler::start(Variant::mapType &args)
+bool OntologyFieldRefHandler::start(Variant::mapType &args)
 {
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
@@ -178,11 +178,11 @@ bool DomainFieldRefHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainFieldRefHandler::end() {}
+void OntologyFieldRefHandler::end() {}
 
-/* DomainPrimitiveHandler */
+/* OntologyPrimitiveHandler */
 
-bool DomainPrimitiveHandler::start(Variant::mapType &args)
+bool OntologyPrimitiveHandler::start(Variant::mapType &args)
 {
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
@@ -218,11 +218,11 @@ bool DomainPrimitiveHandler::start(Variant::mapType &args)
 	return true;
 }
 
-void DomainPrimitiveHandler::end() { scope().pop(logger()); }
+void OntologyPrimitiveHandler::end() { scope().pop(logger()); }
 
-/* DomainChildHandler */
+/* OntologyChildHandler */
 
-bool DomainChildHandler::start(Variant::mapType &args)
+bool OntologyChildHandler::start(Variant::mapType &args)
 {
 	Rooted<FieldDescriptor> field = scope().selectOrThrow<FieldDescriptor>();
 
@@ -238,26 +238,26 @@ bool DomainChildHandler::start(Variant::mapType &args)
 	return true;
 }
 
-/* DomainParentHandler */
+/* OntologyParentHandler */
 
-bool DomainParentHandler::start(Variant::mapType &args)
+bool OntologyParentHandler::start(Variant::mapType &args)
 {
 	Rooted<StructuredClass> strct = scope().selectOrThrow<StructuredClass>();
 
-	Rooted<DomainParent> parent{
-	    new DomainParent(strct->getManager(), args["ref"].asString(), strct)};
+	Rooted<OntologyParent> parent{
+	    new OntologyParent(strct->getManager(), args["ref"].asString(), strct)};
 	parent->setLocation(location());
 	scope().push(parent);
 	return true;
 }
 
-void DomainParentHandler::end() { scope().pop(logger()); }
+void OntologyParentHandler::end() { scope().pop(logger()); }
 
-/* DomainParentFieldHandler */
+/* OntologyParentFieldHandler */
 
-bool DomainParentFieldHandler::start(Variant::mapType &args)
+bool OntologyParentFieldHandler::start(Variant::mapType &args)
 {
-	Rooted<DomainParent> parentNameNode = scope().selectOrThrow<DomainParent>();
+	Rooted<OntologyParent> parentNameNode = scope().selectOrThrow<OntologyParent>();
 	FieldDescriptor::FieldType type;
 	if (args["isSubtree"].asBool()) {
 		type = FieldDescriptor::FieldType::SUBTREE;
@@ -286,11 +286,11 @@ bool DomainParentFieldHandler::start(Variant::mapType &args)
 	return true;
 }
 
-/* DomainParentFieldRefHandler */
+/* OntologyParentFieldRefHandler */
 
-bool DomainParentFieldRefHandler::start(Variant::mapType &args)
+bool OntologyParentFieldRefHandler::start(Variant::mapType &args)
 {
-	Rooted<DomainParent> parentNameNode = scope().selectOrThrow<DomainParent>();
+	Rooted<OntologyParent> parentNameNode = scope().selectOrThrow<OntologyParent>();
 
 	const std::string &name = args["ref"].asString();
 	Rooted<StructuredClass> strct =
@@ -318,100 +318,100 @@ bool DomainParentFieldRefHandler::start(Variant::mapType &args)
 }
 
 namespace States {
-const State Domain = StateBuilder()
+const State Ontology = StateBuilder()
                          .parents({&None, &Document})
-                         .createdNodeType(&RttiTypes::Domain)
-                         .elementHandler(DomainHandler::create)
+                         .createdNodeType(&RttiTypes::Ontology)
+                         .elementHandler(OntologyHandler::create)
                          .arguments({Argument::String("name")});
 
-const State DomainStruct =
+const State OntologyStruct =
     StateBuilder()
-        .parent(&Domain)
+        .parent(&Ontology)
         .createdNodeType(&RttiTypes::StructuredClass)
-        .elementHandler(DomainStructHandler::create)
+        .elementHandler(OntologyStructHandler::create)
         .arguments({Argument::String("name"),
                     Argument::Cardinality("cardinality", Cardinality::any()),
                     Argument::Bool("isRoot", false),
                     Argument::Bool("transparent", false),
                     Argument::String("isa", "")});
 
-const State DomainAnnotation =
+const State OntologyAnnotation =
     StateBuilder()
-        .parent(&Domain)
+        .parent(&Ontology)
         .createdNodeType(&RttiTypes::AnnotationClass)
-        .elementHandler(DomainAnnotationHandler::create)
+        .elementHandler(OntologyAnnotationHandler::create)
         .arguments({Argument::String("name")});
 
-const State DomainAttributes =
+const State OntologyAttributes =
     StateBuilder()
-        .parents({&DomainStruct, &DomainAnnotation})
+        .parents({&OntologyStruct, &OntologyAnnotation})
         .createdNodeType(&RttiTypes::StructType)
-        .elementHandler(DomainAttributesHandler::create)
+        .elementHandler(OntologyAttributesHandler::create)
         .arguments({});
 
-const State DomainAttribute =
+const State OntologyAttribute =
     StateBuilder()
-        .parent(&DomainAttributes)
+        .parent(&OntologyAttributes)
         .elementHandler(TypesystemStructFieldHandler::create)
         .arguments({Argument::String("name"), Argument::String("type"),
                     Argument::Any("default", Variant::fromObject(nullptr))});
 
-const State DomainField = StateBuilder()
-                              .parents({&DomainStruct, &DomainAnnotation})
+const State OntologyField = StateBuilder()
+                              .parents({&OntologyStruct, &OntologyAnnotation})
                               .createdNodeType(&RttiTypes::FieldDescriptor)
-                              .elementHandler(DomainFieldHandler::create)
+                              .elementHandler(OntologyFieldHandler::create)
                               .arguments({Argument::String("name", ""),
                                           Argument::Bool("isSubtree", false),
                                           Argument::Bool("optional", false)});
 
-const State DomainFieldRef =
+const State OntologyFieldRef =
     StateBuilder()
-        .parents({&DomainStruct, &DomainAnnotation})
+        .parents({&OntologyStruct, &OntologyAnnotation})
         .createdNodeType(&RttiTypes::FieldDescriptor)
-        .elementHandler(DomainFieldRefHandler::create)
+        .elementHandler(OntologyFieldRefHandler::create)
         .arguments({Argument::String("ref", DEFAULT_FIELD_NAME)});
 
-const State DomainStructPrimitive =
+const State OntologyStructPrimitive =
     StateBuilder()
-        .parents({&DomainStruct, &DomainAnnotation})
+        .parents({&OntologyStruct, &OntologyAnnotation})
         .createdNodeType(&RttiTypes::FieldDescriptor)
-        .elementHandler(DomainPrimitiveHandler::create)
+        .elementHandler(OntologyPrimitiveHandler::create)
         .arguments(
             {Argument::String("name", ""), Argument::Bool("isSubtree", false),
              Argument::Bool("optional", false), Argument::String("type")});
 
-const State DomainStructChild = StateBuilder()
-                                    .parent(&DomainField)
-                                    .elementHandler(DomainChildHandler::create)
+const State OntologyStructChild = StateBuilder()
+                                    .parent(&OntologyField)
+                                    .elementHandler(OntologyChildHandler::create)
                                     .arguments({Argument::String("ref")});
 
-const State DomainStructParent =
+const State OntologyStructParent =
     StateBuilder()
-        .parent(&DomainStruct)
-        .createdNodeType(&RttiTypes::DomainParent)
-        .elementHandler(DomainParentHandler::create)
+        .parent(&OntologyStruct)
+        .createdNodeType(&RttiTypes::OntologyParent)
+        .elementHandler(OntologyParentHandler::create)
         .arguments({Argument::String("ref")});
 
-const State DomainStructParentField =
+const State OntologyStructParentField =
     StateBuilder()
-        .parent(&DomainStructParent)
+        .parent(&OntologyStructParent)
         .createdNodeType(&RttiTypes::FieldDescriptor)
-        .elementHandler(DomainParentFieldHandler::create)
+        .elementHandler(OntologyParentFieldHandler::create)
         .arguments({Argument::String("name", ""),
                     Argument::Bool("isSubtree", false),
                     Argument::Bool("optional", false)});
 
-const State DomainStructParentFieldRef =
+const State OntologyStructParentFieldRef =
     StateBuilder()
-        .parent(&DomainStructParent)
+        .parent(&OntologyStructParent)
         .createdNodeType(&RttiTypes::FieldDescriptor)
-        .elementHandler(DomainParentFieldRefHandler::create)
+        .elementHandler(OntologyParentFieldRefHandler::create)
         .arguments({Argument::String("ref", DEFAULT_FIELD_NAME)});
 }
 }
 
 namespace RttiTypes {
-const Rtti DomainParent = RttiBuilder<ousia::parser_stack::DomainParent>(
-                              "DomainParent").parent(&Node);
+const Rtti OntologyParent = RttiBuilder<ousia::parser_stack::OntologyParent>(
+                              "OntologyParent").parent(&Node);
 }
 }

@@ -17,13 +17,13 @@
 */
 
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 #include <core/model/Typesystem.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
 
 #include "DocumentHandler.hpp"
-#include "DomainHandler.hpp"
+#include "OntologyHandler.hpp"
 #include "State.hpp"
 #include "TypesystemHandler.hpp"
 
@@ -39,12 +39,12 @@ bool TypesystemHandler::start(Variant::mapType &args)
 	    context().getProject()->createTypesystem(args["name"].asString());
 	typesystem->setLocation(location());
 
-	// If the typesystem is defined inside a domain, add a reference to the
-	// typesystem to the domain -- do the same with a document, if no domain
+	// If the typesystem is defined inside a ontology, add a reference to the
+	// typesystem to the ontology -- do the same with a document, if no ontology
 	// is found
-	Rooted<Domain> domain = scope().select<Domain>();
-	if (domain != nullptr) {
-		domain->reference(typesystem);
+	Rooted<Ontology> ontology = scope().select<Ontology>();
+	if (ontology != nullptr) {
+		ontology->reference(typesystem);
 	} else {
 		Rooted<Document> document = scope().select<Document>();
 		if (document != nullptr) {
@@ -190,7 +190,7 @@ bool TypesystemConstantHandler::start(Variant::mapType &args)
 
 namespace States {
 const State Typesystem = StateBuilder()
-                             .parents({&None, &Domain, &Document})
+                             .parents({&None, &Ontology, &Document})
                              .createdNodeType(&RttiTypes::Typesystem)
                              .elementHandler(TypesystemHandler::create)
                              .arguments({Argument::String("name", "")});

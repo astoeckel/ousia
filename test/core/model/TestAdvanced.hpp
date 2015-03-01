@@ -20,19 +20,19 @@
 #define _MODEL_TEST_ADVANCED_HPP_
 
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 #include <core/model/Typesystem.hpp>
 
 #include "TestDocumentBuilder.hpp"
 
 namespace ousia {
 
-static Rooted<StructuredClass> resolveDescriptor(Handle<Domain> domain,
+static Rooted<StructuredClass> resolveDescriptor(Handle<Ontology> ontology,
                                                  const std::string &className)
 {
 	// use the actual resolve method.
 	std::vector<ResolutionResult> resolved =
-	    domain->resolve(&RttiTypes::StructuredClass, className);
+	    ontology->resolve(&RttiTypes::StructuredClass, className);
 	// take the first valid result.
 	for (auto &r : resolved) {
 		return r.node.cast<StructuredClass>();
@@ -42,53 +42,53 @@ static Rooted<StructuredClass> resolveDescriptor(Handle<Domain> domain,
 }
 
 /**
- * This constructs the "heading" domain given the book domain.
+ * This constructs the "heading" ontology given the book ontology.
  */
-static Rooted<Domain> constructHeadingDomain(Manager &mgr,
+static Rooted<Ontology> constructHeadingOntology(Manager &mgr,
                                              Handle<SystemTypesystem> sys,
-                                             Handle<Domain> bookDomain,
+                                             Handle<Ontology> bookOntology,
                                              Logger &logger)
 {
-	// set up domain node.
-	Rooted<Domain> domain{new Domain(mgr, sys, "headings")};
+	// set up ontology node.
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "headings")};
 	// set up cardinality (every section may have at most one heading).
 	Cardinality card;
 	card.merge({0, 1});
 	// set up heading StructuredClass.
 	Rooted<StructuredClass> heading{
-	    new StructuredClass(mgr, "heading", domain, card, {nullptr}, true)};
+	    new StructuredClass(mgr, "heading", ontology, card, {nullptr}, true)};
 	// as field want to reference the field of paragraph.
-	Rooted<StructuredClass> p = resolveDescriptor(bookDomain, "paragraph");
+	Rooted<StructuredClass> p = resolveDescriptor(bookOntology, "paragraph");
 	heading->addFieldDescriptor(p->getFieldDescriptor(), logger);
 	// create a new field for headings in each section type.
 	std::vector<std::string> secclasses{"book", "section", "subsection",
 	                                    "paragraph"};
 	for (auto &s : secclasses) {
-		Rooted<StructuredClass> desc = resolveDescriptor(bookDomain, s);
+		Rooted<StructuredClass> desc = resolveDescriptor(bookOntology, s);
 		Rooted<FieldDescriptor> heading_field =
 		    desc->createFieldDescriptor(logger,
 		                                FieldDescriptor::FieldType::SUBTREE,
 		                                "heading", true).first;
 		heading_field->addChild(heading);
 	}
-	return domain;
+	return ontology;
 }
 
 /**
- * This constructs the "list" domain given the book domain.
+ * This constructs the "list" ontology given the book ontology.
  */
-static Rooted<Domain> constructListDomain(Manager &mgr,
+static Rooted<Ontology> constructListOntology(Manager &mgr,
                                           Handle<SystemTypesystem> sys,
-                                          Handle<Domain> bookDomain,
+                                          Handle<Ontology> bookOntology,
                                           Logger &logger)
 {
-	// set up domain node.
-	Rooted<Domain> domain{new Domain(mgr, sys, "list")};
+	// set up ontology node.
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "list")};
 	// get book.paragraph
-	Rooted<StructuredClass> p = resolveDescriptor(bookDomain, "paragraph");
+	Rooted<StructuredClass> p = resolveDescriptor(bookOntology, "paragraph");
 	// set up item StructuredClass;
 	Rooted<StructuredClass> item{new StructuredClass(
-	    mgr, "item", domain, Cardinality::any(), {nullptr}, false)};
+	    mgr, "item", ontology, Cardinality::any(), {nullptr}, false)};
 
 	// as field we want to reference the field of paragraph.
 	item->addFieldDescriptor(p->getFieldDescriptor(), logger);
@@ -96,28 +96,28 @@ static Rooted<Domain> constructListDomain(Manager &mgr,
 	std::vector<std::string> listTypes{"ol", "ul"};
 	for (auto &listType : listTypes) {
 		Rooted<StructuredClass> list{new StructuredClass(
-		    mgr, listType, domain, Cardinality::any(), p, false)};
+		    mgr, listType, ontology, Cardinality::any(), p, false)};
 		Rooted<FieldDescriptor> list_field{new FieldDescriptor(mgr, list)};
 		list_field->addChild(item);
 	}
-	return domain;
+	return ontology;
 }
 
 /**
- * This constructs the "emphasis" domain.
+ * This constructs the "emphasis" ontology.
  */
-static Rooted<Domain> constructEmphasisDomain(Manager &mgr,
+static Rooted<Ontology> constructEmphasisOntology(Manager &mgr,
                                               Handle<SystemTypesystem> sys,
                                               Logger &logger)
 {
-	// set up domain node.
-	Rooted<Domain> domain{new Domain(mgr, sys, "emphasis")};
+	// set up ontology node.
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "emphasis")};
 	// create AnnotationClasses
-	Rooted<AnnotationClass> em{new AnnotationClass(mgr, "emphasized", domain)};
+	Rooted<AnnotationClass> em{new AnnotationClass(mgr, "emphasized", ontology)};
 
-	Rooted<AnnotationClass> strong{new AnnotationClass(mgr, "strong", domain)};
+	Rooted<AnnotationClass> strong{new AnnotationClass(mgr, "strong", ontology)};
 
-	return domain;
+	return ontology;
 }
 
 static bool addText(Logger &logger, Handle<Document> doc,
@@ -173,17 +173,17 @@ static bool addAnnotation(Logger &logger, Handle<Document> doc,
 
 /**
  * This constructs a more advanced book document using not only the book
- * domain but also headings, emphasis and lists.
+ * ontology but also headings, emphasis and lists.
  */
 static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
-                                                  Handle<Domain> bookDom,
-                                                  Handle<Domain> headingDom,
-                                                  Handle<Domain> listDom,
-                                                  Handle<Domain> emphasisDom)
+                                                  Handle<Ontology> bookDom,
+                                                  Handle<Ontology> headingDom,
+                                                  Handle<Ontology> listDom,
+                                                  Handle<Ontology> emphasisDom)
 {
 	// Start with the (empty) document.
 	Rooted<Document> doc{new Document(mgr, "kant_was_ist_aufklaerung.oxd")};
-	doc->referenceDomains({bookDom, headingDom, listDom, emphasisDom});
+	doc->referenceOntologys({bookDom, headingDom, listDom, emphasisDom});
 
 	// Add the root.
 	Rooted<StructuredEntity> book =

@@ -100,9 +100,9 @@ TEST(Registry, locateResource)
 
 	Resource res;
 	ASSERT_TRUE(
-	    registry.locateResource(res, "path", ResourceType::DOMAIN_DESC));
+	    registry.locateResource(res, "path", ResourceType::ONTOLOGY));
 	ASSERT_TRUE(res.isValid());
-	ASSERT_EQ(ResourceType::DOMAIN_DESC, res.getType());
+	ASSERT_EQ(ResourceType::ONTOLOGY, res.getType());
 	ASSERT_EQ("path", res.getLocation());
 }
 }

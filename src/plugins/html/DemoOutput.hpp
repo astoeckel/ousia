@@ -19,7 +19,7 @@
 /**
  * @file DemoOutput.hpp
  *
- * This implements a Demo HTML output for the following domains:
+ * This implements a Demo HTML output for the following ontologies:
  * * book
  * * headings
  * * emphasis
@@ -67,18 +67,18 @@ public:
 	 * This writes a HTML representation of the given document to the given
 	 * output stream. Note that this method lacks the generality of our Ousia
 	 * approach with respect to two important points:
-	 * 1.) It hardcodes the dependency to a certain set of domains in the C++
+	 * 1.) It hardcodes the dependency to a certain set of ontologies in the C++
 	 *     code.
 	 * 2.) It does not use the proposed pipeline of first copying the document
 	 *     graph, then attaching style attributes and then transforming it to a
 	 *     specific output format but does all of these steps at once.
-	 * 3.) It does not use different transformers for the different domains but
+	 * 3.) It does not use different transformers for the different ontologies but
 	 *     does all transformations at once.
 	 * Therefore this is not an adequate model of our algorithms but only a
 	 * Demo.
 	 *
 	 * @param doc    is a Document using concepts of the book, headings,
-	 *               emphasis and lists domains but no other.
+	 *               emphasis and lists ontologies but no other.
 	 * @param out    is the output stream the data shall be written to.
 	 * @param pretty is a flag that manipulates whether newlines and tabs are
 	 *               used.

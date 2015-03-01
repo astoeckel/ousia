@@ -33,7 +33,7 @@ namespace ousia {
 
 namespace RttiTypes {
 extern const Rtti Document;
-extern const Rtti Domain;
+extern const Rtti Ontology;
 extern const Rtti Node;
 extern const Rtti Typesystem;
 }
@@ -43,7 +43,7 @@ extern const Rtti Typesystem;
  */
 static const std::unordered_map<const Rtti *, ResourceType>
     RTTI_RESOURCE_TYPE_MAP{{&RttiTypes::Document, ResourceType::DOCUMENT},
-                           {&RttiTypes::Domain, ResourceType::DOMAIN_DESC},
+                           {&RttiTypes::Ontology, ResourceType::ONTOLOGY},
                            {&RttiTypes::Typesystem, ResourceType::TYPESYSTEM}};
 
 /**

@@ -20,7 +20,7 @@
 #define _MODEL_TEST_DOCUMENT_HPP_
 
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 #include <core/model/Typesystem.hpp>
 
 #include "TestDocumentBuilder.hpp"
@@ -28,15 +28,15 @@
 namespace ousia {
 
 /**
- * This constructs a fairly simple test document for the "book" domain. The
+ * This constructs a fairly simple test document for the "book" ontology. The
  * structure of the document can be seen in the Code below.
  */
 static Rooted<Document> constructBookDocument(Manager &mgr, Logger &logger,
-                                              Rooted<Domain> bookDomain)
+                                              Rooted<Ontology> bookOntology)
 {
 	// Start with the (empty) document.
 	Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
-	doc->referenceDomain(bookDomain);
+	doc->referenceOntology(bookOntology);
 
 	// Add the root.
 	Rooted<StructuredEntity> root =

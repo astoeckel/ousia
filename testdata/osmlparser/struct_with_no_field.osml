@@ -1,6 +1,6 @@
 \document
 
-\domain#test
+\ontology#test
 	\struct#a[isRoot=true]
 		\field
 			\childRef[ref=b]

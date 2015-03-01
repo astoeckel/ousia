@@ -1,6 +1,6 @@
 <?xml version="1.0" standalone="yes"?>
-<domain name="comments">
-	<import rel="domain" src="./book_domain.osxml"/>
+<ontology name="comments">
+	<import rel="ontology" src="./book_ontology.osxml"/>
 
 	<!-- an annotation comment -->
 	<annotation name="comment">
@@ -37,4 +37,4 @@
 			<childRef ref="book.paragraph"/>
 		</field>
 	</struct>
-</domain>
+</ontology>

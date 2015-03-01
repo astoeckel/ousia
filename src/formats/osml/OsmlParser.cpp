@@ -95,7 +95,7 @@ public:
 						const std::string &cmd =
 						    parser.getCommandName().asString();
 						if (cmd != "typesystem" && cmd != "document" &&
-						    cmd != "domain") {
+						    cmd != "ontology") {
 							stack.command("document", Variant::mapType{});
 						}
 						needsDocument = false;

@@ -22,29 +22,29 @@
  * This header contains the class hierarchy of actual document classes. A graph
  * of connected instances of these nodes is a "Document". How the different
  * DocumentEntity instances may be connected within the graph is subject to the
- * specification in the respective Domain(s) (see also the Domain.hpp).
+ * specification in the respective Ontology(s) (see also the Ontology.hpp).
  *
  * A Document, from top to bottom, consists of "Document" instance,
  * which "owns" the structural root node of the in-document graph. This might
- * for example be a "book" node of the "book" domain. That root node in turn has
+ * for example be a "book" node of the "book" ontology. That root node in turn has
  * structure nodes as children, which in turn may have children. This
  * constitutes a Structure Tree. Additionally annotations may be attached to
  * Structure Nodes, effectively resulting in a Document Graph instead of a
  * Document Tree (other references may introduce cycles as well).
  *
- * Consider this XML representation of a document using the "book" domain:
+ * Consider this XML representation of a document using the "book" ontology:
  *
  * \code{.xml}
  * <doc>
  * 	<head>
- * 		<import rel="domain" src="book_domain.oxm"/>
- * 		<import rel="domain" src="emphasized_domain.oxm"/>
+ * 		<import rel="ontology" src="book_ontology.oxm"/>
+ * 		<import rel="ontology" src="emphasized_ontology.oxm"/>
  * 		<alias tag="paragraph" aka="p"/>
  * 	</head>
  * 	<book>
  * 		This might be some introductory text or a dedication. Ideally, of
  * 		course, such elements would be semantically specified as such in
- * 		additional domains (or in this one).
+ * 		additional ontologies (or in this one).
  * 		<chapter name="myFirstChapter">
  * 			Here we might have an introduction to the chapter, including some
  * 			overview of the chapters structure.
@@ -63,9 +63,9 @@
  * \endcode
  *
  * As can be seen the StructureEntities inherently follow a tree structure that
- * is restricted by the implicit context free grammar of the "book" Domain
+ * is restricted by the implicit context free grammar of the "book" Ontology
  * definition (e.g. it is not allowed to have a "book" node inside a "section";
- * refer to te Domain.hpp for more information).
+ * refer to te Ontology.hpp for more information).
  *
  * Another interesting fact is the special place of AnnotationEntities: They are
  * Defined by start and end Anchors in the text. Note that this allows for
@@ -114,7 +114,7 @@
 #include <core/common/Variant.hpp>
 
 #include "Node.hpp"
-#include "Domain.hpp"
+#include "Ontology.hpp"
 #include "RootNode.hpp"
 #include "Typesystem.hpp"
 
@@ -131,7 +131,7 @@ class Anchor;
 
 /**
  * A DocumentEntity is the common superclass for StructuredEntities and
- * AnnotationEntities. Similarly to DescriptorEntity in the Domain.hpp it
+ * AnnotationEntities. Similarly to DescriptorEntity in the Ontology.hpp it
  * defines that each node in the Document graph may have attributes (in form
  * of a struct Variant), and fields.
  * The fields here are a vector of vectors. The first vector implements all
@@ -215,7 +215,7 @@ public:
 	 * If the name is unknown an exception is thrown.
 	 *
 	 * @param fieldName is the name of a field as specified in the
-	 *                  FieldDescriptor in the Domain description.
+	 *                  FieldDescriptor in the Ontology description.
 	 * @return          a NodeVector of all StructuredEntities in that field.
 	 */
 	const NodeVector<StructureNode> &getField(
@@ -243,7 +243,7 @@ public:
 	 * If the index is out of bounds an exception is thrown.
 	 *
 	 * @param idx       is the index of a field as specified in the
-	 *                  FieldDescriptor in the Domain description.
+	 *                  FieldDescriptor in the Ontology description.
 	 * @return          a NodeVector of all StructuredEntities in that field.
 	 */
 	const NodeVector<StructureNode> &getField(const size_t &idx) const;
@@ -257,7 +257,7 @@ public:
 	 *
 	 * @param s         is the StructureNode that shall be added.
 	 * @param fieldIdx  is the index of a field as specified in the
-	 *                  FieldDescriptor in the Domain description.
+	 *                  FieldDescriptor in the Ontology description.
 	 */
 	void addStructureNode(Handle<StructureNode> s, const size_t &fieldIdx);
 	/**
@@ -271,7 +271,7 @@ public:
 	 *
 	 * @param s         is the StructureNode that shall be added.
 	 * @param fieldName is the name of a field as specified in the
-	 *                  FieldDescriptor in the Domain description.
+	 *                  FieldDescriptor in the Ontology description.
 	 */
 	void addStructureNode(Handle<StructureNode> s,
 	                      const std::string &fieldName = DEFAULT_FIELD_NAME);
@@ -287,7 +287,7 @@ public:
 	 *
 	 * @param ss        are the StructureNodes that shall be added.
 	 * @param fieldName is the name of a field as specified in the
-	 *                  FieldDescriptor in the Domain description.
+	 *                  FieldDescriptor in the Ontology description.
 	 */
 	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
 	                       const std::string &fieldName = DEFAULT_FIELD_NAME);
@@ -298,7 +298,7 @@ public:
 	 *
 	 * @param s         is the StructureNode that shall be removed.
 	 * @param fieldIdx  is the index of a field as specified in the
-	 *                  FieldDescriptor in the Domain description.
+	 *                  FieldDescriptor in the Ontology description.
 	 * @return          true if this StructureNode was a child here and false if
 	 *                  if was not found.
 	 */
@@ -313,7 +313,7 @@ public:
 	 *
 	 * @param s         is the StructureNode that shall be removed.
 	 * @param fieldName is the name of a field as specified in the
-	 *                  FieldDescriptor in the Domain description.
+	 *                  FieldDescriptor in the Ontology description.
 	 * @return          true if this StructureNode was a child here and false if
 	 *                  if was not found.
 	 */
@@ -866,7 +866,7 @@ public:
 
 /**
  * A Document is mainly a wrapper for the Root structure node of the Document
- * Graph. It also references the domains that have been used within this
+ * Graph. It also references the ontologies that have been used within this
  * document and the AnnotationEntities that span over Anchors in this Document.
  */
 class Document : public RootNode {
@@ -874,7 +874,7 @@ private:
 	// TODO: Might there be several roots? E.g. metadata?
 	Owned<StructuredEntity> root;
 	NodeVector<AnnotationEntity> annotations;
-	NodeVector<Domain> domains;
+	NodeVector<Ontology> ontologies;
 	NodeVector<Typesystem> typesystems;
 
 protected:
@@ -893,7 +893,7 @@ public:
 	Document(Manager &mgr, std::string name)
 	    : RootNode(mgr, std::move(name), nullptr),
 	      annotations(this),
-	      domains(this),
+	      ontologies(this),
 	      typesystems(this)
 	{
 	}
@@ -987,30 +987,30 @@ public:
 	    std::string name = "");
 
 	/**
-	 * Returns a const reference to the NodeVector of Domains that are used
+	 * Returns a const reference to the NodeVector of ontologies that are used
 	 * within this Document.
 	 *
-	 * @return a const reference to the NodeVector of Domains that are used
+	 * @return a const reference to the NodeVector of ontologies that are used
 	 * within this Document.
 	 */
-	const NodeVector<Domain> &getDomains() const { return domains; }
+	const NodeVector<Ontology> &getOntologys() const { return ontologies; }
 
 	/**
-	 * Adds a Domain reference to this Document.
+	 * Adds a Ontology reference to this Document.
 	 */
-	void referenceDomain(Handle<Domain> d)
+	void referenceOntology(Handle<Ontology> d)
 	{
 		invalidate();
-		domains.push_back(d);
+		ontologies.push_back(d);
 	}
 
 	/**
-	 * Adds multiple Domain references to this Document.
+	 * Adds multiple Ontology references to this Document.
 	 */
-	void referenceDomains(const std::vector<Handle<Domain>> &d)
+	void referenceOntologys(const std::vector<Handle<Ontology>> &d)
 	{
 		invalidate();
-		domains.insert(domains.end(), d.begin(), d.end());
+		ontologies.insert(ontologies.end(), d.begin(), d.end());
 	}
 
 	/**

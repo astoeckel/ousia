@@ -41,7 +41,7 @@
 #include <core/frontend/TerminalLogger.hpp>
 #include <core/managed/Manager.hpp>
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 #include <core/model/Project.hpp>
 #include <core/model/Typesystem.hpp>
 #include <core/parser/ParserContext.hpp>
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 	    "The input document file name")(
 	    "include,I", po::value<std::vector<std::string>>(),
 	    "Include paths, where resources like the input document "
-	    "or additional domains, typesystems, etc. might be "
+	    "or additional ontologies, typesystems, etc. might be "
 	    "found.")(
 	    "output,o", po::value<std::string>(&outputPath),
 	    "The output file name. Per default the input file name will be used.")(
@@ -234,11 +234,11 @@ int main(int argc, char **argv)
 	OsxmlParser osxmlParser;
 	registry.registerParser(
 	    {"text/vnd.ousia.osml"},
-	    {&RttiTypes::Document, &RttiTypes::Domain, &RttiTypes::Typesystem},
+	    {&RttiTypes::Document, &RttiTypes::Ontology, &RttiTypes::Typesystem},
 	    &osmlParser);
 	registry.registerParser(
 	    {"text/vnd.ousia.osml+xml"},
-	    {&RttiTypes::Document, &RttiTypes::Domain, &RttiTypes::Typesystem},
+	    {&RttiTypes::Document, &RttiTypes::Ontology, &RttiTypes::Typesystem},
 	    &osxmlParser);
 	registry.registerResourceLocator(&fileLocator);
 

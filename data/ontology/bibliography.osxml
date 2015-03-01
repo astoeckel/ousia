@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
-<domain name="bibliography">
+<ontology name="bibliography">
 
-	<import rel="domain" src="book"/>
-	<import rel="domain" src="meta"/>
+	<import rel="ontology" src="book"/>
+	<import rel="ontology" src="meta"/>
 
 	<struct name="bibliography" transparent="true">
 		<field>
@@ -39,4 +39,4 @@
 		<!-- here some kind of database reference would be better -->
 		<primitive type="string"/>
 	</struct>
-</domain>
+</ontology>

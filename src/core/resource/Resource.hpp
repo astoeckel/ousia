@@ -48,9 +48,9 @@ enum class ResourceType {
 	UNKNOWN,
 
 	/**
-     * The resource contains a domain description.
+     * The resource contains a ontology description.
      */
-	DOMAIN_DESC,
+	ONTOLOGY,
 
 	/**
      * The resource contains a typesystem description.

@@ -1,10 +1,10 @@
 <?xml version="1.0" standalone="yes"?>
-<!-- The domain node is the root node of a single domain definition -->
-<domain name="book">
+<!-- The ontology node is the root node of a single ontology definition -->
+<ontology name="book">
 	<!-- We start by declaring the structured classes. This implicitly defines
 	     a context free grammar, which specifies the language of documents that
-	     may be constructed using this domain. Note that this grammar may be
-	     influenced by other domains depending on this one. -->
+	     may be constructed using this ontology. Note that this grammar may be
+	     influenced by other ontologies depending on this one. -->
 	<!-- Note that we specify neither attributes, 
 	     nor parent, nor transparency, meaning that we refer to the default
 	     values. Also note that we need to specify explicitly, which classes
@@ -95,4 +95,4 @@
 		<!-- we might want to specify std.string here -->
 		<primitive type="string"/>
 	</struct>
-</domain>
+</ontology>

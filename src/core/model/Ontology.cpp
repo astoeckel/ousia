@@ -23,7 +23,7 @@
 #include <core/common/RttiBuilder.hpp>
 #include <core/common/Exceptions.hpp>
 
-#include "Domain.hpp"
+#include "Ontology.hpp"
 
 namespace ousia {
 
@@ -416,9 +416,9 @@ bool Descriptor::doValidate(Logger &logger) const
 		    std::string("Descriptor \"") + getName() + "\" has no parent!",
 		    *this);
 		valid = false;
-	} else if (!getParent()->isa(&RttiTypes::Domain)) {
+	} else if (!getParent()->isa(&RttiTypes::Ontology)) {
 		logger.error(std::string("The parent of Descriptor \"") + getName() +
-		                 "\" is not a Domain!",
+		                 "\" is not a Ontology!",
 		             *this);
 		valid = false;
 	}
@@ -672,10 +672,10 @@ std::pair<Rooted<FieldDescriptor>, bool> Descriptor::createFieldDescriptor(
 /* Class StructuredClass */
 
 StructuredClass::StructuredClass(Manager &mgr, std::string name,
-                                 Handle<Domain> domain, Variant cardinality,
+                                 Handle<Ontology> ontology, Variant cardinality,
                                  Handle<StructuredClass> superclass,
                                  bool transparent, bool root)
-    : Descriptor(mgr, std::move(name), domain),
+    : Descriptor(mgr, std::move(name), ontology),
       cardinality(cardinality),
       superclass(acquire(superclass)),
       subclasses(this),
@@ -686,8 +686,8 @@ StructuredClass::StructuredClass(Manager &mgr, std::string name,
 	if (superclass != nullptr) {
 		superclass->addSubclass(this, logger);
 	}
-	if (domain != nullptr) {
-		domain->addStructuredClass(this);
+	if (ontology != nullptr) {
+		ontology->addStructuredClass(this);
 	}
 }
 
@@ -843,27 +843,27 @@ NodeVector<FieldDescriptor> StructuredClass::getFieldDescriptors() const
 /* Class AnnotationClass */
 
 AnnotationClass::AnnotationClass(Manager &mgr, std::string name,
-                                 Handle<Domain> domain)
-    : Descriptor(mgr, std::move(name), domain)
+                                 Handle<Ontology> ontology)
+    : Descriptor(mgr, std::move(name), ontology)
 {
-	if (domain != nullptr) {
-		domain->addAnnotationClass(this);
+	if (ontology != nullptr) {
+		ontology->addAnnotationClass(this);
 	}
 }
 
-/* Class Domain */
+/* Class Ontology */
 
-void Domain::doResolve(ResolutionState &state)
+void Ontology::doResolve(ResolutionState &state)
 {
 	continueResolveComposita(structuredClasses, structuredClasses.getIndex(),
 	                         state);
 	continueResolveComposita(annotationClasses, annotationClasses.getIndex(),
 	                         state);
 	continueResolveReferences(typesystems, state);
-	continueResolveReferences(domains, state);
+	continueResolveReferences(ontologies, state);
 }
 
-bool Domain::doValidate(Logger &logger) const
+bool Ontology::doValidate(Logger &logger) const
 {
 	// check validity of name, of StructuredClasses, of AnnotationClasses and
 	// TypeSystems.
@@ -873,22 +873,22 @@ bool Domain::doValidate(Logger &logger) const
 	       continueValidationCheckDuplicates(typesystems, logger);
 }
 
-void Domain::doReference(Handle<Node> node)
+void Ontology::doReference(Handle<Node> node)
 {
 	if (node->isa(&RttiTypes::Typesystem)) {
 		referenceTypesystem(node.cast<Typesystem>());
 	}
-	if (node->isa(&RttiTypes::Domain)) {
-		referenceDomain(node.cast<Domain>());
+	if (node->isa(&RttiTypes::Ontology)) {
+		referenceOntology(node.cast<Ontology>());
 	}
 }
 
-RttiSet Domain::doGetReferenceTypes() const
+RttiSet Ontology::doGetReferenceTypes() const
 {
-	return RttiSet{&RttiTypes::Domain, &RttiTypes::Typesystem};
+	return RttiSet{&RttiTypes::Ontology, &RttiTypes::Typesystem};
 }
 
-void Domain::addStructuredClass(Handle<StructuredClass> s)
+void Ontology::addStructuredClass(Handle<StructuredClass> s)
 {
 	// only add it if we need to.
 	if (structuredClasses.find(s) == structuredClasses.end()) {
@@ -899,13 +899,13 @@ void Domain::addStructuredClass(Handle<StructuredClass> s)
 	if (par != this) {
 		if (par != nullptr) {
 			// remove the StructuredClass from the old parent.
-			par.cast<Domain>()->removeStructuredClass(s);
+			par.cast<Ontology>()->removeStructuredClass(s);
 		}
 		s->setParent(this);
 	}
 }
 
-bool Domain::removeStructuredClass(Handle<StructuredClass> s)
+bool Ontology::removeStructuredClass(Handle<StructuredClass> s)
 {
 	auto it = structuredClasses.find(s);
 	if (it != structuredClasses.end()) {
@@ -917,7 +917,7 @@ bool Domain::removeStructuredClass(Handle<StructuredClass> s)
 	return false;
 }
 
-Rooted<StructuredClass> Domain::createStructuredClass(
+Rooted<StructuredClass> Ontology::createStructuredClass(
     std::string name, Variant cardinality, Handle<StructuredClass> superclass,
     bool transparent, bool root)
 {
@@ -926,7 +926,7 @@ Rooted<StructuredClass> Domain::createStructuredClass(
 	    std::move(transparent), std::move(root))};
 }
 
-void Domain::addAnnotationClass(Handle<AnnotationClass> a)
+void Ontology::addAnnotationClass(Handle<AnnotationClass> a)
 {
 	// only add it if we need to.
 	if (annotationClasses.find(a) == annotationClasses.end()) {
@@ -937,13 +937,13 @@ void Domain::addAnnotationClass(Handle<AnnotationClass> a)
 	if (par != this) {
 		if (par != nullptr) {
 			// remove the StructuredClass from the old parent.
-			par.cast<Domain>()->removeAnnotationClass(a);
+			par.cast<Ontology>()->removeAnnotationClass(a);
 		}
 		a->setParent(this);
 	}
 }
 
-bool Domain::removeAnnotationClass(Handle<AnnotationClass> a)
+bool Ontology::removeAnnotationClass(Handle<AnnotationClass> a)
 {
 	auto it = annotationClasses.find(a);
 	if (it != annotationClasses.end()) {
@@ -955,7 +955,7 @@ bool Domain::removeAnnotationClass(Handle<AnnotationClass> a)
 	return false;
 }
 
-Rooted<AnnotationClass> Domain::createAnnotationClass(std::string name)
+Rooted<AnnotationClass> Ontology::createAnnotationClass(std::string name)
 {
 	return Rooted<AnnotationClass>{
 	    new AnnotationClass(getManager(), std::move(name), this)};
@@ -974,7 +974,7 @@ const Rtti StructuredClass =
         .composedOf(&FieldDescriptor);
 const Rtti AnnotationClass =
     RttiBuilder<ousia::AnnotationClass>("AnnotationClass").parent(&Descriptor);
-const Rtti Domain = RttiBuilder<ousia::Domain>("Domain")
+const Rtti Ontology = RttiBuilder<ousia::Ontology>("Ontology")
                         .parent(&RootNode)
                         .composedOf({&StructuredClass, &AnnotationClass});
 }

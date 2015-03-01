@@ -26,10 +26,10 @@
 #include <core/common/Rtti.hpp>
 #include <core/frontend/TerminalLogger.hpp>
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 
 #include <core/model/TestAdvanced.hpp>
-#include <core/model/TestDomain.hpp>
+#include <core/model/TestOntology.hpp>
 
 namespace ousia {
 namespace html {
@@ -40,12 +40,12 @@ TEST(DemoHTMLTransformer, writeHTML)
 	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Get the domains.
-	Rooted<Domain> bookDom = constructBookDomain(mgr, sys, logger);
-	Rooted<Domain> headingDom =
-	    constructHeadingDomain(mgr, sys, bookDom, logger);
-	Rooted<Domain> listDom = constructListDomain(mgr, sys, bookDom, logger);
-	Rooted<Domain> emDom = constructEmphasisDomain(mgr, sys, logger);
+	// Get the ontologies.
+	Rooted<Ontology> bookDom = constructBookOntology(mgr, sys, logger);
+	Rooted<Ontology> headingDom =
+	    constructHeadingOntology(mgr, sys, bookDom, logger);
+	Rooted<Ontology> listDom = constructListOntology(mgr, sys, bookDom, logger);
+	Rooted<Ontology> emDom = constructEmphasisOntology(mgr, sys, logger);
 	// Construct the document.
 	Rooted<Document> doc = constructAdvancedDocument(
 	    mgr, logger, bookDom, headingDom, listDom, emDom);
@@ -75,13 +75,13 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Get the domains.
-	Rooted<Domain> bookDom = constructBookDomain(mgr, sys, logger);
-	Rooted<Domain> emDom = constructEmphasisDomain(mgr, sys, logger);
+	// Get the ontologies.
+	Rooted<Ontology> bookDom = constructBookOntology(mgr, sys, logger);
+	Rooted<Ontology> emDom = constructEmphasisOntology(mgr, sys, logger);
 	// Construct a document only containing overlapping annotations.
 	// it has the form: <em>bla<strong>blub</em>bla</strong>
 	Rooted<Document> doc{new Document(mgr, "annotations.oxd")};
-	doc->referenceDomains({bookDom, emDom});
+	doc->referenceOntologys({bookDom, emDom});
 	Rooted<StructuredEntity> book =
 	    buildRootStructuredEntity(doc, logger, {"book"});
 	ASSERT_TRUE(book != nullptr);

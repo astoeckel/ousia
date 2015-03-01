@@ -42,7 +42,7 @@ static std::unordered_map<ResourceType, std::string, Utils::EnumHash> reverseMap
 
 static const std::unordered_map<std::string, ResourceType>
     NAME_RESOURCE_TYPE_MAP{{"document", ResourceType::DOCUMENT},
-                           {"domain", ResourceType::DOMAIN_DESC},
+                           {"ontology", ResourceType::ONTOLOGY},
                            {"typesystem", ResourceType::TYPESYSTEM},
                            {"attributes", ResourceType::ATTRIBUTES},
                            {"stylesheet", ResourceType::STYLESHEET},

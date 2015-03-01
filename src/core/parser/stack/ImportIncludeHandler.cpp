@@ -20,7 +20,7 @@
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
 
-#include "DomainHandler.hpp"
+#include "OntologyHandler.hpp"
 #include "DocumentHandler.hpp"
 #include "ImportIncludeHandler.hpp"
 #include "State.hpp"
@@ -38,7 +38,7 @@ void ImportHandler::doHandle(const Variant &fieldData, Variant::mapType &args)
 	Rooted<Node> leaf = scope().getLeaf();
 	if (leaf == nullptr || !leaf->isa(&RttiTypes::RootNode)) {
 		logger().error(
-		    "Import not supported here, must be inside a document, domain "
+		    "Import not supported here, must be inside a document, ontology "
 		    "or typesystem command.",
 		    location());
 		return;
@@ -66,7 +66,7 @@ void IncludeHandler::doHandle(const Variant &fieldData, Variant::mapType &args)
 namespace States {
 const State Import =
     StateBuilder()
-        .parents({&Document, &Typesystem, &Domain})
+        .parents({&Document, &Typesystem, &Ontology})
         .elementHandler(ImportHandler::create)
         .arguments({Argument::String("rel", ""), Argument::String("type", ""),
                     Argument::String("src", "")});

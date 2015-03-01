@@ -20,7 +20,7 @@
  * @file Project.hpp
  *
  * Contains the concept of the "Project" class which represents the entity into
- * which domains, documents, typesystems and other resources are embedded.
+ * which ontologies, documents, typesystems and other resources are embedded.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
  */
@@ -40,12 +40,12 @@ class Registry;
 class SystemTypesystem;
 class Typesystem;
 class Document;
-class Domain;
+class Ontology;
 
 /**
  * The Project class constitutes the top-level node in which a collection of
  * documents are stored. It also contains an instance of the SystemTypesystem
- * and allows for simple creation of new Typesystem and Domain instances.
+ * and allows for simple creation of new Typesystem and Ontology instances.
  */
 class Project : public RootNode {
 private:
@@ -99,12 +99,12 @@ public:
 	Rooted<Document> createDocument(const std::string &name);
 
 	/**
-	 * Returns a new domain with the given name and adds it to the list of
-	 * domains. Provides a reference of the system typesystem to the domain.
+	 * Returns a new ontology with the given name and adds it to the list of
+	 * ontologies. Provides a reference of the system typesystem to the ontology.
 	 *
-	 * @param name is the name of the domain that should be created.
+	 * @param name is the name of the ontology that should be created.
 	 */
-	Rooted<Domain> createDomain(const std::string &name);
+	Rooted<Ontology> createOntology(const std::string &name);
 
 	/**
 	 * Adds the given document to the list of documents in the project.

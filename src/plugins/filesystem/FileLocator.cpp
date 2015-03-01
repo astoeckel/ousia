@@ -103,8 +103,8 @@ void FileLocator::addDefaultSearchPaths(const std::string &relativeTo)
 	// Add the search paths
 	fs::path base{relativeTo};
 	addSearchPath(base.generic_string(), ResourceType::UNKNOWN);
-	addSearchPath((base / "domain").generic_string(),
-	              ResourceType::DOMAIN_DESC);
+	addSearchPath((base / "ontology").generic_string(),
+	              ResourceType::ONTOLOGY);
 	addSearchPath((base / "typesystem").generic_string(),
 	              ResourceType::TYPESYSTEM);
 }

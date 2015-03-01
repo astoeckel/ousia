@@ -116,7 +116,7 @@ public:
 	 *   <li>The global application data directory used for make install
 	 *       (default is /usr/local/share on UNIX)</li>
 	 * </ul>
-	 * Resource type specific subdirectories (domain, typesytem, etc.)
+	 * Resource type specific subdirectories (ontology, typesytem, etc.)
 	 * are automatically added to the aforementioned paths.
 	 */
 	void addDefaultSearchPaths();

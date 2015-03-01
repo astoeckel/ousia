@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<domain name="meta">
+<ontology name="meta">
 
 	<import rel="typesystem" src="affiliation"/>
 	<import rel="typesystem" src="email"/>
 	<import rel="typesystem" src="version"/>
-	<import rel="domain" src="book"/>
-	<import rel="domain" src="headings"/>
+	<import rel="ontology" src="book"/>
+	<import rel="ontology" src="headings"/>
 
 	<struct name="meta" cardinality="{1}" transparent="true">
 		<field>
@@ -47,4 +47,4 @@
 	<struct name="version" cardinality="{0-1}">
 		<primitive type="version"/>
 	</struct>
-</domain>
+</ontology>

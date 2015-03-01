@@ -23,7 +23,7 @@
 #include <core/common/CharReader.hpp>
 #include <core/common/SourceContextReader.hpp>
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 #include <core/model/Typesystem.hpp>
 #include <core/model/Node.hpp>
 #include <core/model/Project.hpp>
@@ -37,7 +37,7 @@ namespace ousia {
 
 namespace RttiTypes {
 extern const Rtti Document;
-extern const Rtti Domain;
+extern const Rtti Ontology;
 extern const Rtti Typesystem;
 }
 
@@ -70,15 +70,15 @@ TEST(OsmlParser, emptyDocument)
 	ASSERT_TRUE(node->isa(&RttiTypes::Document));
 }
 
-TEST(OsmlParser, emptyDomain)
+TEST(OsmlParser, emptyOntology)
 {
 	OsmlStandaloneEnvironment env(logger);
 	Rooted<Node> node =
-	    env.parse("empty_domain.osml", "", "", RttiSet{&RttiTypes::Node});
+	    env.parse("empty_ontology.osml", "", "", RttiSet{&RttiTypes::Node});
 
 	ASSERT_TRUE(node != nullptr);
-	ASSERT_TRUE(node->isa(&RttiTypes::Domain));
-	ASSERT_EQ("testDomain", node->getName());
+	ASSERT_TRUE(node->isa(&RttiTypes::Ontology));
+	ASSERT_EQ("testOntology", node->getName());
 }
 
 TEST(OsmlParser, emptyTypesystem)
@@ -106,13 +106,13 @@ TEST(OsmlParser, rollbackOnInvalidElement)
 	ASSERT_TRUE(node->isa(&RttiTypes::Document));
 }
 
-TEST(OsmlParser, inlineDomain)
+TEST(OsmlParser, inlineOntology)
 {
 	OsmlStandaloneEnvironment env(logger);
 	logger.reset();
 
 	Rooted<Node> node =
-	    env.parse("inline_domain.osml", "", "", RttiSet{&RttiTypes::Node});
+	    env.parse("inline_ontology.osml", "", "", RttiSet{&RttiTypes::Node});
 	ASSERT_FALSE(logger.hasError());
 
 	ASSERT_TRUE(node != nullptr);
@@ -156,7 +156,7 @@ TEST(OsmlParser, structureInheritance)
 	ASSERT_FALSE(logger.hasError());
 
 	ASSERT_TRUE(node != nullptr);
-	ASSERT_TRUE(node->isa(&RttiTypes::Domain));
+	ASSERT_TRUE(node->isa(&RttiTypes::Ontology));
 }
 
 TEST(OsmlParser, structWithNoField)

@@ -35,8 +35,8 @@ struct Pos {
 };
 
 static const std::string testStr =
-    "\\link[domain]{book}\n"                               // 1
-    "\\link[domain]{meta}\n"                               // 2
+    "\\link[ontology]{book}\n"                             // 1
+    "\\link[ontology]{meta}\n"                             // 2
     "\n"                                                   // 3
     "\\meta{\n"                                            // 4
     "\t\\title{The Adventures Of Tom Sawyer}\n"            // 5

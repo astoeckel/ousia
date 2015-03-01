@@ -26,10 +26,10 @@
 #include <core/common/Rtti.hpp>
 #include <core/frontend/TerminalLogger.hpp>
 #include <core/model/Document.hpp>
-#include <core/model/Domain.hpp>
+#include <core/model/Ontology.hpp>
 
 #include <core/model/TestAdvanced.hpp>
-#include <core/model/TestDomain.hpp>
+#include <core/model/TestOntology.hpp>
 
 namespace ousia {
 namespace xml {
@@ -40,12 +40,12 @@ TEST(DemoHTMLTransformer, writeHTML)
 	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Get the domains.
-	Rooted<Domain> bookDom = constructBookDomain(mgr, sys, logger);
-	Rooted<Domain> headingDom =
-	    constructHeadingDomain(mgr, sys, bookDom, logger);
-	Rooted<Domain> listDom = constructListDomain(mgr, sys, bookDom, logger);
-	Rooted<Domain> emDom = constructEmphasisDomain(mgr, sys, logger);
+	// Get the ontologies.
+	Rooted<Ontology> bookDom = constructBookOntology(mgr, sys, logger);
+	Rooted<Ontology> headingDom =
+	    constructHeadingOntology(mgr, sys, bookDom, logger);
+	Rooted<Ontology> listDom = constructListOntology(mgr, sys, bookDom, logger);
+	Rooted<Ontology> emDom = constructEmphasisOntology(mgr, sys, logger);
 	// Construct the document.
 	Rooted<Document> doc = constructAdvancedDocument(
 	    mgr, logger, bookDom, headingDom, listDom, emDom);
@@ -71,13 +71,13 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Get the domains.
-	Rooted<Domain> bookDom = constructBookDomain(mgr, sys, logger);
-	Rooted<Domain> emDom = constructEmphasisDomain(mgr, sys, logger);
+	// Get the ontologies.
+	Rooted<Ontology> bookDom = constructBookOntology(mgr, sys, logger);
+	Rooted<Ontology> emDom = constructEmphasisOntology(mgr, sys, logger);
 	// Construct a document only containing overlapping annotations.
 	// it has the form: <em>bla<strong>blub</em>bla</strong>
 	Rooted<Document> doc{new Document(mgr, "annotations.oxd")};
-	doc->referenceDomains({bookDom, emDom});
+	doc->referenceOntologys({bookDom, emDom});
 	Rooted<StructuredEntity> book =
 	    buildRootStructuredEntity(doc, logger, {"book"});
 	ASSERT_TRUE(book != nullptr);
@@ -114,11 +114,11 @@ TEST(DemoHTMLTransformer, PrimitiveSubtreeFields)
 	TerminalLogger logger{std::cerr, true};
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
-	// Construct a simple domain.
-	Rooted<Domain> domain{new Domain(mgr, sys, "myDomain")};
+	// Construct a simple ontology.
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "myOntology")};
 
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", domain, Cardinality::any(), nullptr, false, true)};
+	    mgr, "A", ontology, Cardinality::any(), nullptr, false, true)};
 	Rooted<FieldDescriptor> A_a =
 	    A->createPrimitiveFieldDescriptor(sys->getStringType(), logger,
 	                                      FieldDescriptor::FieldType::SUBTREE,
@@ -129,7 +129,7 @@ TEST(DemoHTMLTransformer, PrimitiveSubtreeFields)
 	                                      "b").first;
 	Rooted<FieldDescriptor> A_main =
 	    A->createPrimitiveFieldDescriptor(sys->getStringType(), logger).first;
-	ASSERT_TRUE(domain->validate(logger));
+	ASSERT_TRUE(ontology->validate(logger));
 	// Construct a document for it.
 	Rooted<Document> doc{new Document(mgr, "myDoc")};
 	Rooted<StructuredEntity> A_impl = doc->createRootStructuredEntity(A);
@@ -144,7 +144,7 @@ TEST(DemoHTMLTransformer, PrimitiveSubtreeFields)
 	transformer.writeXml(doc, out, logger, dummy, false);
 	const std::string res = out.str();
 	ASSERT_TRUE(
-	    res.find("<myDomain:A><a>test_a</a><b>test_b</b>test</myDomain:A>") !=
+	    res.find("<myOntology:A><a>test_a</a><b>test_b</b>test</myOntology:A>") !=
 	    std::string::npos);
 }
 }

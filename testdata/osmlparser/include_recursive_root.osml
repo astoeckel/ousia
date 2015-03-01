@@ -1,6 +1,6 @@
 \begin{document}
 
-\domain#testDomain
+\ontology#testOntology
 	\struct#test[isRoot=true]
 
 \begin{test}
