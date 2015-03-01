@@ -32,6 +32,96 @@ namespace parser_stack {
 
 /* Class HandlerInfo */
 
+/**
+ * The HandlerInfo class is used internally by the stack to associate additional
+ * (mutable) data with a handler instance.
+ */
+class HandlerInfo {
+public:
+	/**
+	 * Pointer pointing at the actual handler instance.
+	 */
+	std::shared_ptr<Handler> handler;
+
+	/**
+	 * Next field index to be passed to the "fieldStart" function of the Handler
+	 * class.
+	 */
+	size_t fieldIdx;
+
+	/**
+	 * Set to true if the handler is valid (which is the case if the "start"
+	 * method has returned true). If the handler is invalid, no more calls are
+	 * directed at it until it can be removed from the stack.
+	 */
+	bool valid : 1;
+
+	/**
+	 * Set to true if this is an implicit handler, that was created when the
+	 * current stack state was deduced.
+	 */
+	bool implicit : 1;
+
+	/**
+	 * Set to true if the handler currently is in a field.
+	 */
+	bool inField : 1;
+
+	/**
+	 * Set to true if the handler currently is in the default field.
+	 */
+	bool inDefaultField : 1;
+
+	/**
+	 * Set to true if the handler currently is in an implicitly started default
+	 * field.
+	 */
+	bool inImplicitDefaultField : 1;
+
+	/**
+	 * Set to false if this field is only opened pro-forma and does not accept
+	 * any data. Otherwise set to true.
+	 */
+	bool inValidField : 1;
+
+	/**
+	 * Set to true, if the default field was already started.
+	 */
+	bool hadDefaultField : 1;
+
+	/**
+	 * Default constructor of the HandlerInfo class.
+	 */
+	HandlerInfo();
+	/**
+	 * Constructor of the HandlerInfo class, allows to set all flags manually.
+	 */
+	HandlerInfo(bool valid, bool implicit, bool inField, bool inDefaultField,
+	            bool inImplicitDefaultField, bool inValidField);
+
+	/**
+	 * Constructor of the HandlerInfo class, taking a shared_ptr to the handler
+	 * to which additional information should be attached.
+	 */
+	HandlerInfo(std::shared_ptr<Handler> handler);
+
+	/**
+	 * Destructor of the HandlerInfo class (to allow Handler to be forward
+	 * declared).
+	 */
+	~HandlerInfo();
+
+	/**
+	 * Updates the "field" flags according to a "fieldStart" event.
+	 */
+	void fieldStart(bool isDefault, bool isImplicit, bool isValid);
+
+	/**
+	 * Updates the "fields" flags according to a "fieldEnd" event.
+	 */
+	void fieldEnd();
+};
+
 HandlerInfo::HandlerInfo() : HandlerInfo(nullptr) {}
 
 HandlerInfo::HandlerInfo(std::shared_ptr<Handler> handler)
@@ -116,6 +206,113 @@ static LoggableException buildInvalidCommandException(
 		    name + std::string{"\""}};
 	}
 }
+
+/* Class StackImpl */
+
+class StackImpl {
+
+private:
+	/**
+	 * Reference at the parser context.
+	 */
+	ParserContext &ctx;
+
+	/**
+	 * Map containing all registered command names and the corresponding
+	 * state descriptors.
+	 */
+	const std::multimap<std::string, const State *> &states;
+
+	/**
+	 * Internal stack used for managing the currently active Handler instances.
+	 */
+	std::vector<HandlerInfo> stack;
+
+	/**
+	 * Return the reference in the Logger instance stored within the context.
+	 */
+	Logger &logger();
+
+	/**
+	 * Used internally to get all expected command names for the current state.
+	 * This function is used to build error messages.
+	 *
+	 * @return a set of strings containing the names of the expected commands.
+	 */
+	std::set<std::string> expectedCommands();
+
+	/**
+	 * Returns the targetState for a command with the given name that can be
+	 * reached from the current state.
+	 *
+	 * @param name is the name of the requested command.
+	 * @return nullptr if no target state was found, a pointer at the target
+	 * state otherwise.
+	 */
+	const State *findTargetState(const std::string &name);
+
+	/**
+	 * Returns the targetState for a command with the given name that can be
+	 * reached from the current state, also including the wildcard "*" state.
+	 * Throws an exception if the given target state is not a valid identifier.
+	 *
+	 * @param name is the name of the requested command.
+	 * @return nullptr if no target state was found, a pointer at the target
+	 * state otherwise.
+	 */
+	const State *findTargetStateOrWildcard(const std::string &name);
+
+	/**
+	 * Tries to reconstruct the parser state from the Scope instance of the
+	 * ParserContext given in the constructor. This functionality is needed for
+	 * including files,as the Parser of the included file needs to be brought to
+	 * an equivalent state as the one in the including file.
+	 */
+	void deduceState();
+
+	/**
+	 * Returns a reference at the current HandlerInfo instance (or a stub
+	 * HandlerInfo instance if the stack is empty).
+	 */
+	HandlerInfo &currentInfo();
+
+	/**
+	 * Returns a reference at the last HandlerInfo instance (or a stub
+	 * HandlerInfo instance if the stack has only one element).
+	 */
+	HandlerInfo &lastInfo();
+
+	/**
+	 * Ends all handlers that currently are not inside a field and already had
+	 * a default field. This method is called whenever the data() and command()
+	 * events are reached.
+	 */
+	void endOverdueHandlers();
+
+	/**
+	 * Ends the current handler and removes the corresponding element from the
+	 * stack.
+	 */
+	void endCurrentHandler();
+
+	/**
+	 * Tries to start a default field for the current handler, if currently the
+	 * handler is not inside a field and did not have a default field yet.
+	 *
+	 * @return true if the handler is inside a field, false if no field could
+	 * be started.
+	 */
+	bool ensureHandlerIsInField();
+
+	/**
+	 * Returns true if all handlers on the stack are currently valid, or false
+	 * if at least one handler is invalid.
+	 *
+	 * @return true if all handlers on the stack are valid.
+	 */
+	bool handlersValid();
+};
+
 
 /* Class Stack */
 
@@ -608,11 +805,6 @@ void Stack::annotationStart(const Variant &className, const Variant &args)
 }
 
 void Stack::annotationEnd(const Variant &className, const Variant &elementName)
-{
-	// TODO
-}
-
-void Stack::token(Variant token)
 {
 	// TODO
 }

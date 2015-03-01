@@ -29,226 +29,35 @@
 #ifndef _OUSIA_PARSER_STACK_STACK_HPP_
 #define _OUSIA_PARSER_STACK_STACK_HPP_
 
-#include <cstdint>
-
 #include <map>
 #include <memory>
-#include <set>
-#include <vector>
-
-#include <core/common/Variant.hpp>
-#include <core/parser/Parser.hpp>
 
 namespace ousia {
 
 // Forward declarations
 class ParserContext;
-class Logger;
 class TokenizedData;
+class Variant;
 
 namespace parser_stack {
 
 // Forward declarations
-class Handler;
+class StackImpl;
 class State;
-
-/**
- * The HandlerInfo class is used internally by the stack to associate additional
- * (mutable) data with a handler instance.
- */
-class HandlerInfo {
-public:
-	/**
-	 * Pointer pointing at the actual handler instance.
-	 */
-	std::shared_ptr<Handler> handler;
-
-	/**
-	 * Next field index to be passed to the "fieldStart" function of the Handler
-	 * class.
-	 */
-	size_t fieldIdx;
-
-	/**
-	 * Set to true if the handler is valid (which is the case if the "start"
-	 * method has returned true). If the handler is invalid, no more calls are
-	 * directed at it until it can be removed from the stack.
-	 */
-	bool valid : 1;
-
-	/**
-	 * Set to true if this is an implicit handler, that was created when the
-	 * current stack state was deduced.
-	 */
-	bool implicit : 1;
-
-	/**
-	 * Set to true if the handler currently is in a field.
-	 */
-	bool inField : 1;
-
-	/**
-	 * Set to true if the handler currently is in the default field.
-	 */
-	bool inDefaultField : 1;
-
-	/**
-	 * Set to true if the handler currently is in an implicitly started default
-	 * field.
-	 */
-	bool inImplicitDefaultField : 1;
-
-	/**
-	 * Set to false if this field is only opened pro-forma and does not accept
-	 * any data. Otherwise set to true.
-	 */
-	bool inValidField : 1;
-
-	/**
-	 * Set to true, if the default field was already started.
-	 */
-	bool hadDefaultField : 1;
-
-	/**
-	 * Default constructor of the HandlerInfo class.
-	 */
-	HandlerInfo();
-	/**
-	 * Constructor of the HandlerInfo class, allows to set all flags manually.
-	 */
-	HandlerInfo(bool valid, bool implicit, bool inField, bool inDefaultField,
-	            bool inImplicitDefaultField, bool inValidField);
-
-	/**
-	 * Constructor of the HandlerInfo class, taking a shared_ptr to the handler
-	 * to which additional information should be attached.
-	 */
-	HandlerInfo(std::shared_ptr<Handler> handler);
-
-	/**
-	 * Destructor of the HandlerInfo class (to allow Handler to be forward
-	 * declared).
-	 */
-	~HandlerInfo();
-
-	/**
-	 * Updates the "field" flags according to a "fieldStart" event.
-	 */
-	void fieldStart(bool isDefault, bool isImplicit, bool isValid);
-
-	/**
-	 * Updates the "fields" flags according to a "fieldEnd" event.
-	 */
-	void fieldEnd();
-};
 
 /**
  * The Stack class is a pushdown automaton responsible for turning a command
  * stream into a tree of Node instances. It does so by following a state
  * transition graph and creating a set of Handler instances, which are placed
- * on the stack.
+ * on the stack. Additionally it is responsible for the normalization of
+ * Annotations and for handling tokens.
  */
 class Stack {
 private:
 	/**
-	 * Reference at the parser context.
+	 * Pointer at the internal implementation
 	 */
-	ParserContext &ctx;
-
-	/**
-	 * Map containing all registered command names and the corresponding
-	 * state descriptors.
-	 */
-	const std::multimap<std::string, const State *> &states;
-
-	/**
-	 * Internal stack used for managing the currently active Handler instances.
-	 */
-	std::vector<HandlerInfo> stack;
-
-	/**
-	 * Return the reference in the Logger instance stored within the context.
-	 */
-	Logger &logger();
-
-	/**
-	 * Used internally to get all expected command names for the current state.
-	 * This function is used to build error messages.
-	 *
-	 * @return a set of strings containing the names of the expected commands.
-	 */
-	std::set<std::string> expectedCommands();
-
-	/**
-	 * Returns the targetState for a command with the given name that can be
-	 * reached from the current state.
-	 *
-	 * @param name is the name of the requested command.
-	 * @return nullptr if no target state was found, a pointer at the target
-	 * state otherwise.
-	 */
-	const State *findTargetState(const std::string &name);
-
-	/**
-	 * Returns the targetState for a command with the given name that can be
-	 * reached from the current state, also including the wildcard "*" state.
-	 * Throws an exception if the given target state is not a valid identifier.
-	 *
-	 * @param name is the name of the requested command.
-	 * @return nullptr if no target state was found, a pointer at the target
-	 * state otherwise.
-	 */
-	const State *findTargetStateOrWildcard(const std::string &name);
-
-	/**
-	 * Tries to reconstruct the parser state from the Scope instance of the
-	 * ParserContext given in the constructor. This functionality is needed for
-	 * including files,as the Parser of the included file needs to be brought to
-	 * an equivalent state as the one in the including file.
-	 */
-	void deduceState();
-
-	/**
-	 * Returns a reference at the current HandlerInfo instance (or a stub
-	 * HandlerInfo instance if the stack is empty).
-	 */
-	HandlerInfo &currentInfo();
-
-	/**
-	 * Returns a reference at the last HandlerInfo instance (or a stub
-	 * HandlerInfo instance if the stack has only one element).
-	 */
-	HandlerInfo &lastInfo();
-
-	/**
-	 * Ends all handlers that currently are not inside a field and already had
-	 * a default field. This method is called whenever the data() and command()
-	 * events are reached.
-	 */
-	void endOverdueHandlers();
-
-	/**
-	 * Ends the current handler and removes the corresponding element from the
-	 * stack.
-	 */
-	void endCurrentHandler();
-
-	/**
-	 * Tries to start a default field for the current handler, if currently the
-	 * handler is not inside a field and did not have a default field yet.
-	 *
-	 * @return true if the handler is inside a field, false if no field could
-	 * be started.
-	 */
-	bool ensureHandlerIsInField();
-
-	/**
-	 * Returns true if all handlers on the stack are currently valid, or false
-	 * if at least one handler is invalid.
-	 *
-	 * @return true if all handlers on the stack are valid.
-	 */
-	bool handlersValid();
+	std::unique_ptr<StackImpl> impl;
 
 public:
 	/**
@@ -269,8 +78,8 @@ public:
 	/**
 	 * Returns the state the Stack instance currently is in.
 	 *
-	 * @return the state of the currently active Handler instance or STATE_NONE
-	 * if no handler is on the stack.
+	 * @return the state of the currently active Handler instance or
+	 * States::None if no handler is on the stack.
 	 */
 	const State &currentState();
 
@@ -289,28 +98,36 @@ public:
 	 * separator ':') and its corresponding location. Must be a string variant.
 	 * @param args is a map containing the arguments that were passed to the
 	 * command.
+	 * @param range if true, the started command has an explicit range.
 	 */
-	void command(const Variant &name, const Variant::mapType &args);
+	void commandStart(const Variant &name, const Variant::mapType &args,
+	                  bool range);
 
 	/**
-	 * Function that should be called whenever character data is found in the
-	 * input stream. May only be called if the currently is a command on the
-	 * stack.
+	 * Function that should be called whenever an annotation starts.
 	 *
-	 * @param data is a TokenizedData instance containing the pre-segmented data
-	 * that should be read.
+	 * @param name is the name of the annotation class.
+	 * @param args is a map variant containing the arguments that were passed
+	 * to the annotation.
+	 * @param range if true, the annotation fields have an explicit range.
 	 */
-	void data(TokenizedData data);
+	void annotationStart(const Variant &className, const Variant &args,
+	                     bool range);
 
 	/**
-	 * Function that shuold be called whenever character data is found in the
-	 * input stream. The given string variant is converted into a TokenizedData
-	 * instance internally.
+	 * Function that should be called whenever an annotation ends.
 	 *
-	 * @param stringData is a string variant containing the data that has been
-	 * found.
+	 * @param name is the name of the annotation class that was ended.
+	 * @param annotationName is the name of the annotation that was ended.
 	 */
-	void data(const Variant &stringData);
+	void annotationEnd(const Variant &className, const Variant &elementName);
+
+	/**
+	 * Function the should be called whenever a ranged command or annotation
+	 * ends. Must be called if the range parameter range was set to true when
+	 * annotationStart() or commandStart() were called.
+	 */
+	void rangeEnd();
 
 	/**
 	 * Function that should be called whenever a new field starts. Fields of the
@@ -329,29 +146,24 @@ public:
 	void fieldEnd();
 
 	/**
-	 * Function that should be called whenever an annotation starts.
+	 * Function that should be called whenever character data is found in the
+	 * input stream. May only be called if the currently is a command on the
+	 * stack.
 	 *
-	 * @param name is the name of the annotation class.
-	 * @param args is a map variant containing the arguments that were passed
-	 * to the annotation.
+	 * @param data is a TokenizedData instance containing the pre-segmented data
+	 * that should be read.
 	 */
-	void annotationStart(const Variant &className, const Variant &args);
+	void data(const TokenizedData &data);
 
 	/**
-	 * Function that should be called whenever an annotation ends.
+	 * Function that shuold be called whenever character data is found in the
+	 * input stream. The given string variant is converted into a TokenizedData
+	 * instance internally.
 	 *
-	 * @param name is the name of the annotation class that was ended.
-	 * @param annotationName is the name of the annotation that was ended.
+	 * @param stringData is a string variant containing the data that has been
+	 * found.
 	 */
-	void annotationEnd(const Variant &className, const Variant &elementName);
-
-	/**
-	 * Function that should be called whenever a previously registered token
-	 * is found in the input stream.
-	 *
-	 * @param token is string variant containing the token that was encountered.
-	 */
-	void token(Variant token);
+	void data(const Variant &stringData);
 };
 }
 }
