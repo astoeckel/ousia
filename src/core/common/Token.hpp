@@ -134,10 +134,7 @@ struct Token {
 	 * @param location is the location of the extracted string content in the
 	 * source file.
 	 */
-	Token(SourceLocation location)
-	    : id(Tokens::Data), location(location)
-	{
-	}
+	Token(SourceLocation location) : id(Tokens::Data), location(location) {}
 
 	/**
 	 * Constructor of the Token struct.
@@ -165,7 +162,7 @@ struct Token {
 	 * @return true if the TokenId indicates that this token is a "special"
 	 * token.
 	 */
-	bool isSpecial() const {return id > Tokens::MaxTokenId;}
+	bool isSpecial() const { return id > Tokens::MaxTokenId; }
 
 	/**
 	 * The getLocation function allows the tokens to be directly passed as
@@ -174,6 +171,71 @@ struct Token {
 	 * @return a reference at the location field
 	 */
 	const SourceLocation &getLocation() const { return location; }
+};
+
+/**
+ * Class describing the user defined syntax for a single field or annotation.
+ */
+struct TokenSyntaxDescriptor {
+	/**
+	 * Possible start token or Tokens::Empty if no token is set.
+	 */
+	TokenId start;
+
+	/**
+	 * Possible end token or Tokens::Empty if no token is set.
+	 */
+	TokenId end;
+
+	/**
+	 * Possible representation token or Tokens::Empty if no token is set.
+	 */
+	TokenId shortForm;
+
+	/**
+	 * Flag specifying whether this TokenSyntaxDescriptor describes an
+	 * annotation.
+	 */
+	bool isAnnotation;
+
+	/**
+	 * Default constructor, sets all token ids to Tokens::Empty and isAnnotation
+	 * to false.
+	 */
+	TokenSyntaxDescriptor()
+	    : start(Tokens::Empty),
+	      end(Tokens::Empty),
+	      shortForm(Tokens::Empty),
+	      isAnnotation(false)
+	{
+	}
+
+	/**
+	 * Member initializer constructor.
+	 *
+	 * @param start is a possible start token.
+	 * @param end is a possible end token.
+	 * @param shortForm is a possible short form token.
+	 * @param isAnnotation is set to true if this syntax descriptor describes an
+	 * annotation.
+	 */
+	TokenSyntaxDescriptor(TokenId start, TokenId end, TokenId shortForm,
+	                      bool isAnnotation)
+	    : start(start),
+	      end(end),
+	      shortForm(shortForm),
+	      isAnnotation(isAnnotation)
+	{
+	}
+
+	/**
+	 * Inserts all tokens referenced in this TokenSyntaxDescriptor into the
+	 * given TokenSet. Skips token ids set to Tokens::Empty.
+	 *
+	 * @param set is the TokenSet instance into which the Tokens should be
+	 * inserted.
+	 */
+	void insertIntoTokenSet(TokenSet &set) const;
 };
 }
 
