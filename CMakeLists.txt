@@ -188,6 +188,7 @@ ADD_LIBRARY(ousia_core
 #	src/core/parser/stack/ImportIncludeHandler
 	src/core/parser/stack/State
 #	src/core/parser/stack/Stack
+	src/core/parser/stack/TokenRegistry
 #	src/core/parser/stack/TypesystemHandler
 	src/core/parser/utils/SourceOffsetVector
 	src/core/parser/utils/TokenizedData
@@ -325,6 +326,7 @@ IF(TEST)
 		test/core/parser/ParserScopeTest
 #		test/core/parser/stack/StackTest
 		test/core/parser/stack/StateTest
+		test/core/parser/stack/TokenRegistryTest
 		test/core/parser/utils/SourceOffsetVectorTest
 		test/core/parser/utils/TokenizedDataTest
 		test/core/parser/utils/TokenizerTest
