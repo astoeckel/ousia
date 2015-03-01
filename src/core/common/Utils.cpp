@@ -118,5 +118,29 @@ bool Utils::endsWith(const std::string &s, const std::string &suffix)
 	return suffix.size() <= s.size() &&
 	       s.substr(s.size() - suffix.size(), suffix.size()) == suffix;
 }
+
+bool Utils::isUserDefinedToken(const std::string &token)
+{
+	// Make sure the token meets is neither empty, nor starts or ends with an
+	// alphanumeric character
+	const size_t len = token.size();
+	if (len == 0 || isAlphanumeric(token[0]) || isAlphanumeric(token[len - 1])) {
+		return false;
+	}
+
+	// Make sure the token is not any special OSML token
+	if (token == "\\" || token == "%" || token == "%{" || token == "}%" ||
+	    token == "{!" || token == "<\\" || token == "\\>") {
+		return false;
+	}
+
+	// Make sure the token contains other characters but { and }
+	for (char c: token) {
+		if (c != '{' && c != '}') {
+			return true;
+		}
+	}
+	return false;
+}
 }
 

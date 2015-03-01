@@ -103,6 +103,25 @@ public:
 	static bool isNamespacedIdentifier(const std::string &name);
 
 	/**
+	 * Returns true if the given characters form a valid user-defined token.
+	 * This function returns true under the following circumstances:
+	 * <ul>
+	 *   <li>The given token is not empty</li>
+	 *   <li>The given token starts and ends with a non-alphanumeric character
+	 *       </li>
+	 *   <li>The token is none of the following character sequences (which are
+	 *       special in OSML):
+	 *      <ul>
+	 *        <li>'{', '}' or any combined repetition of these characters</li>
+	 *        <li>'\', '{!', '<\', '\>'</li>
+	 *        <li>'%', '%{', '}%'</li>
+	 *      </ul>
+	 *   </li>
+	 * </ul>
+	 */
+	static bool isUserDefinedToken(const std::string &token);
+
+	/**
 	 * Returns true if the given character is a linebreak character.
 	 */
 	static bool isLinebreak(const char c) { return (c == '\n') || (c == '\r'); }
