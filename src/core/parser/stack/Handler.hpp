@@ -32,6 +32,7 @@ class ParserScope;
 class ParserContext;
 class Logger;
 class TokenizedData;
+class Variant;
 
 namespace parser_stack {
 
@@ -52,11 +53,11 @@ public:
 	ParserContext &ctx;
 
 	/**
-	 * Reference at an instance of the Callbacks class, used for
-	 * modifying the behaviour of the parser (like registering tokens, setting
-	 * the data type or changing the whitespace handling mode).
+	 * Reference at a class implementing the HandlerCallbacks interface, used
+	 * for modifying the behaviour of the parser (like registering tokens,
+	 * setting the data type or changing the whitespace handling mode).
 	 */
-	//	Callbacks &callbacks;
+	HandlerCallbacks &callbacks;
 
 	/**
 	 * Contains the name of the command that is being handled.
@@ -83,9 +84,9 @@ public:
 	 * @param state is the state this handler was called for.
 	 * @param location is the location at which the handler is created.
 	 */
-	HandlerData(ParserContext &ctx,
-	            /*Callbacks &callbacks,*/ const std::string &name,
-	            const State &state, const SourceLocation &location);
+	HandlerData(ParserContext &ctx, HandlerCallbacks &callbacks,
+	            const std::string &name, const State &state,
+	            const SourceLocation &location);
 };
 
 /**
@@ -160,6 +161,17 @@ protected:
 	const std::string &name() const;
 
 	/**
+	 * Calls the corresponding method in the HandlerCallbacks instance. Reads a
+	 * string variant form the current input stream. This function must be
+	 * called from the data() method.
+	 *
+	 * @return a string variant containing the current text data. The return
+	 * value depends on the currently set whitespace mode and the tokens that
+	 * were enabled using the enableTokens callback method.
+	 */
+	Variant readData();
+
+	/**
 	 * Calls the corresponding function in the Callbacks instance. Sets the
 	 * whitespace mode that specifies how string data should be processed. The
 	 * calls to this function are placed on a stack by the underlying Stack
@@ -170,7 +182,7 @@ protected:
 	 * @param whitespaceMode specifies one of the three WhitespaceMode constants
 	 * PRESERVE, TRIM or COLLAPSE.
 	 */
-	void pushWhitespaceMode(WhitespaceMode whitespaceMode);
+	//	void pushWhitespaceMode(WhitespaceMode whitespaceMode);
 
 	/**
 	 * Pops a previously pushed whitespace mode. Calls to this function should
@@ -178,38 +190,45 @@ protected:
 	 * can only undo pushs that were performed by the pushWhitespaceMode()
 	 * method of the same handler.
 	 */
-	void popWhitespaceMode();
+	//	void popWhitespaceMode();
 
 	/**
-	 * Calls the corresponding function in the Callbacks instance. Sets the
-	 * whitespace mode that specifies how string data should be processed. The
-	 * calls to this function are placed on a stack by the underlying Stack
-	 * class. This function should be called from the "fieldStart" callback and
-	 * the "start" callback. If no whitespace mode is pushed in the "start"
-	 * method the whitespace mode "TRIM" is implicitly assumed.
+	 * Pushes a list of TokenSyntaxDescriptor instances onto the internal stack.
+	 * The tokens described in the token list are the tokens that are currently
+	 * enabled.
 	 *
-	 * @param tokens is a list of tokens that should be reported to this handler
-	 * instance via the "token" method.
+	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
+	 * stored on the stack.
 	 */
-	void pushTokens(const std::vector<std::string> &tokens);
+	void pushTokens(const std::vector<TokenSyntaxDescriptor> &tokens);
 
 	/**
-	 * Pops a previously pushed whitespace mode. Calls to this function should
-	 * occur in the "end" callback and the "fieldEnd" callback. This function
-	 * can only undo pushs that were performed by the pushWhitespaceMode()
-	 * method of the same handler.
+	 * Calls the corresponding function in the HandlerCallbacks instance.
+	 * Removes the previously pushed list of tokens from the stack.
 	 */
-	void popWhitespaceMode();
-
+	void popTokens();
 
 	/**
-	 * Calls the corresponding function in the Callbacks instance. This method
-	 * registers the given tokens as tokens that are generally available, tokens
-	 * must be explicitly enabled using the "pushTokens" and "popTokens" method.
-	 * Tokens that have not been registered are not guaranteed to be reported,
-	 * even though they are 
+	 * Calls the corresponding function in the HandlerCallbacks instance. This
+	 * method registers the given tokens as tokens that are generally available,
+	 * tokens must be explicitly enabled using the "pushTokens" and "popTokens"
+	 * method. Tokens that have not been registered are not guaranteed to be
+	 * reported (except for special tokens, these do not have to be registerd).
+	 *
+	 * @param token is the token string that should be made available.
+	 * @return the TokenId that will be used to refer to the token.
 	 */
-	void registerTokens(const std::vector<std::string> &tokens);
+	TokenId registerToken(const std::string &token);
+
+	/**
+	 * Calls the corresponding function in the HandlerCallbacks instance. This
+	 * method unregisters the given token. Note that for a token to be no longer
+	 * reported, this function has to be called as many times as registerToken()
+	 * for the corresponding token.
+	 *
+	 * @param id is the id of the Token that should be unregistered.
+	 */
+	void unregisterToken(TokenId id);
 
 public:
 	/**
@@ -321,13 +340,12 @@ public:
 	/**
 	 * Called whenever raw data (int the form of a string) is available for the
 	 * Handler instance. Should return true if the data could be handled, false
-	 * otherwise.
+	 * otherwise. The actual data variant must be retrieved using the "text()"
+	 * callback.
 	 *
-	 * @param data is an instance of TokenizedData containing the segmented
-	 * character data and its location.
 	 * @return true if the data could be handled, false otherwise.
 	 */
-	virtual bool data(TokenizedData &data) = 0;
+	virtual bool data() = 0;
 };
 
 /**
@@ -357,7 +375,7 @@ public:
 	                     Variant::mapType &args) override;
 	bool annotationEnd(const Variant &className,
 	                   const Variant &elementName) override;
-	bool data(TokenizedData &data) override;
+	bool data() override;
 
 	/**
 	 * Creates an instance of the EmptyHandler class.
@@ -383,7 +401,7 @@ public:
 	                     Variant::mapType &args) override;
 	bool annotationEnd(const Variant &className,
 	                   const Variant &elementName) override;
-	bool data(TokenizedData &data) override;
+	bool data() override;
 };
 
 /**
@@ -430,13 +448,12 @@ protected:
 	 * @param fieldData is the captured field data.
 	 * @param args are the arguments that were given in the "start" function.
 	 */
-	virtual void doHandle(const Variant &fieldData,
-	                      Variant::mapType &args) = 0;
+	virtual void doHandle(const Variant &fieldData, Variant::mapType &args) = 0;
 
 public:
 	bool start(Variant::mapType &args) override;
 	void end() override;
-	bool data(TokenizedData &data) override;
+	bool data() override;
 };
 }
 }

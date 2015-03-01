@@ -19,5 +19,15 @@
 #include "Callbacks.hpp"
 
 namespace ousia {
+namespace parser_stack {
+
+/* Class ParserCallbacks */
+
+ParserCallbacks::~ParserCallbacks()
+{
+	// Do nothing here
+}
+
+}
 }
 

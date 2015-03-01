@@ -18,6 +18,7 @@
 
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
+#include <core/common/Variant.hpp>
 #include <core/parser/utils/TokenizedData.hpp>
 #include <core/parser/ParserContext.hpp>
 
@@ -30,11 +31,11 @@ namespace parser_stack {
 
 /* Class HandlerData */
 
-HandlerData::HandlerData(ParserContext &ctx, /*Callbacks &callbacks,*/
+HandlerData::HandlerData(ParserContext &ctx, HandlerCallbacks &callbacks,
                          const std::string &name, const State &state,
                          const SourceLocation &location)
     : ctx(ctx),
-      /*callbacks(callbacks),*/
+      callbacks(callbacks),
       name(name),
       state(state),
       location(location)
@@ -68,19 +69,29 @@ const SourceLocation &Handler::location() const { return handlerData.location; }
 
 const std::string &Handler::name() const { return handlerData.name; }
 
-void Handler::setWhitespaceMode(WhitespaceMode whitespaceMode)
+Variant Handler::readData()
 {
-	/*handlerData.callbacks.setWhitespaceMode(whitespaceMode);*/
+	return handlerData.callbacks.readData();
 }
 
-void Handler::registerToken(const std::string &token)
+void Handler::pushTokens(const std::vector<TokenSyntaxDescriptor> &tokens)
 {
-	/*handlerData.callbacks.registerToken(token);*/
+	handlerData.callbacks.pushTokens(tokens);
 }
 
-void Handler::unregisterToken(const std::string &token)
+void Handler::popTokens()
 {
-	/*handlerData.callbacks.unregisterToken(token);*/
+	handlerData.callbacks.popTokens();
+}
+
+TokenId Handler::registerToken(const std::string &token)
+{
+	return handlerData.callbacks.registerToken(token);
+}
+
+void Handler::unregisterToken(TokenId id)
+{
+	handlerData.callbacks.unregisterToken(id);
 }
 
 const std::string &Handler::getName() const { return name(); }
@@ -131,7 +142,7 @@ bool EmptyHandler::annotationEnd(const Variant &className,
 	return true;
 }
 
-bool EmptyHandler::data(TokenizedData &data)
+bool EmptyHandler::data()
 {
 	// Support any data
 	return true;
@@ -185,13 +196,10 @@ bool StaticHandler::annotationEnd(const Variant &className,
 	return false;
 }
 
-bool StaticHandler::data(TokenizedData &data)
+bool StaticHandler::data()
 {
-	if (data.text(WhitespaceMode::TRIM) != nullptr) {
-		logger().error("Did not expect any data here", data);
-		return false;
-	}
-	return true;
+	logger().error("Did not expect any data here", readData());
+	return false;
 }
 
 /* Class StaticFieldHandler */
@@ -231,19 +239,15 @@ void StaticFieldHandler::end()
 	}
 }
 
-bool StaticFieldHandler::data(TokenizedData &data)
+bool StaticFieldHandler::data()
 {
-	Variant text = data.text(WhitespaceMode::TRIM);
-	if (text == nullptr) {
-		// Providing no data here is ok as long as the "doHandle" callback
-		// function has already been called
-		return handled;
-	}
+	// Fetch the actual text data
+	Variant stringData = readData();
 
 	// Call the doHandle function if this has not been done before
 	if (!handled) {
 		handled = true;
-		doHandle(text, args);
+		doHandle(stringData, args);
 		return true;
 	}
 
@@ -251,7 +255,7 @@ bool StaticFieldHandler::data(TokenizedData &data)
 	logger().error(
 	    std::string("Found data, but the corresponding argument \"") + argName +
 	        std::string("\" was already specified"),
-	    text);
+	    stringData);
 
 	// Print the location at which the attribute was originally specified
 	auto it = args.find(argName);
