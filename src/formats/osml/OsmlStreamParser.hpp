@@ -32,6 +32,8 @@
 #include <cstdint>
 #include <memory>
 
+#include <core/parser/stack/Callbacks.hpp>
+
 namespace ousia {
 
 // Forward declarations
@@ -50,10 +52,10 @@ class Variant;
  * syntactically valid and tries to recorver from most errors. If an error is
  * irrecoverable (this is the case for errors with wrong nesting of commands or
  * fields, as this would lead to too many consecutive errors) a
- * LoggableException is thrown. The OsmlStreamParser can be compared to a SAX
- * parser for XML.
+ * LoggableException is thrown. In short, the OsmlStreamParser can be described
+ * as a SAX parser for OSML.
  */
-class OsmlStreamParser {
+class OsmlStreamParser: public parser_stack::ParserCallbacks {
 public:
 	/**
 	 * Enum used to indicate which state the OsmlStreamParser class is in
@@ -204,6 +206,9 @@ public:
 	 * "{!" syntax).
 	 */
 	bool inDefaultField() const;
+
+	TokenId registerToken(const std::string &token) override;
+	void unregisterToken(TokenId token) override;
 };
 }
 

@@ -16,6 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cassert>
+#include <stack>
+#include <vector>
+
 #include <core/common/CharReader.hpp>
 #include <core/common/Logger.hpp>
 #include <core/common/Utils.hpp>
@@ -26,9 +30,6 @@
 #include <core/parser/utils/TokenizedData.hpp>
 
 #include "OsmlStreamParser.hpp"
-
-#include <stack>
-#include <vector>
 
 namespace ousia {
 
@@ -127,7 +128,7 @@ private:
 	/**
 	 * Set to true if this is a command with clear begin and end.
 	 */
-	bool hasRange: 1;
+	bool hasRange;
 
 public:
 	/**
@@ -406,6 +407,9 @@ public:
 	OsmlStreamParserImpl(CharReader &reader, Logger &logger);
 
 	State parse();
+
+	TokenId registerToken(const std::string &token);
+	void unregisterToken(TokenId token);
 
 	const TokenizedData &getData() const { return data; }
 	const Variant &getCommandName() const { return cmd().getName(); }
@@ -700,10 +704,11 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parseCommand(
 void OsmlStreamParserImpl::parseBlockComment()
 {
 	Token token;
+	TokenizedData commentData;
 	size_t depth = 1;
-	while (tokenizer.read(reader, token, data)) {
+	while (tokenizer.read(reader, token, commentData)) {
 		// Throw the comment data away
-		data.clear();
+		commentData.clear();
 
 		if (token.id == OsmlTokens.BlockCommentEnd) {
 			depth--;
@@ -822,6 +827,14 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 		} else if (type == Tokens::Data) {
 			reader.consumePeek();
 			continue;
+		} else if (type == OsmlTokens.LineComment) {
+			reader.consumePeek();
+			parseLineComment();
+			continue;
+		} else if (type == OsmlTokens.BlockCommentStart) {
+			reader.consumePeek();
+			parseBlockComment();
+			continue;
 		}
 
 		// A non-text token was reached, make sure all pending data commands
@@ -836,11 +849,7 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 		// Synchronize the location with the current token location
 		location = token.location;
 
-		if (token.id == OsmlTokens.LineComment) {
-			parseLineComment();
-		} else if (token.id == OsmlTokens.BlockCommentStart) {
-			parseBlockComment();
-		} else if (token.id == OsmlTokens.FieldStart) {
+		if (token.id == OsmlTokens.FieldStart) {
 			cmd().pushField(false, token.location);
 			return State::FIELD_START;
 		} else if (token.id == OsmlTokens.FieldEnd) {
@@ -914,6 +923,16 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 	return State::END;
 }
 
+TokenId OsmlStreamParserImpl::registerToken(const std::string &token)
+{
+	return tokenizer.registerToken(token, false);
+}
+
+void OsmlStreamParserImpl::unregisterToken(TokenId token)
+{
+	assert(tokenizer.unregisterToken(token));
+}
+
 /* Class OsmlStreamParser */
 
 OsmlStreamParser::OsmlStreamParser(CharReader &reader, Logger &logger)
@@ -955,4 +974,13 @@ bool OsmlStreamParser::inDefaultField() const { return impl->inDefaultField(); }
 
 bool OsmlStreamParser::inRangeCommand() const { return impl->inRangeCommand(); }
 
+TokenId OsmlStreamParser::registerToken(const std::string &token)
+{
+	return impl->registerToken(token);
+}
+
+void OsmlStreamParser::unregisterToken(TokenId token)
+{
+	impl->unregisterToken(token);
+}
 }

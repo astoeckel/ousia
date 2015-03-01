@@ -363,8 +363,7 @@ TEST(OsmlStreamParser, singleLineComment)
 	CharReader charReader(testString);
 	OsmlStreamParser parser(charReader, logger);
 
-	assertTextData(parser, "a", 0, 1, 0, 1, WhitespaceMode::PRESERVE);
-	assertTextData(parser, "b", 33, 34, 33, 34, WhitespaceMode::PRESERVE);
+	assertTextData(parser, "ab", 0, 34, 0, 34, WhitespaceMode::PRESERVE);
 	assertEnd(parser, 34, 34);
 }
 
@@ -376,8 +375,7 @@ TEST(OsmlStreamParser, multilineComment)
 	CharReader charReader(testString);
 	OsmlStreamParser parser(charReader, logger);
 
-	assertTextData(parser, "a", 0, 1, 0, 1, WhitespaceMode::PRESERVE);
-	assertTextData(parser, "b", 40, 41, 40, 41, WhitespaceMode::PRESERVE);
+	assertTextData(parser, "ab", 0, 41, 0, 41, WhitespaceMode::PRESERVE);
 	assertEnd(parser, 41, 41);
 }
 
@@ -391,10 +389,10 @@ TEST(OsmlStreamParser, unfinishedMultilineComment)
 
 	logger.reset();
 
-	assertTextData(parser, "a", 0, 1, 0, 1, WhitespaceMode::PRESERVE);
 	ASSERT_FALSE(logger.hasError());
-	assertEnd(parser, 38, 38);
+	assertTextData(parser, "a", 0, 1, 0, 1, WhitespaceMode::PRESERVE);
 	ASSERT_TRUE(logger.hasError());
+	assertEnd(parser, 38, 38);
 }
 
 TEST(OsmlStreamParser, nestedMultilineComment)
@@ -405,8 +403,7 @@ TEST(OsmlStreamParser, nestedMultilineComment)
 	CharReader charReader(testString);
 	OsmlStreamParser parser(charReader, logger);
 
-	assertTextData(parser, "a", 0, 1, 0, 1, WhitespaceMode::PRESERVE);
-	assertTextData(parser, "b", 40, 41, 40, 41, WhitespaceMode::PRESERVE);
+	assertTextData(parser, "ab", 0, 41, 0, 41, WhitespaceMode::PRESERVE);
 	assertEnd(parser, 41, 41);
 }
 
