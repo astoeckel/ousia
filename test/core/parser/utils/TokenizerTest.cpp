@@ -26,6 +26,60 @@
 
 namespace ousia {
 
+static void assertPrimaryToken(CharReader &reader, Tokenizer &tokenizer,
+                               TokenId id, const std::string &text,
+                               SourceOffset start = InvalidSourceOffset,
+                               SourceOffset end = InvalidSourceOffset,
+                               SourceId sourceId = InvalidSourceId)
+{
+	Token token;
+	TokenizedData data;
+	ASSERT_TRUE(tokenizer.read(reader, token, data));
+	EXPECT_EQ(id, token.id);
+	EXPECT_EQ(text, token.content);
+	if (start != InvalidSourceOffset) {
+		EXPECT_EQ(start, token.getLocation().getStart());
+	}
+	if (end != InvalidSourceOffset) {
+		EXPECT_EQ(end, token.getLocation().getEnd());
+	}
+	EXPECT_EQ(sourceId, token.getLocation().getSourceId());
+}
+
+static void expectData(const std::string &expected, SourceOffset tokenStart,
+                       SourceOffset tokenEnd, SourceOffset textStart,
+                       SourceOffset textEnd, const Token &token,
+                       TokenizedData &data,
+                       WhitespaceMode mode = WhitespaceMode::PRESERVE)
+{
+	ASSERT_EQ(Tokens::Data, token.id);
+
+	Token textToken;
+	TokenizedDataReader reader = data.reader();
+	ASSERT_TRUE(reader.read(textToken, TokenSet{}, mode));
+
+	EXPECT_EQ(expected, textToken.content);
+	EXPECT_EQ(tokenStart, token.location.getStart());
+	EXPECT_EQ(tokenEnd, token.location.getEnd());
+	EXPECT_EQ(textStart, textToken.getLocation().getStart());
+	EXPECT_EQ(textEnd, textToken.getLocation().getEnd());
+	EXPECT_TRUE(reader.atEnd());
+}
+
+static void assertDataToken(CharReader &reader, Tokenizer &tokenizer,
+                            const std::string &expected,
+                            SourceOffset tokenStart, SourceOffset tokenEnd,
+                            SourceOffset textStart, SourceOffset textEnd,
+                            WhitespaceMode mode = WhitespaceMode::PRESERVE)
+{
+	Token token;
+	TokenizedData data;
+	ASSERT_TRUE(tokenizer.read(reader, token, data));
+
+	expectData(expected, tokenStart, tokenEnd, textStart, textEnd, token, data,
+	           mode);
+}
+
 TEST(Tokenizer, tokenRegistration)
 {
 	Tokenizer tokenizer;
@@ -51,25 +105,6 @@ TEST(Tokenizer, tokenRegistration)
 	ASSERT_EQ(1U, tokenizer.registerToken("d"));
 	ASSERT_EQ(Tokens::Empty, tokenizer.registerToken("d"));
 	ASSERT_EQ("d", tokenizer.lookupToken(1U).string);
-}
-
-void expectData(const std::string &expected, SourceOffset tokenStart,
-                SourceOffset tokenEnd, SourceOffset textStart,
-                SourceOffset textEnd, const Token &token, TokenizedData &data,
-                WhitespaceMode mode = WhitespaceMode::PRESERVE)
-{
-	ASSERT_EQ(Tokens::Data, token.id);
-
-	Token textToken;
-	TokenizedDataReader reader = data.reader();
-	ASSERT_TRUE(reader.read(textToken, TokenSet{}, mode));
-
-	EXPECT_EQ(expected, textToken.content);
-	EXPECT_EQ(tokenStart, token.location.getStart());
-	EXPECT_EQ(tokenEnd, token.location.getEnd());
-	EXPECT_EQ(textStart, textToken.getLocation().getStart());
-	EXPECT_EQ(textEnd, textToken.getLocation().getEnd());
-	EXPECT_TRUE(reader.atEnd());
 }
 
 TEST(Tokenizer, textTokenPreserveWhitespace)
@@ -451,6 +486,80 @@ TEST(Tokenizer, nonPrimaryTokens)
 	ASSERT_FALSE(tokenizer.read(reader, token, data));
 }
 
+TEST(Tokenizer, primaryNonPrimaryTokenInteraction)
+{
+	CharReader reader{"<<test1>><test2><<test3\\><<<test4>>>"};
+	//                 01234567890123456789012 3456789012345
+	//                 0         1         2          3
+
+	Tokenizer tokenizer;
+
+	TokenId tP1 = tokenizer.registerToken("<", true);
+	TokenId tP2 = tokenizer.registerToken(">", true);
+	TokenId tP3 = tokenizer.registerToken("\\>", true);
+	TokenId tN1 = tokenizer.registerToken("<<", false);
+	TokenId tN2 = tokenizer.registerToken(">>", false);
+
+	TokenSet tokens = TokenSet{tN1, tN2};
+
+	Token token, textToken;
+	{
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
+		ASSERT_EQ(Tokens::Data, token.id);
+
+		TokenizedDataReader dataReader = data.reader();
+		assertToken(dataReader, tN1, "<<", tokens, WhitespaceMode::TRIM, 0, 2);
+		assertText(dataReader, "test1", tokens, WhitespaceMode::TRIM, 2, 7);
+		assertToken(dataReader, tN2, ">>", tokens, WhitespaceMode::TRIM, 7, 9);
+		assertEnd(dataReader);
+	}
+
+	assertPrimaryToken(reader, tokenizer, tP1, "<", 9, 10);
+	assertDataToken(reader, tokenizer, "test2", 10, 15, 10, 15);
+	assertPrimaryToken(reader, tokenizer, tP2, ">", 15, 16);
+
+	{
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
+		ASSERT_EQ(Tokens::Data, token.id);
+
+		TokenizedDataReader dataReader = data.reader();
+		assertToken(dataReader, tN1, "<<", tokens, WhitespaceMode::TRIM, 16, 18);
+		assertText(dataReader, "test3", tokens, WhitespaceMode::TRIM, 18, 23);
+		assertEnd(dataReader);
+	}
+
+	assertPrimaryToken(reader, tokenizer, tP3, "\\>", 23, 25);
+
+	{
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
+		ASSERT_EQ(Tokens::Data, token.id);
+
+		TokenizedDataReader dataReader = data.reader();
+		assertToken(dataReader, tN1, "<<", tokens, WhitespaceMode::TRIM, 25, 27);
+		assertEnd(dataReader);
+	}
+
+	assertPrimaryToken(reader, tokenizer, tP1, "<", 27, 28);
+
+	{
+		TokenizedData data;
+		ASSERT_TRUE(tokenizer.read(reader, token, data));
+		ASSERT_EQ(Tokens::Data, token.id);
+
+		TokenizedDataReader dataReader = data.reader();
+		assertText(dataReader, "test4", tokens, WhitespaceMode::TRIM, 28, 33);
+		assertToken(dataReader, tN2, ">>", tokens, WhitespaceMode::TRIM, 33, 35);
+		assertEnd(dataReader);
+	}
+
+	assertPrimaryToken(reader, tokenizer, tP2, ">", 35, 36);
+
+	TokenizedData data;
+	ASSERT_FALSE(tokenizer.read(reader, token, data));
+}
 
 TEST(Tokenizer, ambiguousTokens2)
 {
@@ -476,6 +585,5 @@ TEST(Tokenizer, ambiguousTokens2)
 		ASSERT_FALSE(tokenizer.read(reader, token, data));
 	}
 }
-
 }
 

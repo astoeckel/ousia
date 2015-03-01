@@ -188,7 +188,7 @@ bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
 		const size_t dataStartOffset = data.size();
 
 		// If we do not have a match yet, start a new lookup from the root
-		if (!bestMatch.hasMatch()) {
+		if (!bestMatch.hasMatch() || !bestMatch.primary) {
 			lookups.emplace_back(root, charStart, dataStartOffset);
 		}
 
@@ -201,35 +201,34 @@ bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
 				continue;
 			}
 
-			// If the matched token is primary, check whether it is better than
-			// the current best match, if yes, replace the best match. In any
-			// case just continue
-			if (match.primary) {
-				if (match.size() > bestMatch.size()) {
-					bestMatch = match;
-				}
-				continue;
+			// Replace the best match with longest token
+			if (match.size() > bestMatch.size()) {
+				bestMatch = match;
 			}
 
-			// Otherwise -- if the matched token is a non-primary token (and no
-			// primary token has been found until now) -- mark the match in the
-			// TokenizedData
-			if (!bestMatch.hasMatch()) {
+			// If the matched token is a non-primary token -- mark the match in
+			// the TokenizedData list
+			if (!match.primary) {
 				data.mark(match.token.id, data.size() - match.size() + 1,
 				          match.size());
 			}
 		}
 
-		// We have found a token and there are no more states to advance or the
-		// text handler has found something -- abort to return the new token
-		if (bestMatch.hasMatch()) {
-			if ((nextLookups.empty() || data.size() > initialDataSize)) {
+
+		// If a token has been found and the token is a primary token, check
+		// whether we have to abort, otherwise if we have a non-primary match,
+		// reset it once it can no longer be advanced
+		if (bestMatch.hasMatch() && nextLookups.empty()) {
+			if (bestMatch.primary) {
 				break;
+			} else {
+				bestMatch = TokenMatch{};
 			}
-		} else {
-			// Record all incomming characters
-			data.append(c, charStart, charEnd);
 		}
+
+		// Record all incomming characters
+		data.append(c, charStart, charEnd);
+
 
 		// Swap the lookups and the nextLookups list
 		lookups = std::move(nextLookups);
@@ -241,17 +240,17 @@ bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
 
 	// If we found data, emit a corresponding data token
 	if (data.size() > initialDataSize &&
-	    (!bestMatch.hasMatch() ||
+	    (!bestMatch.hasMatch() || !bestMatch.primary ||
 	     bestMatch.dataStartOffset > initialDataSize)) {
 		// If we have a "bestMatch" wich starts after text data has started,
 		// trim the TokenizedData to this offset
-		if (bestMatch.dataStartOffset > initialDataSize) {
+		if (bestMatch.dataStartOffset > initialDataSize && bestMatch.primary) {
 			data.trim(bestMatch.dataStartOffset);
 		}
 
 		// Create a token containing the data location
 		bestMatch.token = Token{data.getLocation()};
-	} else if (bestMatch.hasMatch() &&
+	} else if (bestMatch.hasMatch() && bestMatch.primary &&
 	           bestMatch.dataStartOffset == initialDataSize) {
 		data.trim(initialDataSize);
 	}
