@@ -88,7 +88,7 @@ public:
 			OsmlStreamParser::State state = parser.parse();
 			logger.setDefaultLocation(parser.getLocation());
 			switch (state) {
-				case OsmlStreamParser::State::COMMAND: {
+				case OsmlStreamParser::State::COMMAND_START: {
 					// Implicitly create a "document" element if the first
 					// command is not any other top-level command
 					if (needsDocument) {
@@ -96,23 +96,23 @@ public:
 						    parser.getCommandName().asString();
 						if (cmd != "typesystem" && cmd != "document" &&
 						    cmd != "domain") {
-							stack.command("document", Variant::mapType{});
+							stack.commandStart("document", Variant::mapType{},
+							                   false);
 						}
 						needsDocument = false;
 					}
-					stack.command(parser.getCommandName(),
-					              parser.getCommandArguments().asMap());
+					stack.commandStart(parser.getCommandName(),
+					                   parser.getCommandArguments().asMap(),
+					                   parser.inRangeCommand());
 					break;
 				}
-				case OsmlStreamParser::State::DATA:
-					stack.data(parser.getData());
-					break;
-				case OsmlStreamParser::State::ENTITY:
-					// TODO
+				case OsmlStreamParser::State::RANGE_END:
+					stack.rangeEnd();
 					break;
 				case OsmlStreamParser::State::ANNOTATION_START:
 					stack.annotationStart(parser.getCommandName(),
-					                      parser.getCommandArguments().asMap());
+					                      parser.getCommandArguments().asMap(),
+					                      parser.inRangeCommand());
 					break;
 				case OsmlStreamParser::State::ANNOTATION_END: {
 					Variant elementName = Variant::fromString(std::string{});
@@ -130,11 +130,9 @@ public:
 				case OsmlStreamParser::State::FIELD_END:
 					stack.fieldEnd();
 					break;
-				case OsmlStreamParser::State::NONE:
-				case OsmlStreamParser::State::ERROR:
-					// Internally used in OsmlStreamParser, these states should
-					// never occur. Just contiunue.
-					continue;
+				case OsmlStreamParser::State::DATA:
+					stack.data(parser.getData());
+					break;
 				case OsmlStreamParser::State::END:
 					return;
 			}

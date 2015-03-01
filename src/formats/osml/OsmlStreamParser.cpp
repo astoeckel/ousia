@@ -409,7 +409,7 @@ public:
 	State parse();
 
 	TokenId registerToken(const std::string &token);
-	void unregisterToken(TokenId token);
+	void unregisterToken(TokenId id);
 
 	const TokenizedData &getData() const { return data; }
 	const Variant &getCommandName() const { return cmd().getName(); }
@@ -928,9 +928,9 @@ TokenId OsmlStreamParserImpl::registerToken(const std::string &token)
 	return tokenizer.registerToken(token, false);
 }
 
-void OsmlStreamParserImpl::unregisterToken(TokenId token)
+void OsmlStreamParserImpl::unregisterToken(TokenId id)
 {
-	assert(tokenizer.unregisterToken(token));
+	assert(tokenizer.unregisterToken(id));
 }
 
 /* Class OsmlStreamParser */
@@ -979,8 +979,8 @@ TokenId OsmlStreamParser::registerToken(const std::string &token)
 	return impl->registerToken(token);
 }
 
-void OsmlStreamParser::unregisterToken(TokenId token)
+void OsmlStreamParser::unregisterToken(TokenId id)
 {
-	impl->unregisterToken(token);
+	impl->unregisterToken(id);
 }
 }

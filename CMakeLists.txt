@@ -214,7 +214,7 @@ ADD_LIBRARY(ousia_core
 #)
 
 ADD_LIBRARY(ousia_osml
-#	src/formats/osml/OsmlParser
+	src/formats/osml/OsmlParser
 	src/formats/osml/OsmlStreamParser
 )
 
