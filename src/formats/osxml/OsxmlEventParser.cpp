@@ -323,7 +323,7 @@ static void xmlStartElementHandler(void *ref, const XML_Char *name,
 		// Just issue a "commandStart" event in any other case
 		Variant nameVar = Variant::fromString(nameStr);
 		nameVar.setLocation(nameLoc);
-		parser->getEvents().command(nameVar, args);
+		parser->getEvents().commandStart(nameVar, args);
 	}
 }
 
@@ -358,8 +358,8 @@ static void xmlEndElementHandler(void *ref, const XML_Char *name)
 		return;
 	}
 
-	// Issue the "fieldEnd" event
-	parser->getEvents().fieldEnd();
+	// Issue the "rangeEnd" event
+	parser->getEvents().rangeEnd();
 }
 
 static void xmlCharacterDataHandler(void *ref, const XML_Char *s, int len)

@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <core/common/Variant.hpp>
+#include <core/common/CharReader.hpp>
 #include <core/parser/stack/GenericParserStates.hpp>
 #include <core/parser/stack/Stack.hpp>
 #include <core/parser/ParserContext.hpp>
@@ -63,17 +65,16 @@ public:
 	 */
 	void parse() { parser.parse(); }
 
-	void command(const Variant &name, const Variant::mapType &args) override
+	void commandStart(const Variant &name,
+	                  const Variant::mapType &args) override
 	{
-		stack.command(name, args);
-		stack.fieldStart(true);
+		stack.commandStart(name, args, true);
 	}
 
 	void annotationStart(const Variant &name,
 	                     const Variant::mapType &args) override
 	{
-		stack.annotationStart(name, args);
-		stack.fieldStart(true);
+		stack.annotationStart(name, args, true);
 	}
 
 	void annotationEnd(const Variant &className,
@@ -82,7 +83,7 @@ public:
 		stack.annotationEnd(className, elementName);
 	}
 
-	void fieldEnd() override { stack.fieldEnd(); }
+	void rangeEnd() override { stack.rangeEnd(); }
 
 	void data(const Variant &data) override { stack.data(data); }
 };

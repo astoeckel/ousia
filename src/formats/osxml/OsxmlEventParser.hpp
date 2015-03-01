@@ -59,7 +59,8 @@ public:
 	 * @param args is a map containing the arguments that were given to the
 	 * command.
 	 */
-	virtual void command(const Variant &name, const Variant::mapType &args) = 0;
+	virtual void commandStart(const Variant &name,
+	                          const Variant::mapType &args) = 0;
 
 	/**
 	 * Called whenever an annotation starts. Note that this implicitly always
@@ -88,13 +89,9 @@ public:
 	                           const Variant &elementName) = 0;
 
 	/**
-	 * Called whenever the default field which was implicitly started by
-	 * commandStart or annotationStart ends. Note that this does not end the
-	 * range of an annotation, but the default field of the annotation. To
-	 * signal the end of the annotation this, the annotationEnd method will be
-	 * invoked.
+	 * Called whenever the command or annotation tags end.
 	 */
-	virtual void fieldEnd() = 0;
+	virtual void rangeEnd() = 0;
 
 	/**
 	 * Called whenever string data is found.
