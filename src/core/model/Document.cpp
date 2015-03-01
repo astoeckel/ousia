@@ -180,7 +180,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			// check if the parent reference is correct.
 			if (child->getParent() != subInst) {
 				logger.error(std::string("A child of field \"") +
-				                 fieldDescs[f]->getName() +
+				                 fieldDescs[f]->getNameOrDefaultName() +
 				                 "\" has the wrong parent reference!",
 				             *child);
 				valid = false;
@@ -209,7 +209,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				        c->getDescriptor()->getName() +
 				        "\" is not allowed as child of an instance of \"" +
 				        descriptor->getName() + "\" in field \"" +
-				        fieldDescs[f]->getName() + "\"",
+				        fieldDescs[f]->getNameOrDefaultName() + "\"",
 				    *child);
 				valid = false;
 				continue;
@@ -285,7 +285,7 @@ static int enforceGetFieldDescriptorIndex(
 	if (idx == -1) {
 		throw OusiaException(std::string("Descriptor \"") + desc->getName() +
 		                     "\" does not reference the given field \"" +
-		                     fieldDescriptor->getName() + "\"");
+		                     fieldDescriptor->getNameOrDefaultName() + "\"");
 	}
 	return idx;
 }

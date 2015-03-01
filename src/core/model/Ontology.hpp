@@ -19,7 +19,8 @@
 /**
  * @file Ontology.hpp
  *
- * This header contains the class hierarchy of descriptor classes for ontologies.
+ * This header contains the class hierarchy of descriptor classes for
+ * ontologies.
  * Properly connected instances of these classes with a Ontology node as root
  * describe a semantic Ontology in a formal way. It specifies the allowed (tree)
  * structure of a document by means of StructuredClasses as well as the allowed
@@ -95,8 +96,8 @@
  * the proper StructuredClass. This can be regulated by the "cardinality"
  * property of a StructuredClass.
  *
- * It is possible to add further fields, like we would in the "headings" ontology
- * to add titles to our structure.
+ * It is possible to add further fields, like we would in the "headings"
+ * ontology to add titles to our structure.
  *
  * \code{.xml}
  * <ontology name="headings">
@@ -119,10 +120,10 @@
  * \endcode
  *
  * AnnotationClasses on the other hand do not specify a context free grammar.
- * They merely specify what kinds of Annotations are allowed within this ontology
- * and which fields or attributes they have. Note that Annotations are allowed
- * to define structured children that manifest e.g. meta information of that
- * Annotation. An example for that would be the "comment" ontology:
+ * They merely specify what kinds of Annotations are allowed within this
+ * ontology and which fields or attributes they have. Note that Annotations are
+ * allowed to define structured children that manifest e.g. meta information of
+ * that Annotation. An example for that would be the "comment" ontology:
  *
  * \code{.xml}
  * <ontology name="comments">
@@ -437,6 +438,23 @@ public:
 	 *         children of an instance of this Descriptor.
 	 */
 	NodeVector<FieldDescriptor> getDefaultFields() const;
+
+	/**
+	 * Returns the name of this FieldDescriptor or the default field name
+	 * if the name is empty.
+	 *
+	 * @return the name of this FieldDescriptor or the default field name
+	 * if the name is empty.
+	 */
+	std::string getNameOrDefaultName()
+	{
+		std::string name = getName();
+		if (name.empty()) {
+			return DEFAULT_FIELD_NAME;
+		} else {
+			return std::move(name);
+		}
+	}
 };
 
 /**
@@ -824,7 +842,7 @@ public:
 	 *
 	 * @param mgr                  is the current Manager.
 	 * @param name                 is the name of the StructuredClass.
-	 * @param ontology               is the Ontology this StructuredClass belongs
+	 * @param ontology             is the Ontology this StructuredClass belongs
 	 *                             to.
 	 * @param cardinality          specifies how often an element of this type
 	 *                             may occur at a specific point in the
@@ -983,7 +1001,7 @@ public:
 	 * @param name                 is a name for this AnnotationClass that will
 	 *                             be used for later references to this
 	 *                             AnnotationClass.
-	 * @param ontology               is the Ontology this AnnotationClass belongs
+	 * @param ontology             is the Ontology this AnnotationClass belongs
 	 *                             to.
 	 */
 	AnnotationClass(Manager &mgr, std::string name, Handle<Ontology> ontology);
@@ -991,7 +1009,8 @@ public:
 
 /**
  * A Ontology node specifies which StructuredClasses and which AnnotationClasses
- * are part of this ontology. TODO: Do we want to be able to restrict Annotations
+ * are part of this ontology. TODO: Do we want to be able to restrict
+ * Annotations
  * to certain Structures?
  */
 class Ontology : public RootNode {
@@ -1012,8 +1031,8 @@ protected:
 
 public:
 	/**
-	 * The constructor for a new ontology. Note that this is an empty Ontology and
-	 * still has to be filled with StructuredClasses and AnnotationClasses.
+	 * The constructor for a new ontology. Note that this is an empty Ontology
+	 * and still has to be filled with StructuredClasses and AnnotationClasses.
 	 *
 	 * @param mgr  is the Manager instance.
 	 * @param name is a name for this ontology which will be used for later
@@ -1029,8 +1048,8 @@ public:
 	}
 
 	/**
-	 * The constructor for a new ontology. Note that this is an empty Ontology and
-	 * still has to be filled with StructuredClasses and AnnotationClasses.
+	 * The constructor for a new ontology. Note that this is an empty Ontology
+	 * and still has to be filled with StructuredClasses and AnnotationClasses.
 	 *
 	 * @param mgr  is the Manager instance.
 	 * @param sys  is the SystemTypesystem instance.
@@ -1068,16 +1087,16 @@ public:
 	}
 	/**
 	 * Adds a StructuredClass to this ontology. This also sets the parent of the
-	 * given StructuredClass if it is not set to this Ontology already and removes
-	 * it from the old Ontology.
+	 * given StructuredClass if it is not set to this Ontology already and
+	 * removes it from the old Ontology.
 	 *
 	 * @param s is some StructuredClass.
 	 */
 	void addStructuredClass(Handle<StructuredClass> s);
 
 	/**
-	 * Removes a StructuredClass from this ontology. This also sets the parent of
-	 * the given StructuredClass to null.
+	 * Removes a StructuredClass from this ontology. This also sets the parent
+	 * of the given StructuredClass to null.
 	 *
 	 * @param s is some StructuredClass.
 	 * @return  true if the given StructuredClass was removed and false if this
@@ -1127,17 +1146,17 @@ public:
 		return annotationClasses;
 	}
 	/**
-	 * Adds an AnnotationClass to this ontology. This also sets the parent of the
-	 * given AnnotationClass if it is not set to this Ontology already and removes
-	 * it from the old Ontology.
+	 * Adds an AnnotationClass to this ontology. This also sets the parent of
+	 * the given AnnotationClass if it is not set to this Ontology already and
+	 * removes it from the old Ontology.
 	 *
 	 * @param a is some AnnotationClass.
 	 */
 	void addAnnotationClass(Handle<AnnotationClass> a);
 
 	/**
-	 * Removes a AnnotationClass from this ontology. This also sets the parent of
-	 * the given AnnotationClass to null.
+	 * Removes a AnnotationClass from this ontology. This also sets the parent
+	 * of the given AnnotationClass to null.
 	 *
 	 * @param a is some AnnotationClass.
 	 * @return  true if the given AnnotationClass was removed and false if this

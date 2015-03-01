@@ -235,7 +235,7 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 				throw LoggableException(
 				    std::string("An instance of \"") + strct->getName() +
 				        "\" is not allowed as child of field \"" +
-				        field->getName() + "\" of descriptor \"" +
+				        field->getNameOrDefaultName() + "\" of descriptor \"" +
 				        parent->getDescriptor()->getName() + "\"",
 				    location());
 			}
@@ -245,8 +245,6 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 				    parent->getDescriptor()->getFieldDescriptorIndex();
 			}
 			// create the entity for the new element at last.
-			// TODO: REMOVE
-			strct_name = strct->getName();
 			entity = parent->createChildStructuredEntity(strct, lastFieldIdx,
 			                                             args, nameAttr);
 		}
