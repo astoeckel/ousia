@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include <core/parser/stack/Callbacks.hpp>
 #include <core/parser/stack/TokenRegistry.hpp>
 
 namespace ousia {
@@ -40,39 +41,42 @@ public:
 TEST(TokenRegistry, simple)
 {
 	ParserCallbacksProxy parser;
-	TokenRegistry registry(parser);
+	{
+		TokenRegistry registry(parser);
 
-	ASSERT_EQ(0U, parser.registerTokenCount);
-	ASSERT_EQ(0U, parser.unregisterTokenCount);
+		ASSERT_EQ(0U, parser.registerTokenCount);
+		ASSERT_EQ(0U, parser.unregisterTokenCount);
 
-	ASSERT_EQ(1U, registry.registerToken("test"));
-	ASSERT_EQ(1U, registry.registerToken("test"));
-	ASSERT_EQ(2U, registry.registerToken("test2"));
-	ASSERT_EQ(2U, registry.registerToken("test2"));
-	ASSERT_EQ(2U, parser.registerTokenCount);
-	ASSERT_EQ(0U, parser.unregisterTokenCount);
+		ASSERT_EQ(1U, registry.registerToken("test"));
+		ASSERT_EQ(1U, registry.registerToken("test"));
+		ASSERT_EQ(2U, registry.registerToken("test2"));
+		ASSERT_EQ(2U, registry.registerToken("test2"));
+		ASSERT_EQ(3U, registry.registerToken("test3"));
+		ASSERT_EQ(3U, parser.registerTokenCount);
+		ASSERT_EQ(0U, parser.unregisterTokenCount);
 
-	registry.unregisterToken(1);
-	ASSERT_EQ(2U, parser.registerTokenCount);
-	ASSERT_EQ(0U, parser.unregisterTokenCount);
+		registry.unregisterToken(1);
+		ASSERT_EQ(3U, parser.registerTokenCount);
+		ASSERT_EQ(0U, parser.unregisterTokenCount);
 
-	registry.unregisterToken(1);
-	ASSERT_EQ(2U, parser.registerTokenCount);
-	ASSERT_EQ(1U, parser.unregisterTokenCount);
+		registry.unregisterToken(1);
+		ASSERT_EQ(3U, parser.registerTokenCount);
+		ASSERT_EQ(1U, parser.unregisterTokenCount);
 
-	registry.unregisterToken(1);
-	ASSERT_EQ(2U, parser.registerTokenCount);
-	ASSERT_EQ(1U, parser.unregisterTokenCount);
+		registry.unregisterToken(1);
+		ASSERT_EQ(3U, parser.registerTokenCount);
+		ASSERT_EQ(1U, parser.unregisterTokenCount);
 
-	registry.unregisterToken(2);
-	ASSERT_EQ(2U, parser.registerTokenCount);
-	ASSERT_EQ(1U, parser.unregisterTokenCount);
+		registry.unregisterToken(2);
+		ASSERT_EQ(3U, parser.registerTokenCount);
+		ASSERT_EQ(1U, parser.unregisterTokenCount);
 
-	registry.unregisterToken(2);
-	ASSERT_EQ(2U, parser.registerTokenCount);
-	ASSERT_EQ(2U, parser.unregisterTokenCount);
+		registry.unregisterToken(2);
+		ASSERT_EQ(3U, parser.registerTokenCount);
+		ASSERT_EQ(2U, parser.unregisterTokenCount);
+	}
+	ASSERT_EQ(3U, parser.unregisterTokenCount);
 }
-
 }
 }
 

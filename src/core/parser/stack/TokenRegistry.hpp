@@ -19,7 +19,7 @@
 /**
  * @file TokenRegistry.hpp
  *
- * Contains the TokenRegistry class used for registering all possible tokens
+ * Contains the TokenRegistry class used for registering all user defined tokens
  * during the parsing process.
  *
  * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
@@ -31,19 +31,22 @@
 #include <string>
 #include <unordered_map>
 
-#include "Callbacks.hpp"
+#include <core/common/Token.hpp>
 
 namespace ousia {
 namespace parser_stack {
 
+// Forward declarations
+class ParserCallbacks;
+
 /**
- * The TokenRegistry class is used for registering all possible tokens during
- * the Parsing process. The TokenRegistry class acts as an adapter between the
- * parser which allocates TokenId for each unique token and the Handler classes
- * which may register tokens multiple times and expect the same TokenId to be
- * returned for the same token.
+ * The TokenRegistry class is used for registering all user defined tokens
+ * during the Parsing process. The TokenRegistry class acts as an adapter
+ * between the parser which allocates a TokenId for each unique token and the
+ * Handler classes which may register the same token multiple times and expect
+ * the same TokenId to be returned for the same token.
  */
-class TokenRegistry : public ParserCallbacks {
+class TokenRegistry  {
 private:
 	/**
 	 * Reference at the ParserCallback instance the tokens are relayed to.
@@ -71,14 +74,38 @@ public:
 	 */
 	TokenRegistry(ParserCallbacks &parser) : parser(parser) {}
 
+	/**
+	 * Destructor of the TokenRegistry class, removes all registered tokens from
+	 * the parser.
+	 */
+	~TokenRegistry();
+
 	/* No copy construction */
 	TokenRegistry(const TokenRegistry &) = delete;
 
 	/* No assignment */
 	TokenRegistry &operator=(const TokenRegistry &) = delete;
 
-	TokenId registerToken(const std::string &token) override;
-	void unregisterToken(TokenId id) override;
+	/**
+	 * Registers the given string token in the underlying parser and returns the
+	 * TokenId of that token. If the same token string is given multiple times,
+	 * the same TokenId is returned. The token is only registered once in the
+	 * parser.
+	 *
+	 * @param token is the token that should be registered.
+	 * @return the TokenId associated with this token.
+	 */
+	TokenId registerToken(const std::string &token);
+
+	/**
+	 * Unregisters the token with the given TokenId from the parser. Note that
+	 * the token will only be unregistered if unregisterToken() has been called
+	 * as many times as registerToken() for the same token.
+	 *
+	 * @param id is the id of the token returned by registerToken() that should
+	 * be unregistered.
+	 */
+	void unregisterToken(TokenId id);
 };
 }
 }

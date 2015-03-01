@@ -16,10 +16,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "Callbacks.hpp"
 #include "TokenRegistry.hpp"
 
 namespace ousia {
 namespace parser_stack {
+
+TokenRegistry::~TokenRegistry()
+{
+	for (const auto &tid: tokenIds) {
+		parser.unregisterToken(tid.first);
+	}
+}
 
 TokenId TokenRegistry::registerToken(const std::string &token)
 {
