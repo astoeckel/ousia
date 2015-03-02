@@ -246,8 +246,6 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 				    parent->getDescriptor()->getFieldDescriptorIndex();
 			}
 			// create the entity for the new element at last.
-			// TODO: REMOVE
-			strct_name = strct->getName();
 			entity = parent->createChildStructuredEntity(strct, lastFieldIdx,
 			                                             args, nameAttr);
 		}
@@ -373,15 +371,8 @@ bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
 	return valid && scope().resolveValue(data, type, logger);
 }
 
-bool DocumentChildHandler::data(TokenizedData &data)
+bool DocumentChildHandler::data()
 {
-	// TODO: Handle this correctly
-	Variant text = data.text(WhitespaceMode::TRIM);
-	if (text == nullptr) {
-		// For now, except "no data" as success
-		return true;
-	}
-
 	// We're past the region in which explicit fields can be defined in the
 	// parent structure element
 	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, true);
@@ -401,6 +392,7 @@ bool DocumentChildHandler::data(TokenizedData &data)
 	// If it is a primitive field directly, try to parse the content.
 	if (field->isPrimitive()) {
 		// Add it as primitive content.
+		Variant text = readData();
 		if (!convertData(field, text, logger())) {
 			return false;
 		}
@@ -419,6 +411,10 @@ bool DocumentChildHandler::data(TokenizedData &data)
 	for (auto primitiveField : defaultFields) {
 		// Then try to parse the content using the type specification.
 		forks.emplace_back(logger().fork());
+
+		// TODO: Actually the data has to be read after the path has been
+		// created (as createPath may push more tokens onto the stack)
+		Variant text = readData();
 		if (!convertData(primitiveField, text, forks.back())) {
 			continue;
 		}
@@ -428,7 +424,6 @@ bool DocumentChildHandler::data(TokenizedData &data)
 
 		// Construct the necessary path
 		NodeVector<Node> path = field->pathTo(primitiveField, logger());
-		// TODO: Create methods with indices instead of names.
 		createPath(fieldIdx, path, parent);
 
 		// Then create the primitive element
@@ -439,6 +434,7 @@ bool DocumentChildHandler::data(TokenizedData &data)
 	// No field was found that might take the data -- dump the error messages
 	// from the loggers -- or, if there were no primitive fields, clearly state
 	// this fact
+	Variant text = readData();
 	if (defaultFields.empty()) {
 		logger().error("Got data, but structure \"" + name() +
 		                   "\" does not have any primitive field",

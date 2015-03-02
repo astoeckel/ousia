@@ -24,6 +24,7 @@
 #include <core/common/Location.hpp>
 #include <core/common/Variant.hpp>
 #include <core/common/Whitespace.hpp>
+#include <core/common/Token.hpp>
 
 namespace ousia {
 
@@ -37,7 +38,7 @@ class Variant;
 namespace parser_stack {
 
 // More forward declarations
-class Callbacks;
+class HandlerCallbacks;
 class State;
 
 /**

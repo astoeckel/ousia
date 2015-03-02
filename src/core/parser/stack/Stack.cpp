@@ -210,7 +210,6 @@ static LoggableException buildInvalidCommandException(
 /* Class StackImpl */
 
 class StackImpl {
-
 private:
 	/**
 	 * Reference at the parser context.
@@ -231,7 +230,7 @@ private:
 	/**
 	 * Return the reference in the Logger instance stored within the context.
 	 */
-	Logger &logger();
+	Logger &logger() {return ctx.getLogger();}
 
 	/**
 	 * Used internally to get all expected command names for the current state.
@@ -311,12 +310,28 @@ private:
 	 * @return true if all handlers on the stack are valid.
 	 */
 	bool handlersValid();
+
+public:
+	StackImpl(ParserContext &ctx,
+	      const std::multimap<std::string, const State *> &states);
+
+	~StackImpl();
+
+	const State &currentState() const;
+	std::string currentCommandName() const;
+
+	void commandStart(const Variant &name, const Variant::mapType &args,
+	                  bool range);
+	void annotationStart(const Variant &className, const Variant &args,
+	                     bool range);
+	void annotationEnd(const Variant &className, const Variant &elementName);
+	void rangeEnd();
+	void fieldStart(bool isDefault);
+	void fieldEnd();
+	void data(const TokenizedData &data);
 };
 
-
-/* Class Stack */
-
-Stack::Stack(ParserContext &ctx,
+StackImpl::StackImpl(ParserContext &ctx,
              const std::multimap<std::string, const State *> &states)
     : ctx(ctx), states(states)
 {
@@ -327,7 +342,7 @@ Stack::Stack(ParserContext &ctx,
 	}
 }
 
-Stack::~Stack()
+StackImpl::~StackImpl()
 {
 	while (!stack.empty()) {
 		// Fetch the topmost stack element
@@ -351,7 +366,7 @@ Stack::~Stack()
 	}
 }
 
-void Stack::deduceState()
+void StackImpl::deduceState()
 {
 	// Assemble all states
 	std::vector<const State *> states;
@@ -384,7 +399,7 @@ void Stack::deduceState()
 	info.fieldStart(true, false, true);
 }
 
-std::set<std::string> Stack::expectedCommands()
+std::set<std::string> StackImpl::expectedCommands()
 {
 	const State *currentState = &(this->currentState());
 	std::set<std::string> res;
@@ -396,17 +411,17 @@ std::set<std::string> Stack::expectedCommands()
 	return res;
 }
 
-const State &Stack::currentState()
+const State &StackImpl::currentState()
 {
 	return stack.empty() ? States::None : stack.back().handler->getState();
 }
 
-std::string Stack::currentCommandName()
+std::string StackImpl::currentCommandName()
 {
 	return stack.empty() ? std::string{} : stack.back().handler->getName();
 }
 
-const State *Stack::findTargetState(const std::string &name)
+const State *StackImpl::findTargetState(const std::string &name)
 {
 	const State *currentState = &(this->currentState());
 	auto range = states.equal_range(name);
@@ -420,7 +435,7 @@ const State *Stack::findTargetState(const std::string &name)
 	return nullptr;
 }
 
-const State *Stack::findTargetStateOrWildcard(const std::string &name)
+const State *StackImpl::findTargetStateOrWildcard(const std::string &name)
 {
 	// Try to find the target state with the given name, if none is found, try
 	// find a matching "*" state.
@@ -431,16 +446,16 @@ const State *Stack::findTargetStateOrWildcard(const std::string &name)
 	return targetState;
 }
 
-HandlerInfo &Stack::currentInfo()
+HandlerInfo &StackImpl::currentInfo()
 {
 	return stack.empty() ? EmptyHandlerInfo : stack.back();
 }
-HandlerInfo &Stack::lastInfo()
+HandlerInfo &StackImpl::lastInfo()
 {
 	return stack.size() < 2U ? EmptyHandlerInfo : stack[stack.size() - 2];
 }
 
-void Stack::endCurrentHandler()
+void StackImpl::endCurrentHandler()
 {
 	if (!stack.empty()) {
 		// Fetch the handler info for the current top-level element
@@ -467,7 +482,7 @@ void Stack::endCurrentHandler()
 	}
 }
 
-void Stack::endOverdueHandlers()
+void StackImpl::endOverdueHandlers()
 {
 	if (!stack.empty()) {
 		// Fetch the handler info for the current top-level element
@@ -483,7 +498,7 @@ void Stack::endOverdueHandlers()
 	}
 }
 
-bool Stack::ensureHandlerIsInField()
+bool StackImpl::ensureHandlerIsInField()
 {
 	// If the current handler is not in a field (and actually has a handler)
 	// try to start a default field
@@ -507,7 +522,7 @@ bool Stack::ensureHandlerIsInField()
 	return true;
 }
 
-bool Stack::handlersValid()
+bool StackImpl::handlersValid()
 {
 	for (auto it = stack.crbegin(); it != stack.crend(); it++) {
 		if (!it->valid) {
@@ -517,9 +532,7 @@ bool Stack::handlersValid()
 	return true;
 }
 
-Logger &Stack::logger() { return ctx.getLogger(); }
-
-void Stack::command(const Variant &name, const Variant::mapType &args)
+void StackImpl::commandStart(const Variant &name, const Variant::mapType &args)
 {
 	// End handlers that already had a default field and are currently not
 	// active.
@@ -611,7 +624,22 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 	}
 }
 
-void Stack::data(TokenizedData data)
+void StackImpl::annotationStart(const Variant &className, const Variant &args)
+{
+	// TODO
+}
+
+void StackImpl::annotationEnd(const Variant &className, const Variant &elementName)
+{
+	// TODO
+}
+
+void StackImpl::rangeEnd()
+{
+	// TODO
+}
+
+void StackImpl::data(TokenizedData data)
 {
 	// TODO: Rewrite this function for token handling
 	// TODO: This loop needs to be refactored out
@@ -626,7 +654,8 @@ void Stack::data(TokenizedData data)
 		// make sure the data actually is data
 		if (stack.empty()) {
 			if (hasNonWhitespaceText) {
-				throw LoggableException("No command here to receive data.", data);
+				throw LoggableException("No command here to receive data.",
+				                        data);
 			}
 			return;
 		}
@@ -699,7 +728,7 @@ void Stack::data(TokenizedData data)
 	}
 }
 
-void Stack::data(const Variant &stringData)
+void StackImpl::data(const Variant &stringData)
 {
 	// Fetch the SourceLocation of the given stringData variant
 	SourceLocation loc = stringData.getLocation();
@@ -712,7 +741,7 @@ void Stack::data(const Variant &stringData)
 	data(tokenizedData);
 }
 
-void Stack::fieldStart(bool isDefault)
+void StackImpl::fieldStart(bool isDefault)
 {
 	// Make sure the current handler stack is not empty
 	if (stack.empty()) {
@@ -764,7 +793,7 @@ void Stack::fieldStart(bool isDefault)
 	info.fieldStart(defaultField, false, valid);
 }
 
-void Stack::fieldEnd()
+void StackImpl::fieldEnd()
 {
 	// Unroll the stack until the next explicitly open field
 	while (!stack.empty()) {
@@ -799,14 +828,50 @@ void Stack::fieldEnd()
 	info.fieldEnd();
 }
 
-void Stack::annotationStart(const Variant &className, const Variant &args)
+/* Class Stack */
+
+Stack::Stack(ParserContext &ctx,
+             const std::multimap<std::string, const State *> &states)
+    : impl(new StackImpl(ctx, states))
 {
-	// TODO
+}
+
+Stack::~Stack()
+{
+	// Do nothing here, stub needed because StackImpl is incomplete in hpp
+}
+
+const State &Stack::currentState() const { return impl->currentState(); }
+
+std::string Stack::currentCommandName() const
+{
+	return impl->currentCommandName();
+}
+
+void Stack::commandStart(const Variant &name, const Variant::mapType &args,
+                         bool range)
+{
+	impl->commandStart(name, args, range);
+}
+
+void Stack::annotationStart(const Variant &className, const Variant &args,
+                            bool range)
+{
+	impl->annotationStart(className, args, range);
 }
 
 void Stack::annotationEnd(const Variant &className, const Variant &elementName)
 {
-	// TODO
+	impl->annotationEnd(className, elementName);
 }
+
+void Stack::rangeEnd() { impl->rangeEnd(); }
+
+void Stack::fieldStart(bool isDefault) { impl->fieldStart(isDefault); }
+
+void Stack::fieldEnd() { impl->fieldEnd(); }
+
+void Stack::data(const TokenizedData &data) { impl->data(data); }
+};
 }
 }

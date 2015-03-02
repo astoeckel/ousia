@@ -181,16 +181,16 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/ParserContext
 	src/core/parser/ParserScope
 	src/core/parser/stack/Callbacks
-#	src/core/parser/stack/DocumentHandler
-#	src/core/parser/stack/DomainHandler
-#	src/core/parser/stack/GenericParserStates
+	src/core/parser/stack/DocumentHandler
+	src/core/parser/stack/DomainHandler
+	src/core/parser/stack/GenericParserStates
 	src/core/parser/stack/Handler
-#	src/core/parser/stack/ImportIncludeHandler
+	src/core/parser/stack/ImportIncludeHandler
 	src/core/parser/stack/State
 #	src/core/parser/stack/Stack
 	src/core/parser/stack/TokenRegistry
 	src/core/parser/stack/TokenStack
-#	src/core/parser/stack/TypesystemHandler
+	src/core/parser/stack/TypesystemHandler
 	src/core/parser/utils/SourceOffsetVector
 	src/core/parser/utils/TokenizedData
 	src/core/parser/utils/Tokenizer
@@ -215,8 +215,8 @@ ADD_LIBRARY(ousia_core
 #)
 
 ADD_LIBRARY(ousia_osml
-	src/formats/osml/OsmlParser
 	src/formats/osml/OsmlStreamParser
+	src/formats/osml/OsmlParser
 )
 
 TARGET_LINK_LIBRARIES(ousia_osml
