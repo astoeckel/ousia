@@ -96,10 +96,10 @@ public:
 	/**
 	 * Called whenever string data is found.
 	 *
-	 * @param data is a Variant containing the string data that was found in the
-	 * XML file.
+	 * @param data is a TokenizedData instance containing the string data that
+	 * was found in the XML file.
 	 */
-	virtual void data(const Variant &data) = 0;
+	virtual void data(const TokenizedData &data) = 0;
 };
 
 /**
@@ -179,7 +179,9 @@ public:
 	OsxmlEvents &getEvents() const;
 
 	/**
-	 * Returns a reference at the internal data.
+	 * Used internally to fetch a reference at the internal data.
+	 *
+	 * @return a reference at the internal OsxmlEventParserData structure.
 	 */
 	OsxmlEventParserData &getData() const;
 };

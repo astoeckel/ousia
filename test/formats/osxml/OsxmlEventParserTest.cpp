@@ -69,9 +69,16 @@ public:
 		events.emplace_back(OsxmlEvent::RANGE_END, Variant::arrayType{});
 	}
 
-	void data(const Variant &data) override
+	void data(const TokenizedData &data) override
 	{
-		events.emplace_back(OsxmlEvent::DATA, Variant::arrayType{data});
+		Token token;
+		Variant text;
+		TokenizedDataReader reader = data.reader();
+		reader.read(token, TokenSet{}, WhitespaceMode::PRESERVE);
+		EXPECT_EQ(Tokens::Data, token.id);
+		text = Variant::fromString(token.content);
+		text.setLocation(token.getLocation());
+		events.emplace_back(OsxmlEvent::DATA, Variant::arrayType{text});
 	}
 };
 

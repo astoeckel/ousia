@@ -25,6 +25,7 @@
 #include <core/common/Variant.hpp>
 #include <core/common/VariantReader.hpp>
 #include <core/common/Utils.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 
 #include "OsxmlAttributeLocator.hpp"
 #include "OsxmlEventParser.hpp"
@@ -39,6 +40,11 @@ namespace ousia {
 class OsxmlEventParserData {
 public:
 	/**
+	 * Current character data buffer.
+	 */
+	TokenizedData data;
+
+	/**
 	 * Contains the current depth of the parsing process.
 	 */
 	ssize_t depth;
@@ -51,24 +57,13 @@ public:
 	ssize_t annotationEndTagDepth;
 
 	/**
-	 * Current character data buffer.
+	 * Constructor taking the sourceId of the file from which the XML is being
+	 * parsed.
+	 *
+	 * @param sourceId is the source if of the XML file from which the data is
+	 * currently being parsed.
 	 */
-	std::vector<char> textBuf;
-
-	/**
-	 * Current character data start.
-	 */
-	size_t textStart;
-
-	/**
-	 * Current character data end.
-	 */
-	size_t textEnd;
-
-	/**
-	 * Default constructor.
-	 */
-	OsxmlEventParserData();
+	OsxmlEventParserData(SourceId sourceId);
 
 	/**
 	 * Increments the depth.
@@ -91,14 +86,6 @@ public:
 	 * @return true if character data is available.
 	 */
 	bool hasText();
-
-	/**
-	 * Returns a Variant containing the character data and its location.
-	 *
-	 * @return a string variant containing the text data and the character
-	 * location.
-	 */
-	Variant getText(SourceId sourceId);
 };
 
 /* Class GuardedExpatXmlParser */
@@ -156,7 +143,7 @@ public:
 static const std::string TOP_LEVEL_TAG{"ousia"};
 
 /**
- * Prefix used to indicate the start of an annoation (note the trailing colon)
+ * Prefix used to indicate the start of an annoation (note the trailing colon).
  */
 static const std::string ANNOTATION_START_PREFIX{"a:start:"};
 
@@ -203,8 +190,9 @@ static void xmlStartElementHandler(void *ref, const XML_Char *name,
 
 	// If there is any text data in the buffer, issue that first
 	if (parser->getData().hasText()) {
-		parser->getEvents().data(
-		    parser->getData().getText(parser->getReader().getSourceId()));
+		TokenizedData &data = parser->getData().data;
+		parser->getEvents().data(data);
+		data.clear();
 	}
 
 	// Read the argument locations -- this is only a stupid and slow hack,
@@ -348,8 +336,9 @@ static void xmlEndElementHandler(void *ref, const XML_Char *name)
 
 	// If there is any text data in the buffer, issue that first
 	if (parser->getData().hasText()) {
-		parser->getEvents().data(
-		    parser->getData().getText(parser->getReader().getSourceId()));
+		TokenizedData &data = parser->getData().data;
+		parser->getEvents().data(data);
+		data.clear();
 	}
 
 	// Abort if the special ousia tag ends here
@@ -381,18 +370,8 @@ static void xmlCharacterDataHandler(void *ref, const XML_Char *s, int len)
 	// Synchronize the logger position
 	SourceLocation loc = xmlSyncLoggerPosition(p, ulen);
 
-	// Fetch some variables for convenience
-	OsxmlEventParserData &data = parser->getData();
-	std::vector<char> &textBuf = data.textBuf;
-
-	// Update start and end position
-	if (textBuf.empty()) {
-		data.textStart = loc.getStart();
-	}
-	data.textEnd = loc.getEnd();
-
-	// Insert the data into the text buffer
-	textBuf.insert(textBuf.end(), &s[0], &s[ulen]);
+	// Append the data to the buffer
+	parser->getData().data.append(std::string(s, ulen), loc.getStart());
 }
 
 /* Class OsxmlEvents */
@@ -401,8 +380,8 @@ OsxmlEvents::~OsxmlEvents() {}
 
 /* Class OsxmlEventParser */
 
-OsxmlEventParserData::OsxmlEventParserData()
-    : depth(0), annotationEndTagDepth(-1), textStart(0), textEnd(0)
+OsxmlEventParserData::OsxmlEventParserData(SourceId sourceId)
+    : data(sourceId), depth(0), annotationEndTagDepth(-1)
 {
 }
 
@@ -423,23 +402,7 @@ bool OsxmlEventParserData::inAnnotationEndTag()
 	return (annotationEndTagDepth > 0) && (depth >= annotationEndTagDepth);
 }
 
-bool OsxmlEventParserData::hasText() { return !textBuf.empty(); }
-
-Variant OsxmlEventParserData::getText(SourceId sourceId)
-{
-	// Create a variant containing the string data and the location
-	Variant var =
-	    Variant::fromString(std::string{textBuf.data(), textBuf.size()});
-	var.setLocation({sourceId, textStart, textEnd});
-
-	// Reset the text buffers
-	textBuf.clear();
-	textStart = 0;
-	textEnd = 0;
-
-	// Return the variant
-	return var;
-}
+bool OsxmlEventParserData::hasText() { return !data.empty(); }
 
 /* Class OsxmlEventParser */
 
@@ -448,7 +411,7 @@ OsxmlEventParser::OsxmlEventParser(CharReader &reader, OsxmlEvents &events,
     : reader(reader),
       events(events),
       logger(logger),
-      data(new OsxmlEventParserData())
+      data(new OsxmlEventParserData(reader.getSourceId()))
 {
 }
 

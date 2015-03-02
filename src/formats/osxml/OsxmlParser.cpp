@@ -85,7 +85,7 @@ public:
 
 	void rangeEnd() override { stack.rangeEnd(); }
 
-	void data(const Variant &data) override { stack.data(data); }
+	void data(const TokenizedData &data) override { stack.data(data); }
 };
 
 /* Class OsxmlParser */
