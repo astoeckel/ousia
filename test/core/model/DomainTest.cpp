@@ -701,6 +701,14 @@ TEST(Domain, validate)
 		base->setName("myClass");
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
+		// add an invalid short token.
+		base->setShortToken(TokenDescriptor("bla"));
+		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
+		ASSERT_FALSE(domain->validate(logger));
+		// make it valid.
+		base->setShortToken(TokenDescriptor("!bla!"));
+		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
+		ASSERT_TRUE(domain->validate(logger));
 		// Let's add a primitive field (without a primitive type at first)
 		Rooted<FieldDescriptor> base_field =
 		    base->createPrimitiveFieldDescriptor(nullptr, logger).first;
