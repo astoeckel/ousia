@@ -18,6 +18,7 @@
 
 #include <core/common/Variant.hpp>
 #include <core/common/CharReader.hpp>
+#include <core/parser/stack/Callbacks.hpp>
 #include <core/parser/stack/GenericParserStates.hpp>
 #include <core/parser/stack/Stack.hpp>
 #include <core/parser/ParserContext.hpp>
@@ -32,7 +33,7 @@ using namespace parser_stack;
 /**
  * Class containing the actual OsxmlParser implementation.
  */
-class OsxmlParserImplementation : public OsxmlEvents {
+class OsxmlParserImplementation : public OsxmlEvents, ParserCallbacks {
 private:
 	/**
 	 * Actual xml parser -- converts the xml stream into a set of events.
@@ -56,7 +57,7 @@ public:
 	 */
 	OsxmlParserImplementation(CharReader &reader, ParserContext &ctx)
 	    : parser(reader, *this, ctx.getLogger()),
-	      stack(ctx, GenericParserStates)
+	      stack(*this, ctx, GenericParserStates)
 	{
 	}
 
@@ -86,6 +87,16 @@ public:
 	void rangeEnd() override { stack.rangeEnd(); }
 
 	void data(const TokenizedData &data) override { stack.data(data); }
+
+	TokenId registerToken(const std::string &token) override
+	{
+		return Tokens::Empty;
+	}
+
+	void unregisterToken(TokenId id) override
+	{
+		// Do nothing here
+	}
 };
 
 /* Class OsxmlParser */

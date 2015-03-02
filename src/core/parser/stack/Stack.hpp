@@ -42,6 +42,7 @@ class Variant;
 namespace parser_stack {
 
 // Forward declarations
+class ParserCallbacks;
 class StackImpl;
 class State;
 
@@ -63,11 +64,13 @@ public:
 	/**
 	 * Creates a new instance of the Stack class.
 	 *
+	 * @param parser is an implementation of the ParserCallbacks instance to
+	 * which certain calls are directed.
 	 * @param ctx is the parser context the parser stack is working on.
 	 * @param states is a map containing the command names and pointers at the
 	 * corresponding State instances.
 	 */
-	Stack(ParserContext &ctx,
+	Stack(ParserCallbacks &parser, ParserContext &ctx,
 	      const std::multimap<std::string, const State *> &states);
 
 	/**
