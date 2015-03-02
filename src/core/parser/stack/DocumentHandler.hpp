@@ -53,7 +53,8 @@ class DocumentHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &commandName,
+	                  Variant::mapType &args) override;
 	void end() override;
 
 	/**
@@ -91,8 +92,55 @@ public:
  * defined elements in an Ousía document.
  */
 class DocumentChildHandler : public Handler {
+public:
+	/**
+	 * Enum type used to represent the mode of the DocumentChildHandler.
+	 * TODO: Having to have such a type is actually quite stupid, it would be
+	 * nicer to have separate handler classes for each of these cases. But this
+	 * is a story for a different day.
+	 */
+	enum class Mode {
+		STRUCT,
+		EXPLICIT_FIELD,
+		ANNOTATION_START,
+		ANNOTATION_END,
+		TOKEN
+	};
+
 private:
-	bool isExplicitField = false;
+	/**
+	 * Internal Mode of the DocumentChildHandler.
+	 */
+	Mode mode;
+
+	/**
+	 * Contains the name of the command or the annotation that is represented
+	 * by this DocumentChildHandler.
+	 */
+	std::string name;
+
+	/**
+	 * Token represented by the document child handler.
+	 */
+	Token token;
+
+	/**
+	 * Switches the mode to the given mode and copies the given name. Resets the
+	 * token.
+	 *
+	 * @param mode is the new mode.
+	 * @param name is the new name.
+	 */
+	void setMode(Mode mode, const std::string &name);
+
+	/**
+	 * Switches the mode to the given mode and copies the given token, sets the
+	 * name to the content of the token.
+	 *
+	 * @param mode is the new mode.
+	 * @param token is the new token.
+	 */
+	void setMode(Mode mode, const Token &token);
 
 	/**
 	 * Code shared by both the start(), fieldStart() and the data() method.
@@ -161,21 +209,18 @@ private:
 	                 Logger &logger);
 
 public:
-	using Handler::Handler;
+	DocumentChildHandler(const HandlerData &handlerData);
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &commandName,
+	                  Variant::mapType &args) override;
+	bool startAnnotation(const std::string &name, Variant::mapType &args,
+	                     AnnotationType annotationType) override;
+	bool startToken(const Token &token, Handle<Node> node) override;
+	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
 	void end() override;
 	bool data() override;
-
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
-
 	void fieldEnd() override;
-
-	bool annotationStart(const Variant &className,
-	                     Variant::mapType &args) override;
-
-	bool annotationEnd(const Variant &className,
-	                   const Variant &elementName) override;
 
 	/**
 	 * Creates a new instance of the DocumentChildHandler.

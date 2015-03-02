@@ -46,7 +46,7 @@ class DomainHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &name, Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -59,7 +59,7 @@ class DomainStructHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &name, Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -72,7 +72,7 @@ class DomainAnnotationHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &name, Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -85,7 +85,7 @@ class DomainAttributesHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &name, Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -98,7 +98,7 @@ class DomainFieldHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &name, Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -111,7 +111,7 @@ class DomainFieldRefHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &name, Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -124,7 +124,7 @@ class DomainPrimitiveHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &name, Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -137,7 +137,7 @@ class DomainChildHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &name, Variant::mapType &args) override;
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -154,7 +154,7 @@ class DomainParentHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &name, Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -167,7 +167,7 @@ class DomainParentFieldHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &name, Variant::mapType &args) override;
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -179,7 +179,7 @@ class DomainParentFieldRefHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &name, Variant::mapType &args) override;
 
 	static Handler *create(const HandlerData &handlerData)
 	{

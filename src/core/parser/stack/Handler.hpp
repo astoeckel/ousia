@@ -25,6 +25,7 @@
 #include <core/common/Variant.hpp>
 #include <core/common/Whitespace.hpp>
 #include <core/common/Token.hpp>
+#include <core/model/Node.hpp>
 
 namespace ousia {
 
@@ -61,11 +62,6 @@ public:
 	HandlerCallbacks &callbacks;
 
 	/**
-	 * Contains the name of the command that is being handled.
-	 */
-	std::string name;
-
-	/**
 	 * Contains the current state of the state machine.
 	 */
 	const State &state;
@@ -81,13 +77,11 @@ public:
 	 * @param ctx is the parser context the handler should be executed in.
 	 * @param callbacks is an instance of Callbacks used to notify
 	 * the parser about certain state changes.
-	 * @param name is the name of the string.
 	 * @param state is the state this handler was called for.
 	 * @param location is the location at which the handler is created.
 	 */
 	HandlerData(ParserContext &ctx, HandlerCallbacks &callbacks,
-	            const std::string &name, const State &state,
-	            const SourceLocation &location);
+	            const State &state, const SourceLocation &location);
 };
 
 /**
@@ -153,13 +147,6 @@ protected:
 	 * @return the location of the Handler in the source file.
 	 */
 	const SourceLocation &location() const;
-
-	/**
-	 * Returns the command name for which the handler was created.
-	 *
-	 * @return a const reference at the command name.
-	 */
-	const std::string &name() const;
 
 	/**
 	 * Calls the corresponding function in the HandlerCallbacks instance. This
@@ -231,19 +218,23 @@ protected:
 	 */
 	//	void popWhitespaceMode();
 
-
 public:
+	/**
+	 * Enum representing the type of the annotation a Handle instance handles.
+	 * It may either handle the start of an annotation or the end of an
+	 * annotation.
+	 */
+	enum class AnnotationType { START, END };
+
+	/**
+	 * Enum type representing the possible outcomes of the endToken() method.
+	 */
+	enum class EndTokenResult { ENDED_THIS, ENDED_HIDDEN, ENDED_NONE };
+
 	/**
 	 * Virtual destructor.
 	 */
 	virtual ~Handler();
-
-	/**
-	 * Returns the command name for which the handler was created.
-	 *
-	 * @return a const reference at the command name.
-	 */
-	const std::string &getName() const;
 
 	/**
 	 * Reference at the State descriptor for which this Handler was created.
@@ -274,14 +265,63 @@ public:
 	const SourceLocation &getLocation() const;
 
 	/**
-	 * Called when the command that was specified in the constructor is
-	 * instanciated.
+	 * Called whenever the handler should handle the start of a command. This
+	 * method (or any other of the "start" methods) is called exactly once,
+	 * after the constructor.
 	 *
+	 * @param name is the name of the command that is started here.
 	 * @param args is a map from strings to variants (argument name and value).
-	 * @return true if the handler was successful in starting the element it
-	 * represents, false otherwise.
+	 * @return true if the handler was successful in starting an element with
+	 * the given name represents, false otherwise.
 	 */
-	virtual bool start(Variant::mapType &args) = 0;
+	virtual bool startCommand(const std::string &commandName,
+	                          Variant::mapType &args) = 0;
+
+	/**
+	 * Called whenever the handler should handle the start of an annotation.
+	 * This method (or any other of the "start" methods) is called exactly once,
+	 * after the constructor. This method is only called if the
+	 * "supportsAnnotations" flag of the State instance referencing this Handler
+	 * is set to true.
+	 *
+	 * @param name is the name of the annotation that is started here.
+	 * @param args is a map from strings to variants (argument name and value).
+	 * @param type specifies whether this handler should handle the start of an
+	 * annotation or the end of an annotation.
+	 */
+	virtual bool startAnnotation(const std::string &name,
+	                             Variant::mapType &args,
+	                             AnnotationType annotationType) = 0;
+
+	/**
+	 * Called whenever the handler should handle the start of a token. This
+	 * method (or any other of the "start" methods) is called exactly once,
+	 * after the constructor. This method is only called if the "supportsTokens"
+	 * flag of the State instance referencing this Handler is set to true.
+	 *
+	 * @param token is the Token for which the handler should be started.
+	 * @param node is the node for which this token was registered.
+	 */
+	virtual bool startToken(const Token &token, Handle<Node> node) = 0;
+
+	/**
+	 * Called whenever a token is marked as "end" token and this handler happens
+	 * to be the currently active handler. This operation may have three
+	 * outcomes:
+	 * <ol>
+	 *   <li>The token marks the end of the complete handler and the calling
+	 *   code should call the "end" method.</li>
+	 *   <li>The token marks the end of some element that is unknown the calling
+	 *   code. So the operation itself was a success, but the calling code
+	 *   should not call the "end" method.
+	 *   <li>The token did not anything in this context. Basically this shuold
+	 *   never happen, but who knows.</li>
+	 * </ol>
+	 *
+	 * @param id is the Token for which the handler should be started.
+	 * @param node is the node for which this token was registered.
+	 */
+	virtual EndTokenResult endToken(const Token &token, Handle<Node> node) = 0;
 
 	/**
 	 * Called before the command for which this handler is defined ends (is
@@ -309,35 +349,6 @@ public:
 	 * Note that a "fieldStart" and "fieldEnd" are always called alternately.
 	 */
 	virtual void fieldEnd() = 0;
-
-	/**
-	 * Called whenever an annotation starts while this handler is active. The
-	 * function should return true if starting the annotation was successful,
-	 * false otherwise.
-	 *
-	 * @param className is a string variant containing the name of the
-	 * annotation class and the location of the name in the source code.
-	 * @param args is a map from strings to variants (argument name and value).
-	 * @return true if the mentioned annotation could be started here, false
-	 * if an error occurred.
-	 */
-	virtual bool annotationStart(const Variant &className,
-	                             Variant::mapType &args) = 0;
-
-	/**
-	 * Called whenever an annotation ends while this handler is active. The
-	 * function should return true if ending the annotation was successful,
-	 * false otherwise.
-	 *
-	 * @param className is a string variant containing the name of the
-	 * annotation class and the location of the class name in the source code.
-	 * @param elementName is a string variant containing the name of the
-	 * annotation class and the location of the element name in the source code.
-	 * @return true if the mentioned annotation could be started here, false if
-	 * an error occurred.
-	 */
-	virtual bool annotationEnd(const Variant &className,
-	                           const Variant &elementName) = 0;
 
 	/**
 	 * Called whenever raw data (int the form of a string) is available for the
@@ -369,14 +380,15 @@ protected:
 	using Handler::Handler;
 
 public:
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &commandName,
+	                  Variant::mapType &args) override;
+	bool startAnnotation(const std::string &name, Variant::mapType &args,
+	                     AnnotationType annotationType) override;
+	bool startToken(const Token &token, Handle<Node> node) override;
+	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
 	void fieldEnd() override;
-	bool annotationStart(const Variant &className,
-	                     Variant::mapType &args) override;
-	bool annotationEnd(const Variant &className,
-	                   const Variant &elementName) override;
 	bool data() override;
 
 	/**
@@ -395,14 +407,15 @@ protected:
 	using Handler::Handler;
 
 public:
-	bool start(Variant::mapType &args) override;
+	bool startCommand(const std::string &commandName,
+	                  Variant::mapType &args) override;
+	bool startAnnotation(const std::string &name, Variant::mapType &args,
+	                     AnnotationType annotationType) override;
+	bool startToken(const Token &token, Handle<Node> node) override;
+	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
 	void fieldEnd() override;
-	bool annotationStart(const Variant &className,
-	                     Variant::mapType &args) override;
-	bool annotationEnd(const Variant &className,
-	                   const Variant &elementName) override;
 	bool data() override;
 };
 
@@ -453,9 +466,10 @@ protected:
 	virtual void doHandle(const Variant &fieldData, Variant::mapType &args) = 0;
 
 public:
-	bool start(Variant::mapType &args) override;
-	void end() override;
+	bool startCommand(const std::string &commandName,
+	                  Variant::mapType &args) override;
 	bool data() override;
+	void end() override;
 };
 }
 }

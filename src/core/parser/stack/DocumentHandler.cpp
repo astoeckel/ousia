@@ -37,7 +37,8 @@ namespace parser_stack {
 
 /* DocumentHandler */
 
-bool DocumentHandler::start(Variant::mapType &args)
+bool DocumentHandler::startCommand(const std::string &commandName,
+                                   Variant::mapType &args)
 {
 	Rooted<Document> document =
 	    context().getProject()->createDocument(args["name"].asString());
@@ -51,6 +52,25 @@ bool DocumentHandler::start(Variant::mapType &args)
 void DocumentHandler::end() { scope().pop(logger()); }
 
 /* DocumentChildHandler */
+
+DocumentChildHandler::DocumentChildHandler(const HandlerData &handlerData)
+    : Handler(handlerData), mode(Mode::STRUCT)
+{
+}
+
+void DocumentChildHandler::setMode(Mode mode, const std::string &name)
+{
+	this->mode = mode;
+	this->name = name;
+	this->token = Token();
+}
+
+void DocumentChildHandler::setMode(Mode mode, const Token &token)
+{
+	this->mode = mode;
+	this->name = token.content;
+	this->token = token;
+}
 
 void DocumentChildHandler::preamble(Rooted<Node> &parentNode, size_t &fieldIdx,
                                     DocumentEntity *&parent)
@@ -122,10 +142,14 @@ void DocumentChildHandler::createPath(const size_t &firstFieldIdx,
 	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, false);
 }
 
-bool DocumentChildHandler::start(Variant::mapType &args)
+bool DocumentChildHandler::startCommand(const std::string &commandName,
+                                        Variant::mapType &args)
 {
-	// extract the special "name" attribute from the input arguments.
-	// the remaining attributes will be forwarded to the newly constructed
+	// Set the internal mode to STRUCT and copy the name
+	setMode(Mode::STRUCT, name);
+
+	// Extract the special "name" attribute from the input arguments.
+	// The remaining attributes will be forwarded to the newly constructed
 	// element.
 	std::string nameAttr;
 	{
@@ -152,11 +176,11 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 				return false;
 			}
 			Rooted<StructuredClass> strct = scope().resolve<StructuredClass>(
-			    Utils::split(name(), ':'), logger());
+			    Utils::split(name, ':'), logger());
 			if (strct == nullptr) {
 				// if we could not resolve the name, throw an exception.
 				throw LoggableException(
-				    std::string("\"") + name() + "\" could not be resolved.",
+				    std::string("\"") + name + "\" could not be resolved.",
 				    location());
 			}
 			entity = parentNode.cast<Document>()->createRootStructuredEntity(
@@ -169,13 +193,6 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 
 			preamble(parentNode, fieldIdx, parent);
 
-			// TODO: REMOVE
-			std::string thisName = name();
-			std::string parentClassName;
-			if (parent != nullptr) {
-				parentClassName = parent->getDescriptor()->getName();
-			}
-
 			/*
 			 * Try to find a FieldDescriptor for the given tag if we are not in
 			 * a field already. This does _not_ try to construct transparent
@@ -183,7 +200,7 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 			 */
 			{
 				ssize_t newFieldIdx =
-				    parent->getDescriptor()->getFieldDescriptorIndex(name());
+				    parent->getDescriptor()->getFieldDescriptorIndex(name);
 				if (newFieldIdx != -1) {
 					// Check whether explicit fields are allowed here, if not
 					if (scope().getFlag(ParserFlag::POST_EXPLICIT_FIELDS)) {
@@ -191,17 +208,17 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 						    std::string(
 						        "Data or structure commands have already been "
 						        "given, command \"") +
-						        name() + std::string(
-						                     "\" is not interpreted explicit "
-						                     "field. Move explicit field "
-						                     "references to the beginning."),
+						        name + std::string(
+						                   "\" is not interpreted explicit "
+						                   "field. Move explicit field "
+						                   "references to the beginning."),
 						    location());
 					} else {
 						Rooted<DocumentField> field{new DocumentField(
 						    manager(), parentNode, newFieldIdx, false)};
 						field->setLocation(location());
 						scope().push(field);
-						isExplicitField = true;
+						setMode(Mode::EXPLICIT_FIELD, name);
 						return true;
 					}
 				}
@@ -210,11 +227,11 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 			// Otherwise create a new StructuredEntity
 			// TODO: Consider Anchors and AnnotationEntities
 			Rooted<StructuredClass> strct = scope().resolve<StructuredClass>(
-			    Utils::split(name(), ':'), logger());
+			    Utils::split(name, ':'), logger());
 			if (strct == nullptr) {
 				// if we could not resolve the name, throw an exception.
 				throw LoggableException(
-				    std::string("\"") + name() + "\" could not be resolved.",
+				    std::string("\"") + name + "\" could not be resolved.",
 				    location());
 			}
 
@@ -261,24 +278,56 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 	}
 }
 
+bool DocumentChildHandler::startAnnotation(const std::string &name,
+                                           Variant::mapType &args,
+                                           AnnotationType annotationType)
+{
+	// Set the internal mode and name correctly
+	if (annotationType == AnnotationType::START) {
+		setMode(Mode::ANNOTATION_START, name);
+	} else {
+		setMode(Mode::ANNOTATION_END, name);
+	}
+
+	// TODO: Handle annotation
+	return false;
+}
+
+bool DocumentChildHandler::startToken(const Token &token, Handle<Node> node)
+{
+	// Set the internal mode correctly
+	setMode(Mode::TOKEN, token);
+
+	// TODO: Handle token start
+	return false;
+}
+
+DocumentChildHandler::EndTokenResult DocumentChildHandler::endToken(
+    const Token &token, Handle<Node> node)
+{
+	// TODO: Handle token end
+	return EndTokenResult::ENDED_NONE;
+}
+
 void DocumentChildHandler::end()
 {
-	// in case of explicit fields we do not want to pop something from the
+	// In case of explicit fields we do not want to pop something from the
 	// stack.
-	if (isExplicitField) {
-		return;
+	if (mode == Mode::STRUCT) {
+		// pop the "main" element.
+		scope().pop(logger());
 	}
-	// pop the "main" element.
-	scope().pop(logger());
 }
 
 bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 {
-	if (isExplicitField) {
+	// TODO: Handle other cases
+	if (mode == Mode::EXPLICIT_FIELD) {
 		// In case of explicit fields we do not want to create another field.
 		isDefault = true;
 		return fieldIdx == 0;
 	}
+
 	Rooted<Node> parentNode = scope().getLeaf();
 	assert(parentNode->isa(&RttiTypes::StructuredEntity) ||
 	       parentNode->isa(&RttiTypes::AnnotationEntity));
@@ -291,7 +340,7 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 	    parent->getDescriptor()->getFieldDescriptors();
 
 	if (isDefault) {
-		if(fields.empty()){
+		if (fields.empty()) {
 			return false;
 		}
 		fieldIdx = fields.size() - 1;
@@ -317,31 +366,17 @@ void DocumentChildHandler::fieldEnd()
 {
 	assert(scope().getLeaf()->isa(&RttiTypes::DocumentField));
 
-	// pop the field from the stack.
+	// Pop the field from the stack.
 	scope().pop(logger());
 
-	// pop all remaining transparent elements.
+	// Pop all remaining transparent elements.
 	while (scope().getLeaf()->isa(&RttiTypes::StructuredEntity) &&
 	       scope().getLeaf().cast<StructuredEntity>()->isTransparent()) {
-		// pop the transparent element.
+		// Pop the transparent element.
 		scope().pop(logger());
-		// pop the transparent field.
+		// Pop the transparent field.
 		scope().pop(logger());
 	}
-}
-
-bool DocumentChildHandler::annotationStart(const Variant &className,
-                                           Variant::mapType &args)
-{
-	// TODO: Implement
-	return false;
-}
-
-bool DocumentChildHandler::annotationEnd(const Variant &className,
-                                         const Variant &elementName)
-{
-	// TODO: Implement
-	return false;
 }
 
 bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
@@ -436,7 +471,7 @@ bool DocumentChildHandler::data()
 	// this fact
 	Variant text = readData();
 	if (defaultFields.empty()) {
-		logger().error("Got data, but structure \"" + name() +
+		logger().error("Got data, but structure \"" + name +
 		                   "\" does not have any primitive field",
 		               text);
 	} else {
@@ -467,7 +502,9 @@ const State DocumentChild = StateBuilder()
                                 .createdNodeTypes({&RttiTypes::StructureNode,
                                                    &RttiTypes::AnnotationEntity,
                                                    &RttiTypes::DocumentField})
-                                .elementHandler(DocumentChildHandler::create);
+                                .elementHandler(DocumentChildHandler::create)
+                                .supportsAnnotations(true)
+                                .supportsTokens(true);
 }
 }
 

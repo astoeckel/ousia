@@ -187,7 +187,7 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/stack/Handler
 	src/core/parser/stack/ImportIncludeHandler
 	src/core/parser/stack/State
-#	src/core/parser/stack/Stack
+	src/core/parser/stack/Stack
 	src/core/parser/stack/TokenRegistry
 	src/core/parser/stack/TokenStack
 	src/core/parser/stack/TypesystemHandler
@@ -387,7 +387,7 @@ IF(TEST)
 #	)
 
 	ADD_EXECUTABLE(ousia_test_osml
-#		test/formats/osml/OsmlParserTest
+		test/formats/osml/OsmlParserTest
 		test/formats/osml/OsmlStreamParserTest
 	)
 
@@ -400,7 +400,7 @@ IF(TEST)
 
 	ADD_EXECUTABLE(ousia_test_osxml
 		test/formats/osxml/OsxmlEventParserTest
-#		test/formats/osxml/OsxmlParserTest
+		test/formats/osxml/OsxmlParserTest
 	)
 
 	TARGET_LINK_LIBRARIES(ousia_test_osxml

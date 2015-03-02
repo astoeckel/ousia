@@ -32,7 +32,7 @@
 
 namespace ousia {
 namespace parser_stack {
-
+namespace {
 /* Class HandlerInfo */
 
 /**
@@ -41,6 +41,11 @@ namespace parser_stack {
  */
 class HandlerInfo {
 public:
+	/**
+	 * Name of the command or the token sequence.
+	 */
+	std::string name;
+
 	/**
 	 * Pointer pointing at the actual handler instance.
 	 */
@@ -96,6 +101,7 @@ public:
 	 * Default constructor of the HandlerInfo class.
 	 */
 	HandlerInfo();
+
 	/**
 	 * Constructor of the HandlerInfo class, allows to set all flags manually.
 	 */
@@ -182,6 +188,7 @@ void HandlerInfo::fieldEnd()
  * Stub instance of HandlerInfo containing no handler information.
  */
 static HandlerInfo EmptyHandlerInfo{true, true, true, true, false, true};
+}
 
 /* Helper functions */
 
@@ -387,7 +394,7 @@ StackImpl::~StackImpl()
 			    !info.inImplicitDefaultField) {
 				logger().error(
 				    std::string("Reached end of stream, but command \"") +
-				        info.handler->getName() +
+				        info.name +
 				        "\" has not ended yet. Command was started here:",
 				    info.handler->getLocation());
 			}
@@ -421,8 +428,8 @@ void StackImpl::deduceState()
 	HandlerConstructor ctor =
 	    state.elementHandler ? state.elementHandler : EmptyHandler::create;
 
-	std::shared_ptr<Handler> handler = std::shared_ptr<Handler>{
-	    ctor({ctx, *this, "", state, SourceLocation{}})};
+	std::shared_ptr<Handler> handler =
+	    std::shared_ptr<Handler>{ctor({ctx, *this, state, SourceLocation{}})};
 	stack.emplace_back(handler);
 
 	// Set the correct flags for this implicit handler
@@ -450,7 +457,7 @@ const State &StackImpl::currentState() const
 
 std::string StackImpl::currentCommandName() const
 {
-	return stack.empty() ? std::string{} : stack.back().handler->getName();
+	return stack.empty() ? std::string{} : stack.back().name;
 }
 
 const State *StackImpl::findTargetState(const std::string &name)
@@ -608,8 +615,8 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 		HandlerConstructor ctor = targetState->elementHandler
 		                              ? targetState->elementHandler
 		                              : EmptyHandler::create;
-		std::shared_ptr<Handler> handler{ctor(
-		    {ctx, *this, name.asString(), *targetState, name.getLocation()})};
+		std::shared_ptr<Handler> handler{
+		    ctor({ctx, *this, *targetState, name.getLocation()})};
 		stack.emplace_back(handler);
 
 		// Fetch the HandlerInfo for the parent element and the current element
@@ -631,7 +638,8 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 
 			handler->setLogger(loggerFork);
 			try {
-				info.valid = handler->start(canonicalArgs);
+				info.valid =
+				    handler->startCommand(name.asString(), canonicalArgs);
 			}
 			catch (LoggableException ex) {
 				loggerFork.log(ex);
