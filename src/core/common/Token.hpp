@@ -134,7 +134,9 @@ struct Token {
 	 * @param location is the location of the extracted string content in the
 	 * source file.
 	 */
-	Token(SourceLocation location) : id(Tokens::Data), location(location) {}
+	Token(const SourceLocation &location) : id(Tokens::Data), location(location)
+	{
+	}
 
 	/**
 	 * Constructor of the Token struct.
@@ -144,8 +146,22 @@ struct Token {
 	 * @param location is the location of the extracted string content in the
 	 * source file.
 	 */
-	Token(TokenId id, const std::string &content, SourceLocation location)
+	Token(TokenId id, const std::string &content,
+	      const SourceLocation &location)
 	    : id(id), content(content), location(location)
+	{
+	}
+
+	/**
+	 * Constructor of the a "data" Token with the given string data and
+	 * location.
+	 *
+	 * @param content is the string content that should be stored in the token.
+	 * @param location is the location of the content within the source file.
+	 */
+	Token(const std::string &content,
+	      const SourceLocation &location = SourceLocation{})
+	    : id(Tokens::Data), content(content), location(location)
 	{
 	}
 
@@ -172,7 +188,6 @@ struct Token {
 	 */
 	const SourceLocation &getLocation() const { return location; }
 };
-
 }
 
 #endif /* _OUSIA_TOKENS_HPP_ */
