@@ -66,6 +66,11 @@ public:
 	bool implicit : 1;
 
 	/**
+	 * Set to true if the handled command or annotation has a range.
+	 */
+	bool range : 1;
+
+	/**
 	 * Set to true if the handler currently is in a field.
 	 */
 	bool inField : 1;
@@ -100,8 +105,9 @@ public:
 	/**
 	 * Constructor of the HandlerInfo class, allows to set all flags manually.
 	 */
-	HandlerInfo(bool valid, bool implicit, bool inField, bool inDefaultField,
-	            bool inImplicitDefaultField, bool inValidField);
+	HandlerInfo(bool valid, bool implicit, bool range, bool inField,
+	            bool inDefaultField, bool inImplicitDefaultField,
+	            bool inValidField);
 
 	/**
 	 * Constructor of the HandlerInfo class, taking a shared_ptr to the handler
@@ -124,6 +130,30 @@ public:
 	 * Updates the "fields" flags according to a "fieldEnd" event.
 	 */
 	void fieldEnd();
+
+	/**
+	 * Returns the name of the referenced handler or an empty string if no
+	 * handler is present.
+	 *
+	 * @return the current handler name.
+	 */
+	std::string name() const;
+
+	/**
+	 * Returns the type of the referenced handler or COMMAND if no handler is
+	 * present.
+	 *
+	 * @return the current handler type.
+	 */
+	HandlerType type() const;
+
+	/**
+	 * Returns the current state the handler is on or States::None if no handler
+	 * is present.
+	 *
+	 * @return the current state machine state.
+	 */
+	const State &state() const;
 };
 
 HandlerInfo::HandlerInfo() : HandlerInfo(nullptr) {}
@@ -133,6 +163,7 @@ HandlerInfo::HandlerInfo(std::shared_ptr<Handler> handler)
       fieldIdx(0),
       valid(true),
       implicit(false),
+      range(false),
       inField(false),
       inDefaultField(false),
       inImplicitDefaultField(false),
@@ -141,19 +172,35 @@ HandlerInfo::HandlerInfo(std::shared_ptr<Handler> handler)
 {
 }
 
-HandlerInfo::HandlerInfo(bool valid, bool implicit, bool inField,
+HandlerInfo::HandlerInfo(bool valid, bool implicit, bool range, bool inField,
                          bool inDefaultField, bool inImplicitDefaultField,
                          bool inValidField)
     : handler(nullptr),
       fieldIdx(0),
       valid(valid),
       implicit(implicit),
+      range(range),
       inField(inField),
       inDefaultField(inDefaultField),
       inImplicitDefaultField(inImplicitDefaultField),
       inValidField(inValidField),
       hadDefaultField(false)
 {
+}
+
+std::string HandlerInfo::name() const
+{
+	return handler == nullptr ? std::string{} : handler->name();
+}
+
+HandlerType HandlerInfo::type() const
+{
+	return handler == nullptr ? HandlerType::COMMAND : handler->type();
+}
+
+const State &HandlerInfo::state() const
+{
+	return handler == nullptr ? States::None : handler->state();
 }
 
 HandlerInfo::~HandlerInfo()
@@ -182,7 +229,7 @@ void HandlerInfo::fieldEnd()
 /**
  * Stub instance of HandlerInfo containing no handler information.
  */
-static HandlerInfo EmptyHandlerInfo{true, true, true, true, false, true};
+static HandlerInfo EmptyHandlerInfo{true, true, false, true, true, false, true};
 }
 
 /* Helper functions */
@@ -447,12 +494,12 @@ std::set<std::string> StackImpl::expectedCommands()
 
 const State &StackImpl::currentState() const
 {
-	return stack.empty() ? States::None : stack.back().handler->state();
+	return stack.empty() ? States::None : stack.back().state();
 }
 
 std::string StackImpl::currentCommandName() const
 {
-	return stack.empty() ? std::string{} : stack.back().handler->name();
+	return stack.empty() ? std::string{} : stack.back().name();
 }
 
 const State *StackImpl::findTargetState(const std::string &name)
@@ -665,6 +712,7 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 		// but after all, we cannot unroll the stack any further. Update the
 		// "valid" flag, commit any potential error messages and return.
 		info.valid = parentInfo.valid && info.valid;
+		info.range = range;
 		loggerFork.commit();
 		return;
 	}
