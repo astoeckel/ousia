@@ -29,8 +29,7 @@ namespace ousia {
 /**
  * Maximum token length.
  */
-constexpr TokenLength MaxTokenLength =
-	std::numeric_limits<TokenLength>::max();
+constexpr TokenLength MaxTokenLength = std::numeric_limits<TokenLength>::max();
 
 namespace {
 /**
@@ -508,6 +507,13 @@ TokenizedData::TokenizedData() : TokenizedData(InvalidSourceId) {}
 TokenizedData::TokenizedData(SourceId sourceId)
     : impl(std::make_shared<TokenizedDataImpl>(sourceId))
 {
+}
+
+TokenizedData::TokenizedData(const std::string &data, SourceOffset offsStart,
+                             SourceId sourceId)
+    : TokenizedData(sourceId)
+{
+	append(data, offsStart);
 }
 
 TokenizedData::~TokenizedData() {}

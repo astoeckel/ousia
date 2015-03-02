@@ -87,6 +87,12 @@ public:
 	bool inImplicitDefaultField : 1;
 
 	/**
+	 * Set to true if the handler current is in an implicitly started range
+	 * field.
+	 */
+	bool inImplicitRangeField: 1;
+
+	/**
 	 * Set to false if this field is only opened pro-forma and does not accept
 	 * any data. Otherwise set to true.
 	 */
@@ -230,6 +236,18 @@ void HandlerInfo::fieldEnd()
  * Stub instance of HandlerInfo containing no handler information.
  */
 static HandlerInfo EmptyHandlerInfo{true, true, false, true, true, false, true};
+
+/**
+ * Small helper class makeing sure the reference at some variable is reset once
+ * the scope is left.
+ */
+template <class T>
+struct GuardedTemporaryPointer {
+	T **ptr;
+	GuardedTemporaryPointer(T *ref, T **ptr) : ptr(ptr) { *ptr = ref; }
+
+	~GuardedTemporaryPointer() { *ptr = nullptr; }
+};
 }
 
 /* Helper functions */
@@ -352,11 +370,18 @@ private:
 	HandlerInfo &lastInfo();
 
 	/**
-	 * Ends all handlers that currently are not inside a field and already had
-	 * a default field. This method is called whenever the data() and command()
-	 * events are reached.
+	 * Returns a set containing the tokens that should currently be processed
+	 * by the TokenizedData instance.
+	 *
+	 * @return a TokenSet instance containing all tokens that should currently
+	 * be processed.
 	 */
-	void endOverdueHandlers();
+	TokenSet currentTokens() const;
+
+	/**
+	 * Returns the whitespace mode defined by the current command.
+	 */
+	WhitespaceMode currentWhitespaceMode() const;
 
 	/**
 	 * Ends the current handler and removes the corresponding element from the
@@ -365,13 +390,14 @@ private:
 	void endCurrentHandler();
 
 	/**
-	 * Tries to start a default field for the current handler, if currently the
-	 * handler is not inside a field and did not have a default field yet.
-	 *
-	 * @return true if the handler is inside a field, false if no field could
-	 * be started.
+	 * Ends all handlers that currently are not inside a field and already had
+	 * a default field. Tries to start a default field for the current handler,
+	 * if currently the handler is not inside a field and did not have a default
+	 * field yet. This method is called whenever the data(), startAnnotation(),
+	 * startToken(), startCommand(), annotationStart() or annotationEnd() events
+	 * are reached.
 	 */
-	bool ensureHandlerIsInField();
+	void prepareCurrentHandler();
 
 	/**
 	 * Returns true if all handlers on the stack are currently valid, or false
@@ -380,6 +406,30 @@ private:
 	 * @return true if all handlers on the stack are valid.
 	 */
 	bool handlersValid();
+
+	/**
+	 * Called whenever there is an actual data pending on the current
+	 * TokenizedDataReader. Tries to feed this data to the current handler.
+	 */
+	void handleData();
+
+    /**
+     * Called whenever there is a token waiting to be processed. If possible
+     * tries to end a current handler with this token or to start a new handler
+     * with the token.
+     *
+     * @param token is the token that should be handled.
+     */
+    void handleToken(const Token &token);
+
+	/**
+	 * Called by the rangeEnd() and fieldEnd() methods to end the current ranged
+	 * command.
+	 *
+	 * @param rangeCommand specifies whether this should end the range of a
+	 * command with range.
+	 */
+	void handleFieldEnd(bool rangeCommand);
 
 public:
 	StackImpl(ParserCallbacks &parser, ParserContext &ctx,
@@ -403,7 +453,6 @@ public:
 	TokenId registerToken(const std::string &token) override;
 	void unregisterToken(TokenId id) override;
 	Variant readData() override;
-	bool hasData();
 	void pushTokens(const std::vector<SyntaxDescriptor> &tokens) override;
 	void popTokens() override;
 };
@@ -492,16 +541,6 @@ std::set<std::string> StackImpl::expectedCommands()
 	return res;
 }
 
-const State &StackImpl::currentState() const
-{
-	return stack.empty() ? States::None : stack.back().state();
-}
-
-std::string StackImpl::currentCommandName() const
-{
-	return stack.empty() ? std::string{} : stack.back().name();
-}
-
 const State *StackImpl::findTargetState(const std::string &name)
 {
 	const State *currentState = &(this->currentState());
@@ -527,6 +566,28 @@ const State *StackImpl::findTargetStateOrWildcard(const std::string &name)
 	return targetState;
 }
 
+const State &StackImpl::currentState() const
+{
+	return stack.empty() ? States::None : stack.back().state();
+}
+
+std::string StackImpl::currentCommandName() const
+{
+	return stack.empty() ? std::string{} : stack.back().name();
+}
+
+TokenSet StackImpl::currentTokens() const
+{
+	// TODO: Implement
+	return Tokens{};
+}
+
+WhitespaceMode currentWhitespaceMode() const
+{
+	// TODO: Implement
+	return WhitespaceMode::COLLAPSE;
+}
+
 HandlerInfo &StackImpl::currentInfo()
 {
 	return stack.empty() ? EmptyHandlerInfo : stack.back();
@@ -535,6 +596,8 @@ HandlerInfo &StackImpl::lastInfo()
 {
 	return stack.size() < 2U ? EmptyHandlerInfo : stack[stack.size() - 2];
 }
+
+/* Stack helper functions */
 
 void StackImpl::endCurrentHandler()
 {
@@ -563,44 +626,37 @@ void StackImpl::endCurrentHandler()
 	}
 }
 
-void StackImpl::endOverdueHandlers()
+void StackImpl::prepareCurrentHandler()
 {
-	if (!stack.empty()) {
-		// Fetch the handler info for the current top-level element
-		HandlerInfo &info = stack.back();
+	// Repeat until a valid handler is found on the stack
+	while (true) {
+		// Fetch the handler for the current top-level element
+		HandlerInfo &info = currentInfo();
 
-		// Abort if this handler currently is inside a field
-		if (info.inField || (!info.hadDefaultField && info.valid)) {
+		// If the current Handler is in a field, there is nothing to be done,
+		// abort
+		if (info.inField) {
 			return;
 		}
 
-		// Otherwise end the current handler
-		endCurrentHandler();
-	}
-}
-
-bool StackImpl::ensureHandlerIsInField()
-{
-	// If the current handler is not in a field (and actually has a handler)
-	// try to start a default field
-	HandlerInfo &info = currentInfo();
-	if (!info.inField && info.handler != nullptr) {
-		// Abort if the element already had a default field or the handler is
-		// not valid
+		// If the current field already had a default field or is not valid,
+		// end it and repeat
 		if (info.hadDefaultField || !info.valid) {
-			return false;
+			endCurrentHandler();
+			continue;
 		}
 
 		// Try to start a new default field, abort if this did not work
 		bool isDefault = true;
 		if (!info.handler->fieldStart(isDefault, info.fieldIdx)) {
-			return false;
+			endCurrentHandler();
+			continue;
 		}
 
-		// Mark the field as started
-		info.fieldStart(true, true, true);
+		// Mark the field as started and return -- the field should be marked
+		// is implicit if this is not a field with range
+		info.fieldStart(true, !info.range, true, info.range);
 	}
-	return true;
 }
 
 bool StackImpl::handlersValid()
@@ -613,13 +669,105 @@ bool StackImpl::handlersValid()
 	return true;
 }
 
+void StackImpl::handleData()
+{
+	// Repeat until we found some handle willingly consuming the data
+	while (true) {
+		// Prepare the stack -- make sure all overdue handlers are ended and
+		// we currently are in an open field
+		prepareCurrentHandler();
+
+		// Fetch the current handler information
+		HandlerInfo &info = currentInfo();
+
+		// If this field should not get any data, log an error and do not
+		// call the "data" handler
+		if (!info.inValidField) {
+			if (!info.hadDefaultField) {
+				logger().error("Did not expect any data here", data);
+			}
+			return;
+		}
+
+		// If we're currently in an invalid subtree, just eat the data and abort
+		if (!handlersValid()) {
+			return;
+		}
+
+		// Fork the logger and set it as temporary logger for the "data"
+		// method. We only want to keep error messages if this was not a
+		// try to implicitly open a default field.
+		LoggerFork loggerFork = logger().fork();
+		info.handler->setLogger(loggerFork);
+
+		// Pass the data to the current Handler instance
+		bool valid = false;
+		try {
+			valid = info.handler->data();
+		}
+		catch (LoggableException ex) {
+			loggerFork.log(ex);
+		}
+
+		// Reset the logger instance of the handler as soon as possible
+		info.handler->resetLogger();
+
+		// If placing the data here failed and we're currently in an
+		// implicitly opened field, just unroll the stack to the next field
+		// and try again
+		if (!valid && info.inImplicitDefaultField) {
+			endCurrentHandler();
+			continue;
+		}
+
+		// Commit the content of the logger fork. Do not change the valid flag.
+		loggerFork.commit();
+	}
+}
+
+void StackImpl::handleToken(const Token &token) {
+	// TODO: Implement
+	// Just eat them for now
+}
+
+void StackImpl::handleFieldEnd(bool rangedCommand)
+{
+	// Throw away all overdue handlers, start the default field at least once
+	// if this has not been done yet (this is important for range commands)
+	prepareStack();
+
+	// Close all implicit default fields
+	while (!stack.empty()) {
+		HandlerInfo &info = currentInfo();
+		if (!info.inImplicitDefaultField) {
+			break;
+		}
+		endCurrentHandler();
+	}
+
+	// Fetch the information attached to the current handler
+	HandlerInfo &info = currentInfo();
+	if (!info.inField || stack.empty()) {
+		logger().error("Got field end, but there is no field here to end");
+		return;
+	}
+
+	// Only continue if the current handler stack is in a valid state, do not
+	// call the fieldEnd function if something went wrong before
+	if (handlersValid()) {
+		if (info.range && info.inDefaultField)
+		info.handler->fieldEnd();
+	}
+
+	// This command no longer is in a field
+	info.fieldEnd();
+}
+
+/* Class StackImpl public functions */
+
 void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
                              bool range)
 {
-	// End handlers that already had a default field and are currently not
-	// active.
-	endOverdueHandlers();
-
 	// Make sure the given identifier is valid (preventing "*" from being
 	// malicously passed to this function)
 	if (!Utils::isNamespacedIdentifier(name.asString())) {
@@ -629,6 +777,10 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 	}
 
 	while (true) {
+		// Prepare the stack -- make sure all overdue handlers are ended and
+		// we currently are in an open field
+		prepareCurrentHandler();
+
 		// Try to find a target state for the given command, if none can be
 		// found and the current command does not have an open field, then try
 		// to create an empty default field, otherwise this is an exception
@@ -642,12 +794,6 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 				throw buildInvalidCommandException(name.asString(),
 				                                   expectedCommands());
 			}
-		}
-
-		// Make sure we're currently inside a field
-		if (!ensureHandlerIsInField()) {
-			endCurrentHandler();
-			continue;
 		}
 
 		// Fork the logger. We do not want any validation errors to skip
@@ -670,17 +816,14 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 		HandlerInfo &parentInfo = lastInfo();
 		HandlerInfo &info = currentInfo();
 
-		// Call the "start" method of the handler, store the result of the
-		// start
-		// method as the validity of the handler -- do not call the start
-		// method
+		// Call the "start" method of the handler, store the result of the start
+		// method as the validity of the handler -- do not call the start method
 		// if the stack is currently invalid (as this may cause further,
 		// unwanted errors)
 		bool validStack = handlersValid();
 		info.valid = false;
 		if (validStack) {
-			// Canonicalize the arguments (if this has not already been
-			// done),
+			// Canonicalize the arguments (if this has not already been done),
 			// allow additional arguments and numeric indices
 			Variant::mapType canonicalArgs = args;
 			targetState->arguments.validateMap(canonicalArgs, loggerFork, true,
@@ -697,10 +840,8 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 		}
 
 		// We started the command within an implicit default field and it is
-		// not
-		// valid -- remove both the new handler and the parent field from
-		// the
-		// stack
+		// not valid -- remove both the new handler and the parent field from
+		// the stack
 		if (!info.valid && parentInfo.inImplicitDefaultField) {
 			endCurrentHandler();
 			endCurrentHandler();
@@ -708,9 +849,8 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 		}
 
 		// If we ended up here, starting the command may or may not have
-		// worked,
-		// but after all, we cannot unroll the stack any further. Update the
-		// "valid" flag, commit any potential error messages and return.
+		// worked, but after all, we cannot unroll the stack any further. Update
+		// the "valid" flag, commit any potential error messages and return.
 		info.valid = parentInfo.valid && info.valid;
 		info.range = range;
 		loggerFork.commit();
@@ -732,106 +872,31 @@ void StackImpl::annotationEnd(const Variant &className,
 
 void StackImpl::rangeEnd()
 {
-	// TODO
+	handleFieldEnd(true);
 }
 
 void StackImpl::data(const TokenizedData &data)
 {
-	// TODO: Rewrite this function for token handling
-	// TODO: This loop needs to be refactored out
-	/*while (!data.atEnd()) {
-	    // End handlers that already had a default field and are currently
-	not
-	    // active.
-	    endOverdueHandlers();
+	// Fetch a reader for the given tokenized data instance.
+	TokenizedDataReader reader = data.reader();
 
-	    const bool hasNonWhitespaceText = data.hasNonWhitespaceText();
+	// Use the GuardedTemporaryPointer to make sure that the member variable
+	// dataReader is resetted to nullptr once this scope is left.
+	GuardedTemporaryPointer ptr(&reader, &dataReader);
 
-	    // Check whether there is any command the data can be sent to -- if
-	not,
-	    // make sure the data actually is data
-	    if (stack.empty()) {
-	        if (hasNonWhitespaceText) {
-	            throw LoggableException("No command here to receive data.",
-	                                    data);
-	        }
-	        return;
-	    }
+	// Peek a token from the reader, repeat until all tokens have been read
+	Token token;
+	while (reader.peek(token, currentTokens(), currentWhitespaceMode())) {
+		// Handle the token as text data or as actual token
+		if (token.id == Tokens::Data) {
+			handleData();
+		} else {
+			handleToken(token);
+		}
 
-	    // Fetch the current command handler information
-	    HandlerInfo &info = currentInfo();
-
-	    // Make sure the current handler has an open field
-	    if (!ensureHandlerIsInField()) {
-	        endCurrentHandler();
-	        continue;
-	    }
-
-	    // If this field should not get any data, log an error and do not
-	call
-	    // the "data" handler
-	    if (!info.inValidField) {
-	        // If the "hadDefaultField" flag is set, we already issued an
-	error
-	        // message
-	        if (!info.hadDefaultField) {
-	            if (hasNonWhitespaceText) {
-	                logger().error("Did not expect any data here", data);
-	            }
-	            return;
-	        }
-	    }
-
-	    if (handlersValid() && info.inValidField) {
-	        // Fork the logger and set it as temporary logger for the
-	"start"
-	        // method. We only want to keep error messages if this was not a
-	try
-	        // to implicitly open a default field.
-	        LoggerFork loggerFork = logger().fork();
-	        info.handler->setLogger(loggerFork);
-
-	        // Pass the data to the current Handler instance
-	        bool valid = false;
-	        try {
-	            // Create a fork of the TokenizedData and let the handler
-	work
-	            // on it
-	            TokenizedData dataFork = data;
-	            valid = info.handler->data(dataFork);
-
-	            // If the data was validly handled by the handler, commit
-	the
-	            // change
-	            if (valid) {
-	                data = dataFork;
-	            }
-	        }
-	        catch (LoggableException ex) {
-	            loggerFork.log(ex);
-	        }
-
-	        // Reset the logger instance as soon as possible
-	        info.handler->resetLogger();
-
-	        // If placing the data here failed and we're currently in an
-	        // implicitly opened field, just unroll the stack to the next
-	field
-	        // and try again
-	        if (!valid && info.inImplicitDefaultField) {
-	            endCurrentHandler();
-	            continue;
-	        }
-
-	        // Commit the content of the logger fork. Do not change the
-	valid
-	        // flag.
-	        loggerFork.commit();
-	    }
-
-	    // There was no reason to unroll the stack any further, so continue
-	    return;
-	}*/
+		// Consume the peeked token
+		reader.consumePeek();
+	}
 }
 
 void StackImpl::fieldStart(bool isDefault)
@@ -853,8 +918,7 @@ void StackImpl::fieldStart(bool isDefault)
 	}
 
 	// If the handler already had a default field we cannot start a new
-	// field
-	// (the default field always is the last field) -- mark the command as
+	// field (the default field always is the last field) -- mark the command as
 	// invalid
 	if (info.hadDefaultField) {
 		logger().error(std::string("Got field start, but command \"") +
@@ -862,8 +926,7 @@ void StackImpl::fieldStart(bool isDefault)
 		               std::string("\" does not have any more fields"));
 	}
 
-	// Copy the isDefault flag to a local variable, the fieldStart method
-	// will
+	// Copy the isDefault flag to a local variable, the fieldStart method will
 	// write into this variable
 	bool defaultField = isDefault;
 
@@ -891,39 +954,10 @@ void StackImpl::fieldStart(bool isDefault)
 
 void StackImpl::fieldEnd()
 {
-	// Unroll the stack until the next explicitly open field
-	while (!stack.empty()) {
-		HandlerInfo &info = currentInfo();
-		if (info.inField && !info.inImplicitDefaultField) {
-			break;
-		}
-		endCurrentHandler();
-	}
-
-	// Fetch the information attached to the current handler
-	HandlerInfo &info = currentInfo();
-	if (!info.inField || info.inImplicitDefaultField || stack.empty()) {
-		logger().error(
-		    "Got field end, but there is no command for which to end the "
-		    "field.");
-		return;
-	}
-
-	// Only continue if the current handler stack is in a valid state, do
-	// not
-	// call the fieldEnd function if something went wrong before
-	if (handlersValid() && !info.hadDefaultField && info.inValidField) {
-		try {
-			info.handler->fieldEnd();
-		}
-		catch (LoggableException ex) {
-			logger().log(ex);
-		}
-	}
-
-	// This command no longer is in a field
-	info.fieldEnd();
+	handleFieldEnd(false);
 }
+
+/* Class StackImpl HandlerCallbacks */
 
 TokenId StackImpl::registerToken(const std::string &token)
 {
@@ -950,14 +984,7 @@ Variant StackImpl::readData()
 	if (dataReader != nullptr) {
 		TokenizedDataReaderFork dataReaderFork = dataReader->fork();
 		Token token;
-
-		// TODO: Use correct token set
-		TokenSet tokens;
-
-		// TODO: Use correct whitespace mode
-		WhitespaceMode mode = WhitespaceMode::COLLAPSE;
-
-		dataReaderFork.read(token, tokens, mode);
+		dataReaderFork.read(token, currentTokens(), currentWhitespaceMode());
 		if (token.id == Tokens::Data) {
 			Variant res = Variant::fromString(token.content);
 			res.setLocation(token.getLocation());
@@ -966,8 +993,6 @@ Variant StackImpl::readData()
 	}
 	return Variant{};
 }
-
-bool StackImpl::hasData() { return readData() != nullptr; }
 
 /* Class Stack */
 
@@ -1013,5 +1038,7 @@ void Stack::fieldStart(bool isDefault) { impl->fieldStart(isDefault); }
 void Stack::fieldEnd() { impl->fieldEnd(); }
 
 void Stack::data(const TokenizedData &data) { impl->data(data); }
+
+void Stack::data(const std::string &str) { data(TokenizedData(str)); }
 }
 }

@@ -326,7 +326,7 @@ IF(TEST)
 		test/core/model/StyleTest
 		test/core/model/TypesystemTest
 		test/core/parser/ParserScopeTest
-#		test/core/parser/stack/StackTest
+		test/core/parser/stack/StackTest
 		test/core/parser/stack/StateTest
 		test/core/parser/stack/TokenRegistryTest
 		test/core/parser/utils/SourceOffsetVectorTest

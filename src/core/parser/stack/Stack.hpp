@@ -150,13 +150,24 @@ public:
 
 	/**
 	 * Function that should be called whenever character data is found in the
-	 * input stream. May only be called if the currently is a command on the
+	 * input stream. May only be called if there currently is a command on the
 	 * stack.
 	 *
 	 * @param data is a TokenizedData instance containing the pre-segmented data
 	 * that should be read.
 	 */
 	void data(const TokenizedData &data);
+
+	/**
+	 * Function that may be called whenever character data is found in the
+	 * input stream. May only be called if the currently is a command on the
+	 * stack. This method is mainly intended for unit testing. Pass a
+	 * TokenizedData instance to the 
+	 *
+	 * @param str is a string containing the data that should be passed to the
+	 * tokenizer.
+	 */
+	void data(const std::string &str);
 };
 }
 }

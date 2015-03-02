@@ -96,6 +96,18 @@ public:
 	TokenizedData(SourceId sourceId);
 
 	/**
+	 * Creates a new instance of TokenizedData, takes a SourceId and an initial
+	 * string buffer.
+	 *
+	 * @param data is the string that should be appended to the buffer.
+	 * @param offsStart is the start offset in bytes in the input file.
+	 * @param sourceId is the source identifier that should be used for
+	 * constructing the location when returning tokens.
+	 */
+	TokenizedData(const std::string &data, SourceOffset offsStart = 0,
+	              SourceId sourceId = InvalidSourceId);
+
+	/**
 	 * Destructor. Needs to be defined explicitly for freeing a shared pointer
 	 * of the incomplete TokenizedDataImpl type.
 	 */
