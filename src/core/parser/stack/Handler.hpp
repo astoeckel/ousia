@@ -1,6 +1,6 @@
 /*
     Ousía
-    Copyright (C) 2014  Benjamin Paaßen, Andreas Stöckel
+    Copyright (C) 2014, 2015 Benjamin Paaßen, Andreas Stöckel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,6 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/**
+ * @file Handler.hpp
+ *
+ * Contains the definition of the Handler class, used for representing Handlers
+ * for certain syntactic elements.
+ *
+ * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
+ */
+
 #ifndef _OUSIA_PARSER_STACK_HANDLER_HPP_
 #define _OUSIA_PARSER_STACK_HANDLER_HPP_
 
@@ -26,6 +35,7 @@
 #include <core/common/Whitespace.hpp>
 #include <core/common/Token.hpp>
 #include <core/model/Node.hpp>
+#include <core/model/Syntax.hpp>
 
 namespace ousia {
 
@@ -41,6 +51,13 @@ namespace parser_stack {
 // More forward declarations
 class HandlerCallbacks;
 class State;
+
+/**
+ * Enum describing the type of the Handler instance -- a document handler may
+ * be created for handling a simple command, a token or an annotation start and
+ * end.
+ */
+enum class HandlerType { COMMAND, ANNOTATION_START, ANNOTATION_END, TOKEN };
 
 /**
  * Class collecting all the data that is being passed to a Handler
@@ -67,9 +84,16 @@ public:
 	const State &state;
 
 	/**
-	 * Current source code location.
+	 * Token containing the name of the command that is being handled, the
+	 * location of the element in the source code or the token id of the token
+	 * that is being handled.
 	 */
-	SourceLocation location;
+	Token token;
+
+	/**
+	 * Type describing for which purpose the HandlerData instance was created.
+	 */
+	HandlerType type;
 
 	/**
 	 * Constructor of the HandlerData class.
@@ -78,10 +102,12 @@ public:
 	 * @param callbacks is an instance of Callbacks used to notify
 	 * the parser about certain state changes.
 	 * @param state is the state this handler was called for.
-	 * @param location is the location at which the handler is created.
+	 * @param token contains name, token id and location of the command that is
+	 * being handled.
+	 * @param type describes the purpose of the Handler instance at hand.
 	 */
 	HandlerData(ParserContext &ctx, HandlerCallbacks &callbacks,
-	            const State &state, const SourceLocation &location);
+	            const State &state, const Token &token, HandlerType type);
 };
 
 /**
@@ -110,43 +136,6 @@ protected:
 	 * handler.
 	 */
 	Handler(const HandlerData &handlerData);
-
-	/**
-	 * Returns a reference at the ParserContext.
-	 *
-	 * @return a reference at the ParserContext.
-	 */
-	ParserContext &context();
-
-	/**
-	 * Returns a reference at the ParserScope instance.
-	 *
-	 * @return a reference at the ParserScope instance.
-	 */
-	ParserScope &scope();
-
-	/**
-	 * Returns a reference at the Manager instance which manages all nodes.
-	 *
-	 * @return a referance at the Manager instance.
-	 */
-	Manager &manager();
-
-	/**
-	 * Returns a reference at the Logger instance used for logging error
-	 * messages.
-	 *
-	 * @return a reference at the Logger instance.
-	 */
-	Logger &logger();
-
-	/**
-	 * Returns the location of the element in the source file, for which this
-	 * Handler was created.
-	 *
-	 * @return the location of the Handler in the source file.
-	 */
-	const SourceLocation &location() const;
 
 	/**
 	 * Calls the corresponding function in the HandlerCallbacks instance. This
@@ -178,7 +167,7 @@ protected:
 	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
 	 * stored on the stack.
 	 */
-	void pushTokens(const std::vector<TokenSyntaxDescriptor> &tokens);
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
 
 	/**
 	 * Calls the corresponding function in the HandlerCallbacks instance.
@@ -237,11 +226,84 @@ public:
 	virtual ~Handler();
 
 	/**
-	 * Reference at the State descriptor for which this Handler was created.
+	 * Returns a reference at the ParserContext.
+	 *
+	 * @return a reference at the ParserContext.
+	 */
+	ParserContext &context();
+
+	/**
+	 * Returns a reference at the ParserScope instance.
+	 *
+	 * @return a reference at the ParserScope instance.
+	 */
+	ParserScope &scope();
+
+	/**
+	 * Returns a reference at the Manager instance which manages all nodes.
+	 *
+	 * @return a referance at the Manager instance.
+	 */
+	Manager &manager();
+
+	/**
+	 * Returns a reference at the Logger instance used for logging error
+	 * messages.
+	 *
+	 * @return a reference at the Logger instance.
+	 */
+	Logger &logger();
+
+	/**
+	 * Returns the name of the command or annotation the handler is currently
+	 * handling. In case the command is currently handling a token, the name
+	 * corresponds to the token string sequence.
+	 *
+	 * @return the name of the command or the string sequence of the token that
+	 * is being handled by this handler.
+	 */
+	const std::string &name() const;
+
+	/**
+	 * Returns the token id of the token that is currently being handled by the
+	 * handler. In case the handler currently handles a command or annotation,
+	 * the token id is set to Tokens::Data.
+	 *
+	 * @return the current token id or Tokens::Data if no token is being
+	 * handled.
+	 */
+	TokenId tokenId() const;
+
+	/**
+	 * Returns a reference at the Token instance, containing either the token
+	 * that is currently being handled or the name of the command and annotation
+	 * and their location.
+	 *
+	 * @return a const reference at the internal token instance.
+	 */
+	const Token &token() const;
+
+	/**
+	 * Returns the location of the element in the source file, for which this
+	 * Handler was created.
+	 *
+	 * @return the location of the Handler in the source file.
+	 */
+	const SourceLocation &location() const;
+
+	/**
+	 * Returns the type describing the purpose for which the handler instance
+	 * was created.
+	 */
+	HandlerType type() const;
+
+	/**
+	 * Returns a reference at the State descriptor for which this Handler was
+	 * created.
 	 *
 	 * @return a const reference at the constructing State descriptor.
 	 */
-	const State &getState() const;
+	const State &state() const;
 
 	/**
 	 * Sets the internal logger to the given logger instance.
@@ -267,42 +329,41 @@ public:
 	/**
 	 * Called whenever the handler should handle the start of a command. This
 	 * method (or any other of the "start" methods) is called exactly once,
-	 * after the constructor.
+	 * after the constructor. The name of the command that is started here can
+	 * be accessed using the name() method.
 	 *
-	 * @param name is the name of the command that is started here.
 	 * @param args is a map from strings to variants (argument name and value).
 	 * @return true if the handler was successful in starting an element with
 	 * the given name represents, false otherwise.
 	 */
-	virtual bool startCommand(const std::string &commandName,
-	                          Variant::mapType &args) = 0;
+	virtual bool startCommand(Variant::mapType &args) = 0;
 
 	/**
 	 * Called whenever the handler should handle the start of an annotation.
 	 * This method (or any other of the "start" methods) is called exactly once,
 	 * after the constructor. This method is only called if the
 	 * "supportsAnnotations" flag of the State instance referencing this Handler
-	 * is set to true.
+	 * is set to true. The name of the command that is started here can be
+	 * accessed using the name() method.
 	 *
-	 * @param name is the name of the annotation that is started here.
 	 * @param args is a map from strings to variants (argument name and value).
 	 * @param type specifies whether this handler should handle the start of an
 	 * annotation or the end of an annotation.
 	 */
-	virtual bool startAnnotation(const std::string &name,
-	                             Variant::mapType &args,
+	virtual bool startAnnotation(Variant::mapType &args,
 	                             AnnotationType annotationType) = 0;
 
 	/**
 	 * Called whenever the handler should handle the start of a token. This
 	 * method (or any other of the "start" methods) is called exactly once,
 	 * after the constructor. This method is only called if the "supportsTokens"
-	 * flag of the State instance referencing this Handler is set to true.
+	 * flag of the State instance referencing this Handler is set to true. The
+	 * token id of the token that is should be handled can be accessed using the
+	 * tokenId() method.
 	 *
-	 * @param token is the Token for which the handler should be started.
 	 * @param node is the node for which this token was registered.
 	 */
-	virtual bool startToken(const Token &token, Handle<Node> node) = 0;
+	virtual bool startToken(Handle<Node> node) = 0;
 
 	/**
 	 * Called whenever a token is marked as "end" token and this handler happens
@@ -380,11 +441,10 @@ protected:
 	using Handler::Handler;
 
 public:
-	bool startCommand(const std::string &commandName,
-	                  Variant::mapType &args) override;
-	bool startAnnotation(const std::string &name, Variant::mapType &args,
+	bool startCommand(Variant::mapType &args) override;
+	bool startAnnotation(Variant::mapType &args,
 	                     AnnotationType annotationType) override;
-	bool startToken(const Token &token, Handle<Node> node) override;
+	bool startToken(Handle<Node> node) override;
 	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
@@ -407,11 +467,10 @@ protected:
 	using Handler::Handler;
 
 public:
-	bool startCommand(const std::string &commandName,
-	                  Variant::mapType &args) override;
-	bool startAnnotation(const std::string &name, Variant::mapType &args,
+	bool startCommand(Variant::mapType &args) override;
+	bool startAnnotation(Variant::mapType &args,
 	                     AnnotationType annotationType) override;
-	bool startToken(const Token &token, Handle<Node> node) override;
+	bool startToken(Handle<Node> node) override;
 	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
@@ -466,8 +525,7 @@ protected:
 	virtual void doHandle(const Variant &fieldData, Variant::mapType &args) = 0;
 
 public:
-	bool startCommand(const std::string &commandName,
-	                  Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	bool data() override;
 	void end() override;
 };

@@ -117,6 +117,7 @@ public:
 	 *        <li>'%', '%{', '}%'</li>
 	 *      </ul>
 	 *   </li>
+	 *   <li>The token does not contain any whitespaces.</li>
 	 * </ul>
 	 */
 	static bool isUserDefinedToken(const std::string &token);

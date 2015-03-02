@@ -34,6 +34,7 @@
 
 #include <core/common/Whitespace.hpp>
 #include <core/common/Token.hpp>
+#include <core/model/Syntax.hpp>
 
 namespace ousia {
 
@@ -86,9 +87,7 @@ public:
 	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
 	 * stored on the stack.
 	 */
-	virtual void pushTokens(
-	    const std::vector<TokenSyntaxDescriptor> &tokens) = 0;
-
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
 	/**
 	 * Removes the previously pushed list of tokens from the stack.
 	 */

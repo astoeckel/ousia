@@ -124,7 +124,8 @@ bool Utils::isUserDefinedToken(const std::string &token)
 	// Make sure the token meets is neither empty, nor starts or ends with an
 	// alphanumeric character
 	const size_t len = token.size();
-	if (len == 0 || isAlphanumeric(token[0]) || isAlphanumeric(token[len - 1])) {
+	if (len == 0 || isAlphanumeric(token[0]) ||
+	    isAlphanumeric(token[len - 1])) {
 		return false;
 	}
 
@@ -134,8 +135,15 @@ bool Utils::isUserDefinedToken(const std::string &token)
 		return false;
 	}
 
+	// Make sure the token does not contain any whitespaces.
+	for (char c : token) {
+		if (isWhitespace(c)) {
+			return false;
+		}
+	}
+
 	// Make sure the token contains other characters but { and }
-	for (char c: token) {
+	for (char c : token) {
 		if (c != '{' && c != '}') {
 			return true;
 		}
@@ -143,4 +151,3 @@ bool Utils::isUserDefinedToken(const std::string &token)
 	return false;
 }
 }
-

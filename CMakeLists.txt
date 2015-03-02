@@ -176,6 +176,7 @@ ADD_LIBRARY(ousia_core
 	src/core/model/Project
 	src/core/model/RootNode
 	src/core/model/Style
+	src/core/model/Syntax
 	src/core/model/Typesystem
 	src/core/parser/Parser
 	src/core/parser/ParserContext

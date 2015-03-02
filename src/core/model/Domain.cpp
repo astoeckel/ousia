@@ -20,8 +20,9 @@
 #include <queue>
 #include <set>
 
-#include <core/common/RttiBuilder.hpp>
 #include <core/common/Exceptions.hpp>
+#include <core/common/RttiBuilder.hpp>
+#include <core/common/Utils.hpp>
 
 #include "Domain.hpp"
 
@@ -169,54 +170,90 @@ static NodeVector<Node> pathTo(const Node *start, Logger &logger,
 	return shortest;
 }
 
+struct CollectState {
+	Node *n;
+	size_t depth;
+
+	CollectState(Node *n, size_t depth) : n(n), depth(depth) {}
+};
+
 template <typename F>
 static NodeVector<Node> collect(const Node *start, F match)
 {
 	// result
 	NodeVector<Node> res;
 	// queue for breadth-first search of graph.
-	std::queue<Rooted<Node>> q;
+	std::queue<CollectState> q;
 	// put the initial node on the stack.
-	q.push(const_cast<Node *>(start));
+	q.push(CollectState(const_cast<Node *>(start), 0));
 	// set of visited nodes.
 	std::unordered_set<const Node *> visited;
 	while (!q.empty()) {
-		Rooted<Node> n = q.front();
+		CollectState state = q.front();
 		q.pop();
 		// do not proceed if this node was already visited.
-		if (!visited.insert(n.get()).second) {
+		if (!visited.insert(state.n).second) {
 			continue;
 		}
 
-		if (n->isa(&RttiTypes::StructuredClass)) {
-			Rooted<StructuredClass> strct = n.cast<StructuredClass>();
+		if (state.n->isa(&RttiTypes::Descriptor)) {
+			Rooted<Descriptor> strct{static_cast<Descriptor *>(state.n)};
 
 			// look through all fields.
 			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
 			for (auto fd : fields) {
 				// note matches.
-				if (match(fd)) {
+				if (match(fd, state.depth)) {
 					res.push_back(fd);
 				}
 				// only continue in the TREE field.
 				if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
-					q.push(fd);
+					q.push(CollectState(fd.get(), state.depth));
 				}
 			}
 		} else {
 			// otherwise this is a FieldDescriptor.
-			Rooted<FieldDescriptor> field = n.cast<FieldDescriptor>();
+			Rooted<FieldDescriptor> field{
+			    static_cast<FieldDescriptor *>(state.n)};
 			// and we proceed by visiting all permitted children.
 			for (auto c : field->getChildrenWithSubclasses()) {
 				// note matches.
-				if (match(c)) {
+				if (match(c, state.depth)) {
 					res.push_back(c);
 				}
 				// We only continue our search via transparent children.
 				if (c->isTransparent()) {
-					q.push(c);
+					q.push(CollectState(c.get(), state.depth + 1));
 				}
 			}
+		}
+	}
+	return res;
+}
+
+static std::vector<SyntaxDescriptor> collectPermittedTokens(
+    const Node *start, Handle<Domain> domain)
+{
+	// gather SyntaxDescriptors for structure children first.
+	std::vector<SyntaxDescriptor> res;
+	collect(start, [&res](Handle<Node> n, size_t depth) {
+		SyntaxDescriptor stx;
+		if (n->isa(&RttiTypes::FieldDescriptor)) {
+			stx = n.cast<FieldDescriptor>()->getSyntaxDescriptor(depth);
+		} else {
+			stx = n.cast<Descriptor>()->getSyntaxDescriptor(depth);
+		}
+		// do not add trivial SyntaxDescriptors.
+		if (!stx.isEmpty()) {
+			res.push_back(stx);
+		}
+		return false;
+	});
+	// gather SyntaxDescriptors for AnnotationClasses.
+	for (auto a : domain->getAnnotationClasses()) {
+		SyntaxDescriptor stx = a->getSyntaxDescriptor();
+		if (!stx.isEmpty()) {
+			res.push_back(stx);
 		}
 	}
 	return res;
@@ -226,24 +263,27 @@ static NodeVector<Node> collect(const Node *start, F match)
 
 FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Type> primitiveType,
                                  Handle<Descriptor> parent, FieldType fieldType,
-                                 std::string name, bool optional)
+                                 std::string name, bool optional,
+                                 WhitespaceMode whitespaceMode)
     : Node(mgr, std::move(name), parent),
       children(this),
       fieldType(fieldType),
       primitiveType(acquire(primitiveType)),
       optional(optional),
-      primitive(true)
+      primitive(true),
+      whitespaceMode(whitespaceMode)
 {
 }
 
 FieldDescriptor::FieldDescriptor(Manager &mgr, Handle<Descriptor> parent,
                                  FieldType fieldType, std::string name,
-                                 bool optional)
+                                 bool optional, WhitespaceMode whitespaceMode)
     : Node(mgr, std::move(name), parent),
       children(this),
       fieldType(fieldType),
       optional(optional),
-      primitive(false)
+      primitive(false),
+      whitespaceMode(whitespaceMode)
 {
 }
 
@@ -271,6 +311,25 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 		}
 	} else {
 		valid = valid & validateName(logger);
+	}
+	// check start and end token.
+	if (!startToken.special && !startToken.token.empty() &&
+	    !Utils::isUserDefinedToken(startToken.token)) {
+		// TODO: Correct error message.
+		logger.error(std::string("Field \"") + getName() +
+		                 "\" has an invalid custom start token: " +
+		                 startToken.token,
+		             *this);
+		valid = false;
+	}
+	if (!endToken.special && !endToken.token.empty() &&
+	    !Utils::isUserDefinedToken(endToken.token)) {
+		// TODO: Correct error message.
+		logger.error(std::string("Field \"") + getName() +
+		                 "\" has an invalid custom end token: " +
+		                 endToken.token,
+		             *this);
+		valid = false;
 	}
 
 	// check consistency of FieldType with the rest of the FieldDescriptor.
@@ -325,7 +384,7 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 }
 
 static void gatherSubclasses(
-    std::unordered_set<const StructuredClass *>& visited,
+    std::unordered_set<const StructuredClass *> &visited,
     NodeVector<StructuredClass> &res, Handle<StructuredClass> strct)
 {
 	// this check is to prevent cycles.
@@ -334,7 +393,7 @@ static void gatherSubclasses(
 	}
 	for (auto sub : strct->getSubclasses()) {
 		// this check is to prevent cycles.
-		if(visited.count(sub.get())){
+		if (visited.count(sub.get())) {
 			continue;
 		}
 		res.push_back(sub);
@@ -381,7 +440,7 @@ NodeVector<Node> FieldDescriptor::pathTo(Handle<FieldDescriptor> field,
 NodeVector<FieldDescriptor> FieldDescriptor::getDefaultFields() const
 {
 	// TODO: In principle a cast would be nicer here, but for now we copy.
-	NodeVector<Node> nodes = collect(this, [](Handle<Node> n) {
+	NodeVector<Node> nodes = collect(this, [](Handle<Node> n, size_t depth) {
 		if (!n->isa(&RttiTypes::FieldDescriptor)) {
 			return false;
 		}
@@ -394,6 +453,16 @@ NodeVector<FieldDescriptor> FieldDescriptor::getDefaultFields() const
 		res.push_back(n.cast<FieldDescriptor>());
 	}
 	return res;
+}
+
+std::vector<SyntaxDescriptor> FieldDescriptor::getPermittedTokens() const
+{
+	if (getParent() == nullptr ||
+	    getParent().cast<Descriptor>()->getParent() == nullptr) {
+		return std::vector<SyntaxDescriptor>();
+	}
+	return collectPermittedTokens(
+	    this, getParent().cast<Descriptor>()->getParent().cast<Domain>());
 }
 
 /* Class Descriptor */
@@ -443,6 +512,25 @@ bool Descriptor::doValidate(Logger &logger) const
 		}
 		valid = valid & attributesDescriptor->validate(logger);
 	}
+
+	// check start and end token.
+	if (!startToken.special && !startToken.token.empty() &&
+	    !Utils::isUserDefinedToken(startToken.token)) {
+		logger.error(std::string("Descriptor \"") + getName() +
+		                 "\" has an invalid custom start token: " +
+		                 startToken.token,
+		             *this);
+		valid = false;
+	}
+	if (!endToken.special && !endToken.token.empty() &&
+	    !Utils::isUserDefinedToken(endToken.token)) {
+		logger.error(std::string("Descriptor \"") + getName() +
+		                 "\" has an invalid custom end token: " +
+		                 endToken.token,
+		             *this);
+		valid = false;
+	}
+
 	// check that only one FieldDescriptor is of type TREE.
 	auto fds = Descriptor::getFieldDescriptors();
 	bool hasTREE = false;
@@ -483,7 +571,7 @@ std::pair<NodeVector<Node>, bool> Descriptor::pathTo(
 NodeVector<FieldDescriptor> Descriptor::getDefaultFields() const
 {
 	// TODO: In principle a cast would be nicer here, but for now we copy.
-	NodeVector<Node> nodes = collect(this, [](Handle<Node> n) {
+	NodeVector<Node> nodes = collect(this, [](Handle<Node> n, size_t depth) {
 		if (!n->isa(&RttiTypes::FieldDescriptor)) {
 			return false;
 		}
@@ -501,7 +589,7 @@ NodeVector<FieldDescriptor> Descriptor::getDefaultFields() const
 NodeVector<StructuredClass> Descriptor::getPermittedChildren() const
 {
 	// TODO: In principle a cast would be nicer here, but for now we copy.
-	NodeVector<Node> nodes = collect(this, [](Handle<Node> n) {
+	NodeVector<Node> nodes = collect(this, [](Handle<Node> n, size_t depth) {
 		return n->isa(&RttiTypes::StructuredClass);
 	});
 	NodeVector<StructuredClass> res;
@@ -669,6 +757,14 @@ std::pair<Rooted<FieldDescriptor>, bool> Descriptor::createFieldDescriptor(
 	return std::make_pair(fd, sorted);
 }
 
+std::vector<SyntaxDescriptor> Descriptor::getPermittedTokens() const
+{
+	if (getParent() == nullptr) {
+		return std::vector<SyntaxDescriptor>();
+	}
+	return collectPermittedTokens(this, getParent().cast<Domain>());
+}
+
 /* Class StructuredClass */
 
 StructuredClass::StructuredClass(Manager &mgr, std::string name,
@@ -707,6 +803,16 @@ bool StructuredClass::doValidate(Logger &logger) const
 	// check the cardinality.
 	if (!cardinality.isCardinality()) {
 		logger.error(cardinality.toString() + " is not a cardinality!", *this);
+		valid = false;
+	}
+
+	// check short token.
+	if (!shortToken.special && !shortToken.token.empty() &&
+	    !Utils::isUserDefinedToken(shortToken.token)) {
+		logger.error(std::string("Descriptor \"") + getName() +
+		                 "\" has an invalid custom short form token: " +
+		                 shortToken.token,
+		             *this);
 		valid = false;
 	}
 	// check the validity of this superclass.
@@ -959,6 +1065,51 @@ Rooted<AnnotationClass> Domain::createAnnotationClass(std::string name)
 {
 	return Rooted<AnnotationClass>{
 	    new AnnotationClass(getManager(), std::move(name), this)};
+}
+
+static void gatherTokenDescriptors(
+    Handle<Descriptor> desc, std::vector<TokenDescriptor *> &res,
+    std::unordered_set<FieldDescriptor *> &visited)
+{
+	// add the TokenDescriptors for the Descriptor itself.
+	if (!desc->getStartToken().isEmpty()) {
+		res.push_back(desc->getStartTokenPointer());
+	}
+	if (!desc->getEndToken().isEmpty()) {
+		res.push_back(desc->getEndTokenPointer());
+	}
+	// add the TokenDescriptors for its FieldDescriptors.
+	for (auto fd : desc->getFieldDescriptors()) {
+		if (!visited.insert(fd.get()).second) {
+			continue;
+		}
+		if (!fd->getStartToken().isEmpty()) {
+			res.push_back(fd->getStartTokenPointer());
+		}
+		if (!fd->getEndToken().isEmpty()) {
+			res.push_back(fd->getEndTokenPointer());
+		}
+	}
+}
+
+std::vector<TokenDescriptor *> Domain::getAllTokenDescriptors() const
+{
+	std::vector<TokenDescriptor *> res;
+	// note all fields that are already visited because FieldReferences might
+	// lead to doubled fields.
+	std::unordered_set<FieldDescriptor *> visited;
+	// add the TokenDescriptors for the StructuredClasses (and their fields).
+	for (auto s : structuredClasses) {
+		if (!s->getShortToken().isEmpty()) {
+			res.push_back(s->getShortTokenPointer());
+		}
+		gatherTokenDescriptors(s, res, visited);
+	}
+	// add the TokenDescriptors for the AnnotationClasses (and their fields).
+	for (auto a : annotationClasses) {
+		gatherTokenDescriptors(a, res, visited);
+	}
+	return res;
 }
 
 /* Type registrations */
