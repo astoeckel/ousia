@@ -24,6 +24,7 @@
 #include <core/common/Location.hpp>
 #include <core/common/Variant.hpp>
 #include <core/common/Whitespace.hpp>
+#include <core/model/Syntax.hpp>
 
 namespace ousia {
 
@@ -200,7 +201,7 @@ protected:
 	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
 	 * stored on the stack.
 	 */
-	void pushTokens(const std::vector<TokenSyntaxDescriptor> &tokens);
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
 
 	/**
 	 * Calls the corresponding function in the HandlerCallbacks instance.

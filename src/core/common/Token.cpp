@@ -20,19 +20,5 @@
 
 namespace ousia {
 
-/* Class TokenSyntaxDescriptor */
-
-void TokenSyntaxDescriptor::insertIntoTokenSet(TokenSet &set) const
-{
-	if (start != Tokens::Empty) {
-		set.insert(start);
-	}
-	if (end != Tokens::Empty) {
-		set.insert(end);
-	}
-	if (shortForm != Tokens::Empty) {
-		set.insert(shortForm);
-	}
-}
 }
 

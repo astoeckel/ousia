@@ -16,30 +16,43 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "TokenStack.hpp"
+#include "Syntax.hpp"
+
+#include "Domain.hpp"
 
 namespace ousia {
-namespace parser_stack {
 
-void TokenStack::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
+/* Class TokenSyntaxDescriptor */
+
+bool SyntaxDescriptor::isAnnotation() const
 {
-	stack.push_back(tokens);
+	return descriptor->isa(&RttiTypes::AnnotationClass);
 }
-
-void TokenStack::popTokens() { stack.pop_back(); }
-
-TokenSet TokenStack::tokens() const
+bool SyntaxDescriptor::isFieldDescriptor() const
 {
-	if (stack.empty() && parentStack != nullptr) {
-		return parentStack->tokens();
-	}
-
-	TokenSet res;
-	for (const SyntaxDescriptor &descr : stack.back()) {
-		descr.insertIntoTokenSet(res);
-	}
-	return res;
+	return descriptor->isa(&RttiTypes::FieldDescriptor);
 }
-}
+bool SyntaxDescriptor::isStruct() const
+{
+	return descriptor->isa(&RttiTypes::StructuredClass);
 }
 
+void SyntaxDescriptor::insertIntoTokenSet(TokenSet &set) const
+{
+	if (start != Tokens::Empty) {
+		set.insert(start);
+	}
+	if (end != Tokens::Empty) {
+		set.insert(end);
+	}
+	if (shortForm != Tokens::Empty) {
+		set.insert(shortForm);
+	}
+}
+
+bool SyntaxDescriptor::isEmpty() const
+{
+	return start == Tokens::Empty && end == Tokens::Empty &&
+	       shortForm == Tokens::Empty;
+}
+}

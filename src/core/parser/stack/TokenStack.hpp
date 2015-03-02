@@ -32,6 +32,7 @@
 #include <vector>
 
 #include <core/common/Token.hpp>
+#include <core/model/Syntax.hpp>
 
 namespace ousia {
 namespace parser_stack {
@@ -52,7 +53,7 @@ private:
 	 * Stack containing vectors of TokenSyntaxDescriptor instances as given by
 	 * the user.
 	 */
-	std::vector<std::vector<TokenSyntaxDescriptor>> stack;
+	std::vector<std::vector<SyntaxDescriptor>> stack;
 
 	/**
 	 * Constructor of the TokenStack class.
@@ -86,7 +87,7 @@ public:
 	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
 	 * stored on the stack.
 	 */
-	void pushTokens(const std::vector<TokenSyntaxDescriptor> &tokens);
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
 
 	/**
 	 * Removes the previously pushed list of tokens from the stack.

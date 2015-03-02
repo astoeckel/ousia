@@ -74,7 +74,7 @@ Variant Handler::readData()
 	return handlerData.callbacks.readData();
 }
 
-void Handler::pushTokens(const std::vector<TokenSyntaxDescriptor> &tokens)
+void Handler::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 {
 	handlerData.callbacks.pushTokens(tokens);
 }
