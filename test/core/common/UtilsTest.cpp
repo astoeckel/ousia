@@ -148,6 +148,7 @@ TEST(Utils, isUserDefinedToken)
 	EXPECT_TRUE(Utils::isUserDefinedToken("`"));
 	EXPECT_TRUE(Utils::isUserDefinedToken("<"));
 	EXPECT_TRUE(Utils::isUserDefinedToken(">"));
+	EXPECT_TRUE(Utils::isUserDefinedToken("<+>"));
 	EXPECT_FALSE(Utils::isUserDefinedToken("a:"));
 	EXPECT_FALSE(Utils::isUserDefinedToken("a:a"));
 	EXPECT_FALSE(Utils::isUserDefinedToken(":a"));
@@ -158,6 +159,7 @@ TEST(Utils, isUserDefinedToken)
 	EXPECT_FALSE(Utils::isUserDefinedToken("<\\"));
 	EXPECT_FALSE(Utils::isUserDefinedToken("\\>"));
 	EXPECT_FALSE(Utils::isUserDefinedToken("{!"));
+	EXPECT_FALSE(Utils::isUserDefinedToken("< + >"));
 }
 
 }
