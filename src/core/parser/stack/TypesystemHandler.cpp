@@ -32,8 +32,7 @@ namespace parser_stack {
 
 /* TypesystemHandler */
 
-bool TypesystemHandler::startCommand(const std::string &commandName,
-                                     Variant::mapType &args)
+bool TypesystemHandler::startCommand(Variant::mapType &args)
 {
 	// Create the typesystem instance
 	Rooted<Typesystem> typesystem =
@@ -64,8 +63,7 @@ void TypesystemHandler::end() { scope().pop(logger()); }
 
 /* TypesystemEnumHandler */
 
-bool TypesystemEnumHandler::startCommand(const std::string &commandName,
-                                         Variant::mapType &args)
+bool TypesystemEnumHandler::startCommand(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -93,8 +91,7 @@ void TypesystemEnumEntryHandler::doHandle(const Variant &fieldData,
 
 /* TypesystemStructHandler */
 
-bool TypesystemStructHandler::startCommand(const std::string &commandName,
-                                           Variant::mapType &args)
+bool TypesystemStructHandler::startCommand(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -127,8 +124,7 @@ void TypesystemStructHandler::end() { scope().pop(logger()); }
 
 /* TypesystemStructFieldHandler */
 
-bool TypesystemStructFieldHandler::startCommand(const std::string &commandName,
-                                                Variant::mapType &args)
+bool TypesystemStructFieldHandler::startCommand(Variant::mapType &args)
 {
 	// Read the argument values
 	const std::string &fieldName = args["name"].asString();
@@ -167,8 +163,7 @@ bool TypesystemStructFieldHandler::startCommand(const std::string &commandName,
 
 /* TypesystemConstantHandler */
 
-bool TypesystemConstantHandler::startCommand(const std::string &commandName,
-                                             Variant::mapType &args)
+bool TypesystemConstantHandler::startCommand(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 

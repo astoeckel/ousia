@@ -42,11 +42,6 @@ namespace {
 class HandlerInfo {
 public:
 	/**
-	 * Name of the command or the token sequence.
-	 */
-	std::string name;
-
-	/**
 	 * Pointer pointing at the actual handler instance.
 	 */
 	std::shared_ptr<Handler> handler;
@@ -362,7 +357,7 @@ public:
 	void unregisterToken(TokenId id) override;
 	Variant readData() override;
 	bool hasData();
-	void pushTokens(const std::vector<TokenSyntaxDescriptor> &tokens) override;
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens) override;
 	void popTokens() override;
 };
 
@@ -394,7 +389,7 @@ StackImpl::~StackImpl()
 			    !info.inImplicitDefaultField) {
 				logger().error(
 				    std::string("Reached end of stream, but command \"") +
-				        info.name +
+				        currentCommandName() +
 				        "\" has not ended yet. Command was started here:",
 				    info.handler->getLocation());
 			}
@@ -428,8 +423,8 @@ void StackImpl::deduceState()
 	HandlerConstructor ctor =
 	    state.elementHandler ? state.elementHandler : EmptyHandler::create;
 
-	std::shared_ptr<Handler> handler =
-	    std::shared_ptr<Handler>{ctor({ctx, *this, state, SourceLocation{}})};
+	std::shared_ptr<Handler> handler = std::shared_ptr<Handler>{
+	    ctor({ctx, *this, state, SourceLocation{}, HandlerType::COMMAND})};
 	stack.emplace_back(handler);
 
 	// Set the correct flags for this implicit handler
@@ -452,12 +447,12 @@ std::set<std::string> StackImpl::expectedCommands()
 
 const State &StackImpl::currentState() const
 {
-	return stack.empty() ? States::None : stack.back().handler->getState();
+	return stack.empty() ? States::None : stack.back().handler->state();
 }
 
 std::string StackImpl::currentCommandName() const
 {
-	return stack.empty() ? std::string{} : stack.back().name;
+	return stack.empty() ? std::string{} : stack.back().handler->name();
 }
 
 const State *StackImpl::findTargetState(const std::string &name)
@@ -616,21 +611,29 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 		                              ? targetState->elementHandler
 		                              : EmptyHandler::create;
 		std::shared_ptr<Handler> handler{
-		    ctor({ctx, *this, *targetState, name.getLocation()})};
+		    ctor({ctx,
+		          *this,
+		          *targetState,
+		          {name.asString(), name.getLocation()},
+		          HandlerType::COMMAND})};
 		stack.emplace_back(handler);
 
-		// Fetch the HandlerInfo for the parent element and the current element
+		// Fetch the HandlerInfo for the parent element and the current
+		// element
 		HandlerInfo &parentInfo = lastInfo();
 		HandlerInfo &info = currentInfo();
 
-		// Call the "start" method of the handler, store the result of the start
-		// method as the validity of the handler -- do not call the start method
+		// Call the "start" method of the handler, store the result of the
+		// start
+		// method as the validity of the handler -- do not call the start
+		// method
 		// if the stack is currently invalid (as this may cause further,
 		// unwanted errors)
 		bool validStack = handlersValid();
 		info.valid = false;
 		if (validStack) {
-			// Canonicalize the arguments (if this has not already been done),
+			// Canonicalize the arguments (if this has not already been
+			// done),
 			// allow additional arguments and numeric indices
 			Variant::mapType canonicalArgs = args;
 			targetState->arguments.validateMap(canonicalArgs, loggerFork, true,
@@ -638,8 +641,7 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 
 			handler->setLogger(loggerFork);
 			try {
-				info.valid =
-				    handler->startCommand(name.asString(), canonicalArgs);
+				info.valid = handler->startCommand(canonicalArgs);
 			}
 			catch (LoggableException ex) {
 				loggerFork.log(ex);
@@ -647,8 +649,10 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 			handler->resetLogger();
 		}
 
-		// We started the command within an implicit default field and it is not
-		// valid -- remove both the new handler and the parent field from the
+		// We started the command within an implicit default field and it is
+		// not
+		// valid -- remove both the new handler and the parent field from
+		// the
 		// stack
 		if (!info.valid && parentInfo.inImplicitDefaultField) {
 			endCurrentHandler();
@@ -656,7 +660,8 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 			continue;
 		}
 
-		// If we ended up here, starting the command may or may not have worked,
+		// If we ended up here, starting the command may or may not have
+		// worked,
 		// but after all, we cannot unroll the stack any further. Update the
 		// "valid" flag, commit any potential error messages and return.
 		info.valid = parentInfo.valid && info.valid;
@@ -687,13 +692,15 @@ void StackImpl::data(const TokenizedData &data)
 	// TODO: Rewrite this function for token handling
 	// TODO: This loop needs to be refactored out
 	/*while (!data.atEnd()) {
-	    // End handlers that already had a default field and are currently not
+	    // End handlers that already had a default field and are currently
+	not
 	    // active.
 	    endOverdueHandlers();
 
 	    const bool hasNonWhitespaceText = data.hasNonWhitespaceText();
 
-	    // Check whether there is any command the data can be sent to -- if not,
+	    // Check whether there is any command the data can be sent to -- if
+	not,
 	    // make sure the data actually is data
 	    if (stack.empty()) {
 	        if (hasNonWhitespaceText) {
@@ -712,10 +719,12 @@ void StackImpl::data(const TokenizedData &data)
 	        continue;
 	    }
 
-	    // If this field should not get any data, log an error and do not call
+	    // If this field should not get any data, log an error and do not
+	call
 	    // the "data" handler
 	    if (!info.inValidField) {
-	        // If the "hadDefaultField" flag is set, we already issued an error
+	        // If the "hadDefaultField" flag is set, we already issued an
+	error
 	        // message
 	        if (!info.hadDefaultField) {
 	            if (hasNonWhitespaceText) {
@@ -726,8 +735,10 @@ void StackImpl::data(const TokenizedData &data)
 	    }
 
 	    if (handlersValid() && info.inValidField) {
-	        // Fork the logger and set it as temporary logger for the "start"
-	        // method. We only want to keep error messages if this was not a try
+	        // Fork the logger and set it as temporary logger for the
+	"start"
+	        // method. We only want to keep error messages if this was not a
+	try
 	        // to implicitly open a default field.
 	        LoggerFork loggerFork = logger().fork();
 	        info.handler->setLogger(loggerFork);
@@ -735,12 +746,14 @@ void StackImpl::data(const TokenizedData &data)
 	        // Pass the data to the current Handler instance
 	        bool valid = false;
 	        try {
-	            // Create a fork of the TokenizedData and let the handler work
+	            // Create a fork of the TokenizedData and let the handler
+	work
 	            // on it
 	            TokenizedData dataFork = data;
 	            valid = info.handler->data(dataFork);
 
-	            // If the data was validly handled by the handler, commit the
+	            // If the data was validly handled by the handler, commit
+	the
 	            // change
 	            if (valid) {
 	                data = dataFork;
@@ -754,14 +767,16 @@ void StackImpl::data(const TokenizedData &data)
 	        info.handler->resetLogger();
 
 	        // If placing the data here failed and we're currently in an
-	        // implicitly opened field, just unroll the stack to the next field
+	        // implicitly opened field, just unroll the stack to the next
+	field
 	        // and try again
 	        if (!valid && info.inImplicitDefaultField) {
 	            endCurrentHandler();
 	            continue;
 	        }
 
-	        // Commit the content of the logger fork. Do not change the valid
+	        // Commit the content of the logger fork. Do not change the
+	valid
 	        // flag.
 	        loggerFork.commit();
 	    }
@@ -783,12 +798,14 @@ void StackImpl::fieldStart(bool isDefault)
 	HandlerInfo &info = currentInfo();
 	if (info.inField) {
 		logger().error(
-		    "Got field start, but there is no command for which to start the "
+		    "Got field start, but there is no command for which to start "
+		    "the "
 		    "field.");
 		return;
 	}
 
-	// If the handler already had a default field we cannot start a new field
+	// If the handler already had a default field we cannot start a new
+	// field
 	// (the default field always is the last field) -- mark the command as
 	// invalid
 	if (info.hadDefaultField) {
@@ -797,7 +814,8 @@ void StackImpl::fieldStart(bool isDefault)
 		               std::string("\" does not have any more fields"));
 	}
 
-	// Copy the isDefault flag to a local variable, the fieldStart method will
+	// Copy the isDefault flag to a local variable, the fieldStart method
+	// will
 	// write into this variable
 	bool defaultField = isDefault;
 
@@ -843,7 +861,8 @@ void StackImpl::fieldEnd()
 		return;
 	}
 
-	// Only continue if the current handler stack is in a valid state, do not
+	// Only continue if the current handler stack is in a valid state, do
+	// not
 	// call the fieldEnd function if something went wrong before
 	if (handlersValid() && !info.hadDefaultField && info.inValidField) {
 		try {
@@ -868,7 +887,7 @@ void StackImpl::unregisterToken(TokenId id)
 	tokenRegistry.unregisterToken(id);
 }
 
-void StackImpl::pushTokens(const std::vector<TokenSyntaxDescriptor> &tokens)
+void StackImpl::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 {
 	// TODO
 }

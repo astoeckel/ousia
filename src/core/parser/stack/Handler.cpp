@@ -32,8 +32,9 @@ namespace parser_stack {
 /* Class HandlerData */
 
 HandlerData::HandlerData(ParserContext &ctx, HandlerCallbacks &callbacks,
-                         const State &state, const SourceLocation &location)
-    : ctx(ctx), callbacks(callbacks), state(state), location(location)
+                         const State &state, const Token &token,
+                         HandlerType type)
+    : ctx(ctx), callbacks(callbacks), state(state), token(token), type(type)
 {
 }
 
@@ -60,7 +61,20 @@ Logger &Handler::logger()
 	return handlerData.ctx.getLogger();
 }
 
-const SourceLocation &Handler::location() const { return handlerData.location; }
+const std::string &Handler::name() const { return handlerData.token.content; }
+
+TokenId Handler::tokenId() const { return handlerData.token.id; }
+
+const Token &Handler::token() const { return handlerData.token; }
+
+const SourceLocation &Handler::location() const
+{
+	return handlerData.token.location;
+}
+
+HandlerType Handler::type() const { return handlerData.type; }
+
+const State &Handler::state() const { return handlerData.state; }
 
 Variant Handler::readData() { return handlerData.callbacks.readData(); }
 
@@ -81,8 +95,6 @@ void Handler::unregisterToken(TokenId id)
 	handlerData.callbacks.unregisterToken(id);
 }
 
-const State &Handler::getState() const { return handlerData.state; }
-
 void Handler::setLogger(Logger &logger) { internalLogger = &logger; }
 
 void Handler::resetLogger() { internalLogger = nullptr; }
@@ -91,15 +103,13 @@ const SourceLocation &Handler::getLocation() const { return location(); }
 
 /* Class EmptyHandler */
 
-bool EmptyHandler::startCommand(const std::string &commandName,
-                                Variant::mapType &args)
+bool EmptyHandler::startCommand(Variant::mapType &args)
 {
 	// Well, we'll support any command we get, don't we?
 	return true;
 }
 
-bool EmptyHandler::startAnnotation(const std::string &name,
-                                   Variant::mapType &args,
+bool EmptyHandler::startAnnotation(Variant::mapType &args,
                                    Handler::AnnotationType annotationType)
 {
 	// Do not support annotations. Annotations are too complicated for poor
@@ -107,7 +117,7 @@ bool EmptyHandler::startAnnotation(const std::string &name,
 	return false;
 }
 
-bool EmptyHandler::startToken(const Token &token, Handle<Node> node)
+bool EmptyHandler::startToken(Handle<Node> node)
 {
 	// EmptyHandler does not support tokens.
 	return false;
@@ -149,24 +159,19 @@ Handler *EmptyHandler::create(const HandlerData &handlerData)
 
 /* Class StaticHandler */
 
-bool StaticHandler::startCommand(const std::string &commandName,
-                                 Variant::mapType &args)
+bool StaticHandler::startCommand(Variant::mapType &args)
 {
 	// Do nothing in the default implementation, accept anything
 	return true;
 }
 
-bool StaticHandler::startAnnotation(const std::string &name,
-                                    Variant::mapType &args,
+bool StaticHandler::startAnnotation(Variant::mapType &args,
                                     Handler::AnnotationType annotationType)
 {
 	return false;
 }
 
-bool StaticHandler::startToken(const Token &token, Handle<Node> node)
-{
-	return false;
-}
+bool StaticHandler::startToken(Handle<Node> node) { return false; }
 
 Handler::EndTokenResult StaticHandler::endToken(const Token &token,
                                                 Handle<Node> node)
@@ -209,8 +214,7 @@ StaticFieldHandler::StaticFieldHandler(const HandlerData &handlerData,
 {
 }
 
-bool StaticFieldHandler::startCommand(const std::string &commandName,
-                                      Variant::mapType &args)
+bool StaticFieldHandler::startCommand(Variant::mapType &args)
 {
 	if (!argName.empty()) {
 		auto it = args.find(argName);

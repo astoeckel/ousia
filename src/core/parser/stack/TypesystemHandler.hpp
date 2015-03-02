@@ -43,8 +43,7 @@ class TypesystemHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool startCommand(const std::string &commandName,
-	                  Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	/**
@@ -68,8 +67,7 @@ class TypesystemEnumHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool startCommand(const std::string &commandName,
-	                  Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	/**
@@ -116,8 +114,7 @@ class TypesystemStructHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool startCommand(const std::string &commandName,
-	                  Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	/**
@@ -142,8 +139,7 @@ class TypesystemStructFieldHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool startCommand(const std::string &commandName,
-	                  Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 
 	/**
 	 * Creates a new instance of the TypesystemStructFieldHandler.
@@ -166,8 +162,7 @@ class TypesystemConstantHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool startCommand(const std::string &commandName,
-	                  Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 
 	/**
 	 * Creates a new instance of the TypesystemConstantHandler.

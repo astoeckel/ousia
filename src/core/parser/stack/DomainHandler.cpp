@@ -33,8 +33,7 @@ namespace parser_stack {
 
 /* DomainHandler */
 
-bool DomainHandler::startCommand(const std::string &commandName,
-                                 Variant::mapType &args)
+bool DomainHandler::startCommand(Variant::mapType &args)
 {
 	// Create the Domain node
 	Rooted<Domain> domain =
@@ -58,8 +57,7 @@ void DomainHandler::end() { scope().pop(logger()); }
 
 /* DomainStructHandler */
 
-bool DomainStructHandler::startCommand(const std::string &commandName,
-                                       Variant::mapType &args)
+bool DomainStructHandler::startCommand(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -90,8 +88,7 @@ bool DomainStructHandler::startCommand(const std::string &commandName,
 void DomainStructHandler::end() { scope().pop(logger()); }
 
 /* DomainAnnotationHandler */
-bool DomainAnnotationHandler::startCommand(const std::string &commandName,
-                                           Variant::mapType &args)
+bool DomainAnnotationHandler::startCommand(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -109,8 +106,7 @@ void DomainAnnotationHandler::end() { scope().pop(logger()); }
 
 /* DomainAttributesHandler */
 
-bool DomainAttributesHandler::startCommand(const std::string &commandName,
-                                           Variant::mapType &args)
+bool DomainAttributesHandler::startCommand(Variant::mapType &args)
 {
 	// Fetch the current typesystem and create the struct node
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
@@ -126,8 +122,7 @@ void DomainAttributesHandler::end() { scope().pop(logger()); }
 
 /* DomainFieldHandler */
 
-bool DomainFieldHandler::startCommand(const std::string &commandName,
-                                      Variant::mapType &args)
+bool DomainFieldHandler::startCommand(Variant::mapType &args)
 {
 	FieldDescriptor::FieldType type;
 	if (args["isSubtree"].asBool()) {
@@ -157,16 +152,15 @@ void DomainFieldHandler::end() { scope().pop(logger()); }
 
 /* DomainFieldRefHandler */
 
-bool DomainFieldRefHandler::startCommand(const std::string &commandName,
-                                         Variant::mapType &args)
+bool DomainFieldRefHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
-	const std::string &ref = args["ref"].asString();
+	const std::string &name = args["ref"].asString();
 
 	auto loc = location();
 
-	scope().resolveFieldDescriptor(ref, parent, logger(),
+	scope().resolveFieldDescriptor(name, parent, logger(),
 	                               [loc](Handle<Node> field,
 	                                     Handle<Node> parent, Logger &logger) {
 		if (field != nullptr) {
@@ -188,8 +182,7 @@ void DomainFieldRefHandler::end() {}
 
 /* DomainPrimitiveHandler */
 
-bool DomainPrimitiveHandler::startCommand(const std::string &commandName,
-                                          Variant::mapType &args)
+bool DomainPrimitiveHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
@@ -229,14 +222,13 @@ void DomainPrimitiveHandler::end() { scope().pop(logger()); }
 
 /* DomainChildHandler */
 
-bool DomainChildHandler::startCommand(const std::string &commandName,
-                                      Variant::mapType &args)
+bool DomainChildHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<FieldDescriptor> field = scope().selectOrThrow<FieldDescriptor>();
 
-	const std::string &ref = args["ref"].asString();
+	const std::string &name = args["ref"].asString();
 	scope().resolve<StructuredClass>(
-	    ref, field, logger(),
+	    name, field, logger(),
 	    [](Handle<Node> child, Handle<Node> field, Logger &logger) {
 		    if (child != nullptr) {
 			    field.cast<FieldDescriptor>()->addChild(
@@ -248,8 +240,7 @@ bool DomainChildHandler::startCommand(const std::string &commandName,
 
 /* DomainParentHandler */
 
-bool DomainParentHandler::startCommand(const std::string &commandName,
-                                       Variant::mapType &args)
+bool DomainParentHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<StructuredClass> strct = scope().selectOrThrow<StructuredClass>();
 
@@ -264,8 +255,7 @@ void DomainParentHandler::end() { scope().pop(logger()); }
 
 /* DomainParentFieldHandler */
 
-bool DomainParentFieldHandler::startCommand(const std::string &commandName,
-                                            Variant::mapType &args)
+bool DomainParentFieldHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<DomainParent> parentNameNode = scope().selectOrThrow<DomainParent>();
 	FieldDescriptor::FieldType type;
@@ -275,7 +265,7 @@ bool DomainParentFieldHandler::startCommand(const std::string &commandName,
 		type = FieldDescriptor::FieldType::TREE;
 	}
 
-	const std::string &fieldName = args["name"].asString();
+	const std::string &name = args["name"].asString();
 	const bool optional = args["optional"].asBool();
 	Rooted<StructuredClass> strct =
 	    parentNameNode->getParent().cast<StructuredClass>();
@@ -284,12 +274,12 @@ bool DomainParentFieldHandler::startCommand(const std::string &commandName,
 	// StructuredClass as child to it.
 	scope().resolve<Descriptor>(
 	    parentNameNode->getName(), strct, logger(),
-	    [type, fieldName, optional](Handle<Node> parent, Handle<Node> strct,
+	    [type, name, optional](Handle<Node> parent, Handle<Node> strct,
 	                                Logger &logger) {
 		    if (parent != nullptr) {
 			    Rooted<FieldDescriptor> field =
 			        (parent.cast<Descriptor>()->createFieldDescriptor(
-			             logger, type, fieldName, optional)).first;
+			             logger, type, name, optional)).first;
 			    field->addChild(strct.cast<StructuredClass>());
 		    }
 		});
@@ -298,12 +288,11 @@ bool DomainParentFieldHandler::startCommand(const std::string &commandName,
 
 /* DomainParentFieldRefHandler */
 
-bool DomainParentFieldRefHandler::startCommand(const std::string &commandName,
-                                               Variant::mapType &args)
+bool DomainParentFieldRefHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<DomainParent> parentNameNode = scope().selectOrThrow<DomainParent>();
 
-	const std::string &ref = args["ref"].asString();
+	const std::string &name = args["ref"].asString();
 	Rooted<StructuredClass> strct =
 	    parentNameNode->getParent().cast<StructuredClass>();
 	auto loc = location();
@@ -311,14 +300,14 @@ bool DomainParentFieldRefHandler::startCommand(const std::string &commandName,
 	// resolve the parent, get the referenced field and add the declared
 	// StructuredClass as child to it.
 	scope().resolve<Descriptor>(parentNameNode->getName(), strct, logger(),
-	                            [ref, loc](Handle<Node> parent,
+	                            [name, loc](Handle<Node> parent,
 	                                       Handle<Node> strct, Logger &logger) {
 		if (parent != nullptr) {
 			Rooted<FieldDescriptor> field =
-			    parent.cast<Descriptor>()->getFieldDescriptor(ref);
+			    parent.cast<Descriptor>()->getFieldDescriptor(name);
 			if (field == nullptr) {
 				logger.error(
-				    std::string("Could not find referenced field ") + ref, loc);
+				    std::string("Could not find referenced field ") + name, loc);
 				return;
 			}
 			field->addChild(strct.cast<StructuredClass>());

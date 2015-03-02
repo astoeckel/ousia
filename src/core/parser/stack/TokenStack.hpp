@@ -82,9 +82,9 @@ public:
 	TokenStack(const TokenStack &parentStack) : TokenStack(&parentStack) {}
 
 	/**
-	 * Pushes a list of TokenSyntaxDescriptor instances onto the internal stack.
+	 * Pushes a list of SyntaxDescriptor instances onto the internal stack.
 	 *
-	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
+	 * @param tokens is a list of SyntaxDescriptor instances that should be
 	 * stored on the stack.
 	 */
 	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);

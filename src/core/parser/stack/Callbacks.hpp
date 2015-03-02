@@ -87,7 +87,8 @@ public:
 	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
 	 * stored on the stack.
 	 */
-	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
+	virtual void pushTokens(const std::vector<SyntaxDescriptor> &tokens) = 0;
+
 	/**
 	 * Removes the previously pushed list of tokens from the stack.
 	 */
