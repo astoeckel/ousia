@@ -77,18 +77,8 @@ public:
  * Interface defining a set of callback functions that act as a basis for the
  * StateStackCallbacks and the ParserCallbacks.
  */
-class HandlerCallbacks: public ParserCallbacks {
+class HandlerCallbacks : public ParserCallbacks {
 public:
-	/**
-	 * Reads a string variant form the current input stream. This function must
-	 * be called from the data() method.
-	 *
-	 * @return a string variant containing the current text data. The return
-	 * value depends on the currently set whitespace mode and the tokens that
-	 * were enabled using the enableTokens callback method.
-	 */
-	Variant readData();
-
 	/**
 	 * Pushes a list of TokenSyntaxDescriptor instances onto the internal stack.
 	 * The tokens described in the token list are the tokens that are currently
@@ -98,13 +88,21 @@ public:
 	 * stored on the stack.
 	 */
 	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
-
 	/**
 	 * Removes the previously pushed list of tokens from the stack.
 	 */
-	void popTokens();
-};
+	virtual void popTokens() = 0;
 
+	/**
+	 * Reads a string variant form the current input stream. This function must
+	 * be called from the data() method.
+	 *
+	 * @return a string variant containing the current text data. The return
+	 * value depends on the currently set whitespace mode and the tokens that
+	 * were enabled using the enableTokens callback method.
+	 */
+	virtual Variant readData() = 0;
+};
 }
 }
 

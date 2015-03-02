@@ -73,7 +73,7 @@ public:
 	    : logger(ctx.getLogger()),
 	      ctx(ctx),
 	      parser(reader, logger),
-	      stack(ctx, GenericParserStates)
+	      stack(parser, ctx, GenericParserStates)
 	{
 	}
 

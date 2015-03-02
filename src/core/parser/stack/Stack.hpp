@@ -42,6 +42,7 @@ class Variant;
 namespace parser_stack {
 
 // Forward declarations
+class ParserCallbacks;
 class StackImpl;
 class State;
 
@@ -63,11 +64,13 @@ public:
 	/**
 	 * Creates a new instance of the Stack class.
 	 *
+	 * @param parser is an implementation of the ParserCallbacks instance to
+	 * which certain calls are directed.
 	 * @param ctx is the parser context the parser stack is working on.
 	 * @param states is a map containing the command names and pointers at the
 	 * corresponding State instances.
 	 */
-	Stack(ParserContext &ctx,
+	Stack(ParserCallbacks &parser, ParserContext &ctx,
 	      const std::multimap<std::string, const State *> &states);
 
 	/**
@@ -81,7 +84,7 @@ public:
 	 * @return the state of the currently active Handler instance or
 	 * States::None if no handler is on the stack.
 	 */
-	const State &currentState();
+	const State &currentState() const;
 
 	/**
 	 * Returns the command name that is currently being handled.
@@ -89,7 +92,7 @@ public:
 	 * @return the name of the command currently being handled by the active
 	 * Handler instance or an empty string if no handler is currently active.
 	 */
-	std::string currentCommandName();
+	std::string currentCommandName() const;
 
 	/**
 	 * Function that should be called whenever a new command is reached.
@@ -154,16 +157,6 @@ public:
 	 * that should be read.
 	 */
 	void data(const TokenizedData &data);
-
-	/**
-	 * Function that shuold be called whenever character data is found in the
-	 * input stream. The given string variant is converted into a TokenizedData
-	 * instance internally.
-	 *
-	 * @param stringData is a string variant containing the data that has been
-	 * found.
-	 */
-	void data(const Variant &stringData);
 };
 }
 }

@@ -93,8 +93,6 @@ public:
 class DocumentChildHandler : public Handler {
 private:
 	bool isExplicitField = false;
-	//TODO: REMOVE
-	std::string strct_name;
 
 	/**
 	 * Code shared by both the start(), fieldStart() and the data() method.
@@ -167,7 +165,7 @@ public:
 
 	bool start(Variant::mapType &args) override;
 	void end() override;
-	bool data(TokenizedData &data) override;
+	bool data() override;
 
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
 

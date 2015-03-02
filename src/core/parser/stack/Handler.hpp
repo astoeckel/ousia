@@ -38,7 +38,7 @@ class Variant;
 namespace parser_stack {
 
 // More forward declarations
-class Callbacks;
+class HandlerCallbacks;
 class State;
 
 /**
@@ -162,6 +162,44 @@ protected:
 	const std::string &name() const;
 
 	/**
+	 * Calls the corresponding function in the HandlerCallbacks instance. This
+	 * method registers the given tokens as tokens that are generally available,
+	 * tokens must be explicitly enabled using the "pushTokens" and "popTokens"
+	 * method. Tokens that have not been registered are not guaranteed to be
+	 * reported (except for special tokens, these do not have to be registerd).
+	 *
+	 * @param token is the token string that should be made available.
+	 * @return the TokenId that will be used to refer to the token.
+	 */
+	TokenId registerToken(const std::string &token);
+
+	/**
+	 * Calls the corresponding function in the HandlerCallbacks instance. This
+	 * method unregisters the given token. Note that for a token to be no longer
+	 * reported, this function has to be called as many times as registerToken()
+	 * for the corresponding token.
+	 *
+	 * @param id is the id of the Token that should be unregistered.
+	 */
+	void unregisterToken(TokenId id);
+
+	/**
+	 * Pushes a list of TokenSyntaxDescriptor instances onto the internal stack.
+	 * The tokens described in the token list are the tokens that are currently
+	 * enabled.
+	 *
+	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
+	 * stored on the stack.
+	 */
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
+
+	/**
+	 * Calls the corresponding function in the HandlerCallbacks instance.
+	 * Removes the previously pushed list of tokens from the stack.
+	 */
+	void popTokens();
+
+	/**
 	 * Calls the corresponding method in the HandlerCallbacks instance. Reads a
 	 * string variant form the current input stream. This function must be
 	 * called from the data() method.
@@ -192,44 +230,6 @@ protected:
 	 * method of the same handler.
 	 */
 	//	void popWhitespaceMode();
-
-	/**
-	 * Pushes a list of TokenSyntaxDescriptor instances onto the internal stack.
-	 * The tokens described in the token list are the tokens that are currently
-	 * enabled.
-	 *
-	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
-	 * stored on the stack.
-	 */
-	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
-
-	/**
-	 * Calls the corresponding function in the HandlerCallbacks instance.
-	 * Removes the previously pushed list of tokens from the stack.
-	 */
-	void popTokens();
-
-	/**
-	 * Calls the corresponding function in the HandlerCallbacks instance. This
-	 * method registers the given tokens as tokens that are generally available,
-	 * tokens must be explicitly enabled using the "pushTokens" and "popTokens"
-	 * method. Tokens that have not been registered are not guaranteed to be
-	 * reported (except for special tokens, these do not have to be registerd).
-	 *
-	 * @param token is the token string that should be made available.
-	 * @return the TokenId that will be used to refer to the token.
-	 */
-	TokenId registerToken(const std::string &token);
-
-	/**
-	 * Calls the corresponding function in the HandlerCallbacks instance. This
-	 * method unregisters the given token. Note that for a token to be no longer
-	 * reported, this function has to be called as many times as registerToken()
-	 * for the corresponding token.
-	 *
-	 * @param id is the id of the Token that should be unregistered.
-	 */
-	void unregisterToken(TokenId id);
 
 public:
 	/**
