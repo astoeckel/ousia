@@ -82,9 +82,7 @@ TEST(Domain, testDomainResolving)
 }
 
 // i use this wrapper due to the strange behaviour of GTEST.
-static void assertFalse(bool b){
-	ASSERT_FALSE(b);
-}
+static void assertFalse(bool b) { ASSERT_FALSE(b); }
 
 static Rooted<FieldDescriptor> createUnsortedPrimitiveField(
     Handle<StructuredClass> strct, Handle<Type> type, Logger &logger, bool tree,
@@ -169,7 +167,6 @@ TEST(StructuredClass, getFieldDescriptors)
 		ASSERT_EQ(B_main, fds[3]);
 	}
 }
-
 
 TEST(StructuredClass, getFieldDescriptorsCycles)
 {
@@ -523,6 +520,91 @@ TEST(Descriptor, getPermittedChildrenCycles)
 	ASSERT_EQ(A, children[0]);
 }
 
+TEST(Descriptor, getSyntaxDescriptor)
+{
+	// build an ontology with some custom syntax.
+	Manager mgr{1};
+	Logger logger;
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// Construct the domain
+	Rooted<Domain> domain{new Domain(mgr, sys, "ontology")};
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, Cardinality::any(), {nullptr}, true, true)};
+	A->setStartToken(TokenDescriptor(Tokens::Indent));
+	A->setEndToken(TokenDescriptor(Tokens::Dedent));
+	{
+		TokenDescriptor sh{"<+>"};
+		sh.id = 1;
+		A->setShortToken(sh);
+	}
+	// check the SyntaxDescriptor
+	SyntaxDescriptor stx = A->getSyntaxDescriptor();
+	ASSERT_EQ(Tokens::Indent, stx.start);
+	ASSERT_EQ(Tokens::Dedent, stx.end);
+	ASSERT_EQ(1, stx.shortForm);
+	ASSERT_EQ(A, stx.descriptor);
+	ASSERT_TRUE(stx.isStruct());
+	ASSERT_FALSE(stx.isAnnotation());
+	ASSERT_FALSE(stx.isFieldDescriptor());
+}
+
+TEST(Descriptor, getPermittedTokens)
+{
+	// build an ontology with some custom syntax.
+	Manager mgr{1};
+	Logger logger;
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// Construct the domain
+	Rooted<Domain> domain{new Domain(mgr, sys, "ontology")};
+	// add one StructuredClass with all tokens set.
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, Cardinality::any(), {nullptr}, true, true)};
+	A->setStartToken(TokenDescriptor(Tokens::Indent));
+	A->setEndToken(TokenDescriptor(Tokens::Dedent));
+	{
+		TokenDescriptor sh{"<+>"};
+		sh.id = 1;
+		A->setShortToken(sh);
+	}
+	// add a field with one token set.
+	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
+	A_field->setEndToken(TokenDescriptor(Tokens::Newline));
+	A_field->addChild(A);
+	// add an annotation with start and end set.
+	Rooted<AnnotationClass> A_anno = domain->createAnnotationClass("A");
+	{
+		TokenDescriptor start{"<"};
+		start.id = 7;
+		A_anno->setStartToken(start);
+	}
+	{
+		TokenDescriptor end{">"};
+		end.id = 8;
+		A_anno->setEndToken(end);
+	}
+	// add a trivial annotation, which should not be returned.
+	Rooted<AnnotationClass> B_anno = domain->createAnnotationClass("B");
+	ASSERT_TRUE(domain->validate(logger));
+
+	// check result.
+	std::vector<SyntaxDescriptor> stxs = A->getPermittedTokens();
+	ASSERT_EQ(3, stxs.size());
+	// the field should be first, because A itself should not be collected
+	// directly.
+	ASSERT_EQ(A_field, stxs[0].descriptor);
+	ASSERT_EQ(Tokens::Empty, stxs[0].start);
+	ASSERT_EQ(Tokens::Newline, stxs[0].end);
+	ASSERT_EQ(Tokens::Empty, stxs[0].shortForm);
+	ASSERT_EQ(A, stxs[1].descriptor);
+	ASSERT_EQ(Tokens::Indent, stxs[1].start);
+	ASSERT_EQ(Tokens::Dedent, stxs[1].end);
+	ASSERT_EQ(1, stxs[1].shortForm);
+	ASSERT_EQ(A_anno, stxs[2].descriptor);
+	ASSERT_EQ(7, stxs[2].start);
+	ASSERT_EQ(8, stxs[2].end);
+	ASSERT_EQ(Tokens::Empty, stxs[2].shortForm);
+}
+
 TEST(StructuredClass, isSubclassOf)
 {
 	// create an inheritance hierarchy.
@@ -629,6 +711,14 @@ TEST(Domain, validate)
 		base_field->setPrimitiveType(sys->getStringType());
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
+		// add an invalid start token.
+		base_field->setStartToken(TokenDescriptor("< + >"));
+		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
+		ASSERT_FALSE(domain->validate(logger));
+		// make it valid.
+		base_field->setStartToken(TokenDescriptor("<"));
+		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
+		ASSERT_TRUE(domain->validate(logger));
 		// add a subclass for our base class.
 		Rooted<StructuredClass> sub{new StructuredClass(mgr, "sub", domain)};
 		// this should be valid in itself.
@@ -685,5 +775,72 @@ TEST(Domain, validate)
 		ASSERT_EQ(ValidationState::UNKNOWN, domain->getValidationState());
 		ASSERT_TRUE(domain->validate(logger));
 	}
+}
+
+TEST(Domain, getAllTokenDescriptors)
+{
+	// build an ontology with some custom syntax.
+	Manager mgr{1};
+	Logger logger;
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	// Construct the domain
+	Rooted<Domain> domain{new Domain(mgr, sys, "ontology")};
+	// add one StructuredClass with all tokens set.
+	Rooted<StructuredClass> A{new StructuredClass(
+	    mgr, "A", domain, Cardinality::any(), {nullptr}, true, true)};
+	A->setStartToken(TokenDescriptor(Tokens::Indent));
+	A->setEndToken(TokenDescriptor(Tokens::Dedent));
+	{
+		TokenDescriptor sh{"<+>"};
+		sh.id = 1;
+		A->setShortToken(sh);
+	}
+	// add a field with one token set.
+	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
+	A_field->setEndToken(TokenDescriptor(Tokens::Newline));
+	A_field->addChild(A);
+	// add an annotation with start and end set.
+	Rooted<AnnotationClass> A_anno = domain->createAnnotationClass("A");
+	{
+		TokenDescriptor start{"<"};
+		start.id = 7;
+		A_anno->setStartToken(start);
+	}
+	{
+		TokenDescriptor end{">"};
+		end.id = 8;
+		A_anno->setEndToken(end);
+	}
+	// add a trivial annotation, which should not be returned.
+	Rooted<AnnotationClass> B_anno = domain->createAnnotationClass("B");
+	ASSERT_TRUE(domain->validate(logger));
+
+	// check the result.
+	std::vector<TokenDescriptor *> tks = domain->getAllTokenDescriptors();
+
+	// A short token
+	ASSERT_EQ("<+>", tks[0]->token);
+	ASSERT_EQ(1, tks[0]->id);
+	ASSERT_FALSE(tks[0]->special);
+	// A start token
+	ASSERT_EQ("", tks[1]->token);
+	ASSERT_EQ(Tokens::Indent, tks[1]->id);
+	ASSERT_TRUE(tks[1]->special);
+	// A end token
+	ASSERT_EQ("", tks[2]->token);
+	ASSERT_EQ(Tokens::Dedent, tks[2]->id);
+	ASSERT_TRUE(tks[2]->special);
+	// A field end token
+	ASSERT_EQ("", tks[3]->token);
+	ASSERT_EQ(Tokens::Newline, tks[3]->id);
+	ASSERT_TRUE(tks[3]->special);
+	// A anno start token
+	ASSERT_EQ("<", tks[4]->token);
+	ASSERT_EQ(7, tks[4]->id);
+	ASSERT_FALSE(tks[4]->special);
+	// A anno end token
+	ASSERT_EQ(">", tks[5]->token);
+	ASSERT_EQ(8, tks[5]->id);
+	ASSERT_FALSE(tks[5]->special);
 }
 }
