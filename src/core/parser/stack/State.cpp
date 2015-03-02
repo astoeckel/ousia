@@ -23,17 +23,19 @@ namespace parser_stack {
 
 /* Class State */
 
-State::State() : elementHandler(nullptr) {}
+State::State() : elementHandler(nullptr), supportsAnnotations(false), supportsTokens(false) {}
 
 State::State(StateSet parents, Arguments arguments,
                          RttiSet createdNodeTypes,
                          HandlerConstructor elementHandler,
-                         bool supportsAnnotations)
+                         bool supportsAnnotations,
+                         bool supportsTokens)
     : parents(parents),
       arguments(arguments),
       createdNodeTypes(createdNodeTypes),
       elementHandler(elementHandler),
-      supportsAnnotations(supportsAnnotations)
+      supportsAnnotations(supportsAnnotations),
+      supportsTokens(supportsTokens)
 {
 }
 
@@ -92,6 +94,13 @@ StateBuilder &StateBuilder::supportsAnnotations(bool supportsAnnotations)
 	state.supportsAnnotations = supportsAnnotations;
 	return *this;
 }
+
+StateBuilder &StateBuilder::supportsTokens(bool supportsTokens)
+{
+	state.supportsTokens = supportsTokens;
+	return *this;
+}
+
 
 const State &StateBuilder::build() const { return state; }
 
