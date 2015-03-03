@@ -26,8 +26,8 @@
  *
  * A Document, from top to bottom, consists of "Document" instance,
  * which "owns" the structural root node of the in-document graph. This might
- * for example be a "book" node of the "book" ontology. That root node in turn has
- * structure nodes as children, which in turn may have children. This
+ * for example be a "book" node of the "book" ontology. That root node in turn
+ * has structure nodes as children, which in turn may have children. This
  * constitutes a Structure Tree. Additionally annotations may be attached to
  * Structure Nodes, effectively resulting in a Document Graph instead of a
  * Document Tree (other references may introduce cycles as well).
@@ -142,7 +142,7 @@ class Anchor;
  */
 class DocumentEntity {
 private:
-	/*
+	/**
 	 * this is a rather dirty method that should not be used in other cases:
 	 * We store a handle to the Node instance that inherits from
 	 * DocumentEntity. This Handle is not registered and would lead to Segfaults
@@ -155,6 +155,18 @@ private:
 	std::vector<NodeVector<StructureNode>> fields;
 
 	void invalidateSubInstance();
+
+	template <typename Iterator>
+	Rooted<Anchor> searchStartAnchorInField(Handle<AnnotationClass> desc,
+	                                        const std::string &name,
+	                                        Iterator begin, Iterator end);
+
+	Rooted<Anchor> searchStartAnchorDownwards(Handle<AnnotationClass> desc,
+	                                          const std::string &name);
+
+	Rooted<Anchor> searchStartAnchorUpwards(Handle<AnnotationClass> desc,
+	                                        const std::string &name,
+	                                        const DocumentEntity *child);
 
 protected:
 	bool doValidate(Logger &logger) const;
@@ -420,7 +432,7 @@ public:
 	Rooted<StructuredEntity> createChildStructuredEntity(
 	    Handle<StructuredClass> descriptor, const size_t &fieldIdx,
 	    Variant attributes = Variant::mapType{}, std::string name = "");
-	/*
+	/**
 	 * Creates a new DocumentPrimitive as child of this DocumentEntity.
 	 *
 	 * @param content   is a Variant containing the content of this
@@ -434,7 +446,7 @@ public:
 	 */
 	Rooted<DocumentPrimitive> createChildDocumentPrimitive(
 	    Variant content, const std::string &fieldName = DEFAULT_FIELD_NAME);
-	/*
+	/**
 	 * Creates a new DocumentPrimitive as child of this DocumentEntity.
 	 *
 	 * @param fieldIdx  is the index of the field, where the newly created
@@ -469,6 +481,23 @@ public:
 	 * @return          the newly created Anchor.
 	 */
 	Rooted<Anchor> createChildAnchor(const size_t &fieldIdx);
+
+	/**
+	 * Does an inverse depth first search starting at this DocumentEntity to
+	 * find a child Anchor element that matches the given seach criteria.
+	 * The search will not cross SUBTREE to TREE field boundaries and will not
+	 * leave AnnotationEntities upwards. If no Anchor is found a nullptr is
+	 * returned. AnnotationEntities which already have an end Anchor won't be
+	 * returned.
+	 *
+	 * @param desc is the AnnotationClass of the AnnotationEntity whose
+	 *             start Anchor you are looking for.
+	 * @param name is the AnnotationEntities name.
+	 * @return     the start Anchor or a nullptr if no Anchor could be found.
+	 */
+	Rooted<Anchor> searchStartAnchor(size_t fieldIdx,
+	                                 Handle<AnnotationClass> desc = nullptr,
+	                                 const std::string &name = "");
 };
 
 /**

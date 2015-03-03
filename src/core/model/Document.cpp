@@ -452,6 +452,112 @@ Rooted<Anchor> DocumentEntity::createChildAnchor(const size_t &fieldIdx)
 	return Rooted<Anchor>{new Anchor(subInst->getManager(), subInst, fieldIdx)};
 }
 
+static bool matchStartAnchor(Handle<AnnotationClass> desc,
+                             const std::string &name, Handle<Anchor> a)
+{
+	return (a->getAnnotation() != nullptr) &&
+	       (a->getAnnotation()->getEnd() == nullptr) &&
+	       (desc == nullptr || a->getAnnotation()->getDescriptor() == desc) &&
+	       (name.empty() || a->getAnnotation()->getName() == name);
+}
+
+template <typename Iterator>
+Rooted<Anchor> DocumentEntity::searchStartAnchorInField(
+    Handle<AnnotationClass> desc, const std::string &name, Iterator begin,
+    Iterator end)
+{
+	for (Iterator it = begin; it != end; it++) {
+		Handle<StructureNode> strct = *it;
+		if (strct->isa(&RttiTypes::Anchor)) {
+			// check if this Anchor is the right one.
+			Handle<Anchor> a = strct.cast<Anchor>();
+			if (matchStartAnchor(desc, name, a)) {
+				return a;
+			}
+			continue;
+		} else if (strct->isa(&RttiTypes::StructuredEntity)) {
+			// search downwards.
+			Rooted<Anchor> a =
+			    strct.cast<StructuredEntity>()->searchStartAnchorDownwards(
+			        desc, name);
+			if (a != nullptr) {
+				return a;
+			}
+		}
+	}
+	return nullptr;
+}
+
+Rooted<Anchor> DocumentEntity::searchStartAnchorDownwards(
+    Handle<AnnotationClass> desc, const std::string &name)
+{
+	if (fields.empty()) {
+		return nullptr;
+	}
+	// get the default field.
+	NodeVector<StructureNode> children = fields[fields.size() - 1];
+	// search it from back to front.
+	return searchStartAnchorInField(desc, name, children.rbegin(),
+	                                children.rend());
+}
+
+Rooted<Anchor> DocumentEntity::searchStartAnchorUpwards(
+    Handle<AnnotationClass> desc, const std::string &name,
+    const DocumentEntity *child)
+{
+	if (fields.empty()) {
+		return nullptr;
+	}
+	// get the default field.
+	NodeVector<StructureNode> children = fields[fields.size() - 1];
+	// search for the child from back to front.
+	auto it = children.rbegin();
+	while (static_cast<void *>(it->get()) != child->subInst.get() &&
+	       it != children.rend()) {
+		it++;
+	}
+	// increment the reverse iterator once more to prevent downwards search
+	// to the child.
+	if (it != children.rend()) {
+		it++;
+		return searchStartAnchorInField(desc, name, it, children.rend());
+	}
+	throw OusiaException("Internal error: Child node not found in parent!");
+}
+
+Rooted<Anchor> DocumentEntity::searchStartAnchor(size_t fieldIdx,
+                                                 Handle<AnnotationClass> desc,
+                                                 const std::string &name)
+{
+	// get the correct field.
+	NodeVector<StructureNode> children = fields[fieldIdx];
+	// search it from back to front.
+	Rooted<Anchor> a = searchStartAnchorInField(desc, name, children.rbegin(),
+	                                            children.rend());
+	// if we found the Anchor, return it.
+	if (a != nullptr) {
+		return a;
+	}
+
+	// If this is either an AnnotationEntity or a SUBTREE field we can not
+	// search upwards.
+	if (subInst->isa(&RttiTypes::AnnotationEntity) ||
+	    fieldIdx + 1 < fields.size()) {
+		return nullptr;
+	}
+	// if the children here did not contain the right start Anchor go upwards.
+	if (subInst->getParent()->isa(&RttiTypes::StructuredEntity)) {
+		return subInst->getParent()
+		    .cast<StructuredEntity>()
+		    ->searchStartAnchorUpwards(desc, name, this);
+	}
+	if (subInst->getParent()->isa(&RttiTypes::AnnotationEntity)) {
+		subInst->getParent().cast<AnnotationEntity>()->searchStartAnchorUpwards(
+		    desc, name, this);
+	}
+	return nullptr;
+}
+
 /* Class StructureNode */
 
 bool StructureNode::doValidate(Logger &logger) const
@@ -702,7 +808,9 @@ void AnnotationEntity::setStart(Handle<Anchor> s)
 	}
 	invalidate();
 	start = acquire(s);
-	s->setAnnotation(this, true);
+	if (s != nullptr) {
+		s->setAnnotation(this, true);
+	}
 }
 
 void AnnotationEntity::setEnd(Handle<Anchor> e)
@@ -712,7 +820,9 @@ void AnnotationEntity::setEnd(Handle<Anchor> e)
 	}
 	invalidate();
 	end = acquire(e);
-	e->setAnnotation(this, false);
+	if (e != nullptr) {
+		e->setAnnotation(this, false);
+	}
 }
 
 /* Class Document */

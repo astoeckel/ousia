@@ -30,6 +30,108 @@
 
 namespace ousia {
 
+TEST(DocumentEntity, searchStartAnchor)
+{
+	// create a trivial ontology.
+	TerminalLogger logger{std::cerr, true};
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "trivial")};
+	// we only have one StructuredClass that may have itself as a child.
+	Rooted<StructuredClass> A = ontology->createStructuredClass(
+	    "A", Cardinality::any(), nullptr, false, true);
+	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
+	A_field->addChild(A);
+	// create two AnnotationClasses.
+	Rooted<AnnotationClass> Alpha = ontology->createAnnotationClass("Alpha");
+	Rooted<AnnotationClass> Beta = ontology->createAnnotationClass("Beta");
+	// validate this ontology.
+	ASSERT_TRUE(ontology->validate(logger));
+
+	// create a trivial document.
+	Rooted<Document> doc{new Document(mgr, "myDoc")};
+	Rooted<StructuredEntity> root = doc->createRootStructuredEntity(A);
+	// add an Anchor.
+	Rooted<Anchor> a = root->createChildAnchor();
+	// create an AnnotationEntity with the Anchor as start.
+	doc->createChildAnnotation(Alpha, a, nullptr, Variant::mapType{}, "myAnno");
+	// We should be able to find the Anchor now if we look for it.
+	ASSERT_EQ(a, root->searchStartAnchor(0));
+	ASSERT_EQ(a, root->searchStartAnchor(0, Alpha));
+	ASSERT_EQ(a, root->searchStartAnchor(0, nullptr, "myAnno"));
+	ASSERT_EQ(a, root->searchStartAnchor(0, Alpha, "myAnno"));
+	// but we should not find it if we look for an Anchor of a different
+	// AnnotationClass.
+	ASSERT_EQ(nullptr, root->searchStartAnchor(0, Beta));
+
+	// now add a child to the root node and place the Anchor there.
+	Rooted<StructuredEntity> child = root->createChildStructuredEntity(A);
+	Rooted<Anchor> b = root->createChildAnchor();
+	doc->createChildAnnotation(Alpha, b, nullptr, Variant::mapType{}, "myAnno");
+	// now b should be returned because its closer.
+	ASSERT_EQ(b, root->searchStartAnchor(0));
+	ASSERT_EQ(b, root->searchStartAnchor(0, Alpha));
+	ASSERT_EQ(b, root->searchStartAnchor(0, nullptr, "myAnno"));
+	ASSERT_EQ(b, root->searchStartAnchor(0, Alpha, "myAnno"));
+}
+
+TEST(DocumentEntity, searchStartAnchorUpwards)
+{
+	// create a trivial ontology.
+	TerminalLogger logger{std::cerr, true};
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "trivial")};
+	// we only have one StructuredClass that may have itself as a child in the
+	// default field or a subtree field.
+	Rooted<StructuredClass> A = ontology->createStructuredClass(
+	    "A", Cardinality::any(), nullptr, false, true);
+	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
+	Rooted<FieldDescriptor> A_sub_field =
+	    A->createFieldDescriptor(logger, FieldDescriptor::FieldType::SUBTREE,
+	                             "sub").first;
+	A_field->addChild(A);
+	A_sub_field->addChild(A);
+	// create two AnnotationClasses.
+	Rooted<AnnotationClass> Alpha = ontology->createAnnotationClass("Alpha");
+	Rooted<AnnotationClass> Beta = ontology->createAnnotationClass("Beta");
+	// add a tree field to the annotation class.
+	Rooted<FieldDescriptor> Alpha_field =
+	    Alpha->createFieldDescriptor(logger).first;
+	Alpha_field->addChild(A);
+	// validate this ontology.
+	ASSERT_TRUE(ontology->validate(logger));
+
+	// create a document with a root node, and two children, one in the
+	// default and one in the subtree field.
+	Rooted<Document> doc{new Document(mgr, "myDoc")};
+	Rooted<StructuredEntity> root = doc->createRootStructuredEntity(A);
+	// add an Anchor.
+	Rooted<Anchor> a = root->createChildAnchor();
+	// create an AnnotationEntity with the Anchor as start.
+	Rooted<AnnotationEntity> anno = doc->createChildAnnotation(
+	    Alpha, a, nullptr, Variant::mapType{}, "myAnno");
+	// add a child.
+	Rooted<StructuredEntity> child = root->createChildStructuredEntity(A);
+	// We should be able to find the Anchor from the child node now. if we look
+	// for it.
+	ASSERT_EQ(a, child->searchStartAnchor(1));
+	ASSERT_EQ(a, child->searchStartAnchor(1, Alpha));
+	ASSERT_EQ(a, child->searchStartAnchor(1, nullptr, "myAnno"));
+	ASSERT_EQ(a, child->searchStartAnchor(1, Alpha, "myAnno"));
+	// we should not be able to find it from the subtree field, however.
+	ASSERT_EQ(nullptr, child->searchStartAnchor(0));
+	// and also we should not be able to find it from the annotation itself.
+	ASSERT_EQ(nullptr, anno->searchStartAnchor(0));
+	// but we can find a new anchor inside the annotation.
+	Rooted<Anchor> b = anno->createChildAnchor();
+	doc->createChildAnnotation(Beta, b, nullptr, Variant::mapType{}, "myAnno");
+	ASSERT_EQ(b, anno->searchStartAnchor(0));
+	ASSERT_EQ(b, anno->searchStartAnchor(0, Beta));
+	ASSERT_EQ(b, anno->searchStartAnchor(0, nullptr, "myAnno"));
+	ASSERT_EQ(b, anno->searchStartAnchor(0, Beta, "myAnno"));
+}
+
 TEST(Document, construct)
 {
 	// Construct Manager
@@ -213,8 +315,9 @@ TEST(Document, validate)
 	 * Override the default field in childSubClass with an optional field.
 	 */
 	Rooted<FieldDescriptor> childSubField =
-	    childSubClass->createFieldDescriptor(
-	        logger, FieldDescriptor::FieldType::TREE, "dummy", true).first;
+	    childSubClass->createFieldDescriptor(logger,
+	                                         FieldDescriptor::FieldType::TREE,
+	                                         "dummy", true).first;
 	// add a child pro forma to make it valid.
 	childSubField->addChild(childSubClass);
 	{
@@ -233,8 +336,9 @@ TEST(Document, validate)
 	// add a primitive field to the subclass with integer content.
 	Rooted<FieldDescriptor> primitive_field =
 	    childSubClass->createPrimitiveFieldDescriptor(
-	        sys->getIntType(), logger, FieldDescriptor::FieldType::SUBTREE,
-	        "int", false).first;
+	                       sys->getIntType(), logger,
+	                       FieldDescriptor::FieldType::SUBTREE, "int",
+	                       false).first;
 	{
 		/*
 		 * Now a document with one instance of the Child subclass should be
@@ -260,7 +364,8 @@ TEST(Document, validate)
 	}
 
 	// Now add an Annotation class to the ontology.
-	Rooted<AnnotationClass> annoClass{new AnnotationClass(mgr, "anno", ontology)};
+	Rooted<AnnotationClass> annoClass{
+	    new AnnotationClass(mgr, "anno", ontology)};
 	{
 		/*
 		 * Create a valid document in itself.
