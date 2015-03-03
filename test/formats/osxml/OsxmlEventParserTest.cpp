@@ -58,10 +58,10 @@ public:
 	}
 
 	void annotationEnd(const Variant &className,
-	                   const Variant &elementName) override
+	                   const Variant::mapType &args) override
 	{
 		events.emplace_back(OsxmlEvent::ANNOTATION_END,
-		                    Variant::arrayType{className, elementName});
+		                    Variant::arrayType{className, args});
 	}
 
 	void rangeEnd() override

@@ -144,8 +144,7 @@ public:
 		return tracker.startCommandResult;
 	}
 
-	bool startAnnotation(Variant::mapType &args,
-	                     AnnotationType annotationType) override
+	bool startAnnotation(Variant::mapType &args) override
 	{
 		tracker.startAnnotationArgs = args;
 		tracker.startAnnotationCount++;

@@ -1,0 +1,9 @@
+<document>
+	<import rel="ontology" src="./book_ontology.osxml"/>
+	<import rel="ontology" src="./comments_ontology.osxml"/>
+
+	<book>
+		This is a <a:start:comment>This is not a nice test!</a:start:comment>test<a:end:comment/>.
+	</book>
+</document>
+

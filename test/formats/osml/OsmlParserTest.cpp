@@ -199,5 +199,19 @@ TEST(OsmlParser, explicitFields)
 	ASSERT_TRUE(node->isa(&RttiTypes::Document));
 }
 
+TEST(OsmlParser, simpleAnnotation)
+{
+	OsmlStandaloneEnvironment env(logger);
+	logger.reset();
+
+	Rooted<Node> node = env.parse("simple_annotation.osml", "", "",
+	                              RttiSet{&RttiTypes::Node});
+	ASSERT_FALSE(logger.hasError());
+
+	ASSERT_TRUE(node != nullptr);
+	ASSERT_TRUE(node->isa(&RttiTypes::Document));
+}
+
+
 }
 

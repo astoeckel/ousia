@@ -1,0 +1,17 @@
+\begin{document}
+
+\ontology#testOntology
+	\struct#test[root=true]
+		\field
+			\childRef[ref=a]
+	\struct#a[transparent=true]
+		\primitive[type=string]
+	\annotation#comment
+		\primitive[type=string]
+
+\begin{test}
+This is a <\comment{Not a nice test!}test\> for annotations.
+\end{test}
+
+\end{document}
+
