@@ -676,8 +676,8 @@ bool Anchor::doValidate(Logger &logger) const
 		valid = false;
 	}
 	if (annotation == nullptr) {
-		// this is valid but should throw a warning.
-		logger.warning("This anchor is disconnected.", *this);
+		logger.error("This anchor is disconnected.", *this);
+		valid = false;
 	}
 	return valid & StructureNode::doValidate(logger);
 }
