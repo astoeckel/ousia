@@ -276,19 +276,19 @@ TARGET_LINK_LIBRARIES(ousia_xml
 
 # Command line interface
 
-#ADD_EXECUTABLE(ousia
-#	src/cli/Main
-#)
+ADD_EXECUTABLE(ousia
+	src/cli/Main
+)
 
-#TARGET_LINK_LIBRARIES(ousia
-#	ousia_core
-#	ousia_filesystem
-#	ousia_html
-#	ousia_xml
-#	ousia_osml
-#	ousia_osxml
-#	${Boost_LIBRARIES}
-#)
+TARGET_LINK_LIBRARIES(ousia
+	ousia_core
+	ousia_filesystem
+	ousia_html
+	ousia_xml
+	ousia_osml
+	ousia_osxml
+	${Boost_LIBRARIES}
+)
 
 # If testing is enabled, build the unit tests
 IF(TEST)
