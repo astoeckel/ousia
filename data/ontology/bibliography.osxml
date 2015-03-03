@@ -9,7 +9,7 @@
 			<childRef ref="bibEntry"/>
 		</field>
 		<parentRef ref="book">
-			<field name="bibliography" isSubtree="true"/>
+			<field name="bibliography" subtree="true"/>
 		</parentRef>
 	</struct>
 	<struct name="bibEntry">

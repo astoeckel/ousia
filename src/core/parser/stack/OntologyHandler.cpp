@@ -33,7 +33,7 @@ namespace parser_stack {
 
 /* OntologyHandler */
 
-bool DomainHandler::startCommand(Variant::mapType &args)
+bool OntologyHandler::startCommand(Variant::mapType &args)
 {
 	// Create the Ontology node
 	Rooted<Ontology> ontology =
@@ -57,7 +57,7 @@ void OntologyHandler::end() { scope().pop(logger()); }
 
 /* OntologyStructHandler */
 
-bool OntologyStructHandler::start(Variant::mapType &args)
+bool OntologyStructHandler::startCommand(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -65,7 +65,7 @@ bool OntologyStructHandler::start(Variant::mapType &args)
 
 	Rooted<StructuredClass> structuredClass = ontology->createStructuredClass(
 	    args["name"].asString(), args["cardinality"].asCardinality(), nullptr,
-	    args["transparent"].asBool(), args["isRoot"].asBool());
+	    args["transparent"].asBool(), args["root"].asBool());
 	structuredClass->setLocation(location());
 
 	const std::string &isa = args["isa"].asString();
@@ -88,7 +88,7 @@ bool OntologyStructHandler::start(Variant::mapType &args)
 void OntologyStructHandler::end() { scope().pop(logger()); }
 
 /* OntologyAnnotationHandler */
-bool OntologyAnnotationHandler::start(Variant::mapType &args)
+bool OntologyAnnotationHandler::startCommand(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -106,7 +106,7 @@ void OntologyAnnotationHandler::end() { scope().pop(logger()); }
 
 /* OntologyAttributesHandler */
 
-bool OntologyAttributesHandler::start(Variant::mapType &args)
+bool OntologyAttributesHandler::startCommand(Variant::mapType &args)
 {
 	// Fetch the current typesystem and create the struct node
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
@@ -122,10 +122,10 @@ void OntologyAttributesHandler::end() { scope().pop(logger()); }
 
 /* OntologyFieldHandler */
 
-bool OntologyFieldHandler::start(Variant::mapType &args)
+bool OntologyFieldHandler::startCommand(Variant::mapType &args)
 {
 	FieldDescriptor::FieldType type;
-	if (args["isSubtree"].asBool()) {
+	if (args["subtree"].asBool()) {
 		type = FieldDescriptor::FieldType::SUBTREE;
 	} else {
 		type = FieldDescriptor::FieldType::TREE;
@@ -152,7 +152,7 @@ void OntologyFieldHandler::end() { scope().pop(logger()); }
 
 /* OntologyFieldRefHandler */
 
-bool OntologyFieldRefHandler::start(Variant::mapType &args)
+bool OntologyFieldRefHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
@@ -182,12 +182,12 @@ void OntologyFieldRefHandler::end() {}
 
 /* OntologyPrimitiveHandler */
 
-bool OntologyPrimitiveHandler::start(Variant::mapType &args)
+bool OntologyPrimitiveHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
 	FieldDescriptor::FieldType fieldType;
-	if (args["isSubtree"].asBool()) {
+	if (args["subtree"].asBool()) {
 		fieldType = FieldDescriptor::FieldType::SUBTREE;
 	} else {
 		fieldType = FieldDescriptor::FieldType::TREE;
@@ -222,7 +222,7 @@ void OntologyPrimitiveHandler::end() { scope().pop(logger()); }
 
 /* OntologyChildHandler */
 
-bool OntologyChildHandler::start(Variant::mapType &args)
+bool OntologyChildHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<FieldDescriptor> field = scope().selectOrThrow<FieldDescriptor>();
 
@@ -240,7 +240,7 @@ bool OntologyChildHandler::start(Variant::mapType &args)
 
 /* OntologyParentHandler */
 
-bool OntologyParentHandler::start(Variant::mapType &args)
+bool OntologyParentHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<StructuredClass> strct = scope().selectOrThrow<StructuredClass>();
 
@@ -255,11 +255,11 @@ void OntologyParentHandler::end() { scope().pop(logger()); }
 
 /* OntologyParentFieldHandler */
 
-bool OntologyParentFieldHandler::start(Variant::mapType &args)
+bool OntologyParentFieldHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<OntologyParent> parentNameNode = scope().selectOrThrow<OntologyParent>();
 	FieldDescriptor::FieldType type;
-	if (args["isSubtree"].asBool()) {
+	if (args["subtree"].asBool()) {
 		type = FieldDescriptor::FieldType::SUBTREE;
 	} else {
 		type = FieldDescriptor::FieldType::TREE;
@@ -288,7 +288,7 @@ bool OntologyParentFieldHandler::start(Variant::mapType &args)
 
 /* OntologyParentFieldRefHandler */
 
-bool OntologyParentFieldRefHandler::start(Variant::mapType &args)
+bool OntologyParentFieldRefHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<OntologyParent> parentNameNode = scope().selectOrThrow<OntologyParent>();
 
@@ -330,7 +330,7 @@ const State OntologyStruct =
         .elementHandler(OntologyStructHandler::create)
         .arguments({Argument::String("name"),
                     Argument::Cardinality("cardinality", Cardinality::any()),
-                    Argument::Bool("isRoot", false),
+                    Argument::Bool("root", false),
                     Argument::Bool("transparent", false),
                     Argument::String("isa", "")});
 
@@ -360,7 +360,7 @@ const State OntologyField = StateBuilder()
                               .createdNodeType(&RttiTypes::FieldDescriptor)
                               .elementHandler(OntologyFieldHandler::create)
                               .arguments({Argument::String("name", ""),
-                                          Argument::Bool("isSubtree", false),
+                                          Argument::Bool("subtree", false),
                                           Argument::Bool("optional", false)});
 
 const State OntologyFieldRef =
@@ -376,7 +376,7 @@ const State OntologyStructPrimitive =
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(OntologyPrimitiveHandler::create)
         .arguments(
-            {Argument::String("name", ""), Argument::Bool("isSubtree", false),
+            {Argument::String("name", ""), Argument::Bool("subtree", false),
              Argument::Bool("optional", false), Argument::String("type")});
 
 const State OntologyStructChild = StateBuilder()
@@ -397,7 +397,7 @@ const State OntologyStructParentField =
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(OntologyParentFieldHandler::create)
         .arguments({Argument::String("name", ""),
-                    Argument::Bool("isSubtree", false),
+                    Argument::Bool("subtree", false),
                     Argument::Bool("optional", false)});
 
 const State OntologyStructParentFieldRef =

@@ -1,14 +1,14 @@
 \begin{document}
 
 \ontology#testOntology
-	\struct#test[isRoot=true]
+	\struct#test[root=true]
 		\field
 			\childRef[ref=a]
 	\struct#a
 		\field
 			\childRef[ref=b]
 	\struct#b
-		\primitive[type=string,optional=true]
+		\primitive[type=string, optional=true]
 
 \begin{test}
 \a{!}

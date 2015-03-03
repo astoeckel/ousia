@@ -18,7 +18,7 @@
 
 #include "Syntax.hpp"
 
-#include "Domain.hpp"
+#include "Ontology.hpp"
 
 namespace ousia {
 

@@ -2,5 +2,5 @@
 	\struct#a
 		\primitive[type=string]
 	\struct#b[isa=a]
-		\primitive#color[type=string,isSubtree=true]
+		\primitive#color[type=string, subtree=true]
 

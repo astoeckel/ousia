@@ -1,7 +1,7 @@
 \document
 
 \ontology#test
-	\struct#a[isRoot=true]
+	\struct#a[root=true]
 		\field
 			\childRef[ref=b]
 	\struct#b

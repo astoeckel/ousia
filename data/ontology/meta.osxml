@@ -13,20 +13,20 @@
 			<childRef ref="version"/>
 		</field>
 		<parentRef ref="book">
-			<field name="meta" isSubtree="true" optional="true"/>
+			<field name="meta" subtree="true" optional="true"/>
 		</parentRef>
 		<parentRef ref="chapter">
-			<field name="meta" isSubtree="true" optional="true"/>
+			<field name="meta" subtree="true" optional="true"/>
 		</parentRef>
 		<!-- One could also include "article" and other things here -->
 	</struct>
 
 	<struct name="person">
-		<primitive isSubtree="true" name="firstName" type="string"/>
-		<primitive isSubtree="true" name="secondNames" type="string[]" optional="true"/>
-		<primitive isSubtree="true" name="lastName" type="string"/>
-		<primitive isSubtree="true" name="email" type="email" optional="true"/>
-		<primitive isSubtree="true" name="affiliation" type="affiliation" optional="true"/>
+		<primitive subtree="true" name="firstName" type="string"/>
+		<primitive subtree="true" name="secondNames" type="string[]" optional="true"/>
+		<primitive subtree="true" name="lastName" type="string"/>
+		<primitive subtree="true" name="email" type="email" optional="true"/>
+		<primitive subtree="true" name="affiliation" type="affiliation" optional="true"/>
 	</struct>
 
 	<!-- wrapper author tag to allow specifying no authors whatsoever. But if

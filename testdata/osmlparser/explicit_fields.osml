@@ -1,10 +1,10 @@
 \document
 
 \ontology#test
-	\struct#a[isRoot=true]
-		\primitive#b[type=string,isSubtree=true]
-		\primitive#c[type=string,isSubtree=true]
-		\primitive#d[type=string,isSubtree=false]
+	\struct#a[root=true]
+		\primitive#b[type=string,subtree=true]
+		\primitive#c[type=string,subtree=true]
+		\primitive#d[type=string,subtree=false]
 
 
 \a{!

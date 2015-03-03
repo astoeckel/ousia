@@ -9,19 +9,19 @@
 		     by fields. So we must either reference a field that is
 		     already there or declare a new one on the fly. -->
 		<parentRef ref="book.book">
-			<field name="heading" isSubtree="true" optional="true"/>
+			<field name="heading" subtree="true" optional="true"/>
 		</parentRef>
 		<parentRef ref="book.chapter">
-			<field name="heading" isSubtree="true" optional="true"/>
+			<field name="heading" subtree="true" optional="true"/>
 		</parentRef>
 		<parentRef ref="book.section">
-			<field name="heading" isSubtree="true" optional="true"/>
+			<field name="heading" subtree="true" optional="true"/>
 		</parentRef>
 		<parentRef ref="book.subsection">
-			<field name="heading" isSubtree="true" optional="true"/>
+			<field name="heading" subtree="true" optional="true"/>
 		</parentRef>
 		<parentRef ref="book.paragraph">
-			<field name="heading" isSubtree="true" optional="true"/>
+			<field name="heading" subtree="true" optional="true"/>
 		</parentRef>
 		<!-- regarding its fields we have a problem here. We do not want to
 		     declare a new field, because in fact we want to allow every

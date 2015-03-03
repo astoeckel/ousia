@@ -232,7 +232,7 @@ static NodeVector<Node> collect(const Node *start, F match)
 }
 
 static std::vector<SyntaxDescriptor> collectPermittedTokens(
-    const Node *start, Handle<Domain> domain)
+    const Node *start, Handle<Ontology> ontology)
 {
 	// gather SyntaxDescriptors for structure children first.
 	std::vector<SyntaxDescriptor> res;
@@ -250,7 +250,7 @@ static std::vector<SyntaxDescriptor> collectPermittedTokens(
 		return false;
 	});
 	// gather SyntaxDescriptors for AnnotationClasses.
-	for (auto a : domain->getAnnotationClasses()) {
+	for (auto a : ontology->getAnnotationClasses()) {
 		SyntaxDescriptor stx = a->getSyntaxDescriptor();
 		if (!stx.isEmpty()) {
 			res.push_back(stx);
@@ -462,7 +462,7 @@ std::vector<SyntaxDescriptor> FieldDescriptor::getPermittedTokens() const
 		return std::vector<SyntaxDescriptor>();
 	}
 	return collectPermittedTokens(
-	    this, getParent().cast<Descriptor>()->getParent().cast<Domain>());
+	    this, getParent().cast<Descriptor>()->getParent().cast<Ontology>());
 }
 
 /* Class Descriptor */
@@ -762,7 +762,7 @@ std::vector<SyntaxDescriptor> Descriptor::getPermittedTokens() const
 	if (getParent() == nullptr) {
 		return std::vector<SyntaxDescriptor>();
 	}
-	return collectPermittedTokens(this, getParent().cast<Domain>());
+	return collectPermittedTokens(this, getParent().cast<Ontology>());
 }
 
 /* Class StructuredClass */
@@ -1092,7 +1092,7 @@ static void gatherTokenDescriptors(
 	}
 }
 
-std::vector<TokenDescriptor *> Domain::getAllTokenDescriptors() const
+std::vector<TokenDescriptor *> Ontology::getAllTokenDescriptors() const
 {
 	std::vector<TokenDescriptor *> res;
 	// note all fields that are already visited because FieldReferences might

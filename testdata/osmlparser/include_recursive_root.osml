@@ -1,7 +1,7 @@
 \begin{document}
 
 \ontology#testOntology
-	\struct#test[isRoot=true]
+	\struct#test[root=true]
 
 \begin{test}
 \include{./include_recursive.osml}

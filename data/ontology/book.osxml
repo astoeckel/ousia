@@ -1,6 +1,6 @@
 <?xml version="1.0" standalone="yes"?>
 <ontology name="book">
-	<struct name="book" cardinality="{1}" isRoot="true">
+	<struct name="book" cardinality="{1}" root="true">
 		<field>
 			<childRef ref="book.chapter"/>
 			<childRef ref="book.paragraph"/>
