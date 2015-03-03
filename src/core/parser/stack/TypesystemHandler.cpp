@@ -32,7 +32,7 @@ namespace parser_stack {
 
 /* TypesystemHandler */
 
-bool TypesystemHandler::start(Variant::mapType &args)
+bool TypesystemHandler::startCommand(Variant::mapType &args)
 {
 	// Create the typesystem instance
 	Rooted<Typesystem> typesystem =
@@ -63,7 +63,7 @@ void TypesystemHandler::end() { scope().pop(logger()); }
 
 /* TypesystemEnumHandler */
 
-bool TypesystemEnumHandler::start(Variant::mapType &args)
+bool TypesystemEnumHandler::startCommand(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
@@ -91,17 +91,17 @@ void TypesystemEnumEntryHandler::doHandle(const Variant &fieldData,
 
 /* TypesystemStructHandler */
 
-bool TypesystemStructHandler::start(Variant::mapType &args)
+bool TypesystemStructHandler::startCommand(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
 	// Fetch the arguments used for creating this type
-	const std::string &name = args["name"].asString();
+	const std::string &structNmae = args["name"].asString();
 	const std::string &parent = args["parent"].asString();
 
 	// Fetch the current typesystem and create the struct node
 	Rooted<Typesystem> typesystem = scope().selectOrThrow<Typesystem>();
-	Rooted<StructType> structType = typesystem->createStructType(name);
+	Rooted<StructType> structType = typesystem->createStructType(structNmae);
 	structType->setLocation(location());
 
 	// Try to resolve the parent type and set it as parent structure
@@ -124,18 +124,18 @@ void TypesystemStructHandler::end() { scope().pop(logger()); }
 
 /* TypesystemStructFieldHandler */
 
-bool TypesystemStructFieldHandler::start(Variant::mapType &args)
+bool TypesystemStructFieldHandler::startCommand(Variant::mapType &args)
 {
 	// Read the argument values
-	const std::string &name = args["name"].asString();
+	const std::string &fieldName = args["name"].asString();
 	const std::string &type = args["type"].asString();
 	const Variant &defaultValue = args["default"];
 	const bool optional =
 	    !(defaultValue.isObject() && defaultValue.asObject() == nullptr);
 
 	Rooted<StructType> structType = scope().selectOrThrow<StructType>();
-	Rooted<Attribute> attribute =
-	    structType->createAttribute(name, defaultValue, optional, logger());
+	Rooted<Attribute> attribute = structType->createAttribute(
+	    fieldName, defaultValue, optional, logger());
 	attribute->setLocation(location());
 
 	// Try to resolve the type and default value
@@ -163,17 +163,17 @@ bool TypesystemStructFieldHandler::start(Variant::mapType &args)
 
 /* TypesystemConstantHandler */
 
-bool TypesystemConstantHandler::start(Variant::mapType &args)
+bool TypesystemConstantHandler::startCommand(Variant::mapType &args)
 {
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
 	// Read the argument values
-	const std::string &name = args["name"].asString();
+	const std::string &constantName = args["name"].asString();
 	const std::string &type = args["type"].asString();
 	const Variant &value = args["value"];
 
 	Rooted<Typesystem> typesystem = scope().selectOrThrow<Typesystem>();
-	Rooted<Constant> constant = typesystem->createConstant(name, value);
+	Rooted<Constant> constant = typesystem->createConstant(constantName, value);
 	constant->setLocation(location());
 
 	// Try to resolve the type

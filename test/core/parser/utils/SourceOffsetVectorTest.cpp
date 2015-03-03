@@ -51,7 +51,7 @@ TEST(SourceOffsetVector, gaps)
 	for (size_t i = 0; i < 999; i++) {
 		auto elem = vec.loadOffset(i);
 		EXPECT_EQ(i * 3 + 5, elem.first);
-		EXPECT_EQ((i + 1) * 3 + 5, elem.second);
+		EXPECT_EQ(i * 3 + 7, elem.second);
 	}
 	auto elem = vec.loadOffset(999);
 	EXPECT_EQ(999U * 3 + 5, elem.first);

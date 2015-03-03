@@ -33,6 +33,7 @@
 #include <limits>
 #include <vector>
 #include <utility>
+#include <unordered_map>
 
 #include <core/common/Location.hpp>
 
@@ -43,6 +44,9 @@ namespace ousia {
  * a delta compression.
  */
 class SourceOffsetVector {
+public:
+	using OffsPair = std::pair<SourceOffset, SourceOffset>;
+
 private:
 	/**
 	 * Type used for representing the length of a character.
@@ -82,9 +86,12 @@ private:
 	std::vector<SourceOffset> offsets;
 
 	/**
+	 * Map used to store discontinuities in the character offsets.
+	 */
+	std::unordered_map<size_t, OffsPair> gaps;
+
+	/**
 	 * Last position given as "end" position in the storeOffset() method.
-	 * Used to adapt the length of the previous element in case start and end
-	 * positions do not match.
 	 */
 	SourceOffset lastEnd;
 
@@ -105,19 +112,22 @@ public:
 		// Make sure (end - start) is smaller than MAX_LEN
 		assert(end - start < MAX_LEN);
 
-		// Adapt the length of the previous character in case there is a gap
-		if (!lens.empty() && start > lastEnd) {
-			lens.back() += start - lastEnd;
-		}
-		lastEnd = end;
-
 		// Store an absolute offset every OFFSET_INTERVAL elements
 		if ((lens.size() & OFFSET_INTERVAL_MASK) == 0) {
 			offsets.push_back(start);
 		}
 
-		// Store the length
-		lens.push_back(end - start);
+		// Adapt the length of the previous character in case there is a gap
+		if (!lens.empty() && start > lastEnd) {
+			// There is a discontinuity, store the given offsets in the "gaps"
+			// map
+			gaps[lens.size()] = OffsPair(start, end);
+			lens.push_back(MAX_LEN);
+		} else {
+			// Store the length
+			lens.push_back(end - start);
+		}
+		lastEnd = end;
 	}
 
 	/**
@@ -127,14 +137,13 @@ public:
 	 * read.
 	 * @return a pair containing start and end source offset.
 	 */
-	std::pair<SourceOffset, SourceOffset> loadOffset(size_t idx)
+	OffsPair loadOffset(size_t idx) const
 	{
 		// Special treatment for the last character
 		const size_t count = lens.size();
 		if (idx > 0 && idx == count) {
 			auto offs = loadOffset(count - 1);
-			return std::pair<SourceOffset, SourceOffset>(offs.second,
-			                                             offs.second);
+			return OffsPair(offs.second, offs.second);
 		}
 
 		// Calculate the start index in the lens vector and in the offsets
@@ -146,18 +155,66 @@ public:
 		assert(idx < count);
 		assert(offsetIdx < offsets.size());
 
+		// If the length of the last character is MAX_LEN, the position is
+		// stored in the "gaps" list
+		if (lens[idx] == MAX_LEN) {
+			auto it = gaps.find(idx);
+			assert(it != gaps.end());
+			return it->second;
+		}
+
 		// Sum over the length starting with the start offset
 		SourceOffset start = offsets[offsetIdx];
 		for (size_t i = sumStartIdx; i < idx; i++) {
-			start += lens[i];
+			if (lens[i] == MAX_LEN) {
+				auto it = gaps.find(i);
+				assert(it != gaps.end());
+				start = it->second.first;
+			} else {
+				start += lens[i];
+			}
 		}
-		return std::pair<SourceOffset, SourceOffset>(start, start + lens[idx]);
+		return OffsPair(start, start + lens[idx]);
 	}
 
 	/**
 	 * Returns the number of characters for which offsets are stored.
 	 */
-	size_t size() { return lens.size(); }
+	size_t size() const { return lens.size(); }
+
+	/**
+	 * Trims the length of the TokenizedData instance to the given length.
+	 * Removes all token matches that lie within the trimmed region.
+	 *
+	 * @param length is the number of characters to which the TokenizedData
+	 * instance should be trimmed.
+	 */
+	void trim(size_t length)
+	{
+		if (length < size()) {
+			lens.resize(length);
+			if (length > 0) {
+				offsets.resize((length >> LOG2_OFFSET_INTERVAL) + 1);
+				lastEnd = loadOffset(length - 1).second;
+			} else {
+				offsets.clear();
+				gaps.clear();
+				lastEnd = 0;
+			}
+		}
+	}
+
+	/**
+	 * Resets the SourceOffsetVector to the state it had when it was
+	 * constructed.
+	 */
+	void clear()
+	{
+		lens.clear();
+		offsets.clear();
+		gaps.clear();
+		lastEnd = 0;
+	}
 };
 }
 

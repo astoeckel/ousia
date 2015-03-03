@@ -19,17 +19,147 @@
 #include <core/common/Logger.hpp>
 #include <core/common/Utils.hpp>
 #include <core/common/Exceptions.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
 
+#include "Callbacks.hpp"
 #include "Handler.hpp"
 #include "Stack.hpp"
 #include "State.hpp"
+#include "TokenRegistry.hpp"
+#include "TokenStack.hpp"
+
+#define STACK_DEBUG_OUTPUT 0
+#if STACK_DEBUG_OUTPUT
+#include <iostream>
+#endif
 
 namespace ousia {
 namespace parser_stack {
+namespace {
 
 /* Class HandlerInfo */
+
+/**
+ * The HandlerInfo class is used internally by the stack to associate additional
+ * (mutable) data with a handler instance.
+ */
+class HandlerInfo {
+public:
+	/**
+	 * Pointer pointing at the actual handler instance.
+	 */
+	std::shared_ptr<Handler> handler;
+
+	/**
+	 * Next field index to be passed to the "fieldStart" function of the Handler
+	 * class.
+	 */
+	size_t fieldIdx;
+
+	/**
+	 * Set to true if the handler is valid (which is the case if the "start"
+	 * method has returned true). If the handler is invalid, no more calls are
+	 * directed at it until it can be removed from the stack.
+	 */
+	bool valid : 1;
+
+	/**
+	 * Set to true if this is an implicit handler, that was created when the
+	 * current stack state was deduced.
+	 */
+	bool implicit : 1;
+
+	/**
+	 * Set to true if the handled command or annotation has a range.
+	 */
+	bool range : 1;
+
+	/**
+	 * Set to true if the handler currently is in a field.
+	 */
+	bool inField : 1;
+
+	/**
+	 * Set to true if the handler currently is in the default field.
+	 */
+	bool inDefaultField : 1;
+
+	/**
+	 * Set to true if the handler currently is in an implicitly started default
+	 * field.
+	 */
+	bool inImplicitDefaultField : 1;
+
+	/**
+	 * Set to false if this field is only opened pro-forma and does not accept
+	 * any data. Otherwise set to true.
+	 */
+	bool inValidField : 1;
+
+	/**
+	 * Set to true, if the default field was already started.
+	 */
+	bool hadDefaultField : 1;
+
+	/**
+	 * Default constructor of the HandlerInfo class.
+	 */
+	HandlerInfo();
+
+	/**
+	 * Constructor of the HandlerInfo class, allows to set some flags manually.
+	 */
+	HandlerInfo(bool implicit, bool inField, bool inDefaultField,
+	            bool inImplicitDefaultField);
+
+	/**
+	 * Constructor of the HandlerInfo class, taking a shared_ptr to the handler
+	 * to which additional information should be attached.
+	 */
+	HandlerInfo(std::shared_ptr<Handler> handler);
+
+	/**
+	 * Destructor of the HandlerInfo class (to allow Handler to be forward
+	 * declared).
+	 */
+	~HandlerInfo();
+
+	/**
+	 * Updates the "field" flags according to a "fieldStart" event.
+	 */
+	void fieldStart(bool isDefault, bool isImplicit, bool isValid);
+
+	/**
+	 * Updates the "fields" flags according to a "fieldEnd" event.
+	 */
+	void fieldEnd();
+
+	/**
+	 * Returns the name of the referenced handler or an empty string if no
+	 * handler is present.
+	 *
+	 * @return the current handler name.
+	 */
+	std::string name() const;
+
+	/**
+	 * Returns the type of the referenced handler or COMMAND if no handler is
+	 * present.
+	 *
+	 * @return the current handler type.
+	 */
+	HandlerType type() const;
+
+	/**
+	 * Returns the current state the handler is on or States::None if no handler
+	 * is present.
+	 *
+	 * @return the current state machine state.
+	 */
+	const State &state() const;
+};
 
 HandlerInfo::HandlerInfo() : HandlerInfo(nullptr) {}
 
@@ -38,6 +168,7 @@ HandlerInfo::HandlerInfo(std::shared_ptr<Handler> handler)
       fieldIdx(0),
       valid(true),
       implicit(false),
+      range(false),
       inField(false),
       inDefaultField(false),
       inImplicitDefaultField(false),
@@ -46,19 +177,34 @@ HandlerInfo::HandlerInfo(std::shared_ptr<Handler> handler)
 {
 }
 
-HandlerInfo::HandlerInfo(bool valid, bool implicit, bool inField,
-                         bool inDefaultField, bool inImplicitDefaultField,
-                         bool inValidField)
+HandlerInfo::HandlerInfo(bool implicit, bool inField, bool inDefaultField,
+                         bool inImplicitDefaultField)
     : handler(nullptr),
       fieldIdx(0),
-      valid(valid),
+      valid(true),
       implicit(implicit),
+      range(false),
       inField(inField),
       inDefaultField(inDefaultField),
       inImplicitDefaultField(inImplicitDefaultField),
-      inValidField(inValidField),
+      inValidField(true),
       hadDefaultField(false)
 {
+}
+
+std::string HandlerInfo::name() const
+{
+	return handler == nullptr ? std::string{} : handler->name();
+}
+
+HandlerType HandlerInfo::type() const
+{
+	return handler == nullptr ? HandlerType::COMMAND : handler->type();
+}
+
+const State &HandlerInfo::state() const
+{
+	return handler == nullptr ? States::None : handler->state();
 }
 
 HandlerInfo::~HandlerInfo()
@@ -87,7 +233,20 @@ void HandlerInfo::fieldEnd()
 /**
  * Stub instance of HandlerInfo containing no handler information.
  */
-static HandlerInfo EmptyHandlerInfo{true, true, true, true, false, true};
+static HandlerInfo EmptyHandlerInfo{true, true, true, true};
+
+/**
+ * Small helper class makeing sure the reference at some variable is reset once
+ * the scope is left.
+ */
+template <class T>
+struct GuardedTemporaryPointer {
+	T **ptr;
+	GuardedTemporaryPointer(T *ref, T **ptr) : ptr(ptr) { *ptr = ref; }
+
+	~GuardedTemporaryPointer() { *ptr = nullptr; }
+};
+}
 
 /* Helper functions */
 
@@ -116,11 +275,197 @@ static LoggableException buildInvalidCommandException(
 	}
 }
 
-/* Class Stack */
+/* Class StackImpl */
 
-Stack::Stack(ParserContext &ctx,
-             const std::multimap<std::string, const State *> &states)
-    : ctx(ctx), states(states)
+class StackImpl : public HandlerCallbacks {
+private:
+	/**
+	 * Reference at an implementation of the ParserCallbacks instance to which
+	 * certain handler callbacks are directed.
+	 */
+	ParserCallbacks &parser;
+
+	/**
+	 * Reference at the parser context.
+	 */
+	ParserContext &ctx;
+
+	/**
+	 * Map containing all registered command names and the corresponding
+	 * state descriptors.
+	 */
+	const std::multimap<std::string, const State *> &states;
+
+	/**
+	 * Registry responsible for registering the tokens proposed by the
+	 * Handlers in the parser.
+	 */
+	TokenRegistry tokenRegistry;
+
+	/**
+	 * Pointer at a TokenizedDataReader instance from which the data should
+	 * currently be read.
+	 */
+	TokenizedDataReader *dataReader;
+
+	/**
+	 * Internal stack used for managing the currently active Handler instances.
+	 */
+	std::vector<HandlerInfo> stack;
+
+	/**
+	 * Return the reference in the Logger instance stored within the context.
+	 */
+	Logger &logger() { return ctx.getLogger(); }
+
+	/**
+	 * Used internally to get all expected command names for the current state.
+	 * This function is used to build error messages.
+	 *
+	 * @return a set of strings containing the names of the expected commands.
+	 */
+	std::set<std::string> expectedCommands();
+
+	/**
+	 * Returns the targetState for a command with the given name that can be
+	 * reached from the current state.
+	 *
+	 * @param name is the name of the requested command.
+	 * @return nullptr if no target state was found, a pointer at the target
+	 * state otherwise.
+	 */
+	const State *findTargetState(const std::string &name);
+
+	/**
+	 * Returns the targetState for a command with the given name that can be
+	 * reached from the current state, also including the wildcard "*" state.
+	 * Throws an exception if the given target state is not a valid identifier.
+	 *
+	 * @param name is the name of the requested command.
+	 * @return nullptr if no target state was found, a pointer at the target
+	 * state otherwise.
+	 */
+	const State *findTargetStateOrWildcard(const std::string &name);
+
+	/**
+	 * Tries to reconstruct the parser state from the Scope instance of the
+	 * ParserContext given in the constructor. This functionality is needed for
+	 * including files,as the Parser of the included file needs to be brought to
+	 * an equivalent state as the one in the including file.
+	 */
+	void deduceState();
+
+	/**
+	 * Returns a reference at the current HandlerInfo instance (or a stub
+	 * HandlerInfo instance if the stack is empty).
+	 */
+	HandlerInfo &currentInfo();
+
+	/**
+	 * Returns a reference at the last HandlerInfo instance (or a stub
+	 * HandlerInfo instance if the stack has only one element).
+	 */
+	HandlerInfo &lastInfo();
+
+	/**
+	 * Returns a set containing the tokens that should currently be processed
+	 * by the TokenizedData instance.
+	 *
+	 * @return a TokenSet instance containing all tokens that should currently
+	 * be processed.
+	 */
+	TokenSet currentTokens() const;
+
+	/**
+	 * Returns the whitespace mode defined by the current command.
+	 */
+	WhitespaceMode currentWhitespaceMode() const;
+
+	/**
+	 * Ends the current handler and removes the corresponding element from the
+	 * stack.
+	 *
+	 * @return true if a command was ended, false otherwise.
+	 */
+	bool endCurrentHandler();
+
+	/**
+	 * Ends all handlers that currently are not inside a field and already had
+	 * a default field. Tries to start a default field for the current handler,
+	 * if currently the handler is not inside a field and did not have a default
+	 * field yet. This method is called whenever the data(), startAnnotation(),
+	 * startToken(), startCommand(), annotationStart() or annotationEnd() events
+	 * are reached.
+	 *
+	 * @return true if the current command is in a valid field.
+	 */
+	bool prepareCurrentHandler(bool startImplicitDefaultField = true);
+
+	/**
+	 * Returns true if all handlers on the stack are currently valid, or false
+	 * if at least one handler is invalid.
+	 *
+	 * @return true if all handlers on the stack are valid.
+	 */
+	bool handlersValid();
+
+	/**
+	 * Called whenever there is an actual data pending on the current
+	 * TokenizedDataReader. Tries to feed this data to the current handler.
+	 */
+	void handleData();
+
+	/**
+	 * Called whenever there is a token waiting to be processed. If possible
+	 * tries to end a current handler with this token or to start a new handler
+	 * with the token.
+	 *
+	 * @param token is the token that should be handled.
+	 */
+	void handleToken(const Token &token);
+
+	/**
+	 * Called by the rangeEnd() and fieldEnd() methods to end the current ranged
+	 * command.
+	 *
+	 * @param endRange specifies whether this should end the range of a
+	 * command with range.
+	 */
+	void handleFieldEnd(bool endRange);
+
+public:
+	StackImpl(ParserCallbacks &parser, ParserContext &ctx,
+	          const std::multimap<std::string, const State *> &states);
+
+	~StackImpl();
+
+	const State &currentState() const;
+	std::string currentCommandName() const;
+
+	void commandStart(const Variant &name, const Variant::mapType &args,
+	                  bool range);
+	void annotationStart(const Variant &className, const Variant &args,
+	                     bool range);
+	void annotationEnd(const Variant &className, const Variant &elementName);
+	void rangeEnd();
+	void fieldStart(bool isDefault);
+	void fieldEnd();
+	void data(const TokenizedData &data);
+
+	TokenId registerToken(const std::string &token) override;
+	void unregisterToken(TokenId id) override;
+	Variant readData() override;
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens) override;
+	void popTokens() override;
+};
+
+StackImpl::StackImpl(ParserCallbacks &parser, ParserContext &ctx,
+                     const std::multimap<std::string, const State *> &states)
+    : parser(parser),
+      ctx(ctx),
+      states(states),
+      tokenRegistry(parser),
+      dataReader(nullptr)
 {
 	// If the scope instance is not empty we need to deduce the current parser
 	// state
@@ -129,7 +474,7 @@ Stack::Stack(ParserContext &ctx,
 	}
 }
 
-Stack::~Stack()
+StackImpl::~StackImpl()
 {
 	while (!stack.empty()) {
 		// Fetch the topmost stack element
@@ -142,7 +487,7 @@ Stack::~Stack()
 			    !info.inImplicitDefaultField) {
 				logger().error(
 				    std::string("Reached end of stream, but command \"") +
-				        info.handler->getName() +
+				        currentCommandName() +
 				        "\" has not ended yet. Command was started here:",
 				    info.handler->getLocation());
 			}
@@ -153,7 +498,7 @@ Stack::~Stack()
 	}
 }
 
-void Stack::deduceState()
+void StackImpl::deduceState()
 {
 	// Assemble all states
 	std::vector<const State *> states;
@@ -176,8 +521,8 @@ void Stack::deduceState()
 	HandlerConstructor ctor =
 	    state.elementHandler ? state.elementHandler : EmptyHandler::create;
 
-	std::shared_ptr<Handler> handler =
-	    std::shared_ptr<Handler>{ctor({ctx, "", state, SourceLocation{}})};
+	std::shared_ptr<Handler> handler = std::shared_ptr<Handler>{
+	    ctor({ctx, *this, state, SourceLocation{}, HandlerType::COMMAND})};
 	stack.emplace_back(handler);
 
 	// Set the correct flags for this implicit handler
@@ -186,7 +531,7 @@ void Stack::deduceState()
 	info.fieldStart(true, false, true);
 }
 
-std::set<std::string> Stack::expectedCommands()
+std::set<std::string> StackImpl::expectedCommands()
 {
 	const State *currentState = &(this->currentState());
 	std::set<std::string> res;
@@ -198,17 +543,7 @@ std::set<std::string> Stack::expectedCommands()
 	return res;
 }
 
-const State &Stack::currentState()
-{
-	return stack.empty() ? States::None : stack.back().handler->getState();
-}
-
-std::string Stack::currentCommandName()
-{
-	return stack.empty() ? std::string{} : stack.back().handler->getName();
-}
-
-const State *Stack::findTargetState(const std::string &name)
+const State *StackImpl::findTargetState(const std::string &name)
 {
 	const State *currentState = &(this->currentState());
 	auto range = states.equal_range(name);
@@ -222,7 +557,7 @@ const State *Stack::findTargetState(const std::string &name)
 	return nullptr;
 }
 
-const State *Stack::findTargetStateOrWildcard(const std::string &name)
+const State *StackImpl::findTargetStateOrWildcard(const std::string &name)
 {
 	// Try to find the target state with the given name, if none is found, try
 	// find a matching "*" state.
@@ -233,16 +568,40 @@ const State *Stack::findTargetStateOrWildcard(const std::string &name)
 	return targetState;
 }
 
-HandlerInfo &Stack::currentInfo()
+const State &StackImpl::currentState() const
+{
+	return stack.empty() ? States::None : stack.back().state();
+}
+
+std::string StackImpl::currentCommandName() const
+{
+	return stack.empty() ? std::string{} : stack.back().name();
+}
+
+TokenSet StackImpl::currentTokens() const
+{
+	// TODO: Implement
+	return TokenSet{};
+}
+
+WhitespaceMode StackImpl::currentWhitespaceMode() const
+{
+	// TODO: Implement
+	return WhitespaceMode::COLLAPSE;
+}
+
+HandlerInfo &StackImpl::currentInfo()
 {
 	return stack.empty() ? EmptyHandlerInfo : stack.back();
 }
-HandlerInfo &Stack::lastInfo()
+HandlerInfo &StackImpl::lastInfo()
 {
 	return stack.size() < 2U ? EmptyHandlerInfo : stack[stack.size() - 2];
 }
 
-void Stack::endCurrentHandler()
+/* Stack helper functions */
+
+bool StackImpl::endCurrentHandler()
 {
 	if (!stack.empty()) {
 		// Fetch the handler info for the current top-level element
@@ -266,50 +625,59 @@ void Stack::endCurrentHandler()
 
 		// Remove the element from the stack
 		stack.pop_back();
+		return true;
 	}
+	return false;
 }
 
-void Stack::endOverdueHandlers()
+bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField)
 {
-	if (!stack.empty()) {
-		// Fetch the handler info for the current top-level element
-		HandlerInfo &info = stack.back();
+	// Repeat until a valid handler is found on the stack
+	while (!stack.empty()) {
+		// Fetch the handler for the current top-level element
+		HandlerInfo &info = currentInfo();
 
-		// Abort if this handler currently is inside a field
-		if (info.inField || (!info.hadDefaultField && info.valid)) {
-			return;
+		// If the current Handler is in a field, there is nothing to be done,
+		// abort
+		if (info.inField) {
+			return true;
 		}
 
-		// Otherwise end the current handler
-		endCurrentHandler();
-	}
-}
+		// If the current field already had a default field or is not valid,
+		// end it and repeat
+		if ((info.hadDefaultField || !startImplicitDefaultField) ||
+		    !info.valid) {
+			// We cannot end the command if it is marked as "range" command
+			if (info.range) {
+				return false;
+			}
 
-bool Stack::ensureHandlerIsInField()
-{
-	// If the current handler is not in a field (and actually has a handler)
-	// try to start a default field
-	HandlerInfo &info = currentInfo();
-	if (!info.inField && info.handler != nullptr) {
-		// Abort if the element already had a default field or the handler is
-		// not valid
-		if (info.hadDefaultField || !info.valid) {
+			// End the current handler
+			endCurrentHandler();
+			continue;
+		}
+
+		// Abort if starting new default fields is not allowed here
+		if (!startImplicitDefaultField) {
 			return false;
 		}
 
 		// Try to start a new default field, abort if this did not work
 		bool isDefault = true;
 		if (!info.handler->fieldStart(isDefault, info.fieldIdx)) {
-			return false;
+			endCurrentHandler();
+			continue;
 		}
 
-		// Mark the field as started
-		info.fieldStart(true, true, true);
+		// Mark the field as started and return -- the field should be marked
+		// is implicit if this is not a field with range
+		info.fieldStart(true, !info.range, true);
+		return true;
 	}
-	return true;
+	return false;
 }
 
-bool Stack::handlersValid()
+bool StackImpl::handlersValid()
 {
 	for (auto it = stack.crbegin(); it != stack.crend(); it++) {
 		if (!it->valid) {
@@ -319,13 +687,131 @@ bool Stack::handlersValid()
 	return true;
 }
 
-Logger &Stack::logger() { return ctx.getLogger(); }
-
-void Stack::command(const Variant &name, const Variant::mapType &args)
+void StackImpl::handleData()
 {
-	// End handlers that already had a default field and are currently not
-	// active.
-	endOverdueHandlers();
+	// Repeat until we found some handle willingly consuming the data
+	while (true) {
+		// Prepare the stack -- make sure all overdue handlers are ended and
+		// we currently are in an open field
+		if (stack.empty() || !prepareCurrentHandler()) {
+			throw LoggableException("Did not expect any data here");
+		}
+
+		// Fetch the current handler information
+		HandlerInfo &info = currentInfo();
+
+		// If this field should not get any data, log an error and do not
+		// call the "data" handler
+		if (!info.inValidField) {
+			if (!info.hadDefaultField) {
+				logger().error("Did not expect any data here");
+			}
+			return;
+		}
+
+		// If we're currently in an invalid subtree, just eat the data and abort
+		if (!handlersValid()) {
+			return;
+		}
+
+		// Fork the logger and set it as temporary logger for the "data"
+		// method. We only want to keep error messages if this was not a
+		// try to implicitly open a default field.
+		LoggerFork loggerFork = logger().fork();
+		info.handler->setLogger(loggerFork);
+
+		// Pass the data to the current Handler instance
+		bool valid = false;
+		try {
+			valid = info.handler->data();
+		}
+		catch (LoggableException ex) {
+			loggerFork.log(ex);
+		}
+
+		// Reset the logger instance of the handler as soon as possible
+		info.handler->resetLogger();
+
+		// If placing the data here failed and we're currently in an
+		// implicitly opened field, just unroll the stack to the next field
+		// and try again
+		if (!valid && info.inImplicitDefaultField) {
+			endCurrentHandler();
+			continue;
+		}
+
+		// Commit the content of the logger fork. Do not change the valid flag.
+		loggerFork.commit();
+		return;
+	}
+}
+
+void StackImpl::handleToken(const Token &token)
+{
+	// TODO: Implement
+	// Just eat them for now
+}
+
+void StackImpl::handleFieldEnd(bool endRange)
+{
+	// Throw away all overdue handlers
+	prepareCurrentHandler(false);
+
+	// Close all implicit default fields
+	while (!stack.empty()) {
+		HandlerInfo &info = currentInfo();
+		if (!info.inImplicitDefaultField || info.range) {
+			break;
+		}
+		endCurrentHandler();
+	}
+
+	// Fetch the information attached to the current handler
+	HandlerInfo &info = currentInfo();
+	if (stack.empty() || (!info.inField && !endRange) ||
+	    (!info.range && endRange)) {
+		if (endRange) {
+			logger().error(
+			    "Got end of range, but there is no command here to end");
+		} else {
+			logger().error("Got field end, but there is no field here to end");
+		}
+		return;
+	}
+
+	// Only continue if the current handler stack is in a valid state, do not
+	// call the fieldEnd function if something went wrong before
+	if (handlersValid()) {
+		// End the current field if it is valid
+		if (info.inValidField) {
+			info.handler->fieldEnd();
+			info.fieldEnd();
+		}
+
+		// End the complete command if this is a range command, start the
+		// default field for once if range command did not have a default field
+		if (info.range && endRange) {
+			if (!info.hadDefaultField) {
+				bool isDefault = true;
+				info.handler->fieldStart(isDefault, true);
+				info.fieldStart(true, true, true);
+			}
+			endCurrentHandler();
+			return;
+		}
+	}
+
+	// This command no longer is in a field
+	info.fieldEnd();
+}
+
+/* Class StackImpl public functions */
+
+void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
+                             bool range)
+{
+	// Call prepareCurrentHandler once to end all overdue commands
+	prepareCurrentHandler();
 
 	// Make sure the given identifier is valid (preventing "*" from being
 	// malicously passed to this function)
@@ -336,25 +822,23 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 	}
 
 	while (true) {
+		// Prepare the stack -- make sure all overdue handlers are ended and
+		// we currently are in an open field
+		prepareCurrentHandler();
+
 		// Try to find a target state for the given command, if none can be
 		// found and the current command does not have an open field, then try
 		// to create an empty default field, otherwise this is an exception
 		const State *targetState = findTargetStateOrWildcard(name.asString());
 		if (targetState == nullptr) {
 			HandlerInfo &info = currentInfo();
-			if (info.inImplicitDefaultField || !info.inField) {
-				endCurrentHandler();
+			if ((info.inImplicitDefaultField || !info.inField) &&
+			    endCurrentHandler()) {
 				continue;
 			} else {
 				throw buildInvalidCommandException(name.asString(),
 				                                   expectedCommands());
 			}
-		}
-
-		// Make sure we're currently inside a field
-		if (!ensureHandlerIsInField()) {
-			endCurrentHandler();
-			continue;
 		}
 
 		// Fork the logger. We do not want any validation errors to skip
@@ -365,10 +849,15 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 		                              ? targetState->elementHandler
 		                              : EmptyHandler::create;
 		std::shared_ptr<Handler> handler{
-		    ctor({ctx, name.asString(), *targetState, name.getLocation()})};
+		    ctor({ctx,
+		          *this,
+		          *targetState,
+		          {name.asString(), name.getLocation()},
+		          HandlerType::COMMAND})};
 		stack.emplace_back(handler);
 
-		// Fetch the HandlerInfo for the parent element and the current element
+		// Fetch the HandlerInfo for the parent element and the current
+		// element
 		HandlerInfo &parentInfo = lastInfo();
 		HandlerInfo &info = currentInfo();
 
@@ -387,7 +876,7 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 
 			handler->setLogger(loggerFork);
 			try {
-				info.valid = handler->start(canonicalArgs);
+				info.valid = handler->startCommand(canonicalArgs);
 			}
 			catch (LoggableException ex) {
 				loggerFork.log(ex);
@@ -395,94 +884,65 @@ void Stack::command(const Variant &name, const Variant::mapType &args)
 			handler->resetLogger();
 		}
 
-		// We started the command within an implicit default field and it is not
-		// valid -- remove both the new handler and the parent field from the
-		// stack
+		// We started the command within an implicit default field and it is
+		// not valid -- remove both the new handler and the parent field from
+		// the stack
 		if (!info.valid && parentInfo.inImplicitDefaultField) {
-			endCurrentHandler();
-			endCurrentHandler();
-			continue;
+			// Only continue if the parent handler could actually be removed
+			if (endCurrentHandler() && endCurrentHandler()) {
+				continue;
+			}
 		}
 
-		// If we ended up here, starting the command may or may not have worked,
-		// but after all, we cannot unroll the stack any further. Update the
-		// "valid" flag, commit any potential error messages and return.
+		// If we ended up here, starting the command may or may not have
+		// worked, but after all, we cannot unroll the stack any further. Update
+		// the "valid" flag, commit any potential error messages and return.
 		info.valid = parentInfo.valid && info.valid;
+		info.range = range;
 		loggerFork.commit();
 		return;
 	}
 }
 
-void Stack::data(const Variant &data)
+void StackImpl::annotationStart(const Variant &className, const Variant &args,
+                                bool range)
 {
-	// End handlers that already had a default field and are currently not
-	// active.
-	endOverdueHandlers();
+	// TODO
+}
 
-	while (true) {
-		// Check whether there is any command the data can be sent to
-		if (stack.empty()) {
-			throw LoggableException("No command here to receive data.", data);
+void StackImpl::annotationEnd(const Variant &className,
+                              const Variant &elementName)
+{
+	// TODO
+}
+
+void StackImpl::rangeEnd() { handleFieldEnd(true); }
+
+void StackImpl::data(const TokenizedData &data)
+{
+	// Fetch a reader for the given tokenized data instance.
+	TokenizedDataReader reader = data.reader();
+
+	// Use the GuardedTemporaryPointer to make sure that the member variable
+	// dataReader is resetted to nullptr once this scope is left.
+	GuardedTemporaryPointer<TokenizedDataReader> ptr(&reader, &dataReader);
+
+	// Peek a token from the reader, repeat until all tokens have been read
+	Token token;
+	while (reader.peek(token, currentTokens(), currentWhitespaceMode())) {
+		// Handle the token as text data or as actual token
+		if (token.id == Tokens::Data) {
+			handleData();
+		} else {
+			handleToken(token);
 		}
 
-		// Fetch the current command handler information
-		HandlerInfo &info = currentInfo();
-
-		// Make sure the current handler has an open field
-		if (!ensureHandlerIsInField()) {
-			endCurrentHandler();
-			continue;
-		}
-
-		// If this field should not get any data, log an error and do not call
-		// the "data" handler
-		if (!info.inValidField) {
-			// If the "hadDefaultField" flag is set, we already issued an error
-			// message
-			if (!info.hadDefaultField) {
-				logger().error("Did not expect any data here", data);
-			}
-		}
-
-		if (handlersValid() && info.inValidField) {
-			// Fork the logger and set it as temporary logger for the "start"
-			// method. We only want to keep error messages if this was not a try
-			// to implicitly open a default field.
-			LoggerFork loggerFork = logger().fork();
-			info.handler->setLogger(loggerFork);
-
-			// Pass the data to the current Handler instance
-			bool valid = false;
-			try {
-				Variant dataCopy = data;
-				valid = info.handler->data(dataCopy);
-			}
-			catch (LoggableException ex) {
-				loggerFork.log(ex);
-			}
-
-			// Reset the logger instance as soon as possible
-			info.handler->resetLogger();
-
-			// If placing the data here failed and we're currently in an
-			// implicitly opened field, just unroll the stack to the next field
-			// and try again
-			if (!valid && info.inImplicitDefaultField) {
-				endCurrentHandler();
-				continue;
-			}
-
-			// Commit the content of the logger fork. Do not change the valid
-			// flag.
-			loggerFork.commit();
-		}
-
-		// There was no reason to unroll the stack any further, so continue
-		return;
+		// Consume the peeked token
+		reader.consumePeek();
 	}
 }
 
-void Stack::fieldStart(bool isDefault)
+void StackImpl::fieldStart(bool isDefault)
 {
 	// Make sure the current handler stack is not empty
 	if (stack.empty()) {
@@ -494,13 +954,14 @@ void Stack::fieldStart(bool isDefault)
 	HandlerInfo &info = currentInfo();
 	if (info.inField) {
 		logger().error(
-		    "Got field start, but there is no command for which to start the "
+		    "Got field start, but there is no command for which to start "
+		    "the "
 		    "field.");
 		return;
 	}
 
-	// If the handler already had a default field we cannot start a new field
-	// (the default field always is the last field) -- mark the command as
+	// If the handler already had a default field we cannot start a new
+	// field (the default field always is the last field) -- mark the command as
 	// invalid
 	if (info.hadDefaultField) {
 		logger().error(std::string("Got field start, but command \"") +
@@ -534,54 +995,132 @@ void Stack::fieldStart(bool isDefault)
 	info.fieldStart(defaultField, false, valid);
 }
 
-void Stack::fieldEnd()
+void StackImpl::fieldEnd() { handleFieldEnd(false); }
+
+/* Class StackImpl HandlerCallbacks */
+
+TokenId StackImpl::registerToken(const std::string &token)
 {
-	// Unroll the stack until the next explicitly open field
-	while (!stack.empty()) {
-		HandlerInfo &info = currentInfo();
-		if (info.inField && !info.inImplicitDefaultField) {
-			break;
-		}
-		endCurrentHandler();
-	}
-
-	// Fetch the information attached to the current handler
-	HandlerInfo &info = currentInfo();
-	if (!info.inField || info.inImplicitDefaultField || stack.empty()) {
-		logger().error(
-		    "Got field end, but there is no command for which to end the "
-		    "field.");
-		return;
-	}
-
-	// Only continue if the current handler stack is in a valid state, do not
-	// call the fieldEnd function if something went wrong before
-	if (handlersValid() && !info.hadDefaultField && info.inValidField) {
-		try {
-			info.handler->fieldEnd();
-		}
-		catch (LoggableException ex) {
-			logger().log(ex);
-		}
-	}
-
-	// This command no longer is in a field
-	info.fieldEnd();
+	return tokenRegistry.registerToken(token);
 }
 
-void Stack::annotationStart(const Variant &className, const Variant &args)
+void StackImpl::unregisterToken(TokenId id)
+{
+	tokenRegistry.unregisterToken(id);
+}
+
+void StackImpl::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 {
 	// TODO
+}
+
+void StackImpl::popTokens()
+{
+	// TODO
+}
+
+Variant StackImpl::readData()
+{
+	if (dataReader != nullptr) {
+		TokenizedDataReaderFork dataReaderFork = dataReader->fork();
+		Token token;
+		dataReaderFork.read(token, currentTokens(), currentWhitespaceMode());
+		if (token.id == Tokens::Data) {
+			Variant res = Variant::fromString(token.content);
+			res.setLocation(token.getLocation());
+			return res;
+		}
+	}
+	return Variant{};
+}
+
+/* Class Stack */
+
+Stack::Stack(ParserCallbacks &parser, ParserContext &ctx,
+             const std::multimap<std::string, const State *> &states)
+    : impl(new StackImpl(parser, ctx, states))
+{
+}
+
+Stack::~Stack()
+{
+	// Do nothing here, stub needed because StackImpl is incomplete in hpp
+}
+
+const State &Stack::currentState() const { return impl->currentState(); }
+
+std::string Stack::currentCommandName() const
+{
+	return impl->currentCommandName();
+}
+
+void Stack::commandStart(const Variant &name, const Variant::mapType &args,
+                         bool range)
+{
+#if STACK_DEBUG_OUTPUT
+	std::cout << "STACK: commandStart " << name << " " << args << " " << range
+	          << std::endl;
+#endif
+	impl->commandStart(name, args, range);
+}
+
+void Stack::annotationStart(const Variant &className, const Variant &args,
+                            bool range)
+{
+#if STACK_DEBUG_OUTPUT
+	std::cout << "STACK: annotationStart " << className << " " << args << " "
+	          << range << std::endl;
+#endif
+	impl->annotationStart(className, args, range);
 }
 
 void Stack::annotationEnd(const Variant &className, const Variant &elementName)
 {
-	// TODO
+#if STACK_DEBUG_OUTPUT
+	std::cout << "STACK: annotationEnd " << className << " " << elementName
+	          << std::endl;
+#endif
+	impl->annotationEnd(className, elementName);
 }
 
-void Stack::token(Variant token)
+void Stack::rangeEnd()
 {
-	// TODO
+#if STACK_DEBUG_OUTPUT
+	std::cout << "STACK: rangeEnd" << std::endl;
+#endif
+	impl->rangeEnd();
+}
+
+void Stack::fieldStart(bool isDefault)
+{
+#if STACK_DEBUG_OUTPUT
+	std::cout << "STACK: fieldStart " << isDefault << std::endl;
+#endif
+	impl->fieldStart(isDefault);
+}
+
+void Stack::fieldEnd()
+{
+#if STACK_DEBUG_OUTPUT
+	std::cout << "STACK: fieldEnd" << std::endl;
+#endif
+	impl->fieldEnd();
+}
+
+void Stack::data(const TokenizedData &data)
+{
+#if STACK_DEBUG_OUTPUT
+	std::cout << "STACK: data" << std::endl;
+#endif
+	impl->data(data);
+}
+
+void Stack::data(const std::string &str)
+{
+#if STACK_DEBUG_OUTPUT
+	std::cout << "STACK: data (string) " << str << std::endl;
+#endif
+	data(TokenizedData(str));
 }
 }
 }

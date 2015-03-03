@@ -82,13 +82,21 @@ struct State {
 
 	/**
 	 * Set to true if this handler does support annotations. This is almost
-	 * always false (e.g. all description handlers), except for document 
+	 * always false (e.g. all description handlers), except for document
 	 * element handlers.
 	 */
-	bool supportsAnnotations;
+	bool supportsAnnotations : 1;
 
 	/**
-	 * Default constructor, initializes the handlers with nullptr.
+	 * Set to true if this handler does support tokens. This is almost
+	 * always false (e.g. all description handlers), except for document
+	 * element handlers.
+	 */
+	bool supportsTokens : 1;
+
+	/**
+	 * Default constructor, initializes the handlers with nullptr and the
+	 * supportsAnnotations and supportsTokens flags with false.
 	 */
 	State();
 
@@ -108,11 +116,12 @@ struct State {
 	 * be nullptr in which case no handler instance is created.
 	 * @param supportsAnnotations specifies whether annotations are supported
 	 * here at all.
+	 * @param supportsTokens specified whether tokens are supported here at all.
 	 */
 	State(StateSet parents, Arguments arguments = Arguments{},
-	            RttiSet createdNodeTypes = RttiSet{},
-	            HandlerConstructor elementHandler = nullptr,
-	            bool supportsAnnotations = false);
+	      RttiSet createdNodeTypes = RttiSet{},
+	      HandlerConstructor elementHandler = nullptr,
+	      bool supportsAnnotations = false, bool supportsTokens = false);
 
 	/**
 	 * Creates this State from the given StateBuilder instance.
@@ -220,6 +229,16 @@ public:
 	StateBuilder &supportsAnnotations(bool supportsAnnotations);
 
 	/**
+	 * Sets the state of the "supportsTokens" flag (default value is false).
+	 *
+	 * @param supportsTokens should be set to true, if the elementHandler
+	 * registered for this state is capable of handling tokens.
+	 * @return a reference at this StateBuilder instance for method
+	 * chaining.
+	 */
+	StateBuilder &supportsTokens(bool supportsTokens);
+
+	/**
 	 * Returns a reference at the internal State instance that was built
 	 * using the StateBuilder.
 	 *
@@ -275,7 +294,7 @@ public:
 	 * @param states is a list of states that should be checked.
 	 */
 	StateDeductor(std::vector<const Rtti *> signature,
-	                    std::vector<const State *> states);
+	              std::vector<const State *> states);
 
 	/**
 	 * Selects all active states from the given states. Only considers those

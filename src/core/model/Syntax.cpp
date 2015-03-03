@@ -16,18 +16,43 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Callbacks.hpp"
+#include "Syntax.hpp"
+
+#include "Domain.hpp"
 
 namespace ousia {
-namespace parser_stack {
 
-/* Class ParserCallbacks */
+/* Class TokenSyntaxDescriptor */
 
-ParserCallbacks::~ParserCallbacks()
+bool SyntaxDescriptor::isAnnotation() const
 {
-	// Do nothing here
+	return descriptor->isa(&RttiTypes::AnnotationClass);
+}
+bool SyntaxDescriptor::isFieldDescriptor() const
+{
+	return descriptor->isa(&RttiTypes::FieldDescriptor);
+}
+bool SyntaxDescriptor::isStruct() const
+{
+	return descriptor->isa(&RttiTypes::StructuredClass);
 }
 
-}
+void SyntaxDescriptor::insertIntoTokenSet(TokenSet &set) const
+{
+	if (start != Tokens::Empty) {
+		set.insert(start);
+	}
+	if (end != Tokens::Empty) {
+		set.insert(end);
+	}
+	if (shortForm != Tokens::Empty) {
+		set.insert(shortForm);
+	}
 }
 
+bool SyntaxDescriptor::isEmpty() const
+{
+	return start == Tokens::Empty && end == Tokens::Empty &&
+	       shortForm == Tokens::Empty;
+}
+}

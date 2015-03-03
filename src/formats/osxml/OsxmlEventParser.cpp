@@ -25,7 +25,7 @@
 #include <core/common/Variant.hpp>
 #include <core/common/VariantReader.hpp>
 #include <core/common/Utils.hpp>
-#include <core/common/WhitespaceHandler.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 
 #include "OsxmlAttributeLocator.hpp"
 #include "OsxmlEventParser.hpp"
@@ -40,6 +40,11 @@ namespace ousia {
 class OsxmlEventParserData {
 public:
 	/**
+	 * Current character data buffer.
+	 */
+	TokenizedData data;
+
+	/**
 	 * Contains the current depth of the parsing process.
 	 */
 	ssize_t depth;
@@ -52,35 +57,13 @@ public:
 	ssize_t annotationEndTagDepth;
 
 	/**
-	 * Current character data buffer.
+	 * Constructor taking the sourceId of the file from which the XML is being
+	 * parsed.
+	 *
+	 * @param sourceId is the source if of the XML file from which the data is
+	 * currently being parsed.
 	 */
-	std::vector<char> textBuf;
-
-	/**
-	 * Current whitespace buffer (for the trimming whitspace mode)
-	 */
-	std::vector<char> whitespaceBuf;
-
-	/**
-	 * Flag indicating whether a whitespace character was present (for the
-	 * collapsing whitespace mode).
-	 */
-	bool hasWhitespace;
-
-	/**
-	 * Current character data start.
-	 */
-	size_t textStart;
-
-	/**
-	 * Current character data end.
-	 */
-	size_t textEnd;
-
-	/**
-	 * Default constructor.
-	 */
-	OsxmlEventParserData();
+	OsxmlEventParserData(SourceId sourceId);
 
 	/**
 	 * Increments the depth.
@@ -103,14 +86,6 @@ public:
 	 * @return true if character data is available.
 	 */
 	bool hasText();
-
-	/**
-	 * Returns a Variant containing the character data and its location.
-	 *
-	 * @return a string variant containing the text data and the character
-	 * location.
-	 */
-	Variant getText(SourceId sourceId);
 };
 
 /* Class GuardedExpatXmlParser */
@@ -168,7 +143,7 @@ public:
 static const std::string TOP_LEVEL_TAG{"ousia"};
 
 /**
- * Prefix used to indicate the start of an annoation (note the trailing colon)
+ * Prefix used to indicate the start of an annoation (note the trailing colon).
  */
 static const std::string ANNOTATION_START_PREFIX{"a:start:"};
 
@@ -215,8 +190,9 @@ static void xmlStartElementHandler(void *ref, const XML_Char *name,
 
 	// If there is any text data in the buffer, issue that first
 	if (parser->getData().hasText()) {
-		parser->getEvents().data(
-		    parser->getData().getText(parser->getReader().getSourceId()));
+		TokenizedData &data = parser->getData().data;
+		parser->getEvents().data(data);
+		data.clear();
 	}
 
 	// Read the argument locations -- this is only a stupid and slow hack,
@@ -335,7 +311,7 @@ static void xmlStartElementHandler(void *ref, const XML_Char *name,
 		// Just issue a "commandStart" event in any other case
 		Variant nameVar = Variant::fromString(nameStr);
 		nameVar.setLocation(nameLoc);
-		parser->getEvents().command(nameVar, args);
+		parser->getEvents().commandStart(nameVar, args);
 	}
 }
 
@@ -360,8 +336,9 @@ static void xmlEndElementHandler(void *ref, const XML_Char *name)
 
 	// If there is any text data in the buffer, issue that first
 	if (parser->getData().hasText()) {
-		parser->getEvents().data(
-		    parser->getData().getText(parser->getReader().getSourceId()));
+		TokenizedData &data = parser->getData().data;
+		parser->getEvents().data(data);
+		data.clear();
 	}
 
 	// Abort if the special ousia tag ends here
@@ -370,8 +347,8 @@ static void xmlEndElementHandler(void *ref, const XML_Char *name)
 		return;
 	}
 
-	// Issue the "fieldEnd" event
-	parser->getEvents().fieldEnd();
+	// Issue the "rangeEnd" event
+	parser->getEvents().rangeEnd();
 }
 
 static void xmlCharacterDataHandler(void *ref, const XML_Char *s, int len)
@@ -393,34 +370,8 @@ static void xmlCharacterDataHandler(void *ref, const XML_Char *s, int len)
 	// Synchronize the logger position
 	SourceLocation loc = xmlSyncLoggerPosition(p, ulen);
 
-	// Fetch some variables for convenience
-	const WhitespaceMode mode = parser->getWhitespaceMode();
-	OsxmlEventParserData &data = parser->getData();
-	std::vector<char> &textBuf = data.textBuf;
-	std::vector<char> &whitespaceBuf = data.whitespaceBuf;
-	bool &hasWhitespace = data.hasWhitespace;
-	size_t &textStart = data.textStart;
-	size_t &textEnd = data.textEnd;
-
-	size_t pos = loc.getStart();
-	for (size_t i = 0; i < ulen; i++, pos++) {
-		switch (mode) {
-			case WhitespaceMode::PRESERVE:
-				PreservingWhitespaceHandler::append(s[i], pos, pos + 1, textBuf,
-				                                    textStart, textEnd);
-				break;
-			case WhitespaceMode::TRIM:
-				TrimmingWhitespaceHandler::append(s[i], pos, pos + 1, textBuf,
-				                                  textStart, textEnd,
-				                                  whitespaceBuf);
-				break;
-			case WhitespaceMode::COLLAPSE:
-				CollapsingWhitespaceHandler::append(s[i], pos, pos + 1, textBuf,
-				                                    textStart, textEnd,
-				                                    hasWhitespace);
-				break;
-		}
-	}
+	// Append the data to the buffer
+	parser->getData().data.append(std::string(s, ulen), loc.getStart());
 }
 
 /* Class OsxmlEvents */
@@ -429,12 +380,8 @@ OsxmlEvents::~OsxmlEvents() {}
 
 /* Class OsxmlEventParser */
 
-OsxmlEventParserData::OsxmlEventParserData()
-    : depth(0),
-      annotationEndTagDepth(-1),
-      hasWhitespace(false),
-      textStart(0),
-      textEnd(0)
+OsxmlEventParserData::OsxmlEventParserData(SourceId sourceId)
+    : data(sourceId), depth(0), annotationEndTagDepth(-1)
 {
 }
 
@@ -455,25 +402,7 @@ bool OsxmlEventParserData::inAnnotationEndTag()
 	return (annotationEndTagDepth > 0) && (depth >= annotationEndTagDepth);
 }
 
-bool OsxmlEventParserData::hasText() { return !textBuf.empty(); }
-
-Variant OsxmlEventParserData::getText(SourceId sourceId)
-{
-	// Create a variant containing the string data and the location
-	Variant var =
-	    Variant::fromString(std::string{textBuf.data(), textBuf.size()});
-	var.setLocation({sourceId, textStart, textEnd});
-
-	// Reset the text buffers
-	textBuf.clear();
-	whitespaceBuf.clear();
-	hasWhitespace = false;
-	textStart = 0;
-	textEnd = 0;
-
-	// Return the variant
-	return var;
-}
+bool OsxmlEventParserData::hasText() { return !data.empty(); }
 
 /* Class OsxmlEventParser */
 
@@ -482,8 +411,7 @@ OsxmlEventParser::OsxmlEventParser(CharReader &reader, OsxmlEvents &events,
     : reader(reader),
       events(events),
       logger(logger),
-      whitespaceMode(WhitespaceMode::COLLAPSE),
-      data(new OsxmlEventParserData())
+      data(new OsxmlEventParserData(reader.getSourceId()))
 {
 }
 
@@ -530,16 +458,6 @@ void OsxmlEventParser::parse()
 			break;
 		}
 	}
-}
-
-void OsxmlEventParser::setWhitespaceMode(WhitespaceMode whitespaceMode)
-{
-	this->whitespaceMode = whitespaceMode;
-}
-
-WhitespaceMode OsxmlEventParser::getWhitespaceMode() const
-{
-	return whitespaceMode;
 }
 
 CharReader &OsxmlEventParser::getReader() const { return reader; }

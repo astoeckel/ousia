@@ -16,18 +16,30 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Callbacks.hpp"
+#include "TokenStack.hpp"
 
 namespace ousia {
 namespace parser_stack {
 
-/* Class ParserCallbacks */
-
-ParserCallbacks::~ParserCallbacks()
+void TokenStack::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 {
-	// Do nothing here
+	stack.push_back(tokens);
 }
 
+void TokenStack::popTokens() { stack.pop_back(); }
+
+TokenSet TokenStack::tokens() const
+{
+	if (stack.empty() && parentStack != nullptr) {
+		return parentStack->tokens();
+	}
+
+	TokenSet res;
+	for (const SyntaxDescriptor &descr : stack.back()) {
+		descr.insertIntoTokenSet(res);
+	}
+	return res;
+}
 }
 }
 

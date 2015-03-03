@@ -25,6 +25,7 @@
 #include <core/model/Ontology.hpp>
 #include <core/model/Project.hpp>
 #include <core/model/Typesystem.hpp>
+#include <core/parser/utils/TokenizedData.hpp>
 #include <core/parser/ParserScope.hpp>
 #include <core/parser/ParserContext.hpp>
 
@@ -36,7 +37,7 @@ namespace parser_stack {
 
 /* DocumentHandler */
 
-bool DocumentHandler::start(Variant::mapType &args)
+bool DocumentHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<Document> document =
 	    context().getProject()->createDocument(args["name"].asString());
@@ -50,6 +51,11 @@ bool DocumentHandler::start(Variant::mapType &args)
 void DocumentHandler::end() { scope().pop(logger()); }
 
 /* DocumentChildHandler */
+
+DocumentChildHandler::DocumentChildHandler(const HandlerData &handlerData)
+    : Handler(handlerData), isExplicitField(false)
+{
+}
 
 void DocumentChildHandler::preamble(Rooted<Node> &parentNode, size_t &fieldIdx,
                                     DocumentEntity *&parent)
@@ -121,10 +127,10 @@ void DocumentChildHandler::createPath(const size_t &firstFieldIdx,
 	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, false);
 }
 
-bool DocumentChildHandler::start(Variant::mapType &args)
+bool DocumentChildHandler::startCommand(Variant::mapType &args)
 {
-	// extract the special "name" attribute from the input arguments.
-	// the remaining attributes will be forwarded to the newly constructed
+	// Extract the special "name" attribute from the input arguments.
+	// The remaining attributes will be forwarded to the newly constructed
 	// element.
 	std::string nameAttr;
 	{
@@ -168,13 +174,6 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 
 			preamble(parentNode, fieldIdx, parent);
 
-			// TODO: REMOVE
-			std::string thisName = name();
-			std::string parentClassName;
-			if (parent != nullptr) {
-				parentClassName = parent->getDescriptor()->getName();
-			}
-
 			/*
 			 * Try to find a FieldDescriptor for the given tag if we are not in
 			 * a field already. This does _not_ try to construct transparent
@@ -191,9 +190,9 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 						        "Data or structure commands have already been "
 						        "given, command \"") +
 						        name() + std::string(
-						                     "\" is not interpreted explicit "
-						                     "field. Move explicit field "
-						                     "references to the beginning."),
+						                   "\" is not interpreted explicit "
+						                   "field. Move explicit field "
+						                   "references to the beginning."),
 						    location());
 					} else {
 						Rooted<DocumentField> field{new DocumentField(
@@ -260,15 +259,34 @@ bool DocumentChildHandler::start(Variant::mapType &args)
 	}
 }
 
+bool DocumentChildHandler::startAnnotation(Variant::mapType &args,
+                                           AnnotationType annotationType)
+{
+	// TODO: Handle annotation
+	return false;
+}
+
+bool DocumentChildHandler::startToken(Handle<Node> node)
+{
+	// TODO: Handle token start
+	return false;
+}
+
+DocumentChildHandler::EndTokenResult DocumentChildHandler::endToken(
+    const Token &token, Handle<Node> node)
+{
+	// TODO: Handle token end
+	return EndTokenResult::ENDED_NONE;
+}
+
 void DocumentChildHandler::end()
 {
-	// in case of explicit fields we do not want to pop something from the
+	// In case of explicit fields we do not want to pop something from the
 	// stack.
-	if (isExplicitField) {
-		return;
+	if (!isExplicitField) {
+		// pop the "main" element.
+		scope().pop(logger());
 	}
-	// pop the "main" element.
-	scope().pop(logger());
 }
 
 bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
@@ -278,6 +296,7 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 		isDefault = true;
 		return fieldIdx == 0;
 	}
+
 	Rooted<Node> parentNode = scope().getLeaf();
 	assert(parentNode->isa(&RttiTypes::StructuredEntity) ||
 	       parentNode->isa(&RttiTypes::AnnotationEntity));
@@ -290,7 +309,7 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 	    parent->getDescriptor()->getFieldDescriptors();
 
 	if (isDefault) {
-		if(fields.empty()){
+		if (fields.empty()) {
 			return false;
 		}
 		fieldIdx = fields.size() - 1;
@@ -316,31 +335,17 @@ void DocumentChildHandler::fieldEnd()
 {
 	assert(scope().getLeaf()->isa(&RttiTypes::DocumentField));
 
-	// pop the field from the stack.
+	// Pop the field from the stack.
 	scope().pop(logger());
 
-	// pop all remaining transparent elements.
+	// Pop all remaining transparent elements.
 	while (scope().getLeaf()->isa(&RttiTypes::StructuredEntity) &&
 	       scope().getLeaf().cast<StructuredEntity>()->isTransparent()) {
-		// pop the transparent element.
+		// Pop the transparent element.
 		scope().pop(logger());
-		// pop the transparent field.
+		// Pop the transparent field.
 		scope().pop(logger());
 	}
-}
-
-bool DocumentChildHandler::annotationStart(const Variant &className,
-                                           Variant::mapType &args)
-{
-	// TODO: Implement
-	return false;
-}
-
-bool DocumentChildHandler::annotationEnd(const Variant &className,
-                                         const Variant &elementName)
-{
-	// TODO: Implement
-	return false;
 }
 
 bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
@@ -370,7 +375,7 @@ bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
 	return valid && scope().resolveValue(data, type, logger);
 }
 
-bool DocumentChildHandler::data(Variant &data)
+bool DocumentChildHandler::data()
 {
 	// We're past the region in which explicit fields can be defined in the
 	// parent structure element
@@ -391,11 +396,12 @@ bool DocumentChildHandler::data(Variant &data)
 	// If it is a primitive field directly, try to parse the content.
 	if (field->isPrimitive()) {
 		// Add it as primitive content.
-		if (!convertData(field, data, logger())) {
+		Variant text = readData();
+		if (!convertData(field, text, logger())) {
 			return false;
 		}
 
-		parent->createChildDocumentPrimitive(data, fieldIdx);
+		parent->createChildDocumentPrimitive(text, fieldIdx);
 		return true;
 	}
 
@@ -409,7 +415,11 @@ bool DocumentChildHandler::data(Variant &data)
 	for (auto primitiveField : defaultFields) {
 		// Then try to parse the content using the type specification.
 		forks.emplace_back(logger().fork());
-		if (!convertData(primitiveField, data, forks.back())) {
+
+		// TODO: Actually the data has to be read after the path has been
+		// created (as createPath may push more tokens onto the stack)
+		Variant text = readData();
+		if (!convertData(primitiveField, text, forks.back())) {
 			continue;
 		}
 
@@ -418,24 +428,24 @@ bool DocumentChildHandler::data(Variant &data)
 
 		// Construct the necessary path
 		NodeVector<Node> path = field->pathTo(primitiveField, logger());
-		// TODO: Create methods with indices instead of names.
 		createPath(fieldIdx, path, parent);
 
 		// Then create the primitive element
-		parent->createChildDocumentPrimitive(data);
+		parent->createChildDocumentPrimitive(text);
 		return true;
 	}
 
 	// No field was found that might take the data -- dump the error messages
 	// from the loggers -- or, if there were no primitive fields, clearly state
 	// this fact
+	Variant text = readData();
 	if (defaultFields.empty()) {
 		logger().error("Got data, but structure \"" + name() +
 		                   "\" does not have any primitive field",
-		               data);
+		               text);
 	} else {
 		logger().error("Could not read data with any of the possible fields:",
-		               data);
+		               text);
 		size_t f = 0;
 		for (auto field : defaultFields) {
 			logger().note(std::string("Field ") +
@@ -461,7 +471,9 @@ const State DocumentChild = StateBuilder()
                                 .createdNodeTypes({&RttiTypes::StructureNode,
                                                    &RttiTypes::AnnotationEntity,
                                                    &RttiTypes::DocumentField})
-                                .elementHandler(DocumentChildHandler::create);
+                                .elementHandler(DocumentChildHandler::create)
+                                .supportsAnnotations(true)
+                                .supportsTokens(true);
 }
 }
 

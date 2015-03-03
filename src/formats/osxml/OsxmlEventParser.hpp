@@ -32,8 +32,6 @@
 #include <memory>
 #include <string>
 
-#include <core/common/Whitespace.hpp>
-
 namespace ousia {
 
 // Forward declarations
@@ -61,7 +59,8 @@ public:
 	 * @param args is a map containing the arguments that were given to the
 	 * command.
 	 */
-	virtual void command(const Variant &name, const Variant::mapType &args) = 0;
+	virtual void commandStart(const Variant &name,
+	                          const Variant::mapType &args) = 0;
 
 	/**
 	 * Called whenever an annotation starts. Note that this implicitly always
@@ -90,24 +89,17 @@ public:
 	                           const Variant &elementName) = 0;
 
 	/**
-	 * Called whenever the default field which was implicitly started by
-	 * commandStart or annotationStart ends. Note that this does not end the
-	 * range of an annotation, but the default field of the annotation. To
-	 * signal the end of the annotation this, the annotationEnd method will be
-	 * invoked.
+	 * Called whenever the command or annotation tags end.
 	 */
-	virtual void fieldEnd() = 0;
+	virtual void rangeEnd() = 0;
 
 	/**
-	 * Called whenever data is found. Whitespace data is handled as specified
-	 * and the data has been parsed to the specified variant type. This function
-	 * is not called if the parsing failed, the parser prints an error message
-	 * instead.
+	 * Called whenever string data is found.
 	 *
-	 * @param data is the already parsed data that should be passed to the
-	 * handler.
+	 * @param data is a TokenizedData instance containing the string data that
+	 * was found in the XML file.
 	 */
-	virtual void data(const Variant &data) = 0;
+	virtual void data(const TokenizedData &data) = 0;
 };
 
 /**
@@ -133,11 +125,6 @@ private:
 	 * be logged.
 	 */
 	Logger &logger;
-
-	/**
-	 * Current whitespace mode.
-	 */
-	WhitespaceMode whitespaceMode;
 
 	/**
 	 * Data to be used by the internal functions.
@@ -171,21 +158,6 @@ public:
 	void parse();
 
 	/**
-	 * Sets the whitespace handling mode.
-	 *
-	 * @param whitespaceMode defines how whitespace in the data should be
-	 * handled.
-	 */
-	void setWhitespaceMode(WhitespaceMode whitespaceMode);
-
-	/**
-	 * Returns the current whitespace handling mode.
-	 *
-	 * @return the currently set whitespace handling mode.
-	 */
-	WhitespaceMode getWhitespaceMode() const;
-
-	/**
 	 * Returns the internal CharReader reference.
 	 *
 	 * @return the CharReader reference.
@@ -207,7 +179,9 @@ public:
 	OsxmlEvents &getEvents() const;
 
 	/**
-	 * Returns a reference at the internal data.
+	 * Used internally to fetch a reference at the internal data.
+	 *
+	 * @return a reference at the internal OsxmlEventParserData structure.
 	 */
 	OsxmlEventParserData &getData() const;
 };

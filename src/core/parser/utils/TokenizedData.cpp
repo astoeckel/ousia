@@ -26,6 +26,11 @@
 #include "TokenizedData.hpp"
 
 namespace ousia {
+/**
+ * Maximum token length.
+ */
+constexpr TokenLength MaxTokenLength = std::numeric_limits<TokenLength>::max();
+
 namespace {
 /**
  * Structure used to represent the position of a token in the internal
@@ -48,6 +53,11 @@ struct TokenMark {
 	TokenLength len;
 
 	/**
+	 * Specifies whether the token is special or not.
+	 */
+	bool special;
+
+	/**
 	 * Constructor of the TokenMark structure, initializes all members with the
 	 * given values.
 	 *
@@ -55,9 +65,10 @@ struct TokenMark {
 	 * @param bufStart is the start position of the TokenMark in the internal
 	 * character buffer.
 	 * @param len is the length of the token.
+	 * @param special modifies the sort order, special tokens are prefered.
 	 */
-	TokenMark(TokenId id, size_t bufStart, TokenLength len)
-	    : bufStart(bufStart), id(id), len(len)
+	TokenMark(TokenId id, size_t bufStart, TokenLength len, bool special)
+	    : bufStart(bufStart), id(id), len(len), special(special)
 	{
 	}
 
@@ -72,7 +83,8 @@ struct TokenMark {
 	TokenMark(size_t bufStart)
 	    : bufStart(bufStart),
 	      id(Tokens::Empty),
-	      len(std::numeric_limits<TokenLength>::max())
+	      len(MaxTokenLength),
+	      special(true)
 	{
 	}
 
@@ -86,8 +98,22 @@ struct TokenMark {
 	 */
 	friend bool operator<(const TokenMark &m1, const TokenMark &m2)
 	{
-		return (m1.bufStart < m2.bufStart) ||
-		       (m1.bufStart == m2.bufStart && m1.len > m2.len);
+		// Prefer the mark with the smaller bufStart
+		if (m1.bufStart < m2.bufStart) {
+			return true;
+		}
+
+		// Special handling for marks with the same bufStart
+		if (m1.bufStart == m2.bufStart) {
+			// If exactly one of the two marks is special, return true if this
+			// one is special
+			if (m1.special != m2.special) {
+				return m1.special;
+			}
+			// Otherwise prefer longer marks
+			return m1.len > m2.len;
+		}
+		return false;
 	}
 };
 }
@@ -110,9 +136,9 @@ private:
 	std::vector<char> buf;
 
 	/**
-	 * Vector containing all token marks.
+	 * Buffset storing the "protected" flag of the character data.
 	 */
-	std::vector<TokenMark> marks;
+	std::vector<bool> protectedChars;
 
 	/**
 	 * Vector storing all the character offsets efficiently.
@@ -120,9 +146,34 @@ private:
 	SourceOffsetVector offsets;
 
 	/**
+	 * Vector containing all token marks.
+	 */
+	mutable std::vector<TokenMark> marks;
+
+	/**
+	 * Position of the first linebreak in a sequence of linebreaks.
+	 */
+	size_t firstLinebreak;
+
+	/**
+	 * Current indentation level.
+	 */
+	uint16_t currentIndentation;
+
+	/**
+	 * Last indentation level.
+	 */
+	uint16_t lastIndentation;
+
+	/**
+	 * Number of linebreaks without any content between them.
+	 */
+	uint16_t numLinebreaks;
+
+	/**
 	 * Flag indicating whether the internal "marks" vector is sorted.
 	 */
-	bool sorted;
+	mutable bool sorted;
 
 public:
 	/**
@@ -132,7 +183,7 @@ public:
 	 * @param sourceId is the source identifier that should be used for
 	 * constructing the location when returning tokens.
 	 */
-	TokenizedDataImpl(SourceId sourceId) : sourceId(sourceId), sorted(true) {}
+	TokenizedDataImpl(SourceId sourceId) : sourceId(sourceId) { clear(); }
 
 	/**
 	 * Appends a complete string to the internal character buffer and extends
@@ -140,22 +191,22 @@ public:
 	 *
 	 * @param data is the string that should be appended to the buffer.
 	 * @param offsStart is the start offset in bytes in the input file.
+	 * @param protect if set to true, the appended characters will not be
+	 * affected by whitespace handling, they will be returned as is.
 	 * @return the current size of the internal byte buffer. The returned value
 	 * is intended to be used for the "mark" function.
 	 */
-	size_t append(const std::string &data, SourceOffset offsStart)
-	{  // Append the data to the internal buffer
-		buf.insert(buf.end(), data.begin(), data.end());
-
-		// Extend the text regions, interpolate the source position (this may
-		// yield incorrect results)
-		const size_t size = buf.size();
-		for (SourceOffset offs = offsStart; offs < offsStart + data.size();
-		     offs++) {
-			offsets.storeOffset(offs, offs + 1);
+	size_t append(const std::string &data, SourceOffset offsStart, bool protect)
+	{
+		for (size_t i = 0; i < data.size(); i++) {
+			if (offsStart != InvalidSourceOffset) {
+				append(data[i], offsStart + i, offsStart + i + 1, protect);
+			} else {
+				append(data[i], InvalidSourceOffset, InvalidSourceOffset,
+				       protect);
+			}
 		}
-
-		return size;
+		return size();
 	}
 
 	/**
@@ -165,16 +216,86 @@ public:
 	 * @param c is the character that should be appended to the buffer.
 	 * @param offsStart is the start offset in bytes in the input file.
 	 * @param offsEnd is the end offset in bytes in the input file.
+	 * @param protect if set to true, the appended character will not be
+	 * affected by whitespace handling, it will be returned as is.
 	 * @return the current size of the internal byte buffer. The returned value
 	 * is intended to be used for the "mark" function.
 	 */
-	size_t append(char c, SourceOffset offsStart, SourceOffset offsEnd)
+	size_t append(char c, SourceOffset offsStart, SourceOffset offsEnd,
+	              bool protect)
 	{
 		// Add the character to the list and store the location of the character
 		// in the source file
 		buf.push_back(c);
+		protectedChars.push_back(protect);
 		offsets.storeOffset(offsStart, offsEnd);
-		return buf.size();
+
+		// Insert special tokens
+		const size_t size = buf.size();
+		const bool isWhitespace = Utils::isWhitespace(c);
+		const bool isLinebreak = Utils::isLinebreak(c);
+
+		// Handle linebreaks
+		if (isLinebreak) {
+			// Mark linebreaks as linebreak
+			mark(Tokens::Newline, size - 1, 1, false);
+
+			// The linebreak sequence started at the previous character
+			if (numLinebreaks == 0) {
+				firstLinebreak = size - 1;
+			}
+
+			// Reset the indentation
+			currentIndentation = 0;
+
+			// Increment the number of linebreaks
+			numLinebreaks++;
+
+			const size_t markStart = firstLinebreak;
+			const size_t markLength = size - firstLinebreak;
+
+			// Issue two consecutive linebreaks as paragraph token
+			if (numLinebreaks == 2) {
+				mark(Tokens::Paragraph, markStart, markLength, false);
+			}
+
+			// Issue three consecutive linebreaks as paragraph token
+			if (numLinebreaks >= 3) {
+				mark(Tokens::Section, markStart, markLength, false);
+			}
+		} else if (isWhitespace) {
+			// Count the whitespace characters at the beginning of the line
+			if (numLinebreaks > 0) {
+				// Implement the UNIX/Pyhton rule for tabs: Tabs extend to the
+				// next multiple of eight.
+				if (c == '\t') {
+					currentIndentation = (currentIndentation + 8) & ~7;
+				} else {
+					currentIndentation++;
+				}
+			}
+		}
+
+		// Issue indent and unindent tokens
+		if (!isWhitespace && numLinebreaks > 0) {
+			// Issue a larger indentation than that in the previous line as
+			// "Indent" token
+			if (currentIndentation > lastIndentation) {
+				mark(Tokens::Indent, size - 1, 0, true);
+			}
+
+			// Issue a smaller indentation than that in the previous line as
+			// "Dedent" token
+			if (currentIndentation < lastIndentation) {
+				mark(Tokens::Dedent, size - 1, 0, true);
+			}
+
+			// Reset the internal state machine
+			lastIndentation = currentIndentation;
+			numLinebreaks = 0;
+		}
+
+		return size;
 	}
 
 	/**
@@ -184,11 +305,12 @@ public:
 	 * @param bufStart is the start position in the internal buffer. Use the
 	 * values returned by append to calculate the start position.
 	 * @param len is the length of the token.
+	 * @param special tags the mark as "special", prefering it in the sort order
 	 */
-	void mark(TokenId id, size_t bufStart, TokenLength len)
+	void mark(TokenId id, size_t bufStart, TokenLength len, bool special)
 	{
 		// Push the new instance back onto the list
-		marks.emplace_back(id, bufStart, len);
+		marks.emplace_back(id, bufStart, len, special);
 
 		// Update the sorted flag as soon as more than one element is in the
 		// list
@@ -212,9 +334,13 @@ public:
 	 * @return true if a token was returned, false if no more tokens are
 	 * available.
 	 */
-	bool next(Token &token, WhitespaceMode mode,
-	          const std::unordered_set<TokenId> &tokens, size_t &cursor)
+	bool next(Token &token, WhitespaceMode mode, const TokenSet &tokens,
+	          TokenizedDataCursor &cursor) const
 	{
+		// Some variables for convenient access
+		size_t &bufPos = cursor.bufPos;
+		size_t &markPos = cursor.markPos;
+
 		// Sort the "marks" vector if it has not been sorted yet.
 		if (!sorted) {
 			std::sort(marks.begin(), marks.end());
@@ -222,10 +348,11 @@ public:
 		}
 
 		// Fetch the next larger TokenMark instance, make sure the token is in
-		// the "enabled" list
-		auto it =
-		    std::lower_bound(marks.begin(), marks.end(), TokenMark(cursor));
-		while (it != marks.end() && tokens.count(it->id) == 0) {
+		// the "enabled" list and within the buffer range
+		auto it = std::lower_bound(marks.begin() + markPos, marks.end(),
+		                           TokenMark(bufPos));
+		while (it != marks.end() && (tokens.count(it->id) == 0 ||
+		                             it->bufStart + it->len > buf.size())) {
 			it++;
 		}
 
@@ -236,15 +363,15 @@ public:
 		// Depending on the whitespace mode, fetch all the data between the
 		// cursor position and the calculated end position and return a token
 		// containing that data.
-		if (cursor < end && cursor < buf.size()) {
+		if (bufPos < end && bufPos < buf.size()) {
 			switch (mode) {
 				case WhitespaceMode::PRESERVE: {
 					token = Token(
-					    Tokens::Data, std::string(&buf[cursor], end - cursor),
+					    Tokens::Data, std::string(&buf[bufPos], end - bufPos),
 					    SourceLocation(sourceId,
-					                   offsets.loadOffset(cursor).first,
+					                   offsets.loadOffset(bufPos).first,
 					                   offsets.loadOffset(end).first));
-					cursor = end;
+					bufPos = end;
 					return true;
 				}
 				case WhitespaceMode::TRIM:
@@ -254,30 +381,35 @@ public:
 					size_t stringStart;
 					size_t stringEnd;
 					std::string content;
+					const char *cBuf = &buf[bufPos];
+					auto filter = [cBuf, this](size_t i) -> bool {
+						return Utils::isWhitespace(cBuf[i]) &&
+						       !protectedChars[i];
+					};
 					if (mode == WhitespaceMode::TRIM) {
-						content = Utils::trim(&buf[cursor], end - cursor,
-						                      stringStart, stringEnd);
+						content = Utils::trim(cBuf, end - bufPos, stringStart,
+						                      stringEnd, filter);
 					} else {
-						content = Utils::collapse(&buf[cursor], end - cursor,
-						                          stringStart, stringEnd);
+						content = Utils::collapse(
+						    cBuf, end - bufPos, stringStart, stringEnd, filter);
 					}
 
 					// If the resulting string is empty (only whitespaces),
 					// abort
 					if (content.empty()) {
-						cursor = end;
+						bufPos = end;
 						break;
 					}
 
 					// Calculate the absolute positions and return the token
-					stringStart += cursor;
-					stringEnd += cursor;
+					stringStart += bufPos;
+					stringEnd += bufPos;
 					token = Token(
 					    Tokens::Data, content,
 					    SourceLocation(sourceId,
 					                   offsets.loadOffset(stringStart).first,
 					                   offsets.loadOffset(stringEnd).first));
-					cursor = end;
+					bufPos = end;
 					return true;
 				}
 			}
@@ -286,14 +418,18 @@ public:
 		// If start equals end, we're currently directly at a token
 		// instance. Return this token and advance the cursor to the end of
 		// the token.
-		if (cursor == end && it != marks.end()) {
+		if (bufPos == end && it != marks.end()) {
 			const size_t tokenStart = it->bufStart;
 			const size_t tokenEnd = it->bufStart + it->len;
 			token = Token(
 			    it->id, std::string(&buf[tokenStart], it->len),
 			    SourceLocation(sourceId, offsets.loadOffset(tokenStart).first,
 			                   offsets.loadOffset(tokenEnd).first));
-			cursor = tokenEnd;
+
+			// Update the cursor, consume the token by incrementing the marks
+			// pos counter
+			bufPos = tokenEnd;
+			markPos = it - marks.begin() + 1;
 			return true;
 		}
 
@@ -304,11 +440,64 @@ public:
 	}
 
 	/**
+	 * Resets the TokenizedDataImpl instance to the state it had when it was
+	 * constructred.
+	 */
+	void clear()
+	{
+		buf.clear();
+		protectedChars.clear();
+		offsets.clear();
+		marks.clear();
+		firstLinebreak = 0;
+		currentIndentation = 0;
+		lastIndentation = 0;
+		numLinebreaks = 1;  // Assume the stream starts with a linebreak
+		sorted = true;
+	}
+
+	/**
+	 * Trims the length of the TokenizedDataImpl instance to the given length.
+	 *
+	 * @param length is the number of characters to which the TokenizedData
+	 * instance should be trimmed.
+	 */
+	void trim(size_t length)
+	{
+		if (length < size()) {
+			buf.resize(length);
+			protectedChars.resize(length);
+			offsets.trim(length);
+		}
+	}
+
+	/**
 	 * Returns the current size of the internal buffer.
 	 *
 	 * @return the size of the internal character buffer.
 	 */
-	size_t getSize() { return buf.size(); }
+	size_t size() const { return buf.size(); }
+
+	/**
+	 * Returns true if no data is in the data buffer.
+	 *
+	 * @return true if the "buf" instance has no data.
+	 */
+	bool empty() const { return buf.empty(); }
+
+	/**
+	 * Returns the current location of all data in the buffer.
+	 *
+	 * @return the location of the entire data represented by this instance.
+	 */
+	SourceLocation getLocation() const
+	{
+		if (empty()) {
+			return SourceLocation{sourceId};
+		}
+		return SourceLocation{sourceId, offsets.loadOffset(0).first,
+		                      offsets.loadOffset(size()).second};
+	}
 };
 
 /* Class TokenizedData */
@@ -316,50 +505,90 @@ public:
 TokenizedData::TokenizedData() : TokenizedData(InvalidSourceId) {}
 
 TokenizedData::TokenizedData(SourceId sourceId)
-    : impl(std::make_shared<TokenizedDataImpl>(sourceId)), cursor(0)
+    : impl(std::make_shared<TokenizedDataImpl>(sourceId))
 {
+}
+
+TokenizedData::TokenizedData(const std::string &data, SourceOffset offsStart,
+                             SourceId sourceId)
+    : TokenizedData(sourceId)
+{
+	append(data, offsStart);
 }
 
 TokenizedData::~TokenizedData() {}
 
-size_t TokenizedData::append(const std::string &data, SourceOffset offsStart)
+size_t TokenizedData::append(const std::string &data, SourceOffset offsStart,
+                             bool protect)
 {
-	return impl->append(data, offsStart);
+	return impl->append(data, offsStart, protect);
 }
 
 size_t TokenizedData::append(char c, SourceOffset offsStart,
-                             SourceOffset offsEnd)
+                             SourceOffset offsEnd, bool protect)
 {
-	return impl->append(c, offsStart, offsEnd);
+	return impl->append(c, offsStart, offsEnd, protect);
 }
 
 void TokenizedData::mark(TokenId id, TokenLength len)
 {
-	impl->mark(id, impl->getSize() - len, len);
+	impl->mark(id, impl->size() - len, len, false);
 }
 
 void TokenizedData::mark(TokenId id, size_t bufStart, TokenLength len)
 {
-	impl->mark(id, bufStart, len);
+	impl->mark(id, bufStart, len, false);
 }
 
-bool TokenizedData::next(Token &token, WhitespaceMode mode)
+void TokenizedData::clear() { impl->clear(); }
+
+void TokenizedData::trim(size_t length) { impl->trim(length); }
+
+size_t TokenizedData::size() const { return impl->size(); }
+
+bool TokenizedData::empty() const { return impl->empty(); }
+
+SourceLocation TokenizedData::getLocation() const
 {
-	return impl->next(token, mode, tokens, cursor);
+	return impl->getLocation();
 }
 
-bool TokenizedData::text(Token &token, WhitespaceMode mode)
+TokenizedDataReader TokenizedData::reader() const
 {
-	// Copy the current cursor position to not update the actual cursor position
-	// if the operation was not successful
-	size_t cursorCopy = cursor;
-	if (!impl->next(token, mode, tokens, cursorCopy) ||
-	    token.id != Tokens::Data) {
-		return false;
-	}
+	return TokenizedDataReader(impl, TokenizedDataCursor(),
+	                           TokenizedDataCursor());
+}
 
-	// There is indeed a text token, update the internal cursor position
-	cursor = cursorCopy;
-	return true;
+/* Class TokenizedDataReader */
+
+TokenizedDataReader::TokenizedDataReader(
+    std::shared_ptr<const TokenizedDataImpl> impl,
+    const TokenizedDataCursor &readCursor,
+    const TokenizedDataCursor &peekCursor)
+    : impl(impl), readCursor(readCursor), peekCursor(peekCursor)
+{
+}
+
+TokenizedDataReaderFork TokenizedDataReader::fork()
+{
+	return TokenizedDataReaderFork(*this, impl, readCursor, peekCursor);
+}
+
+bool TokenizedDataReader::atEnd() const
+{
+	return readCursor.bufPos >= impl->size();
+}
+
+bool TokenizedDataReader::read(Token &token, const TokenSet &tokens,
+                               WhitespaceMode mode)
+{
+	peekCursor = readCursor;
+	return impl->next(token, mode, tokens, readCursor);
+}
+
+bool TokenizedDataReader::peek(Token &token, const TokenSet &tokens,
+                               WhitespaceMode mode)
+{
+	return impl->next(token, mode, tokens, peekCursor);
 }
 }

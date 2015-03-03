@@ -33,7 +33,7 @@
 #include <limits>
 #include <unordered_map>
 
-#include "Token.hpp"
+#include <core/common/Token.hpp>
 
 namespace ousia {
 
@@ -75,10 +75,9 @@ public:
 		ChildMap children;
 
 		/**
-		 * Reference at the corresponding token descriptor. Set to nullptr if
-		 * no token is attached to this node.
+		 * Id of the token represented by this node.
 		 */
-		TokenId type;
+		TokenId id;
 
 		/**
 		 * Default constructor, initializes the descriptor with nullptr.
@@ -99,10 +98,10 @@ public:
 	 *
 	 * @param token is the character sequence that should be registered as
 	 * token.
-	 * @param type is the descriptor that should be set for this token.
+	 * @param id is the descriptor that should be set for this token.
 	 * @return true if the operation is successful, false otherwise.
 	 */
-	bool registerToken(const std::string &token, TokenId type) noexcept;
+	bool registerToken(const std::string &token, TokenId id) noexcept;
 
 	/**
 	 * Unregisters the token from the token tree. Returns true if the token was

@@ -19,6 +19,6 @@
 #include "Token.hpp"
 
 namespace ousia {
-// Stub to make sure Tokens.hpp is valid
+
 }
 

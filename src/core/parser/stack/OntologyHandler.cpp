@@ -33,7 +33,7 @@ namespace parser_stack {
 
 /* OntologyHandler */
 
-bool OntologyHandler::start(Variant::mapType &args)
+bool DomainHandler::startCommand(Variant::mapType &args)
 {
 	// Create the Ontology node
 	Rooted<Ontology> ontology =
@@ -226,9 +226,9 @@ bool OntologyChildHandler::start(Variant::mapType &args)
 {
 	Rooted<FieldDescriptor> field = scope().selectOrThrow<FieldDescriptor>();
 
-	const std::string &ref = args["ref"].asString();
+	const std::string &name = args["ref"].asString();
 	scope().resolve<StructuredClass>(
-	    ref, field, logger(),
+	    name, field, logger(),
 	    [](Handle<Node> child, Handle<Node> field, Logger &logger) {
 		    if (child != nullptr) {
 			    field.cast<FieldDescriptor>()->addChild(
@@ -275,7 +275,7 @@ bool OntologyParentFieldHandler::start(Variant::mapType &args)
 	scope().resolve<Descriptor>(
 	    parentNameNode->getName(), strct, logger(),
 	    [type, name, optional](Handle<Node> parent, Handle<Node> strct,
-	                           Logger &logger) {
+	                                Logger &logger) {
 		    if (parent != nullptr) {
 			    Rooted<FieldDescriptor> field =
 			        (parent.cast<Descriptor>()->createFieldDescriptor(
@@ -299,21 +299,20 @@ bool OntologyParentFieldRefHandler::start(Variant::mapType &args)
 
 	// resolve the parent, get the referenced field and add the declared
 	// StructuredClass as child to it.
-	scope().resolve<Descriptor>(
-	    parentNameNode->getName(), strct, logger(),
-	    [name, loc](Handle<Node> parent, Handle<Node> strct, Logger &logger) {
-		    if (parent != nullptr) {
-			    Rooted<FieldDescriptor> field =
-			        parent.cast<Descriptor>()->getFieldDescriptor(name);
-			    if (field == nullptr) {
-				    logger.error(
-				        std::string("Could not find referenced field ") + name,
-				        loc);
-				    return;
-			    }
-			    field->addChild(strct.cast<StructuredClass>());
-		    }
-		});
+	scope().resolve<Descriptor>(parentNameNode->getName(), strct, logger(),
+	                            [name, loc](Handle<Node> parent,
+	                                       Handle<Node> strct, Logger &logger) {
+		if (parent != nullptr) {
+			Rooted<FieldDescriptor> field =
+			    parent.cast<Descriptor>()->getFieldDescriptor(name);
+			if (field == nullptr) {
+				logger.error(
+				    std::string("Could not find referenced field ") + name, loc);
+				return;
+			}
+			field->addChild(strct.cast<StructuredClass>());
+		}
+	});
 	return true;
 }
 

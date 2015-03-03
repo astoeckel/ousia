@@ -168,11 +168,13 @@
 #ifndef _OUSIA_MODEL_DOMAIN_HPP_
 #define _OUSIA_MODEL_DOMAIN_HPP_
 
+#include <core/common/Whitespace.hpp>
 #include <core/managed/ManagedContainer.hpp>
 #include <core/RangeSet.hpp>
 
 #include "Node.hpp"
 #include "RootNode.hpp"
+#include "Syntax.hpp"
 #include "Typesystem.hpp"
 
 namespace ousia {
@@ -226,6 +228,9 @@ private:
 	Owned<Type> primitiveType;
 	bool optional;
 	bool primitive;
+	TokenDescriptor startToken;
+	TokenDescriptor endToken;
+	WhitespaceMode whitespaceMode;
 
 protected:
 	bool doValidate(Logger &logger) const override;
@@ -234,39 +239,46 @@ public:
 	/**
 	 * This is the constructor for primitive fields.
 	 *
-	 * @param mgr           is the global Manager instance.
-	 * @param parent        is a handle of the Descriptor node that has this
-	 *                      FieldDescriptor.
-	 * @param primitiveType is a handle to some Type in some Typesystem of which
-	 *                      one instance is allowed to fill this field.
-	 * @param name          is the name of this field.
-	 * @param optional      should be set to 'false' is this field needs to be
-	 *                      filled in order for an instance of the parent
-	 *                      Descriptor to be valid.
+	 * @param mgr            is the global Manager instance.
+	 * @param parent         is a handle of the Descriptor node that has this
+	 *                       FieldDescriptor.
+	 * @param primitiveType  is a handle to some Type in some Typesystem of
+	 *which
+	 *                       one instance is allowed to fill this field.
+	 * @param name           is the name of this field.
+	 * @param optional       should be set to 'false' is this field needs to be
+	 *                       filled in order for an instance of the parent
+	 *                       Descriptor to be valid.
+	 * @param whitespaceMode the WhitespaceMode to be used when an instance of
+	 *                       this FieldDescriptor is parsed.
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Type> primitiveType,
 	                Handle<Descriptor> parent,
 	                FieldType fieldType = FieldType::TREE,
-	                std::string name = "", bool optional = false);
+	                std::string name = "", bool optional = false,
+	                WhitespaceMode whitespaceMode = WhitespaceMode::COLLAPSE);
 
 	/**
 	 * This is the constructor for non-primitive fields. You have to provide
 	 * children here later on.
 	 *
-	 * @param mgr           is the global Manager instance.
-	 * @param parent        is a handle of the Descriptor node that has this
-	 *                      FieldDescriptor.
-	 * @param fieldType     is the FieldType of this FieldDescriptor, either
-	 *                      TREE for the main or default structure or SUBTREE
-	 *                      for supporting structures.
-	 * @param name          is the name of this field.
-	 * @param optional      should be set to 'false' is this field needs to be
-	 *                      filled in order for an instance of the parent
-	 *                      Descriptor to be valid.
+	 * @param mgr            is the global Manager instance.
+	 * @param parent         is a handle of the Descriptor node that has this
+	 *                       FieldDescriptor.
+	 * @param fieldType      is the FieldType of this FieldDescriptor, either
+	 *                       TREE for the main or default structure or SUBTREE
+	 *                       for supporting structures.
+	 * @param name           is the name of this field.
+	 * @param optional       should be set to 'false' is this field needs to be
+	 *                       filled in order for an instance of the parent
+	 *                       Descriptor to be valid.
+	 * @param whitespaceMode the WhitespaceMode to be used when an instance of
+	 *                       this FieldDescriptor is parsed.
 	 */
 	FieldDescriptor(Manager &mgr, Handle<Descriptor> parent = nullptr,
 	                FieldType fieldType = FieldType::TREE,
-	                std::string name = "", bool optional = false);
+	                std::string name = "", bool optional = false,
+	                WhitespaceMode whitespaceMode = WhitespaceMode::COLLAPSE);
 
 	/**
 	 * Returns a const reference to the NodeVector of StructuredClasses whose
@@ -455,6 +467,109 @@ public:
 			return std::move(name);
 		}
 	}
+
+	/**
+	 * Returns a pointer to the start TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor starts.
+	 *
+	 * Note that this does not invalidate the FieldDescriptor. So use with
+	 * care.
+	 *
+	 * @return a pointer to the start TokenDescriptor.
+	 */
+	TokenDescriptor *getStartTokenPointer() { return &startToken; }
+
+	/**
+	 * Returns a copy of the start TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor starts.
+	 *
+	 * @return a copy of the start TokenDescriptor.
+	 */
+	TokenDescriptor getStartToken() const { return startToken; }
+
+	/**
+	 * Sets the start TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor starts.
+	 *
+	 * @param st the new start TokenDescriptor.
+	 */
+	void setStartToken(TokenDescriptor st)
+	{
+		invalidate();
+		startToken = st;
+	}
+
+	/**
+	 * Returns a pointer to the end TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor ends.
+	 *
+	 * @return a pointer to the end TokenDescriptor.
+	 */
+	TokenDescriptor *getEndTokenPointer() { return &endToken; }
+
+	/**
+	 * Returns a copy of the end TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor ends.
+	 *
+	 * @return a copy of the end TokenDescriptor.
+	 */
+	TokenDescriptor getEndToken() const { return endToken; }
+
+	/**
+	 * Sets the end TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor ends.
+	 *
+	 * @param e the new end TokenDescriptor.
+	 */
+	void setEndToken(TokenDescriptor e)
+	{
+		invalidate();
+		endToken = e;
+	}
+
+	/**
+	 * Returns the WhitespaceMode to be used when an instance of this
+	 * FieldDescriptor is parsed.
+	 *
+	 * @return the WhitespaceMode to be used when an instance of this
+	 * FieldDescriptor is parsed.
+	 */
+	WhitespaceMode getWhitespaceMode() const { return whitespaceMode; }
+
+	/**
+	 * Sets the WhitespaceMode to be used when an instance of this
+	 * FieldDescriptor is parsed.
+	 *
+	 * @param wm the WhitespaceMode to be used when an instance of this
+	 * FieldDescriptor is parsed.
+	 */
+	WhitespaceMode setWhitespaceMode(WhitespaceMode wm)
+	{
+		return whitespaceMode = wm;
+	}
+
+	/**
+	 * Returns the SyntaxDescriptor for this FieldDescriptor.
+	 *
+	 * @return the SyntaxDescriptor for this FieldDescriptor.
+	 */
+	SyntaxDescriptor getSyntaxDescriptor(ssize_t depth = -1)
+	{
+		SyntaxDescriptor stx{startToken.id, endToken.id, Tokens::Empty,
+		                     const_cast<FieldDescriptor *>(this), depth};
+		return stx;
+	}
+
+	/**
+	 * Returns a vector of SyntaxDescriptors, one for each Descriptor
+	 * (StructuredClasses, AnnotationClasses or FieldDescriptors) that is
+	 * permitted as child of this FieldDescriptor. This also makes use
+	 * of transparency.
+	 *
+	 * @return a vector of SyntaxDescriptors, one for each Descriptor that is
+	 *         permitted as child of this FieldDescriptor
+	 */
+	std::vector<SyntaxDescriptor> getPermittedTokens() const;
 };
 
 /**
@@ -478,7 +593,10 @@ public:
  * </A>
  * \endcode
  *
- * key="value" inside the A-node would be an attribute, while <key>value</key>
+ * key="value" inside the A-node would be an attribute, while
+ * \code{.xml}
+ *   <key>value</key>
+ * \endcode
  * would be a primitive field. While equivalent in XML the semantics are
  * different: An attribute describes indeed attributes, features of one single
  * node whereas a primitive field describes the _content_ of a node.
@@ -490,6 +608,8 @@ class Descriptor : public Node {
 private:
 	Owned<StructType> attributesDescriptor;
 	NodeVector<FieldDescriptor> fieldDescriptors;
+	TokenDescriptor startToken;
+	TokenDescriptor endToken;
 
 	bool addAndSortFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
@@ -738,6 +858,85 @@ public:
 	 *         of an instance of this Descriptor in the structure tree.
 	 */
 	NodeVector<StructuredClass> getPermittedChildren() const;
+
+	/**
+	 * Returns a pointer to the start TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor starts.
+	 *
+	 * @return a pointer to the start TokenDescriptor.
+	 */
+	TokenDescriptor *getStartTokenPointer() { return &startToken; }
+
+	/**
+	 * Returns a copy of the start TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor starts.
+	 *
+	 * @return a copy of the start TokenDescriptor.
+	 */
+	TokenDescriptor getStartToken() const { return startToken; }
+
+	/**
+	 * Sets the start TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor starts.
+	 *
+	 * @param st the new start TokenDescriptor.
+	 */
+	void setStartToken(TokenDescriptor st)
+	{
+		invalidate();
+		startToken = st;
+	}
+
+	/**
+	 * Returns a pointer to the end TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor ends.
+	 *
+	 * @return a pointer to the end TokenDescriptor.
+	 */
+	TokenDescriptor *getEndTokenPointer() { return &endToken; }
+
+	/**
+	 * Returns a copy of the end TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor ends.
+	 *
+	 * @return a copy of the end TokenDescriptor.
+	 */
+	TokenDescriptor getEndToken() const { return endToken; }
+
+	/**
+	 * Sets the end TokenDescriptor. This Token is used as a
+	 * signifier during parsing that an instance of this FieldDescriptor ends.
+	 *
+	 * @param e the new end TokenDescriptor.
+	 */
+	void setEndToken(TokenDescriptor e)
+	{
+		invalidate();
+		endToken = e;
+	}
+
+	/**
+	 * Returns the SyntaxDescriptor for this Descriptor.
+	 *
+	 * @return the SyntaxDescriptor for this Descriptor.
+	 */
+	virtual SyntaxDescriptor getSyntaxDescriptor(ssize_t depth = -1)
+	{
+		SyntaxDescriptor stx{startToken.id, endToken.id, Tokens::Empty,
+		                     const_cast<Descriptor *>(this), depth};
+		return stx;
+	}
+
+	/**
+	 * Returns a vector of SyntaxDescriptors, one for each Descriptor
+	 * (StructuredClasses, AnnotationClasses or FieldDescriptors) that is
+	 * permitted as child of this Descriptor. This also makes use
+	 * of transparency.
+	 *
+	 * @return a vector of SyntaxDescriptors, one for each Descriptor that is
+	 *         permitted as child of this Descriptor.
+	 */
+	std::vector<SyntaxDescriptor> getPermittedTokens() const;
 };
 /*
  * TODO: We should discuss Cardinalities one more time. Is it smart to define
@@ -824,6 +1023,7 @@ private:
 	NodeVector<StructuredClass> subclasses;
 	bool transparent;
 	bool root;
+	TokenDescriptor shortToken;
 
 	/**
 	 * Helper method for getFieldDescriptors.
@@ -980,6 +1180,50 @@ public:
 	{
 		invalidate();
 		root = std::move(r);
+	}
+
+	/**
+	 * Returns a pointer to the short TokenDescriptor. During parsing an
+	 * occurence of this token will be translated to an empty instance of this
+	 * StructuredClass.
+	 *
+	 * @return a pointer to the short TokenDescriptor.
+	 */
+	TokenDescriptor *getShortTokenPointer() { return &shortToken; }
+
+	/**
+	 * Returns a copy of the short TokenDescriptor. During parsing an
+	 * occurence of this token will be translated to an empty instance of this
+	 * StructuredClass.
+	 *
+	 * @return a copy of the short TokenDescriptor.
+	 */
+	TokenDescriptor getShortToken() const { return shortToken; }
+
+	/**
+	 * Sets the short TokenDescriptor. During parsing an
+	 * occurence of this token will be translated to an empty instance of this
+	 * StructuredClass.
+	 *
+	 * @param s the new short TokenDescriptor.
+	 */
+	void setShortToken(TokenDescriptor s)
+	{
+		invalidate();
+		shortToken = s;
+	}
+
+	/**
+	 * Returns the SyntaxDescriptor for this StructuredClass.
+	 *
+	 * @return the SyntaxDescriptor for this StructuredClass.
+	 */
+	SyntaxDescriptor getSyntaxDescriptor(ssize_t depth = -1) override
+	{
+		SyntaxDescriptor stx{getStartToken().id, getEndToken().id,
+		                     shortToken.id, const_cast<StructuredClass *>(this),
+		                     depth};
+		return stx;
 	}
 };
 
@@ -1207,6 +1451,13 @@ public:
 	{
 		ontologies.insert(ontologies.end(), ds.begin(), ds.end());
 	}
+
+	/**
+	 * Returns all TokenDescriptors of classes and fields in this Ontology.
+	 *
+	 * @return all TokenDescriptors of classes and fields in this Ontology.
+	 */
+	std::vector<TokenDescriptor *> getAllTokenDescriptors() const;
 };
 
 namespace RttiTypes {

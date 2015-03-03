@@ -30,68 +30,80 @@
 #define _OUSIA_PARSER_STACK_CALLBACKS_HPP_
 
 #include <string>
+#include <vector>
 
 #include <core/common/Whitespace.hpp>
+#include <core/common/Token.hpp>
+#include <core/model/Syntax.hpp>
 
 namespace ousia {
+
+// Forward declarations
+class Variant;
+
 namespace parser_stack {
 
 /**
- * Interface defining a set of callback functions that act as a basis for the
- * StateStackCallbacks and the ParserCallbacks.
+ * Interface between the Stack class and the underlying parser used for
+ * registering and unregistering tokens.
  */
-class Callbacks {
+class ParserCallbacks {
 public:
 	/**
 	 * Virtual descructor.
 	 */
-	virtual ~Callbacks() {};
-
-	/**
-	 * Sets the whitespace mode that specifies how string data should be
-	 * processed.
-	 *
-	 * @param whitespaceMode specifies one of the three WhitespaceMode constants
-	 * PRESERVE, TRIM or COLLAPSE.
-	 */
-	virtual void setWhitespaceMode(WhitespaceMode whitespaceMode) = 0;
+	virtual ~ParserCallbacks();
 
 	/**
 	 * Registers the given token as token that should be reported to the handler
 	 * using the "token" function.
 	 *
 	 * @param token is the token string that should be reported.
+	 * @return the token id with which the token will be reported. Should return
+	 * Tokens::Empty if the given token could not be registered.
 	 */
-	virtual void registerToken(const std::string &token) = 0;
+	virtual TokenId registerToken(const std::string &token) = 0;
 
 	/**
 	 * Unregisters the given token, it will no longer be reported to the handler
 	 * using the "token" function.
 	 *
-	 * @param token is the token string that should be unregistered.
+	 * @param id is the token id of the token that should be unregistered.
 	 */
-	virtual void unregisterToken(const std::string &token) = 0;
+	virtual void unregisterToken(TokenId id) = 0;
 };
 
 /**
- * Interface defining the callback functions that can be passed from a
- * StateStack to the underlying parser.
+ * Interface defining a set of callback functions that act as a basis for the
+ * StateStackCallbacks and the ParserCallbacks.
  */
-class ParserCallbacks : public Callbacks {
+class HandlerCallbacks : public ParserCallbacks {
+public:
 	/**
-	 * Checks whether the given token is supported by the parser. The parser
-	 * returns true, if the token is supported, false if this token cannot be
-	 * registered. Note that parsers that do not support the registration of
-	 * tokens at all should always return "true".
+	 * Pushes a list of TokenSyntaxDescriptor instances onto the internal stack.
+	 * The tokens described in the token list are the tokens that are currently
+	 * enabled.
 	 *
-	 * @param token is the token that should be checked for support.
-	 * @return true if the token is generally supported (or the parser does not
-	 * support registering tokens at all), false if the token is not supported,
-	 * because e.g. it is a reserved token or it interferes with other tokens.
+	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
+	 * stored on the stack.
 	 */
-	virtual bool supportsToken(const std::string &token) = 0;
-};
+	virtual void pushTokens(const std::vector<SyntaxDescriptor> &tokens) = 0;
 
+	/**
+	 * Removes the previously pushed list of tokens from the stack.
+	 */
+	virtual void popTokens() = 0;
+
+	/**
+	 * Reads a string variant form the current input stream. This function must
+	 * be called from the data() method.
+	 *
+	 * @return a string variant containing the current text data. The return
+	 * value depends on the currently set whitespace mode and the tokens that
+	 * were enabled using the enableTokens callback method.
+	 */
+	virtual Variant readData() = 0;
+};
 }
 }
 

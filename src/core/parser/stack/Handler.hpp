@@ -1,6 +1,6 @@
 /*
     Ousía
-    Copyright (C) 2014  Benjamin Paaßen, Andreas Stöckel
+    Copyright (C) 2014, 2015 Benjamin Paaßen, Andreas Stöckel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,6 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/**
+ * @file Handler.hpp
+ *
+ * Contains the definition of the Handler class, used for representing Handlers
+ * for certain syntactic elements.
+ *
+ * @author Andreas Stöckel (astoecke@techfak.uni-bielefeld.de)
+ */
+
 #ifndef _OUSIA_PARSER_STACK_HANDLER_HPP_
 #define _OUSIA_PARSER_STACK_HANDLER_HPP_
 
@@ -24,6 +33,9 @@
 #include <core/common/Location.hpp>
 #include <core/common/Variant.hpp>
 #include <core/common/Whitespace.hpp>
+#include <core/common/Token.hpp>
+#include <core/model/Node.hpp>
+#include <core/model/Syntax.hpp>
 
 namespace ousia {
 
@@ -31,12 +43,21 @@ namespace ousia {
 class ParserScope;
 class ParserContext;
 class Logger;
+class TokenizedData;
+class Variant;
 
 namespace parser_stack {
 
 // More forward declarations
-class Callbacks;
+class HandlerCallbacks;
 class State;
+
+/**
+ * Enum describing the type of the Handler instance -- a document handler may
+ * be created for handling a simple command, a token or an annotation start and
+ * end.
+ */
+enum class HandlerType { COMMAND, ANNOTATION_START, ANNOTATION_END, TOKEN };
 
 /**
  * Class collecting all the data that is being passed to a Handler
@@ -51,16 +72,11 @@ public:
 	ParserContext &ctx;
 
 	/**
-	 * Reference at an instance of the Callbacks class, used for
-	 * modifying the behaviour of the parser (like registering tokens, setting
-	 * the data type or changing the whitespace handling mode).
+	 * Reference at a class implementing the HandlerCallbacks interface, used
+	 * for modifying the behaviour of the parser (like registering tokens,
+	 * setting the data type or changing the whitespace handling mode).
 	 */
-	//	Callbacks &callbacks;
-
-	/**
-	 * Contains the name of the command that is being handled.
-	 */
-	std::string name;
+	HandlerCallbacks &callbacks;
 
 	/**
 	 * Contains the current state of the state machine.
@@ -68,9 +84,16 @@ public:
 	const State &state;
 
 	/**
-	 * Current source code location.
+	 * Token containing the name of the command that is being handled, the
+	 * location of the element in the source code or the token id of the token
+	 * that is being handled.
 	 */
-	SourceLocation location;
+	Token token;
+
+	/**
+	 * Type describing for which purpose the HandlerData instance was created.
+	 */
+	HandlerType type;
 
 	/**
 	 * Constructor of the HandlerData class.
@@ -78,13 +101,13 @@ public:
 	 * @param ctx is the parser context the handler should be executed in.
 	 * @param callbacks is an instance of Callbacks used to notify
 	 * the parser about certain state changes.
-	 * @param name is the name of the string.
 	 * @param state is the state this handler was called for.
-	 * @param location is the location at which the handler is created.
+	 * @param token contains name, token id and location of the command that is
+	 * being handled.
+	 * @param type describes the purpose of the Handler instance at hand.
 	 */
-	HandlerData(ParserContext &ctx,
-	            /*Callbacks &callbacks,*/ const std::string &name,
-	            const State &state, const SourceLocation &location);
+	HandlerData(ParserContext &ctx, HandlerCallbacks &callbacks,
+	            const State &state, const Token &token, HandlerType type);
 };
 
 /**
@@ -113,6 +136,94 @@ protected:
 	 * handler.
 	 */
 	Handler(const HandlerData &handlerData);
+
+	/**
+	 * Calls the corresponding function in the HandlerCallbacks instance. This
+	 * method registers the given tokens as tokens that are generally available,
+	 * tokens must be explicitly enabled using the "pushTokens" and "popTokens"
+	 * method. Tokens that have not been registered are not guaranteed to be
+	 * reported (except for special tokens, these do not have to be registerd).
+	 *
+	 * @param token is the token string that should be made available.
+	 * @return the TokenId that will be used to refer to the token.
+	 */
+	TokenId registerToken(const std::string &token);
+
+	/**
+	 * Calls the corresponding function in the HandlerCallbacks instance. This
+	 * method unregisters the given token. Note that for a token to be no longer
+	 * reported, this function has to be called as many times as registerToken()
+	 * for the corresponding token.
+	 *
+	 * @param id is the id of the Token that should be unregistered.
+	 */
+	void unregisterToken(TokenId id);
+
+	/**
+	 * Pushes a list of TokenSyntaxDescriptor instances onto the internal stack.
+	 * The tokens described in the token list are the tokens that are currently
+	 * enabled.
+	 *
+	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
+	 * stored on the stack.
+	 */
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
+
+	/**
+	 * Calls the corresponding function in the HandlerCallbacks instance.
+	 * Removes the previously pushed list of tokens from the stack.
+	 */
+	void popTokens();
+
+	/**
+	 * Calls the corresponding method in the HandlerCallbacks instance. Reads a
+	 * string variant form the current input stream. This function must be
+	 * called from the data() method.
+	 *
+	 * @return a string variant containing the current text data. The return
+	 * value depends on the currently set whitespace mode and the tokens that
+	 * were enabled using the enableTokens callback method.
+	 */
+	Variant readData();
+
+	/**
+	 * Calls the corresponding function in the Callbacks instance. Sets the
+	 * whitespace mode that specifies how string data should be processed. The
+	 * calls to this function are placed on a stack by the underlying Stack
+	 * class. This function should be called from the "fieldStart" callback and
+	 * the "start" callback. If no whitespace mode is pushed in the "start"
+	 * method the whitespace mode "TRIM" is implicitly assumed.
+	 *
+	 * @param whitespaceMode specifies one of the three WhitespaceMode constants
+	 * PRESERVE, TRIM or COLLAPSE.
+	 */
+	//	void pushWhitespaceMode(WhitespaceMode whitespaceMode);
+
+	/**
+	 * Pops a previously pushed whitespace mode. Calls to this function should
+	 * occur in the "end" callback and the "fieldEnd" callback. This function
+	 * can only undo pushs that were performed by the pushWhitespaceMode()
+	 * method of the same handler.
+	 */
+	//	void popWhitespaceMode();
+
+public:
+	/**
+	 * Enum representing the type of the annotation a Handle instance handles.
+	 * It may either handle the start of an annotation or the end of an
+	 * annotation.
+	 */
+	enum class AnnotationType { START, END };
+
+	/**
+	 * Enum type representing the possible outcomes of the endToken() method.
+	 */
+	enum class EndTokenResult { ENDED_THIS, ENDED_HIDDEN, ENDED_NONE };
+
+	/**
+	 * Virtual destructor.
+	 */
+	virtual ~Handler();
 
 	/**
 	 * Returns a reference at the ParserContext.
@@ -144,6 +255,35 @@ protected:
 	Logger &logger();
 
 	/**
+	 * Returns the name of the command or annotation the handler is currently
+	 * handling. In case the command is currently handling a token, the name
+	 * corresponds to the token string sequence.
+	 *
+	 * @return the name of the command or the string sequence of the token that
+	 * is being handled by this handler.
+	 */
+	const std::string &name() const;
+
+	/**
+	 * Returns the token id of the token that is currently being handled by the
+	 * handler. In case the handler currently handles a command or annotation,
+	 * the token id is set to Tokens::Data.
+	 *
+	 * @return the current token id or Tokens::Data if no token is being
+	 * handled.
+	 */
+	TokenId tokenId() const;
+
+	/**
+	 * Returns a reference at the Token instance, containing either the token
+	 * that is currently being handled or the name of the command and annotation
+	 * and their location.
+	 *
+	 * @return a const reference at the internal token instance.
+	 */
+	const Token &token() const;
+
+	/**
 	 * Returns the location of the element in the source file, for which this
 	 * Handler was created.
 	 *
@@ -152,60 +292,18 @@ protected:
 	const SourceLocation &location() const;
 
 	/**
-	 * Returns the command name for which the handler was created.
-	 *
-	 * @return a const reference at the command name.
+	 * Returns the type describing the purpose for which the handler instance
+	 * was created.
 	 */
-	const std::string &name() const;
-
-public:
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~Handler();
+	HandlerType type() const;
 
 	/**
-	 * Calls the corresponding function in the Callbacks instance. Sets the
-	 * whitespace mode that specifies how string data should be processed. The
-	 * calls to this function are placed on a stack by the underlying Stack
-	 * class.
-	 *
-	 * @param whitespaceMode specifies one of the three WhitespaceMode constants
-	 * PRESERVE, TRIM or COLLAPSE.
-	 */
-	void setWhitespaceMode(WhitespaceMode whitespaceMode);
-
-	/**
-	 * Calls the corresponding function in the Callbacks instance.
-	 * Registers the given token as token that should be reported to the handler
-	 * using the "token" function.
-	 *
-	 * @param token is the token string that should be reported.
-	 */
-	void registerToken(const std::string &token);
-
-	/**
-	 * Calls the corresponding function in the Callbacks instance.
-	 * Unregisters the given token, it will no longer be reported to the handler
-	 * using the "token" function.
-	 *
-	 * @param token is the token string that should be unregistered.
-	 */
-	void unregisterToken(const std::string &token);
-
-	/**
-	 * Returns the command name for which the handler was created.
-	 *
-	 * @return a const reference at the command name.
-	 */
-	const std::string &getName() const;
-
-	/**
-	 * Reference at the State descriptor for which this Handler was created.
+	 * Returns a reference at the State descriptor for which this Handler was
+	 * created.
 	 *
 	 * @return a const reference at the constructing State descriptor.
 	 */
-	const State &getState() const;
+	const State &state() const;
 
 	/**
 	 * Sets the internal logger to the given logger instance.
@@ -229,14 +327,62 @@ public:
 	const SourceLocation &getLocation() const;
 
 	/**
-	 * Called when the command that was specified in the constructor is
-	 * instanciated.
+	 * Called whenever the handler should handle the start of a command. This
+	 * method (or any other of the "start" methods) is called exactly once,
+	 * after the constructor. The name of the command that is started here can
+	 * be accessed using the name() method.
 	 *
 	 * @param args is a map from strings to variants (argument name and value).
-	 * @return true if the handler was successful in starting the element it
-	 * represents, false otherwise.
+	 * @return true if the handler was successful in starting an element with
+	 * the given name represents, false otherwise.
 	 */
-	virtual bool start(Variant::mapType &args) = 0;
+	virtual bool startCommand(Variant::mapType &args) = 0;
+
+	/**
+	 * Called whenever the handler should handle the start of an annotation.
+	 * This method (or any other of the "start" methods) is called exactly once,
+	 * after the constructor. This method is only called if the
+	 * "supportsAnnotations" flag of the State instance referencing this Handler
+	 * is set to true. The name of the command that is started here can be
+	 * accessed using the name() method.
+	 *
+	 * @param args is a map from strings to variants (argument name and value).
+	 * @param type specifies whether this handler should handle the start of an
+	 * annotation or the end of an annotation.
+	 */
+	virtual bool startAnnotation(Variant::mapType &args,
+	                             AnnotationType annotationType) = 0;
+
+	/**
+	 * Called whenever the handler should handle the start of a token. This
+	 * method (or any other of the "start" methods) is called exactly once,
+	 * after the constructor. This method is only called if the "supportsTokens"
+	 * flag of the State instance referencing this Handler is set to true. The
+	 * token id of the token that is should be handled can be accessed using the
+	 * tokenId() method.
+	 *
+	 * @param node is the node for which this token was registered.
+	 */
+	virtual bool startToken(Handle<Node> node) = 0;
+
+	/**
+	 * Called whenever a token is marked as "end" token and this handler happens
+	 * to be the currently active handler. This operation may have three
+	 * outcomes:
+	 * <ol>
+	 *   <li>The token marks the end of the complete handler and the calling
+	 *   code should call the "end" method.</li>
+	 *   <li>The token marks the end of some element that is unknown the calling
+	 *   code. So the operation itself was a success, but the calling code
+	 *   should not call the "end" method.
+	 *   <li>The token did not anything in this context. Basically this shuold
+	 *   never happen, but who knows.</li>
+	 * </ol>
+	 *
+	 * @param id is the Token for which the handler should be started.
+	 * @param node is the node for which this token was registered.
+	 */
+	virtual EndTokenResult endToken(const Token &token, Handle<Node> node) = 0;
 
 	/**
 	 * Called before the command for which this handler is defined ends (is
@@ -266,44 +412,14 @@ public:
 	virtual void fieldEnd() = 0;
 
 	/**
-	 * Called whenever an annotation starts while this handler is active. The
-	 * function should return true if starting the annotation was successful,
-	 * false otherwise.
-	 *
-	 * @param className is a string variant containing the name of the
-	 * annotation class and the location of the name in the source code.
-	 * @param args is a map from strings to variants (argument name and value).
-	 * @return true if the mentioned annotation could be started here, false
-	 * if an error occurred.
-	 */
-	virtual bool annotationStart(const Variant &className,
-	                             Variant::mapType &args) = 0;
-
-	/**
-	 * Called whenever an annotation ends while this handler is active. The
-	 * function should return true if ending the annotation was successful,
-	 * false otherwise.
-	 *
-	 * @param className is a string variant containing the name of the
-	 * annotation class and the location of the class name in the source code.
-	 * @param elementName is a string variant containing the name of the
-	 * annotation class and the location of the element name in the source code.
-	 * @return true if the mentioned annotation could be started here, false if
-	 * an error occurred.
-	 */
-	virtual bool annotationEnd(const Variant &className,
-	                           const Variant &elementName) = 0;
-
-	/**
 	 * Called whenever raw data (int the form of a string) is available for the
 	 * Handler instance. Should return true if the data could be handled, false
-	 * otherwise.
+	 * otherwise. The actual data variant must be retrieved using the "text()"
+	 * callback.
 	 *
-	 * @param data is a string variant containing the character data and its
-	 * location.
 	 * @return true if the data could be handled, false otherwise.
 	 */
-	virtual bool data(Variant &data) = 0;
+	virtual bool data() = 0;
 };
 
 /**
@@ -325,15 +441,15 @@ protected:
 	using Handler::Handler;
 
 public:
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
+	bool startAnnotation(Variant::mapType &args,
+	                     AnnotationType annotationType) override;
+	bool startToken(Handle<Node> node) override;
+	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
 	void fieldEnd() override;
-	bool annotationStart(const Variant &className,
-	                     Variant::mapType &args) override;
-	bool annotationEnd(const Variant &className,
-	                   const Variant &elementName) override;
-	bool data(Variant &data) override;
+	bool data() override;
 
 	/**
 	 * Creates an instance of the EmptyHandler class.
@@ -351,15 +467,15 @@ protected:
 	using Handler::Handler;
 
 public:
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
+	bool startAnnotation(Variant::mapType &args,
+	                     AnnotationType annotationType) override;
+	bool startToken(Handle<Node> node) override;
+	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
 	void fieldEnd() override;
-	bool annotationStart(const Variant &className,
-	                     Variant::mapType &args) override;
-	bool annotationEnd(const Variant &className,
-	                   const Variant &elementName) override;
-	bool data(Variant &data) override;
+	bool data() override;
 };
 
 /**
@@ -406,13 +522,12 @@ protected:
 	 * @param fieldData is the captured field data.
 	 * @param args are the arguments that were given in the "start" function.
 	 */
-	virtual void doHandle(const Variant &fieldData,
-	                      Variant::mapType &args) = 0;
+	virtual void doHandle(const Variant &fieldData, Variant::mapType &args) = 0;
 
 public:
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
+	bool data() override;
 	void end() override;
-	bool data(Variant &data) override;
 };
 }
 }

@@ -22,8 +22,8 @@
 #include <core/common/CharReader.hpp>
 #include <core/common/Exceptions.hpp>
 #include <core/common/Utils.hpp>
-#include <core/common/WhitespaceHandler.hpp>
 
+#include "TokenizedData.hpp"
 #include "Tokenizer.hpp"
 
 namespace ousia {
@@ -42,26 +42,33 @@ struct TokenMatch {
 	Token token;
 
 	/**
-	 * Current length of the data within the text handler. The text buffer needs
-	 * to be trimmed to this length if this token matches.
+	 * Position at which this token starts in the TokenizedData instance.
 	 */
-	size_t textLength;
+	size_t dataStartOffset;
 
 	/**
-	 * End location of the current text handler. This location needs to be used
-	 * for the text token that is emitted before the actual token.
+	 * Set to true if the matched token is a primary token.
 	 */
-	size_t textEnd;
+	bool primary;
 
 	/**
 	 * Constructor of the TokenMatch class.
 	 */
-	TokenMatch() : textLength(0), textEnd(0) {}
+	TokenMatch() : dataStartOffset(0), primary(false) {}
 
 	/**
 	 * Returns true if this TokenMatch instance actually represents a match.
+	 *
+	 * @return true if the TokenMatch actually has a match.
 	 */
-	bool hasMatch() { return token.id != Tokens::Empty; }
+	bool hasMatch() const { return token.id != Tokens::Empty; }
+
+	/**
+	 * Returns the length of the matched token.
+	 *
+	 * @return the length of the token string.
+	 */
+	size_t size() const { return token.content.size(); }
 };
 
 /* Internal class TokenLookup */
@@ -83,36 +90,28 @@ private:
 	size_t start;
 
 	/**
-	 * Current length of the data within the text handler. The text buffer needs
-	 * to be trimmed to this length if this token matches.
+	 * Position at which this token starts in the TokenizedData instance.
 	 */
-	size_t textLength;
-
-	/**
-	 * End location of the current text handler. This location needs to be used
-	 * for the text token that is emitted before the actual token.
-	 */
-	size_t textEnd;
+	size_t dataStartOffset;
 
 public:
 	/**
 	 * Constructor of the TokenLookup class.
 	 *
 	 * @param node is the current node.
-	 * @param start is the start position.
-	 * @param textLength is the text buffer length of the previous text token.
-	 * @param textEnd is the current end location of the previous text token.
+	 * @param start is the start position in the source file.
+	 * @param dataStartOffset is the current length of the TokenizedData buffer.
 	 */
-	TokenLookup(const TokenTrie::Node *node, size_t start, size_t textLength,
-	            size_t textEnd)
-	    : node(node), start(start), textLength(textLength), textEnd(textEnd)
+	TokenLookup(const TokenTrie::Node *node, size_t start,
+	            size_t dataStartOffset)
+	    : node(node), start(start), dataStartOffset(dataStartOffset)
 	{
 	}
 
 	/**
 	 * Tries to extend the current path in the token trie with the given
-	 * character. If a complete token is matched, stores this match in the
-	 * tokens list (in case it is longer than any previous token).
+	 * character. If a complete token is matched, stores the match in the given
+	 * TokenMatch reference and returns true.
 	 *
 	 * @param c is the character that should be appended to the current prefix.
 	 * @param lookups is a list to which new TokeLookup instances are added --
@@ -123,73 +122,48 @@ public:
 	 * Tokenizer.
 	 * @param end is the end byte offset of the current character.
 	 * @param sourceId is the source if of this file.
+	 * @return true if a token was matched, false otherwise.
 	 */
-	void advance(char c, std::vector<TokenLookup> &lookups, TokenMatch &match,
-	             const std::vector<std::string> &tokens, SourceOffset end,
-	             SourceId sourceId)
+	bool advance(char c, std::vector<TokenLookup> &lookups, TokenMatch &match,
+	             const std::vector<Tokenizer::TokenDescriptor> &tokens,
+	             SourceOffset end, SourceId sourceId)
 	{
-		// Check whether we can continue the current token path with the given
-		// character without visiting an already visited node
+		// Set to true once a token has been matched
+		bool res = false;
+
+		// Check whether we can continue the current token path, if not, abort
 		auto it = node->children.find(c);
 		if (it == node->children.end()) {
-			return;
+			return res;
 		}
 
 		// Check whether the new node represents a complete token a whether it
 		// is longer than the current token. If yes, replace the current token.
 		node = it->second.get();
-		if (node->type != Tokens::Empty) {
-			const std::string &str = tokens[node->type];
-			size_t len = str.size();
-			if (len > match.token.content.size()) {
-				match.token =
-				    Token{node->type, str, {sourceId, start, end}};
-				match.textLength = textLength;
-				match.textEnd = textEnd;
-			}
+		if (node->id != Tokens::Empty) {
+			const Tokenizer::TokenDescriptor &descr = tokens[node->id];
+			match.token = Token(node->id, descr.string,
+			                    SourceLocation(sourceId, start, end));
+			match.dataStartOffset = dataStartOffset;
+			match.primary = descr.primary;
+			res = true;
 		}
 
 		// If this state can possibly be advanced, store it in the states list.
 		if (!node->children.empty()) {
 			lookups.emplace_back(*this);
 		}
+		return res;
 	}
 };
-
-/**
- * Transforms the given token into a data token containing the extracted
- * text.
- *
- * @param handler is the WhitespaceHandler containing the collected data.
- * @param token is the output token to which the text should be written.
- * @param sourceId is the source id of the underlying file.
- */
-static void buildDataToken(const WhitespaceHandler &handler, TokenMatch &match,
-                           SourceId sourceId)
-{
-	if (match.hasMatch()) {
-		match.token.content =
-		    std::string{handler.textBuf.data(), match.textLength};
-		match.token.location =
-		    SourceLocation{sourceId, handler.textStart, match.textEnd};
-	} else {
-		match.token.content = handler.toString();
-		match.token.location =
-		    SourceLocation{sourceId, handler.textStart, handler.textEnd};
-	}
-	match.token.id = Tokens::Data;
-}
 }
 
 /* Class Tokenizer */
 
-Tokenizer::Tokenizer(WhitespaceMode whitespaceMode)
-    : whitespaceMode(whitespaceMode), nextTokenId(0)
-{
-}
+Tokenizer::Tokenizer() : nextTokenId(0) {}
 
-template <typename TextHandler, bool read>
-bool Tokenizer::next(CharReader &reader, Token &token)
+template <bool read>
+bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
 {
 	// If we're in the read mode, reset the char reader peek position to the
 	// current read position
@@ -199,44 +173,62 @@ bool Tokenizer::next(CharReader &reader, Token &token)
 
 	// Prepare the lookups in the token trie
 	const TokenTrie::Node *root = trie.getRoot();
-	TokenMatch match;
+	TokenMatch bestMatch;
 	std::vector<TokenLookup> lookups;
 	std::vector<TokenLookup> nextLookups;
-
-	// Instantiate the text handler
-	TextHandler textHandler;
 
 	// Peek characters from the reader and try to advance the current token tree
 	// cursor
 	char c;
+	const size_t initialDataSize = data.size();
 	size_t charStart = reader.getPeekOffset();
 	const SourceId sourceId = reader.getSourceId();
 	while (reader.peek(c)) {
 		const size_t charEnd = reader.getPeekOffset();
-		const size_t textLength = textHandler.textBuf.size();
-		const size_t textEnd = textHandler.textEnd;
+		const size_t dataStartOffset = data.size();
 
 		// If we do not have a match yet, start a new lookup from the root
-		if (!match.hasMatch()) {
-			TokenLookup{root, charStart, textLength, textEnd}.advance(
-			    c, nextLookups, match, tokens, charEnd, sourceId);
+		if (!bestMatch.hasMatch() || !bestMatch.primary) {
+			lookups.emplace_back(root, charStart, dataStartOffset);
 		}
 
 		// Try to advance all other lookups with the new character
+		TokenMatch match;
 		for (TokenLookup &lookup : lookups) {
-			lookup.advance(c, nextLookups, match, tokens, charEnd, sourceId);
+			// Continue if the current lookup
+			if (!lookup.advance(c, nextLookups, match, tokens, charEnd,
+			                    sourceId)) {
+				continue;
+			}
+
+			// Replace the best match with longest token
+			if (match.size() > bestMatch.size()) {
+				bestMatch = match;
+			}
+
+			// If the matched token is a non-primary token -- mark the match in
+			// the TokenizedData list
+			if (!match.primary) {
+				data.mark(match.token.id, data.size() - match.size() + 1,
+				          match.size());
+			}
 		}
 
-		// We have found a token and there are no more states to advance or the
-		// text handler has found something -- abort to return the new token
-		if (match.hasMatch()) {
-			if ((nextLookups.empty() || textHandler.hasText())) {
+
+		// If a token has been found and the token is a primary token, check
+		// whether we have to abort, otherwise if we have a non-primary match,
+		// reset it once it can no longer be advanced
+		if (bestMatch.hasMatch() && nextLookups.empty()) {
+			if (bestMatch.primary) {
 				break;
+			} else {
+				bestMatch = TokenMatch{};
 			}
-		} else {
-			// Record all incomming characters
-			textHandler.append(c, charStart, charEnd);
 		}
+
+		// Record all incomming characters
+		data.append(c, charStart, charEnd);
+
 
 		// Swap the lookups and the nextLookups list
 		lookups = std::move(nextLookups);
@@ -246,60 +238,57 @@ bool Tokenizer::next(CharReader &reader, Token &token)
 		charStart = charEnd;
 	}
 
-	// If we found text, emit that text
-	if (textHandler.hasText() && (!match.hasMatch() || match.textLength > 0)) {
-		buildDataToken(textHandler, match, sourceId);
+	// If we found data, emit a corresponding data token
+	if (data.size() > initialDataSize &&
+	    (!bestMatch.hasMatch() || !bestMatch.primary ||
+	     bestMatch.dataStartOffset > initialDataSize)) {
+		// If we have a "bestMatch" wich starts after text data has started,
+		// trim the TokenizedData to this offset
+		if (bestMatch.dataStartOffset > initialDataSize && bestMatch.primary) {
+			data.trim(bestMatch.dataStartOffset);
+		}
+
+		// Create a token containing the data location
+		bestMatch.token = Token{data.getLocation()};
+	} else if (bestMatch.hasMatch() && bestMatch.primary &&
+	           bestMatch.dataStartOffset == initialDataSize) {
+		data.trim(initialDataSize);
 	}
 
 	// Move the read/peek cursor to the end of the token, abort if an error
 	// happens while doing so
-	if (match.hasMatch()) {
+	if (bestMatch.hasMatch()) {
 		// Make sure we have a valid location
-		if (match.token.location.getEnd() == InvalidSourceOffset) {
+		if (bestMatch.token.location.getEnd() == InvalidSourceOffset) {
 			throw OusiaException{"Token end position offset out of range"};
 		}
 
 		// Seek to the end of the current token
-		const size_t end = match.token.location.getEnd();
+		const size_t end = bestMatch.token.location.getEnd();
 		if (read) {
 			reader.seek(end);
 		} else {
 			reader.seekPeekCursor(end);
 		}
-		token = match.token;
+
+		token = bestMatch.token;
 	} else {
 		token = Token{};
 	}
-	return match.hasMatch();
+	return bestMatch.hasMatch();
 }
 
-bool Tokenizer::read(CharReader &reader, Token &token)
+bool Tokenizer::read(CharReader &reader, Token &token, TokenizedData &data)
 {
-	switch (whitespaceMode) {
-		case WhitespaceMode::PRESERVE:
-			return next<PreservingWhitespaceHandler, true>(reader, token);
-		case WhitespaceMode::TRIM:
-			return next<TrimmingWhitespaceHandler, true>(reader, token);
-		case WhitespaceMode::COLLAPSE:
-			return next<CollapsingWhitespaceHandler, true>(reader, token);
-	}
-	return false;
+	return next<true>(reader, token, data);
 }
 
-bool Tokenizer::peek(CharReader &reader, Token &token)
+bool Tokenizer::peek(CharReader &reader, Token &token, TokenizedData &data)
 {
-	switch (whitespaceMode) {
-		case WhitespaceMode::PRESERVE:
-			return next<PreservingWhitespaceHandler, false>(reader, token);
-		case WhitespaceMode::TRIM:
-			return next<TrimmingWhitespaceHandler, false>(reader, token);
-		case WhitespaceMode::COLLAPSE:
-			return next<CollapsingWhitespaceHandler, false>(reader, token);
-	}
-	return false;
+	return next<false>(reader, token, data);
 }
 
-TokenId Tokenizer::registerToken(const std::string &token)
+TokenId Tokenizer::registerToken(const std::string &token, bool primary)
 {
 	// Abort if an empty token should be registered
 	if (token.empty()) {
@@ -309,8 +298,8 @@ TokenId Tokenizer::registerToken(const std::string &token)
 	// Search for a new slot in the tokens list
 	TokenId type = Tokens::Empty;
 	for (size_t i = nextTokenId; i < tokens.size(); i++) {
-		if (tokens[i].empty()) {
-			tokens[i] = token;
+		if (!tokens[i].valid()) {
+			tokens[i] = TokenDescriptor(token, primary);
 			type = i;
 			break;
 		}
@@ -320,62 +309,47 @@ TokenId Tokenizer::registerToken(const std::string &token)
 	// override the special token type handles
 	if (type == Tokens::Empty) {
 		type = tokens.size();
-		if (type == Tokens::Data || type == Tokens::Empty) {
+		if (type >= Tokens::MaxTokenId) {
 			throw OusiaException{"Token type ids depleted!"};
 		}
-		tokens.emplace_back(token);
+		tokens.emplace_back(token, primary);
 	}
 	nextTokenId = type + 1;
 
-	// Try to register the token in the trie -- if this fails, remove it
-	// from the tokens list
+	// Try to register the token in the trie -- if this fails, remove it from
+	// the tokens list
 	if (!trie.registerToken(token, type)) {
-		tokens[type] = std::string{};
+		tokens[type] = TokenDescriptor();
 		nextTokenId = type;
 		return Tokens::Empty;
 	}
 	return type;
 }
 
-bool Tokenizer::unregisterToken(TokenId type)
+bool Tokenizer::unregisterToken(TokenId id)
 {
 	// Unregister the token from the trie, abort if an invalid type is given
-	if (type < tokens.size() && trie.unregisterToken(tokens[type])) {
-		tokens[type] = std::string{};
-		nextTokenId = type;
+	if (id < tokens.size() && trie.unregisterToken(tokens[id].string)) {
+		tokens[id] = TokenDescriptor();
+		nextTokenId = id;
 		return true;
 	}
 	return false;
 }
 
-std::string Tokenizer::getTokenString(TokenId type)
+static Tokenizer::TokenDescriptor EmptyTokenDescriptor;
+
+const Tokenizer::TokenDescriptor &Tokenizer::lookupToken(TokenId id) const
 {
-	if (type < tokens.size()) {
-		return tokens[type];
+	if (id < tokens.size()) {
+		return tokens[id];
 	}
-	return std::string{};
+	return EmptyTokenDescriptor;
 }
-
-void Tokenizer::setWhitespaceMode(WhitespaceMode mode)
-{
-	whitespaceMode = mode;
-}
-
-WhitespaceMode Tokenizer::getWhitespaceMode() { return whitespaceMode; }
 
 /* Explicitly instantiate all possible instantiations of the "next" member
    function */
-template bool Tokenizer::next<PreservingWhitespaceHandler, false>(
-    CharReader &reader, Token &token);
-template bool Tokenizer::next<TrimmingWhitespaceHandler, false>(
-    CharReader &reader, Token &token);
-template bool Tokenizer::next<CollapsingWhitespaceHandler, false>(
-    CharReader &reader, Token &token);
-template bool Tokenizer::next<PreservingWhitespaceHandler, true>(
-    CharReader &reader, Token &token);
-template bool Tokenizer::next<TrimmingWhitespaceHandler, true>(
-    CharReader &reader, Token &token);
-template bool Tokenizer::next<CollapsingWhitespaceHandler, true>(
-    CharReader &reader, Token &token);
+template bool Tokenizer::next<false>(CharReader &, Token &, TokenizedData &);
+template bool Tokenizer::next<true>(CharReader &, Token &, TokenizedData &);
 }
 

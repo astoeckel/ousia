@@ -53,7 +53,7 @@ class DocumentHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	/**
@@ -92,9 +92,10 @@ public:
  */
 class DocumentChildHandler : public Handler {
 private:
-	bool isExplicitField = false;
-	//TODO: REMOVE
-	std::string strct_name;
+	/**
+	 * If set to true, this handler represents an explicit field.
+	 */
+	bool isExplicitField;
 
 	/**
 	 * Code shared by both the start(), fieldStart() and the data() method.
@@ -163,21 +164,17 @@ private:
 	                 Logger &logger);
 
 public:
-	using Handler::Handler;
+	DocumentChildHandler(const HandlerData &handlerData);
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
+	bool startAnnotation(Variant::mapType &args,
+	                     AnnotationType annotationType) override;
+	bool startToken(Handle<Node> node) override;
+	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
 	void end() override;
-	bool data(Variant &data) override;
-
+	bool data() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
-
 	void fieldEnd() override;
-
-	bool annotationStart(const Variant &className,
-	                     Variant::mapType &args) override;
-
-	bool annotationEnd(const Variant &className,
-	                   const Variant &elementName) override;
 
 	/**
 	 * Creates a new instance of the DocumentChildHandler.
@@ -214,3 +211,4 @@ extern const Rtti DocumentField;
 }
 
 #endif /* _OUSIA_PARSER_STACK_DOCUMENT_HANDLER_HPP_ */
+

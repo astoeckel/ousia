@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <core/common/Variant.hpp>
+#include <core/common/CharReader.hpp>
+#include <core/parser/stack/Callbacks.hpp>
 #include <core/parser/stack/GenericParserStates.hpp>
 #include <core/parser/stack/Stack.hpp>
 #include <core/parser/ParserContext.hpp>
@@ -30,7 +33,7 @@ using namespace parser_stack;
 /**
  * Class containing the actual OsxmlParser implementation.
  */
-class OsxmlParserImplementation : public OsxmlEvents {
+class OsxmlParserImplementation : public OsxmlEvents, ParserCallbacks {
 private:
 	/**
 	 * Actual xml parser -- converts the xml stream into a set of events.
@@ -54,7 +57,7 @@ public:
 	 */
 	OsxmlParserImplementation(CharReader &reader, ParserContext &ctx)
 	    : parser(reader, *this, ctx.getLogger()),
-	      stack(ctx, GenericParserStates)
+	      stack(*this, ctx, GenericParserStates)
 	{
 	}
 
@@ -63,17 +66,16 @@ public:
 	 */
 	void parse() { parser.parse(); }
 
-	void command(const Variant &name, const Variant::mapType &args) override
+	void commandStart(const Variant &name,
+	                  const Variant::mapType &args) override
 	{
-		stack.command(name, args);
-		stack.fieldStart(true);
+		stack.commandStart(name, args, true);
 	}
 
 	void annotationStart(const Variant &name,
 	                     const Variant::mapType &args) override
 	{
-		stack.annotationStart(name, args);
-		stack.fieldStart(true);
+		stack.annotationStart(name, args, true);
 	}
 
 	void annotationEnd(const Variant &className,
@@ -82,9 +84,19 @@ public:
 		stack.annotationEnd(className, elementName);
 	}
 
-	void fieldEnd() override { stack.fieldEnd(); }
+	void rangeEnd() override { stack.rangeEnd(); }
 
-	void data(const Variant &data) override { stack.data(data); }
+	void data(const TokenizedData &data) override { stack.data(data); }
+
+	TokenId registerToken(const std::string &token) override
+	{
+		return Tokens::Empty;
+	}
+
+	void unregisterToken(TokenId id) override
+	{
+		// Do nothing here
+	}
 };
 
 /* Class OsxmlParser */

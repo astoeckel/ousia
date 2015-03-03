@@ -46,7 +46,7 @@ class OntologyHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -59,7 +59,7 @@ class OntologyStructHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -72,7 +72,7 @@ class OntologyAnnotationHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -85,7 +85,7 @@ class OntologyAttributesHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -98,7 +98,7 @@ class OntologyFieldHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -111,7 +111,7 @@ class OntologyFieldRefHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -124,7 +124,7 @@ class OntologyPrimitiveHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -137,7 +137,7 @@ class OntologyChildHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -154,7 +154,7 @@ class OntologyParentHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 	void end() override;
 
 	static Handler *create(const HandlerData &handlerData)
@@ -167,7 +167,7 @@ class OntologyParentFieldHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 
 	static Handler *create(const HandlerData &handlerData)
 	{
@@ -179,7 +179,7 @@ class OntologyParentFieldRefHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
 
-	bool start(Variant::mapType &args) override;
+	bool startCommand(Variant::mapType &args) override;
 
 	static Handler *create(const HandlerData &handlerData)
 	{

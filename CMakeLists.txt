@@ -158,6 +158,7 @@ ADD_LIBRARY(ousia_core
 	src/core/common/Rtti
 	src/core/common/RttiBuilder
 	src/core/common/SourceContextReader
+	src/core/common/Token
 	src/core/common/Utils
 	src/core/common/Variant
 	src/core/common/VariantConverter
@@ -175,6 +176,7 @@ ADD_LIBRARY(ousia_core
 	src/core/model/Project
 	src/core/model/RootNode
 	src/core/model/Style
+	src/core/model/Syntax
 	src/core/model/Typesystem
 	src/core/parser/Parser
 	src/core/parser/ParserContext
@@ -187,9 +189,10 @@ ADD_LIBRARY(ousia_core
 	src/core/parser/stack/ImportIncludeHandler
 	src/core/parser/stack/State
 	src/core/parser/stack/Stack
+	src/core/parser/stack/TokenRegistry
+	src/core/parser/stack/TokenStack
 	src/core/parser/stack/TypesystemHandler
 	src/core/parser/utils/SourceOffsetVector
-	src/core/parser/utils/Token
 	src/core/parser/utils/TokenizedData
 	src/core/parser/utils/Tokenizer
 	src/core/parser/utils/TokenTrie
@@ -213,8 +216,8 @@ ADD_LIBRARY(ousia_core
 #)
 
 ADD_LIBRARY(ousia_osml
-	src/formats/osml/OsmlParser
 	src/formats/osml/OsmlStreamParser
+	src/formats/osml/OsmlParser
 )
 
 TARGET_LINK_LIBRARIES(ousia_osml
@@ -325,6 +328,7 @@ IF(TEST)
 		test/core/parser/ParserScopeTest
 		test/core/parser/stack/StackTest
 		test/core/parser/stack/StateTest
+		test/core/parser/stack/TokenRegistryTest
 		test/core/parser/utils/SourceOffsetVectorTest
 		test/core/parser/utils/TokenizedDataTest
 		test/core/parser/utils/TokenizerTest
@@ -442,9 +446,9 @@ INSTALL(DIRECTORY data/ DESTINATION share/ousia
 				OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
 )
 
-INSTALL(TARGETS ousia
-		RUNTIME DESTINATION bin
-)
+#INSTALL(TARGETS ousia
+#		RUNTIME DESTINATION bin
+#)
 
 IF(INSTALL_GEDIT_HIGHLIGHTER)
 	INSTALL(FILES contrib/gtksourceview-3.0/language-specs/ousia.lang
