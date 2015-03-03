@@ -212,6 +212,31 @@ TEST(OsmlParser, simpleAnnotation)
 	ASSERT_TRUE(node->isa(&RttiTypes::Document));
 }
 
+TEST(OsmlParser, overlappingAnnotations)
+{
+	OsmlStandaloneEnvironment env(logger);
+	logger.reset();
+
+	Rooted<Node> node = env.parse("overlapping_annotations.osml", "", "",
+	                              RttiSet{&RttiTypes::Node});
+	ASSERT_FALSE(logger.hasError());
+
+	ASSERT_TRUE(node != nullptr);
+	ASSERT_TRUE(node->isa(&RttiTypes::Document));
+}
+
+TEST(OsmlParser, errorAnnotationBoundaries)
+{
+	OsmlStandaloneEnvironment env(logger);
+	logger.reset();
+
+	Rooted<Node> node = env.parse("error_annotation_boundaries.osml", "", "",
+	                              RttiSet{&RttiTypes::Node});
+	ASSERT_TRUE(logger.hasError());
+
+	ASSERT_TRUE(node != nullptr);
+	ASSERT_TRUE(node->isa(&RttiTypes::Document));
+}
 
 }
 

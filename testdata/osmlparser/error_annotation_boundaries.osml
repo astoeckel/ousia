@@ -1,0 +1,20 @@
+\begin{document}
+
+\ontology#testOntology
+	\struct#test[root=true]
+		\field
+			\childRef[ref=a]
+	\struct#a[transparent=true]
+		\primitive[type=string]
+	\annotation#comment
+		\field
+			\childRef[ref=a]
+
+\begin{test}
+This boundary is a <\comment#c1{This is a stupid Cloud Atlas reference, isn't it?}
+convention <\comment#c2{Change this to: "for overlapping annotations!"\comment#c1>}
+for annotations\comment#c2>.
+\end{test}
+
+\end{document}
+

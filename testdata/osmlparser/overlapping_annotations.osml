@@ -1,0 +1,18 @@
+\begin{document}
+
+\ontology#testOntology
+	\struct#test[root=true]
+		\field
+			\childRef[ref=a]
+	\struct#a[transparent=true]
+		\primitive[type=string]
+	\annotation#comment
+		\primitive[type=string]
+
+\begin{test}
+This is a <\comment#c1{Not a nice test!}test <\comment#c2{Change this to:
+"for overlapping annotations!"}for\comment#c1> annotations\comment#c2>.
+\end{test}
+
+\end{document}
+

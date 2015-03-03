@@ -302,6 +302,16 @@ bool DocumentChildHandler::startAnnotation(Variant::mapType &args)
 			// pop the implicit element.
 			scope().pop(logger());
 			continue;
+		} else {
+			logger().error(
+			    "Cannot start or end annotation within the primitive field \"" +
+			        parent->getDescriptor()
+			            ->getFieldDescriptors()[fieldIdx]
+			            ->getNameOrDefaultName() +
+			        "\" of descriptor \"" + parent->getDescriptor()->getName() +
+			        "\".",
+			    location());
+			return false;
 		}
 	}
 
