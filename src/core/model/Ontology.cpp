@@ -292,19 +292,22 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	bool valid = true;
 	// check parent type
 	if (getParent() == nullptr) {
-		logger.error(std::string("Field \"") + getName() + "\" has no parent!",
+		logger.error(std::string("Field \"") + getNameOrDefaultName() +
+		                 "\" has no parent!",
 		             *this);
-		valid = false;
+		return false;
 	} else if (!getParent()->isa(&RttiTypes::Descriptor)) {
-		logger.error(std::string("The parent of Field \"") + getName() +
-		                 "\" is not a descriptor!",
+		logger.error(std::string("The parent of Field \"") +
+		                 getNameOrDefaultName() + "\" is not a descriptor!",
 		             *this);
-		valid = false;
+		return false;
 	}
+	const std::string &parentName = getParent().cast<Descriptor>()->getName();
 	// check name
 	if (getName().empty()) {
 		if (fieldType != FieldType::TREE) {
-			logger.error(std::string("Field \"") + getName() +
+			logger.error(std::string("Field \"") + getNameOrDefaultName() +
+			                 "\" of descriptor \"" + parentName +
 			                 "\" is not the main field but has an empty name!",
 			             *this);
 			valid = false;
@@ -316,7 +319,8 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	if (!startToken.special && !startToken.token.empty() &&
 	    !Utils::isUserDefinedToken(startToken.token)) {
 		// TODO: Correct error message.
-		logger.error(std::string("Field \"") + getName() +
+		logger.error(std::string("Field \"") + getNameOrDefaultName() +
+		                 "\" of descriptor \"" + parentName +
 		                 "\" has an invalid custom start token: " +
 		                 startToken.token,
 		             *this);
@@ -325,7 +329,8 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	if (!endToken.special && !endToken.token.empty() &&
 	    !Utils::isUserDefinedToken(endToken.token)) {
 		// TODO: Correct error message.
-		logger.error(std::string("Field \"") + getName() +
+		logger.error(std::string("Field \"") + getNameOrDefaultName() +
+		                 "\" of descriptor \"" + parentName +
 		                 "\" has an invalid custom end token: " +
 		                 endToken.token,
 		             *this);
@@ -335,14 +340,16 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	// check consistency of FieldType with the rest of the FieldDescriptor.
 	if (primitive) {
 		if (children.size() > 0) {
-			logger.error(std::string("Field \"") + getName() +
+			logger.error(std::string("Field \"") + getNameOrDefaultName() +
+			                 "\" of descriptor \"" + parentName +
 			                 "\" is supposed to be primitive but has "
 			                 "registered child classes!",
 			             *this);
 			valid = false;
 		}
 		if (primitiveType == nullptr) {
-			logger.error(std::string("Field \"") + getName() +
+			logger.error(std::string("Field \"") + getNameOrDefaultName() +
+			                 "\" of descriptor \"" + parentName +
 			                 "\" is supposed to be primitive but has "
 			                 "no primitive type!",
 			             *this);
@@ -350,7 +357,8 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 		}
 	} else {
 		if (primitiveType != nullptr) {
-			logger.error(std::string("Field \"") + getName() +
+			logger.error(std::string("Field \"") + getNameOrDefaultName() +
+			                 "\" of descriptor \"" + parentName +
 			                 "\" is supposed to be non-primitive but has "
 			                 "a primitive type!",
 			             *this);
@@ -358,7 +366,8 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 		}
 		// if this is not a primitive field we require at least one child.
 		if (children.empty()) {
-			logger.error(std::string("Field \"") + getName() +
+			logger.error(std::string("Field \"") + getNameOrDefaultName() +
+			                 "\" of descriptor \"" + parentName +
 			                 "\" is non primitive but does not allow children!",
 			             *this);
 			valid = false;
@@ -372,7 +381,8 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	std::set<std::string> names;
 	for (Handle<StructuredClass> c : getChildrenWithSubclasses()) {
 		if (!names.insert(c->getName()).second) {
-			logger.error(std::string("Field \"") + getName() +
+			logger.error(std::string("Field \"") + getNameOrDefaultName() +
+			                 "\" of descriptor \"" + parentName +
 			                 "\" had multiple children with the name \"" +
 			                 c->getName() + "\"",
 			             *this);

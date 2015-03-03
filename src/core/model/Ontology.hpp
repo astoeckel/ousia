@@ -458,7 +458,7 @@ public:
 	 * @return the name of this FieldDescriptor or the default field name
 	 * if the name is empty.
 	 */
-	std::string getNameOrDefaultName()
+	std::string getNameOrDefaultName() const
 	{
 		std::string name = getName();
 		if (name.empty()) {
