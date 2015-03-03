@@ -336,11 +336,11 @@ TEST(Descriptor, pathToCycles)
 	// Construct the ontology
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "cycles")};
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, true)};
+	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, false)};
 	A->addSubclass(A, logger);
 	ASSERT_FALSE(ontology->validate(logger));
 	Rooted<StructuredClass> B{new StructuredClass(
-	    mgr, "B", ontology, Cardinality::any(), {nullptr}, false, true)};
+	    mgr, "B", ontology, Cardinality::any(), {nullptr}, true, false)};
 	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
 	A_field->addChild(B);
 	/*
@@ -444,7 +444,7 @@ TEST(Descriptor, getDefaultFieldsCycles)
 	// Construct the ontology
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "cycles")};
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, true)};
+	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, false)};
 	A->addSubclass(A, logger);
 	ASSERT_FALSE(ontology->validate(logger));
 	Rooted<FieldDescriptor> A_field =
@@ -504,7 +504,7 @@ TEST(Descriptor, getPermittedChildrenCycles)
 	// Construct the ontology
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "cycles")};
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, true)};
+	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, false)};
 	A->addSubclass(A, logger);
 	ASSERT_FALSE(ontology->validate(logger));
 	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
@@ -529,7 +529,7 @@ TEST(Descriptor, getSyntaxDescriptor)
 	// Construct the ontology
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "ontology")};
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, true)};
+	    mgr, "A", ontology, Cardinality::any(), {nullptr}, false, false)};
 	A->setStartToken(TokenDescriptor(Tokens::Indent));
 	A->setEndToken(TokenDescriptor(Tokens::Dedent));
 	{
@@ -558,7 +558,7 @@ TEST(Descriptor, getPermittedTokens)
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "ontology")};
 	// add one StructuredClass with all tokens set.
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, true)};
+	    mgr, "A", ontology, Cardinality::any(), {nullptr}, false, false)};
 	A->setStartToken(TokenDescriptor(Tokens::Indent));
 	A->setEndToken(TokenDescriptor(Tokens::Dedent));
 	{
@@ -795,7 +795,7 @@ TEST(Ontology, getAllTokenDescriptors)
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "ontology")};
 	// add one StructuredClass with all tokens set.
 	Rooted<StructuredClass> A{new StructuredClass(
-	    mgr, "A", ontology, Cardinality::any(), {nullptr}, true, true)};
+	    mgr, "A", ontology, Cardinality::any(), {nullptr}, false, false)};
 	A->setStartToken(TokenDescriptor(Tokens::Indent));
 	A->setEndToken(TokenDescriptor(Tokens::Dedent));
 	{

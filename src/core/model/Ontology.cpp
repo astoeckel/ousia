@@ -800,6 +800,7 @@ bool StructuredClass::doValidate(Logger &logger) const
 			valid = false;
 		}
 	}
+
 	// check the cardinality.
 	if (!cardinality.isCardinality()) {
 		logger.error(cardinality.toString() + " is not a cardinality!", *this);
@@ -819,6 +820,15 @@ bool StructuredClass::doValidate(Logger &logger) const
 	if (superclass != nullptr) {
 		valid = valid & superclass->validate(logger);
 	}
+
+	// Make sure root classes are not transparent
+	if (root && transparent) {
+		logger.error(
+		    std::string("Descriptor \"") + getName() +
+		    std::string("\" cannot be transparent and root at the same time."));
+		valid = false;
+	}
+
 	// check the validity as a Descriptor.
 	/*
 	 * Note that we do not check the validity of all subclasses. This is because
@@ -1126,7 +1136,7 @@ const Rtti StructuredClass =
 const Rtti AnnotationClass =
     RttiBuilder<ousia::AnnotationClass>("AnnotationClass").parent(&Descriptor);
 const Rtti Ontology = RttiBuilder<ousia::Ontology>("Ontology")
-                        .parent(&RootNode)
-                        .composedOf({&StructuredClass, &AnnotationClass});
+                          .parent(&RootNode)
+                          .composedOf({&StructuredClass, &AnnotationClass});
 }
 }
