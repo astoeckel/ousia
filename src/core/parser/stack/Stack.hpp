@@ -114,16 +114,17 @@ public:
 	 * to the annotation.
 	 * @param range if true, the annotation fields have an explicit range.
 	 */
-	void annotationStart(const Variant &className, const Variant &args,
+	void annotationStart(const Variant &className, const Variant::mapType &args,
 	                     bool range = false);
 
 	/**
 	 * Function that should be called whenever an annotation ends.
 	 *
 	 * @param name is the name of the annotation class that was ended.
-	 * @param annotationName is the name of the annotation that was ended.
+	 * @param args contains the arguments that were passed to the annotation end
+	 * handler.
 	 */
-	void annotationEnd(const Variant &className, const Variant &elementName);
+	void annotationEnd(const Variant &className, const Variant::mapType &args);
 
 	/**
 	 * Function the should be called whenever a ranged command or annotation

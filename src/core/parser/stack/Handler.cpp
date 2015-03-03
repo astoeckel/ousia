@@ -109,8 +109,7 @@ bool EmptyHandler::startCommand(Variant::mapType &args)
 	return true;
 }
 
-bool EmptyHandler::startAnnotation(Variant::mapType &args,
-                                   Handler::AnnotationType annotationType)
+bool EmptyHandler::startAnnotation(Variant::mapType &args)
 {
 	// Do not support annotations. Annotations are too complicated for poor
 	// EmptyHandler.
@@ -165,8 +164,7 @@ bool StaticHandler::startCommand(Variant::mapType &args)
 	return true;
 }
 
-bool StaticHandler::startAnnotation(Variant::mapType &args,
-                                    Handler::AnnotationType annotationType)
+bool StaticHandler::startAnnotation(Variant::mapType &args)
 {
 	return false;
 }

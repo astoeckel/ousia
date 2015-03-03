@@ -79,9 +79,9 @@ public:
 	}
 
 	void annotationEnd(const Variant &className,
-	                   const Variant &elementName) override
+	                   const Variant::mapType &args) override
 	{
-		stack.annotationEnd(className, elementName);
+		stack.annotationEnd(className, args);
 	}
 
 	void rangeEnd() override { stack.rangeEnd(); }

@@ -81,12 +81,11 @@ public:
 	 * @param className is a string variant containing the name of the
 	 * annotation class that should end here. May be empty (or nullptr), if no
 	 * elementName has been specified at the end of the annotation.
-	 * @param elementName is the name of the annotation element that should be
-	 * ended here. May be empty (or nullptr), if no elementName has been
-	 * specified at the end of the annotation.
+	 * @param args is a map variant containing the arguments that were given
+	 * to the annotation definition.
 	 */
 	virtual void annotationEnd(const Variant &className,
-	                           const Variant &elementName) = 0;
+	                           const Variant::mapType &args) = 0;
 
 	/**
 	 * Called whenever the command or annotation tags end.

@@ -209,13 +209,6 @@ protected:
 
 public:
 	/**
-	 * Enum representing the type of the annotation a Handle instance handles.
-	 * It may either handle the start of an annotation or the end of an
-	 * annotation.
-	 */
-	enum class AnnotationType { START, END };
-
-	/**
 	 * Enum type representing the possible outcomes of the endToken() method.
 	 */
 	enum class EndTokenResult { ENDED_THIS, ENDED_HIDDEN, ENDED_NONE };
@@ -347,11 +340,8 @@ public:
 	 * accessed using the name() method.
 	 *
 	 * @param args is a map from strings to variants (argument name and value).
-	 * @param type specifies whether this handler should handle the start of an
-	 * annotation or the end of an annotation.
 	 */
-	virtual bool startAnnotation(Variant::mapType &args,
-	                             AnnotationType annotationType) = 0;
+	virtual bool startAnnotation(Variant::mapType &args) = 0;
 
 	/**
 	 * Called whenever the handler should handle the start of a token. This
@@ -442,8 +432,7 @@ protected:
 
 public:
 	bool startCommand(Variant::mapType &args) override;
-	bool startAnnotation(Variant::mapType &args,
-	                     AnnotationType annotationType) override;
+	bool startAnnotation(Variant::mapType &args) override;
 	bool startToken(Handle<Node> node) override;
 	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
 	void end() override;
@@ -468,8 +457,7 @@ protected:
 
 public:
 	bool startCommand(Variant::mapType &args) override;
-	bool startAnnotation(Variant::mapType &args,
-	                     AnnotationType annotationType) override;
+	bool startAnnotation(Variant::mapType &args) override;
 	bool startToken(Handle<Node> node) override;
 	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
 	void end() override;

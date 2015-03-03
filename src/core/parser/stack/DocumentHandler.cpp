@@ -127,19 +127,23 @@ void DocumentChildHandler::createPath(const size_t &firstFieldIdx,
 	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, false);
 }
 
-bool DocumentChildHandler::startCommand(Variant::mapType &args)
+static std::string extractNameAttribute(Variant::mapType &args)
 {
 	// Extract the special "name" attribute from the input arguments.
 	// The remaining attributes will be forwarded to the newly constructed
 	// element.
-	std::string nameAttr;
-	{
-		auto it = args.find("name");
-		if (it != args.end()) {
-			nameAttr = it->second.asString();
-			args.erase(it);
-		}
+	std::string res;
+	auto it = args.find("name");
+	if (it != args.end()) {
+		res = it->second.asString();
+		args.erase(it);
 	}
+	return res;
+}
+
+bool DocumentChildHandler::startCommand(Variant::mapType &args)
+{
+	std::string nameAttr = extractNameAttribute(args);
 
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 	while (true) {
@@ -190,9 +194,9 @@ bool DocumentChildHandler::startCommand(Variant::mapType &args)
 						        "Data or structure commands have already been "
 						        "given, command \"") +
 						        name() + std::string(
-						                   "\" is not interpreted explicit "
-						                   "field. Move explicit field "
-						                   "references to the beginning."),
+						                     "\" is not interpreted explicit "
+						                     "field. Move explicit field "
+						                     "references to the beginning."),
 						    location());
 					} else {
 						Rooted<DocumentField> field{new DocumentField(
@@ -252,18 +256,109 @@ bool DocumentChildHandler::startCommand(Variant::mapType &args)
 		// parent structure element
 		scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, true);
 
-		// Bush the entity onto the stack
+		// Push the entity onto the stack
 		entity->setLocation(location());
 		scope().push(entity);
 		return true;
 	}
 }
 
-bool DocumentChildHandler::startAnnotation(Variant::mapType &args,
-                                           AnnotationType annotationType)
+bool DocumentChildHandler::startAnnotation(Variant::mapType &args)
 {
-	// TODO: Handle annotation
-	return false;
+	std::string nameAttr = extractNameAttribute(args);
+
+	scope().setFlag(ParserFlag::POST_HEAD, true);
+
+	size_t fieldIdx;
+	DocumentEntity *parent;
+	while (true) {
+		Rooted<Node> parentNode = scope().getLeaf();
+
+		// Make sure the parent node is a DocumentField
+		if (parentNode->isa(&RttiTypes::Document)) {
+			logger().error(
+			    "Cannot start or end annotation at the document level.",
+			    location());
+			return false;
+		}
+		assert(parentNode->isa(&RttiTypes::DocumentField));
+
+		preamble(parentNode, fieldIdx, parent);
+
+		if (!parent->getDescriptor()
+		         ->getFieldDescriptors()[fieldIdx]
+		         ->isPrimitive()) {
+			break;
+		}
+
+		// If we are inside a primitive field and have transparent elements on
+		// the stack we unwind the stack until we are inside
+		// a non-primitive field.
+		if (scope().getLeaf().cast<DocumentField>()->transparent) {
+			// if we have transparent elements above us in the structure
+			// tree we try to unwind them before we give up.
+			// pop the implicit field.
+			scope().pop(logger());
+			// pop the implicit element.
+			scope().pop(logger());
+			continue;
+		}
+	}
+
+	// Create the anchor
+	Rooted<Anchor> anchor = parent->createChildAnchor(fieldIdx);
+	anchor->setLocation(location());
+
+	// resolve the AnnotationClass
+	Rooted<AnnotationClass> annoClass;
+	if (!name().empty()) {
+		annoClass = scope().resolve<AnnotationClass>(Utils::split(name(), ':'),
+		                                             logger());
+	}
+
+	switch (type()) {
+		case HandlerType::ANNOTATION_START: {
+			// Create the AnnotationEntity itself.
+			if (annoClass == nullptr) {
+				// if we could not resolve the name, throw an exception.
+				throw LoggableException(
+				    std::string("\"") + name() + "\" could not be resolved.",
+				    location());
+			}
+			Rooted<Document> doc = scope().selectOrThrow<Document>();
+			Rooted<AnnotationEntity> anno = doc->createChildAnnotation(
+			    annoClass, anchor, nullptr, args, nameAttr);
+
+			// Push the entity onto the stack
+			anno->setLocation(location());
+			scope().push(anno);
+			break;
+		}
+		case HandlerType::ANNOTATION_END: {
+			// if we want to end an annotation, look for the matching start
+			// Anchor ...
+			Rooted<Anchor> start =
+			    parent->searchStartAnchor(fieldIdx, annoClass, nameAttr);
+			if (start == nullptr) {
+				logger().error(
+				    "Did not find matching annotation start for annotation "
+				    "end.",
+				    *anchor);
+				parent->removeStructureNodeFromField(anchor, fieldIdx);
+				return false;
+			}
+			// ... and set the end Anchor.
+			start->getAnnotation()->setEnd(anchor);
+			break;
+		}
+		default:
+			throw OusiaException(
+			    "Internal Error: Invalid handler type in startAnnotation");
+	}
+	// We're past the region in which explicit fields can be defined in the
+	// parent structure element
+	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, true);
+	return true;
 }
 
 bool DocumentChildHandler::startToken(Handle<Node> node)
@@ -281,11 +376,23 @@ DocumentChildHandler::EndTokenResult DocumentChildHandler::endToken(
 
 void DocumentChildHandler::end()
 {
-	// In case of explicit fields we do not want to pop something from the
-	// stack.
-	if (!isExplicitField) {
-		// pop the "main" element.
-		scope().pop(logger());
+	switch (type()) {
+		case HandlerType::COMMAND:
+		case HandlerType::ANNOTATION_START:
+			// In case of explicit fields we do not want to pop something from
+			// the
+			// stack.
+			if (!isExplicitField) {
+				// pop the "main" element.
+				scope().pop(logger());
+			}
+			break;
+		case HandlerType::ANNOTATION_END:
+			// We have nothing to pop from the stack
+			break;
+		case HandlerType::TOKEN:
+			// TODO
+			break;
 	}
 }
 

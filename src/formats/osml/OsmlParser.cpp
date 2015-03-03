@@ -116,12 +116,7 @@ public:
 					break;
 				case OsmlStreamParser::State::ANNOTATION_END: {
 					Variant elementName = Variant::fromString(std::string{});
-					const auto &args = parser.getCommandArguments().asMap();
-					auto it = args.find("name");
-					if (it != args.end()) {
-						elementName = it->second;
-					}
-					stack.annotationEnd(parser.getCommandName(), elementName);
+					stack.annotationEnd(parser.getCommandName(), parser.getCommandArguments().asMap());
 					break;
 				}
 				case OsmlStreamParser::State::FIELD_START:

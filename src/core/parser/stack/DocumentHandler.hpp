@@ -167,8 +167,7 @@ public:
 	DocumentChildHandler(const HandlerData &handlerData);
 
 	bool startCommand(Variant::mapType &args) override;
-	bool startAnnotation(Variant::mapType &args,
-	                     AnnotationType annotationType) override;
+	bool startAnnotation(Variant::mapType &args) override;
 	bool startToken(Handle<Node> node) override;
 	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
 	void end() override;

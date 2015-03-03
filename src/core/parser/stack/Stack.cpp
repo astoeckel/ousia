@@ -416,6 +416,17 @@ private:
 	void handleData();
 
 	/**
+	 * Called whenever the annotationStart or annotationEnd methods are called.
+	 *
+	 * @param name is the class name of the annotation.
+	 * @param args contains the arguments that are passed to the annotation.
+	 * @param range is set to true if this is a ranged annotation.
+	 * @param type specifies whether this is a start or end annotation.
+	 */
+	void handleAnnotationStartEnd(const Variant &name, Variant::mapType args,
+	                              bool range, HandlerType type);
+
+	/**
 	 * Called whenever there is a token waiting to be processed. If possible
 	 * tries to end a current handler with this token or to start a new handler
 	 * with the token.
@@ -444,9 +455,9 @@ public:
 
 	void commandStart(const Variant &name, const Variant::mapType &args,
 	                  bool range);
-	void annotationStart(const Variant &className, const Variant &args,
+	void annotationStart(const Variant &className, const Variant::mapType &args,
 	                     bool range);
-	void annotationEnd(const Variant &className, const Variant &elementName);
+	void annotationEnd(const Variant &className, const Variant::mapType &args);
 	void rangeEnd();
 	void fieldStart(bool isDefault);
 	void fieldEnd();
@@ -645,8 +656,11 @@ bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField)
 
 		// If the current field already had a default field or is not valid,
 		// end it and repeat
-		if ((info.hadDefaultField || !startImplicitDefaultField) ||
-		    !info.valid) {
+		bool canHaveImplicitDefaultField =
+		    info.type() == HandlerType::COMMAND ||
+		    info.type() == HandlerType::TOKEN || (info.type() == HandlerType::ANNOTATION_START && info.range);
+		if (info.hadDefaultField || !startImplicitDefaultField || !info.valid ||
+		    !canHaveImplicitDefaultField) {
 			// We cannot end the command if it is marked as "range" command
 			if (info.range) {
 				return false;
@@ -655,11 +669,6 @@ bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField)
 			// End the current handler
 			endCurrentHandler();
 			continue;
-		}
-
-		// Abort if starting new default fields is not allowed here
-		if (!startImplicitDefaultField) {
-			return false;
 		}
 
 		// Try to start a new default field, abort if this did not work
@@ -805,6 +814,44 @@ void StackImpl::handleFieldEnd(bool endRange)
 	info.fieldEnd();
 }
 
+void StackImpl::handleAnnotationStartEnd(const Variant &name,
+                                         Variant::mapType args, bool range,
+                                         HandlerType type)
+{
+	// Prepare the stack -- make sure all overdue handlers are ended and
+	// we currently are in an open field
+	if (stack.empty() || !prepareCurrentHandler()) {
+		throw LoggableException("Did not expect an annotation start here");
+	}
+
+	// Find the special target state TODO: Is there some better solution?
+	const State *state = findTargetState("*");
+	if (state == nullptr || !currentInfo().state().supportsAnnotations) {
+		throw LoggableException("Cannot handle annotations here");
+	}
+
+	// If we're currently in an invalid subtree, just eat the data and abort
+	if (!handlersValid()) {
+		return;
+	}
+
+	// Instantiate the handler and push it onto the stack
+	HandlerConstructor ctor =
+	    state->elementHandler ? state->elementHandler : EmptyHandler::create;
+	std::shared_ptr<Handler> handler{ctor(
+	    {ctx, *this, *state, {name.asString(), name.getLocation()}, type})};
+	stack.emplace_back(handler);
+
+	// Call the startAnnotation method of the newly created handler, store the
+	// valid flag
+	HandlerInfo &info = currentInfo();
+	info.valid = handler->startAnnotation(args);
+	info.range = range;
+	if (type == HandlerType::ANNOTATION_END) {
+		endCurrentHandler();
+	}
+}
+
 /* Class StackImpl public functions */
 
 void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
@@ -904,16 +951,18 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 	}
 }
 
-void StackImpl::annotationStart(const Variant &className, const Variant &args,
-                                bool range)
+void StackImpl::annotationStart(const Variant &className,
+                                const Variant::mapType &args, bool range)
 {
-	// TODO
+	handleAnnotationStartEnd(className, args, range,
+	                         HandlerType::ANNOTATION_START);
 }
 
 void StackImpl::annotationEnd(const Variant &className,
-                              const Variant &elementName)
+                              const Variant::mapType &args)
 {
-	// TODO
+	handleAnnotationStartEnd(className, args, false,
+	                         HandlerType::ANNOTATION_END);
 }
 
 void StackImpl::rangeEnd() { handleFieldEnd(true); }
@@ -1064,8 +1113,8 @@ void Stack::commandStart(const Variant &name, const Variant::mapType &args,
 	impl->commandStart(name, args, range);
 }
 
-void Stack::annotationStart(const Variant &className, const Variant &args,
-                            bool range)
+void Stack::annotationStart(const Variant &className,
+                            const Variant::mapType &args, bool range)
 {
 #if STACK_DEBUG_OUTPUT
 	std::cout << "STACK: annotationStart " << className << " " << args << " "
@@ -1074,13 +1123,13 @@ void Stack::annotationStart(const Variant &className, const Variant &args,
 	impl->annotationStart(className, args, range);
 }
 
-void Stack::annotationEnd(const Variant &className, const Variant &elementName)
+void Stack::annotationEnd(const Variant &className, const Variant::mapType &args)
 {
 #if STACK_DEBUG_OUTPUT
-	std::cout << "STACK: annotationEnd " << className << " " << elementName
+	std::cout << "STACK: annotationEnd " << className << " " << args
 	          << std::endl;
 #endif
-	impl->annotationEnd(className, elementName);
+	impl->annotationEnd(className, args);
 }
 
 void Stack::rangeEnd()
