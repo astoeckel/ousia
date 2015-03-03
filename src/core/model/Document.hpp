@@ -157,16 +157,18 @@ private:
 	void invalidateSubInstance();
 
 	template <typename Iterator>
-	Rooted<Anchor> searchStartAnchorInField(Handle<AnnotationClass> desc,
-	                                        const std::string &name,
-	                                        Iterator begin, Iterator end);
+	Rooted<Anchor> searchStartAnchorInField(
+	    Handle<AnnotationClass> desc, const std::string &name, Iterator begin,
+	    Iterator end, std::unordered_set<const DocumentEntity *> &visited);
 
-	Rooted<Anchor> searchStartAnchorDownwards(Handle<AnnotationClass> desc,
-	                                          const std::string &name);
+	Rooted<Anchor> searchStartAnchorDownwards(
+	    Handle<AnnotationClass> desc, const std::string &name,
+	    std::unordered_set<const DocumentEntity *> &visited);
 
-	Rooted<Anchor> searchStartAnchorUpwards(Handle<AnnotationClass> desc,
-	                                        const std::string &name,
-	                                        const DocumentEntity *child);
+	Rooted<Anchor> searchStartAnchorUpwards(
+	    Handle<AnnotationClass> desc, const std::string &name,
+	    const DocumentEntity *child,
+	    std::unordered_set<const DocumentEntity *> &visited);
 
 protected:
 	bool doValidate(Logger &logger) const;

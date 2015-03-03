@@ -75,6 +75,41 @@ TEST(DocumentEntity, searchStartAnchor)
 	ASSERT_EQ(b, root->searchStartAnchor(0, Alpha, "myAnno"));
 }
 
+
+TEST(DocumentEntity, searchStartAnchorCycles)
+{
+	// create a trivial ontology.
+	Logger logger;
+	Manager mgr{1};
+	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
+	Rooted<Ontology> ontology{new Ontology(mgr, sys, "trivial")};
+	// we only have one StructuredClass that may have itself as a child.
+	Rooted<StructuredClass> A = ontology->createStructuredClass(
+	    "A", Cardinality::any(), nullptr, false, true);
+	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
+	A_field->addChild(A);
+	// create an AnnotationClass.
+	Rooted<AnnotationClass> Alpha = ontology->createAnnotationClass("Alpha");
+	// validate this ontology.
+	ASSERT_TRUE(ontology->validate(logger));
+
+	// create a trivial but cyclic document.
+	Rooted<Document> doc{new Document(mgr, "myDoc")};
+	Rooted<StructuredEntity> root = doc->createRootStructuredEntity(A);
+	// add an Anchor.
+	Rooted<Anchor> a = root->createChildAnchor();
+	// create an AnnotationEntity with the Anchor as start.
+	doc->createChildAnnotation(Alpha, a, nullptr, Variant::mapType{}, "myAnno");
+	// add the cyclic reference.
+	root->addStructureNode(root, 0);
+	// We should be able to find the Anchor now if we look for it. There should
+	// be no loops.
+	ASSERT_EQ(a, root->searchStartAnchor(0));
+	ASSERT_EQ(a, root->searchStartAnchor(0, Alpha));
+	ASSERT_EQ(a, root->searchStartAnchor(0, nullptr, "myAnno"));
+	ASSERT_EQ(a, root->searchStartAnchor(0, Alpha, "myAnno"));
+}
+
 TEST(DocumentEntity, searchStartAnchorUpwards)
 {
 	// create a trivial ontology.

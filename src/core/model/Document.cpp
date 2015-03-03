@@ -466,7 +466,7 @@ static bool matchStartAnchor(Handle<AnnotationClass> desc,
 template <typename Iterator>
 Rooted<Anchor> DocumentEntity::searchStartAnchorInField(
     Handle<AnnotationClass> desc, const std::string &name, Iterator begin,
-    Iterator end)
+    Iterator end, std::unordered_set<const DocumentEntity *> &visited)
 {
 	for (Iterator it = begin; it != end; it++) {
 		Handle<StructureNode> strct = *it;
@@ -481,7 +481,7 @@ Rooted<Anchor> DocumentEntity::searchStartAnchorInField(
 			// search downwards.
 			Rooted<Anchor> a =
 			    strct.cast<StructuredEntity>()->searchStartAnchorDownwards(
-			        desc, name);
+			        desc, name, visited);
 			if (a != nullptr) {
 				return a;
 			}
@@ -491,8 +491,12 @@ Rooted<Anchor> DocumentEntity::searchStartAnchorInField(
 }
 
 Rooted<Anchor> DocumentEntity::searchStartAnchorDownwards(
-    Handle<AnnotationClass> desc, const std::string &name)
+    Handle<AnnotationClass> desc, const std::string &name,
+    std::unordered_set<const DocumentEntity *> &visited)
 {
+	if (!visited.insert(this).second) {
+		return nullptr;
+	}
 	if (fields.empty()) {
 		return nullptr;
 	}
@@ -500,13 +504,17 @@ Rooted<Anchor> DocumentEntity::searchStartAnchorDownwards(
 	NodeVector<StructureNode> children = fields[fields.size() - 1];
 	// search it from back to front.
 	return searchStartAnchorInField(desc, name, children.rbegin(),
-	                                children.rend());
+	                                children.rend(), visited);
 }
 
 Rooted<Anchor> DocumentEntity::searchStartAnchorUpwards(
     Handle<AnnotationClass> desc, const std::string &name,
-    const DocumentEntity *child)
+    const DocumentEntity *child,
+    std::unordered_set<const DocumentEntity *> &visited)
 {
+	if (!visited.insert(this).second) {
+		return nullptr;
+	}
 	if (fields.empty()) {
 		return nullptr;
 	}
@@ -522,7 +530,8 @@ Rooted<Anchor> DocumentEntity::searchStartAnchorUpwards(
 	// to the child.
 	if (it != children.rend()) {
 		it++;
-		return searchStartAnchorInField(desc, name, it, children.rend());
+		return searchStartAnchorInField(desc, name, it, children.rend(),
+		                                visited);
 	}
 	throw OusiaException("Internal error: Child node not found in parent!");
 }
@@ -531,11 +540,13 @@ Rooted<Anchor> DocumentEntity::searchStartAnchor(size_t fieldIdx,
                                                  Handle<AnnotationClass> desc,
                                                  const std::string &name)
 {
+	std::unordered_set<const DocumentEntity *> visited;
+	visited.insert(this);
 	// get the correct field.
 	NodeVector<StructureNode> children = fields[fieldIdx];
 	// search it from back to front.
 	Rooted<Anchor> a = searchStartAnchorInField(desc, name, children.rbegin(),
-	                                            children.rend());
+	                                            children.rend(), visited);
 	// if we found the Anchor, return it.
 	if (a != nullptr) {
 		return a;
@@ -551,11 +562,11 @@ Rooted<Anchor> DocumentEntity::searchStartAnchor(size_t fieldIdx,
 	if (subInst->getParent()->isa(&RttiTypes::StructuredEntity)) {
 		return subInst->getParent()
 		    .cast<StructuredEntity>()
-		    ->searchStartAnchorUpwards(desc, name, this);
+		    ->searchStartAnchorUpwards(desc, name, this, visited);
 	}
 	if (subInst->getParent()->isa(&RttiTypes::AnnotationEntity)) {
 		subInst->getParent().cast<AnnotationEntity>()->searchStartAnchorUpwards(
-		    desc, name, this);
+		    desc, name, this, visited);
 	}
 	return nullptr;
 }
