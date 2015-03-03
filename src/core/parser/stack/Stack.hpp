@@ -104,7 +104,7 @@ public:
 	 * @param range if true, the started command has an explicit range.
 	 */
 	void commandStart(const Variant &name, const Variant::mapType &args,
-	                  bool range);
+	                  bool range = false);
 
 	/**
 	 * Function that should be called whenever an annotation starts.
@@ -115,7 +115,7 @@ public:
 	 * @param range if true, the annotation fields have an explicit range.
 	 */
 	void annotationStart(const Variant &className, const Variant &args,
-	                     bool range);
+	                     bool range = false);
 
 	/**
 	 * Function that should be called whenever an annotation ends.
