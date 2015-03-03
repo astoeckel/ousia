@@ -102,7 +102,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				case 0:
 					if (!fieldDescs[f]->isOptional()) {
 						logger.error(std::string("Primitive Field \"") +
-						                 fieldDescs[f]->getName() +
+						                 fieldDescs[f]->getNameOrDefaultName() +
 						                 "\" had no content!",
 						             *subInst);
 						valid = false;
@@ -112,7 +112,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 					break;
 				default:
 					logger.error(std::string("Primitive Field \"") +
-					                 fieldDescs[f]->getName() +
+					                 fieldDescs[f]->getNameOrDefaultName() +
 					                 "\" had more than one child!",
 					             *subInst);
 					valid = false;
@@ -121,7 +121,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			// if we are here we know that exactly one child exists.
 			if (!fields[f][0]->isa(&RttiTypes::DocumentPrimitive)) {
 				logger.error(std::string("Primitive Field \"") +
-				                 fieldDescs[f]->getName() +
+				                 fieldDescs[f]->getNameOrDefaultName() +
 				                 "\" has non primitive content!",
 				             *subInst);
 				valid = false;
