@@ -25,8 +25,8 @@
  * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_DOMAIN_HANDLER_HPP_
-#define _OUSIA_DOMAIN_HANDLER_HPP_
+#ifndef _OUSIA_ONTOLOGY_HANDLER_HPP_
+#define _OUSIA_ONTOLOGY_HANDLER_HPP_
 
 #include <core/common/Variant.hpp>
 #include <core/model/Node.hpp>
@@ -254,4 +254,4 @@ namespace RttiTypes {
 extern const Rtti OntologyParent;
 }
 }
-#endif
+#endif /* _OUSIA_ONTOLOGY_HANDLER_HPP_ */

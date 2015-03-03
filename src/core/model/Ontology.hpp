@@ -165,8 +165,8 @@
  * @author Benjamin Paaßen (bpaassen@techfak.uni-bielefeld.de)
  */
 
-#ifndef _OUSIA_MODEL_DOMAIN_HPP_
-#define _OUSIA_MODEL_DOMAIN_HPP_
+#ifndef _OUSIA_MODEL_ONTOLOGY_HPP_
+#define _OUSIA_MODEL_ONTOLOGY_HPP_
 
 #include <core/common/Whitespace.hpp>
 #include <core/managed/ManagedContainer.hpp>
@@ -1470,4 +1470,4 @@ extern const Rtti Ontology;
 }
 }
 
-#endif /* _OUSIA_MODEL_DOMAIN_HPP_ */
+#endif /* _OUSIA_MODEL_ONTOLOGY_HPP_ */

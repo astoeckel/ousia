@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _MODEL_TEST_DOMAIN_HPP_
-#define _MODEL_TEST_DOMAIN_HPP_
+#ifndef _MODEL_TEST_ONTOLOGY_HPP_
+#define _MODEL_TEST_ONTOLOGY_HPP_
 
 #include <core/model/Ontology.hpp>
 #include <core/model/Typesystem.hpp>
@@ -90,4 +90,4 @@ static Rooted<Ontology> constructBookOntology(Manager &mgr,
 }
 }
 
-#endif /* _TEST_DOMAIN_HPP_ */
+#endif /* _MODEL_TEST_ONTOLOGY_HPP_ */
