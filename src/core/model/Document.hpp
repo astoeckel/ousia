@@ -258,7 +258,7 @@ public:
 	 *                  FieldDescriptor in the Ontology description.
 	 * @return          a NodeVector of all StructuredEntities in that field.
 	 */
-	const NodeVector<StructureNode> &getField(const size_t &idx) const;
+	const NodeVector<StructureNode> &getField(size_t idx) const;
 
 	/**
 	 * This adds a StructureNode to the field with the given index.
@@ -271,7 +271,7 @@ public:
 	 * @param fieldIdx  is the index of a field as specified in the
 	 *                  FieldDescriptor in the Ontology description.
 	 */
-	void addStructureNode(Handle<StructureNode> s, const size_t &fieldIdx);
+	void addStructureNode(Handle<StructureNode> s, size_t fieldIdx);
 	/**
 	 * This adds a StructureNode to the field with the given name.
 	 *
@@ -314,8 +314,7 @@ public:
 	 * @return          true if this StructureNode was a child here and false if
 	 *                  if was not found.
 	 */
-	bool removeStructureNodeFromField(Handle<StructureNode> s,
-	                                  const int &fieldIdx);
+	bool removeStructureNodeFromField(Handle<StructureNode> s, size_t fieldIdx);
 	/**
 	 * This removes a StructureNode from the field with the given name.
 	 *
@@ -430,7 +429,7 @@ public:
 	 * @return           the newly created StructuredEntity.
 	 */
 	Rooted<StructuredEntity> createChildStructuredEntity(
-	    Handle<StructuredClass> descriptor, const size_t &fieldIdx,
+	    Handle<StructuredClass> descriptor, size_t fieldIdx,
 	    Variant attributes = Variant::mapType{}, std::string name = "");
 	/**
 	 * Creates a new DocumentPrimitive as child of this DocumentEntity.
@@ -458,8 +457,8 @@ public:
 	 *
 	 * @return          the newly created DocumentPrimitive.
 	 */
-	Rooted<DocumentPrimitive> createChildDocumentPrimitive(
-	    Variant content, const size_t &fieldIdx);
+	Rooted<DocumentPrimitive> createChildDocumentPrimitive(Variant content,
+	                                                       size_t fieldIdx);
 
 	/**
 	 * Creates a new Anchor as child of this DocumentEntity.
@@ -480,7 +479,7 @@ public:
 	 *
 	 * @return          the newly created Anchor.
 	 */
-	Rooted<Anchor> createChildAnchor(const size_t &fieldIdx);
+	Rooted<Anchor> createChildAnchor(size_t fieldIdx);
 
 	/**
 	 * Does an inverse depth first search starting at this DocumentEntity to
@@ -520,7 +519,7 @@ public:
 	 * Constructor for a StructureNode in the StructureTree.
 	 */
 	StructureNode(Manager &mgr, std::string name, Handle<Node> parent,
-	              const size_t &fieldIdx);
+	              size_t fieldIdx);
 
 	/**
 	 * Constructor for an empty StructureNode.
@@ -588,7 +587,7 @@ public:
 	 *                   for later reference. It is empty per default.
 	 */
 	StructuredEntity(Manager &mgr, Handle<Node> parent,
-	                 Handle<StructuredClass> descriptor, const size_t &fieldIdx,
+	                 Handle<StructuredClass> descriptor, size_t fieldIdx,
 	                 Variant attributes = Variant::mapType{},
 	                 std::string name = "")
 	    : StructureNode(mgr, std::move(name), parent, fieldIdx),
@@ -693,7 +692,7 @@ public:
 	 *                  where this DocumentPrimitive shall be added.
 	 */
 	DocumentPrimitive(Manager &mgr, Handle<Node> parent, Variant content,
-	                  const size_t &fieldIdx)
+	                  size_t fieldIdx)
 	    : StructureNode(mgr, "", parent, fieldIdx), content(content)
 	{
 	}
@@ -758,7 +757,7 @@ public:
 	 * @param fieldIdx  is the index of the field in the parent DocumentEntity
 	 *                  where this Anchor shall be added.
 	 */
-	Anchor(Manager &mgr, Handle<Node> parent, const size_t &fieldIdx)
+	Anchor(Manager &mgr, Handle<Node> parent, size_t fieldIdx)
 	    : StructureNode(mgr, "", parent, fieldIdx)
 	{
 	}

@@ -302,8 +302,7 @@ const NodeVector<StructureNode> &DocumentEntity::getField(
 	return fields[enforceGetFieldDescriptorIndex(descriptor, fieldDescriptor)];
 }
 
-const NodeVector<StructureNode> &DocumentEntity::getField(
-    const size_t &idx) const
+const NodeVector<StructureNode> &DocumentEntity::getField(size_t idx) const
 {
 	if (idx >= fields.size()) {
 		throw OusiaException(std::string("Descriptor \"") +
@@ -314,7 +313,7 @@ const NodeVector<StructureNode> &DocumentEntity::getField(
 	return fields[idx];
 }
 
-void DocumentEntity::addStructureNode(Handle<StructureNode> s, const size_t &i)
+void DocumentEntity::addStructureNode(Handle<StructureNode> s, size_t i)
 {
 	// only add the new node if we don't have it already.
 	auto it = fields[i].find(s);
@@ -369,7 +368,7 @@ void DocumentEntity::addStructureNodes(
 }
 
 bool DocumentEntity::removeStructureNodeFromField(Handle<StructureNode> s,
-                                                  const int &i)
+                                                  size_t i)
 {
 	auto it = fields[i].find(s);
 	if (it != fields[i].end()) {
@@ -420,8 +419,8 @@ Rooted<StructuredEntity> DocumentEntity::createChildStructuredEntity(
 }
 
 Rooted<StructuredEntity> DocumentEntity::createChildStructuredEntity(
-    Handle<StructuredClass> descriptor, const size_t &fieldIdx,
-    Variant attributes, std::string name)
+    Handle<StructuredClass> descriptor, size_t fieldIdx, Variant attributes,
+    std::string name)
 {
 	return Rooted<StructuredEntity>{
 	    new StructuredEntity(subInst->getManager(), subInst, descriptor,
@@ -436,7 +435,7 @@ Rooted<DocumentPrimitive> DocumentEntity::createChildDocumentPrimitive(
 }
 
 Rooted<DocumentPrimitive> DocumentEntity::createChildDocumentPrimitive(
-    Variant content, const size_t &fieldIdx)
+    Variant content, size_t fieldIdx)
 {
 	return Rooted<DocumentPrimitive>{new DocumentPrimitive(
 	    subInst->getManager(), subInst, std::move(content), fieldIdx)};
@@ -447,7 +446,7 @@ Rooted<Anchor> DocumentEntity::createChildAnchor(const std::string &fieldName)
 	return Rooted<Anchor>{
 	    new Anchor(subInst->getManager(), subInst, fieldName)};
 }
-Rooted<Anchor> DocumentEntity::createChildAnchor(const size_t &fieldIdx)
+Rooted<Anchor> DocumentEntity::createChildAnchor(size_t fieldIdx)
 {
 	return Rooted<Anchor>{new Anchor(subInst->getManager(), subInst, fieldIdx)};
 }
@@ -595,7 +594,7 @@ StructureNode::StructureNode(Manager &mgr, std::string name,
 }
 
 StructureNode::StructureNode(Manager &mgr, std::string name,
-                             Handle<Node> parent, const size_t &fieldIdx)
+                             Handle<Node> parent, size_t fieldIdx)
     : Node(mgr, std::move(name), parent)
 {
 	if (parent->isa(&RttiTypes::StructuredEntity)) {
