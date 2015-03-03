@@ -328,8 +328,10 @@ void DocumentEntity::addStructureNode(Handle<StructureNode> s, const size_t &i)
 		if (par != nullptr) {
 			if (par->isa(&RttiTypes::StructuredEntity)) {
 				par.cast<StructuredEntity>()->removeStructureNode(s);
-			} else {
+			} else if(par->isa(&RttiTypes::AnnotationEntity)){
 				par.cast<AnnotationEntity>()->removeStructureNode(s);
+			} else if(par->isa(&RttiTypes::Document)){
+				par.cast<Document>()->setRoot(nullptr);
 			}
 		}
 		s->setParent(subInst);
