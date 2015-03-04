@@ -292,7 +292,12 @@ enum class ParserFlag {
 	 * Set to the boolean value "true" if explicit fields may no longer be
 	 * defined inside a structure element.
 	 */
-	POST_EXPLICIT_FIELDS
+	POST_EXPLICIT_FIELDS,
+
+	/**
+	 * Set to true if all user defined tokens have been registered.
+	 */
+	POST_USER_DEFINED_TOKEN_REGISTRATION
 };
 
 /**
