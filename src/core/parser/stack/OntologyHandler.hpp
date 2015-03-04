@@ -223,9 +223,9 @@ public:
 	}
 };
 
-class OntologySyntaxWhitespaceHandler : public StaticHandler {
+class OntologyWhitespaceHandler : public StaticHandler {
 public:
-	OntologySyntaxWhitespaceHandler(const HandlerData &handlerData);
+	using StaticHandler::StaticHandler;
 
 	Variant whitespaceModeStr;
 
@@ -235,7 +235,7 @@ public:
 
 	static Handler *create(const HandlerData &handlerData)
 	{
-		return new OntologySyntaxWhitespaceHandler{handlerData};
+		return new OntologyWhitespaceHandler{handlerData};
 	}
 };
 

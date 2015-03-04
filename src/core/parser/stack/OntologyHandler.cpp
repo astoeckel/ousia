@@ -482,8 +482,8 @@ bool OntologyOpenCloseShortHandler::data()
 			    std::string("Given token \"") + str.asString() +
 			    std::string(
 			        "\" is not a valid user defined token (no whitespaces, "
-			        "must start and end with a non-alphabetic character, must "
-			        "not override OSML tokens)."));
+			        "must start and end with a non-alphanumeric character, "
+			        "must not override OSML tokens)."));
 			*descr = TokenDescriptor();
 		}
 		return true;
@@ -544,15 +544,9 @@ bool OntologySyntaxTokenHandler::startCommand(Variant::mapType &args)
 	return true;
 }
 
-/* Class OntologySyntaxWhitespaceHandler */
+/* Class OntologyWhitespaceHandler */
 
-OntologySyntaxWhitespaceHandler::OntologySyntaxWhitespaceHandler(
-    const HandlerData &handlerData)
-    : StaticHandler(handlerData), whitespaceModeStr("")
-{
-}
-
-bool OntologySyntaxWhitespaceHandler::startCommand(Variant::mapType &args)
+bool OntologyWhitespaceHandler::startCommand(Variant::mapType &args)
 {
 	// Fetch the field descriptor, log an error if "whitespace" was not
 	// specified inside a field descriptor
@@ -566,7 +560,7 @@ bool OntologySyntaxWhitespaceHandler::startCommand(Variant::mapType &args)
 	return true;
 }
 
-bool OntologySyntaxWhitespaceHandler::data()
+bool OntologyWhitespaceHandler::data()
 {
 	if (whitespaceModeStr != nullptr) {
 		logger().error(
@@ -579,9 +573,12 @@ bool OntologySyntaxWhitespaceHandler::data()
 	return true;
 }
 
-void OntologySyntaxWhitespaceHandler::end()
+void OntologyWhitespaceHandler::end()
 {
 	// Make sure the given whitespace mode is valid
+	if (whitespaceModeStr == nullptr) {
+		whitespaceModeStr = "";
+	}
 	const std::string &mode = whitespaceModeStr.asString();
 	Rooted<FieldDescriptor> field = scope().selectOrThrow<FieldDescriptor>();
 	if (mode == "trim") {
@@ -701,7 +698,8 @@ const State OntologyStructParentFieldRef =
 
 const State OntologySyntax =
     StateBuilder()
-        .parents({&OntologyStruct, &OntologyField, &OntologyAnnotation})
+        .parents({&OntologyStruct, &OntologyField, &OntologyStructPrimitive,
+                  &OntologyAnnotation})
         .createdNodeType(&RttiTypes::ParserSyntaxNode)
         .elementHandler(OntologySyntaxHandler::create)
         .arguments(Arguments{});
@@ -737,7 +735,7 @@ const State OntologySyntaxShort =
 const State OntologySyntaxWhitespace =
     StateBuilder()
         .parent(&OntologySyntax)
-        .elementHandler(OntologySyntaxHandler::create)
+        .elementHandler(OntologyWhitespaceHandler::create)
         .arguments(Arguments{});
 }
 }
