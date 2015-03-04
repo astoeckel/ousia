@@ -40,6 +40,12 @@ const std::multimap<std::string, const State *> GenericParserStates{
     {"parentRef", &States::OntologyStructParent},
     {"field", &States::OntologyStructParentField},
     {"fieldRef", &States::OntologyStructParentFieldRef},
+    {"syntax", &States::OntologySyntax},
+    {"open", &States::OntologySyntaxOpen},
+    {"close", &States::OntologySyntaxClose},
+    {"short", &States::OntologySyntaxShort},
+    {"whitespace", &States::OntologySyntaxWhitespace},
+    {"*", &States::OntologySyntaxToken},
     {"typesystem", &States::Typesystem},
     {"enum", &States::TypesystemEnum},
     {"entry", &States::TypesystemEnumEntry},
@@ -47,7 +53,8 @@ const std::multimap<std::string, const State *> GenericParserStates{
     {"field", &States::TypesystemStructField},
     {"constant", &States::TypesystemConstant},
     {"import", &States::Import},
-    {"include", &States::Include}};
+    {"include", &States::Include}
+};
 }
 }
 
