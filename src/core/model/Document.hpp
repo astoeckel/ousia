@@ -1023,7 +1023,7 @@ public:
 	 * @return a const reference to the NodeVector of ontologies that are used
 	 * within this Document.
 	 */
-	const NodeVector<Ontology> &getOntologys() const { return ontologies; }
+	const NodeVector<Ontology> &getOntologies() const { return ontologies; }
 
 	/**
 	 * Adds a Ontology reference to this Document.

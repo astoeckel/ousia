@@ -52,7 +52,7 @@ void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
 	// the outermost tag is the document itself.
 	Rooted<Element> document{new Element{mgr, {nullptr}, "document"}};
 	// write imports for all referenced ontologies.
-	for (auto d : doc->getOntologys()) {
+	for (auto d : doc->getOntologies()) {
 		Rooted<Element> import =
 		    createImportElement(document, d, resourceManager, "ontology");
 		if (import != nullptr) {
