@@ -51,7 +51,7 @@ ENDIF()
 
 # Include expat and mozjs-24 via PkgConfig
 FIND_PACKAGE(PkgConfig REQUIRED)
-PKG_CHECK_MODULES(MOZJS REQUIRED mozjs-24)
+#PKG_CHECK_MODULES(MOZJS REQUIRED mozjs-24)
 PKG_CHECK_MODULES(EXPAT REQUIRED expat)
 
 # Include required Boost components using the Boost cmake package
@@ -68,7 +68,7 @@ IF(CMAKE_COMPILER_IS_GNUCC)
 	EXECUTE_PROCESS(COMMAND ${CMAKE_C_COMPILER} -dumpversion
 		OUTPUT_VARIABLE GCC_VERSION)
 	IF(GCC_VERSION VERSION_LESS 4.8)
-		ERROR("This projects requires at last GCC 4.8 or newer to be built")
+		MESSAGE(WARNING "This projects requires at last GCC 4.8 or newer to be built")
 	ENDIF()
 ENDIF()
 
@@ -128,7 +128,7 @@ INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}")
 # Include directories
 INCLUDE_DIRECTORIES(
 	src/
-	${MOZJS_INCLUDE_DIRS}
+#	${MOZJS_INCLUDE_DIRS}
 	${EXPAT_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIR}
 	${UTF8CPP_INCLUDE_DIR}
@@ -136,11 +136,11 @@ INCLUDE_DIRECTORIES(
 
 # Link directories
 LINK_DIRECTORIES(
-	${MOZJS_LIBRARY_DIRS}
+#	${MOZJS_LIBRARY_DIRS}
 )
 
 ADD_DEFINITIONS(
-	${MOZJS_CFLAGS_OTHER}
+#	${MOZJS_CFLAGS_OTHER}
 )
 
 ADD_LIBRARY(ousia_core
