@@ -98,8 +98,8 @@ TEST(OsmlParser, rollbackOnInvalidElement)
 	logger.reset();
 
 	ASSERT_FALSE(logger.hasError());
-	Rooted<Node> node =
-	    env.parse("rollback_on_invalid_element.osml", "", "", RttiSet{&RttiTypes::Node});
+	Rooted<Node> node = env.parse("rollback_on_invalid_element.osml", "", "",
+	                              RttiSet{&RttiTypes::Node});
 	ASSERT_TRUE(logger.hasError());
 
 	ASSERT_TRUE(node != nullptr);
@@ -191,8 +191,8 @@ TEST(OsmlParser, explicitFields)
 	OsmlStandaloneEnvironment env(logger);
 	logger.reset();
 
-	Rooted<Node> node = env.parse("explicit_fields.osml", "", "",
-	                              RttiSet{&RttiTypes::Node});
+	Rooted<Node> node =
+	    env.parse("explicit_fields.osml", "", "", RttiSet{&RttiTypes::Node});
 	ASSERT_FALSE(logger.hasError());
 
 	ASSERT_TRUE(node != nullptr);
@@ -204,8 +204,8 @@ TEST(OsmlParser, simpleAnnotation)
 	OsmlStandaloneEnvironment env(logger);
 	logger.reset();
 
-	Rooted<Node> node = env.parse("simple_annotation.osml", "", "",
-	                              RttiSet{&RttiTypes::Node});
+	Rooted<Node> node =
+	    env.parse("simple_annotation.osml", "", "", RttiSet{&RttiTypes::Node});
 	ASSERT_FALSE(logger.hasError());
 
 	ASSERT_TRUE(node != nullptr);
@@ -238,5 +238,48 @@ TEST(OsmlParser, errorAnnotationBoundaries)
 	ASSERT_TRUE(node->isa(&RttiTypes::Document));
 }
 
+TEST(OsmlParser, syntaxDescription)
+{
+	OsmlStandaloneEnvironment env(logger);
+	logger.reset();
+
+	Rooted<Node> node =
+	    env.parse("syntax_description.osml", "", "", RttiSet{&RttiTypes::Node});
+	ASSERT_FALSE(logger.hasError());
+
+	ASSERT_TRUE(node != nullptr);
+	ASSERT_TRUE(node->isa(&RttiTypes::Ontology));
+
+	Rooted<Ontology> ontology = node.cast<Ontology>();
+	auto nodes = ontology->resolve(&RttiTypes::StructuredClass, "b");
+	ASSERT_EQ(1U, nodes.size());
+
+	Rooted<StructuredClass> structure = nodes[0].node.cast<StructuredClass>();
+	auto descrs = structure->getFieldDescriptors();
+	ASSERT_EQ(2U, descrs.size());
+
+	ASSERT_EQ("f1", descrs[0]->getName());
+	ASSERT_EQ("f2", descrs[1]->getName());
+
+	ASSERT_FALSE(descrs[0]->getOpenToken().special);
+	ASSERT_EQ("=", descrs[0]->getOpenToken().token);
+
+	ASSERT_EQ(Tokens::Newline, descrs[0]->getCloseToken().id);
+	ASSERT_TRUE(descrs[0]->getCloseToken().special);
+	ASSERT_EQ("", descrs[0]->getCloseToken().token);
+
+	ASSERT_EQ(WhitespaceMode::PRESERVE, descrs[0]->getWhitespaceMode());
+
+	ASSERT_FALSE(descrs[1]->getOpenToken().special);
+	ASSERT_EQ("++", descrs[1]->getOpenToken().token);
+
+	ASSERT_FALSE(descrs[1]->getCloseToken().special);
+	ASSERT_EQ("--", descrs[1]->getCloseToken().token);
+
+	ASSERT_EQ(WhitespaceMode::COLLAPSE, descrs[1]->getWhitespaceMode());
+
+	ASSERT_FALSE(structure->getShortToken().special);
+	ASSERT_EQ("~", structure->getShortToken().token);
+}
 }
 

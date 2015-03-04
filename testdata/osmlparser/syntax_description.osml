@@ -1,0 +1,23 @@
+\ontology#a{
+	\struct#b{
+		\primitive#f1[subtree=true,type=string]{
+			\syntax{
+				\open{=}
+				\close{\newline}
+				\whitespace{preserve}
+			}
+		}
+		\field#f2{
+			\syntax{
+				\open{++}
+				\close{--}
+				\whitespace{collapse}
+			}
+			\childRef[ref=b]
+		}
+		\syntax{
+			\short{~}
+		}
+	}
+}
+
