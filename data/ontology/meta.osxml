@@ -5,7 +5,6 @@
 	<import rel="typesystem" src="email"/>
 	<import rel="typesystem" src="version"/>
 	<import rel="ontology" src="book"/>
-	<import rel="ontology" src="headings"/>
 
 	<struct name="meta" cardinality="{1}" transparent="true">
 		<field>

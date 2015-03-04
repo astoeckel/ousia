@@ -7,7 +7,7 @@
 			 mechanism, because a list may occur whereever a paragraph
 			 may occur. However we do want to override the default field. -->
 		<field>
-			<childRef name="item"/>
+			<childRef ref="item"/>
 		</field>
 	</struct>
 	<struct name="ol" isa="book.paragraph">
@@ -15,12 +15,10 @@
 		     mechanism, because a list may occur whereever a paragraph
 		     may occur. However we do want to override the default field. -->
 		<field>
-			<childRef name="item"/>
+			<childRef ref="item"/>
 		</field>
 	</struct>
 	<struct name="item">
-		<field>
-			<childRef name="book.paragaph"/>
-		</field>
+		<fieldRef ref="book.paragraph.$default"/>
 	</struct>
 </ontology>
