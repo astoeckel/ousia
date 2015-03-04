@@ -249,7 +249,6 @@ void ConcreteLogger::reset()
 {
 	locations.clear();
 	messageCounts.clear();
-	sourceContextCallback = NullSourceContextCallback;
 }
 
 bool ConcreteLogger::hasError()

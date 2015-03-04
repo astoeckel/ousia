@@ -289,15 +289,15 @@ private:
 	Tokenizer tokenizer;
 
 	/**
-	 * Stack containing the current commands.
-	 */
-	std::stack<Command> commands;
-
-	/**
 	 * Variant containing the tokenized data that was returned from the
 	 * tokenizer as data.
 	 */
 	TokenizedData data;
+
+	/**
+	 * Stack containing the current commands.
+	 */
+	std::stack<Command> commands;
 
 	/**
 	 * Variable containing the current location of the parser.
@@ -422,7 +422,10 @@ public:
 /* Class OsmlStreamParserImpl */
 
 OsmlStreamParserImpl::OsmlStreamParserImpl(CharReader &reader, Logger &logger)
-    : reader(reader), logger(logger), tokenizer(OsmlTokens)
+    : reader(reader),
+      logger(logger),
+      tokenizer(OsmlTokens),
+      data(reader.getSourceId())
 {
 	commands.emplace("", Variant::mapType{}, true);
 }
