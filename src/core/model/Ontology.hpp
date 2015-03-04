@@ -228,8 +228,8 @@ private:
 	Owned<Type> primitiveType;
 	bool optional;
 	bool primitive;
-	TokenDescriptor startToken;
-	TokenDescriptor endToken;
+	TokenDescriptor openToken;
+	TokenDescriptor closeToken;
 	WhitespaceMode whitespaceMode;
 
 protected:
@@ -469,7 +469,7 @@ public:
 	}
 
 	/**
-	 * Returns a pointer to the start TokenDescriptor. This Token is used as a
+	 * Returns a pointer to the open TokenDescriptor. This Token is used as a
 	 * signifier during parsing that an instance of this FieldDescriptor starts.
 	 *
 	 * Note that this does not invalidate the FieldDescriptor. So use with
@@ -477,54 +477,54 @@ public:
 	 *
 	 * @return a pointer to the start TokenDescriptor.
 	 */
-	TokenDescriptor *getStartTokenPointer() { return &startToken; }
+	TokenDescriptor *getOpenTokenPointer() { return &openToken; }
 
 	/**
-	 * Returns a copy of the start TokenDescriptor. This Token is used as a
+	 * Returns a copy of the open TokenDescriptor. This Token is used as a
 	 * signifier during parsing that an instance of this FieldDescriptor starts.
 	 *
 	 * @return a copy of the start TokenDescriptor.
 	 */
-	TokenDescriptor getStartToken() const { return startToken; }
+	TokenDescriptor getOpenToken() const { return openToken; }
 
 	/**
-	 * Sets the start TokenDescriptor. This Token is used as a
-	 * signifier during parsing that an instance of this FieldDescriptor starts.
+	 * Sets the open TokenDescriptor. This Token is used as a signifier during
+	 * parsing that an instance of this FieldDescriptor starts.
 	 *
-	 * @param st the new start TokenDescriptor.
+	 * @param t the new open TokenDescriptor.
 	 */
-	void setStartToken(TokenDescriptor st)
+	void setOpenToken(TokenDescriptor t)
 	{
 		invalidate();
-		startToken = st;
+		openToken = t;
 	}
 
 	/**
-	 * Returns a pointer to the end TokenDescriptor. This Token is used as a
+	 * Returns a pointer to the close TokenDescriptor. This Token is used as a
 	 * signifier during parsing that an instance of this FieldDescriptor ends.
 	 *
-	 * @return a pointer to the end TokenDescriptor.
+	 * @return a pointer to the close TokenDescriptor.
 	 */
-	TokenDescriptor *getEndTokenPointer() { return &endToken; }
+	TokenDescriptor *getCloseTokenPointer() { return &closeToken; }
 
 	/**
-	 * Returns a copy of the end TokenDescriptor. This Token is used as a
+	 * Returns a copy of the close TokenDescriptor. This Token is used as a
 	 * signifier during parsing that an instance of this FieldDescriptor ends.
 	 *
-	 * @return a copy of the end TokenDescriptor.
+	 * @return a copy of the close TokenDescriptor.
 	 */
-	TokenDescriptor getEndToken() const { return endToken; }
+	TokenDescriptor getCloseToken() const { return closeToken; }
 
 	/**
-	 * Sets the end TokenDescriptor. This Token is used as a
+	 * Sets the close TokenDescriptor. This Token is used as a
 	 * signifier during parsing that an instance of this FieldDescriptor ends.
 	 *
-	 * @param e the new end TokenDescriptor.
+	 * @param t the new close TokenDescriptor.
 	 */
-	void setEndToken(TokenDescriptor e)
+	void setCloseToken(TokenDescriptor t)
 	{
 		invalidate();
-		endToken = e;
+		closeToken = t;
 	}
 
 	/**
@@ -555,7 +555,7 @@ public:
 	 */
 	SyntaxDescriptor getSyntaxDescriptor(ssize_t depth = -1)
 	{
-		SyntaxDescriptor stx{startToken.id, endToken.id, Tokens::Empty,
+		SyntaxDescriptor stx{openToken.id, closeToken.id, Tokens::Empty,
 		                     const_cast<FieldDescriptor *>(this), depth};
 		return stx;
 	}
@@ -608,8 +608,8 @@ class Descriptor : public Node {
 private:
 	Owned<StructType> attributesDescriptor;
 	NodeVector<FieldDescriptor> fieldDescriptors;
-	TokenDescriptor startToken;
-	TokenDescriptor endToken;
+	TokenDescriptor openToken;
+	TokenDescriptor closeToken;
 
 	bool addAndSortFieldDescriptor(Handle<FieldDescriptor> fd, Logger &logger);
 
@@ -860,31 +860,31 @@ public:
 	NodeVector<StructuredClass> getPermittedChildren() const;
 
 	/**
-	 * Returns a pointer to the start TokenDescriptor. This Token is used as a
+	 * Returns a pointer to the open TokenDescriptor. This Token is used as a
 	 * signifier during parsing that an instance of this FieldDescriptor starts.
 	 *
-	 * @return a pointer to the start TokenDescriptor.
+	 * @return a pointer to the open TokenDescriptor.
 	 */
-	TokenDescriptor *getStartTokenPointer() { return &startToken; }
+	TokenDescriptor *getOpenTokenPointer() { return &openToken; }
 
 	/**
-	 * Returns a copy of the start TokenDescriptor. This Token is used as a
+	 * Returns a copy of the open TokenDescriptor. This Token is used as a
 	 * signifier during parsing that an instance of this FieldDescriptor starts.
 	 *
-	 * @return a copy of the start TokenDescriptor.
+	 * @return a copy of the open TokenDescriptor.
 	 */
-	TokenDescriptor getStartToken() const { return startToken; }
+	TokenDescriptor getOpenToken() const { return openToken; }
 
 	/**
-	 * Sets the start TokenDescriptor. This Token is used as a
+	 * Sets the open TokenDescriptor. This Token is used as a
 	 * signifier during parsing that an instance of this FieldDescriptor starts.
 	 *
-	 * @param st the new start TokenDescriptor.
+	 * @param t the new start TokenDescriptor.
 	 */
-	void setStartToken(TokenDescriptor st)
+	void setOpenToken(TokenDescriptor t)
 	{
 		invalidate();
-		startToken = st;
+		openToken = t;
 	}
 
 	/**
@@ -893,7 +893,7 @@ public:
 	 *
 	 * @return a pointer to the end TokenDescriptor.
 	 */
-	TokenDescriptor *getEndTokenPointer() { return &endToken; }
+	TokenDescriptor *getCloseTokenPointer() { return &closeToken; }
 
 	/**
 	 * Returns a copy of the end TokenDescriptor. This Token is used as a
@@ -901,18 +901,18 @@ public:
 	 *
 	 * @return a copy of the end TokenDescriptor.
 	 */
-	TokenDescriptor getEndToken() const { return endToken; }
+	TokenDescriptor getCloseToken() const { return closeToken; }
 
 	/**
 	 * Sets the end TokenDescriptor. This Token is used as a
 	 * signifier during parsing that an instance of this FieldDescriptor ends.
 	 *
-	 * @param e the new end TokenDescriptor.
+	 * @param t the new end TokenDescriptor.
 	 */
-	void setEndToken(TokenDescriptor e)
+	void setCloseToken(TokenDescriptor t)
 	{
 		invalidate();
-		endToken = e;
+		closeToken = t;
 	}
 
 	/**
@@ -922,7 +922,7 @@ public:
 	 */
 	virtual SyntaxDescriptor getSyntaxDescriptor(ssize_t depth = -1)
 	{
-		SyntaxDescriptor stx{startToken.id, endToken.id, Tokens::Empty,
+		SyntaxDescriptor stx{openToken.id, closeToken.id, Tokens::Empty,
 		                     const_cast<Descriptor *>(this), depth};
 		return stx;
 	}
@@ -938,11 +938,6 @@ public:
 	 */
 	std::vector<SyntaxDescriptor> getPermittedTokens() const;
 };
-/*
- * TODO: We should discuss Cardinalities one more time. Is it smart to define
- * cardinalities independent of context? Should we not have at least have the
- * possibility to define it context-dependently?
- */
 
 /**
  * A StructuredClass specifies nodes in the StructureTree of a document that
@@ -1220,7 +1215,7 @@ public:
 	 */
 	SyntaxDescriptor getSyntaxDescriptor(ssize_t depth = -1) override
 	{
-		SyntaxDescriptor stx{getStartToken().id, getEndToken().id,
+		SyntaxDescriptor stx{getOpenToken().id, getCloseToken().id,
 		                     shortToken.id, const_cast<StructuredClass *>(this),
 		                     depth};
 		return stx;

@@ -145,11 +145,6 @@ public:
 	}
 };
 
-class OntologyParent : public Node {
-public:
-	using Node::Node;
-};
-
 class OntologyParentHandler : public StaticHandler {
 public:
 	using StaticHandler::StaticHandler;
@@ -185,6 +180,97 @@ public:
 	{
 		return new OntologyParentFieldRefHandler{handlerData};
 	}
+};
+
+class OntologySyntaxHandler : public StaticHandler {
+public:
+	using StaticHandler::StaticHandler;
+
+	bool startCommand(Variant::mapType &args) override;
+	void end() override;
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new OntologySyntaxHandler{handlerData};
+	}
+};
+
+class OntologyOpenCloseShortHandler : public StaticHandler {
+public:
+	TokenDescriptor *descr;
+
+	OntologyOpenCloseShortHandler(const HandlerData &handlerData);
+
+	bool startCommand(Variant::mapType &args) override;
+	bool data() override;
+	void end() override;
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new OntologyOpenCloseShortHandler{handlerData};
+	}
+};
+
+class OntologySyntaxTokenHandler : public StaticHandler {
+public:
+	using StaticHandler::StaticHandler;
+
+	bool startCommand(Variant::mapType &args) override;
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new OntologySyntaxTokenHandler{handlerData};
+	}
+};
+
+class OntologySyntaxWhitespaceHandler : public StaticHandler {
+public:
+	OntologySyntaxWhitespaceHandler(const HandlerData &handlerData);
+
+	Variant whitespaceModeStr;
+
+	bool startCommand(Variant::mapType &args) override;
+	bool data() override;
+	void end() override;
+
+	static Handler *create(const HandlerData &handlerData)
+	{
+		return new OntologySyntaxWhitespaceHandler{handlerData};
+	}
+};
+
+/* Internally used dummy node classes */
+
+class ParserOntologyParentNode : public Node {
+public:
+	using Node::Node;
+};
+
+class ParserSyntaxNode: public Node {
+public:
+	using Node::Node;
+};
+
+class ParserSyntaxTokenNode: public Node {
+public:
+	TokenDescriptor *descr;
+
+	ParserSyntaxTokenNode(Manager &mgr, TokenDescriptor *descr);
+};
+
+class ParserSyntaxOpenNode: public ParserSyntaxTokenNode {
+public:
+	using ParserSyntaxTokenNode::ParserSyntaxTokenNode;
+};
+
+class ParserSyntaxCloseNode: public ParserSyntaxTokenNode {
+public:
+	using ParserSyntaxTokenNode::ParserSyntaxTokenNode;
+};
+
+class ParserSyntaxShortNode: public ParserSyntaxTokenNode {
+public:
+	using ParserSyntaxTokenNode::ParserSyntaxTokenNode;
 };
 
 namespace States {
@@ -247,11 +333,46 @@ extern const State OntologyStructParentField;
  * State representing a "fieldRef" tag within a "parent" tag.
  */
 extern const State OntologyStructParentFieldRef;
+
+/**
+ * State representing a "syntax" tag within a structure, annotation or field.
+ */
+extern const State OntologySyntax;
+
+/**
+ * State representing a "open" tag within a "syntax" tag.
+ */
+extern const State OntologySyntaxOpen;
+
+/**
+ * State representing an "close" tag within a "syntax" tag.
+ */
+extern const State OntologySyntaxClose;
+
+/**
+ * State representing a "short" tag within a "syntax" tag.
+ */
+extern const State OntologySyntaxShort;
+
+/**
+ * State representing a "whitespace" tag within a "syntax" tag.
+ */
+extern const State OntologySyntaxWhitespace;
+
+/**
+ * State representing a token within a "start", "end" or "short" tag.
+ */
+extern const State OntologySyntaxToken;
 }
 }
 
 namespace RttiTypes {
-extern const Rtti OntologyParent;
+extern const Rtti ParserOntologyParentNode;
+extern const Rtti ParserSyntaxNode;
+extern const Rtti ParserSyntaxTokenNode;
+extern const Rtti ParserSyntaxOpenNode;
+extern const Rtti ParserSyntaxCloseNode;
+extern const Rtti ParserSyntaxShortNode;
 }
 }
 #endif /* _OUSIA_ONTOLOGY_HANDLER_HPP_ */

@@ -207,8 +207,8 @@ bool OntologyPrimitiveHandler::startCommand(Variant::mapType &args)
 
 	const std::string &type = args["type"].asString();
 	scope().resolveType(type, res.first, logger(),
-	                      [](Handle<Node> type, Handle<Node> field,
-	                         Logger &logger) {
+	                    [](Handle<Node> type, Handle<Node> field,
+	                       Logger &logger) {
 		if (type != nullptr) {
 			field.cast<FieldDescriptor>()->setPrimitiveType(type.cast<Type>());
 		}
@@ -244,8 +244,8 @@ bool OntologyParentHandler::startCommand(Variant::mapType &args)
 {
 	Rooted<StructuredClass> strct = scope().selectOrThrow<StructuredClass>();
 
-	Rooted<OntologyParent> parent{
-	    new OntologyParent(strct->getManager(), args["ref"].asString(), strct)};
+	Rooted<ParserOntologyParentNode> parent{new ParserOntologyParentNode(
+	    strct->getManager(), args["ref"].asString(), strct)};
 	parent->setLocation(location());
 	scope().push(parent);
 	return true;
@@ -257,7 +257,8 @@ void OntologyParentHandler::end() { scope().pop(logger()); }
 
 bool OntologyParentFieldHandler::startCommand(Variant::mapType &args)
 {
-	Rooted<OntologyParent> parentNameNode = scope().selectOrThrow<OntologyParent>();
+	Rooted<ParserOntologyParentNode> parentNameNode =
+	    scope().selectOrThrow<ParserOntologyParentNode>();
 	FieldDescriptor::FieldType type;
 	if (args["subtree"].asBool()) {
 		type = FieldDescriptor::FieldType::SUBTREE;
@@ -275,7 +276,7 @@ bool OntologyParentFieldHandler::startCommand(Variant::mapType &args)
 	scope().resolve<Descriptor>(
 	    parentNameNode->getName(), strct, logger(),
 	    [type, name, optional](Handle<Node> parent, Handle<Node> strct,
-	                                Logger &logger) {
+	                           Logger &logger) {
 		    if (parent != nullptr) {
 			    Rooted<FieldDescriptor> field =
 			        (parent.cast<Descriptor>()->createFieldDescriptor(
@@ -290,7 +291,8 @@ bool OntologyParentFieldHandler::startCommand(Variant::mapType &args)
 
 bool OntologyParentFieldRefHandler::startCommand(Variant::mapType &args)
 {
-	Rooted<OntologyParent> parentNameNode = scope().selectOrThrow<OntologyParent>();
+	Rooted<ParserOntologyParentNode> parentNameNode =
+	    scope().selectOrThrow<ParserOntologyParentNode>();
 
 	const std::string &name = args["ref"].asString();
 	Rooted<StructuredClass> strct =
@@ -299,29 +301,318 @@ bool OntologyParentFieldRefHandler::startCommand(Variant::mapType &args)
 
 	// resolve the parent, get the referenced field and add the declared
 	// StructuredClass as child to it.
-	scope().resolve<Descriptor>(parentNameNode->getName(), strct, logger(),
-	                            [name, loc](Handle<Node> parent,
-	                                       Handle<Node> strct, Logger &logger) {
-		if (parent != nullptr) {
-			Rooted<FieldDescriptor> field =
-			    parent.cast<Descriptor>()->getFieldDescriptor(name);
-			if (field == nullptr) {
-				logger.error(
-				    std::string("Could not find referenced field ") + name, loc);
-				return;
-			}
-			field->addChild(strct.cast<StructuredClass>());
-		}
-	});
+	scope().resolve<Descriptor>(
+	    parentNameNode->getName(), strct, logger(),
+	    [name, loc](Handle<Node> parent, Handle<Node> strct, Logger &logger) {
+		    if (parent != nullptr) {
+			    Rooted<FieldDescriptor> field =
+			        parent.cast<Descriptor>()->getFieldDescriptor(name);
+			    if (field == nullptr) {
+				    logger.error(
+				        std::string("Could not find referenced field ") + name,
+				        loc);
+				    return;
+			    }
+			    field->addChild(strct.cast<StructuredClass>());
+		    }
+		});
 	return true;
+}
+
+/* Class OntologySyntaxHandler */
+
+bool OntologySyntaxHandler::startCommand(Variant::mapType &args)
+{
+	scope().push(new ParserSyntaxNode(manager()));
+	return true;
+}
+
+void OntologySyntaxHandler::end() { scope().pop(logger()); }
+
+/* Class OntologyOpenCloseShortHandler */
+
+namespace {
+enum class TokenType { OPEN, CLOSE, SHORT };
+}
+
+OntologyOpenCloseShortHandler::OntologyOpenCloseShortHandler(
+    const HandlerData &handlerData)
+    : StaticHandler(handlerData), descr(nullptr)
+{
+}
+
+bool OntologyOpenCloseShortHandler::startCommand(Variant::mapType &args)
+{
+	// Select the upper field, annotation and struct descriptor
+	Rooted<StructuredClass> strct = scope().select<StructuredClass>();
+	Rooted<AnnotationClass> anno = scope().select<AnnotationClass>();
+	Rooted<FieldDescriptor> field = scope().select<FieldDescriptor>();
+
+	// Fetch the token type this handler was created for
+	TokenType type;
+	if (name() == "open") {
+		type = TokenType::OPEN;
+	} else if (name() == "close") {
+		type = TokenType::CLOSE;
+	} else if (name() == "short") {
+		type = TokenType::SHORT;
+	} else {
+		logger().error(std::string("Invalid syntax element \"") + name() +
+		               std::string("\""));
+		return false;
+	}
+
+	// We cannot define the short form inside a field
+	if (field != nullptr && type == TokenType::SHORT) {
+		logger().error(
+		    std::string("Cannot define short syntax within a field."),
+		    location());
+		return false;
+	}
+
+	// Open, close and short syntax may not be defined within the field of an
+	// annotation, only for the annotation itself
+	if (anno != nullptr && field != nullptr) {
+		logger().error(std::string("Cannot define ") + name() +
+		                   std::string(" syntax within annotation field."),
+		               location());
+		return false;
+	}
+
+	// We cannot define a short form for an annotation
+	if (anno != nullptr && type == TokenType::SHORT) {
+		logger().error(
+		    std::string("Cannot define short syntax for annotations"),
+		    location());
+		return false;
+	}
+
+	// Fetch the pointer for either the open, close or short token
+	descr = nullptr;
+	if (field != nullptr) {
+		switch (type) {
+			case TokenType::OPEN:
+				descr = field->getOpenTokenPointer();
+				break;
+			case TokenType::CLOSE:
+				descr = field->getCloseTokenPointer();
+				break;
+			default:
+				break;
+		}
+	} else if (anno != nullptr) {
+		switch (type) {
+			case TokenType::OPEN:
+				descr = anno->getOpenTokenPointer();
+				break;
+			case TokenType::CLOSE:
+				descr = anno->getCloseTokenPointer();
+				break;
+			default:
+				break;
+		}
+	} else if (strct != nullptr) {
+		switch (type) {
+			case TokenType::OPEN:
+				descr = strct->getOpenTokenPointer();
+				break;
+			case TokenType::CLOSE:
+				descr = strct->getCloseTokenPointer();
+				break;
+			case TokenType::SHORT:
+				descr = strct->getShortTokenPointer();
+				break;
+		}
+	}
+
+	// Make sure a descriptor was set (the checks above should already prevent
+	// this case from happening).
+	if (descr == nullptr) {
+		logger().error(
+		    "Internal error: Could not find corresponding token descriptor",
+		    location());
+		return false;
+	}
+
+	// Make sure the descriptor does not already have any content
+	if (!descr->isEmpty()) {
+		if (field != nullptr) {
+			logger().error(name() + std::string(" syntax for field \"") +
+			               field->getName() +
+			               std::string("\" was already defined"));
+		} else if (anno != nullptr) {
+			logger().error(name() + std::string(" syntax for annotation \"") +
+			               anno->getName() +
+			               std::string("\" was already defined"));
+		} else if (strct != nullptr) {
+			logger().error(name() + std::string(" syntax for structure \"") +
+			               anno->getName() +
+			               std::string("\" was already defined"));
+		}
+		return false;
+	}
+
+	// Push the corresponding nodes onto the stack
+	switch (type) {
+		case TokenType::OPEN:
+			scope().push(new ParserSyntaxOpenNode(manager(), descr));
+			break;
+		case TokenType::CLOSE:
+			scope().push(new ParserSyntaxCloseNode(manager(), descr));
+			break;
+		case TokenType::SHORT:
+			scope().push(new ParserSyntaxShortNode(manager(), descr));
+			break;
+	}
+	return true;
+}
+
+bool OntologyOpenCloseShortHandler::data()
+{
+	Variant str = readData();
+	if (descr && descr->isEmpty()) {
+		// Read the token descriptor
+		*descr = TokenDescriptor(str.asString());
+
+		// Make sure the token descriptor is actually valid, if not, reset it
+		// (do not, however return false as the data per se was at the right
+		// place)
+		if (!descr->isValid()) {
+			logger().error(
+			    std::string("Given token \"") + str.asString() +
+			    std::string(
+			        "\" is not a valid user defined token (no whitespaces, "
+			        "must start and end with a non-alphabetic character, must "
+			        "not override OSML tokens)."));
+			*descr = TokenDescriptor();
+		}
+		return true;
+	}
+	logger().error("Did not expect any data here", str);
+	return false;
+}
+
+void OntologyOpenCloseShortHandler::end()
+{
+	if (descr->isEmpty()) {
+		logger().error(std::string("Expected valid token for ") + name() +
+		                   std::string(" syntax descriptor."),
+		               location());
+	}
+	scope().pop(logger());
+}
+
+/* Class OntologySyntaxTokenHandler */
+
+bool OntologySyntaxTokenHandler::startCommand(Variant::mapType &args)
+{
+	// Select the ParserSyntaxTokenNode containing the reference at the
+	// TokenDescriptor
+	Rooted<ParserSyntaxTokenNode> tokenNode =
+	    scope().selectOrThrow<ParserSyntaxTokenNode>();
+
+	if (!tokenNode->descr->isEmpty()) {
+		logger().error(
+		    "Token was already set, did not expect another command here.",
+		    location());
+		return false;
+	}
+
+	// Select the correct special token
+	TokenId id = Tokens::Empty;
+	if (name() == "newline") {
+		id = Tokens::Newline;
+	} else if (name() == "paragraph") {
+		id = Tokens::Paragraph;
+	} else if (name() == "section") {
+		id = Tokens::Section;
+	} else if (name() == "indent") {
+		id = Tokens::Indent;
+	} else if (name() == "dedent") {
+		id = Tokens::Dedent;
+	} else {
+		logger().error(
+		    "Expected one of \"newline\", \"paragraph\", \"section\", "
+		    "\"indent\", \"dedent\", but got \"" +
+		        name() + "\"",
+		    location());
+		return false;
+	}
+
+	// Set the token descriptor
+	*tokenNode->descr = TokenDescriptor(id);
+	return true;
+}
+
+/* Class OntologySyntaxWhitespaceHandler */
+
+OntologySyntaxWhitespaceHandler::OntologySyntaxWhitespaceHandler(
+    const HandlerData &handlerData)
+    : StaticHandler(handlerData), whitespaceModeStr("")
+{
+}
+
+bool OntologySyntaxWhitespaceHandler::startCommand(Variant::mapType &args)
+{
+	// Fetch the field descriptor, log an error if "whitespace" was not
+	// specified inside a field descriptor
+	Rooted<FieldDescriptor> field = scope().select<FieldDescriptor>();
+	if (field == nullptr) {
+		logger().error(
+		    "Whitespace mode definition is only allowed inside fields.",
+		    location());
+		return false;
+	}
+	return true;
+}
+
+bool OntologySyntaxWhitespaceHandler::data()
+{
+	if (whitespaceModeStr != nullptr) {
+		logger().error(
+		    "Did not expect any more data, whitespace mode has already been "
+		    "set.",
+		    location());
+		return false;
+	}
+	whitespaceModeStr = readData();
+	return true;
+}
+
+void OntologySyntaxWhitespaceHandler::end()
+{
+	// Make sure the given whitespace mode is valid
+	const std::string &mode = whitespaceModeStr.asString();
+	Rooted<FieldDescriptor> field = scope().selectOrThrow<FieldDescriptor>();
+	if (mode == "trim") {
+		field->setWhitespaceMode(WhitespaceMode::TRIM);
+	} else if (mode == "collapse") {
+		field->setWhitespaceMode(WhitespaceMode::COLLAPSE);
+	} else if (mode == "preserve") {
+		field->setWhitespaceMode(WhitespaceMode::PRESERVE);
+	} else {
+		logger().error(
+		    "Expected \"trim\", \"collapse\" or \"preserve\" as whitespace "
+		    "mode.",
+		    whitespaceModeStr);
+		return;
+	}
+}
+
+/* Class ParserSyntaxTokenNode */
+
+ParserSyntaxTokenNode::ParserSyntaxTokenNode(Manager &mgr,
+                                             TokenDescriptor *descr)
+    : Node(mgr), descr(descr)
+{
 }
 
 namespace States {
 const State Ontology = StateBuilder()
-                         .parents({&None, &Document})
-                         .createdNodeType(&RttiTypes::Ontology)
-                         .elementHandler(OntologyHandler::create)
-                         .arguments({Argument::String("name")});
+                           .parents({&None, &Document})
+                           .createdNodeType(&RttiTypes::Ontology)
+                           .elementHandler(OntologyHandler::create)
+                           .arguments({Argument::String("name")});
 
 const State OntologyStruct =
     StateBuilder()
@@ -356,12 +647,12 @@ const State OntologyAttribute =
                     Argument::Any("default", Variant::fromObject(nullptr))});
 
 const State OntologyField = StateBuilder()
-                              .parents({&OntologyStruct, &OntologyAnnotation})
-                              .createdNodeType(&RttiTypes::FieldDescriptor)
-                              .elementHandler(OntologyFieldHandler::create)
-                              .arguments({Argument::String("name", ""),
-                                          Argument::Bool("subtree", false),
-                                          Argument::Bool("optional", false)});
+                                .parents({&OntologyStruct, &OntologyAnnotation})
+                                .createdNodeType(&RttiTypes::FieldDescriptor)
+                                .elementHandler(OntologyFieldHandler::create)
+                                .arguments({Argument::String("name", ""),
+                                            Argument::Bool("subtree", false),
+                                            Argument::Bool("optional", false)});
 
 const State OntologyFieldRef =
     StateBuilder()
@@ -379,15 +670,16 @@ const State OntologyStructPrimitive =
             {Argument::String("name", ""), Argument::Bool("subtree", false),
              Argument::Bool("optional", false), Argument::String("type")});
 
-const State OntologyStructChild = StateBuilder()
-                                    .parent(&OntologyField)
-                                    .elementHandler(OntologyChildHandler::create)
-                                    .arguments({Argument::String("ref")});
+const State OntologyStructChild =
+    StateBuilder()
+        .parent(&OntologyField)
+        .elementHandler(OntologyChildHandler::create)
+        .arguments({Argument::String("ref")});
 
 const State OntologyStructParent =
     StateBuilder()
         .parent(&OntologyStruct)
-        .createdNodeType(&RttiTypes::OntologyParent)
+        .createdNodeType(&RttiTypes::ParserOntologyParentNode)
         .elementHandler(OntologyParentHandler::create)
         .arguments({Argument::String("ref")});
 
@@ -406,11 +698,68 @@ const State OntologyStructParentFieldRef =
         .createdNodeType(&RttiTypes::FieldDescriptor)
         .elementHandler(OntologyParentFieldRefHandler::create)
         .arguments({Argument::String("ref", DEFAULT_FIELD_NAME)});
+
+const State OntologySyntax =
+    StateBuilder()
+        .parents({&OntologyStruct, &OntologyField, &OntologyAnnotation})
+        .createdNodeType(&RttiTypes::ParserSyntaxNode)
+        .elementHandler(OntologySyntaxHandler::create)
+        .arguments(Arguments{});
+
+const State OntologySyntaxToken =
+    StateBuilder()
+        .parents({&OntologySyntaxOpen, &OntologySyntaxClose, &OntologySyntax})
+        .createdNodeType(&RttiTypes::ParserSyntaxTokenNode)
+        .elementHandler(OntologySyntaxTokenHandler::create)
+        .arguments(Arguments{});
+
+const State OntologySyntaxOpen =
+    StateBuilder()
+        .parent(&OntologySyntax)
+        .createdNodeType(&RttiTypes::ParserSyntaxOpenNode)
+        .elementHandler(OntologyOpenCloseShortHandler::create)
+        .arguments(Arguments{});
+
+const State OntologySyntaxClose =
+    StateBuilder()
+        .parent(&OntologySyntax)
+        .createdNodeType(&RttiTypes::ParserSyntaxCloseNode)
+        .elementHandler(OntologyOpenCloseShortHandler::create)
+        .arguments(Arguments{});
+
+const State OntologySyntaxShort =
+    StateBuilder()
+        .parent(&OntologySyntax)
+        .createdNodeType(&RttiTypes::ParserSyntaxShortNode)
+        .elementHandler(OntologyOpenCloseShortHandler::create)
+        .arguments(Arguments{});
+
+const State OntologySyntaxWhitespace =
+    StateBuilder()
+        .parent(&OntologySyntax)
+        .elementHandler(OntologySyntaxHandler::create)
+        .arguments(Arguments{});
 }
 }
 
 namespace RttiTypes {
-const Rtti OntologyParent = RttiBuilder<ousia::parser_stack::OntologyParent>(
-                              "OntologyParent").parent(&Node);
+const Rtti ParserOntologyParentNode =
+    RttiBuilder<ousia::parser_stack::ParserOntologyParentNode>(
+        "ParserOntologyParentNode").parent(&Node);
+const Rtti ParserSyntaxNode =
+    RttiBuilder<ousia::parser_stack::ParserSyntaxNode>("ParserSyntaxNode")
+        .parent(&Node);
+const Rtti ParserSyntaxTokenNode =
+    RttiBuilder<ousia::parser_stack::ParserSyntaxTokenNode>(
+        "ParserSyntaxTokenNode").parent(&Node);
+const Rtti ParserSyntaxOpenNode =
+    RttiBuilder<ousia::parser_stack::ParserSyntaxOpenNode>(
+        "ParserSyntaxOpenNode").parent(&ParserSyntaxTokenNode);
+const Rtti ParserSyntaxCloseNode =
+    RttiBuilder<ousia::parser_stack::ParserSyntaxCloseNode>(
+        "ParserSyntaxCloseNode").parent(&ParserSyntaxTokenNode);
+const Rtti ParserSyntaxShortNode =
+    RttiBuilder<ousia::parser_stack::ParserSyntaxShortNode>(
+        "ParserSyntaxShortNode").parent(&ParserSyntaxTokenNode);
 }
 }

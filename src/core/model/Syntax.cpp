@@ -16,13 +16,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Syntax.hpp"
+#include <core/common/Utils.hpp>
 
 #include "Ontology.hpp"
+#include "Syntax.hpp"
 
 namespace ousia {
 
-/* Class TokenSyntaxDescriptor */
+/* Class TokenDescriptor */
+
+bool TokenDescriptor::isValid() const
+{
+	return special || isEmpty() || Utils::isUserDefinedToken(token);
+}
+
+/* Class SyntaxDescriptor */
 
 bool SyntaxDescriptor::isAnnotation() const
 {
@@ -39,11 +47,11 @@ bool SyntaxDescriptor::isStruct() const
 
 void SyntaxDescriptor::insertIntoTokenSet(TokenSet &set) const
 {
-	if (start != Tokens::Empty) {
-		set.insert(start);
+	if (open != Tokens::Empty) {
+		set.insert(open);
 	}
-	if (end != Tokens::Empty) {
-		set.insert(end);
+	if (close != Tokens::Empty) {
+		set.insert(close);
 	}
 	if (shortForm != Tokens::Empty) {
 		set.insert(shortForm);
@@ -52,7 +60,7 @@ void SyntaxDescriptor::insertIntoTokenSet(TokenSet &set) const
 
 bool SyntaxDescriptor::isEmpty() const
 {
-	return start == Tokens::Empty && end == Tokens::Empty &&
+	return open == Tokens::Empty && close == Tokens::Empty &&
 	       shortForm == Tokens::Empty;
 }
 }
