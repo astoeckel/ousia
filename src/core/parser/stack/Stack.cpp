@@ -802,8 +802,8 @@ void StackImpl::handleFieldEnd(bool endRange)
 		if (info.range && endRange) {
 			if (!info.hadDefaultField) {
 				bool isDefault = true;
-				info.handler->fieldStart(isDefault, true);
-				info.fieldStart(true, true, true);
+				bool valid = info.handler->fieldStart(isDefault, true);
+				info.fieldStart(true, true, valid);
 			}
 			endCurrentHandler();
 			return;
