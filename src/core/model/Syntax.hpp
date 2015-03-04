@@ -74,6 +74,15 @@ struct TokenDescriptor {
 	 * @return true if and only if neither a string nor an ID is given.
 	 */
 	bool isEmpty() const { return token.empty() && id == Tokens::Empty; }
+
+	/**
+	 * Returns true if the token is valid, which is the case if this class is
+	 * either marked as special token or is empty or does have a valid token
+	 * string set.
+	 *
+	 * @return true if the token descriptor is valid, false otherwise.
+	 */
+	bool isValid() const;
 };
 
 /**
@@ -86,17 +95,17 @@ struct TokenDescriptor {
  */
 struct SyntaxDescriptor {
 	/**
-	 * Possible start token or Tokens::Empty if no token is set.
+	 * Possible open token or Tokens::Empty if no token is set.
 	 */
-	TokenId start;
+	TokenId open;
 
 	/**
-	 * Possible end token or Tokens::Empty if no token is set.
+	 * Possible close token or Tokens::Empty if no token is set.
 	 */
-	TokenId end;
+	TokenId close;
 
 	/**
-	 * Possible representation token or Tokens::Empty if no token is set.
+	 * Possible short form token or Tokens::Empty if no token is set.
 	 */
 	TokenId shortForm;
 
@@ -118,8 +127,8 @@ struct SyntaxDescriptor {
 	 * descriptor handle to nullptr.
 	 */
 	SyntaxDescriptor()
-	    : start(Tokens::Empty),
-	      end(Tokens::Empty),
+	    : open(Tokens::Empty),
+	      close(Tokens::Empty),
 	      shortForm(Tokens::Empty),
 	      descriptor(nullptr),
 	      depth(-1)
@@ -129,18 +138,18 @@ struct SyntaxDescriptor {
 	/**
 	 * Member initializer constructor.
 	 *
-	 * @param start is a possible start token.
-	 * @param end is a possible end token.
+	 * @param open is a possible open token.
+	 * @param close is a possible close token.
 	 * @param shortForm is a possible short form token.
 	 * @param descriptor The Descriptor this SyntaxDescriptor belongs to.
 	 * @param depth Given the current leaf in the parsed document the depth of a
 	 * SyntaxDescriptor is defined as the number of transparent elements that
 	 * would be needed to construct an instance of the referenced descriptor.
 	 */
-	SyntaxDescriptor(TokenId start, TokenId end, TokenId shortForm,
+	SyntaxDescriptor(TokenId open, TokenId close, TokenId shortForm,
 	                 Handle<Node> descriptor, ssize_t depth)
-	    : start(start),
-	      end(end),
+	    : open(open),
+	      close(close),
 	      shortForm(shortForm),
 	      descriptor(descriptor),
 	      depth(depth)

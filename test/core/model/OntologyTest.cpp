@@ -530,8 +530,8 @@ TEST(Descriptor, getSyntaxDescriptor)
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "ontology")};
 	Rooted<StructuredClass> A{new StructuredClass(
 	    mgr, "A", ontology, Cardinality::any(), {nullptr}, false, false)};
-	A->setStartToken(TokenDescriptor(Tokens::Indent));
-	A->setEndToken(TokenDescriptor(Tokens::Dedent));
+	A->setOpenToken(TokenDescriptor(Tokens::Indent));
+	A->setCloseToken(TokenDescriptor(Tokens::Dedent));
 	{
 		TokenDescriptor sh{"<+>"};
 		sh.id = 1;
@@ -539,8 +539,8 @@ TEST(Descriptor, getSyntaxDescriptor)
 	}
 	// check the SyntaxDescriptor
 	SyntaxDescriptor stx = A->getSyntaxDescriptor();
-	ASSERT_EQ(Tokens::Indent, stx.start);
-	ASSERT_EQ(Tokens::Dedent, stx.end);
+	ASSERT_EQ(Tokens::Indent, stx.open);
+	ASSERT_EQ(Tokens::Dedent, stx.close);
 	ASSERT_EQ(1, stx.shortForm);
 	ASSERT_EQ(A, stx.descriptor);
 	ASSERT_TRUE(stx.isStruct());
@@ -559,8 +559,8 @@ TEST(Descriptor, getPermittedTokens)
 	// add one StructuredClass with all tokens set.
 	Rooted<StructuredClass> A{new StructuredClass(
 	    mgr, "A", ontology, Cardinality::any(), {nullptr}, false, false)};
-	A->setStartToken(TokenDescriptor(Tokens::Indent));
-	A->setEndToken(TokenDescriptor(Tokens::Dedent));
+	A->setOpenToken(TokenDescriptor(Tokens::Indent));
+	A->setCloseToken(TokenDescriptor(Tokens::Dedent));
 	{
 		TokenDescriptor sh{"<+>"};
 		sh.id = 1;
@@ -568,19 +568,19 @@ TEST(Descriptor, getPermittedTokens)
 	}
 	// add a field with one token set.
 	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
-	A_field->setEndToken(TokenDescriptor(Tokens::Newline));
+	A_field->setCloseToken(TokenDescriptor(Tokens::Newline));
 	A_field->addChild(A);
 	// add an annotation with start and end set.
 	Rooted<AnnotationClass> A_anno = ontology->createAnnotationClass("A");
 	{
 		TokenDescriptor start{"<"};
 		start.id = 7;
-		A_anno->setStartToken(start);
+		A_anno->setOpenToken(start);
 	}
 	{
 		TokenDescriptor end{">"};
 		end.id = 8;
-		A_anno->setEndToken(end);
+		A_anno->setCloseToken(end);
 	}
 	// add a trivial annotation, which should not be returned.
 	Rooted<AnnotationClass> B_anno = ontology->createAnnotationClass("B");
@@ -592,16 +592,16 @@ TEST(Descriptor, getPermittedTokens)
 	// the field should be first, because A itself should not be collected
 	// directly.
 	ASSERT_EQ(A_field, stxs[0].descriptor);
-	ASSERT_EQ(Tokens::Empty, stxs[0].start);
-	ASSERT_EQ(Tokens::Newline, stxs[0].end);
+	ASSERT_EQ(Tokens::Empty, stxs[0].open);
+	ASSERT_EQ(Tokens::Newline, stxs[0].close);
 	ASSERT_EQ(Tokens::Empty, stxs[0].shortForm);
 	ASSERT_EQ(A, stxs[1].descriptor);
-	ASSERT_EQ(Tokens::Indent, stxs[1].start);
-	ASSERT_EQ(Tokens::Dedent, stxs[1].end);
+	ASSERT_EQ(Tokens::Indent, stxs[1].open);
+	ASSERT_EQ(Tokens::Dedent, stxs[1].close);
 	ASSERT_EQ(1, stxs[1].shortForm);
 	ASSERT_EQ(A_anno, stxs[2].descriptor);
-	ASSERT_EQ(7, stxs[2].start);
-	ASSERT_EQ(8, stxs[2].end);
+	ASSERT_EQ(7, stxs[2].open);
+	ASSERT_EQ(8, stxs[2].close);
 	ASSERT_EQ(Tokens::Empty, stxs[2].shortForm);
 }
 
@@ -720,11 +720,11 @@ TEST(Ontology, validate)
 		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
 		ASSERT_TRUE(ontology->validate(logger));
 		// add an invalid start token.
-		base_field->setStartToken(TokenDescriptor("< + >"));
+		base_field->setOpenToken(TokenDescriptor("< + >"));
 		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
 		ASSERT_FALSE(ontology->validate(logger));
 		// make it valid.
-		base_field->setStartToken(TokenDescriptor("<"));
+		base_field->setOpenToken(TokenDescriptor("<"));
 		ASSERT_EQ(ValidationState::UNKNOWN, ontology->getValidationState());
 		ASSERT_TRUE(ontology->validate(logger));
 		// add a subclass for our base class.
@@ -796,8 +796,8 @@ TEST(Ontology, getAllTokenDescriptors)
 	// add one StructuredClass with all tokens set.
 	Rooted<StructuredClass> A{new StructuredClass(
 	    mgr, "A", ontology, Cardinality::any(), {nullptr}, false, false)};
-	A->setStartToken(TokenDescriptor(Tokens::Indent));
-	A->setEndToken(TokenDescriptor(Tokens::Dedent));
+	A->setOpenToken(TokenDescriptor(Tokens::Indent));
+	A->setCloseToken(TokenDescriptor(Tokens::Dedent));
 	{
 		TokenDescriptor sh{"<+>"};
 		sh.id = 1;
@@ -805,19 +805,19 @@ TEST(Ontology, getAllTokenDescriptors)
 	}
 	// add a field with one token set.
 	Rooted<FieldDescriptor> A_field = A->createFieldDescriptor(logger).first;
-	A_field->setEndToken(TokenDescriptor(Tokens::Newline));
+	A_field->setCloseToken(TokenDescriptor(Tokens::Newline));
 	A_field->addChild(A);
 	// add an annotation with start and end set.
 	Rooted<AnnotationClass> A_anno = ontology->createAnnotationClass("A");
 	{
 		TokenDescriptor start{"<"};
 		start.id = 7;
-		A_anno->setStartToken(start);
+		A_anno->setOpenToken(start);
 	}
 	{
 		TokenDescriptor end{">"};
 		end.id = 8;
-		A_anno->setEndToken(end);
+		A_anno->setCloseToken(end);
 	}
 	// add a trivial annotation, which should not be returned.
 	Rooted<AnnotationClass> B_anno = ontology->createAnnotationClass("B");

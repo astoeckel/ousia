@@ -315,24 +315,22 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 	} else {
 		valid = valid & validateName(logger);
 	}
-	// check start and end token.
-	if (!startToken.special && !startToken.token.empty() &&
-	    !Utils::isUserDefinedToken(startToken.token)) {
+	// check open and close token.
+	if (!openToken.isValid()) {
 		// TODO: Correct error message.
 		logger.error(std::string("Field \"") + getNameOrDefaultName() +
 		                 "\" of descriptor \"" + parentName +
-		                 "\" has an invalid custom start token: " +
-		                 startToken.token,
+		                 "\" has an invalid custom open token: " +
+		                 openToken.token,
 		             *this);
 		valid = false;
 	}
-	if (!endToken.special && !endToken.token.empty() &&
-	    !Utils::isUserDefinedToken(endToken.token)) {
+	if (!closeToken.isValid()) {
 		// TODO: Correct error message.
 		logger.error(std::string("Field \"") + getNameOrDefaultName() +
 		                 "\" of descriptor \"" + parentName +
-		                 "\" has an invalid custom end token: " +
-		                 endToken.token,
+		                 "\" has an invalid custom close token: " +
+		                 closeToken.token,
 		             *this);
 		valid = false;
 	}
@@ -524,19 +522,17 @@ bool Descriptor::doValidate(Logger &logger) const
 	}
 
 	// check start and end token.
-	if (!startToken.special && !startToken.token.empty() &&
-	    !Utils::isUserDefinedToken(startToken.token)) {
+	if (!openToken.isValid()) {
 		logger.error(std::string("Descriptor \"") + getName() +
 		                 "\" has an invalid custom start token: " +
-		                 startToken.token,
+		                 openToken.token,
 		             *this);
 		valid = false;
 	}
-	if (!endToken.special && !endToken.token.empty() &&
-	    !Utils::isUserDefinedToken(endToken.token)) {
+	if (!closeToken.isValid()) {
 		logger.error(std::string("Descriptor \"") + getName() +
 		                 "\" has an invalid custom end token: " +
-		                 endToken.token,
+		                 closeToken.token,
 		             *this);
 		valid = false;
 	}
@@ -818,8 +814,7 @@ bool StructuredClass::doValidate(Logger &logger) const
 	}
 
 	// check short token.
-	if (!shortToken.special && !shortToken.token.empty() &&
-	    !Utils::isUserDefinedToken(shortToken.token)) {
+	if (!shortToken.isValid()) {
 		logger.error(std::string("Descriptor \"") + getName() +
 		                 "\" has an invalid custom short form token: " +
 		                 shortToken.token,
@@ -1092,22 +1087,22 @@ static void gatherTokenDescriptors(
     std::unordered_set<FieldDescriptor *> &visited)
 {
 	// add the TokenDescriptors for the Descriptor itself.
-	if (!desc->getStartToken().isEmpty()) {
-		res.push_back(desc->getStartTokenPointer());
+	if (!desc->getOpenToken().isEmpty()) {
+		res.push_back(desc->getOpenTokenPointer());
 	}
-	if (!desc->getEndToken().isEmpty()) {
-		res.push_back(desc->getEndTokenPointer());
+	if (!desc->getCloseToken().isEmpty()) {
+		res.push_back(desc->getCloseTokenPointer());
 	}
 	// add the TokenDescriptors for its FieldDescriptors.
 	for (auto fd : desc->getFieldDescriptors()) {
 		if (!visited.insert(fd.get()).second) {
 			continue;
 		}
-		if (!fd->getStartToken().isEmpty()) {
-			res.push_back(fd->getStartTokenPointer());
+		if (!fd->getOpenToken().isEmpty()) {
+			res.push_back(fd->getOpenTokenPointer());
 		}
-		if (!fd->getEndToken().isEmpty()) {
-			res.push_back(fd->getEndTokenPointer());
+		if (!fd->getCloseToken().isEmpty()) {
+			res.push_back(fd->getCloseTokenPointer());
 		}
 	}
 }
