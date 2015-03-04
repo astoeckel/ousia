@@ -1,0 +1,8 @@
+<?xml version="1.0" standalone="yes"?>
+<typesystem name="version">
+	<struct name="version">
+		<field name="major" type="int"/>
+		<field name="minor" type="int"/>
+		<field name="patch" type="int"/>
+	</struct>
+</typesystem>

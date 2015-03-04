@@ -1,13 +1,14 @@
 <?xml version="1.0"?>
 <document>
 
-	<import rel="ontology" src="book"/>
-	<import rel="ontology" src="headings"/>
-	<import rel="ontology" src="meta"/>
-	<import rel="ontology" src="bibliography"/>
-	<!--<import rel="ontology" src="emphasis.oxm"/>
-	<import rel="ontology" src="comments.oxm"/>
-	<alias tag="paragraph" aka="p"/>
+	<import rel="ontology" src="./book_ontology"/>
+	<import rel="ontology" src="./headings_ontology"/>
+	<import rel="ontology" src="./meta_ontology"/>
+	<import rel="ontology" src="./bibliography_ontology"/>
+	<import rel="ontology" src="./lists_ontology"/>
+	<import rel="ontology" src="./emphasis_ontology"/>
+	<import rel="ontology" src="./comments_ontology"/>
+	<!--<alias tag="paragraph" aka="p"/>
 	<alias tag="emphasized" aka="em"/>-->
 	
 	<book>
@@ -87,15 +88,20 @@
 		<chapter name="content">
 			<heading>Was ist Aufklärung?</heading>
 
-			Aufklärung ist der Ausgang des Menschen aus seiner
-			selbstverschuldeten Unmündigkeit. Unmündigkeit ist
+			<a:start:strong/>Aufklärung ist der Ausgang des Menschen aus seiner
+			selbstverschuldeten Unmündigkeit<a:end:strong/>.
+			<ul>
+				<item><a:start:emphasized/>Unmündigkeit<a:end:emphasized/> ist
 			das Unvermögen, sich seines Verstandes ohne Leitung eines anderen zu
-			bedienen. Selbstverschuldet ist diese Unmündigkeit, wenn
-			die Ursache derselben nicht am Mangel des Verstandes, sondern der
-			Entschließung und des Mutes liegt, sich seiner ohne Leitung eines
-			andern zu bedienen.
-			Sapere aude! Habe Mut, dich deines eigenen Verstandes zu
-			bedienen! ist also der Wahlspruch der Aufklärung.
+			bedienen.</item>
+				<item><a:start:emphasized/>Selbstverschuldet<a:end:emphasized/>
+			ist diese Unmündigkeit, wenn die Ursache derselben nicht am Mangel
+			des Verstandes, sondern der Entschließung und des Mutes liegt, sich
+			seiner ohne Leitung eines andern zu bedienen.</item>
+			</ul>
+			<a:start:strong/>Sapere aude!<a:end:strong/> Habe Mut, dich deines
+			eigenen Verstandes zu bedienen! ist also der Wahlspruch der
+			Aufklärung.
 		</chapter>
 	</book>
 </document>

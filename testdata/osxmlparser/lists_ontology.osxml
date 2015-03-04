@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<ontology name="lists">
+	<import rel="ontology" src="./book_ontology"/>
+
+	<struct name="ul" isa="book.paragraph">
+		<!-- Here we solve the problem of parents using the isa
+			 mechanism, because a list may occur whereever a paragraph
+			 may occur. However we do want to override the default field. -->
+		<field>
+			<childRef ref="item"/>
+		</field>
+	</struct>
+	<struct name="ol" isa="book.paragraph">
+		<!-- Here we solve the problem of parents using the isa
+		     mechanism, because a list may occur whereever a paragraph
+		     may occur. However we do want to override the default field. -->
+		<field>
+			<childRef ref="item"/>
+		</field>
+	</struct>
+	<struct name="item">
+		<fieldRef ref="book.paragraph.$default"/>
+	</struct>
+</ontology>

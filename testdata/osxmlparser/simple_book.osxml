@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <document>
-	<import rel="ontology" src="book_ontology.osxml"/>
+	<import rel="ontology" src="./book_ontology.osxml"/>
 	<book>
 		This might be some introductory text or a dedication.
 		<!-- Note that a better version of the book ontology might specify

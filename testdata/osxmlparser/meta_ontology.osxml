@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<ontology name="meta">
+
+	<import rel="typesystem" src="./affiliation_typesystem"/>
+	<import rel="typesystem" src="./email_typesystem"/>
+	<import rel="typesystem" src="./version_typesystem"/>
+	<import rel="ontology" src="./book_ontology"/>
+
+	<struct name="meta" cardinality="{1}" transparent="true">
+		<field>
+			<childRef ref="authors"/>
+			<childRef ref="version"/>
+		</field>
+		<parentRef ref="book">
+			<field name="meta" subtree="true" optional="true"/>
+		</parentRef>
+		<parentRef ref="chapter">
+			<field name="meta" subtree="true" optional="true"/>
+		</parentRef>
+		<!-- One could also include "article" and other things here -->
+	</struct>
+
+	<struct name="person">
+		<primitive subtree="true" name="firstName" type="string"/>
+		<primitive subtree="true" name="secondNames" type="string[]" optional="true"/>
+		<primitive subtree="true" name="lastName" type="string"/>
+		<primitive subtree="true" name="email" type="email" optional="true"/>
+		<primitive subtree="true" name="affiliation" type="affiliation" optional="true"/>
+	</struct>
+
+	<!-- wrapper author tag to allow specifying no authors whatsoever. But if
+	     an author is specified it has to be at least one primary author. -->
+	<struct name="authors" transparent="true" cardinality="{0-1}">
+		<field>
+			<childRef ref="author"/>
+		</field>
+	</struct>
+
+	<!-- no explicit cardinality, because we might have multiple authors -->
+	<struct name="author" isa="person"/>
+
+	<!-- but we need at least one primary author -->
+	<struct name="primaryAuthor" cardinality="{>0}" isa="author"/>
+
+	<!-- version intermediate struct -->
+	<struct name="version" cardinality="{0-1}">
+		<primitive type="version"/>
+	</struct>
+</ontology>

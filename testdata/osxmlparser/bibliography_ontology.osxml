@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<ontology name="bibliography">
+
+	<import rel="ontology" src="./book_ontology"/>
+	<import rel="ontology" src="./meta_ontology"/>
+
+	<struct name="bibliography" transparent="true">
+		<field>
+			<childRef ref="bibEntry"/>
+		</field>
+		<parentRef ref="book">
+			<field name="bibliography" subtree="true"/>
+		</parentRef>
+	</struct>
+	<struct name="bibEntry">
+		<field>
+			<childRef ref="meta.authors"/>
+			<childRef ref="title"/>
+			<childRef ref="year"/>
+			<childRef ref="journal"/>
+			<childRef ref="pages"/>
+			<childRef ref="location"/>
+		</field>
+	</struct>
+	<struct name="title" cardinality="{1}">
+		<primitive type="string"/>
+	</struct>
+	<struct name="year" cardinality="{1}">
+		<primitive type="int"/>
+	</struct>
+	<struct name="journal" cardinality="{0-1}">
+		<!-- here some kind of database reference would be better -->
+		<primitive type="string"/>
+	</struct>
+	<struct name="pages" cardinality="{0-1}">
+		<primitive type="cardinality"/>
+	</struct>
+	<struct name="location" cardinality="{0-1}">
+		<!-- here some kind of database reference would be better -->
+		<primitive type="string"/>
+	</struct>
+</ontology>
