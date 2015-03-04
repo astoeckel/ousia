@@ -35,6 +35,9 @@
 #include <iostream>
 #endif
 
+// TODO: Remove
+#include <iostream>
+
 namespace ousia {
 namespace parser_stack {
 namespace {
@@ -303,6 +306,11 @@ private:
 	TokenRegistry tokenRegistry;
 
 	/**
+	 * Collection of all currently enabled tokens.
+	 */
+	TokenStack tokenStack;
+
+	/**
 	 * Pointer at a TokenizedDataReader instance from which the data should
 	 * currently be read.
 	 */
@@ -360,6 +368,12 @@ private:
 	 * HandlerInfo instance if the stack is empty).
 	 */
 	HandlerInfo &currentInfo();
+
+	/**
+	 * Returns a reference at the current HandlerInfo instance (or a stub
+	 * HandlerInfo instance if the stack is empty).
+	 */
+	const HandlerInfo &currentInfo() const;
 
 	/**
 	 * Returns a reference at the last HandlerInfo instance (or a stub
@@ -591,7 +605,9 @@ std::string StackImpl::currentCommandName() const
 
 TokenSet StackImpl::currentTokens() const
 {
-	// TODO: Implement
+	if (currentInfo().state().supportsTokens) {
+		return tokenStack.tokens();
+	}
 	return TokenSet{};
 }
 
@@ -605,6 +621,12 @@ HandlerInfo &StackImpl::currentInfo()
 {
 	return stack.empty() ? EmptyHandlerInfo : stack.back();
 }
+
+const HandlerInfo &StackImpl::currentInfo() const
+{
+	return stack.empty() ? EmptyHandlerInfo : stack.back();
+}
+
 HandlerInfo &StackImpl::lastInfo()
 {
 	return stack.size() < 2U ? EmptyHandlerInfo : stack[stack.size() - 2];
@@ -658,7 +680,8 @@ bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField)
 		// end it and repeat
 		bool canHaveImplicitDefaultField =
 		    info.type() == HandlerType::COMMAND ||
-		    info.type() == HandlerType::TOKEN || (info.type() == HandlerType::ANNOTATION_START && info.range);
+		    info.type() == HandlerType::TOKEN ||
+		    (info.type() == HandlerType::ANNOTATION_START && info.range);
 		if (info.hadDefaultField || !startImplicitDefaultField || !info.valid ||
 		    !canHaveImplicitDefaultField) {
 			// We cannot end the command if it is marked as "range" command
@@ -757,6 +780,7 @@ void StackImpl::handleData()
 
 void StackImpl::handleToken(const Token &token)
 {
+	std::cout << "Got token " << token.id << std::endl;
 	// TODO: Implement
 	// Just eat them for now
 }
@@ -1060,12 +1084,19 @@ void StackImpl::unregisterToken(TokenId id)
 
 void StackImpl::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 {
-	// TODO
+	// Push the tokens onto the token stack
+	for (const SyntaxDescriptor &token: tokens) {
+		std::cout << token.open << std::endl;
+		std::cout << token.close << std::endl;
+		std::cout << token.shortForm << std::endl;
+	}
+	tokenStack.pushTokens(tokens);
 }
 
 void StackImpl::popTokens()
 {
-	// TODO
+	// Pop the last set of tokens from the token stack.
+	tokenStack.popTokens();
 }
 
 Variant StackImpl::readData()
@@ -1123,7 +1154,8 @@ void Stack::annotationStart(const Variant &className,
 	impl->annotationStart(className, args, range);
 }
 
-void Stack::annotationEnd(const Variant &className, const Variant::mapType &args)
+void Stack::annotationEnd(const Variant &className,
+                          const Variant::mapType &args)
 {
 #if STACK_DEBUG_OUTPUT
 	std::cout << "STACK: annotationEnd " << className << " " << args

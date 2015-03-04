@@ -44,43 +44,12 @@ namespace parser_stack {
 class TokenStack {
 private:
 	/**
-	 * Shared pointer at the parent TokenStack instance. May be nullptr, in
-	 * which case no parent TokenStack instance exists.
-	 */
-	const TokenStack *parentStack;
-
-	/**
 	 * Stack containing vectors of TokenSyntaxDescriptor instances as given by
 	 * the user.
 	 */
 	std::vector<std::vector<SyntaxDescriptor>> stack;
 
-	/**
-	 * Constructor of the TokenStack class.
-	 *
-	 * @param parentStack is a pointer at the underlying parentStack instance
-	 * to which calls should be forwarded if no data has been pushed onto this
-	 * stack instance.
-	 */
-	TokenStack(const TokenStack *parentStack) : parentStack(parentStack) {}
-
 public:
-	/**
-	 * Default constructor of the TokenStack class with no reference at a parent
-	 * stack.
-	 */
-	TokenStack() : TokenStack(nullptr) {}
-
-	/**
-	 * Constructor of the TokenStack class with a reference at a parent
-	 * TokenStack instance.
-	 *
-	 * @param parentStack is a reference at a parent TokenStack instance. If no
-	 * data has yet been pushed onto this instance, calls will be forwarded to
-	 * the parent stack.
-	 */
-	TokenStack(const TokenStack &parentStack) : TokenStack(&parentStack) {}
-
 	/**
 	 * Pushes a list of SyntaxDescriptor instances onto the internal stack.
 	 *

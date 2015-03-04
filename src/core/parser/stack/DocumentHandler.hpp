@@ -98,9 +98,14 @@ private:
 	bool isExplicitField;
 
 	/**
-	 * Code shared by both the start(), fieldStart() and the data() method.
-	 * Checks whether the parser currently is in a field and returns the name
-	 * of this field.
+	 * Registers all user defined tokens in the parser.
+	 */
+	void registerUserDefinedTokens();
+
+	/**
+	 * Code shared by the startCommand(), startAnnotation(), fieldStart() and
+	 * the data() method. Checks whether the parser currently is in a field and
+	 * returns the name of this field.
 	 *
 	 * @param parentNode is the next possible parent node (a document,
 	 * a structured entity, an annotation entity or a field).
@@ -162,6 +167,20 @@ private:
 	 */
 	bool convertData(Handle<FieldDescriptor> field, Variant &data,
 	                 Logger &logger);
+
+	/**
+	 * Pushes a new DocumentField onto the scope stack and registers all
+	 * premitted tokens in the parser.
+	 */
+	void pushDocumentField(Handle<Node> parent,
+	                       Handle<FieldDescriptor> fieldDescr, size_t fieldIdx,
+	                       bool transparent);
+
+	/**
+	 * Pops a DocumentField from the scope stack and retracts the permitted
+	 * tokens from the parser.
+	 */
+	void popDocumentField();
 
 public:
 	DocumentChildHandler(const HandlerData &handlerData);

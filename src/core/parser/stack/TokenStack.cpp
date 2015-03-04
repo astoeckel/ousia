@@ -18,6 +18,8 @@
 
 #include "TokenStack.hpp"
 
+#include <iostream>
+
 namespace ousia {
 namespace parser_stack {
 
@@ -26,17 +28,17 @@ void TokenStack::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 	stack.push_back(tokens);
 }
 
-void TokenStack::popTokens() { stack.pop_back(); }
+void TokenStack::popTokens() {
+	stack.pop_back();
+}
 
 TokenSet TokenStack::tokens() const
 {
-	if (stack.empty() && parentStack != nullptr) {
-		return parentStack->tokens();
-	}
-
 	TokenSet res;
-	for (const SyntaxDescriptor &descr : stack.back()) {
-		descr.insertIntoTokenSet(res);
+	if (!stack.empty()) {
+		for (const SyntaxDescriptor &descr : stack.back()) {
+			descr.insertIntoTokenSet(res);
+		}
 	}
 	return res;
 }

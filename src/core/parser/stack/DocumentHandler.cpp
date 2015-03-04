@@ -42,8 +42,10 @@ bool DocumentHandler::startCommand(Variant::mapType &args)
 	Rooted<Document> document =
 	    context().getProject()->createDocument(args["name"].asString());
 	document->setLocation(location());
+
 	scope().push(document);
 	scope().setFlag(ParserFlag::POST_HEAD, false);
+	scope().setFlag(ParserFlag::POST_USER_DEFINED_TOKEN_REGISTRATION, false);
 
 	return true;
 }
@@ -55,6 +57,30 @@ void DocumentHandler::end() { scope().pop(logger()); }
 DocumentChildHandler::DocumentChildHandler(const HandlerData &handlerData)
     : Handler(handlerData), isExplicitField(false)
 {
+	// Register all user defined tokens if this has not yet been done
+	if (!scope().getFlag(ParserFlag::POST_USER_DEFINED_TOKEN_REGISTRATION)) {
+		registerUserDefinedTokens();
+	}
+}
+
+void DocumentChildHandler::registerUserDefinedTokens()
+{
+	// Set the POST_USER_DEFINED_TOKEN_REGISTRATION flag, to prevent this method
+	// from being called again
+	scope().setFlag(ParserFlag::POST_USER_DEFINED_TOKEN_REGISTRATION, true);
+
+	// Fetch the underlying document and all ontologies registered in the
+	// document and register all user defined tokens in the parser
+	Rooted<Document> doc = scope().selectOrThrow<Document>();
+	for (Rooted<Ontology> ontology : doc->getOntologies()) {
+		std::vector<TokenDescriptor *> tokens =
+		    ontology->getAllTokenDescriptors();
+		for (TokenDescriptor *token : tokens) {
+			if (!token->special) {
+				token->id = registerToken(token->token);
+			}
+		}
+	}
 }
 
 void DocumentChildHandler::preamble(Rooted<Node> &parentNode, size_t &fieldIdx,
@@ -79,16 +105,42 @@ void DocumentChildHandler::preamble(Rooted<Node> &parentNode, size_t &fieldIdx,
 	}
 }
 
+void DocumentChildHandler::pushDocumentField(Handle<Node> parent,
+                                             Handle<FieldDescriptor> fieldDescr,
+                                             size_t fieldIdx, bool transparent)
+{
+	// Push the field onto the scope
+	Rooted<DocumentField> field =
+	    new DocumentField(manager(), parent, fieldIdx, transparent);
+	field->setLocation(location());
+	scope().push(field);
+
+	// Push all possible tokens onto the stack
+	//pushTokens(fieldDescr->getPermittedTokens());
+}
+
+void DocumentChildHandler::popDocumentField()
+{
+	// Pop the field from the scope, make sure it actually is a DocumentField
+	assert(scope().getLeaf()->isa(&RttiTypes::DocumentField));
+	scope().pop(logger());
+
+	// Pop the registered tokens from the stack
+	//popTokens();
+}
+
 void DocumentChildHandler::createPath(const NodeVector<Node> &path,
                                       DocumentEntity *&parent, size_t p0)
 {
 	size_t S = path.size();
 	for (size_t p = p0; p < S; p = p + 2) {
 		// add the field.
-		Rooted<DocumentField> field{new DocumentField(
-		    manager(), scope().getLeaf(),
-		    parent->getDescriptor()->getFieldDescriptorIndex(), true)};
-		scope().push(field);
+		const ssize_t fieldIdx =
+		    parent->getDescriptor()->getFieldDescriptorIndex();
+		const Rooted<FieldDescriptor> fieldDescr =
+		    parent->getDescriptor()->getFieldDescriptor(fieldIdx);
+		pushDocumentField(scope().getLeaf(), fieldDescr, fieldIdx, true);
+
 		// add the transparent/implicit structure element.
 		Rooted<StructuredEntity> transparent =
 		    parent->createChildStructuredEntity(path[p].cast<StructuredClass>(),
@@ -99,11 +151,11 @@ void DocumentChildHandler::createPath(const NodeVector<Node> &path,
 		scope().push(transparent);
 		parent = static_cast<DocumentEntity *>(transparent.get());
 	}
-	// add the last field.
-	Rooted<DocumentField> field{new DocumentField(
-	    manager(), scope().getLeaf(),
-	    parent->getDescriptor()->getFieldDescriptorIndex(), true)};
-	scope().push(field);
+	// add the field.
+	const ssize_t fieldIdx = parent->getDescriptor()->getFieldDescriptorIndex();
+	const Rooted<FieldDescriptor> fieldDescr =
+	    parent->getDescriptor()->getFieldDescriptor(fieldIdx);
+	pushDocumentField(scope().getLeaf(), fieldDescr, fieldIdx, true);
 
 	// Generally allow explicit fields in the new field
 	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, false);
@@ -199,10 +251,11 @@ bool DocumentChildHandler::startCommand(Variant::mapType &args)
 						                     "references to the beginning."),
 						    location());
 					} else {
-						Rooted<DocumentField> field{new DocumentField(
-						    manager(), parentNode, newFieldIdx, false)};
-						field->setLocation(location());
-						scope().push(field);
+						pushDocumentField(
+						    parentNode,
+						    parent->getDescriptor()->getFieldDescriptor(
+						        newFieldIdx),
+						    newFieldIdx, false);
 						isExplicitField = true;
 						return true;
 					}
@@ -230,7 +283,7 @@ bool DocumentChildHandler::startCommand(Variant::mapType &args)
 					// if we have transparent elements above us in the structure
 					// tree we try to unwind them before we give up.
 					// pop the implicit field.
-					scope().pop(logger());
+					popDocumentField();
 					// pop the implicit element.
 					scope().pop(logger());
 					continue;
@@ -298,7 +351,7 @@ bool DocumentChildHandler::startAnnotation(Variant::mapType &args)
 			// if we have transparent elements above us in the structure
 			// tree we try to unwind them before we give up.
 			// pop the implicit field.
-			scope().pop(logger());
+			popDocumentField();
 			// pop the implicit element.
 			scope().pop(logger());
 			continue;
@@ -390,8 +443,7 @@ void DocumentChildHandler::end()
 		case HandlerType::COMMAND:
 		case HandlerType::ANNOTATION_START:
 			// In case of explicit fields we do not want to pop something from
-			// the
-			// stack.
+			// the stack.
 			if (!isExplicitField) {
 				// pop the "main" element.
 				scope().pop(logger());
@@ -437,10 +489,7 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 		isDefault = fieldIdx == fields.size() - 1;
 	}
 	// push the field on the stack.
-	Rooted<DocumentField> field{
-	    new DocumentField(manager(), parentNode, fieldIdx, false)};
-	field->setLocation(location());
-	scope().push(field);
+	pushDocumentField(parentNode, fields[fieldIdx], fieldIdx, false);
 
 	// Generally allow explicit fields in the new field
 	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, false);
@@ -453,7 +502,7 @@ void DocumentChildHandler::fieldEnd()
 	assert(scope().getLeaf()->isa(&RttiTypes::DocumentField));
 
 	// Pop the field from the stack.
-	scope().pop(logger());
+	popDocumentField();
 
 	// Pop all remaining transparent elements.
 	while (scope().getLeaf()->isa(&RttiTypes::StructuredEntity) &&
@@ -461,7 +510,7 @@ void DocumentChildHandler::fieldEnd()
 		// Pop the transparent element.
 		scope().pop(logger());
 		// Pop the transparent field.
-		scope().pop(logger());
+		popDocumentField();
 	}
 }
 
