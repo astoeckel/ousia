@@ -249,7 +249,8 @@ TEST(Document, construct)
 TEST(Document, validate)
 {
 	// Let's start with a trivial ontology and a trivial document.
-	TerminalLogger logger{std::cerr, true};
+// 	TerminalLogger logger{std::cerr, true};
+	Logger logger;
 	Manager mgr{1};
 	Rooted<SystemTypesystem> sys{new SystemTypesystem(mgr)};
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "trivial")};
@@ -403,7 +404,7 @@ TEST(Document, validate)
 	    new AnnotationClass(mgr, "anno", ontology)};
 	{
 		/*
-		 * Create a valid document in itself.
+		 * Create a document with anchors.
 		 */
 		Rooted<Document> doc{new Document(mgr, "myDoc.oxd")};
 		doc->referenceOntology(ontology);
@@ -416,7 +417,8 @@ TEST(Document, validate)
 		    new DocumentPrimitive(mgr, child, {2}, "int")};
 		Rooted<Anchor> end{new Anchor(mgr, root)};
 		ASSERT_EQ(ValidationState::UNKNOWN, doc->getValidationState());
-		ASSERT_TRUE(doc->validate(logger));
+		// This should be invalid due to disconnected Anchors
+		ASSERT_FALSE(doc->validate(logger));
 		// then add an AnnotationEntity without Anchors.
 		Rooted<AnnotationEntity> anno =
 		    buildAnnotationEntity(doc, logger, {"anno"}, nullptr, nullptr);

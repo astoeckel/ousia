@@ -24,10 +24,13 @@
 #include <plugins/html/DemoOutput.hpp>
 
 #include <core/common/Rtti.hpp>
+#include <plugins/filesystem/FileLocator.hpp>
 #include <core/frontend/TerminalLogger.hpp>
 #include <core/model/Document.hpp>
 #include <core/model/Ontology.hpp>
+#include <formats/osxml/OsxmlParser.hpp>
 
+#include <core/StandaloneEnvironment.hpp>
 #include <core/model/TestAdvanced.hpp>
 #include <core/model/TestOntology.hpp>
 
@@ -59,7 +62,7 @@ TEST(DemoHTMLTransformer, writeHTML)
 	// we can only do a rough check here.
 	DemoHTMLTransformer transformer;
 	std::stringstream out;
-	transformer.writeHTML(doc, out);
+	transformer.writeHTML(doc, out, logger);
 	const std::string res = out.str();
 	ASSERT_FALSE(res == "");
 	ASSERT_TRUE(res.find("Was ist Aufklärung?") != std::string::npos);
@@ -106,12 +109,57 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	// Check serialization.
 	DemoHTMLTransformer transformer;
 	std::stringstream out;
-	transformer.writeHTML(doc, out, false);
+	transformer.writeHTML(doc, out, logger, false);
 	const std::string res = out.str();
 	// In HTML the overlapping structure must be serialized as follows:
 	ASSERT_TRUE(
 	    res.find("<em>bla<strong>blub</strong></em><strong>bla</strong>") !=
 	    std::string::npos);
 }
+
+struct XmlStandaloneEnvironment : public StandaloneEnvironment {
+	OsxmlParser parser;
+	FileLocator fileLocator;
+
+	XmlStandaloneEnvironment(ConcreteLogger &logger)
+	    : StandaloneEnvironment(logger)
+	{
+		fileLocator.addDefaultSearchPaths();
+		fileLocator.addUnittestSearchPath("osxmlparser");
+
+		registry.registerDefaultExtensions();
+		registry.registerParser({"text/vnd.ousia.osml+xml"},
+		                        {&RttiTypes::Node}, &parser);
+		registry.registerResourceLocator(&fileLocator);
+	}
+};
+
+TEST(DemoHTMLTransformer, pipelineTest)
+{
+	// Construct Manager
+	TerminalLogger logger{std::cerr, true};
+	XmlStandaloneEnvironment env(logger);
+	Rooted<Node> book_document_node =
+	    env.parse("complex_book.osxml", "", "", RttiSet{&RttiTypes::Document});
+	ASSERT_FALSE(logger.hasError());
+	ASSERT_FALSE(book_document_node == nullptr);
+	ASSERT_TRUE(book_document_node->isa(&RttiTypes::Document));
+	Rooted<Document> doc = book_document_node.cast<Document>();
+	ASSERT_TRUE(doc->validate(logger));
+	ASSERT_FALSE(logger.hasError());
+
+	// we can only do a rough check here.
+	DemoHTMLTransformer transformer;
+	std::stringstream out;
+	transformer.writeHTML(doc, out, logger);
+	const std::string res = out.str();
+	ASSERT_FALSE(res == "");
+	ASSERT_TRUE(res.find("Was ist Aufklärung?") != std::string::npos);
+	ASSERT_TRUE(res.find(
+	                "Aufklärung ist der Ausgang des Menschen aus seiner "
+	                "selbstverschuldeten Unmündigkeit") != std::string::npos);
+	ASSERT_TRUE(res.find("Sapere aude!") != std::string::npos);
+}
+
 }
 }

@@ -45,9 +45,9 @@ static Rooted<StructuredClass> resolveDescriptor(Handle<Ontology> ontology,
  * This constructs the "heading" ontology given the book ontology.
  */
 static Rooted<Ontology> constructHeadingOntology(Manager &mgr,
-                                             Handle<SystemTypesystem> sys,
-                                             Handle<Ontology> bookOntology,
-                                             Logger &logger)
+                                                 Handle<SystemTypesystem> sys,
+                                                 Handle<Ontology> bookOntology,
+                                                 Logger &logger)
 {
 	// set up ontology node.
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "headings")};
@@ -78,9 +78,9 @@ static Rooted<Ontology> constructHeadingOntology(Manager &mgr,
  * This constructs the "list" ontology given the book ontology.
  */
 static Rooted<Ontology> constructListOntology(Manager &mgr,
-                                          Handle<SystemTypesystem> sys,
-                                          Handle<Ontology> bookOntology,
-                                          Logger &logger)
+                                              Handle<SystemTypesystem> sys,
+                                              Handle<Ontology> bookOntology,
+                                              Logger &logger)
 {
 	// set up ontology node.
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "list")};
@@ -97,7 +97,8 @@ static Rooted<Ontology> constructListOntology(Manager &mgr,
 	for (auto &listType : listTypes) {
 		Rooted<StructuredClass> list{new StructuredClass(
 		    mgr, listType, ontology, Cardinality::any(), p, false)};
-		Rooted<FieldDescriptor> list_field{new FieldDescriptor(mgr, list)};
+		Rooted<FieldDescriptor> list_field =
+		    list->createFieldDescriptor(logger).first;
 		list_field->addChild(item);
 	}
 	return ontology;
@@ -107,15 +108,17 @@ static Rooted<Ontology> constructListOntology(Manager &mgr,
  * This constructs the "emphasis" ontology.
  */
 static Rooted<Ontology> constructEmphasisOntology(Manager &mgr,
-                                              Handle<SystemTypesystem> sys,
-                                              Logger &logger)
+                                                  Handle<SystemTypesystem> sys,
+                                                  Logger &logger)
 {
 	// set up ontology node.
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "emphasis")};
 	// create AnnotationClasses
-	Rooted<AnnotationClass> em{new AnnotationClass(mgr, "emphasized", ontology)};
+	Rooted<AnnotationClass> em{
+	    new AnnotationClass(mgr, "emphasized", ontology)};
 
-	Rooted<AnnotationClass> strong{new AnnotationClass(mgr, "strong", ontology)};
+	Rooted<AnnotationClass> strong{
+	    new AnnotationClass(mgr, "strong", ontology)};
 
 	return ontology;
 }

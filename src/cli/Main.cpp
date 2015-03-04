@@ -86,7 +86,7 @@ static void createOutput(Handle<Document> doc, std::ostream &out,
 {
 	if (format == "html") {
 		html::DemoHTMLTransformer transform;
-		transform.writeHTML(doc, out, true);
+		transform.writeHTML(doc, out, logger, true);
 	} else if (format == "xml") {
 		xml::XmlTransformer transform;
 		transform.writeXml(doc, out, logger, resMgr, true);

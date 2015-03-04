@@ -39,28 +39,6 @@ namespace ousia {
 namespace html {
 
 class DemoHTMLTransformer {
-private:
-	/**
-	 * This transforms a section-like entity, namely book, section
-	 * and subsection, to an XHTML element, including its header. For the
-	 * children of the default field the respective transform function is
-	 * called recursively.
-	 */
-	Rooted<xml::Element> transformSection(Handle<xml::Element> parent,
-	                                      Handle<StructuredEntity> sec);
-	/**
-	 * This transforms a list entity, namely ul and ol to an XHTML element.
-	 * For each item, the transformParagraph function is called.
-	 */
-	Rooted<xml::Element> transformList(Handle<xml::Element> parent,
-	                                   Handle<StructuredEntity> list);
-	/**
-	 * This transforms a paragraph-like entity, namely heading, item and
-	 * paragraph, to an XHTML element including the text and the anchors
-	 * contained.
-	 */
-	Rooted<xml::Element> transformParagraph(Handle<xml::Element> parent,
-	                                        Handle<StructuredEntity> par);
 
 public:
 	/**
@@ -80,10 +58,11 @@ public:
 	 * @param doc    is a Document using concepts of the book, headings,
 	 *               emphasis and lists ontologies but no other.
 	 * @param out    is the output stream the data shall be written to.
+	 * @param logger is a logger instances for errors.
 	 * @param pretty is a flag that manipulates whether newlines and tabs are
 	 *               used.
 	 */
-	void writeHTML(Handle<Document> doc, std::ostream &out, bool pretty = true);
+	void writeHTML(Handle<Document> doc, std::ostream &out, Logger& logger, bool pretty = true);
 };
 }
 }

@@ -27,46 +27,212 @@
 namespace ousia {
 namespace html {
 
-void DemoHTMLTransformer::writeHTML(Handle<Document> doc, std::ostream &out,
-                                    bool pretty)
+typedef std::stack<Rooted<AnnotationEntity>> AnnoStack;
+
+static bool canHandleAnchor(Handle<Anchor> a)
 {
-	Manager &mgr = doc->getManager();
-	// Create an XML object tree for the document first.
-	Rooted<xml::Element> html{new xml::Element{mgr, {nullptr}, "html"}};
-	// add the head Element
-	Rooted<xml::Element> head{new xml::Element{mgr, html, "head"}};
-	html->addChild(head);
-	// add the meta element.
-	Rooted<xml::Element> meta{
-	    new xml::Element{mgr,
-	                     head,
-	                     "meta",
-	                     {{"http-equiv", "Content-Type"},
-	                      {"content", "text/html; charset=utf-8"}}}};
-	head->addChild(meta);
-	// add the title Element with Text
-	Rooted<xml::Element> title{new xml::Element{mgr, head, "title"}};
-	head->addChild(title);
-	title->addChild(
-	    new xml::Text(mgr, title, "Test HTML Output for " + doc->getName()));
-	// add the body Element
-	Rooted<xml::Element> body{new xml::Element{mgr, html, "body"}};
-	html->addChild(body);
+	std::string annoClassName = a->getAnnotation()->getDescriptor()->getName();
+	return annoClassName == "emphasized" || annoClassName == "strong";
+}
 
-	// So far was the "preamble". No we have to get to the document content.
-
-	// extract the book root node.
-	Rooted<StructuredEntity> root = doc->getRoot();
-	if (root->getDescriptor()->getName() != "book") {
-		throw OusiaException("The given documents root is no book node!");
+static Rooted<xml::Element> openAnnotation(Manager &mgr, AnnoStack &opened,
+                                           Handle<AnnotationEntity> entity,
+                                           Handle<xml::Element> current,
+                                           bool stackOnly)
+{
+	// we push the newly opened entity on top of the stack.
+	opened.push(entity);
+	if (stackOnly) {
+		return nullptr;
 	}
-	// transform the book node.
-	Rooted<xml::Element> book = transformSection(body, root);
-	// add it as child to the body node.
-	body->addChild(book);
+	// get the elment name
+	std::string elemName = entity->getDescriptor()->getName();
+	// emphasized has to be shortened
+	if (elemName == "emphasized") {
+		elemName = "em";
+	}
+	// create the new XML element representing the annotation
+	Rooted<xml::Element> tmp{new xml::Element{mgr, current, elemName}};
+	current->addChild(tmp);
+	// and return it.
+	return tmp;
+}
 
-	// After the content has been transformed, we serialize it.
-	html->serialize(out, "<!DOCTYPE html>", pretty);
+static Rooted<xml::Element> transformAnchor(Manager &mgr, Handle<Anchor> a,
+                                            Handle<xml::Element> current,
+                                            Logger &logger, AnnoStack &opened,
+                                            bool stackOnly)
+{
+	// check if this is a start Anchor.
+	if (a->isStart()) {
+		// if we have a start anchor, we open an annotation element.
+		current =
+		    openAnnotation(mgr, opened, a->getAnnotation(), current, stackOnly);
+		// check if this is an end Anchor.
+	} else if (a->isEnd()) {
+		/*
+		 * Now it gets somewhat interesting: We have to close all
+		 * tags that started after the one that is closed now and
+		 * re-open them afterwards. So we create a lokal stack to
+		 * temporarily store all AnnotationEntities that need to
+		 * be re-opened.
+		 */
+		AnnoStack tmp;
+		if (opened.empty()) {
+			// if we have no opened entities left, that is a
+			// malformed document.
+			logger.error("An unopened entity was closed!", *a);
+			return current;
+		}
+		Rooted<AnnotationEntity> closed = opened.top();
+		current = current->getParent();
+		opened.pop();
+		while (closed != a->getAnnotation()) {
+			/*
+			 * We implicitly close tags by climbing up the XML tree
+			 * until we are at the right element.
+			 */
+			current = current->getParent();
+			tmp.push(closed);
+			if (opened.empty()) {
+				// if we have no opened entities left, that is a
+				// malformed document.
+				logger.error("An unopened entity was closed!", *a);
+				return current;
+			}
+			closed = opened.top();
+			opened.pop();
+		}
+		// At this point we have closed all necessary entities. Now we
+		// need to re-open some of them.
+		while (!tmp.empty()) {
+			closed = tmp.top();
+			tmp.pop();
+			current = openAnnotation(mgr, opened, closed, current, stackOnly);
+		}
+	}
+	// otherwise it is a disconnected Anchor and we can ignore it.
+	return current;
+}
+
+/**
+ * Reopens all Annotations in the given AnnoStack but does not manipulate the
+ * original stack. The input argument is a copy.
+ * @return the innermost opened element.
+ */
+static Rooted<xml::Element> reOpenAnnotations(Manager &mgr, AnnoStack opened,
+                                              Handle<xml::Element> parent)
+{
+	AnnoStack tmp;
+	while (!opened.empty()) {
+		tmp.push(opened.top());
+		opened.pop();
+	}
+	Rooted<xml::Element> current = parent;
+	while (!tmp.empty()) {
+		Rooted<AnnotationEntity> closed = tmp.top();
+		tmp.pop();
+		current = openAnnotation(mgr, opened, closed, current, false);
+	}
+	return current;
+}
+
+static Rooted<xml::Element> transformParagraph(Manager &mgr,
+                                               Handle<xml::Element> parent,
+                                               Handle<StructuredEntity> par,
+                                               Logger &logger,
+                                               AnnoStack &opened)
+{
+	// create the p Element
+	Rooted<xml::Element> p{new xml::Element{mgr, parent, "p"}};
+
+	// check if we have a heading.
+	if (par->getDescriptor()->hasField("heading") &&
+	    par->getField("heading").size() > 0) {
+		Handle<StructuredEntity> heading =
+		    par->getField("heading")[0].cast<StructuredEntity>();
+		// put the heading in a strong xml::Element.
+		Rooted<xml::Element> strong{new xml::Element{mgr, p, "strong"}};
+		p->addChild(strong);
+		// extract the heading text, enveloped in a paragraph Element.
+		// in this case we use an empy annotation stack because annotations do
+		// not extend on subtree fields.
+		AnnoStack emptyStack;
+		Rooted<xml::Element> h_content =
+		    transformParagraph(mgr, strong, heading, logger, emptyStack);
+		// We omit the paragraph Element and add the children directly to the
+		// heading Element
+		for (auto &n : h_content->getChildren()) {
+			strong->addChild(n);
+		}
+	}
+	// reopen all annotations.
+	Rooted<xml::Element> current = reOpenAnnotations(mgr, opened, p);
+	// transform paragraph children to XML as well
+	for (auto &n : par->getField()) {
+		if (n->isa(&RttiTypes::Anchor)) {
+			Rooted<Anchor> a = n.cast<Anchor>();
+			if (canHandleAnchor(a)) {
+				current =
+				    transformAnchor(mgr, a, current, logger, opened, false);
+			}
+			continue;
+		}
+		// if this is not an anchor, we can only handle text.
+		if (!n->isa(&RttiTypes::StructuredEntity)) {
+			continue;
+		}
+		Handle<StructuredEntity> t = n.cast<StructuredEntity>();
+
+		std::string childDescriptorName = t->getDescriptor()->getName();
+		if (childDescriptorName == "text") {
+			Handle<DocumentPrimitive> primitive =
+			    t->getField()[0].cast<DocumentPrimitive>();
+			std::string text_content = primitive->getContent().asString();
+			current->addChild(new xml::Text(mgr, current, text_content));
+		}
+	}
+	// at this point we implicitly close all annotations that are left opened.
+	// they will be reopened in the next paragraph.
+	return p;
+}
+
+static Rooted<xml::Element> transformList(Manager &mgr,
+                                          Handle<xml::Element> parent,
+                                          Handle<StructuredEntity> list,
+                                          Logger &logger, AnnoStack &opened)
+{
+	// create the list Element, which is either ul or ol (depends on descriptor)
+	std::string listclass = list->getDescriptor()->getName();
+	Rooted<xml::Element> l{new xml::Element{mgr, parent, listclass}};
+	// iterate through list items.
+	for (auto &it : list->getField()) {
+		if (it->isa(&RttiTypes::Anchor)) {
+			Rooted<Anchor> a = it.cast<Anchor>();
+			if (canHandleAnchor(a)) {
+				// just put the entity on the AnnoStack, but do not open it
+				// explicitly. That will be done inside the next paragraph.
+				transformAnchor(mgr, a, l, logger, opened, true);
+			}
+			continue;
+		}
+		Handle<StructuredEntity> item = it.cast<StructuredEntity>();
+		std::string itDescrName = item->getDescriptor()->getName();
+		if (itDescrName == "item") {
+			// create the list item.
+			Rooted<xml::Element> li{new xml::Element{mgr, l, "li"}};
+			l->addChild(li);
+			// extract the item text, enveloped in a paragraph Element.
+			Rooted<xml::Element> li_content =
+			    transformParagraph(mgr, li, item, logger, opened);
+			// We omit the paragraph Element and add the children directly to
+			// the list item
+			for (auto &n : li_content->getChildren()) {
+				li->addChild(n);
+			}
+		}
+	}
+	return l;
 }
 
 /**
@@ -74,7 +240,7 @@ void DemoHTMLTransformer::writeHTML(Handle<Document> doc, std::ostream &out,
  */
 enum class SectionType { BOOK, CHAPTER, SECTION, SUBSECTION, NONE };
 
-SectionType getSectionType(const std::string &name)
+static SectionType getSectionType(const std::string &name)
 {
 	if (name == "book") {
 		return SectionType::BOOK;
@@ -89,10 +255,11 @@ SectionType getSectionType(const std::string &name)
 	}
 }
 
-Rooted<xml::Element> DemoHTMLTransformer::transformSection(
-    Handle<xml::Element> parent, Handle<StructuredEntity> section)
+static Rooted<xml::Element> transformSection(Manager &mgr,
+                                             Handle<xml::Element> parent,
+                                             Handle<StructuredEntity> section,
+                                             Logger &logger, AnnoStack &opened)
 {
-	Manager &mgr = section->getManager();
 	// check the section type.
 	const std::string secclass = section->getDescriptor()->getName();
 	SectionType type = getSectionType(secclass);
@@ -128,9 +295,13 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 		}
 		Rooted<xml::Element> h{new xml::Element{mgr, sec, headingclass}};
 		sec->addChild(h);
-		// extract the heading text, enveloped in a paragraph Element.
-		Rooted<xml::Element> h_content = transformParagraph(h, heading);
-		// We omit the paragraph Element and add the children directly to the
+		// extract the heading text, wrapped in a paragraph Element.
+		// in this case we use an empy annotation stack because annotations do
+		// not extend on subtree fields.
+		AnnoStack emptyStack;
+		Rooted<xml::Element> h_content =
+		    transformParagraph(mgr, h, heading, logger, emptyStack);
+		// We omit the paragraph element and add the children directly to the
 		// heading Element
 		for (auto &n : h_content->getChildren()) {
 			h->addChild(n);
@@ -139,6 +310,15 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 
 	// Then we get all the children.
 	for (auto &n : section->getField()) {
+		if (n->isa(&RttiTypes::Anchor)) {
+			Rooted<Anchor> a = n.cast<Anchor>();
+			if (canHandleAnchor(a)) {
+				// just put the entity on the AnnoStack, but do not open it
+				// explicitly. That will be done inside the next paragraph.
+				transformAnchor(mgr, a, sec, logger, opened, true);
+			}
+			continue;
+		}
 		if (!n->isa(&RttiTypes::StructuredEntity)) {
 			continue;
 		}
@@ -153,11 +333,11 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 		const std::string childDescriptorName = s->getDescriptor()->getName();
 		Rooted<xml::Element> child;
 		if (childDescriptorName == "paragraph") {
-			child = transformParagraph(sec, s);
+			child = transformParagraph(mgr, sec, s, logger, opened);
 		} else if (childDescriptorName == "ul" || childDescriptorName == "ol") {
-			child = transformList(sec, s);
+			child = transformList(mgr, sec, s, logger, opened);
 		} else {
-			child = transformSection(sec, s);
+			child = transformSection(mgr, sec, s, logger, opened);
 		}
 		if (!child.isNull()) {
 			sec->addChild(child);
@@ -166,155 +346,54 @@ Rooted<xml::Element> DemoHTMLTransformer::transformSection(
 	return sec;
 }
 
-Rooted<xml::Element> DemoHTMLTransformer::transformList(
-    Handle<xml::Element> parent, Handle<StructuredEntity> list)
+void DemoHTMLTransformer::writeHTML(Handle<Document> doc, std::ostream &out,
+                                    Logger &logger, bool pretty)
 {
-	Manager &mgr = list->getManager();
-	// create the list Element, which is either ul or ol (depends on descriptor)
-	std::string listclass = list->getDescriptor()->getName();
-	Rooted<xml::Element> l{new xml::Element{mgr, parent, listclass}};
-	// iterate through list items.
-	for (auto &it : list->getField()) {
-		Handle<StructuredEntity> item = it.cast<StructuredEntity>();
-		std::string itDescrName = item->getDescriptor()->getName();
-		if (itDescrName == "item") {
-			// create the list item.
-			Rooted<xml::Element> li{new xml::Element{mgr, l, "li"}};
-			l->addChild(li);
-			// extract the item text, enveloped in a paragraph Element.
-			Rooted<xml::Element> li_content = transformParagraph(li, item);
-			// We omit the paragraph Element and add the children directly to
-			// the list item
-			for (auto &n : li_content->getChildren()) {
-				li->addChild(n);
-			}
-		}
-	}
-	return l;
-}
-
-typedef std::stack<Rooted<AnnotationEntity>> AnnoStack;
-
-static Rooted<xml::Element> openAnnotation(Manager &mgr, AnnoStack &opened,
-                                           Handle<AnnotationEntity> entity,
-                                           Handle<xml::Element> current)
-{
-	// we push the newly opened entity on top of the stack.
-	opened.push(entity);
-	// get the elment name
-	std::string elemName = entity->getDescriptor()->getName();
-	// emphasized has to be shortened
-	if (elemName == "emphasized") {
-		elemName = "em";
-	}
-	// create the new XML element representing the annotation
-	Rooted<xml::Element> tmp{new xml::Element{mgr, current, elemName}};
-	current->addChild(tmp);
-	// and return it.
-	return tmp;
-}
-
-Rooted<xml::Element> DemoHTMLTransformer::transformParagraph(
-    Handle<xml::Element> parent, Handle<StructuredEntity> par)
-{
-	Manager &mgr = par->getManager();
-	// create the p Element
-	Rooted<xml::Element> p{new xml::Element{mgr, parent, "p"}};
-
-	// check if we have a heading.
-	if (par->getDescriptor()->hasField("heading") &&
-	    par->getField("heading").size() > 0) {
-		Handle<StructuredEntity> heading =
-		    par->getField("heading")[0].cast<StructuredEntity>();
-		// put the heading in a strong xml::Element.
-		Rooted<xml::Element> strong{new xml::Element{mgr, p, "strong"}};
-		p->addChild(strong);
-		// extract the heading text, enveloped in a paragraph Element.
-		Rooted<xml::Element> h_content = transformParagraph(strong, heading);
-		// We omit the paragraph Element and add the children directly to the
-		// heading Element
-		for (auto &n : h_content->getChildren()) {
-			strong->addChild(n);
-		}
+	// validate the document.
+	if (!doc->validate(logger)) {
+		return;
 	}
 
-	// transform paragraph children to XML as well
-	/*
-	 * We need a stack of AnnotationEntities that are currently open.
-	 * In principle we wouldn't, because the nested structure of XML elements
-	 * provides a stack-like structure anyways, but we need to have a mapping of
-	 * XML tags to AnnotationEntities, which is implicitly provided by this
-	 * stack.
-	 */
+	Manager &mgr = doc->getManager();
+	// initialize an empty annotation Stack.
 	AnnoStack opened;
-	// this is a handle for our current XML element for annotation handling.
-	Rooted<xml::Element> current = p;
-	for (auto &n : par->getField()) {
-		if (n->isa(&RttiTypes::Anchor)) {
-			Rooted<Anchor> a = n.cast<Anchor>();
-			// check if this is a start Anchor.
-			if (a->isStart()) {
-				// if we have a start anchor, we open an annotation element.
-				current =
-				    openAnnotation(mgr, opened, a->getAnnotation(), current);
-				continue;
-				// check if this is an end Anchor.
-			} else if (a->isEnd()) {
-				/*
-				 * Now it gets somewhat interesting: We have to close all
-				 * tags that started after the one that is closed now and
-				 * re-open them afterwards. So we create a lokal stack to
-				 * temporarily store all AnnotationEntities that need to
-				 * be re-opened.
-				 */
-				AnnoStack tmp;
-				Rooted<AnnotationEntity> closed = opened.top();
-				current = current->getParent();
-				opened.pop();
-				while (closed != a->getAnnotation()) {
-					/*
-					 * We implicitly do close tags by climbing up the XML tree
-					 * until we are at the right element.
-					 */
-					current = current->getParent();
-					tmp.push(closed);
-					if (opened.empty()) {
-						// if we have no opened entities left, that is a
-						// malformed document.
-						throw OusiaException("An unopened entity was closed!");
-					}
-					closed = opened.top();
-					opened.pop();
-				}
-				// At this point we have closed all necessary entities. Now we
-				// need to re-open some of them.
-				while (!tmp.empty()) {
-					closed = tmp.top();
-					tmp.pop();
-					current = openAnnotation(mgr, opened, closed, current);
-				}
-			}
-			// otherwise it is a disconnected Anchor and we can ignore it.
-			continue;
-		}
-		// if this is not an anchor, we can only handle text.
-		if (!n->isa(&RttiTypes::StructuredEntity)) {
-			continue;
-		}
-		Handle<StructuredEntity> t = n.cast<StructuredEntity>();
+	// Create an XML object tree for the document first.
+	Rooted<xml::Element> html{new xml::Element{mgr, {nullptr}, "html"}};
+	// add the head Element
+	Rooted<xml::Element> head{new xml::Element{mgr, html, "head"}};
+	html->addChild(head);
+	// add the meta element.
+	Rooted<xml::Element> meta{
+	    new xml::Element{mgr,
+	                     head,
+	                     "meta",
+	                     {{"http-equiv", "Content-Type"},
+	                      {"content", "text/html; charset=utf-8"}}}};
+	head->addChild(meta);
+	// add the title Element with Text
+	Rooted<xml::Element> title{new xml::Element{mgr, head, "title"}};
+	head->addChild(title);
+	title->addChild(
+	    new xml::Text(mgr, title, "Test HTML Output for " + doc->getName()));
+	// add the body Element
+	Rooted<xml::Element> body{new xml::Element{mgr, html, "body"}};
+	html->addChild(body);
 
-		std::string childDescriptorName = t->getDescriptor()->getName();
-		if (childDescriptorName == "text") {
-			Handle<DocumentPrimitive> primitive =
-			    t->getField()[0].cast<DocumentPrimitive>();
-			if (primitive == nullptr) {
-				throw OusiaException("Text field is not primitive!");
-			}
-			current->addChild(new xml::Text(
-			    mgr, current, primitive->getContent().asString()));
-		}
+	// So far was the "preamble". No we have to get to the document content.
+
+	// extract the book root node.
+	Rooted<StructuredEntity> root = doc->getRoot();
+	if (root->getDescriptor()->getName() != "book") {
+		throw OusiaException("The given documents root is no book node!");
 	}
-	return p;
+	// transform the book node.
+	Rooted<xml::Element> book =
+	    transformSection(mgr, body, root, logger, opened);
+	// add it as child to the body node.
+	body->addChild(book);
+
+	// After the content has been transformed, we serialize it.
+	html->serialize(out, "<!DOCTYPE html>", pretty);
 }
 }
 }
