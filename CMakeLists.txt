@@ -374,7 +374,9 @@ IF(TEST)
 	TARGET_LINK_LIBRARIES(ousia_test_html
 		${GTEST_LIBRARIES}
 		ousia_core
+		ousia_filesystem
 		ousia_html
+		ousia_osxml
 	)
 
 #	ADD_EXECUTABLE(ousia_test_mozjs
@@ -395,8 +397,8 @@ IF(TEST)
 	TARGET_LINK_LIBRARIES(ousia_test_osml
 		${GTEST_LIBRARIES}
 		ousia_core
-		ousia_osml
 		ousia_filesystem
+		ousia_osml
 	)
 
 	ADD_EXECUTABLE(ousia_test_osxml
@@ -407,8 +409,8 @@ IF(TEST)
 	TARGET_LINK_LIBRARIES(ousia_test_osxml
 		${GTEST_LIBRARIES}
 		ousia_core
-		ousia_osxml
 		ousia_filesystem
+		ousia_osxml
 	)
 
 	ADD_EXECUTABLE(ousia_test_xml
