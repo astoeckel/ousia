@@ -158,14 +158,15 @@ bool DocumentEntity::doValidate(Logger &logger) const
 				const size_t min =
 				    childClass->getCardinality().asCardinality().min();
 				if (min > 0) {
-					logger.error(
-					    std::string("Field \"") + fieldDescs[f]->getName() +
-					        "\" was empty but needs at least " +
-					        std::to_string(min) + " elements of class \"" +
-					        childClass->getName() +
-					        "\" according to the definition of \"" +
-					        descriptor->getName() + "\"",
-					    *subInst);
+					logger.error(std::string("Field \"") +
+					                 fieldDescs[f]->getNameOrDefaultName() +
+					                 "\" was empty but needs at least " +
+					                 std::to_string(min) +
+					                 " elements of class \"" +
+					                 childClass->getName() +
+					                 "\" according to the definition of \"" +
+					                 descriptor->getName() + "\"",
+					             *subInst);
 					valid = false;
 				}
 			}
@@ -191,7 +192,7 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			}
 			if (child->isa(&RttiTypes::DocumentPrimitive)) {
 				logger.error(std::string("Non-primitive Field \"") +
-				                 fieldDescs[f]->getName() +
+				                 fieldDescs[f]->getNameOrDefaultName() +
 				                 "\" had primitive content!",
 				             *child);
 				valid = false;
@@ -238,8 +239,9 @@ bool DocumentEntity::doValidate(Logger &logger) const
 			}
 			if (!childClass->getCardinality().asCardinality().contains(num)) {
 				logger.error(std::string("Field \"") +
-				                 fieldDescs[f]->getName() + "\" had " +
-				                 std::to_string(num) + " elements of class \"" +
+				                 fieldDescs[f]->getNameOrDefaultName() +
+				                 "\" had " + std::to_string(num) +
+				                 " elements of class \"" +
 				                 childClass->getName() +
 				                 "\", which is invalid according to the "
 				                 "definition of \"" +
@@ -327,9 +329,9 @@ void DocumentEntity::addStructureNode(Handle<StructureNode> s, size_t i)
 		if (par != nullptr) {
 			if (par->isa(&RttiTypes::StructuredEntity)) {
 				par.cast<StructuredEntity>()->removeStructureNode(s);
-			} else if(par->isa(&RttiTypes::AnnotationEntity)){
+			} else if (par->isa(&RttiTypes::AnnotationEntity)) {
 				par.cast<AnnotationEntity>()->removeStructureNode(s);
-			} else if(par->isa(&RttiTypes::Document)){
+			} else if (par->isa(&RttiTypes::Document)) {
 				par.cast<Document>()->setRoot(nullptr);
 			}
 		}
