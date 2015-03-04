@@ -109,13 +109,14 @@ struct SyntaxDescriptor {
 	 */
 	TokenId shortForm;
 
-	/*
+	/**
 	 * The Descriptor this SyntaxDescriptor belongs to. As this may be
 	 * a FieldDescriptor as well as a class Descriptor (StructuredClass or
 	 * AnnotationClass) we can only use the class Node as inner argument here.
 	 */
 	Rooted<Node> descriptor;
-	/*
+
+	/**
 	 * Given the current leaf in the parsed document the depth of a
 	 * SyntaxDescriptor is defined as the number of transparent elements that
 	 * would be needed to construct an instance of the referenced descriptor.
