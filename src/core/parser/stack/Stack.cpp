@@ -869,8 +869,15 @@ void StackImpl::handleAnnotationStartEnd(const Variant &name,
 	// Call the startAnnotation method of the newly created handler, store the
 	// valid flag
 	HandlerInfo &info = currentInfo();
-	info.valid = handler->startAnnotation(args);
+	info.valid = false;
+	try {
+		info.valid = handler->startAnnotation(args);
+	} catch (LoggableException ex) {
+		logger().log(ex);
+	}
 	info.range = range;
+
+	// End the handler directly if this is an annotation end
 	if (type == HandlerType::ANNOTATION_END) {
 		endCurrentHandler();
 	}

@@ -1,0 +1,13 @@
+\document
+
+\ontology#test
+	\struct#book[root=true]
+		\field
+			\childRef[ref=text]
+	\struct#text[transparent=true]
+		\primitive[type=string]
+%	\annotation#emph
+
+\begin{book}
+	Test <\emph#em1 Aufklärung ist der <\emph#em2 Ausgang des\emph#em1> Menschen aus seiner selbstverschuldeten\emph#em2> Unmündigkeit. Unmündigkeit ist das Unvermögen, sich seines Verstandes ohne Leitung eines anderen zu bedienen. Selbstverschuldet ist diese Unmündigkeit, wenn die Ursache derselben nicht am Mangel des Verstandes, sondern der Entschließung und des Mutes liegt, sich seiner ohne Leitung eines andern zu bedienen. Sapere aude! Habe Mut, dich deines eigenen Verstandes zu bedienen! ist also der Wahlspruch der Aufklärung.
+\end{book}
