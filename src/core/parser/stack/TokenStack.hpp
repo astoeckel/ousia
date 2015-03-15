@@ -55,8 +55,10 @@ public:
 	 *
 	 * @param tokens is a list of SyntaxDescriptor instances that should be
 	 * stored on the stack.
+	 * @param inherit if set to true, combines the given tokens with the tokens
+	 * from the last stack level.
 	 */
-	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens, bool inherit);
 
 	/**
 	 * Removes the previously pushed list of tokens from the stack.

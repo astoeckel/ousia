@@ -166,8 +166,10 @@ protected:
 	 *
 	 * @param tokens is a list of TokenSyntaxDescriptor instances that should be
 	 * stored on the stack.
+	 * @param inherit if true, the last tokens on the stack are extended and not
+	 * overriden.
 	 */
-	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens, bool inherit);
 
 	/**
 	 * Calls the corresponding function in the HandlerCallbacks instance.

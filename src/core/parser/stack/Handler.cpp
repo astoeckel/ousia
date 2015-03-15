@@ -78,9 +78,10 @@ const State &Handler::state() const { return handlerData.state; }
 
 Variant Handler::readData() { return handlerData.callbacks.readData(); }
 
-void Handler::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
+void Handler::pushTokens(const std::vector<SyntaxDescriptor> &tokens,
+                         bool inherit)
 {
-	handlerData.callbacks.pushTokens(tokens);
+	handlerData.callbacks.pushTokens(tokens, inherit);
 }
 
 void Handler::popTokens() { handlerData.callbacks.popTokens(); }
@@ -164,10 +165,7 @@ bool StaticHandler::startCommand(Variant::mapType &args)
 	return true;
 }
 
-bool StaticHandler::startAnnotation(Variant::mapType &args)
-{
-	return false;
-}
+bool StaticHandler::startAnnotation(Variant::mapType &args) { return false; }
 
 bool StaticHandler::startToken(Handle<Node> node) { return false; }
 

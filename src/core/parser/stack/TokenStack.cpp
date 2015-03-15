@@ -23,14 +23,14 @@
 namespace ousia {
 namespace parser_stack {
 
-void TokenStack::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
+void TokenStack::pushTokens(const std::vector<SyntaxDescriptor> &tokens,
+                            bool inherit)
 {
+	// TODO: Implement inheritance
 	stack.push_back(tokens);
 }
 
-void TokenStack::popTokens() {
-	stack.pop_back();
-}
+void TokenStack::popTokens() { stack.pop_back(); }
 
 TokenSet TokenStack::tokens() const
 {

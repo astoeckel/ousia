@@ -480,7 +480,7 @@ public:
 	TokenId registerToken(const std::string &token) override;
 	void unregisterToken(TokenId id) override;
 	Variant readData() override;
-	void pushTokens(const std::vector<SyntaxDescriptor> &tokens) override;
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens, bool inherit) override;
 	void popTokens() override;
 };
 
@@ -1089,7 +1089,7 @@ void StackImpl::unregisterToken(TokenId id)
 	tokenRegistry.unregisterToken(id);
 }
 
-void StackImpl::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
+void StackImpl::pushTokens(const std::vector<SyntaxDescriptor> &tokens, bool inherit)
 {
 	// Push the tokens onto the token stack
 	for (const SyntaxDescriptor &token: tokens) {
@@ -1097,7 +1097,7 @@ void StackImpl::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 		std::cout << token.close << std::endl;
 		std::cout << token.shortForm << std::endl;
 	}
-	tokenStack.pushTokens(tokens);
+	tokenStack.pushTokens(tokens, inherit);
 }
 
 void StackImpl::popTokens()
