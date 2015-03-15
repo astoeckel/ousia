@@ -116,7 +116,7 @@ void DocumentChildHandler::pushDocumentField(Handle<Node> parent,
 	scope().push(field);
 
 	// Push all possible tokens onto the stack
-	//pushTokens(fieldDescr->getPermittedTokens());
+	pushTokens(fieldDescr->getPermittedTokens(), true);
 }
 
 void DocumentChildHandler::popDocumentField()
@@ -126,7 +126,7 @@ void DocumentChildHandler::popDocumentField()
 	scope().pop(logger());
 
 	// Pop the registered tokens from the stack
-	//popTokens();
+	popTokens();
 }
 
 void DocumentChildHandler::createPath(const NodeVector<Node> &path,
