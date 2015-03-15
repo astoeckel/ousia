@@ -681,22 +681,15 @@ public:
 	Rooted<FieldDescriptor> getFieldDescriptor(
 	    const std::string &name = DEFAULT_FIELD_NAME) const;
 
-
 	/**
 	 * Returns the FieldDescriptor with the given index.
 	 *
-	 * @param index the index of the field that should be retrieved.
+	 * @param idx the index of the field that should be retrieved.
 
-	 * @return      the FieldDescriptor with the given index or a nullptr if no
-	 *              such FieldDescriptor was found.
+	 * @return    the FieldDescriptor with the given index or a nullptr if no
+	 *            such FieldDescriptor was found.
 	 */
-	Rooted<FieldDescriptor> getFieldDescriptor(size_t index) const
-	{
-		if (index < fieldDescriptors.size()) {
-			return fieldDescriptors[index];
-		}
-		return nullptr;
-	}
+	Rooted<FieldDescriptor> getFieldDescriptor(size_t idx) const;
 
 	/**
 	 * This returns true if this Descriptor has a FieldDescriptor with the

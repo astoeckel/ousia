@@ -657,9 +657,17 @@ Rooted<FieldDescriptor> Descriptor::getFieldDescriptor(
 	ssize_t idx = ousia::getFieldDescriptorIndex(fds, name);
 	if (idx != -1) {
 		return fds[idx];
-	} else {
-		return nullptr;
 	}
+	return nullptr;
+}
+
+Rooted<FieldDescriptor> Descriptor::getFieldDescriptor(size_t idx) const
+{
+	NodeVector<FieldDescriptor> fds = getFieldDescriptors();
+	if (idx < fds.size()) {
+		return fds[idx];
+	}
+	return nullptr;
 }
 
 bool Descriptor::addAndSortFieldDescriptor(Handle<FieldDescriptor> fd,
