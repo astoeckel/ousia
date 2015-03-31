@@ -41,11 +41,13 @@ bool operator==(const SyntaxDescriptor &o1, const SyntaxDescriptor &o2)
 
 bool operator<(const SyntaxDescriptor &o1, const SyntaxDescriptor &o2)
 {
-	return (o1.depth < o2.depth) ||
-	       (o1.isFieldDescriptor() && !o2.isFieldDescriptor()) ||
-	       (o1.open < o2.open) || (o1.close < o2.close) ||
-	       (o1.shortForm < o2.shortForm) ||
-	       (o1.descriptor.get() < o2.descriptor.get());
+#define LTOP(X1, X2, OTHER) ((X1 != X2) ? ((X1 < X2) ? true : false) : OTHER)
+	return LTOP(
+	    o1.depth, o2.depth,
+	    LTOP(o1.open, o2.open,
+	         LTOP(o1.close, o2.close, LTOP(o1.shortForm, o2.shortForm,
+	                                       LTOP(o1.descriptor.get(),
+	                                            o2.descriptor.get(), false)))));
 }
 
 bool SyntaxDescriptor::isAnnotation() const
