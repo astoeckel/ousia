@@ -329,6 +329,7 @@ IF(TEST)
 		test/core/parser/stack/StackTest
 		test/core/parser/stack/StateTest
 		test/core/parser/stack/TokenRegistryTest
+		test/core/parser/stack/TokenStackTest
 		test/core/parser/utils/SourceOffsetVectorTest
 		test/core/parser/utils/TokenizedDataTest
 		test/core/parser/utils/TokenizerTest
