@@ -292,7 +292,7 @@ bool DocumentChildHandler::startCommand(Variant::mapType &args)
 
 			// calculate a path if transparent entities are needed in between.
 			Rooted<FieldDescriptor> field =
-			    parent->getDescriptor()->getFieldDescriptors()[fieldIdx];
+			    parent->getDescriptor()->getFieldDescriptor(fieldIdx);
 			size_t lastFieldIdx = fieldIdx;
 			auto pathRes = field->pathTo(strct, logger());
 			if (!pathRes.second) {
@@ -356,7 +356,7 @@ bool DocumentChildHandler::startAnnotation(Variant::mapType &args)
 		preamble(parentNode, fieldIdx, parent);
 
 		if (!parent->getDescriptor()
-		         ->getFieldDescriptors()[fieldIdx]
+		         ->getFieldDescriptor(fieldIdx)
 		         ->isPrimitive()) {
 			break;
 		}
@@ -376,7 +376,7 @@ bool DocumentChildHandler::startAnnotation(Variant::mapType &args)
 			logger().error(
 			    "Cannot start or end annotation within the primitive field \"" +
 			        parent->getDescriptor()
-			            ->getFieldDescriptors()[fieldIdx]
+			            ->getFieldDescriptor(fieldIdx)
 			            ->getNameOrDefaultName() +
 			        "\" of descriptor \"" + parent->getDescriptor()->getName() +
 			        "\".",
@@ -575,7 +575,8 @@ bool DocumentChildHandler::data()
 	Rooted<Descriptor> desc = parent->getDescriptor();
 
 	// Retrieve the actual FieldDescriptor
-	Rooted<FieldDescriptor> field = desc->getFieldDescriptors()[fieldIdx];
+	Rooted<FieldDescriptor> field = desc->getFieldDescriptor(fieldIdx);
+
 	// If it is a primitive field directly, try to parse the content.
 	if (field->isPrimitive()) {
 		// Add it as primitive content.
