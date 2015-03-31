@@ -595,14 +595,17 @@ TEST(Descriptor, getPermittedTokens)
 	ASSERT_EQ(Tokens::Empty, stxs[0].open);
 	ASSERT_EQ(Tokens::Newline, stxs[0].close);
 	ASSERT_EQ(Tokens::Empty, stxs[0].shortForm);
+	ASSERT_EQ(0, stxs[0].depth);
 	ASSERT_EQ(A, stxs[1].descriptor);
 	ASSERT_EQ(Tokens::Indent, stxs[1].open);
 	ASSERT_EQ(Tokens::Dedent, stxs[1].close);
 	ASSERT_EQ(1, stxs[1].shortForm);
+	ASSERT_EQ(0, stxs[1].depth);
 	ASSERT_EQ(A_anno, stxs[2].descriptor);
 	ASSERT_EQ(7, stxs[2].open);
 	ASSERT_EQ(8, stxs[2].close);
 	ASSERT_EQ(Tokens::Empty, stxs[2].shortForm);
+	ASSERT_EQ(-1, stxs[2].depth);
 }
 
 TEST(StructuredClass, isSubclassOf)
