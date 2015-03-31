@@ -39,10 +39,12 @@ struct TokenDescriptor {
 	 * The string content of this token, if it is not a special one.
 	 */
 	std::string token;
+
 	/**
 	 * A flag to be set true if this TokenDescriptor uses a special token.
 	 */
 	bool special;
+
 	/**
 	 * An id to uniquely identify this token.
 	 */
@@ -120,6 +122,8 @@ struct SyntaxDescriptor {
 	 * Given the current leaf in the parsed document the depth of a
 	 * SyntaxDescriptor is defined as the number of transparent elements that
 	 * would be needed to construct an instance of the referenced descriptor.
+	 *
+	 * TODO: What do negative values mean?
 	 */
 	ssize_t depth;
 

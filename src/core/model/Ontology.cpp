@@ -30,6 +30,7 @@ namespace ousia {
 
 /* Helper Functions */
 
+namespace {
 struct PathState {
 	std::shared_ptr<PathState> pred;
 	Node *node;
@@ -177,21 +178,25 @@ struct CollectState {
 	CollectState(Node *n, size_t depth) : n(n), depth(depth) {}
 };
 
+/**
+ * TODO: @Benjmin Documentation!
+ */
 template <typename F>
 static NodeVector<Node> collect(const Node *start, F match)
 {
-	// result
 	NodeVector<Node> res;
-	// queue for breadth-first search of graph.
+
+	// Queue and set for breadth-first search of the document graph
 	std::queue<CollectState> q;
-	// put the initial node on the stack.
-	q.push(CollectState(const_cast<Node *>(start), 0));
-	// set of visited nodes.
 	std::unordered_set<const Node *> visited;
+
+	// Put the start node onto the stack.
+	q.push(CollectState(const_cast<Node *>(start), 0));
 	while (!q.empty()) {
 		CollectState state = q.front();
 		q.pop();
-		// do not proceed if this node was already visited.
+
+		// Do not proceed if this node was already visited.
 		if (!visited.insert(state.n).second) {
 			continue;
 		}
@@ -202,11 +207,12 @@ static NodeVector<Node> collect(const Node *start, F match)
 			// look through all fields.
 			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
 			for (auto fd : fields) {
-				// note matches.
+				// Store all matching items
 				if (match(fd, state.depth)) {
 					res.push_back(fd);
 				}
-				// only continue in the TREE field.
+
+				// Only continue in the TREE field.
 				if (fd->getFieldType() == FieldDescriptor::FieldType::TREE) {
 					q.push(CollectState(fd.get(), state.depth));
 				}
@@ -221,6 +227,7 @@ static NodeVector<Node> collect(const Node *start, F match)
 				if (match(c, state.depth)) {
 					res.push_back(c);
 				}
+
 				// We only continue our search via transparent children.
 				if (c->isTransparent()) {
 					q.push(CollectState(c.get(), state.depth + 1));
@@ -234,7 +241,7 @@ static NodeVector<Node> collect(const Node *start, F match)
 static std::vector<SyntaxDescriptor> collectPermittedTokens(
     const Node *start, Handle<Ontology> ontology)
 {
-	// gather SyntaxDescriptors for structure children first.
+	// Gather SyntaxDescriptors for structure children first
 	std::vector<SyntaxDescriptor> res;
 	collect(start, [&res](Handle<Node> n, size_t depth) {
 		SyntaxDescriptor stx;
@@ -243,20 +250,23 @@ static std::vector<SyntaxDescriptor> collectPermittedTokens(
 		} else {
 			stx = n.cast<Descriptor>()->getSyntaxDescriptor(depth);
 		}
-		// do not add trivial SyntaxDescriptors.
+
+		// Do not add trivial SyntaxDescriptors
 		if (!stx.isEmpty()) {
-			res.push_back(stx);
+			res.emplace_back(stx);
 		}
 		return false;
 	});
-	// gather SyntaxDescriptors for AnnotationClasses.
+
+	// Gather SyntaxDescriptors for AnnotationClasses.
 	for (auto a : ontology->getAnnotationClasses()) {
 		SyntaxDescriptor stx = a->getSyntaxDescriptor();
 		if (!stx.isEmpty()) {
-			res.push_back(stx);
+			res.emplace_back(stx);
 		}
 	}
 	return res;
+}
 }
 
 /* Class FieldDescriptor */

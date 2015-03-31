@@ -138,7 +138,6 @@ class Anchor;
  * fields while the inner vector contains all children in this field.
  * We provide, however, convenience functions for better access via the field
  * name.
- *
  */
 class DocumentEntity {
 private:
@@ -274,6 +273,7 @@ public:
 	 *                  FieldDescriptor in the Ontology description.
 	 */
 	void addStructureNode(Handle<StructureNode> s, size_t fieldIdx);
+
 	/**
 	 * This adds a StructureNode to the field with the given name.
 	 *
@@ -305,6 +305,7 @@ public:
 	 */
 	void addStructureNodes(const std::vector<Handle<StructureNode>> &ss,
 	                       const std::string &fieldName = DEFAULT_FIELD_NAME);
+
 	/**
 	 * This removes a StructureNode from the field with the given index.
 	 *
@@ -317,6 +318,7 @@ public:
 	 *                  if was not found.
 	 */
 	bool removeStructureNodeFromField(Handle<StructureNode> s, size_t fieldIdx);
+
 	/**
 	 * This removes a StructureNode from the field with the given name.
 	 *
@@ -378,10 +380,9 @@ public:
 	 * @param s         is the StructureNode that shall be removed.
 	 * @param fieldDescriptor is a FieldDescriptor defined in the Descriptor for
 	 *                        this DocumentEntity.
-
 	 * @return          true if this StructureNode was a child here and false if
 	 *                  if was not found.
-	*/
+	 */
 	bool removeStructureNodeFromField(Handle<StructureNode> s,
 	                                  Handle<FieldDescriptor> fieldDescriptor);
 
@@ -392,10 +393,9 @@ public:
 	 * This method also changes the parent of the removed StructureNode to null.
 	 *
 	 * @param s is the StructureNode that shall be removed.
-
 	 * @return  true if this StructureNode was a child here and false if if was
 	 *          not found.
-	*/
+	 */
 	bool removeStructureNode(Handle<StructureNode> s);
 
 	/**
@@ -408,7 +408,6 @@ public:
 	 *                   StructuredEntity shall be added to this DocumentEntity.
 	 * @param name       is some name for this StructuredEntity that may be used
 	 *                   for later reference. It is empty per default.
-	 *
 	 * @return           the newly created StructuredEntity.
 	 */
 	Rooted<StructuredEntity> createChildStructuredEntity(
@@ -427,12 +426,12 @@ public:
 	 *                   StructuredEntity shall be added to this DocumentEntity.
 	 * @param name       is some name for this StructuredEntity that may be used
 	 *                   for later reference. It is empty per default.
-	 *
 	 * @return           the newly created StructuredEntity.
 	 */
 	Rooted<StructuredEntity> createChildStructuredEntity(
 	    Handle<StructuredClass> descriptor, size_t fieldIdx,
 	    Variant attributes = Variant::mapType{}, std::string name = "");
+
 	/**
 	 * Creates a new DocumentPrimitive as child of this DocumentEntity.
 	 *
@@ -442,11 +441,11 @@ public:
 	 *                  fieldName.
 	 * @param fieldName is the name of the field, where the newly created
 	 *                  StructuredEntity shall be added to this DocumentEntity.
-	 *
 	 * @return          the newly created DocumentPrimitive.
 	 */
 	Rooted<DocumentPrimitive> createChildDocumentPrimitive(
 	    Variant content, const std::string &fieldName = DEFAULT_FIELD_NAME);
+
 	/**
 	 * Creates a new DocumentPrimitive as child of this DocumentEntity.
 	 *
@@ -456,7 +455,6 @@ public:
 	 *                  DocumentPrimitive. The Type of this Variant is
 	 *                  specified at the parents Descriptor for the given
 	 *                  fieldName.
-	 *
 	 * @return          the newly created DocumentPrimitive.
 	 */
 	Rooted<DocumentPrimitive> createChildDocumentPrimitive(Variant content,
@@ -467,7 +465,6 @@ public:
 	 *
 	 * @param fieldName is the name of the field, where the newly created
 	 *                  Anchor shall be added to this DocumentEntity.
-	 *
 	 * @return          the newly created Anchor.
 	 */
 	Rooted<Anchor> createChildAnchor(
@@ -478,7 +475,6 @@ public:
 	 *
 	 * @param fieldIdx  is the index of the field, where the newly created
 	 *                  Anchor shall be added to this DocumentEntity.
-	 *
 	 * @return          the newly created Anchor.
 	 */
 	Rooted<Anchor> createChildAnchor(size_t fieldIdx);
@@ -517,6 +513,7 @@ public:
 	 */
 	StructureNode(Manager &mgr, std::string name, Handle<Node> parent,
 	              const std::string &fieldName);
+
 	/**
 	 * Constructor for a StructureNode in the StructureTree.
 	 */
@@ -748,6 +745,7 @@ public:
 	    : StructureNode(mgr, "", parent, fieldName)
 	{
 	}
+
 	/**
 	 * Constructor for Anchor.
 	 *
@@ -886,6 +884,7 @@ public:
 	 * @param s is the new start Anchor for this AnnotationEntity.
 	 */
 	void setStart(Handle<Anchor> s);
+
 	/**
 	 * Sets the end Anchor of this AnnotationEntity.
 	 *

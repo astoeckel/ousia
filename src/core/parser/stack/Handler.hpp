@@ -370,8 +370,8 @@ public:
 	 *   <li>The token marks the end of some element that is unknown the calling
 	 *   code. So the operation itself was a success, but the calling code
 	 *   should not call the "end" method.
-	 *   <li>The token did not anything in this context. Basically this shuold
-	 *   never happen, but who knows.</li>
+	 *   <li>The token did not match anything in this context. Basically this
+	 *   should never happen, but who knows.</li>
 	 * </ol>
 	 *
 	 * @param id is the Token for which the handler should be started.
