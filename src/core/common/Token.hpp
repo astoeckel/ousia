@@ -178,7 +178,16 @@ struct Token {
 	 * @return true if the TokenId indicates that this token is a "special"
 	 * token.
 	 */
-	bool isSpecial() const { return id > Tokens::MaxTokenId; }
+	bool isSpecial() const { return isSpecial(id); }
+
+	/**
+	 * Returns true if the given token id is special.
+	 *
+	 * @param id is the token id that should be checked for being special.
+	 * @return true if the TokenId indicates that this token is a "special"
+	 * token.
+	 */
+	static bool isSpecial(TokenId id) {return id > Tokens::MaxTokenId; }
 
 	/**
 	 * The getLocation function allows the tokens to be directly passed as
