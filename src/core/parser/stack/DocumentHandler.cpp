@@ -52,6 +52,29 @@ bool DocumentHandler::startCommand(Variant::mapType &args)
 
 void DocumentHandler::end() { scope().pop(logger()); }
 
+/* DocumentField */
+
+Rooted<FieldDescriptor> DocumentField::getDescriptor()
+{
+	// Fetch the FieldDescriptor from the parent node. The parent node should
+	// either be a structured entity or an annotation entity
+	Rooted<Managed> parent = getParent();
+	if (parent->isa(&RttiTypes::StructuredEntity)) {
+		return parent.cast<StructuredEntity>()
+		    ->getDescriptor()
+		    ->getFieldDescriptor(fieldIdx);
+	} else if (parent->isa(&RttiTypes::AnnotationEntity)) {
+		return parent.cast<AnnotationEntity>()
+		    ->getDescriptor()
+		    ->getFieldDescriptor(fieldIdx);
+	}
+
+	// Well, we never should get here
+	// TODO: Introduce macro for unreachable code?
+	assert(!"This should never be reached");
+	return nullptr;
+}
+
 /* DocumentChildHandler */
 
 DocumentChildHandler::DocumentChildHandler(const HandlerData &handlerData)

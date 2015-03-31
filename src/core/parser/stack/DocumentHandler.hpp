@@ -84,6 +84,11 @@ public:
 	    : Node(mgr, parent), fieldIdx(fieldIdx), transparent(transparent)
 	{
 	}
+
+	/**
+	 * Returns the FieldDescriptor represented by this DocumentField instance.
+	 */
+	Rooted<FieldDescriptor> getDescriptor();
 };
 
 /**
