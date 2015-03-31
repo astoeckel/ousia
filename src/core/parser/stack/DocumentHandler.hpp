@@ -159,6 +159,12 @@ private:
 	                DocumentEntity *&parent);
 
 	/**
+	 * Removes the transparent elements created by the createPath() method from
+	 * the Scope.
+	 */
+	void rollbackPath();
+
+	/**
 	 * Tries to convert the given data to the type that is specified in the
 	 * given primitive field.
 	 *
@@ -172,6 +178,17 @@ private:
 	 */
 	bool convertData(Handle<FieldDescriptor> field, Variant &data,
 	                 Logger &logger);
+
+	/**
+	 * Fetches the top-most non-transparent descriptor from the scope, gets the
+	 * permitted tokens of this descriptor and filters them to those tokens
+	 * which are actually possible, according to the current content of the
+	 * ParserScope.
+	 *
+	 * @param fieldDescr is the field descriptor of which the tokens should be
+	 * registered.
+	 */
+	void pushScopeTokens();
 
 	/**
 	 * Pushes a new DocumentField onto the scope stack and registers all

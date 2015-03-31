@@ -62,6 +62,17 @@ public:
 	size_t fieldIdx;
 
 	/**
+	 * TokenId of the close token.
+	 */
+	TokenId closeToken;
+
+	/**
+	 * Descriptor corresponding to the associated "close" token, set to nullptr
+	 * if not needed.
+	 */
+	Rooted<Node> tokenDesciptor;
+
+	/**
 	 * Set to true if the handler is valid (which is the case if the "start"
 	 * method has returned true). If the handler is invalid, no more calls are
 	 * directed at it until it can be removed from the stack.
@@ -169,6 +180,7 @@ HandlerInfo::HandlerInfo() : HandlerInfo(nullptr) {}
 HandlerInfo::HandlerInfo(std::shared_ptr<Handler> handler)
     : handler(handler),
       fieldIdx(0),
+      closeToken(Tokens::Empty),
       valid(true),
       implicit(false),
       range(false),
@@ -184,6 +196,7 @@ HandlerInfo::HandlerInfo(bool implicit, bool inField, bool inDefaultField,
                          bool inImplicitDefaultField)
     : handler(nullptr),
       fieldIdx(0),
+      closeToken(Tokens::Empty),
       valid(true),
       implicit(implicit),
       range(false),
@@ -382,6 +395,15 @@ private:
 	HandlerInfo &lastInfo();
 
 	/**
+	 * Returns a list containing the currently pending close tokens.
+	 *
+	 * @param token is a TokenId for which the result list should be filtered.
+	 * If set to Tokens::Empty, all tokens are returned.
+	 */
+	std::vector<SyntaxDescriptor> pendingCloseTokens(
+	    TokenId token = Tokens::Empty) const;
+
+	/**
 	 * Returns a set containing the tokens that should currently be processed
 	 * by the TokenizedData instance.
 	 *
@@ -394,6 +416,11 @@ private:
 	 * Returns the whitespace mode defined by the current command.
 	 */
 	WhitespaceMode currentWhitespaceMode() const;
+
+	/**
+	 * Ends a currently open field of the current handler.
+	 */
+	void endCurrentField();
 
 	/**
 	 * Ends the current handler and removes the corresponding element from the
@@ -411,9 +438,16 @@ private:
 	 * startToken(), startCommand(), annotationStart() or annotationEnd() events
 	 * are reached.
 	 *
+	 * @param startImplicitDefaultField if set to true, starts a new default
+	 * field.
+	 * @param endHandlersWithoutDefaultField important if
+	 * startImplicitDefaultField is set to false. If false, prevents this method
+	 * from ending a handler if it potentially can have a default field, but did
+	 * not have one yet.
 	 * @return true if the current command is in a valid field.
 	 */
-	bool prepareCurrentHandler(bool startImplicitDefaultField = true);
+	bool prepareCurrentHandler(bool startImplicitDefaultField = true,
+	                           bool endHandlersWithoutDefaultField = true);
 
 	/**
 	 * Returns true if all handlers on the stack are currently valid, or false
@@ -427,7 +461,7 @@ private:
 	 * Called whenever there is an actual data pending on the current
 	 * TokenizedDataReader. Tries to feed this data to the current handler.
 	 */
-	void handleData();
+	bool handleData();
 
 	/**
 	 * Called whenever the annotationStart or annotationEnd methods are called.
@@ -439,6 +473,31 @@ private:
 	 */
 	void handleAnnotationStartEnd(const Variant &name, Variant::mapType args,
 	                              bool range, HandlerType type);
+
+	/**
+	 * Called by handleToken in order to process a list of potential "close"
+	 * tokens.
+	 *
+	 * @param token is the matching token.
+	 * @param descrs is the list with SyntaxDescriptors that should be used.
+	 * @return true if something was closed, false otherwise.
+	 */
+	bool handleCloseTokens(const Token &token,
+	                       const std::vector<SyntaxDescriptor> &descrs);
+
+	/**
+	 * Called by handleToken in order to process a list of potential "open"
+	 * tokens.
+	 *
+	 * @param logger responsible for receiving error messages.
+	 * @param token is the matching token.
+	 * @param shortForm is set to true, if the descriptors describe a short form
+	 * token instead of an open token.
+	 * @param descrs is the list with SyntaxDescriptors that should be used.
+	 * @return true if something was opened, false otherwise.
+	 */
+	bool handleOpenTokens(Logger &logger, const Token &token, bool shortForm,
+	                      const std::vector<SyntaxDescriptor> &descrs);
 
 	/**
 	 * Called whenever there is a token waiting to be processed. If possible
@@ -479,6 +538,7 @@ public:
 
 	TokenId registerToken(const std::string &token) override;
 	void unregisterToken(TokenId id) override;
+	bool readToken(Token &token);
 	Variant readData() override;
 	void pushTokens(const std::vector<SyntaxDescriptor> &tokens) override;
 	void popTokens() override;
@@ -603,12 +663,36 @@ std::string StackImpl::currentCommandName() const
 	return stack.empty() ? std::string{} : stack.back().name();
 }
 
+std::vector<SyntaxDescriptor> StackImpl::pendingCloseTokens(TokenId token) const
+{
+	// TODO: Are there cases in which the returned vector will contain more
+	// than one element?
+	std::vector<SyntaxDescriptor> res;
+	for (auto it = stack.crbegin(); it != stack.crend(); it++) {
+		if (it->closeToken != Tokens::Empty &&
+		    (token == Tokens::Empty || token == it->closeToken)) {
+			res.push_back(SyntaxDescriptor(Tokens::Empty, it->closeToken,
+			                               Tokens::Empty, it->tokenDesciptor,
+			                               -1));
+		}
+		if (it->range || it->inField) {
+			break;
+		}
+	}
+	return res;
+}
+
 TokenSet StackImpl::currentTokens() const
 {
+	TokenSet res;
 	if (currentInfo().state().supportsTokens) {
-		return tokenStack.tokens();
+		res = tokenStack.tokens();
+		std::vector<SyntaxDescriptor> pending = pendingCloseTokens();
+		for (const auto &descr : pending) {
+			res.insert(descr.close);
+		}
 	}
-	return TokenSet{};
+	return res;
 }
 
 WhitespaceMode StackImpl::currentWhitespaceMode() const
@@ -634,6 +718,19 @@ HandlerInfo &StackImpl::lastInfo()
 
 /* Stack helper functions */
 
+void StackImpl::endCurrentField()
+{
+	if (!stack.empty()) {
+		HandlerInfo &info = stack.back();
+		if (!info.implicit && handlersValid() && info.inField) {
+			if (info.inValidField) {
+				info.handler->fieldEnd();
+			}
+			info.fieldEnd();
+		}
+	}
+}
+
 bool StackImpl::endCurrentHandler()
 {
 	if (!stack.empty()) {
@@ -643,14 +740,8 @@ bool StackImpl::endCurrentHandler()
 		// Do not call any callback functions while the stack is marked as
 		// invalid or this is an elment marked as "implicit"
 		if (!info.implicit && handlersValid()) {
-			// Make sure the fieldEnd handler is called if the element still
-			// is in a field
-			if (info.inField) {
-				if (info.inValidField) {
-					info.handler->fieldEnd();
-				}
-				info.fieldEnd();
-			}
+			// End all currently open fields
+			endCurrentField();
 
 			// Call the "end" function of the corresponding Handler instance
 			info.handler->end();
@@ -663,7 +754,8 @@ bool StackImpl::endCurrentHandler()
 	return false;
 }
 
-bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField)
+bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField,
+                                      bool endHandlersWithoutDefaultField)
 {
 	// Repeat until a valid handler is found on the stack
 	while (!stack.empty()) {
@@ -682,8 +774,9 @@ bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField)
 		    info.type() == HandlerType::COMMAND ||
 		    info.type() == HandlerType::TOKEN ||
 		    (info.type() == HandlerType::ANNOTATION_START && info.range);
-		if (info.hadDefaultField || !startImplicitDefaultField || !info.valid ||
-		    !canHaveImplicitDefaultField) {
+		if (info.hadDefaultField ||
+		    (!startImplicitDefaultField && endHandlersWithoutDefaultField) ||
+		    !info.valid || !canHaveImplicitDefaultField) {
 			// We cannot end the command if it is marked as "range" command
 			if (info.range) {
 				return false;
@@ -695,16 +788,18 @@ bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField)
 		}
 
 		// Try to start a new default field, abort if this did not work
-		bool isDefault = true;
-		if (!info.handler->fieldStart(isDefault, info.fieldIdx)) {
-			endCurrentHandler();
-			continue;
-		}
+		if (startImplicitDefaultField) {
+			bool isDefault = true;
+			if (!info.handler->fieldStart(isDefault, info.fieldIdx)) {
+				endCurrentHandler();
+				continue;
+			}
 
-		// Mark the field as started and return -- the field should be marked
-		// is implicit if this is not a field with range
-		info.fieldStart(true, !info.range, true);
-		return true;
+			// Mark the field as started and return
+			info.fieldStart(true, !info.range, true);
+			return true;
+		}
+		return false;
 	}
 	return false;
 }
@@ -719,7 +814,7 @@ bool StackImpl::handlersValid()
 	return true;
 }
 
-void StackImpl::handleData()
+bool StackImpl::handleData()
 {
 	// Repeat until we found some handle willingly consuming the data
 	while (true) {
@@ -738,12 +833,18 @@ void StackImpl::handleData()
 			if (!info.hadDefaultField) {
 				logger().error("Did not expect any data here");
 			}
-			return;
+			return true;
 		}
 
 		// If we're currently in an invalid subtree, just eat the data and abort
 		if (!handlersValid()) {
-			return;
+			return true;
+		}
+
+		// Check whether "readData" still returns data and not an empty string
+		// (because a token has now become valid)
+		if (!readData().isString()) {
+			return false;
 		}
 
 		// Fork the logger and set it as temporary logger for the "data"
@@ -774,15 +875,175 @@ void StackImpl::handleData()
 
 		// Commit the content of the logger fork. Do not change the valid flag.
 		loggerFork.commit();
-		return;
+		return true;
 	}
+}
+
+/* Token management */
+
+static void strayTokenNote(const std::string &preamble,
+                           const std::vector<SyntaxDescriptor> &descrs,
+                           Logger &logger)
+{
+	for (const auto &d : descrs) {
+		std::string type = "";
+		if (d.isAnnotation()) {
+			type = " annotation";
+		} else if (d.isFieldDescriptor()) {
+			type = " field";
+		} else if (d.isStruct()) {
+			type = " structure";
+		}
+		logger.note(preamble + " \"" + d.descriptor->getName() + "\"" + type +
+		                ", as specified here",
+		            *(d.descriptor));
+	}
+}
+
+static void strayTokenError(const Token &token, TokenDescriptor &descr,
+                            Logger &logger)
+{
+	logger.error("Stray token", token);
+	logger.note("This token must be used in one of the following contexts:",
+	            token, MessageMode::NO_CONTEXT);
+	strayTokenNote("To close a", descr.close, logger);
+	strayTokenNote("To open a", descr.open, logger);
+	strayTokenNote("As a short form of", descr.shortForm, logger);
+
+	return;
+}
+
+bool StackImpl::handleCloseTokens(const Token &token,
+                                  const std::vector<SyntaxDescriptor> &descrs)
+{
+	// Fetch the current information
+	HandlerInfo &info = currentInfo();
+
+	// Iterate over all possible SyntaxDescriptors and try to end the token
+	for (const SyntaxDescriptor &descr : descrs) {
+		Handler::EndTokenResult res =
+		    info.handler->endToken(token.id, descr.descriptor);
+		switch (res) {
+			case Handler::EndTokenResult::ENDED_THIS:
+				endCurrentHandler();
+				return true;
+			case Handler::EndTokenResult::ENDED_HIDDEN:
+				return true;
+			case Handler::EndTokenResult::ENDED_NONE:
+				break;
+		}
+	}
+	return false;
+}
+
+bool StackImpl::handleOpenTokens(Logger &logger, const Token &token,
+                                 bool shortForm,
+                                 const std::vector<SyntaxDescriptor> &descrs)
+{
+	// Make sure we currently are in a field
+	if (!currentInfo().inField) {
+		throw LoggableException("Cannot start a command here", token);
+	}
+
+	// Iterate over all given descriptors
+	for (const SyntaxDescriptor &descr : descrs) {
+		// Find the special target state TODO: Is there some better solution?
+		const State *state = findTargetState("*");
+		if (state == nullptr) {
+			throw LoggableException("Cannot handle start tokens here", token);
+		}
+
+		// Instantiate the handler and push it onto the stack
+		HandlerConstructor ctor = state->elementHandler ? state->elementHandler
+		                                                : EmptyHandler::create;
+		std::shared_ptr<Handler> handler{
+		    ctor({ctx, *this, *state, token, HandlerType::TOKEN})};
+		stack.emplace_back(handler);
+
+		// Call the startAnnotation method of the newly created handler, store
+		// the valid flag
+		HandlerInfo &info = currentInfo();
+		info.valid = false;
+		try {
+			info.valid = handler->startToken(descr.descriptor);
+		}
+		catch (LoggableException ex) {
+			logger.log(ex);
+		}
+
+		// End the handler again if an error occured
+		if (!info.valid) {
+			endCurrentHandler();
+		}
+
+		// If this is not a short form token and the "close" descriptor is
+		// given, mark the current handler as "range" handler
+		if (!shortForm && descr.close != Tokens::Empty) {
+			info.closeToken = descr.close;
+			info.tokenDesciptor = descr.descriptor;
+			info.range = true;
+		}
+		return true;
+	}
+	return false;
 }
 
 void StackImpl::handleToken(const Token &token)
 {
-	std::cout << "Got token " << token.id << std::endl;
-	// TODO: Implement
-	// Just eat them for now
+	// Fetch the TokenDescriptor and the "pendingClose" list
+	TokenDescriptor descr = tokenStack.lookup(token.id);
+	std::vector<SyntaxDescriptor> pendingClose = pendingCloseTokens(token.id);
+
+	// Iterate until the stack can no longer be unwound
+	while (true) {
+		LoggerFork loggerFork = logger().fork();
+
+		bool hadError = false;
+		try {
+			// Try to close the current handlers
+			if (handleCloseTokens(token, pendingClose) ||
+			    (pendingClose.empty() &&
+			     handleCloseTokens(token, descr.close))) {
+				return;
+			}
+
+			// Try to open an implicit default field and try to start the token
+			// as short form or as start token
+			prepareCurrentHandler(pendingClose.empty());
+			if (pendingClose.empty()) {
+				if (handleOpenTokens(loggerFork, token, true,
+				                     descr.shortForm) ||
+				    handleOpenTokens(loggerFork, token, false, descr.open)) {
+					return;
+				}
+			}
+		}
+		catch (LoggableException ex) {
+			hadError = true;
+			loggerFork.log(ex);
+		}
+
+		// Neither of the above worked, try to unroll the stack
+		HandlerInfo &info = currentInfo();
+		if (info.inImplicitDefaultField && !stack.empty()) {
+			endCurrentHandler();
+		} else if (info.inDefaultField && info.closeToken == token.id) {
+			endCurrentField();
+		} else {
+			// Ignore close-only special (whitespace) rules, in all other cases
+			// issue an error
+			if (!Token::isSpecial(token.id) || descr.close.empty() ||
+			    !descr.open.empty() || !descr.shortForm.empty()) {
+				loggerFork.commit();
+
+				// If there was no other error, issue a "stray token" error
+				if (!hadError) {
+					strayTokenError(token, descr, logger());
+				}
+			}
+			return;
+		}
+	}
 }
 
 void StackImpl::handleFieldEnd(bool endRange)
@@ -872,7 +1133,8 @@ void StackImpl::handleAnnotationStartEnd(const Variant &name,
 	info.valid = false;
 	try {
 		info.valid = handler->startAnnotation(args);
-	} catch (LoggableException ex) {
+	}
+	catch (LoggableException ex) {
 		logger().log(ex);
 	}
 	info.range = range;
@@ -1007,18 +1269,27 @@ void StackImpl::data(const TokenizedData &data)
 	// dataReader is resetted to nullptr once this scope is left.
 	GuardedTemporaryPointer<TokenizedDataReader> ptr(&reader, &dataReader);
 
+	// Close all handlers that did already had or cannot have a default field
+	// and are not currently inside a field (repeat this after each chunk of
+	// data/text)
+	prepareCurrentHandler(false, false);
+
 	// Peek a token from the reader, repeat until all tokens have been read
 	Token token;
-	while (reader.peek(token, currentTokens(), currentWhitespaceMode())) {
+
+	while (readToken(token)) {
 		// Handle the token as text data or as actual token
 		if (token.id == Tokens::Data) {
-			handleData();
+			// Only consume the data if reading was sucessful -- sometimes (as
+			// it turns out) -- there is no data
+			if (handleData()) {
+				reader.consumePeek();
+			}
 		} else {
 			handleToken(token);
+			reader.consumePeek();
 		}
-
-		// Consume the peeked token
-		reader.consumePeek();
+		prepareCurrentHandler(false, false);
 	}
 }
 
@@ -1100,17 +1371,24 @@ void StackImpl::popTokens()
 	tokenStack.popTokens();
 }
 
-Variant StackImpl::readData()
+bool StackImpl::readToken(Token &token)
 {
 	if (dataReader != nullptr) {
-		TokenizedDataReaderFork dataReaderFork = dataReader->fork();
-		Token token;
-		dataReaderFork.read(token, currentTokens(), currentWhitespaceMode());
-		if (token.id == Tokens::Data) {
-			Variant res = Variant::fromString(token.content);
-			res.setLocation(token.getLocation());
-			return res;
-		}
+		dataReader->resetPeek();
+		return dataReader->peek(token, currentTokens(),
+		                        currentWhitespaceMode());
+	}
+	return false;
+}
+
+Variant StackImpl::readData()
+{
+	Token token;
+	if (readToken(token) && token.id == Tokens::Data) {
+		// TODO: Introduce function for string variant with location
+		Variant res = Variant::fromString(token.content);
+		res.setLocation(token.getLocation());
+		return res;
 	}
 	return Variant{};
 }

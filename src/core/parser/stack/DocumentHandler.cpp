@@ -128,6 +128,42 @@ void DocumentChildHandler::preamble(Rooted<Node> &parentNode, size_t &fieldIdx,
 	}
 }
 
+void DocumentChildHandler::pushScopeTokens()
+{
+	// List containing the unfiltered syntax descriptors
+	std::vector<SyntaxDescriptor> descrs;
+
+	// Fetch the current scope stack and search the first non-transparent field
+	// or structure
+	const NodeVector<Node> &stack = scope().getStack();
+	for (auto sit = stack.crbegin(); sit != stack.crend(); sit++) {
+		Rooted<Node> nd = *sit;
+
+		// TODO: Why can't this functionality be in a common base class?
+
+		// Check whether the field is transparent, if not, fetch the tokens
+		if (nd->isa(&RttiTypes::DocumentField)) {
+			Rooted<DocumentField> field = nd.cast<DocumentField>();
+			if (!field->transparent) {
+				descrs = field->getDescriptor()->getPermittedTokens();
+				break;
+			}
+		}
+
+		// Check whether the sturcture is transparent, if not, fetch the tokens
+		if (nd->isa(&RttiTypes::StructuredEntity)) {
+			Rooted<StructuredEntity> entity = nd.cast<StructuredEntity>();
+			if (!entity->isTransparent()) {
+				descrs = entity->getDescriptor()->getPermittedTokens();
+				break;
+			}
+		}
+	}
+
+	// Push the filtered tokens onto the stack
+	pushTokens(descrs);
+}
+
 void DocumentChildHandler::pushDocumentField(Handle<Node> parent,
                                              Handle<FieldDescriptor> fieldDescr,
                                              size_t fieldIdx, bool transparent)
@@ -196,6 +232,22 @@ void DocumentChildHandler::createPath(const size_t &firstFieldIdx,
 	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, false);
 }
 
+void DocumentChildHandler::rollbackPath()
+{
+	// Remove the topmost field
+	popDocumentField();
+
+	// Pop all remaining transparent elements.
+	while (scope().getLeaf()->isa(&RttiTypes::StructuredEntity) &&
+	       scope().getLeaf().cast<StructuredEntity>()->isTransparent()) {
+		// Pop the transparent element.
+		scope().pop(logger());
+
+		// Pop the transparent field.
+		popDocumentField();
+	}
+}
+
 static std::string extractNameAttribute(Variant::mapType &args)
 {
 	// Extract the special "name" attribute from the input arguments.
@@ -262,10 +314,11 @@ bool DocumentChildHandler::startCommand(Variant::mapType &args)
 						    std::string(
 						        "Data or structure commands have already been "
 						        "given, command \"") +
-						        name() + std::string(
-						                     "\" is not interpreted explicit "
-						                     "field. Move explicit field "
-						                     "references to the beginning."),
+						        name() +
+						        std::string(
+						            "\" is not interpreted as explicit "
+						            "field. Move explicit field "
+						            "references to the beginning."),
 						    location());
 					} else {
 						pushDocumentField(
@@ -273,6 +326,7 @@ bool DocumentChildHandler::startCommand(Variant::mapType &args)
 						    parent->getDescriptor()->getFieldDescriptor(
 						        newFieldIdx),
 						    newFieldIdx, false);
+						pushScopeTokens();
 						isExplicitField = true;
 						return true;
 					}
@@ -329,6 +383,8 @@ bool DocumentChildHandler::startCommand(Variant::mapType &args)
 		// Push the entity onto the stack
 		entity->setLocation(location());
 		scope().push(entity);
+		pushScopeTokens();
+
 		return true;
 	}
 }
@@ -389,7 +445,7 @@ bool DocumentChildHandler::startAnnotation(Variant::mapType &args)
 	Rooted<Anchor> anchor = parent->createChildAnchor(fieldIdx);
 	anchor->setLocation(location());
 
-	// resolve the AnnotationClass
+	// Resolve the AnnotationClass
 	Rooted<AnnotationClass> annoClass;
 	if (!name().empty()) {
 		annoClass = scope().resolve<AnnotationClass>(Utils::split(name(), ':'),
@@ -443,22 +499,142 @@ bool DocumentChildHandler::startAnnotation(Variant::mapType &args)
 
 bool DocumentChildHandler::startToken(Handle<Node> node)
 {
-	// TODO: Handle token start
-	return false;
+	bool isStruct = node->isa(&RttiTypes::StructuredClass);
+//	bool isField = node->isa(&RttiTypes::FieldDescriptor);
+//	bool isAnnotation = node->isa(&RttiTypes::AnnotationClass);
+
+	if (!isStruct) {
+		// TODO: Implement
+		return false;
+	}
+
+	Rooted<StructuredClass> strct = node.cast<StructuredClass>();
+
+	scope().setFlag(ParserFlag::POST_HEAD, true);
+	while (true) {
+		// Make sure the parent node is not the document
+		Rooted<Node> parentNode = scope().getLeaf();
+		if (parentNode->isa(&RttiTypes::Document)) {
+			logger().error("Tokens are not allowed on the root document level.");
+			return false;
+		}
+		assert(parentNode->isa(&RttiTypes::DocumentField));
+
+		// TODO: Move this to more generic method
+		// Fetch the parent document entity and the parent field index
+		size_t fieldIdx;
+		DocumentEntity *parent;
+		preamble(parentNode, fieldIdx, parent);
+
+		// Calculate a path if transparent entities are needed in between.
+		Rooted<FieldDescriptor> field = parent->getDescriptor()->getFieldDescriptor(fieldIdx);
+		size_t lastFieldIdx = fieldIdx;
+		auto pathRes = field->pathTo(strct, logger());
+		if (!pathRes.second) {
+			// If we have transparent elements above us in the structure tree,
+			// try to unwind them before we give up.
+			if (scope().getLeaf().cast<DocumentField>()->transparent) {
+				// Pop the implicit field.
+				popDocumentField();
+
+				// Pop the implicit element.
+				scope().pop(logger());
+				continue;
+			}
+			throw LoggableException(
+			    std::string("An instance of \"") + strct->getName() +
+			        "\" is not allowed as child of field \"" +
+			        field->getNameOrDefaultName() + "\" of descriptor \"" +
+			        parent->getDescriptor()->getName() + "\"",
+			    location());
+		}
+
+		// Create the path (if one is available)
+		if (!pathRes.first.empty()) {
+			createPath(lastFieldIdx, pathRes.first, parent);
+			lastFieldIdx =
+			    parent->getDescriptor()->getFieldDescriptorIndex();
+		}
+
+		// Create the entity for the new element at last.
+		Rooted<StructuredEntity> entity = parent->createChildStructuredEntity(
+			strct, lastFieldIdx, Variant::mapType{}, "");
+
+		// We're past the region in which explicit fields can be defined in the
+		// parent structure element
+		scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, true);
+
+		// Push the entity onto the stack
+		entity->setLocation(location());
+		scope().push(entity);
+		pushScopeTokens();
+
+		return true;
+	}
 }
 
 DocumentChildHandler::EndTokenResult DocumentChildHandler::endToken(
     const Token &token, Handle<Node> node)
 {
-	// TODO: Handle token end
-	return EndTokenResult::ENDED_NONE;
+	// Iterate over the transparent elements in the scope stack
+	const NodeVector<Node> &stack = scope().getStack();
+	ssize_t depth = -1;
+	for (auto sit = stack.crbegin(); sit != stack.crend(); sit++, depth++) {
+		Rooted<Node> leaf = *sit;
+		if (leaf->isa(&RttiTypes::DocumentField)) {
+			Rooted<DocumentField> field = leaf.cast<DocumentField>();
+			if (field->getDescriptor() == node) {
+				// If the field is transparent, end it by incrementing the depth
+				// counter -- both the field itself and the consecutive element
+				// need to be removed
+				if (field->transparent) {
+					depth += 2;
+					break;
+				}
+				return EndTokenResult::ENDED_THIS;
+			}
+
+			// Abort if the field is explicit
+			if (!field->transparent) {
+				return EndTokenResult::ENDED_NONE;
+			}
+		}
+
+		if (leaf->isa(&RttiTypes::StructuredEntity)) {
+			Rooted<StructuredEntity> entity = leaf.cast<StructuredEntity>();
+			if (entity->getDescriptor() == node) {
+				// If the entity is transparent, end it by incrementing the
+				// depth counter and aborting
+				if (entity->isTransparent()) {
+					depth++;
+					break;
+				}
+				return EndTokenResult::ENDED_THIS;
+			}
+
+			// Abort if this entity is explicit
+			if (!entity->isTransparent()) {
+				return EndTokenResult::ENDED_NONE;
+			}
+		}
+
+		// TODO: End annotations!
+	}
+
+	// End all elements that were marked for being closed
+	for (ssize_t i = 0; i <= depth; i++) {
+		scope().pop(logger());
+	}
+	return (depth >= 0) ? EndTokenResult::ENDED_HIDDEN : EndTokenResult::ENDED_NONE;
 }
 
 void DocumentChildHandler::end()
 {
+	// Distinguish the handler type
 	switch (type()) {
 		case HandlerType::COMMAND:
 		case HandlerType::ANNOTATION_START:
+		case HandlerType::TOKEN:
 			// In case of explicit fields we do not want to pop something from
 			// the stack.
 			if (!isExplicitField) {
@@ -468,9 +644,6 @@ void DocumentChildHandler::end()
 			break;
 		case HandlerType::ANNOTATION_END:
 			// We have nothing to pop from the stack
-			break;
-		case HandlerType::TOKEN:
-			// TODO
 			break;
 	}
 }
@@ -505,8 +678,10 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 		}
 		isDefault = fieldIdx == fields.size() - 1;
 	}
+
 	// push the field on the stack.
 	pushDocumentField(parentNode, fields[fieldIdx], fieldIdx, false);
+	pushScopeTokens();
 
 	// Generally allow explicit fields in the new field
 	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, false);
@@ -516,19 +691,10 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 
 void DocumentChildHandler::fieldEnd()
 {
-	assert(scope().getLeaf()->isa(&RttiTypes::DocumentField));
-
-	// Pop the field from the stack.
-	popDocumentField();
-
-	// Pop all remaining transparent elements.
-	while (scope().getLeaf()->isa(&RttiTypes::StructuredEntity) &&
-	       scope().getLeaf().cast<StructuredEntity>()->isTransparent()) {
-		// Pop the transparent element.
-		scope().pop(logger());
-		// Pop the transparent field.
-		popDocumentField();
+	if (!isExplicitField) {
+		popTokens();
 	}
+	rollbackPath();
 }
 
 bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
@@ -580,7 +746,7 @@ bool DocumentChildHandler::data()
 	// If it is a primitive field directly, try to parse the content.
 	if (field->isPrimitive()) {
 		// Add it as primitive content.
-		Variant text = readData();
+		Variant text = readData(); // TODO: Eliminate readData method
 		if (!convertData(field, text, logger())) {
 			return false;
 		}
@@ -593,6 +759,7 @@ bool DocumentChildHandler::data()
 	// allow primitive content at this point and could be constructed via
 	// transparent intermediate entities.
 	NodeVector<FieldDescriptor> defaultFields = field->getDefaultFields();
+
 	// Try to parse the data using the type specified by the respective field.
 	// If that does not work we proceed to the next possible field.
 	std::vector<LoggerFork> forks;
@@ -600,9 +767,8 @@ bool DocumentChildHandler::data()
 		// Then try to parse the content using the type specification.
 		forks.emplace_back(logger().fork());
 
-		// TODO: Actually the data has to be read after the path has been
-		// created (as createPath may push more tokens onto the stack)
-		Variant text = readData();
+		// Try to parse the data
+		Variant text = readData(); // TODO: Eliminate readData method
 		if (!convertData(primitiveField, text, forks.back())) {
 			continue;
 		}
