@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cassert>
+
 #include <core/common/Exceptions.hpp>
 #include <core/common/Logger.hpp>
 #include <core/common/Variant.hpp>
@@ -41,11 +43,15 @@ HandlerData::HandlerData(ParserContext &ctx, HandlerCallbacks &callbacks,
 /* Class Handler */
 
 Handler::Handler(const HandlerData &handlerData)
-    : handlerData(handlerData), internalLogger(nullptr)
+    : handlerData(handlerData), internalLogger(nullptr), tokenStackDepth(0)
 {
 }
 
-Handler::~Handler() {}
+Handler::~Handler() {
+	while (tokenStackDepth > 0) {
+		popTokens();
+	}
+}
 
 ParserContext &Handler::context() { return handlerData.ctx; }
 
@@ -80,10 +86,15 @@ Variant Handler::readData() { return handlerData.callbacks.readData(); }
 
 void Handler::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 {
+	tokenStackDepth++;
 	handlerData.callbacks.pushTokens(tokens);
 }
 
-void Handler::popTokens() { handlerData.callbacks.popTokens(); }
+void Handler::popTokens() {
+	assert(tokenStackDepth > 0 && "popTokens called too often");
+	tokenStackDepth--;
+	handlerData.callbacks.popTokens();
+}
 
 TokenId Handler::registerToken(const std::string &token)
 {

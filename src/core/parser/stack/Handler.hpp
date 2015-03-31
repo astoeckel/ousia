@@ -128,6 +128,11 @@ private:
 	 */
 	Logger *internalLogger;
 
+	/**
+	 * Current size of the internal "token" stack.
+	 */
+	size_t tokenStackDepth;
+
 protected:
 	/**
 	 * Constructor of the Handler class.
