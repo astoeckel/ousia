@@ -1,7 +1,7 @@
 \begin{document}
 
-\ontology#article{
-	\struct#article[root=true]
+\ontology#book{
+	\struct#book[root=true]
 		\field
 			\childRef[ref=section]
 			\childRef[ref=paragraph]
@@ -18,6 +18,8 @@
 		\field
 			\childRef[ref=text]
 			\childRef[ref=code]
+			\childRef[ref=speech]
+			\childRef[ref=thought]
 	\struct#code
 		\syntax
 			\open{`}
@@ -31,12 +33,15 @@
 		\fieldRef[ref=paragraph.$default]
 	\struct#text[transparent=true]
 		\primitive[type=string]
+	\struct#thought
+		\syntax
+			\short{--}
 }
 
-\begin{article}
+\begin{book}
 == This tests somewhat plays with user defined syntax ==
 
-As you can see, just the tiny `\\syntax` definitions above make writing documents
+As you -- surely -- can see, just the tiny `\\syntax` definitions above make writing documents
 much easier.
 
 For instance, this is a new paragraph.
@@ -52,7 +57,6 @@ definition of the paragraph structure.
 
 Did you notice how we started sections here?
 
-Sections can be allowed to use Wiki-like syntax with only three lines of code.
-\end{article}
+Sections can be allowed to use Wiki-like syntax with only three lines of code. Awesome!
+\end{book}
 \end{document}
-

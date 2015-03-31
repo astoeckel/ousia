@@ -1,0 +1,224 @@
+\ontology#math{
+	%{
+		Top level math commands -- block math (equivalent to LaTeX AMS "array")
+		and inline math.
+	}%
+	\struct#math[root=true]
+		\syntax
+			\open{$$}
+			\close{$$}
+		\field
+			\childRef[ref=equation]
+
+	\struct#inlineMath
+		\syntax
+			\open{$}
+			\close{$}
+		\field
+			\childRef[ref=primitive]
+
+	%{
+		Commands for block math -- these are used to define equations, seperable
+		by the "&" field separator.
+	}%
+	\struct#equation[transparent=true, cardinality={>0}]
+		\syntax
+			\close{\\\\}
+		\field
+			\childRef[ref=field]
+	\struct#field[transparent=true]
+		\syntax
+			\close{&}
+		\field
+			\childRef[ref=primitive]
+
+	%{
+		All classes derived from "primitive" can be used inside all equations
+	}%
+	\struct#primitive
+
+	%{
+		Variables and functions
+	}%
+	\struct#var[isa=primitive]
+		\primitive#name[type=string]
+	\struct#fun[isa=primitive]
+		\primitive#name[subtree=true,type=string,optional=false]
+		\field#arguments[subtree=true,optional=true]
+			\childRef[ref=primitive]
+
+	%{
+		Basic mathematical commands, sum, product, fraction, square root
+	}%
+	\struct#sum[isa=primitive]
+		\field
+			\childRef[ref=range]
+	\struct#prod[isa=primitive]
+		\field
+			\childRef[ref=range]
+	\struct#int[isa=primitive]
+		\field
+			\childRef[ref=range]
+	\struct#iint[isa=primitive]
+		\field
+			\childRef[ref=range]
+	\struct#frac[isa=primitive]
+		\field#denominator[subtree=true,optional=false]
+			\childRef[ref=primitive]
+		\field#nominator[subtree=true,optional=false]
+			\childRef[ref=primitive]
+	\struct#sqrt[isa=primitive]
+		\attributes
+			\attribute#base[type=int,default=2]
+		\field
+			\childRef[ref=primitive]
+	\struct#root[isa=primitive]
+		\field#base[subtree=true,optional=true]
+			\childRef[ref=primitive]
+		\field
+			\childRef[ref=primitive]
+
+	% TODO: Differentiate between lower and upper index vs. power operator?
+	\struct#power[isa=primitive]
+		\syntax
+			\short{^}
+		\field
+			\childRef[ref=primitive]
+	\struct#index[isa=primitive]
+		\syntax
+			\short{_}
+		\field
+			\childRef[ref=primitive]
+
+	%{
+		Separators
+	}%
+
+	\struct#comma[isa=primitive]
+		\syntax
+			\short{,}
+	\struct#colon[isa=primitive]
+		\syntax
+			\short{:}
+	\struct#semicolon[isa=primitive]
+		\syntax
+			\short{;}
+
+	%{
+		Operators and Relations
+	}%
+	\struct#plus[isa=primitive]
+		\syntax
+			\short{+}
+	\struct#minus[isa=primitive]
+		\syntax
+			\short{-}
+	\struct#multiplication[isa=primitive]
+		\syntax
+			\short{*}
+	\struct#division[isa=primitive]
+		\syntax
+			\short{/}
+	\struct#equals[isa=primitive]
+		\syntax
+			\short{=}
+	\struct#equiv[isa=primitive]
+		\syntax
+			\short{==}
+	\struct#smaller[isa=primitive]
+		\syntax
+			\short{<}
+	\struct#larger[isa=primitive]
+		\syntax
+			\short{>}
+	\struct#smallerEq[isa=primitive]
+		\syntax
+			\short{<=}
+	\struct#largerEq[isa=primitive]
+		\syntax
+			\short{>=}
+	\struct#times[isa=primitive]
+	\struct#circ[isa=primitive]
+	\struct#cdot[isa=primitive]
+	\struct#bullet[isa=primitive]
+	\struct#cup[isa=primitive]
+	\struct#cap[isa=primitive]
+	\struct#subset[isa=primitive]
+	\struct#subseteq[isa=primitive]
+	\struct#sqcup[isa=primitive]
+	\struct#sqcap[isa=primitive]
+	\struct#sim[isa=primitive]
+	\struct#vee[isa=primitive]
+	\struct#wedge[isa=primitive]
+	\struct#pm[isa=primitive]
+	\struct#mp[isa=primitive]
+	\struct#infty[isa=primitive]
+
+	%{
+		Arrows
+	}%
+	\struct#to[isa=primitive]
+		\syntax
+			\short{->}
+	\struct#mapsto[isa=primitive]
+		\syntax
+			\short{|->}
+
+	\struct#leftarrow[isa=primitive]
+		\syntax
+			\short{<--}
+	\struct#Leftarrow[isa=primitive]
+		\syntax
+			\short{<==}
+	\struct#rightarrow[isa=primitive]
+		\syntax
+			\short{-->}
+	\struct#Leftrightarrow[isa=primitive]
+		\syntax
+			\short{<=>}
+	\struct#leftrightarrow[isa=primitive]
+		\syntax
+			\short{<->}
+	\struct#uparrow[isa=primitive]
+	\struct#Uparrow[isa=primitive]
+	\struct#downarrow[isa=primitive]
+	\struct#Downarrow[isa=primitive]
+	\struct#updownarrow[isa=primitive]
+	\struct#Updownarrow[isa=primitive]
+
+	\struct#longleftarrow[isa=primitive]
+		\syntax
+			\short{<---}
+	\struct#Longleftarrow[isa=primitive]
+		\syntax
+			\short{<===}
+	\struct#longrightarrow[isa=primitive]
+		\syntax
+			\short{--->}
+	\struct#longleftrightarrow[isa=primitive]
+		\syntax
+			\short{<==>}
+	\struct#Longleftrightarrow[isa=primitive]
+		\syntax
+			\short{<-->}
+
+	\struct#number[isa=primitive,transparent=true]
+		\primitive[type=int]
+	\struct#text[isa=primitive,transparent=true]
+		\primitive[type=string]
+	\struct#range[transparent=true]
+		\field
+			\childRef[ref=lower]
+			\childRef[ref=upper]
+	\struct#lower[cardinality={0,1}]
+		\syntax
+			\short{_}
+		\field
+			\childRef[ref=primitive]
+	\struct#upper[cardinality={0,1}]
+		\syntax
+			\short{^}
+		\field
+			\childRef[ref=primitive]
+
+}
