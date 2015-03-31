@@ -67,7 +67,8 @@ struct TokenDescriptor {
 
 /**
  * The TokenStack class is used by the Stack class to collect all currently
- * enabled user defined tokens.
+ * enabled user defined tokens. Additionally it allows the Stack class to
+ * remember the end tokens for pending open tokens.
  */
 class TokenStack {
 private:
@@ -83,10 +84,8 @@ public:
 	 *
 	 * @param tokens is a list of SyntaxDescriptor instances that should be
 	 * stored on the stack.
-	 * @param inherit if set to true, combines the given tokens with the tokens
-	 * from the last stack level.
 	 */
-	void pushTokens(const std::vector<SyntaxDescriptor> &tokens, bool inherit);
+	void pushTokens(const std::vector<SyntaxDescriptor> &tokens);
 
 	/**
 	 * Removes the previously pushed list of tokens from the stack.

@@ -16,18 +16,23 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "TokenStack.hpp"
+#include <cassert>
 
-#include <iostream>
+#include "TokenStack.hpp"
 
 namespace ousia {
 namespace parser_stack {
 
-void TokenStack::pushTokens(const std::vector<SyntaxDescriptor> &tokens,
-                            bool inherit)
+void TokenStack::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 {
-	// TODO: Implement inheritance
-	stack.push_back(tokens);
+	stack.emplace_back(tokens);
+	std::sort(stack.back().begin(), stack.back().end());
+}
+
+void TokenStack::popTokens()
+{
+	assert(!stack.empty() && "too many calls to popTokens");
+	stack.pop_back();
 }
 
 TokenDescriptor TokenStack::lookup(TokenId token) const
@@ -48,7 +53,6 @@ TokenDescriptor TokenStack::lookup(TokenId token) const
 	}
 	return res;
 }
-void TokenStack::popTokens() { stack.pop_back(); }
 
 TokenSet TokenStack::tokens() const
 {

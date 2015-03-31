@@ -137,9 +137,6 @@ void DocumentChildHandler::pushDocumentField(Handle<Node> parent,
 	    new DocumentField(manager(), parent, fieldIdx, transparent);
 	field->setLocation(location());
 	scope().push(field);
-
-	// Push all possible tokens onto the stack
-	pushTokens(fieldDescr->getPermittedTokens(), true);
 }
 
 void DocumentChildHandler::popDocumentField()
@@ -147,9 +144,6 @@ void DocumentChildHandler::popDocumentField()
 	// Pop the field from the scope, make sure it actually is a DocumentField
 	assert(scope().getLeaf()->isa(&RttiTypes::DocumentField));
 	scope().pop(logger());
-
-	// Pop the registered tokens from the stack
-	popTokens();
 }
 
 void DocumentChildHandler::createPath(const NodeVector<Node> &path,

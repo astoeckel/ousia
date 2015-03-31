@@ -78,10 +78,9 @@ const State &Handler::state() const { return handlerData.state; }
 
 Variant Handler::readData() { return handlerData.callbacks.readData(); }
 
-void Handler::pushTokens(const std::vector<SyntaxDescriptor> &tokens,
-                         bool inherit)
+void Handler::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 {
-	handlerData.callbacks.pushTokens(tokens, inherit);
+	handlerData.callbacks.pushTokens(tokens);
 }
 
 void Handler::popTokens() { handlerData.callbacks.popTokens(); }
