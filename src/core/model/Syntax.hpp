@@ -158,6 +158,29 @@ struct SyntaxDescriptor {
 	}
 
 	/**
+	 * Equality operator, returns true if the two SyntaxDescriptor instances
+	 * are exactly equal.
+	 *
+	 * @param o1 is the first syntax descriptor for the comparison.
+	 * @param o2 is the second syntax descriptor for the comparison.
+	 * @return true if the two syntax descriptors equal, false otherwise.
+	 */
+	friend bool operator==(const SyntaxDescriptor &o1,
+	                       const SyntaxDescriptor &o2);
+
+	/**
+	 * Orders two SyntaxDescriptor instances by their depth, open, close and
+	 * shortForm TokenId and the descriptor pointer. Additionally,
+	 * SyntaxDescriptors belonging to FieldDescriptors are prefered.
+	 *
+	 * @param o1 is the first syntax descriptor for the comparison.
+	 * @param o2 is the second syntax descriptor for the comparison.
+	 * @return true if o1 is should be ordered before o2.
+	 */
+	friend bool operator<(const SyntaxDescriptor &o1,
+	                      const SyntaxDescriptor &o2);
+
+	/**
 	 * Inserts all tokens referenced in this SyntaxDescriptor into the
 	 * given TokenSet. Skips token ids set to Tokens::Empty.
 	 *
