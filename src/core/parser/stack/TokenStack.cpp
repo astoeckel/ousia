@@ -30,6 +30,24 @@ void TokenStack::pushTokens(const std::vector<SyntaxDescriptor> &tokens,
 	stack.push_back(tokens);
 }
 
+TokenDescriptor TokenStack::lookup(TokenId token) const
+{
+	TokenDescriptor res;
+	if (!stack.empty()) {
+		for (const SyntaxDescriptor &descr : stack.back()) {
+			if (descr.close == token) {
+				res.close.emplace_back(descr);
+			}
+			if (descr.shortForm == token) {
+				res.shortForm.emplace_back(descr);
+			}
+			if (descr.open == token) {
+				res.open.emplace_back(descr);
+			}
+		}
+	}
+	return res;
+}
 void TokenStack::popTokens() { stack.pop_back(); }
 
 TokenSet TokenStack::tokens() const

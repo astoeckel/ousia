@@ -38,6 +38,34 @@ namespace ousia {
 namespace parser_stack {
 
 /**
+ * Structure describing a token once it has been found in the text. Contains
+ * lists pointing at the corresponding SyntaxDescriptors for the open, close and
+ * shortForm token types.
+ */
+struct TokenDescriptor {
+	/**
+	 * Vector containing the SyntaxDescriptors in which the token occurs as
+	 * "close" token. The Token is first tried to be processed as a "close"
+	 * token.
+	 */
+	std::vector<SyntaxDescriptor> close;
+
+	/**
+	 * Vector containing the SyntaxDescriptors in which the token occurs as
+	 * "shortForm" token. Creating a "shortForm" of the referenced ontology
+	 * descriptor is tried next.
+	 */
+	std::vector<SyntaxDescriptor> shortForm;
+
+	/**
+	 * Vector containing the SyntaxDescriptors in which the token occurs as
+	 * "open" token. The possibility of using the token in the "open" mode is
+	 * tried in the last step.
+	 */
+	std::vector<SyntaxDescriptor> open;
+};
+
+/**
  * The TokenStack class is used by the Stack class to collect all currently
  * enabled user defined tokens.
  */
@@ -64,6 +92,14 @@ public:
 	 * Removes the previously pushed list of tokens from the stack.
 	 */
 	void popTokens();
+
+	/**
+	 * Returns the TokenDescriptor for the given token.
+	 *
+	 * @param token is the token for which the different forms should be looked
+	 * up.
+	 */
+	TokenDescriptor lookup(TokenId token) const;
 
 	/**
 	 * Returns a set containing all currently enabled tokens. The set of enabled
