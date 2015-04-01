@@ -203,6 +203,7 @@ static bool runTest(test::Logger &logger, const Test &test,
                     const std::string &targetFile)
 {
 	// Parse the infile and dump it as OSXML to a string stream
+	logger.note("Parsing " + test.infile);
 	std::stringstream actual_output;
 	bool res = parseFile(test.infile, actual_output);
 
@@ -361,7 +362,7 @@ int main(int argc, char **argv)
 	size_t successCount = 0;
 	size_t failureCount = 0;
 	for (auto &test : tests) {
-		logger.note("Running test " + test.infile);
+		logger.headline("Test \"" + test.name + "\"");
 
 		// Create the target directory (use CTest folder)
 		fs::path target =
