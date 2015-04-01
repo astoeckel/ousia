@@ -36,6 +36,17 @@ std::string Terminal::color(int color, bool bright) const
 	return ss.str();
 }
 
+std::string Terminal::background(int color) const
+{
+	if (!useColor) {
+		return std::string{};
+	}
+	std::stringstream ss;
+	ss << "\x1b[";
+	ss << (color + 10) << "m";
+	return ss.str();
+}
+
 std::string Terminal::bright() const
 {
 	if (!useColor) {

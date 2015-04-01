@@ -105,6 +105,14 @@ public:
 	std::string color(int color, bool bright = true) const;
 
 	/**
+	 * Returns a control string for switching the background to the given color.
+	 *
+	 * @param color is the background color the terminal should switch to.
+	 * @return a control string to be included in the output stream.
+	 */
+	std::string background(int color) const;
+
+	/**
 	 * Returns a control string for switching to the bright mode.
 	 *
 	 * @return a control string to be included in the output stream.
