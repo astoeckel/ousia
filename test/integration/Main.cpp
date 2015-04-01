@@ -72,9 +72,29 @@ const size_t SUCCESS = 0;
 const size_t ERROR = 1;
 
 /**
+ * Removes the prefix string "prefix" from the given string "s".
+ *
+ * @param s is the string from which the prefix should be removed.
+ * @param prefix is the prefix that should be removed from s.
+ * @return s with the prefix removed.
+ */
+std::string removePrefix(const std::string &s, const std::string &prefix)
+{
+	if (s.size() > prefix.size()) {
+		return s.substr(prefix.size(), s.size() - prefix.size());
+	}
+	return std::string{};
+}
+
+/**
  * Structure representing a single test case.
  */
 struct Test {
+	/**
+	 * Test name.
+	 */
+	std::string name;
+
 	/**
 	 * Input file.
 	 */
@@ -103,21 +123,28 @@ struct Test {
 	/**
 	 * Constructor for a standard test.
 	 *
+	 * @param name is the name of the test.
 	 * @param infile is the input file.
 	 * @param outfile is the output file containing the expected input.
 	 */
-	Test(const std::string &infile, const std::string &outfile)
-	    : infile(infile), outfile(outfile), shouldFail(false), success(false)
+	Test(const std::string &name, const std::string &infile,
+	     const std::string &outfile)
+	    : name(name),
+	      infile(infile),
+	      outfile(outfile),
+	      shouldFail(false),
+	      success(false)
 	{
 	}
 
 	/**
 	 * Constructor for a test with expected failure.
 	 *
+	 * @param name is the name of the test.
 	 * @param infile is the input file.
 	 */
-	Test(const std::string &infile)
-	    : infile(infile), shouldFail(true), success(false)
+	Test(const std::string &name, const std::string &infile)
+	    : name(name), infile(infile), shouldFail(true), success(false)
 	{
 	}
 };
@@ -172,11 +199,19 @@ static bool parseFile(const std::string &infile, std::ostream &os)
 	return true;
 }
 
-static bool runTest(test::Logger &logger, const Test &test)
+static bool runTest(test::Logger &logger, const Test &test,
+                    const std::string &targetFile)
 {
 	// Parse the infile and dump it as OSXML to a string stream
 	std::stringstream actual_output;
 	bool res = parseFile(test.infile, actual_output);
+
+	// Write the actual_output to disk
+	{
+		logger.note("Writing serialized output to " + targetFile);
+		std::ofstream target(targetFile);
+		target << actual_output.str();
+	}
 
 	// If this is a test with expected failure, check whether this failure
 	// occured.
@@ -193,9 +228,6 @@ static bool runTest(test::Logger &logger, const Test &test)
 		logger.fail("Unexpected error while parsing input file");
 		return false;
 	}
-
-	// Write the actual_output to disk
-	
 
 	// Parse both the actual output and the expected output stream
 	std::ifstream expected_output(test.outfile);
@@ -255,33 +287,38 @@ static std::vector<Test> gatherTests(fs::path root)
 				dirs.emplace(p);
 			} else if (fs::is_regular_file(p)) {
 				// Fetch the filename
-				const std::string &fn = p.native();
+				std::string inPath = p.native();
+				std::string testName = p.filename().native();
+				std::string testPath;
 
 				// Check whether the test ends with ".in.osml" or ".in.osxml"
-				std::string testname;
 				bool shouldFail = false;
-				if (Utils::endsWith(fn, ".in.osml")) {
-					testname = fn.substr(0, fn.size() - 8);
-				} else if (Utils::endsWith(fn, ".in.osxml")) {
-					testname = fn.substr(0, fn.size() - 9);
-				} else if (Utils::endsWith(fn, ".fail.osml")) {
-					testname = fn.substr(0, fn.size() - 10);
+				if (Utils::endsWith(inPath, ".in.osml")) {
+					testPath = inPath.substr(0, inPath.size() - 8);
+					testName = testName.substr(0, testName.size() - 8);
+				} else if (Utils::endsWith(inPath, ".in.osxml")) {
+					testPath = inPath.substr(0, inPath.size() - 9);
+					testName = testName.substr(0, testName.size() - 9);
+				} else if (Utils::endsWith(inPath, ".fail.osml")) {
+					testPath = inPath.substr(0, inPath.size() - 10);
+					testName = testName.substr(0, testName.size() - 10);
 					shouldFail = true;
-				} else if (Utils::endsWith(fn, ".fail.osxml")) {
-					testname = fn.substr(0, fn.size() - 11);
+				} else if (Utils::endsWith(inPath, ".fail.osxml")) {
+					testPath = inPath.substr(0, inPath.size() - 11);
+					testName = testName.substr(0, testName.size() - 11);
 					shouldFail = true;
 				}
 
 				// If yes, check whether the same file exists ending with
 				// .out.osxml -- if this is the case, add the resulting test
-				// case to the result
-				if (!testname.empty()) {
+				// case filename the result
+				if (!testPath.empty()) {
 					if (shouldFail) {
-						res.emplace_back(fn);
+						res.emplace_back(testName, testPath);
 					} else {
-						const std::string outFn = testname + ".out.osxml";
-						if (fs::is_regular_file(outFn)) {
-							res.emplace_back(fn, outFn);
+						const std::string outPath = testPath + ".out.osxml";
+						if (fs::is_regular_file(outPath)) {
+							res.emplace_back(testName, inPath, outPath);
 						}
 					}
 				}
@@ -303,7 +340,7 @@ int main(int argc, char **argv)
 	logger.note("(c) Benjamin Paaßen, Andreas Stöckel 2015");
 	logger.note("This program is free software licensed under the GPLv3");
 
-	// Use boost filesystem to recursively iterate over all files
+	// Check whether the root path exists, make it a canonical path
 	fs::path root =
 	    fs::path(SpecialPaths::getDebugTestdataDir()) / "integration";
 	if (!fs::is_directory(root)) {
@@ -311,6 +348,7 @@ int main(int argc, char **argv)
 		            root.native());
 		return ERROR;
 	}
+	root = fs::canonical(root);
 
 	// Fetch all test cases
 	logger.headline("GATHER TESTS");
@@ -318,25 +356,43 @@ int main(int argc, char **argv)
 	std::string testsWord = tests.size() == 1 ? " test" : " tests";
 	logger.note(std::to_string(tests.size()) + testsWord + " found");
 
+	// Run them, count the number of successes and failures
 	logger.headline("RUN TESTS");
 	size_t successCount = 0;
-	size_t failCount = 0;
+	size_t failureCount = 0;
 	for (auto &test : tests) {
 		logger.note("Running test " + test.infile);
-		if (runTest(logger, test)) {
+
+		// Create the target directory (use CTest folder)
+		fs::path target =
+		    fs::path("Testing") / fs::path("Integration") /
+		    removePrefix(fs::path(test.infile).parent_path().native(),
+		                 root.native()) /
+		    (test.name + ".out.osxml");
+		fs::path targetDir = target.parent_path();
+		if (!fs::is_directory(targetDir) &&
+		    !fs::create_directories(targetDir)) {
+			logger.fail("Cannot create or access directory " +
+			            targetDir.native());
+			return ERROR;
+		}
+
+		// Assemble the full target file path
+		if (runTest(logger, test, target.native())) {
 			test.success = true;
 			successCount++;
 		} else {
-			failCount++;
+			failureCount++;
 		}
 	}
 
-	// Write the final error messages
+	// Write the summary
 	logger.headline("TEST SUMMARY");
-	logger.note(std::string("Ran ") + std::to_string(failCount + successCount) +
-	            testsWord + ", " + std::to_string(failCount) + " failed, " +
+	logger.note(std::string("Ran ") +
+	            std::to_string(failureCount + successCount) + testsWord + ", " +
+	            std::to_string(failureCount) + " failed, " +
 	            std::to_string(successCount) + " succeeded");
-	if (failCount > 0) {
+	if (failureCount > 0) {
 		logger.note("The following tests failed:");
 		for (const auto &test : tests) {
 			if (!test.success) {
@@ -348,6 +404,6 @@ int main(int argc, char **argv)
 	}
 
 	// Inform the shell about failing integration tests
-	return failCount > 0 ? ERROR : SUCCESS;
+	return failureCount > 0 ? ERROR : SUCCESS;
 }
 
