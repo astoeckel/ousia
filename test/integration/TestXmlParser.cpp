@@ -179,8 +179,8 @@ static void xmlCharacterDataHandler(void *ref, const XML_Char *s, int len)
 	    *(static_cast<std::shared_ptr<XmlNode> *>(XML_GetUserData(parser)));
 
 	// Store a new text node in the current node
-	std::string text = Utils::trim(std::string(s, len));
-	if (!text.empty()) {
+	std::string text = std::string(s, len);
+	if (Utils::hasNonWhitepaceChar(text)) {
 		std::shared_ptr<XmlNode> textNode =
 		    std::make_shared<XmlNode>(node, "$text");
 		textNode->text = text;
