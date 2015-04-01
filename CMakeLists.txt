@@ -424,6 +424,23 @@ IF(TEST)
 		ousia_xml
 	)
 
+	ADD_EXECUTABLE(ousia_test_integration
+		test/integration/Main
+		test/integration/TestLogger
+		test/integration/TestXmlParser
+	)
+
+	TARGET_LINK_LIBRARIES(ousia_test_integration
+		ousia_core
+		ousia_filesystem
+		ousia_html
+		ousia_xml
+		ousia_osml
+		ousia_osxml
+		${Boost_LIBRARIES}
+		${EXPAT_LIBRARIES}
+	)
+
 	# Register the unit tests
 	ADD_TEST(ousia_test_core ousia_test_core)
 #	ADD_TEST(ousia_test_css ousia_test_css)
@@ -433,6 +450,7 @@ IF(TEST)
 	ADD_TEST(ousia_test_osml ousia_test_osml)
 	ADD_TEST(ousia_test_osxml ousia_test_osxml)
 	ADD_TEST(ousia_test_xml ousia_test_xml)
+#	ADD_TEST(ousia_test_integration ousia_test_integration)
 ENDIF()
 
 ################################################################################
