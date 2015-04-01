@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document xmlns:book="book">
+	<book:book>
+		<book:paragraph>
+			<book:text>== This tests somewhat plays with user defined syntax ==</book:text>
+		</book:paragraph>
+		<book:paragraph>
+			<book:text>As you</book:text>
+			<book:thought/>
+			<book:text>surely</book:text>
+			<book:thought/>
+			<book:text>can see, just the tiny</book:text>
+			<book:code>
+				<book:text>\syntax</book:text>
+			</book:code>
+			<book:text>definitions above make writing documents much easier.</book:text>
+		</book:paragraph>
+		<book:paragraph>
+			<book:text>For instance, this is a new paragraph.</book:text>
+		</book:paragraph>
+		<book:paragraph>
+			<book:text>And here goes another one.</book:text>
+		</book:paragraph>
+		<book:paragraph>
+			<book:text>All with the power of just adding</book:text>
+			<book:code>
+				<book:text>\close{\paragraph}</book:text>
+			</book:code>
+			<book:text>to the</book:text>
+			<book:code>
+				<book:text>\syntax</book:text>
+			</book:code>
+			<book:text>definition of the paragraph structure.</book:text>
+		</book:paragraph>
+		<book:paragraph>
+			<book:speech>
+				<book:text>Well, that&apos;s insane!</book:text>
+			</book:speech>
+			<book:text>, I hear you say. Right so! This indeed is insane.</book:text>
+		</book:paragraph>
+		<book:paragraph>
+			<book:text>== One last thing ==</book:text>
+		</book:paragraph>
+		<book:paragraph>
+			<book:text>Did you notice how we started sections here?</book:text>
+		</book:paragraph>
+		<book:paragraph>
+			<book:text>Sections can be allowed to use Wiki-like syntax with only three lines of code. Awesome!</book:text>
+		</book:paragraph>
+	</book:book>
+</document>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document xmlns:poem="poem">
+	<import rel="ontology" src="/home/andreas/source/ousia-src/testdata/integration/user_defined_syntax/poem.in.osml"/>
+	<poem:poem>
+		<poem:stanza>
+			<poem:line>Among the river sallows, borne aloft</poem:line>
+			<poem:line>Or sinking as the light wind lives or dies;</poem:line>
+			<poem:line>And full-grown lambs loud bleat from hilly bourn;</poem:line>
+			<poem:line>Hedge-crickets sing; and now with treble soft</poem:line>
+			<poem:line>The red-breast whistles from a garden-croft;</poem:line>
+			<poem:line>And gathering swallows twitter in the skies.</poem:line>
+			<poem:line>Season of mists and mellow fruitfulness,</poem:line>
+			<poem:line>Close bosom-friend of the maturing sun;</poem:line>
+			<poem:line>Conspiring with him how to load and bless</poem:line>
+			<poem:line>With fruit the vines that round the thatch-eves run;</poem:line>
+			<poem:line>To bend with apples the moss&apos;d cottage-trees,</poem:line>
+			<poem:line>And fill all fruit with ripeness to the core;</poem:line>
+			<poem:line>To swell the gourd, and plump the hazel shells</poem:line>
+			<poem:line>With a sweet kernel; to set budding more,</poem:line>
+			<poem:line>And still more, later flowers for the bees,</poem:line>
+			<poem:line>Until they think warm days will never cease,</poem:line>
+			<poem:line>For Summer has o&apos;er-brimm&apos;d their clammy cells.</poem:line>
+		</poem:stanza>
+		<poem:stanza>
+			<poem:line>Who hath not seen thee oft amid thy store?</poem:line>
+			<poem:line>Sometimes whoever seeks abroad may find</poem:line>
+			<poem:line>Thee sitting careless on a granary floor,</poem:line>
+			<poem:line>Thy hair soft-lifted by the winnowing wind;</poem:line>
+			<poem:line>Or on a half-reap&apos;d furrow sound asleep,</poem:line>
+			<poem:line>Drows&apos;d with the fume of poppies, while thy hook</poem:line>
+			<poem:line>Spares the next swath and all its twined flowers:</poem:line>
+			<poem:line>And sometimes like a gleaner thou dost keep</poem:line>
+			<poem:line>Steady thy laden head across a brook;</poem:line>
+			<poem:line>Or by a cyder-press, with patient look,</poem:line>
+			<poem:line>Thou watchest the last oozings hours by hours.</poem:line>
+		</poem:stanza>
+		<poem:stanza>
+			<poem:line>Where are the songs of Spring? Ay, where are they?</poem:line>
+			<poem:line>Think not of them, thou hast thy music too,—</poem:line>
+			<poem:line>While barred clouds bloom the soft-dying day,</poem:line>
+			<poem:line>And touch the stubble-plains with rosy hue;</poem:line>
+		</poem:stanza>
+	</poem:poem>
+</document>

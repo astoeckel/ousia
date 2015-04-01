@@ -1,0 +1,62 @@
+\begin{document}
+
+\ontology#book{
+	\struct#book[root=true]
+		\field
+			\childRef[ref=section]
+			\childRef[ref=paragraph]
+	\struct#section
+		\primitive#title[type=string,subtree=true]
+			\syntax
+				\open{==}
+				\close{==}
+		\field
+			\childRef[ref=paragraph]
+	\struct#paragraph[transparent=true]
+		\syntax
+			\close{\paragraph}
+		\field
+			\childRef[ref=text]
+			\childRef[ref=code]
+			\childRef[ref=speech]
+			\childRef[ref=thought]
+	\struct#code
+		\syntax
+			\open{`}
+			\close{`}
+		\field
+			\childRef[ref=text]
+	\struct#speech
+		\syntax
+			\open{<<}
+			\close{>>}
+		\fieldRef[ref=paragraph.$default]
+	\struct#text[transparent=true]
+		\primitive[type=string]
+	\struct#thought
+		\syntax
+			\short{--}
+}
+
+\begin{book}
+== This tests somewhat plays with user defined syntax ==
+
+As you -- surely -- can see, just the tiny `\\syntax` definitions above make writing documents
+much easier.
+
+For instance, this is a new paragraph.
+
+And here goes another one.
+
+All with the power of just adding `\\close\{\\paragraph\}` to the `\\syntax`
+definition of the paragraph structure.
+
+<<Well, that's insane!>>, I hear you say. Right so! This indeed is insane.
+
+== One last thing ==
+
+Did you notice how we started sections here?
+
+Sections can be allowed to use Wiki-like syntax with only three lines of code. Awesome!
+\end{book}
+\end{document}
