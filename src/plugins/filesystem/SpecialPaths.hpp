@@ -72,8 +72,8 @@ public:
 	 * Returns the path to the test data when running a debug build with enabled
 	 * tests.
 	 *
-	 * @return path to the test data when running a debug build, Returns an
-	 * empty string otherwise.
+	 * @return path to the test data when running a debug build. Returns
+	 * "./testdata" otherwise.
 	 */
 	static std::string getDebugTestdataDir();
 };
