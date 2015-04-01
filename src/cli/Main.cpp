@@ -201,20 +201,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-	// TODO: REMOVE diagnostic code.
-	// 	std::cout << "input : " << vm["input"].as<std::string>() << std::endl;
-	// 	std::cout << "output : " << outputPath << std::endl;
-	// 	std::cout << "format : " << vm["format"].as<std::string>() << std::endl;
-	// 	if (vm.count("include")) {
-	// 		std::vector<std::string> includes =
-	// 		    vm["include"].as<std::vector<std::string>>();
-	// 		std::cout << "includes : ";
-	// 		for (auto &i : includes) {
-	// 			std::cout << i << ", ";
-	// 		}
-	// 		std::cout << std::endl;
-	// 	}
-
 	// initialize global instances.
 	Manager manager;
 	Registry registry;
