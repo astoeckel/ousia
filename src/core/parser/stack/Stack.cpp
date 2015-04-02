@@ -978,7 +978,8 @@ bool StackImpl::handleOpenTokens(Logger &logger, const Token &token,
 
 		// If this is not a short form token and the "close" descriptor is
 		// given, mark the current handler as "range" handler
-		if (!shortForm && descr.close != Tokens::Empty) {
+		if (!shortForm && descr.close != Tokens::Empty &&
+		    !Token::isSpecial(descr.close)) {
 			info.closeToken = descr.close;
 			info.tokenDesciptor = descr.descriptor;
 			info.range = true;
