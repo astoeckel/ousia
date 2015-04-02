@@ -2,5 +2,6 @@
 <document xmlns:test="test">
 	<test:a>
 		<test:c/>
+		<test:b/>
 	</test:a>
 </document>
