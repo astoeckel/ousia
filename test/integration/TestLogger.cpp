@@ -23,24 +23,30 @@
 namespace ousia {
 namespace test {
 
-Logger::Logger(std::ostream &os, bool useColor) : os(os), terminal(useColor) {}
+Logger::Logger(std::ostream &os, bool useColor)
+    : os(os), terminal(useColor), first(true)
+{
+}
 
 void Logger::fail(const std::string &msg)
 {
 	os << terminal.color(Terminal::RED, true) << "[Fail]" << terminal.reset()
 	   << " " << msg << std::endl;
+	first = false;
 }
 
 void Logger::success(const std::string &msg)
 {
 	os << terminal.color(Terminal::GREEN, true) << "[Success]"
 	   << terminal.reset() << " " << msg << std::endl;
+	first = false;
 }
 
 void Logger::note(const std::string &msg)
 {
 	os << terminal.color(Terminal::BLUE, true) << "[Note]" << terminal.reset()
 	   << " " << msg << std::endl;
+	first = false;
 }
 
 void Logger::result(std::istream &is, const std::set<int> &errLines)
@@ -59,12 +65,17 @@ void Logger::result(std::istream &is, const std::set<int> &errLines)
 		   << std::setw(3) << lineNumber << ":" << terminal.reset() << " "
 		   << line << std::endl;
 	}
+	first = false;
 }
 
 void Logger::headline(const std::string &msg)
 {
-	os << std::endl << "== " << terminal.bright() << msg << terminal.reset()
+	if (!first) {
+		os << std::endl;
+	}
+	os << "== " << terminal.bright() << msg << terminal.reset()
 	   << " ==" << std::endl;
+	first = false;
 }
 }
 }

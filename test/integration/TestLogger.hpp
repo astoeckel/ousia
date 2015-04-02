@@ -44,6 +44,7 @@ class Logger {
 private:
 	std::ostream &os;
 	Terminal terminal;
+	bool first;
 
 public:
 	Logger(std::ostream &os, bool useColor);
