@@ -247,9 +247,9 @@ static bool runTest(test::Logger &logger, const Test &test,
 	}
 
 	if (!ok) {
-		logger.note("XML returned by serializer:");
+		logger.note("Actual result:");
 		logger.result(actual_output, errActual);
-		logger.note("XML stored in file:");
+		logger.note("Expected result:");
 		logger.result(expected_output, errExpected);
 		return false;
 	}
@@ -341,6 +341,25 @@ int main(int argc, char **argv)
 	logger.note("(c) Benjamin Paaßen, Andreas Stöckel 2015");
 	logger.note("This program is free software licensed under the GPLv3");
 
+	// Parse the arguments
+	std::set<std::string> filter;
+	for (int i = 1; i < argc; i++) {
+		std::string arg(argv[i]);
+		if (arg == "-h" || arg == "--help") {
+			logger.headline("USAGE");
+			logger.note("To execute all tests run:");
+			logger.note("\t\t./ousia_test_integration");
+			logger.note("To execute specific tests run:");
+			logger.note("\t\t./ousia_test_integration [TEST NAMES]");
+			logger.note("To display help run one of:");
+			logger.note("\t\t./ousia_test_integration -h");
+			logger.note("\t\t./ousia_test_integration --help");
+			return SUCCESS;
+		} else {
+			filter.insert(arg);
+		}
+	}
+
 	// Check whether the root path exists, make it a canonical path
 	fs::path root =
 	    fs::path(SpecialPaths::getDebugTestdataDir()) / "integration";
@@ -362,6 +381,11 @@ int main(int argc, char **argv)
 	size_t successCount = 0;
 	size_t failureCount = 0;
 	for (auto &test : tests) {
+		// Filter tests by name
+		if (!filter.empty() && !filter.count(test.name)) {
+			test.success = true;
+			continue;
+		}
 		logger.headline("Test \"" + test.name + "\"");
 
 		// Create the target directory (use CTest folder)
@@ -389,6 +413,8 @@ int main(int argc, char **argv)
 
 	// Write the summary
 	logger.headline("TEST SUMMARY");
+	size_t count = successCount + failureCount;
+	testsWord = count == 1 ? " test" : " tests";
 	logger.note(std::string("Ran ") +
 	            std::to_string(failureCount + successCount) + testsWord + ", " +
 	            std::to_string(failureCount) + " failed, " +
@@ -397,7 +423,7 @@ int main(int argc, char **argv)
 		logger.note("The following tests failed:");
 		for (const auto &test : tests) {
 			if (!test.success) {
-				logger.fail(test.infile);
+				logger.fail(test.name + " (" + test.infile + ")");
 			}
 		}
 	} else {
