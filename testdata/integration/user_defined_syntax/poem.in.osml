@@ -16,9 +16,8 @@
 		\primitive[type=string]
 	\struct#indentation
 		\syntax
-% TODO: Fix this
-%			\open{\indent}
-%			\close{\dedent}
+			\open{\indent}
+			\close{\dedent}
 		\field
 			\childRef[ref=line]
 			\childRef[ref=indentation]
@@ -60,6 +59,5 @@ And sometimes like a gleaner thou dost keep
 Where are the songs of Spring? Ay, where are they?
 	Think not of them, thou hast thy music too,—
 While barred clouds bloom the soft-dying day,
-	And touch the stubble-plains with rosy hue;
-\end{poem}
+	And touch the stubble-plains with rosy hue;\end{poem}
 \end{document}
