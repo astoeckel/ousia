@@ -361,17 +361,22 @@ int main(int argc, char **argv)
 	}
 
 	// Check whether the root path exists, make it a canonical path
+	logger.headline("GATHER TESTS");
 	fs::path root =
 	    fs::path(SpecialPaths::getDebugTestdataDir()) / "integration";
 	if (!fs::is_directory(root)) {
 		logger.fail("Could not find integration test data directory: " +
 		            root.native());
+#ifdef NDEBUG
+		logger.note(
+		    "This is a release build, copy the \"testdata\" folder into the "
+		    "same directory as the executable.");
+#endif
 		return ERROR;
 	}
 	root = fs::canonical(root);
 
 	// Fetch all test cases
-	logger.headline("GATHER TESTS");
 	std::vector<Test> tests = gatherTests(root);
 	std::string testsWord = tests.size() == 1 ? " test" : " tests";
 	logger.note(std::to_string(tests.size()) + testsWord + " found");
