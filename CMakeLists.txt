@@ -21,12 +21,18 @@
 PROJECT(ousia)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7)
 
-# Option for enabling testing. Turn on with 'cmake -DTEST=ON'. Needs gtest to
-# be available in the lib/ folder. Download using the "download_dependencies.sh"
-# script.
+# Option for enabling testing. Turn on with 'cmake -DTEST=ON'. Unit tests need
+# gtest to be available in the lib/ folder. Download using the
+# "download_dependencies.sh" script.
 OPTION(TEST "Build all tests." OFF)
-IF (EXISTS lib/gtest-1.7.0)
+SET(GTEST OFF)
+SET(GTEST_PATH "${PROJECT_SOURCE_DIR}/lib/gtest-1.7.0/")
+IF (TEST AND (NOT EXISTS "${GTEST_PATH}"))
+	MESSAGE(WARNING "Testing has been enabled, but GTest was not found in ${GTEST_PATH}, skipping unit tests")
+ENDIF()
+IF (EXISTS "${GTEST_PATH}")
 	SET(TEST ON)
+	SET(GTEST ON)
 ENDIF()
 
 # Set to ON to install the GtkSourceview highlighter for osml
@@ -100,13 +106,16 @@ ENDIF()
 
 # Unit test handling
 IF(TEST)
-	# Compile gtest
-	ADD_SUBDIRECTORY(lib/gtest-1.7.0)
-
 	# Enable testing and declare some variables used for compiling the test cases
 	ENABLE_TESTING()
-	SET(GTEST_INCLUDE_DIRS ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-	SET(GTEST_LIBRARIES gtest gtest_main)
+
+	# Compile gtest
+	IF(GTEST)
+		ADD_SUBDIRECTORY(lib/gtest-1.7.0)
+		SET(GTEST_INCLUDE_DIRS ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+		SET(GTEST_LIBRARIES gtest gtest_main)
+		SET(GTEST ON)
+	ENDIF()
 ENDIF()
 
 ################################################################################
@@ -290,138 +299,12 @@ TARGET_LINK_LIBRARIES(ousia
 	${Boost_LIBRARIES}
 )
 
-# If testing is enabled, build the unit tests
-IF(TEST)
+# If testing is enabled, build the unit tests and the integration tests
+IF (TEST)
 
+	# Build the integration test framework
 	INCLUDE_DIRECTORIES(
-		${GTEST_INCLUDE_DIRS}
 		test/
-	)
-
-	ADD_EXECUTABLE(ousia_test_core
-		test/core/RangeSetTest
-		test/core/RegistryTest
-		test/core/XMLTest
-		test/core/common/ArgumentTest
-		test/core/common/CharReaderTest
-		test/core/common/FunctionTest
-		test/core/common/LoggerTest
-		test/core/common/PropertyTest
-		test/core/common/RttiTest
-		test/core/common/SourceContextReaderTest
-		test/core/common/VariantConverterTest
-		test/core/common/VariantReaderTest
-		test/core/common/VariantWriterTest
-		test/core/common/VariantTest
-		test/core/common/UtilsTest
-		test/core/frontend/TerminalLoggerTest
-		test/core/managed/ManagedContainerTest
-		test/core/managed/ManagedTest
-		test/core/managed/ManagerTest
-		test/core/managed/VariantObjectTest
-		test/core/model/OntologyTest
-		test/core/model/DocumentTest
-		test/core/model/IndexTest
-		test/core/model/NodeTest
-		test/core/model/StyleTest
-		test/core/model/TypesystemTest
-		test/core/parser/ParserScopeTest
-		test/core/parser/stack/StackTest
-		test/core/parser/stack/StateTest
-		test/core/parser/stack/TokenRegistryTest
-		test/core/parser/stack/TokenStackTest
-		test/core/parser/utils/SourceOffsetVectorTest
-		test/core/parser/utils/TokenizedDataTest
-		test/core/parser/utils/TokenizerTest
-		test/core/parser/utils/TokenTrieTest
-		test/core/resource/ResourceLocatorTest
-		test/core/resource/ResourceRequestTest
-#		test/core/script/FunctionTest
-#		test/core/script/ObjectTest
-#		test/core/script/VariantTest
-	)
-
-	TARGET_LINK_LIBRARIES(ousia_test_core
-		${GTEST_LIBRARIES}
-		ousia_core
-	)
-
-#	ADD_EXECUTABLE(ousia_test_css
-#		test/plugins/css/Tokenizer
-#		test/plugins/css/CodeTokenizerTest
-#		test/plugins/css/CSSParserTest
-#	)
-
-#	TARGET_LINK_LIBRARIES(ousia_test_css
-#		${GTEST_LIBRARIES}
-#		ousia_core
-#		ousia_css
-#	)
-
-	ADD_EXECUTABLE(ousia_test_filesystem
-		test/plugins/filesystem/FileLocatorTest
-	)
-
-	TARGET_LINK_LIBRARIES(ousia_test_filesystem
-		${GTEST_LIBRARIES}
-		ousia_core
-		ousia_filesystem
-	)
-
-	ADD_EXECUTABLE(ousia_test_html
-		test/plugins/html/DemoOutputTest
-	)
-
-	TARGET_LINK_LIBRARIES(ousia_test_html
-		${GTEST_LIBRARIES}
-		ousia_core
-		ousia_filesystem
-		ousia_html
-		ousia_osxml
-	)
-
-#	ADD_EXECUTABLE(ousia_test_mozjs
-#		test/plugins/mozjs/MozJsScriptEngineTest
-#	)
-
-#	TARGET_LINK_LIBRARIES(ousia_test_mozjs
-#		${GTEST_LIBRARIES}
-#		ousia_core
-#		ousia_mozjs
-#	)
-
-	ADD_EXECUTABLE(ousia_test_osml
-		test/formats/osml/OsmlParserTest
-		test/formats/osml/OsmlStreamParserTest
-	)
-
-	TARGET_LINK_LIBRARIES(ousia_test_osml
-		${GTEST_LIBRARIES}
-		ousia_core
-		ousia_filesystem
-		ousia_osml
-	)
-
-	ADD_EXECUTABLE(ousia_test_osxml
-		test/formats/osxml/OsxmlEventParserTest
-		test/formats/osxml/OsxmlParserTest
-	)
-
-	TARGET_LINK_LIBRARIES(ousia_test_osxml
-		${GTEST_LIBRARIES}
-		ousia_core
-		ousia_filesystem
-		ousia_osxml
-	)
-
-	ADD_EXECUTABLE(ousia_test_xml
-		test/plugins/xml/XmlOutputTest
-	)
-
-	TARGET_LINK_LIBRARIES(ousia_test_xml
-		${GTEST_LIBRARIES}
-		ousia_core
-		ousia_xml
 	)
 
 	ADD_EXECUTABLE(ousia_test_integration
@@ -441,16 +324,151 @@ IF(TEST)
 		${EXPAT_LIBRARIES}
 	)
 
-	# Register the unit tests
-	ADD_TEST(ousia_test_core ousia_test_core)
-#	ADD_TEST(ousia_test_css ousia_test_css)
-	ADD_TEST(ousia_test_filesystem ousia_test_filesystem)
-	ADD_TEST(ousia_test_html ousia_test_html)
-#	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
-	ADD_TEST(ousia_test_osml ousia_test_osml)
-	ADD_TEST(ousia_test_osxml ousia_test_osxml)
-	ADD_TEST(ousia_test_xml ousia_test_xml)
-#	ADD_TEST(ousia_test_integration ousia_test_integration)
+	# Register the integration test suite
+	ADD_TEST(ousia_test_integration ousia_test_integration)
+
+	# Build the unit tests if GTEST had been found
+	IF (GTEST)
+		INCLUDE_DIRECTORIES(
+			${GTEST_INCLUDE_DIRS}
+		)
+
+		ADD_EXECUTABLE(ousia_test_core
+			test/core/RangeSetTest
+			test/core/RegistryTest
+			test/core/XMLTest
+			test/core/common/ArgumentTest
+			test/core/common/CharReaderTest
+			test/core/common/FunctionTest
+			test/core/common/LoggerTest
+			test/core/common/PropertyTest
+			test/core/common/RttiTest
+			test/core/common/SourceContextReaderTest
+			test/core/common/VariantConverterTest
+			test/core/common/VariantReaderTest
+			test/core/common/VariantWriterTest
+			test/core/common/VariantTest
+			test/core/common/UtilsTest
+			test/core/frontend/TerminalLoggerTest
+			test/core/managed/ManagedContainerTest
+			test/core/managed/ManagedTest
+			test/core/managed/ManagerTest
+			test/core/managed/VariantObjectTest
+			test/core/model/OntologyTest
+			test/core/model/DocumentTest
+			test/core/model/IndexTest
+			test/core/model/NodeTest
+			test/core/model/StyleTest
+			test/core/model/TypesystemTest
+			test/core/parser/ParserScopeTest
+			test/core/parser/stack/StackTest
+			test/core/parser/stack/StateTest
+			test/core/parser/stack/TokenRegistryTest
+			test/core/parser/stack/TokenStackTest
+			test/core/parser/utils/SourceOffsetVectorTest
+			test/core/parser/utils/TokenizedDataTest
+			test/core/parser/utils/TokenizerTest
+			test/core/parser/utils/TokenTrieTest
+			test/core/resource/ResourceLocatorTest
+			test/core/resource/ResourceRequestTest
+	#		test/core/script/FunctionTest
+	#		test/core/script/ObjectTest
+	#		test/core/script/VariantTest
+		)
+
+		TARGET_LINK_LIBRARIES(ousia_test_core
+			${GTEST_LIBRARIES}
+			ousia_core
+		)
+
+	#	ADD_EXECUTABLE(ousia_test_css
+	#		test/plugins/css/Tokenizer
+	#		test/plugins/css/CodeTokenizerTest
+	#		test/plugins/css/CSSParserTest
+	#	)
+
+	#	TARGET_LINK_LIBRARIES(ousia_test_css
+	#		${GTEST_LIBRARIES}
+	#		ousia_core
+	#		ousia_css
+	#	)
+
+		ADD_EXECUTABLE(ousia_test_filesystem
+			test/plugins/filesystem/FileLocatorTest
+		)
+
+		TARGET_LINK_LIBRARIES(ousia_test_filesystem
+			${GTEST_LIBRARIES}
+			ousia_core
+			ousia_filesystem
+		)
+
+		ADD_EXECUTABLE(ousia_test_html
+			test/plugins/html/DemoOutputTest
+		)
+
+		TARGET_LINK_LIBRARIES(ousia_test_html
+			${GTEST_LIBRARIES}
+			ousia_core
+			ousia_filesystem
+			ousia_html
+			ousia_osxml
+		)
+
+	#	ADD_EXECUTABLE(ousia_test_mozjs
+	#		test/plugins/mozjs/MozJsScriptEngineTest
+	#	)
+
+	#	TARGET_LINK_LIBRARIES(ousia_test_mozjs
+	#		${GTEST_LIBRARIES}
+	#		ousia_core
+	#		ousia_mozjs
+	#	)
+
+		ADD_EXECUTABLE(ousia_test_osml
+			test/formats/osml/OsmlParserTest
+			test/formats/osml/OsmlStreamParserTest
+		)
+
+		TARGET_LINK_LIBRARIES(ousia_test_osml
+			${GTEST_LIBRARIES}
+			ousia_core
+			ousia_filesystem
+			ousia_osml
+		)
+
+		ADD_EXECUTABLE(ousia_test_osxml
+			test/formats/osxml/OsxmlEventParserTest
+			test/formats/osxml/OsxmlParserTest
+		)
+
+		TARGET_LINK_LIBRARIES(ousia_test_osxml
+			${GTEST_LIBRARIES}
+			ousia_core
+			ousia_filesystem
+			ousia_osxml
+		)
+
+		ADD_EXECUTABLE(ousia_test_xml
+			test/plugins/xml/XmlOutputTest
+		)
+
+		TARGET_LINK_LIBRARIES(ousia_test_xml
+			${GTEST_LIBRARIES}
+			ousia_core
+			ousia_xml
+		)
+
+		# Register the unit tests
+		ADD_TEST(ousia_test_core ousia_test_core)
+	#	ADD_TEST(ousia_test_css ousia_test_css)
+		ADD_TEST(ousia_test_filesystem ousia_test_filesystem)
+		ADD_TEST(ousia_test_html ousia_test_html)
+	#	ADD_TEST(ousia_test_mozjs ousia_test_mozjs)
+		ADD_TEST(ousia_test_osml ousia_test_osml)
+		ADD_TEST(ousia_test_osxml ousia_test_osxml)
+		ADD_TEST(ousia_test_xml ousia_test_xml)
+	ENDIF()
 ENDIF()
 
 ################################################################################
