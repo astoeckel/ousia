@@ -161,9 +161,10 @@ private:
 	uint16_t currentIndentation;
 
 	/**
-	 * Last indentation level.
+	 * List containing the indentation levels at which a "INDENT" token was
+	 * issued. This list is used to issue the right count of "DEDENT" tokens.
 	 */
-	uint16_t lastIndentation;
+	std::vector<uint16_t> indentationLevels;
 
 	/**
 	 * Number of linebreaks without any content between them.
@@ -280,14 +281,19 @@ public:
 		if (!isWhitespace && numLinebreaks > 0) {
 			// Issue a larger indentation than that in the previous line as
 			// "Indent" token
+			size_t lastIndentation =
+			    indentationLevels.empty() ? 0 : indentationLevels.back();
 			if (currentIndentation > lastIndentation) {
+				indentationLevels.push_back(currentIndentation);
 				mark(Tokens::Indent, size - 1, 0, true);
 			}
 
 			// Issue a smaller indentation than that in the previous line as
 			// "Dedent" token
-			if (currentIndentation < lastIndentation) {
-				mark(Tokens::Dedent, size - 1, 0, true);
+			while (!indentationLevels.empty() &&
+			       currentIndentation < indentationLevels.back()) {
+				indentationLevels.pop_back();
+				mark(Tokens::Dedent, firstLinebreak, 0, true);
 			}
 
 			// Reset the internal state machine
@@ -451,7 +457,7 @@ public:
 		marks.clear();
 		firstLinebreak = 0;
 		currentIndentation = 0;
-		lastIndentation = 0;
+		indentationLevels.clear();
 		numLinebreaks = 1;  // Assume the stream starts with a linebreak
 		sorted = true;
 	}
