@@ -81,7 +81,6 @@ static const int STATE_WHITESPACE = 5;
 static const int STATE_RESYNC = 6;
 static const int STATE_EXPECT_COMMA = 7;
 static const int STATE_HAS_KEY = 8;
-static const int STATE_HAS_START = 9;
 
 /* Helper function for parsing arrays or objects */
 
