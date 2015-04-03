@@ -645,7 +645,7 @@ public:
 	using const_iterator = typename Base::const_iterator;
 	using size_type = typename Base::size_type;
 
-	using Base::ManagedContainer;
+	using Base::Base;
 	using Base::erase;
 	using Base::insert;
 
