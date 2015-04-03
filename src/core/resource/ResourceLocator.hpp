@@ -236,6 +236,12 @@ protected:
 	 */
 	std::unique_ptr<std::istream> doStream(
 	    const std::string &location) const override;
+
+public:
+	/**
+	 * Default constructor.
+	 */
+	NullResourceLocatorImpl() {}
 };
 
 /**
