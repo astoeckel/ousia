@@ -324,9 +324,6 @@ IF (TEST)
 		${EXPAT_LIBRARIES}
 	)
 
-	# Register the integration test suite
-	ADD_TEST(ousia_test_integration ousia_test_integration)
-
 	# Build the unit tests if GTEST had been found
 	IF (GTEST)
 		INCLUDE_DIRECTORIES(
@@ -469,6 +466,9 @@ IF (TEST)
 		ADD_TEST(ousia_test_osxml ousia_test_osxml)
 		ADD_TEST(ousia_test_xml ousia_test_xml)
 	ENDIF()
+
+	# Register the integration test suite
+	ADD_TEST(ousia_test_integration ousia_test_integration)
 ENDIF()
 
 ################################################################################
