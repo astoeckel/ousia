@@ -252,7 +252,7 @@ static void xmlStartElementHandler(void *ref, const XML_Char *name,
 		value.second.setLocation(keyLoc);
 
 		// Store the keys in the map
-		args.emplace(key, value.second).second;
+		args.emplace(key, value.second);
 	}
 
 	// Fetch the name of the tag, check for special tags
