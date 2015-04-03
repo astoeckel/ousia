@@ -55,7 +55,8 @@ using StateSet = std::unordered_set<const State *>;
  * Class used for the complete specification of a State. Stores possible
  * parent states, state handlers and arguments to be passed to that state.
  */
-struct State {
+class State {
+public:
 	/**
 	 * Vector containing all possible parent states.
 	 */
