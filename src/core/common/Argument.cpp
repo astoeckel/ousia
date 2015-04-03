@@ -307,7 +307,7 @@ bool Arguments::validateMap(Variant::mapType &map, Logger &logger,
 			// Read the numeric index
 			try {
 				size_t i = stoul(key.substr(1));
-				if (i >= 0 && i < arguments.size()) {
+				if (i < arguments.size()) {
 					idx = i;
 					keyReplacements.emplace(key, arguments[i].getName());
 				} else {
