@@ -5,14 +5,14 @@
 			<math:field>
 				<math:sum>
 					<math:limits>
-						<math:lowerLimits>
+						<math:lowerLimit>
 							<math:text>i</math:text>
 							<math:equals/>
 							<math:number>3</math:number>
-						</math:lowerLimits>
-						<math:upperLimits>
+						</math:lowerLimit>
+						<math:upperLimit>
 							<math:number>5</math:number>
-						</math:upperLimits>
+						</math:upperLimit>
 					</math:limits>
 				</math:sum>
 				<math:text>i</math:text>

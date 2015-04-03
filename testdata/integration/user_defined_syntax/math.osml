@@ -208,14 +208,14 @@
 		\primitive[type=string]
 	\struct#limits[transparent=true]
 		\field
-			\childRef[ref=lowerLimits]
-			\childRef[ref=upperLimits]
-	\struct#lowerLimits[cardinality={0,1}]
+			\childRef[ref=lowerLimit]
+			\childRef[ref=upperLimit]
+	\struct#lowerLimit[cardinality={0,1}]
 		\syntax
 			\short{_}
 		\field
 			\childRef[ref=primitive]
-	\struct#upperLimits[cardinality={0,1}]
+	\struct#upperLimit[cardinality={0,1}]
 		\syntax
 			\short{^}
 		\field
