@@ -76,8 +76,11 @@ enum class VariantType : uint8_t {
  * was found in 8 Bytes.
  */
 struct VariantMetadata {
-	union {
-		struct {
+	/**
+	 * Structure holding the actual metadata.
+	 */
+	struct Meta {
+
 			/**
 			 * Field used to store the type of a Variant (4 Bit, space for 16
 			 * objects).
@@ -100,7 +103,13 @@ struct VariantMetadata {
 			 * Unique id of the file from which the variant was parsed.
 			 */
 			uint16_t locationSourceId : 16;  // 65.000 Source files
-		} data;
+	};
+
+	union {
+		/**
+		 * The actual metadata.
+		 */
+		Meta data;
 
 		/**
 		 * The metadata as 64 Bit value.
