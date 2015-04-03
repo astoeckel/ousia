@@ -296,12 +296,6 @@ static LoggableException buildInvalidCommandException(
 class StackImpl : public HandlerCallbacks {
 private:
 	/**
-	 * Reference at an implementation of the ParserCallbacks instance to which
-	 * certain handler callbacks are directed.
-	 */
-	ParserCallbacks &parser;
-
-	/**
 	 * Reference at the parser context.
 	 */
 	ParserContext &ctx;
@@ -546,11 +540,7 @@ public:
 
 StackImpl::StackImpl(ParserCallbacks &parser, ParserContext &ctx,
                      const std::multimap<std::string, const State *> &states)
-    : parser(parser),
-      ctx(ctx),
-      states(states),
-      tokenRegistry(parser),
-      dataReader(nullptr)
+    : ctx(ctx), states(states), tokenRegistry(parser), dataReader(nullptr)
 {
 	// If the scope instance is not empty we need to deduce the current parser
 	// state
