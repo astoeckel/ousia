@@ -163,7 +163,8 @@ public:
 Tokenizer::Tokenizer() : nextTokenId(0) {}
 
 template <bool tRead>
-bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
+bool Tokenizer::next(CharReader &reader, Token &token,
+                     TokenizedData &data) const
 {
 	// If we're in the read mode, reset the char reader peek position to the
 	// current read position
@@ -214,7 +215,6 @@ bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
 			}
 		}
 
-
 		// If a token has been found and the token is a primary token, check
 		// whether we have to abort, otherwise if we have a non-primary match,
 		// reset it once it can no longer be advanced
@@ -228,7 +228,6 @@ bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
 
 		// Record all incomming characters
 		data.append(c, charStart, charEnd);
-
 
 		// Swap the lookups and the nextLookups list
 		lookups = std::move(nextLookups);
@@ -278,12 +277,14 @@ bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
 	return bestMatch.hasMatch();
 }
 
-bool Tokenizer::read(CharReader &reader, Token &token, TokenizedData &data)
+bool Tokenizer::read(CharReader &reader, Token &token,
+                     TokenizedData &data) const
 {
 	return next<true>(reader, token, data);
 }
 
-bool Tokenizer::peek(CharReader &reader, Token &token, TokenizedData &data)
+bool Tokenizer::peek(CharReader &reader, Token &token,
+                     TokenizedData &data) const
 {
 	return next<false>(reader, token, data);
 }
@@ -349,7 +350,9 @@ const Tokenizer::TokenDescriptor &Tokenizer::lookupToken(TokenId id) const
 
 /* Explicitly instantiate all possible instantiations of the "next" member
    function */
-template bool Tokenizer::next<false>(CharReader &, Token &, TokenizedData &);
-template bool Tokenizer::next<true>(CharReader &, Token &, TokenizedData &);
+template bool Tokenizer::next<false>(CharReader &, Token &,
+                                     TokenizedData &) const;
+template bool Tokenizer::next<true>(CharReader &, Token &,
+                                    TokenizedData &) const;
 }
 

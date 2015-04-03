@@ -124,7 +124,7 @@ private:
 	 * @return false if the end of the stream has been reached, true otherwise.
 	 */
 	template <bool read>
-	bool next(CharReader &reader, Token &token, TokenizedData &data);
+	bool next(CharReader &reader, Token &token, TokenizedData &data) const;
 
 public:
 	/**
@@ -181,7 +181,7 @@ public:
 	 * @return true if a token could be read, false if the end of the stream
 	 * has been reached.
 	 */
-	bool read(CharReader &reader, Token &token, TokenizedData &data);
+	bool read(CharReader &reader, Token &token, TokenizedData &data) const;
 
 	/**
 	 * The peek method does not advance the read position of the char reader,
@@ -196,7 +196,7 @@ public:
 	 * @return true if a token could be read, false if the end of the stream
 	 * has been reached.
 	 */
-	bool peek(CharReader &reader, Token &token, TokenizedData &data);
+	bool peek(CharReader &reader, Token &token, TokenizedData &data) const;
 };
 }
 
