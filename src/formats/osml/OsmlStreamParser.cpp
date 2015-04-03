@@ -35,47 +35,6 @@ namespace ousia {
 
 namespace {
 /**
- * Osml format default tokenizer. Registers the primary tokens in its
- * constructor. A single, static instance of this class is created as
- * "OsmlTokens", which is copied to the Tokenizer instance of
- * OsmlStreamParserImpl.
- */
-class OsmlFormatTokens : public Tokenizer {
-public:
-	TokenId Backslash;
-	TokenId LineComment;
-	TokenId BlockCommentStart;
-	TokenId BlockCommentEnd;
-	TokenId FieldStart;
-	TokenId FieldEnd;
-	TokenId DefaultFieldStart;
-	TokenId AnnotationStart;
-	TokenId AnnotationEnd;
-
-	/**
-	 * Registers the plain format tokens in the internal tokenizer.
-	 */
-	OsmlFormatTokens()
-	{
-		Backslash = registerToken("\\");
-		LineComment = registerToken("%");
-		BlockCommentStart = registerToken("%{");
-		BlockCommentEnd = registerToken("}%");
-		FieldStart = registerToken("{");
-		FieldEnd = registerToken("}");
-		DefaultFieldStart = registerToken("{!");
-		AnnotationStart = registerToken("<\\");
-		AnnotationEnd = registerToken("\\>");
-	}
-};
-
-/**
- * Instance of OsmlFormatTokens used to initialize the internal tokenizer
- * instance of OsmlStreamParserImpl.
- */
-static const OsmlFormatTokens OsmlTokens;
-
-/**
  * Structure representing a field.
  */
 struct Field {
@@ -273,6 +232,26 @@ public:
 
 private:
 	/**
+	 * Structure holding all internally used token ids.
+	 */
+	struct OsmlTokens {
+		TokenId backslash;
+		TokenId lineComment;
+		TokenId blockCommentStart;
+		TokenId blockCommentEnd;
+		TokenId fieldStart;
+		TokenId fieldEnd;
+		TokenId defaultFieldStart;
+		TokenId annotationStart;
+		TokenId annotationEnd;
+	};
+
+	/**
+	 * Internally used tokens.
+	 */
+	OsmlTokens tokens;
+
+	/**
 	 * Reference to the CharReader instance from which the incomming bytes are
 	 * read.
 	 */
@@ -424,9 +403,17 @@ public:
 OsmlStreamParserImpl::OsmlStreamParserImpl(CharReader &reader, Logger &logger)
     : reader(reader),
       logger(logger),
-      tokenizer(OsmlTokens),
       data(reader.getSourceId())
 {
+	tokens.backslash = tokenizer.registerToken("\\");
+	tokens.lineComment = tokenizer.registerToken("%");
+	tokens.blockCommentStart = tokenizer.registerToken("%{");
+	tokens.blockCommentEnd = tokenizer.registerToken("}%");
+	tokens.fieldStart = tokenizer.registerToken("{");
+	tokens.fieldEnd = tokenizer.registerToken("}");
+	tokens.defaultFieldStart = tokenizer.registerToken("{!");
+	tokens.annotationStart = tokenizer.registerToken("<\\");
+	tokens.annotationEnd = tokenizer.registerToken("\\>");
 	commands.emplace("", Variant::mapType{}, true);
 }
 
@@ -721,13 +708,13 @@ void OsmlStreamParserImpl::parseBlockComment()
 		// Throw the comment data away
 		commentData.clear();
 
-		if (token.id == OsmlTokens.BlockCommentEnd) {
+		if (token.id == tokens.blockCommentEnd) {
 			depth--;
 			if (depth == 0) {
 				return;
 			}
 		}
-		if (token.id == OsmlTokens.BlockCommentStart) {
+		if (token.id == tokens.blockCommentStart) {
 			depth++;
 		}
 	}
@@ -784,8 +771,8 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 		const TokenId type = token.id;
 
 		// Special handling for Backslash and Text
-		if (type == OsmlTokens.Backslash ||
-		    type == OsmlTokens.AnnotationStart) {
+		if (type == tokens.backslash ||
+		    type == tokens.annotationStart) {
 			// Check whether a command starts now, without advancing the peek
 			// cursor
 			char c;
@@ -804,7 +791,7 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 
 				// Parse the actual command
 				State res = parseCommand(token.location.getStart(),
-				                         type == OsmlTokens.AnnotationStart);
+				                         type == tokens.annotationStart);
 				switch (res) {
 					case State::IRRECOVERABLE_ERROR:
 						throw LoggableException(
@@ -826,7 +813,7 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 			// output
 			SourceOffset charStart = token.location.getStart();
 			SourceOffset charEnd = reader.getPeekOffset();
-			if (type == OsmlTokens.AnnotationStart) {
+			if (type == tokens.annotationStart) {
 				data.append('<', charStart, charStart + 1);
 				charStart = charStart + 1;
 			}
@@ -838,11 +825,11 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 		} else if (type == Tokens::Data) {
 			reader.consumePeek();
 			continue;
-		} else if (type == OsmlTokens.LineComment) {
+		} else if (type == tokens.lineComment) {
 			reader.consumePeek();
 			parseLineComment();
 			continue;
-		} else if (type == OsmlTokens.BlockCommentStart) {
+		} else if (type == tokens.blockCommentStart) {
 			reader.consumePeek();
 			parseBlockComment();
 			continue;
@@ -860,10 +847,10 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 		// Synchronize the location with the current token location
 		location = token.location;
 
-		if (token.id == OsmlTokens.FieldStart) {
+		if (token.id == tokens.fieldStart) {
 			cmd().pushField(false, token.location);
 			return State::FIELD_START;
-		} else if (token.id == OsmlTokens.FieldEnd) {
+		} else if (token.id == tokens.fieldEnd) {
 			// Remove all commands from the list that currently are not in any
 			// field
 			while (!cmd().inField()) {
@@ -879,10 +866,10 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 			logger.error(
 			    "Got field end token \"}\", but there is no field to end.",
 			    token);
-		} else if (token.id == OsmlTokens.DefaultFieldStart) {
+		} else if (token.id == tokens.defaultFieldStart) {
 			cmd().pushField(true, token.location);
 			return State::FIELD_START;
-		} else if (token.id == OsmlTokens.AnnotationEnd) {
+		} else if (token.id == tokens.annotationEnd) {
 			// We got a single annotation end token "\>" -- simply issue the
 			// ANNOTATION_END event
 			Variant annotationName = Variant::fromString("");
