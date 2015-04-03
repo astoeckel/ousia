@@ -3,7 +3,7 @@
 
  This file is part of GtkSourceView
 
- Authors: Andreas Stöckel, Benjamin Paaßen
+ Author: Andreas Stöckel
  Copyright (C) 2015 Andreas Stöckel <astoecke@techfak.uni-bielefeld.de>
 
  GtkSourceView is free software; you can redistribute it and/or
@@ -34,64 +34,120 @@
     <style id="common-commands" _name="Command" map-to="latex:common-commands"/>
     <style id="command" _name="Command" map-to="latex:command"/>
     <style id="name" _name="Name" map-to="def:identifier"/>
+    <style id="string" _name="String" map-to="def:string"/>
+    <style id="attribute-name" _name="Attribute name" map-to="def:identifier"/>
+    <style id="boolean" _name="Boolean Value" map-to="def:boolean"/>
+    <style id="type" _name="Data Type" map-to="def:type"/>
   </styles>
   <definitions>
     <!-- An ousia command -->
-    <define-regex id="identifier">[a-zA-z][a-zA-z_-]*</define-regex>
+    <define-regex id="identifier">[a-zA-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])?</define-regex>
     <define-regex id="identifierWithNS">\%{identifier}(:\%{identifier})*</define-regex>
     <define-regex id="command">(?P&lt;command_cmd&gt;\\\%{identifierWithNS})(?P&lt;command_name&gt;#\%{identifier})?</define-regex>
     <define-regex id="begin_command">(?P&lt;begin&gt;\\begin){(?P&lt;begin_cmd&gt;\%{identifierWithNS})(?P&lt;begin_name&gt;#\%{identifier})?}</define-regex>
     <define-regex id="end_command">(?P&lt;end&gt;\\end){(?P&lt;end_cmd&gt;\%{identifierWithNS})}</define-regex>
-    <define-regex id="builtin">\\(begin|end|import|include)</define-regex>
+    <define-regex id="builtin">\\(import|include)</define-regex>
+
+    <!-- Any command -->
+    <context id="command" class="no-spell-check">
+      <match>\%{command}</match>
+      <include>
+        <context sub-pattern="command_cmd" style-ref="command"/>
+        <context sub-pattern="command_name" style-ref="name"/>
+      </include>
+    </context>
+
+    <!-- Begin command -->
+    <context id="begin-command" class="no-spell-check">
+      <match>\%{begin_command}</match>
+      <include>
+        <context sub-pattern="begin" style-ref="common-commands"/>
+        <context sub-pattern="begin_cmd" style-ref="command"/>
+        <context sub-pattern="begin_name" style-ref="name"/>
+      </include>
+    </context>
+
+    <!-- End command -->
+    <context id="end-command" class="no-spell-check">
+      <match>\%{end_command}</match>
+      <include>
+        <context sub-pattern="end" style-ref="common-commands"/>
+        <context sub-pattern="end_cmd" style-ref="command"/>
+      </include>
+    </context>
+
+    <!-- Argument lists (maps/arrays) -->
+    <context id="map">
+      <start>\[</start>
+      <end>\]</end>
+      <include>
+        <context ref="map"/>
+        <context ref="map-key"/>
+        <context ref="def:string" style-ref="string"/>
+        <context ref="def:single-quoted-string" style-ref="string"/>
+        <context ref="def:float"/>
+        <context ref="def:decimal"/>
+        <context ref="def:hexadecimal"/>
+        <context ref="boolean"/>
+        <context ref="type"/>
+        <context ref="cardinality"/>
+      </include>
+    </context>
+
+    <context id="map-key" style-ref="attribute-name" class="no-spell-check">
+      <match>\%{identifier}\s*=</match>
+    </context>
+
+    <context id="boolean" style-ref="boolean">
+      <keyword>false</keyword>
+      <keyword>true</keyword>
+    </context>
+
+    <context id="type" style-ref="type">
+      <keyword>int</keyword>
+      <keyword>double</keyword>
+      <keyword>string</keyword>
+      <keyword>bool</keyword>
+    </context>
+
+    <context id="cardinality">
+      <start>{</start>
+      <end>}</end>
+      <include>
+        <context ref="def:decimal"/>
+      </include>
+    </context>
+
+    <!-- Keywords -->
+    <context id="common-commands" style-ref="common-commands" class="no-spell-check">
+      <match>\%{builtin}</match>
+    </context>
+
+    <!-- Multiline comments -->
+    <context id="comment-multiline" style-ref="comment">
+      <start>%{</start>
+      <end>}%</end>
+      <include>
+        <context ref="comment-multiline"/>
+      </include>
+    </context>
+
+    <!-- Single line comments -->
+    <context id="comment" style-ref="comment">
+      <start>%</start>
+      <end>$</end>
+    </context>
+
+    <!-- Main context -->
     <context id="ousia">
       <include>
-        <!-- Begin command -->
-        <context id="begin-command" class="no-spell-check">
-          <match>\%{begin_command}</match>
-          <include>
-            <context sub-pattern="begin" style-ref="common-commands"/>
-            <context sub-pattern="begin_cmd" style-ref="command"/>
-            <context sub-pattern="begin_name" style-ref="name"/>
-          </include>
-        </context>
-
-        <!-- End command -->
-        <context id="end-command" class="no-spell-check">
-          <match>\%{end_command}</match>
-          <include>
-            <context sub-pattern="end" style-ref="common-commands"/>
-            <context sub-pattern="end_cmd" style-ref="command"/>
-          </include>
-        </context>
-
-        <!-- Keywords -->
-        <context id="common-commands" style-ref="common-commands" class="no-spell-check">
-          <match>\%{builtin}</match>
-        </context>
-
-        <!-- Any command -->
-        <context id="command" class="no-spell-check">
-          <match>\%{command}</match>
-          <include>
-            <context sub-pattern="command_cmd" style-ref="command"/>
-            <context sub-pattern="command_name" style-ref="name"/>
-          </include>
-        </context>
-
-      	<!-- Multiline comments -->
-        <context id="comment-multiline" style-ref="comment">
-          <start>%{</start>
-          <end>}%</end>
-          <include>
-            <context ref="comment-multiline"/>
-          </include>
-        </context>
-
-        <!-- Single line comments -->
-        <context id="comment" style-ref="comment">
-          <start>%</start>
-          <end>$</end>
-        </context>
+        <context ref="begin-command"/>
+        <context ref="end-command"/>
+        <context ref="common-commands"/>
+        <context ref="command"/>
+        <context ref="comment"/>
+        <context ref="comment-multiline"/>
+        <context ref="map"/>
       </include>
     </context>
   </definitions>
