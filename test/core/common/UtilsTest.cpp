@@ -31,6 +31,7 @@ TEST(Utils, isIdentifier)
 	EXPECT_FALSE(Utils::isIdentifier("0t-_EST"));
 	EXPECT_FALSE(Utils::isIdentifier("_A"));
 	EXPECT_FALSE(Utils::isIdentifier("invalid key"));
+	EXPECT_FALSE(Utils::isIdentifier("A_"));
 	EXPECT_FALSE(Utils::isIdentifier(""));
 }
 

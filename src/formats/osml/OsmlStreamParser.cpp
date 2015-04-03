@@ -441,7 +441,15 @@ Variant OsmlStreamParserImpl::parseIdentifier(size_t start, bool allowNSSep)
 		// Abort if this character is not a valid identifer character
 		if ((first && Utils::isIdentifierStartCharacter(c)) ||
 		    (!first && Utils::isIdentifierCharacter(c))) {
-			identifier.push_back(c);
+			if (Utils::isIdentifierEndCharacter(c) ||
+			    (reader.fetchPeek(c2) && Utils::isIdentifierCharacter(c2))) {
+				identifier.push_back(c);
+			} else {
+				// Break if a non-identifier-end character is reached and the
+				// next character is a non-identifer character
+				reader.resetPeek();
+				break;
+			}
 		} else if (c == ':' && hasCharSinceNSSep && reader.fetchPeek(c2) &&
 		           Utils::isIdentifierStartCharacter(c2)) {
 			identifier.push_back(c);

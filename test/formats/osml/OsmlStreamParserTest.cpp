@@ -1435,5 +1435,35 @@ TEST(OsmlStreamParser, userDefinedTokens)
 	assertText(reader, " said.", tokens, WhitespaceMode::PRESERVE, 34, 40);
 	assertEnd(reader);
 }
+
+TEST(OsmlStreamParser, commandWithUnderscoreAndEnd)
+{
+	const char *testString = "\\sum_";
+	//                         01234
+	//                         0
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser parser(charReader, logger);
+
+	assertCommandStart(parser, "sum", false, Variant::mapType{}, 0, 4);
+	assertData(parser, "_", 4, 5);
+	assertEnd(parser);
+}
+
+TEST(OsmlStreamParser, commandWithUnderscore)
+{
+	const char *testString = "\\sum_ a";
+	//                         0123456
+	//                         0
+
+	CharReader charReader(testString);
+
+	OsmlStreamParser parser(charReader, logger);
+
+	assertCommandStart(parser, "sum", false, Variant::mapType{}, 0, 4);
+	assertData(parser, "_ a", 4, 7);
+	assertEnd(parser);
+}
 }
 

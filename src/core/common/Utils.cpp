@@ -36,7 +36,7 @@ bool Utils::isIdentifier(const std::string &name)
 		}
 		first = false;
 	}
-	return !first;
+	return !first && isIdentifierEndCharacter(name.back());
 }
 
 bool Utils::isIdentifierOrEmpty(const std::string &name)

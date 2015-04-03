@@ -66,6 +66,14 @@ public:
 	}
 
 	/**
+	 * Returns true if the given character is in [A-Za-z0-9].
+	 */
+	static bool isIdentifierEndCharacter(const char c)
+	{
+		return isAlphanumeric(c);
+	}
+
+	/**
 	 * Returns true if the given character is in [A-Za-z0-9_-].
 	 */
 	static bool isIdentifierCharacter(const char c)
