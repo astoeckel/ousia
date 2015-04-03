@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <document xmlns:poem="poem">
-	<import rel="ontology" src="/home/andreas/source/ousia-src/testdata/integration/user_defined_syntax/poem.in.osml"/>
 	<poem:poem>
 		<poem:stanza>
 			<poem:line>Among the river sallows, borne aloft</poem:line>
