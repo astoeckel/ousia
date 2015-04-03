@@ -137,7 +137,7 @@ public:
 			return res;
 		}
 
-		// Check whether the new node represents a complete token a whether it
+		// Check whether the new node represents a complete token and whether it
 		// is longer than the current token. If yes, replace the current token.
 		node = it->second.get();
 		if (node->id != Tokens::Empty) {
