@@ -52,16 +52,16 @@
 	}%
 	\struct#sum[isa=primitive]
 		\field
-			\childRef[ref=range]
+			\childRef[ref=limits]
 	\struct#prod[isa=primitive]
 		\field
-			\childRef[ref=range]
+			\childRef[ref=limits]
 	\struct#int[isa=primitive]
 		\field
-			\childRef[ref=range]
+			\childRef[ref=limits]
 	\struct#iint[isa=primitive]
 		\field
-			\childRef[ref=range]
+			\childRef[ref=limits]
 	\struct#frac[isa=primitive]
 		\field#denominator[subtree=true,optional=false]
 			\childRef[ref=primitive]
@@ -206,16 +206,16 @@
 		\primitive[type=int]
 	\struct#text[isa=primitive,transparent=true]
 		\primitive[type=string]
-	\struct#range[transparent=true]
+	\struct#limits[transparent=true]
 		\field
-			\childRef[ref=lower]
-			\childRef[ref=upper]
-	\struct#lower[cardinality={0,1}]
+			\childRef[ref=lowerLimits]
+			\childRef[ref=upperLimits]
+	\struct#lowerLimits[cardinality={0,1}]
 		\syntax
 			\short{_}
 		\field
 			\childRef[ref=primitive]
-	\struct#upper[cardinality={0,1}]
+	\struct#upperLimits[cardinality={0,1}]
 		\syntax
 			\short{^}
 		\field

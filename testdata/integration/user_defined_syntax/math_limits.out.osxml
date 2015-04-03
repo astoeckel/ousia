@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document xmlns:math="math">
+	<math:math>
+		<math:equation>
+			<math:field>
+				<math:sum>
+					<math:limits>
+						<math:lowerLimits>
+							<math:text>i</math:text>
+							<math:equals/>
+							<math:number>3</math:number>
+						</math:lowerLimits>
+						<math:upperLimits>
+							<math:number>5</math:number>
+						</math:upperLimits>
+					</math:limits>
+				</math:sum>
+				<math:text>i</math:text>
+				<math:index>
+					<math:text>M</math:text>
+				</math:index>
+				<math:power>
+					<math:number>2</math:number>
+				</math:power>
+			</math:field>
+		</math:equation>
+	</math:math>
+</document>
