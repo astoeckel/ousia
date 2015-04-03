@@ -53,10 +53,9 @@
 #include <formats/osml/OsmlParser.hpp>
 #include <plugins/xml/XmlOutput.hpp>
 
-const size_t ERROR_IN_COMMAND_LINE = 1;
 const size_t SUCCESS = 0;
-const size_t ERROR_UNHANDLED_EXCEPTION = 2;
-const size_t ERROR_IN_DOCUMENT = 3;
+const size_t ERROR_IN_COMMAND_LINE = 1;
+const size_t ERROR_IN_DOCUMENT = 2;
 
 using namespace ousia;
 
