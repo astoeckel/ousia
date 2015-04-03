@@ -80,7 +80,7 @@ public:
 		TokenId id;
 
 		/**
-		 * Default constructor, initializes the descriptor with nullptr.
+		 * Default constructor, initializes the token id with Tokens::Empty.
 		 */
 		Node();
 	};
