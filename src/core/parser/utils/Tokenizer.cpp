@@ -162,12 +162,12 @@ public:
 
 Tokenizer::Tokenizer() : nextTokenId(0) {}
 
-template <bool read>
+template <bool tRead>
 bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
 {
 	// If we're in the read mode, reset the char reader peek position to the
 	// current read position
-	if (read) {
+	if (tRead) {
 		reader.resetPeek();
 	}
 
@@ -265,7 +265,7 @@ bool Tokenizer::next(CharReader &reader, Token &token, TokenizedData &data)
 
 		// Seek to the end of the current token
 		const size_t end = bestMatch.token.location.getEnd();
-		if (read) {
+		if (tRead) {
 			reader.seek(end);
 		} else {
 			reader.seekPeekCursor(end);
