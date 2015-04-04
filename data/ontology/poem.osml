@@ -1,0 +1,38 @@
+%{
+	Ontology usable for the description of poems.
+}%
+\begin{ontology#poem}
+	\struct#poem[root=true]
+		\primitive#title[type=string, subtree=true, optional=true]
+		\primitive#author[type=string, subtree=true, optional=true]
+		\primitive#year[type=int, subtree=true, optional=true]
+		\field
+			\childRef[ref=stanza]
+			\childRef[ref=part]
+
+	\struct#part
+		\primitive#title[type=string, subtree=true, optional=true]
+		\field
+			\childRef[ref=stanza]
+
+	\struct#stanza[transparent=true]
+		\syntax
+			\close{\paragraph}
+		\field
+			\childRef[ref=line]
+			\childRef[ref=indentation]
+
+	\struct#line[transparent=true]
+		\syntax
+			\close{\newline}
+		\primitive[type=string]
+
+	\struct#indentation
+		\syntax
+			\open{\indent}
+			\close{\dedent}
+		\field
+			\childRef[ref=line]
+			\childRef[ref=indentation]
+\end{ontology}
+
