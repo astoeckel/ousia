@@ -145,8 +145,8 @@
         <context ref="end-command"/>
         <context ref="common-commands"/>
         <context ref="command"/>
-        <context ref="comment"/>
         <context ref="comment-multiline"/>
+        <context ref="comment"/>
         <context ref="map"/>
       </include>
     </context>
