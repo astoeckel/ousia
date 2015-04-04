@@ -38,6 +38,7 @@
     <style id="attribute-name" _name="Attribute name" map-to="def:identifier"/>
     <style id="boolean" _name="Boolean Value" map-to="def:boolean"/>
     <style id="type" _name="Data Type" map-to="def:type"/>
+    <style id="special-char" _name="Special Character" map-to="def:special-char"/>
   </styles>
   <definitions>
     <!-- An ousia command -->
@@ -138,6 +139,14 @@
       <end>$</end>
     </context>
 
+    <!-- Field -->
+    <context id="default-field">
+      <match>{(!)</match>
+      <include>
+        <context sub-pattern="1" style-ref="special-char"/>
+      </include>
+    </context>
+
     <!-- Main context -->
     <context id="ousia">
       <include>
@@ -148,6 +157,7 @@
         <context ref="comment-multiline"/>
         <context ref="comment"/>
         <context ref="map"/>
+        <context ref="default-field"/>
       </include>
     </context>
   </definitions>
