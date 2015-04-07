@@ -96,12 +96,12 @@ bool TypesystemStructHandler::startCommand(Variant::mapType &args)
 	scope().setFlag(ParserFlag::POST_HEAD, true);
 
 	// Fetch the arguments used for creating this type
-	const std::string &structNmae = args["name"].asString();
+	const std::string &structName = args["name"].asString();
 	const std::string &parent = args["parent"].asString();
 
 	// Fetch the current typesystem and create the struct node
 	Rooted<Typesystem> typesystem = scope().selectOrThrow<Typesystem>();
-	Rooted<StructType> structType = typesystem->createStructType(structNmae);
+	Rooted<StructType> structType = typesystem->createStructType(structName);
 	structType->setLocation(location());
 
 	// Try to resolve the parent type and set it as parent structure
