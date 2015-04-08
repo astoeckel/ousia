@@ -134,32 +134,5 @@ struct XmlStandaloneEnvironment : public StandaloneEnvironment {
 	}
 };
 
-TEST(DemoHTMLTransformer, pipelineTest)
-{
-	// Construct Manager
-	TerminalLogger logger{std::cerr, true};
-	XmlStandaloneEnvironment env(logger);
-	Rooted<Node> book_document_node =
-	    env.parse("complex_book.osxml", "", "", RttiSet{&RttiTypes::Document});
-	ASSERT_FALSE(logger.hasError());
-	ASSERT_FALSE(book_document_node == nullptr);
-	ASSERT_TRUE(book_document_node->isa(&RttiTypes::Document));
-	Rooted<Document> doc = book_document_node.cast<Document>();
-	ASSERT_TRUE(doc->validate(logger));
-	ASSERT_FALSE(logger.hasError());
-
-	// we can only do a rough check here.
-	DemoHTMLTransformer transformer;
-	std::stringstream out;
-	transformer.writeHTML(doc, out, logger);
-	const std::string res = out.str();
-	ASSERT_FALSE(res == "");
-	ASSERT_TRUE(res.find("Was ist Aufklärung?") != std::string::npos);
-	ASSERT_TRUE(res.find(
-	                "Aufklärung ist der Ausgang des Menschen aus seiner "
-	                "selbstverschuldeten Unmündigkeit") != std::string::npos);
-	ASSERT_TRUE(res.find("Sapere aude!") != std::string::npos);
-}
-
 }
 }

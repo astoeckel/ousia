@@ -384,35 +384,5 @@ TEST(OsxmlParser, documentParsing)
 	}
 }
 
-
-TEST(OsxmlParser, complexDocumentParsing)
-{
-	logger.reset();
-	XmlStandaloneEnvironment env(logger);
-	Rooted<Node> book_document_node =
-	    env.parse("complex_book.osxml", "", "", RttiSet{&RttiTypes::Document});
-	ASSERT_FALSE(logger.hasError());
-	ASSERT_FALSE(book_document_node == nullptr);
-	ASSERT_TRUE(book_document_node->isa(&RttiTypes::Document));
-	Rooted<Document> doc = book_document_node.cast<Document>();
-	ASSERT_TRUE(doc->validate(logger));
-	ASSERT_FALSE(logger.hasError());
-}
-
-TEST(OsxmlParser, simpleAnnotation)
-{
-	logger.reset();
-	XmlStandaloneEnvironment env(logger);
-	Rooted<Node> book_document_node =
-	    env.parse("simple_annotation.osxml", "", "", RttiSet{&RttiTypes::Document});
-	ASSERT_FALSE(logger.hasError());
-	ASSERT_FALSE(book_document_node == nullptr);
-	ASSERT_TRUE(book_document_node->isa(&RttiTypes::Document));
-	Rooted<Document> doc = book_document_node.cast<Document>();
-	ASSERT_TRUE(doc->validate(logger));
-	ASSERT_FALSE(logger.hasError());
-}
-
-
 }
 

@@ -12,7 +12,7 @@ nbproject
 target
 *.autosave
 .kdev4
-application.kdev4
+*.kdev4
 *.aux
 *.bbl
 *.bcf

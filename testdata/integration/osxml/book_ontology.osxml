@@ -1,0 +1,35 @@
+<?xml version="1.0" standalone="yes"?>
+<!-- The ontology node is the root node of a single ontology definition -->
+<ontology name="book">
+	<struct name="book" cardinality="{1}" root="true">
+		<field>
+			<childRef ref="book.chapter"/>
+			<childRef ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="chapter">
+		<field>
+			<childRef ref="book.section"/>
+			<childRef ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="section">
+		<field>
+			<childRef ref="book.subsection"/>
+			<childRef ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="subsection">
+		<field>
+			<childRef ref="book.paragraph"/>
+		</field>
+	</struct>
+	<struct name="paragraph" transparent="true">
+		<field>
+			<childRef ref="book.text"/>
+		</field>
+	</struct>
+	<struct name="text" transparent="true">
+		<primitive type="string"/>
+	</struct>
+</ontology>
