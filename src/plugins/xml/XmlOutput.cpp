@@ -198,6 +198,15 @@ void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
  * Ontology transformation functions.
  */
 
+static std::string getStringForBool(bool val)
+{
+	if (val) {
+		return "true";
+	} else {
+		return "false";
+	}
+}
+
 static std::string getStructuredClassRef(Handle<Descriptor> referencing,
                                          Handle<StructuredClass> referenced)
 {
@@ -249,19 +258,19 @@ static Rooted<Element> transformFieldDescriptor(Handle<Element> parent,
 	std::map<std::string, std::string> attrs;
 	addNameAttribute(fd, attrs);
 	bool isSubtree = fd->getFieldType() == FieldDescriptor::FieldType::SUBTREE;
-	attrs.emplace("subtree", toString(isSubtree, P));
-	attrs.emplace("optional", toString(fd->isOptional(), P));
+	attrs.emplace("subtree", getStringForBool(isSubtree));
+	attrs.emplace("optional", getStringForBool(fd->isOptional()));
 	// TODO: whitespace mode?
 	// create the XML element itself.
-	Rooted<Element> fieldDescriptor{new Element(P.mgr, parent, tagName)};
+	Rooted<Element> fieldDescriptor{new Element(P.mgr, parent, tagName, attrs)};
 	// translate the syntax.
 	SyntaxDescriptor stx = fd->getSyntaxDescriptor();
 	Rooted<Element> syntax = transformSyntaxDescriptor(fieldDescriptor, stx, P);
 	fieldDescriptor->addChild(syntax);
 	// translate the child references.
 	for (auto s : fd->getChildren()) {
-		std::string ref = getStructuredClassRef(
-		    fd->getParent().cast<Descriptor>(), s);
+		std::string ref =
+		    getStructuredClassRef(fd->getParent().cast<Descriptor>(), s);
 		Rooted<Element> childRef{
 		    new Element(P.mgr, fieldDescriptor, "childRef", {{"ref", ref}})};
 		fieldDescriptor->addChild(childRef);
@@ -293,15 +302,16 @@ static Rooted<Element> transformStructuredClass(Handle<Element> parent,
                                                 TransformParams &P)
 {
 	Rooted<Element> structuredClass{new Element(P.mgr, parent, "struct")};
-	structuredClass->getAttributes().emplace("cardinality",
-	                                         toString(s->getCardinality(), P));
+	structuredClass->getAttributes().emplace(
+	    "cardinality", toString(Variant(s->getCardinality()), P));
 	if (s->getSuperclass() != nullptr) {
 		structuredClass->getAttributes().emplace(
 		    "isa", getStructuredClassRef(s, s->getSuperclass()));
 	}
-	structuredClass->getAttributes().emplace("transparent",
-	                                         toString(s->isTransparent(), P));
-	structuredClass->getAttributes().emplace("root", toString(s->isRoot(), P));
+	structuredClass->getAttributes().emplace(
+	    "transparent", getStringForBool(s->isTransparent()));
+	structuredClass->getAttributes().emplace(
+	    "root", getStringForBool(s->hasRootPermission()));
 	transformDescriptor(structuredClass, s, P);
 	return structuredClass;
 }
@@ -347,16 +357,18 @@ Rooted<Element> transformOntology(Handle<Element> parent, Handle<Ontology> o,
 	// transform the ontology itself.
 	// create an XML element for the ontology.
 	Rooted<Element> ontology{new Element(P.mgr, parent, "ontology")};
+	addNameAttribute(o, ontology->getAttributes());
 	// transform all StructuredClasses.
 	for (auto s : o->getStructureClasses()) {
 		Rooted<Element> structuredClass =
 		    transformStructuredClass(ontology, s, P);
-		parent->addChild(structuredClass);
+		ontology->addChild(structuredClass);
 	}
 	// transform all AnnotationClasses.
 	for (auto a : o->getAnnotationClasses()) {
 		Rooted<Element> annotationClass =
 		    transformAnnotationClass(ontology, a, P);
+		ontology->addChild(annotationClass);
 	}
 	// return the transformed Ontology.
 	return ontology;

@@ -1,0 +1,11 @@
+\document
+
+\ontology#test
+	\struct#a[root=true]
+		\field#afield[subtree=true]
+			\childRef[ref=a]
+		\field[optional=true]
+			\childRef[ref=b]
+	\struct#b[transparent=true, cardinality={1, 7-8}]
+
+\a

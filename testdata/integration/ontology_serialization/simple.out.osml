@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document>
+	<ontology name="test">
+		<struct cardinality="{*}" name="a" root="true" transparent="false">
+			<syntax/>
+			<field name="afield" optional="false" subtree="true">
+				<syntax/>
+				<childRef ref="a"/>
+			</field>
+			<field optional="true" subtree="false">
+				<syntax/>
+				<childRef ref="b"/>
+			</field>
+		</struct>
+		<struct cardinality="{1, 7-8}" name="b" root="false" transparent="true">
+			<syntax/>
+		</struct>
+	</ontology>
+	<test:a>
+		<afield/>
+	</test:a>
+</document>
