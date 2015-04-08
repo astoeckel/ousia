@@ -1250,6 +1250,16 @@ public:
 	Rooted<Constant> createConstant(const std::string &name, Variant value);
 
 	/**
+	 * Returns all referenced Typesystems.
+	 *
+	 * @return all referenced Typesystems.
+	 */
+	const NodeVector<Typesystem> &getTypesystemReferences() const
+	{
+		return typesystems;
+	}
+
+	/**
 	 * Adds a reference to the given typesystem class.
 	 *
 	 * @param typesystem is the typesystem that should be added to the

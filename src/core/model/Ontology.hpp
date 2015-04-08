@@ -1446,6 +1446,13 @@ public:
 	}
 
 	/**
+	 * Returns all referenced ontologies.
+	 *
+	 * @return all referenced ontologies.
+	 */
+	const NodeVector<Ontology> &getOntologies() const { return ontologies; }
+
+	/**
 	 * Adds a Ontology reference to this Ontology.
 	 */
 	void referenceOntology(Handle<Ontology> d) { ontologies.push_back(d); }
