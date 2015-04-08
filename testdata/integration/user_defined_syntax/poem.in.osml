@@ -1,27 +1,6 @@
 \begin{document}
 
-\ontology#poem{
-	\struct#poem[root=true]
-		\field
-			\childRef[ref=stanza]
-	\struct#stanza[transparent=true]
-		\syntax
-			\close{\paragraph}
-		\field
-			\childRef[ref=line]
-			\childRef[ref=indentation]
-	\struct#line[transparent=true]
-		\syntax
-			\close{\newline}
-		\primitive[type=string]
-	\struct#indentation
-		\syntax
-			\open{\indent}
-			\close{\dedent}
-		\field
-			\childRef[ref=line]
-			\childRef[ref=indentation]
-}
+\import[ontology]{./poem.osml}
 
 % To Autumn by John Keats (1820)
 % http://en.wikisource.org/wiki/Keats;_poems_published_in_1820/To_Autumn

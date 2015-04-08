@@ -36,35 +36,12 @@ namespace ousia {
 namespace xml {
 
 class XmlTransformer {
-private:
-	std::map<std::string, std::string> transformAttributes(
-	    const std::string &name, DocumentEntity *entity, Logger &logger,
-	    bool pretty);
-
-	void addNameAttribute(Handle<ousia::Node> n,
-	                      std::map<std::string, std::string> &attrs);
-
-	void transformChildren(DocumentEntity *parentEntity, Handle<Element> parent,
-	                       Logger &logger, bool pretty);
-
-	Rooted<Element> transformStructuredEntity(Handle<Element> parent,
-	                                          Handle<StructuredEntity> s,
-	                                          Logger &logger, bool pretty);
-
-	Rooted<Element> transformAnchor(Handle<Element> parent, Handle<Anchor> a,
-	                                Logger &logger, bool pretty);
-
-	Rooted<Text> transformPrimitive(Handle<Element> parent, Handle<Type> type,
-	                                Handle<DocumentPrimitive> p, Logger &logger,
-	                                bool pretty);
 
 public:
 	/**
 	 * This writes an XML serialization of the given document to the given
 	 * output stream. The serialization is  equivalent to the input XML format,
 	 * safe for the ontology references. TODO: Can we change this? If so: how?
-	 * Note, though, that the serialization will not exploit transparency.
-	 * TODO: Can we change that?
 	 *
 	 * @param doc    is some Document.
 	 * @param out    is the output stream the XML serialization of the document
@@ -74,9 +51,13 @@ public:
 	 *               typesystems that were imported in this document.
 	 * @param pretty is a flag that manipulates whether newlines and tabs are
 	 *               used.
+	 * @param flat   if this flag is set the result will be a 'standalone'
+	 *               version of the document including serialized versions of
+	 *               all referenced ontologies and typesystems.
 	 */
 	void writeXml(Handle<Document> doc, std::ostream &out, Logger &logger,
-	              ResourceManager &resMgr, bool pretty);
+	              ResourceManager &resMgr, bool pretty = true,
+	              bool flat = false);
 };
 }
 }

@@ -2,20 +2,9 @@
 	This test checks whether tokens starting with the default field indicator at
 	the beginning works by escaping the "!" with a backslash.
 }%
-\document
-\ontology#test{
-	\struct#a[root=true]
-		\field
-			\childRef[ref=b]
-			\childRef[ref=c]
-	\struct#b
-		\syntax
-			\short{\!=}
-	\struct#c
-		\syntax
-			\short{=}
-}
 
+\document
+\import[ontology]{./token_escaping.osml}
 \begin{a}
 = !=
 \end{a}

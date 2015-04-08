@@ -1,0 +1,22 @@
+\ontology#poem{
+	\struct#poem[root=true]
+		\field
+			\childRef[ref=stanza]
+	\struct#stanza[transparent=true]
+		\syntax
+			\close{\paragraph}
+		\field
+			\childRef[ref=line]
+			\childRef[ref=indentation]
+	\struct#line[transparent=true]
+		\syntax
+			\close{\newline}
+		\primitive[type=string]
+	\struct#indentation
+		\syntax
+			\open{\indent}
+			\close{\dedent}
+		\field
+			\childRef[ref=line]
+			\childRef[ref=indentation]
+}

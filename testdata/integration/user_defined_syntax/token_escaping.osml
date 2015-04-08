@@ -1,0 +1,12 @@
+\ontology#test{
+	\struct#a[root=true]
+		\field
+			\childRef[ref=b]
+			\childRef[ref=c]
+	\struct#b
+		\syntax
+			\short{\!=}
+	\struct#c
+		\syntax
+			\short{=}
+}
