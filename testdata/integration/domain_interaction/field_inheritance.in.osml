@@ -1,0 +1,47 @@
+\import[ontology]{book}
+\import[ontology]{headings}
+\import[ontology]{meta}
+
+% Define a constant for the affiliation
+\typesystem#affiliations
+        \import[typesystem]{affiliation}
+        \constant#LaM[
+                type=affiliation,
+                value=[
+                        Logic and Metaphysics,
+                        Faculty of Philosophy,
+                        Albertus-University Königsberg
+                ]
+        ]
+
+% Define a ontology for editors
+\ontology#editors
+        \struct#extendedAuthor[isa=author]
+                \primitive#title[type=string, subtree=true]
+        \struct#editor[isa=extendedAuthor]
+
+\begin{book}{Beantwortung der Frage: Was ist Aufklärung?}
+        % Add some more information about the book: authors, version
+        \meta{
+                \primaryAuthor{
+                        \firstName Immanuel
+                        \lastName Kant
+
+                        % Lateron e-mail adresses may be parsed
+                        \email [ikant,philo.albertus-koenigsberg,de]
+
+                        % Specify affiliation, use constant defined above
+                        \affiliation LaM
+                }
+                \editor{
+                        \title Iro Gnaden
+                        \firstName Benjamin
+                        \lastName Paaßen
+                }
+                \version [1, 0, 0]
+        }
+
+        \chapter{Was ist Aufklärung?}
+
+        Aufklärung ist der Ausgang des Menschen aus seiner selbstverschuldeten Unmündigkeit. Unmündigkeit ist das Unvermögen, sich seines Verstandes ohne Leitung eines anderen zu bedienen. Selbstverschuldet ist diese Unmündigkeit, wenn die Ursache derselben nicht am Mangel des Verstandes, sondern der Entschließung und des Mutes liegt, sich seiner ohne Leitung eines andern zu bedienen. Sapere aude! Habe Mut, dich deines eigenen Verstandes zu bedienen! ist also der Wahlspruch der Aufklärung.
+\end{book}

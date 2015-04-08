@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document xmlns:book="book" xmlns:editors="editors" xmlns:headings="headings" xmlns:meta="meta">
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/data/ontology/book.osxml"/>
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/data/ontology/headings.osxml"/>
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/data/ontology/meta.osxml"/>
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/testdata/integration/domain_interaction/field_inheritance.in.osml"/>
+	<import rel="typesystem" src="/home/bpaassen/GIT/ousia-src/testdata/integration/domain_interaction/field_inheritance.in.osml"/>
+	<book:book>
+		<heading>
+			<headings:heading>
+				<book:text>Beantwortung der Frage: Was ist Aufklärung?</book:text>
+			</headings:heading>
+		</heading>
+		<meta>
+			<meta:meta>
+				<meta:authors>
+					<meta:primaryAuthor>
+						<firstName>Immanuel</firstName>
+						<secondNames/>
+						<lastName>Kant</lastName>
+						<email>[
+	&quot;domainName&quot;= &quot;philo.albertus-koenigsberg&quot;,
+	&quot;domainSuffix&quot;= &quot;de&quot;,
+	&quot;local&quot;= &quot;ikant&quot;
+]</email>
+						<affiliation>[
+	&quot;departement&quot;= &quot;Faculty of Philosophy&quot;,
+	&quot;institution&quot;= &quot;Albertus-University Königsberg&quot;,
+	&quot;workgroup&quot;= &quot;Logic and Metaphysics&quot;
+]</affiliation>
+					</meta:primaryAuthor>
+					<editors:editor>
+						<firstName>Benjamin</firstName>
+						<secondNames/>
+						<lastName>Paaßen</lastName>
+						<email/>
+						<affiliation/>
+						<title>Iro Gnaden</title>
+					</editors:editor>
+				</meta:authors>
+				<meta:version>[
+	&quot;major&quot;= 1,
+	&quot;minor&quot;= 0,
+	&quot;patch&quot;= 0
+]</meta:version>
+			</meta:meta>
+		</meta>
+		<book:chapter>
+			<heading>
+				<headings:heading>
+					<book:text>Was ist Aufklärung?</book:text>
+				</headings:heading>
+			</heading>
+			<meta/>
+			<book:paragraph>
+				<heading/>
+				<book:text>Aufklärung ist der Ausgang des Menschen aus seiner selbstverschuldeten Unmündigkeit. Unmündigkeit ist das Unvermögen, sich seines Verstandes ohne Leitung eines anderen zu bedienen. Selbstverschuldet ist diese Unmündigkeit, wenn die Ursache derselben nicht am Mangel des Verstandes, sondern der Entschließung und des Mutes liegt, sich seiner ohne Leitung eines andern zu bedienen. Sapere aude! Habe Mut, dich deines eigenen Verstandes zu bedienen! ist also der Wahlspruch der Aufklärung.</book:text>
+			</book:paragraph>
+		</book:chapter>
+	</book:book>
+</document>

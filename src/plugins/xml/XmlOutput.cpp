@@ -23,6 +23,9 @@
 #include <core/common/Variant.hpp>
 #include <core/common/VariantWriter.hpp>
 
+// TODO: REMOVE
+#include <iostream>
+
 namespace ousia {
 namespace xml {
 
@@ -142,6 +145,7 @@ void XmlTransformer::transformChildren(DocumentEntity *parentEntity,
 	Manager &mgr = parent->getManager();
 	NodeVector<FieldDescriptor> fieldDescs =
 	    parentEntity->getDescriptor()->getFieldDescriptors();
+
 	for (size_t f = 0; f < fieldDescs.size(); f++) {
 		NodeVector<StructureNode> field = parentEntity->getField(f);
 		Rooted<FieldDescriptor> fieldDesc = fieldDescs[f];
@@ -196,10 +200,10 @@ Rooted<Element> XmlTransformer::transformStructuredEntity(
 	auto attrs = transformAttributes(s->getName(), s.get(), logger, pretty);
 	addNameAttribute(s, attrs);
 	// create the XML element itself.
-	Rooted<Element> elem{
-	    new Element{mgr, parent, s->getDescriptor()->getName(),
-	                transformAttributes(s->getName(), s.get(), logger, pretty),
-	                s->getDescriptor()->getParent().cast<Ontology>()->getName()}};
+	Rooted<Element> elem{new Element{
+	    mgr, parent, s->getDescriptor()->getName(),
+	    transformAttributes(s->getName(), s.get(), logger, pretty),
+	    s->getDescriptor()->getParent().cast<Ontology>()->getName()}};
 	// then transform the children.
 	transformChildren(s.get(), elem, logger, pretty);
 	return elem;
