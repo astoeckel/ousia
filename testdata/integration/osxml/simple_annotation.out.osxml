@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document xmlns:book="book" xmlns:comments="comments">
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/testdata/integration/osxml/book_ontology.osxml"/>
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/testdata/integration/osxml/comments_ontology.osxml"/>
+	<book:book>
+		<book:paragraph>
+			<book:text>This is a</book:text>
+			<a:start:comment>
+				<replies/>
+				<book:paragraph>
+					<book:text>This is not a nice test!</book:text>
+				</book:paragraph>
+			</a:start:comment>
+			<book:text>test</book:text>
+			<a:end:comment/>
+			<book:text>.</book:text>
+		</book:paragraph>
+	</book:book>
+</document>

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document xmlns:bibliography="bibliography" xmlns:book="book" xmlns:comments="comments" xmlns:emphasis="emphasis" xmlns:headings="headings" xmlns:lists="lists" xmlns:meta="meta">
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/testdata/integration/osxml/book_ontology.osxml"/>
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/testdata/integration/osxml/headings_ontology.osxml"/>
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/testdata/integration/osxml/meta_ontology.osxml"/>
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/testdata/integration/osxml/bibliography_ontology.osxml"/>
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/testdata/integration/osxml/lists_ontology.osxml"/>
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/testdata/integration/osxml/emphasis_ontology.osxml"/>
+	<import rel="ontology" src="/home/bpaassen/GIT/ousia-src/testdata/integration/osxml/comments_ontology.osxml"/>
+	<book:book>
+		<heading>
+			<headings:heading>
+				<book:text>Beantwortung der Frage: Was ist Aufklärung?</book:text>
+			</headings:heading>
+		</heading>
+		<meta>
+			<meta:meta>
+				<meta:authors>
+					<meta:primaryAuthor>
+						<firstName>Immanuel</firstName>
+						<secondNames/>
+						<lastName>Kant</lastName>
+						<email>[
+	&quot;domainName&quot;= &quot;philo.albertus-koenigsberg&quot;,
+	&quot;domainSuffix&quot;= &quot;de&quot;,
+	&quot;local&quot;= &quot;ikant&quot;
+]</email>
+						<affiliation>[
+	&quot;departement&quot;= &quot;Faculty of Philosophy&quot;,
+	&quot;institution&quot;= &quot;Albertus-University Königsberg&quot;,
+	&quot;workgroup&quot;= &quot;Logic and Metaphysics&quot;
+]</affiliation>
+					</meta:primaryAuthor>
+				</meta:authors>
+				<meta:version>[
+	&quot;major&quot;= 1,
+	&quot;minor&quot;= 0,
+	&quot;patch&quot;= 0
+]</meta:version>
+			</meta:meta>
+		</meta>
+		<bibliography>
+			<bibliography:bibliography>
+				<bibliography:bibEntry>
+					<bibliography:title>Dezember-Heft</bibliography:title>
+					<bibliography:journal>Berlinische Monatsschrift</bibliography:journal>
+					<bibliography:year>1784</bibliography:year>
+					<bibliography:pages>{481-494}</bibliography:pages>
+				</bibliography:bibEntry>
+				<bibliography:bibEntry>
+					<bibliography:title>Kleine Schriften</bibliography:title>
+					<meta:authors>
+						<meta:primaryAuthor>
+							<firstName>Immanuel</firstName>
+							<secondNames/>
+							<lastName>Kant</lastName>
+							<email/>
+							<affiliation/>
+						</meta:primaryAuthor>
+					</meta:authors>
+					<bibliography:year>1793</bibliography:year>
+					<bibliography:pages>{34-50}</bibliography:pages>
+					<bibliography:location>Neuwied</bibliography:location>
+				</bibliography:bibEntry>
+				<bibliography:bibEntry>
+					<bibliography:title>Zerstreute Aufsätze</bibliography:title>
+					<meta:authors>
+						<meta:primaryAuthor>
+							<firstName>Immanuel</firstName>
+							<secondNames/>
+							<lastName>Kant</lastName>
+							<email/>
+							<affiliation/>
+						</meta:primaryAuthor>
+					</meta:authors>
+					<bibliography:year>1793</bibliography:year>
+					<bibliography:pages>{25-37}</bibliography:pages>
+					<bibliography:location>Frankfurt und Leipzig</bibliography:location>
+				</bibliography:bibEntry>
+				<bibliography:bibEntry>
+					<bibliography:title>Sämmtliche kleine Schriften</bibliography:title>
+					<meta:authors>
+						<meta:primaryAuthor>
+							<firstName>Immanuel</firstName>
+							<secondNames/>
+							<lastName>Kant</lastName>
+							<email/>
+							<affiliation/>
+						</meta:primaryAuthor>
+					</meta:authors>
+					<bibliography:year>1798</bibliography:year>
+					<bibliography:pages>{159-172}</bibliography:pages>
+					<bibliography:location>Königsberg u. Leipzig</bibliography:location>
+				</bibliography:bibEntry>
+				<bibliography:bibEntry>
+					<bibliography:title>I. Kant&apos;s vermischte Schriften</bibliography:title>
+					<meta:authors>
+						<meta:primaryAuthor>
+							<firstName>Immanuel</firstName>
+							<secondNames/>
+							<lastName>Kant</lastName>
+							<email/>
+							<affiliation/>
+						</meta:primaryAuthor>
+					</meta:authors>
+					<bibliography:year>1799</bibliography:year>
+					<bibliography:pages>{687-700}</bibliography:pages>
+					<bibliography:location>Halle</bibliography:location>
+				</bibliography:bibEntry>
+				<bibliography:bibEntry>
+					<bibliography:title>Vorzügliche kleine Schriften und Aufsätze</bibliography:title>
+					<meta:authors>
+						<meta:primaryAuthor>
+							<firstName>Immanuel</firstName>
+							<secondNames/>
+							<lastName>Kant</lastName>
+							<email/>
+							<affiliation/>
+						</meta:primaryAuthor>
+					</meta:authors>
+					<bibliography:year>1833</bibliography:year>
+					<bibliography:pages>{75-84}</bibliography:pages>
+					<bibliography:location>Leipzig</bibliography:location>
+				</bibliography:bibEntry>
+			</bibliography:bibliography>
+		</bibliography>
+		<book:chapter name="content">
+			<heading>
+				<headings:heading>
+					<book:text>Was ist Aufklärung?</book:text>
+				</headings:heading>
+			</heading>
+			<meta/>
+			<a:start:strong/>
+			<book:paragraph>
+				<heading/>
+				<book:text>Aufklärung ist der Ausgang des Menschen aus seiner selbstverschuldeten Unmündigkeit</book:text>
+				<a:end:strong/>
+				<book:text>.</book:text>
+			</book:paragraph>
+			<lists:ul>
+				<heading/>
+				<lists:item>
+					<a:start:emphasized/>
+					<book:text>Unmündigkeit</book:text>
+					<a:end:emphasized/>
+					<book:text>ist das Unvermögen, sich seines Verstandes ohne Leitung eines anderen zu bedienen.</book:text>
+				</lists:item>
+				<lists:item>
+					<a:start:emphasized/>
+					<book:text>Selbstverschuldet</book:text>
+					<a:end:emphasized/>
+					<book:text>ist diese Unmündigkeit, wenn die Ursache derselben nicht am Mangel des Verstandes, sondern der Entschließung und des Mutes liegt, sich seiner ohne Leitung eines andern zu bedienen.</book:text>
+				</lists:item>
+			</lists:ul>
+			<a:start:strong/>
+			<book:paragraph>
+				<heading/>
+				<book:text>Sapere aude!</book:text>
+				<a:end:strong/>
+				<book:text>Habe Mut, dich deines eigenen Verstandes zu bedienen! ist also der Wahlspruch der Aufklärung.</book:text>
+			</book:paragraph>
+		</book:chapter>
+	</book:book>
+</document>
