@@ -466,7 +466,9 @@ Rooted<Element> transformStructTypeEntry(Handle<Element> parent,
 		attribute->getAttributes().emplace("type", typeRef);
 	}
 	// set the default value.
-	if (a->getDefaultValue() != nullptr) {
+	if (!a->getDefaultValue().isNull() &&
+	    (!a->getDefaultValue().isObject() ||
+	     a->getDefaultValue().asObject() != nullptr)) {
 		attribute->getAttributes().emplace("default",
 		                                   toString(a->getDefaultValue(), P));
 	}
