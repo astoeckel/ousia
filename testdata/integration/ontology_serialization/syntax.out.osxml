@@ -7,6 +7,7 @@
 				<open>&lt;&lt;</open>
 				<close>&gt;&gt;</close>
 			</syntax>
+			<attributes/>
 			<field optional="false" subtree="false">
 				<syntax/>
 				<childRef ref="a"/>

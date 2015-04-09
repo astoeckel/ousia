@@ -3,6 +3,7 @@
 	<ontology name="test">
 		<struct cardinality="{*}" name="a" root="true" transparent="false">
 			<syntax/>
+			<attributes/>
 			<field name="afield" optional="false" subtree="true">
 				<syntax/>
 				<childRef ref="a"/>
