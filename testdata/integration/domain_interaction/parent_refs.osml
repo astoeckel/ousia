@@ -1,0 +1,11 @@
+% TODO: this does not work quite yet.
+
+\document
+	\ontology#test
+		\struct#a[root=true]
+		\struct#b
+			\parentRef[ref=a]
+				\field
+
+\a
+	\b
