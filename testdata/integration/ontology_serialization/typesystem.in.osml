@@ -3,8 +3,14 @@
 		\struct#myStruct
 			\field#i[type=int,default=1]
 			\field#s[type=string,default=""]
+		\enum#myEnum
+			\entry STRICT
+			\entry FUZZY
+			\entry PROBABILISTIC
 	\ontology#test
 		\struct#a[root=true]
+			\attributes
+				\attribute#type[type=myEnum]
 			\primitive[type=myStruct]
 
-\a [4,"bla"]
+\a[type=STRICT] [4,"bla"]

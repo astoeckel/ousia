@@ -497,6 +497,23 @@ Rooted<Element> transformStructType(Handle<Element> parent,
 	}
 	return structType;
 }
+
+static Rooted<Element> transformEnumType(Handle<Element> parent,
+                                         Handle<EnumType> e, TransformParams &P)
+{
+	// create an xml element for the enum type itself.
+	Rooted<Element> enumType{new Element(P.mgr, parent, "enum")};
+	addNameAttribute(e, enumType->getAttributes());
+	// add all entries.
+	for (std::string &name : e->names()) {
+		Rooted<Element> enumEntry{new Element(P.mgr, enumType, "entry")};
+		enumType->addChild(enumEntry);
+		Rooted<Text> enumName{new Text(P.mgr, enumEntry, name)};
+		enumEntry->addChild(enumName);
+	}
+	return enumType;
+}
+
 Rooted<Element> transformTypesystem(Handle<Element> parent,
                                     Handle<Typesystem> t, TransformParams &P)
 {
@@ -532,6 +549,8 @@ Rooted<Element> transformTypesystem(Handle<Element> parent,
 		if (tp->isa(&RttiTypes::StructType)) {
 			type = transformStructType(typesystem, "struct", "field",
 			                           tp.cast<StructType>(), P);
+		} else if (tp->isa(&RttiTypes::EnumType)) {
+			type = transformEnumType(typesystem, tp.cast<EnumType>(), P);
 		} else {
 			P.logger.warning(std::string("Type ") + tp->getName() +
 			                 " can not be serialized, because it is neither a "

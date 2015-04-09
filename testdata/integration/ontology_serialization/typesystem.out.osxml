@@ -3,6 +3,9 @@
 	<ontology name="test">
 		<struct cardinality="{*}" name="a" root="true" transparent="false">
 			<syntax/>
+			<attributes>
+				<attribute name="type" type="bla.myEnum"/>
+			</attributes>
 			<primitive optional="false" subtree="false" type="bla.myStruct">
 				<syntax/>
 			</primitive>
@@ -10,11 +13,16 @@
 	</ontology>
 	<typesystem name="bla">
 		<struct name="myStruct">
-			<field default="1" name="i" optional="true" type="int"/>
-			<field default="" name="s" optional="true" type="string"/>
+			<field default="1" name="i" type="int"/>
+			<field default="" name="s" type="string"/>
 		</struct>
+		<enum name="myEnum">
+			<entry>FUZZY</entry>
+			<entry>PROBABILISTIC</entry>
+			<entry>STRICT</entry>
+		</enum>
 	</typesystem>
-	<test:a>[
+	<test:a type="0">[
 	&quot;i&quot;= 4,
 	&quot;s&quot;= &quot;bla&quot;
 ]</test:a>
