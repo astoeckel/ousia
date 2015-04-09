@@ -618,6 +618,14 @@ bool StructType::cast(Variant &data, Logger &logger) const
 	return buildFromArrayOrMap(data, logger, NullMagicCallback, true);
 }
 
+NodeVector<Attribute> StructType::getOwnAttributes() const
+{
+	NodeVector<Attribute> res;
+	res.insert(res.end(), attributes.begin() + attributeStart,
+	           attributes.end());
+	return res;
+}
+
 ssize_t StructType::indexOf(const std::string &name) const
 {
 	size_t res;

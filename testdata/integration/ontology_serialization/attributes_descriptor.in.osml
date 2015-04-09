@@ -1,0 +1,10 @@
+\document
+	\ontology#test
+		\struct#a[root=true]
+			\attributes
+				\attribute[name="myAttr", type=int, default=4]
+		\struct#b[isa=a]
+			\attributes
+				\attribute[name="myOtherAttr", type=string, default="bla"]
+
+\a[myAttr=4]

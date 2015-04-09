@@ -108,7 +108,7 @@ void OntologyAnnotationHandler::end() { scope().pop(logger()); }
 
 bool OntologyAttributesHandler::startCommand(Variant::mapType &args)
 {
-	// Fetch the current typesystem and create the struct node
+	// Fetch the current descriptor and add the attributes descriptor
 	Rooted<Descriptor> parent = scope().selectOrThrow<Descriptor>();
 
 	Rooted<StructType> attrDesc = parent->getAttributesDescriptor();

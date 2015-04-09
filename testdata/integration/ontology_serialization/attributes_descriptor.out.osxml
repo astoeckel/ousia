@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document>
+	<ontology name="test">
+		<struct cardinality="{*}" name="a" root="true" transparent="false">
+			<syntax/>
+			<attributes>
+				<attribute default="4" name="myAttr" type="int"/>
+			</attributes>
+		</struct>
+		<struct cardinality="{*}" isa="a" name="b" root="false" transparent="false">
+			<syntax/>
+			<attributes>
+				<attribute default="bla" name="myOtherAttr" type="string"/>
+			</attributes>
+		</struct>
+	</ontology>
+	<test:a myAttr="4"/>
+</document>

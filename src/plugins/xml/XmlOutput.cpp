@@ -51,7 +51,8 @@ struct TransformParams {
 };
 
 /*
- * These are method declarations to allow for cross-references of methods.
+ * These are forward method declarations to allow for cross-references of
+ * methods.
  */
 
 /*
@@ -68,6 +69,18 @@ static Rooted<Element> transformOntology(Handle<Element> parent,
 
 static std::string getTypeRef(Handle<Typesystem> referencing,
                               Handle<Type> referenced);
+
+static Rooted<Element> transformStructTypeEntry(Handle<Element> parent,
+                                                const std::string &tagName,
+                                                Handle<StructType> t,
+                                                Handle<Attribute> a,
+                                                TransformParams &P);
+
+static Rooted<Element> transformStructType(Handle<Element> parent,
+                                           const std::string &structTagName,
+                                           const std::string &fieldTagName,
+                                           Handle<StructType> t,
+                                           TransformParams &P);
 
 static Rooted<Element> transformTypesystem(Handle<Element> parent,
                                            Handle<Typesystem> t,
@@ -301,7 +314,12 @@ static void transformDescriptor(Handle<Element> elem, Handle<Element> syntax,
 {
 	// add name.
 	addNameAttribute(d, elem->getAttributes());
-	// TODO: transform the attributes descriptor.
+	// transform the attributes descriptor.
+	Rooted<Element> attributes = transformStructType(
+	    elem, "attributes", "attribute", d->getAttributesDescriptor(), P);
+	// remove the parent entry if it is there.
+	attributes->getAttributes().erase("parent");
+	elem->addChild(attributes);
 	// transform the syntactic sugar description.
 	{
 		Rooted<Element> open =
@@ -434,12 +452,13 @@ std::string getTypeRef(Handle<Typesystem> referencing, Handle<Type> referenced)
 }
 
 Rooted<Element> transformStructTypeEntry(Handle<Element> parent,
+                                         const std::string &tagName,
                                          Handle<StructType> t,
                                          Handle<Attribute> a,
                                          TransformParams &P)
 {
 	// create an xml element for the attribute.
-	Rooted<Element> attribute{new Element(P.mgr, parent, "field")};
+	Rooted<Element> attribute{new Element(P.mgr, parent, tagName)};
 	addNameAttribute(a, attribute->getAttributes());
 	// add the type reference
 	{
@@ -451,22 +470,27 @@ Rooted<Element> transformStructTypeEntry(Handle<Element> parent,
 		attribute->getAttributes().emplace("default",
 		                                   toString(a->getDefaultValue(), P));
 	}
-	// set the optional flag.
-	attribute->getAttributes().emplace("optional",
-	                                   getStringForBool(a->isOptional()));
 	return attribute;
 }
 
 Rooted<Element> transformStructType(Handle<Element> parent,
+                                    const std::string &structTagName,
+                                    const std::string &fieldTagName,
                                     Handle<StructType> t, TransformParams &P)
 {
 	// create an xml element for the struct type itself.
-	Rooted<Element> structType{new Element(P.mgr, parent, "struct")};
+	Rooted<Element> structType{new Element(P.mgr, parent, structTagName)};
 	addNameAttribute(t, structType->getAttributes());
+	// transformt the parent reference.
+	if (t->getParentStructure() != nullptr) {
+		std::string typeRef =
+		    getTypeRef(t->getTypesystem(), t->getParentStructure());
+		structType->getAttributes().emplace("parent", typeRef);
+	}
 	// transform all attributes.
-	for (auto &a : t->getAttributes()) {
+	for (auto &a : t->getOwnAttributes()) {
 		Rooted<Element> attribute =
-		    transformStructTypeEntry(structType, t, a, P);
+		    transformStructTypeEntry(structType, fieldTagName, t, a, P);
 		structType->addChild(attribute);
 	}
 	return structType;
@@ -504,7 +528,8 @@ Rooted<Element> transformTypesystem(Handle<Element> parent,
 	for (auto tp : t->getTypes()) {
 		Rooted<Element> type;
 		if (tp->isa(&RttiTypes::StructType)) {
-			type = transformStructType(typesystem, tp.cast<StructType>(), P);
+			type = transformStructType(typesystem, "struct", "field",
+			                           tp.cast<StructType>(), P);
 		} else {
 			P.logger.warning(std::string("Type ") + tp->getName() +
 			                 " can not be serialized, because it is neither a "

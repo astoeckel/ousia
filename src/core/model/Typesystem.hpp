@@ -64,20 +64,20 @@ public:
 	 */
 	enum class MagicCallbackResult {
 		/**
-		 * A magic value with the given name could not be resolved.
-		 */
+	     * A magic value with the given name could not be resolved.
+	     */
 		NOT_FOUND,
 
 		/**
-		 * A magic value with the given name could be resolved, but is of the
-		 * wrong type.
-		 */
+	     * A magic value with the given name could be resolved, but is of the
+	     * wrong type.
+	     */
 		FOUND_INVALID,
 
 		/**
-		 * A magic value with the given name could be resolved and is of the
-		 * correct type.
-		 */
+	     * A magic value with the given name could be resolved and is of the
+	     * correct type.
+	     */
 		FOUND_VALID
 	};
 
@@ -953,7 +953,15 @@ public:
 	 *
 	 * @return a const reference pointing at the attribute list.
 	 */
-	const NodeVector<Attribute> &getAttributes() const { return attributes; };
+	const NodeVector<Attribute> &getAttributes() const { return attributes; }
+
+	/**
+	 * Returns a vector of all attributes that belong to this StructType itself,
+	 * excluding the attributes of the parent structure.
+	 *
+	 * @return a vector of all attributes that belong to this StructType itself.
+	 */
+	NodeVector<Attribute> getOwnAttributes() const;
 
 	/**
 	 * Returns the index of the given attribute in a data array representing
