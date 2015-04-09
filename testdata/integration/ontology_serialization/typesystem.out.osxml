@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document>
+	<ontology name="test">
+		<struct cardinality="{*}" name="a" root="true" transparent="false">
+			<syntax/>
+			<primitive optional="false" subtree="false" type="bla.myStruct">
+				<syntax/>
+			</primitive>
+		</struct>
+	</ontology>
+	<typesystem name="bla">
+		<struct name="myStruct">
+			<field default="1" name="i" optional="true" type="int"/>
+			<field default="" name="s" optional="true" type="string"/>
+		</struct>
+	</typesystem>
+	<test:a>[
+	&quot;i&quot;= 4,
+	&quot;s&quot;= &quot;bla&quot;
+]</test:a>
+</document>

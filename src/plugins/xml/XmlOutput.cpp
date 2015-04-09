@@ -65,6 +65,10 @@ static Rooted<Element> transformOntology(Handle<Element> parent,
 /*
  * Typesystem transformation.
  */
+
+static std::string getTypeRef(Handle<Typesystem> referencing,
+                              Handle<Type> referenced);
+
 static Rooted<Element> transformTypesystem(Handle<Element> parent,
                                            Handle<Typesystem> t,
                                            TransformParams &P);
@@ -275,13 +279,19 @@ static Rooted<Element> transformFieldDescriptor(Handle<Element> parent,
 			syntax->addChild(close);
 		}
 	}
-	// translate the child references.
-	for (auto s : fd->getChildren()) {
-		std::string ref =
-		    getStructuredClassRef(fd->getParent().cast<Descriptor>(), s);
-		Rooted<Element> childRef{
-		    new Element(P.mgr, fieldDescriptor, "childRef", {{"ref", ref}})};
-		fieldDescriptor->addChild(childRef);
+	if (!fd->isPrimitive()) {
+		// translate the child references.
+		for (auto s : fd->getChildren()) {
+			std::string ref =
+			    getStructuredClassRef(fd->getParent().cast<Descriptor>(), s);
+			Rooted<Element> childRef{new Element(P.mgr, fieldDescriptor,
+			                                     "childRef", {{"ref", ref}})};
+			fieldDescriptor->addChild(childRef);
+		}
+	} else {
+		// translate the primitive type.
+		fieldDescriptor->getAttributes().emplace(
+		    "type", getTypeRef(nullptr, fd->getPrimitiveType()));
 	}
 	return fieldDescriptor;
 }
@@ -408,15 +418,108 @@ Rooted<Element> transformOntology(Handle<Element> parent, Handle<Ontology> o,
 /*
  * Typesystem transformation functions.
  */
+
+std::string getTypeRef(Handle<Typesystem> referencing, Handle<Type> referenced)
+{
+	std::string typeRef;
+	if (referencing != referenced->getTypesystem() &&
+	    !(referenced->getTypesystem()->isa(&RttiTypes::SystemTypesystem))) {
+		// qualify the name if that's necessary.
+		typeRef = referenced->getTypesystem()->getName() + "." +
+		          referenced->getName();
+	} else {
+		typeRef = referenced->getName();
+	}
+	return typeRef;
+}
+
+Rooted<Element> transformStructTypeEntry(Handle<Element> parent,
+                                         Handle<StructType> t,
+                                         Handle<Attribute> a,
+                                         TransformParams &P)
+{
+	// create an xml element for the attribute.
+	Rooted<Element> attribute{new Element(P.mgr, parent, "field")};
+	addNameAttribute(a, attribute->getAttributes());
+	// add the type reference
+	{
+		std::string typeRef = getTypeRef(t->getTypesystem(), a->getType());
+		attribute->getAttributes().emplace("type", typeRef);
+	}
+	// set the default value.
+	if (a->getDefaultValue() != nullptr) {
+		attribute->getAttributes().emplace("default",
+		                                   toString(a->getDefaultValue(), P));
+	}
+	// set the optional flag.
+	attribute->getAttributes().emplace("optional",
+	                                   getStringForBool(a->isOptional()));
+	return attribute;
+}
+
+Rooted<Element> transformStructType(Handle<Element> parent,
+                                    Handle<StructType> t, TransformParams &P)
+{
+	// create an xml element for the struct type itself.
+	Rooted<Element> structType{new Element(P.mgr, parent, "struct")};
+	addNameAttribute(t, structType->getAttributes());
+	// transform all attributes.
+	for (auto &a : t->getAttributes()) {
+		Rooted<Element> attribute =
+		    transformStructTypeEntry(structType, t, a, P);
+		structType->addChild(attribute);
+	}
+	return structType;
+}
 Rooted<Element> transformTypesystem(Handle<Element> parent,
                                     Handle<Typesystem> t, TransformParams &P)
 {
-	// TODO: implement.
-	return nullptr;
+	// do not transform the system typesystem.
+	if (t->isa(&RttiTypes::SystemTypesystem)) {
+		return nullptr;
+	}
+	// only transform this typesystem if it was not transformed already.
+	if (t->getLocation().getSourceId() != P.documentId) {
+		// also: store that we have serialized this ontology.
+		if (!P.serialized.insert(t->getLocation().getSourceId()).second) {
+			return nullptr;
+		}
+	}
+
+	if (P.flat) {
+		// transform all referenced typesystems if we want a standalone version.
+		for (auto t2 : t->getTypesystemReferences()) {
+			Rooted<Element> refTypes = transformTypesystem(parent, t2, P);
+			if (refTypes != nullptr) {
+				parent->addChild(refTypes);
+			}
+		}
+	}
+
+	// transform the typesystem itself.
+	// create an XML element for the ontology.
+	Rooted<Element> typesystem{new Element(P.mgr, parent, "typesystem")};
+	addNameAttribute(t, typesystem->getAttributes());
+	// transform all types
+	for (auto tp : t->getTypes()) {
+		Rooted<Element> type;
+		if (tp->isa(&RttiTypes::StructType)) {
+			type = transformStructType(typesystem, tp.cast<StructType>(), P);
+		} else {
+			P.logger.warning(std::string("Type ") + tp->getName() +
+			                 " can not be serialized, because it is neither a "
+			                 "StructType nor an EnumType.");
+		}
+		if (type != nullptr) {
+			typesystem->addChild(type);
+		}
+	}
+	// return the transformed Ontology.
+	return typesystem;
 }
 
 /*
- * Attributes transform functions.
+ * DocumentEntity attributes transform functions.
  */
 
 std::map<std::string, std::string> transformAttributes(const std::string &name,

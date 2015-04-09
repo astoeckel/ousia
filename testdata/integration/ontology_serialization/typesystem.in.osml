@@ -1,0 +1,10 @@
+\document
+	\typesystem#bla
+		\struct#myStruct
+			\field#i[type=int,default=1]
+			\field#s[type=string,default=""]
+	\ontology#test
+		\struct#a[root=true]
+			\primitive[type=myStruct]
+
+\a [4,"bla"]
