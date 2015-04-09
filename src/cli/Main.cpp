@@ -80,7 +80,7 @@ const char *MSG_COPYING =
 const std::set<std::string> formats{"html", "xml"};
 
 static void createOutput(Handle<Document> doc, std::ostream &out,
-                         const std::string &format, Logger &logger,
+                         const std::string &format, bool flat, Logger &logger,
                          ResourceManager &resMgr)
 {
 	if (format == "html") {
@@ -88,7 +88,7 @@ static void createOutput(Handle<Document> doc, std::ostream &out,
 		transform.writeHTML(doc, out, logger, true);
 	} else if (format == "xml") {
 		xml::XmlTransformer transform;
-		transform.writeXml(doc, out, logger, resMgr, true);
+		transform.writeXml(doc, out, logger, resMgr, true, flat);
 	}
 }
 
@@ -105,6 +105,7 @@ int main(int argc, char **argv)
 	std::string inputPath;
 	std::string outputPath;
 	std::string format;
+	bool flat;
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	std::string graphvizPath;
 #endif
@@ -124,7 +125,10 @@ int main(int argc, char **argv)
 	    "output,o", po::value<std::string>(&outputPath),
 	    "The output file name. Per default the input file name will be used.")(
 	    "format,F", po::value<std::string>(&format)->required(),
-	    "The output format that shall be produced."
+	    "The output format that shall be produced.")(
+	    "flat,f", po::bool_switch(&flat)->default_value(false),
+	    "Works only for XML output. This serializes all referenced ontologies "
+		"and typesystems into the output file."
 #ifdef MANAGER_GRAPHVIZ_EXPORT
 	    )(
 	    "graphviz,G", po::value<std::string>(&graphvizPath),
@@ -199,6 +203,9 @@ int main(int argc, char **argv)
 			logger.error(f);
 		}
 	}
+	if(flat && format != "xml"){
+		logger.warning("The \'flat\' option is only valid for xml output. It will be ignored.");
+	}
 
 	// initialize global instances.
 	Manager manager;
@@ -262,9 +269,9 @@ int main(int argc, char **argv)
 	// write output
 	if (outputPath != "-") {
 		std::ofstream out{outputPath};
-		createOutput(doc, out, format, logger, resourceManager);
+		createOutput(doc, out, format, flat, logger, resourceManager);
 	} else {
-		createOutput(doc, std::cout, format, logger, resourceManager);
+		createOutput(doc, std::cout, format, flat, logger, resourceManager);
 	}
 
 	return SUCCESS;
