@@ -1,0 +1,9 @@
+\document
+	\ontology#test
+		\struct#a[root=true]
+			\field#afield[subtree=true]
+				\childRef[ref=a]
+
+\begin{a}
+\afield{\a{}\a{}}
+\end{a}

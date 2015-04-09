@@ -396,9 +396,8 @@ TEST(OsxmlParser, emptyNamedField){
 	Rooted<Document> doc = book_document_node.cast<Document>();
 	ASSERT_TRUE(doc->validate(logger));
 	checkStructuredEntity(doc->getRoot(), doc, doc, "a");
-	ASSERT_EQ(2U, doc->getRoot()->getDescriptor()->getFieldDescriptors().size());
+	ASSERT_EQ(1U, doc->getRoot()->getDescriptor()->getFieldDescriptors().size());
 	ASSERT_TRUE(doc->getRoot()->getField(0).empty());
-	ASSERT_TRUE(doc->getRoot()->getField(1).empty());
 }
 
 }

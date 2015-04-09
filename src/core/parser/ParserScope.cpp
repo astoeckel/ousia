@@ -25,6 +25,11 @@
 
 #include "ParserScope.hpp"
 
+#define SCOPE_DEBUG_OUTPUT 0
+#if SCOPE_DEBUG_OUTPUT
+#include <iostream>
+#endif
+
 namespace ousia {
 
 /* Class ParserScopeBase */
@@ -214,6 +219,10 @@ void ParserScope::push(Handle<Node> node)
 		topLevelNodes.push_back(node);
 	}
 	nodes.push_back(node);
+
+#if SCOPE_DEBUG_OUTPUT
+	std::cout << "SCOPE: pushed " << node->type()->name << std::endl;
+#endif
 }
 
 void ParserScope::pop(Logger &logger)
@@ -233,7 +242,6 @@ void ParserScope::pop(Logger &logger)
 		}
 	}
 	flags.resize(newLen);
-
 	// Whenever a RootNode is popped from the stack, we have to perform deferred
 	// resolution and validate the subtree
 	Rooted<Node> node = nodes.back();
@@ -247,6 +255,10 @@ void ParserScope::pop(Logger &logger)
 
 	// Remove the element from the stack
 	nodes.pop_back();
+
+#if SCOPE_DEBUG_OUTPUT
+	std::cout << "SCOPE: popped " << node->type()->name << std::endl;
+#endif
 }
 
 NodeVector<Node> ParserScope::getTopLevelNodes() const { return topLevelNodes; }

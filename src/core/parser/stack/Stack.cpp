@@ -35,9 +35,6 @@
 #include <iostream>
 #endif
 
-// TODO: Remove
-#include <iostream>
-
 namespace ousia {
 namespace parser_stack {
 namespace {

@@ -634,11 +634,12 @@ void DocumentChildHandler::end()
 		case HandlerType::COMMAND:
 		case HandlerType::ANNOTATION_START:
 		case HandlerType::TOKEN:
-			// In case of explicit fields we do not want to pop something from
-			// the stack.
-			if (!isExplicitField) {
+			if(!isExplicitField){
 				// pop the "main" element.
 				scope().pop(logger());
+			} else{
+				// in case of explicit fields, roll back.
+				rollbackPath();
 			}
 			break;
 		case HandlerType::ANNOTATION_END:
@@ -692,8 +693,8 @@ void DocumentChildHandler::fieldEnd()
 {
 	if (!isExplicitField) {
 		popTokens();
+		rollbackPath();
 	}
-	rollbackPath();
 }
 
 bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
