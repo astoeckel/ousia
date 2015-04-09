@@ -12,8 +12,10 @@
 		</struct>
 	</ontology>
 	<typesystem name="bla">
-		<struct name="myStruct">
+		<struct name="myParentStruct">
 			<field default="1" name="i" type="int"/>
+		</struct>
+		<struct name="myStruct" parent="myParentStruct">
 			<field default="" name="s" type="string"/>
 		</struct>
 		<enum name="myEnum">
@@ -21,6 +23,10 @@
 			<entry>PROBABILISTIC</entry>
 			<entry>STRICT</entry>
 		</enum>
+		<constant name="C" type="myStruct" value="[
+	4,
+	&quot;bla&quot;
+]"/>
 	</typesystem>
 	<test:a type="0">[
 	&quot;i&quot;= 4,

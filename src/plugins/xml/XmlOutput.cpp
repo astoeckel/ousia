@@ -514,6 +514,23 @@ static Rooted<Element> transformEnumType(Handle<Element> parent,
 	return enumType;
 }
 
+static Rooted<Element> transformConstant(Handle<Element> parent,
+                                         Handle<Typesystem> t,
+                                         Handle<Constant> c, TransformParams &P)
+{
+	// create an xml element for the constant.
+	Rooted<Element> constant{new Element(P.mgr, parent, "constant")};
+	addNameAttribute(c, constant->getAttributes());
+	// add the type reference
+	{
+		std::string typeRef = getTypeRef(t, c->getType());
+		constant->getAttributes().emplace("type", typeRef);
+	}
+	// add the value
+	constant->getAttributes().emplace("value", toString(c->getValue(), P));
+	return constant;
+}
+
 Rooted<Element> transformTypesystem(Handle<Element> parent,
                                     Handle<Typesystem> t, TransformParams &P)
 {
@@ -559,6 +576,11 @@ Rooted<Element> transformTypesystem(Handle<Element> parent,
 		if (type != nullptr) {
 			typesystem->addChild(type);
 		}
+	}
+	// transform all constants.
+	for (auto c : t->getConstants()) {
+		Rooted<Element> constant = transformConstant(typesystem, t, c, P);
+		typesystem->addChild(constant);
 	}
 	// return the transformed Ontology.
 	return typesystem;

@@ -1,8 +1,10 @@
 \document
 	\typesystem#bla
-		\struct#myStruct
+		\struct#myParentStruct
 			\field#i[type=int,default=1]
+		\struct#myStruct[parent=myParentStruct]
 			\field#s[type=string,default=""]
+		\constant#C[type=myStruct, value=[4,"bla"]]
 		\enum#myEnum
 			\entry STRICT
 			\entry FUZZY
@@ -13,4 +15,4 @@
 				\attribute#type[type=myEnum]
 			\primitive[type=myStruct]
 
-\a[type=STRICT] [4,"bla"]
+\a[type=STRICT] C
