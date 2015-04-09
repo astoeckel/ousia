@@ -384,5 +384,22 @@ TEST(OsxmlParser, documentParsing)
 	}
 }
 
+TEST(OsxmlParser, emptyNamedField){
+	logger.reset();
+	XmlStandaloneEnvironment env(logger);
+	Rooted<Node> book_document_node =
+	    env.parse("empty_named_field.osxml", "", "", RttiSet{&RttiTypes::Document});
+	ASSERT_FALSE(logger.hasError());
+	ASSERT_FALSE(book_document_node == nullptr);
+	ASSERT_TRUE(book_document_node->isa(&RttiTypes::Document));
+	// check the document content.
+	Rooted<Document> doc = book_document_node.cast<Document>();
+	ASSERT_TRUE(doc->validate(logger));
+	checkStructuredEntity(doc->getRoot(), doc, doc, "a");
+	ASSERT_EQ(2U, doc->getRoot()->getDescriptor()->getFieldDescriptors().size());
+	ASSERT_TRUE(doc->getRoot()->getField(0).empty());
+	ASSERT_TRUE(doc->getRoot()->getField(1).empty());
+}
+
 }
 

@@ -334,7 +334,6 @@ bool DocumentChildHandler::startCommand(Variant::mapType &args)
 			}
 
 			// Otherwise create a new StructuredEntity
-			// TODO: Consider Anchors and AnnotationEntities
 			Rooted<StructuredClass> strct = scope().resolve<StructuredClass>(
 			    Utils::split(name(), ':'), logger());
 			if (strct == nullptr) {

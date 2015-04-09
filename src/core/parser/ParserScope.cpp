@@ -174,12 +174,12 @@ ParserScope::ParserScope() : topLevelDepth(0) {}
 
 bool ParserScope::checkUnwound(Logger &logger) const
 {
-	if (nodes.size() != topLevelDepth) {
+	if (nodes.size() > topLevelDepth) {
 		logger.error("Not all open elements have been closed!",
 		             SourceLocation{}, MessageMode::NO_CONTEXT);
 		logger.note("Still open elements are: ", SourceLocation{},
 		            MessageMode::NO_CONTEXT);
-		for (size_t i = topLevelDepth + 1; i < nodes.size(); i++) {
+		for (size_t i = topLevelDepth; i < nodes.size(); i++) {
 			logger.note(std::string("Element of interal type ") +
 			                nodes[i]->type()->name +
 			                std::string(" defined here:"),

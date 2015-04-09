@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document>
+	<ontology name="test">
+		<struct name="a" root="true">
+			<field name="afield" subtree="true">
+				<childRef ref="a"/>
+			</field>
+		</struct>
+	</ontology>
+
+	<a>
+		<afield/>
+	</a>
+</document>
