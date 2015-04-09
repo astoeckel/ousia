@@ -220,27 +220,24 @@ static std::string getStructuredClassRef(Handle<Descriptor> referencing,
 	return res;
 }
 
-static Rooted<Element> transformSyntaxDescriptor(Handle<Element> parent,
-                                                 SyntaxDescriptor &stx,
-                                                 TransformParams &P)
+static Rooted<Element> transformTokenDescriptor(Handle<Element> parent,
+                                                const TokenDescriptor &descr,
+                                                const std::string &tagName,
+                                                TransformParams &P)
 {
-	Rooted<Element> syntax{new Element(P.mgr, parent, "syntax")};
-	if (stx.open != Tokens::Empty) {
-		Rooted<Element> open{new Element(P.mgr, syntax, "open")};
-		syntax->addChild(open);
-		// TODO: Transform token.
+	if (descr.isEmpty()) {
+		return nullptr;
 	}
-	if (stx.close != Tokens::Empty) {
-		Rooted<Element> close{new Element(P.mgr, syntax, "close")};
-		syntax->addChild(close);
-		// TODO: Transform token.
+	Rooted<Element> tag{new Element(P.mgr, parent, tagName)};
+	std::string str;
+	if (descr.special) {
+		// TODO: Handle this case
+	} else {
+		str = descr.token;
 	}
-	if (stx.shortForm != Tokens::Empty) {
-		Rooted<Element> shortForm{new Element(P.mgr, syntax, "short")};
-		syntax->addChild(shortForm);
-		// TODO: Transform token.
-	}
-	return syntax;
+	Rooted<Text> token{new Text(P.mgr, parent, str)};
+	tag->addChild(token);
+	return tag;
 }
 
 static Rooted<Element> transformFieldDescriptor(Handle<Element> parent,
@@ -264,9 +261,20 @@ static Rooted<Element> transformFieldDescriptor(Handle<Element> parent,
 	// create the XML element itself.
 	Rooted<Element> fieldDescriptor{new Element(P.mgr, parent, tagName, attrs)};
 	// translate the syntax.
-	SyntaxDescriptor stx = fd->getSyntaxDescriptor();
-	Rooted<Element> syntax = transformSyntaxDescriptor(fieldDescriptor, stx, P);
+	Rooted<Element> syntax{new Element(P.mgr, parent, "syntax")};
 	fieldDescriptor->addChild(syntax);
+	{
+		Rooted<Element> open =
+		    transformTokenDescriptor(syntax, fd->getOpenToken(), "open", P);
+		if (open != nullptr) {
+			syntax->addChild(open);
+		}
+		Rooted<Element> close =
+		    transformTokenDescriptor(syntax, fd->getCloseToken(), "close", P);
+		if (close != nullptr) {
+			syntax->addChild(close);
+		}
+	}
 	// translate the child references.
 	for (auto s : fd->getChildren()) {
 		std::string ref =
@@ -278,17 +286,24 @@ static Rooted<Element> transformFieldDescriptor(Handle<Element> parent,
 	return fieldDescriptor;
 }
 
-static void transformDescriptor(Handle<Element> elem, Handle<Descriptor> d,
-                                TransformParams &P)
+static void transformDescriptor(Handle<Element> elem, Handle<Element> syntax,
+                                Handle<Descriptor> d, TransformParams &P)
 {
 	// add name.
 	addNameAttribute(d, elem->getAttributes());
 	// TODO: transform the attributes descriptor.
-	// transform the syntactic sugar descriptors
+	// transform the syntactic sugar description.
 	{
-		SyntaxDescriptor stx = d->getSyntaxDescriptor();
-		Rooted<Element> syntax = transformSyntaxDescriptor(elem, stx, P);
-		elem->addChild(syntax);
+		Rooted<Element> open =
+		    transformTokenDescriptor(syntax, d->getOpenToken(), "open", P);
+		if (open != nullptr) {
+			syntax->addChild(open);
+		}
+		Rooted<Element> close =
+		    transformTokenDescriptor(syntax, d->getCloseToken(), "close", P);
+		if (close != nullptr) {
+			syntax->addChild(close);
+		}
 	}
 	// transform all field descriptors.
 	for (auto fd : d->getFieldDescriptors()) {
@@ -302,6 +317,7 @@ static Rooted<Element> transformStructuredClass(Handle<Element> parent,
                                                 TransformParams &P)
 {
 	Rooted<Element> structuredClass{new Element(P.mgr, parent, "struct")};
+	// transform the specific StructuredClass properties.
 	structuredClass->getAttributes().emplace(
 	    "cardinality", toString(Variant(s->getCardinality()), P));
 	if (s->getSuperclass() != nullptr) {
@@ -312,7 +328,20 @@ static Rooted<Element> transformStructuredClass(Handle<Element> parent,
 	    "transparent", getStringForBool(s->isTransparent()));
 	structuredClass->getAttributes().emplace(
 	    "root", getStringForBool(s->hasRootPermission()));
-	transformDescriptor(structuredClass, s, P);
+
+	// transform the syntactic sugar descriptors
+	Rooted<Element> syntax{new Element(P.mgr, structuredClass, "syntax")};
+	structuredClass->addChild(syntax);
+	{
+		Rooted<Element> shortForm =
+		    transformTokenDescriptor(syntax, s->getShortToken(), "short", P);
+		if (shortForm != nullptr) {
+			syntax->addChild(shortForm);
+		}
+	}
+
+	// transform the descriptor properties
+	transformDescriptor(structuredClass, syntax, s, P);
 	return structuredClass;
 }
 
@@ -321,7 +350,9 @@ static Rooted<Element> transformAnnotationClass(Handle<Element> parent,
                                                 TransformParams &P)
 {
 	Rooted<Element> annotationClass{new Element(P.mgr, parent, "struct")};
-	transformDescriptor(annotationClass, a, P);
+	Rooted<Element> syntax{new Element(P.mgr, annotationClass, "syntax")};
+	annotationClass->addChild(syntax);
+	transformDescriptor(annotationClass, syntax, a, P);
 	return annotationClass;
 }
 

@@ -1,0 +1,13 @@
+\begin{document}
+	\begin{ontology}[name=test]
+		\struct#a[root=true]
+			\syntax
+				\open{<<}
+				\close{>>}
+				\short{§}
+			\field
+				\childRef[ref=a]
+	\end{ontology}
+
+\a << §{} >> 
+\end{document}

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document>
+	<ontology name="test">
+		<struct cardinality="{*}" name="a" root="true" transparent="false">
+			<syntax>
+				<short>§</short>
+				<open>&lt;&lt;</open>
+				<close>&gt;&gt;</close>
+			</syntax>
+			<field optional="false" subtree="false">
+				<syntax/>
+				<childRef ref="a"/>
+			</field>
+		</struct>
+	</ontology>
+	<test:a>
+		<test:a>
+			<test:a/>
+		</test:a>
+	</test:a>
+</document>
