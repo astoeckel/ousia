@@ -790,7 +790,9 @@ bool DocumentChildHandler::data()
 	// this fact
 	Variant text = readData();
 	if (defaultFields.empty()) {
-		logger().error("Got data, but structure \"" + name() +
+		logger().error("Got data, but field \"" +
+		                   field->getNameOrDefaultName() +
+		                   "\" of structure \"" + name() +
 		                   "\" does not have any primitive field",
 		               text);
 	} else {
