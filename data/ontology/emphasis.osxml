@@ -1,0 +1,5 @@
+<?xml version="1.0" standalone="yes"?>
+<ontology name="emphasis">
+	<annotation name="strong"/>
+	<annotation name="emph"/>
+</ontology>
