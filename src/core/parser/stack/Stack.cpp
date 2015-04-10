@@ -983,7 +983,7 @@ void StackImpl::handleToken(const Token &token)
 	std::vector<SyntaxDescriptor> pendingClose = pendingCloseTokens(token.id);
 
 	// Iterate until the stack can no longer be unwound
-	while (true) {
+	while (!stack.empty()) {
 		LoggerFork loggerFork = logger().fork();
 
 		bool hadError = false;
@@ -1032,6 +1032,9 @@ void StackImpl::handleToken(const Token &token)
 			return;
 		}
 	}
+
+	// Issue an error, because the token was not handled
+	strayTokenError(token, descr, logger());
 }
 
 void StackImpl::handleFieldEnd(bool endRange)
