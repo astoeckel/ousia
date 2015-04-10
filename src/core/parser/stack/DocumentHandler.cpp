@@ -499,8 +499,8 @@ bool DocumentChildHandler::startAnnotation(Variant::mapType &args)
 bool DocumentChildHandler::startToken(Handle<Node> node)
 {
 	bool isStruct = node->isa(&RttiTypes::StructuredClass);
-//	bool isField = node->isa(&RttiTypes::FieldDescriptor);
-//	bool isAnnotation = node->isa(&RttiTypes::AnnotationClass);
+	//	bool isField = node->isa(&RttiTypes::FieldDescriptor);
+	//	bool isAnnotation = node->isa(&RttiTypes::AnnotationClass);
 
 	if (!isStruct) {
 		// TODO: Implement
@@ -514,7 +514,8 @@ bool DocumentChildHandler::startToken(Handle<Node> node)
 		// Make sure the parent node is not the document
 		Rooted<Node> parentNode = scope().getLeaf();
 		if (parentNode->isa(&RttiTypes::Document)) {
-			logger().error("Tokens are not allowed on the root document level.");
+			logger().error(
+			    "Tokens are not allowed on the root document level.");
 			return false;
 		}
 		assert(parentNode->isa(&RttiTypes::DocumentField));
@@ -526,7 +527,8 @@ bool DocumentChildHandler::startToken(Handle<Node> node)
 		preamble(parentNode, fieldIdx, parent);
 
 		// Calculate a path if transparent entities are needed in between.
-		Rooted<FieldDescriptor> field = parent->getDescriptor()->getFieldDescriptor(fieldIdx);
+		Rooted<FieldDescriptor> field =
+		    parent->getDescriptor()->getFieldDescriptor(fieldIdx);
 		size_t lastFieldIdx = fieldIdx;
 		auto pathRes = field->pathTo(strct, logger());
 		if (!pathRes.second) {
@@ -551,13 +553,12 @@ bool DocumentChildHandler::startToken(Handle<Node> node)
 		// Create the path (if one is available)
 		if (!pathRes.first.empty()) {
 			createPath(lastFieldIdx, pathRes.first, parent);
-			lastFieldIdx =
-			    parent->getDescriptor()->getFieldDescriptorIndex();
+			lastFieldIdx = parent->getDescriptor()->getFieldDescriptorIndex();
 		}
 
 		// Create the entity for the new element at last.
 		Rooted<StructuredEntity> entity = parent->createChildStructuredEntity(
-			strct, lastFieldIdx, Variant::mapType{}, "");
+		    strct, lastFieldIdx, Variant::mapType{}, "");
 
 		// We're past the region in which explicit fields can be defined in the
 		// parent structure element
@@ -624,7 +625,8 @@ DocumentChildHandler::EndTokenResult DocumentChildHandler::endToken(
 	for (ssize_t i = 0; i <= depth; i++) {
 		scope().pop(logger());
 	}
-	return (depth >= 0) ? EndTokenResult::ENDED_HIDDEN : EndTokenResult::ENDED_NONE;
+	return (depth >= 0) ? EndTokenResult::ENDED_HIDDEN
+	                    : EndTokenResult::ENDED_NONE;
 }
 
 void DocumentChildHandler::end()
@@ -634,10 +636,10 @@ void DocumentChildHandler::end()
 		case HandlerType::COMMAND:
 		case HandlerType::ANNOTATION_START:
 		case HandlerType::TOKEN:
-			if(!isExplicitField){
+			if (!isExplicitField) {
 				// pop the "main" element.
 				scope().pop(logger());
-			} else{
+			} else {
 				// in case of explicit fields, roll back.
 				rollbackPath();
 			}
@@ -746,7 +748,7 @@ bool DocumentChildHandler::data()
 	// If it is a primitive field directly, try to parse the content.
 	if (field->isPrimitive()) {
 		// Add it as primitive content.
-		Variant text = readData(); // TODO: Eliminate readData method
+		Variant text = readData();  // TODO: Eliminate readData method
 		if (!convertData(field, text, logger())) {
 			return false;
 		}
@@ -768,7 +770,7 @@ bool DocumentChildHandler::data()
 		forks.emplace_back(logger().fork());
 
 		// Try to parse the data
-		Variant text = readData(); // TODO: Eliminate readData method
+		Variant text = readData();  // TODO: Eliminate readData method
 		if (!convertData(primitiveField, text, forks.back())) {
 			continue;
 		}
