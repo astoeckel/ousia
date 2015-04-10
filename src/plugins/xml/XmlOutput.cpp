@@ -179,7 +179,9 @@ void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
 			}
 		}
 		Rooted<Element> ontology = transformOntology(document, o, P);
-		document->addChild(ontology);
+		if (ontology != nullptr) {
+			document->addChild(ontology);
+		}
 	}
 	// write imports for all referenced typesystems.
 	for (auto t : doc->getTypesystems()) {
@@ -198,7 +200,9 @@ void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
 			}
 		}
 		Rooted<Element> typesystem = transformTypesystem(document, t, P);
-		document->addChild(typesystem);
+		if (typesystem != nullptr) {
+			document->addChild(typesystem);
+		}
 	}
 
 	// transform the root element (and, using recursion, everything below it)
