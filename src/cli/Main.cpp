@@ -124,8 +124,8 @@ int main(int argc, char **argv)
 	    "found.")(
 	    "output,o", po::value<std::string>(&outputPath),
 	    "The output file name. Per default the input file name will be used.")(
-	    "format,F", po::value<std::string>(&format)->required(),
-	    "The output format that shall be produced.")(
+	    "format,F", po::value<std::string>(&format),
+	    "The output format that shall be produced (default is \"xml\").")(
 	    "flat,f", po::bool_switch(&flat)->default_value(false),
 	    "Works only for XML output. This serializes all referenced ontologies "
 		"and typesystems into the output file."
@@ -196,7 +196,11 @@ int main(int argc, char **argv)
 		logger.note(std::string("Using ") + outputPath +
 		            std::string(" as output path."));
 	}
-	// check format.
+
+	// check format, default to "xml"
+	if (format.empty()) {
+		format = "xml";
+	}
 	if (!formats.count(format)) {
 		logger.error("Format must be one of: ");
 		for (auto &f : formats) {
