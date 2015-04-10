@@ -144,6 +144,14 @@ public:
 	              bool protect = false);
 
 	/**
+	 * Marks the whitespace character at the given buffer position as protected.
+	 *
+	 * @param bufPos is the position of the character for which the "protected"
+	 * flag should be set.
+	 */
+	void protect(size_t bufPos);
+
+	/**
 	 * Stores a token ending at the last character of the current buffer.
 	 *
 	 * @param id is the id of the token for which the mark should be stored.
@@ -208,6 +216,31 @@ public:
 	 * the internal buffer.
 	 */
 	TokenizedDataReader reader() const;
+
+	/**
+	 * Returns true if at least one non-whitespace character is stored in the
+	 * TokenizedData structure.
+	 *
+	 * @return true if the at least one character in the TokenizedData structure
+	 * is a non-whitespace character.
+	 */
+	bool hasNonWhitespaceChar() const;
+
+	/**
+	 * Returns true if the last character of the TokenizedData structure is a
+	 * whitespace character.
+	 *
+	 * @return true if the last character is a whitespace character.
+	 */
+	bool lastCharIsWhitespace() const;
+
+	/**
+	 * Returns true if the first character of the TokenizedData structure is a
+	 * whitespace character.
+	 *
+	 * @return true if the first character is a whitespace character.
+	 */
+	bool firstCharIsWhitespace() const;
 };
 
 /**

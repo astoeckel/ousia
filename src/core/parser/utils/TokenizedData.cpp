@@ -172,9 +172,24 @@ private:
 	uint16_t numLinebreaks;
 
 	/**
+	 * True if the reader has a non-whitespace character.
+	 */
+	bool hasNonWhitespaceChar : 1;
+
+	/**
+	 * True if the last character is a whitespace character.
+	 */
+	bool lastCharIsWhitespace : 1;
+
+	/**
+	 * True if the first character in the buffer is a whitespace character.
+	 */
+	bool firstCharIsWhitespace : 1;
+
+	/**
 	 * Flag indicating whether the internal "marks" vector is sorted.
 	 */
-	mutable bool sorted;
+	mutable bool sorted : 1;
 
 public:
 	/**
@@ -231,10 +246,17 @@ public:
 		protectedChars.push_back(protect);
 		offsets.storeOffset(offsStart, offsEnd);
 
-		// Insert special tokens
+		// Fetch information about the current character
 		const size_t size = buf.size();
 		const bool isWhitespace = Utils::isWhitespace(c);
 		const bool isLinebreak = Utils::isLinebreak(c);
+
+		// Update the whitespace flags
+		hasNonWhitespaceChar = hasNonWhitespaceChar || !isWhitespace;
+		if (size == 0 && isWhitespace) {
+			firstCharIsWhitespace = true;
+		}
+		lastCharIsWhitespace = isWhitespace;
 
 		// Handle linebreaks
 		if (isLinebreak) {
@@ -303,6 +325,14 @@ public:
 
 		return size;
 	}
+
+	/**
+	 * Marks the whitespace character at the given buffer position as protected.
+	 *
+	 * @param bufPos is the position of the character for which the "protected"
+	 * flag should be set.
+	 */
+	void protect(size_t bufPos) { protectedChars[bufPos] = true; }
 
 	/**
 	 * Stores a token at the given position.
@@ -459,6 +489,9 @@ public:
 		currentIndentation = 0;
 		indentationLevels.clear();
 		numLinebreaks = 1;  // Assume the stream starts with a linebreak
+		hasNonWhitespaceChar = false;
+		lastCharIsWhitespace = false;
+		firstCharIsWhitespace = false;
 		sorted = true;
 	}
 
@@ -474,6 +507,21 @@ public:
 			buf.resize(length);
 			protectedChars.resize(length);
 			offsets.trim(length);
+
+			// Recalculate the whitespace flags
+			hasNonWhitespaceChar = false;
+			lastCharIsWhitespace = false;
+			firstCharIsWhitespace = false;
+			if (length > 0) {
+				firstCharIsWhitespace = Utils::isWhitespace(buf[0]);
+				lastCharIsWhitespace = Utils::isWhitespace(buf[length - 1]);
+				for (char c: buf) {
+					if (Utils::isWhitespace(c)) {
+						hasNonWhitespaceChar = true;
+						break;
+					}
+				}
+			}
 		}
 	}
 
@@ -503,6 +551,40 @@ public:
 		}
 		return SourceLocation{sourceId, offsets.loadOffset(0).first,
 		                      offsets.loadOffset(size()).second};
+	}
+
+	/**
+	 * Returns true if at least one non-whitespace character is stored in the
+	 * TokenizedData structure.
+	 *
+	 * @return true if the at least one character in the TokenizedData structure
+	 * is a non-whitespace character.
+	 */
+	bool getHasNonWhitespaceChar() const
+	{
+		return hasNonWhitespaceChar;
+	}
+
+	/**
+	 * Returns true if the last character of the TokenizedData structure is a
+	 * whitespace character.
+	 *
+	 * @return true if the last character is a whitespace character.
+	 */
+	bool getLastCharIsWhitespace() const
+	{
+		return lastCharIsWhitespace;
+	}
+
+	/**
+	 * Returns true if the first character of the TokenizedData structure is a
+	 * whitespace character.
+	 *
+	 * @return true if the first character is a whitespace character.
+	 */
+	bool getFirstCharIsWhitespace() const
+	{
+		return firstCharIsWhitespace;
 	}
 };
 
@@ -563,6 +645,23 @@ TokenizedDataReader TokenizedData::reader() const
 {
 	return TokenizedDataReader(impl, TokenizedDataCursor(),
 	                           TokenizedDataCursor());
+}
+
+void TokenizedData::protect(size_t bufPos) { impl->protect(bufPos); }
+
+bool TokenizedData::hasNonWhitespaceChar() const
+{
+	return impl->getHasNonWhitespaceChar();
+}
+
+bool TokenizedData::lastCharIsWhitespace() const
+{
+	return impl->getLastCharIsWhitespace();
+}
+
+bool TokenizedData::firstCharIsWhitespace() const
+{
+	return impl->getFirstCharIsWhitespace();
 }
 
 /* Class TokenizedDataReader */
