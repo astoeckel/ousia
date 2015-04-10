@@ -32,7 +32,7 @@ typedef std::stack<Rooted<AnnotationEntity>> AnnoStack;
 static bool canHandleAnchor(Handle<Anchor> a)
 {
 	std::string annoClassName = a->getAnnotation()->getDescriptor()->getName();
-	return annoClassName == "emphasized" || annoClassName == "strong";
+	return annoClassName == "emph" || annoClassName == "strong";
 }
 
 static Rooted<xml::Element> openAnnotation(Manager &mgr, AnnoStack &opened,
@@ -48,7 +48,7 @@ static Rooted<xml::Element> openAnnotation(Manager &mgr, AnnoStack &opened,
 	// get the elment name
 	std::string elemName = entity->getDescriptor()->getName();
 	// emphasized has to be shortened
-	if (elemName == "emphasized") {
+	if (elemName == "emph") {
 		elemName = "em";
 	}
 	// create the new XML element representing the annotation

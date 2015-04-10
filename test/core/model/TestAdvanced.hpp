@@ -115,7 +115,7 @@ static Rooted<Ontology> constructEmphasisOntology(Manager &mgr,
 	Rooted<Ontology> ontology{new Ontology(mgr, sys, "emphasis")};
 	// create AnnotationClasses
 	Rooted<AnnotationClass> em{
-	    new AnnotationClass(mgr, "emphasized", ontology)};
+	    new AnnotationClass(mgr, "emph", ontology)};
 
 	Rooted<AnnotationClass> strong{
 	    new AnnotationClass(mgr, "strong", ontology)};
@@ -206,7 +206,7 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
 			return {nullptr};
 		}
 		if (!addAnnotation(logger, doc, heading, "Was ist Aufklärung?",
-		                   "emphasized")) {
+		                   "emph")) {
 			return {nullptr};
 		}
 	}
@@ -238,7 +238,7 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
 			                   "strong")) {
 				return {nullptr};
 			}
-			if (!addAnnotation(logger, doc, p, "Unmündigkeit", "emphasized")) {
+			if (!addAnnotation(logger, doc, p, "Unmündigkeit", "emph")) {
 				return {nullptr};
 			}
 			if (!addText(logger, doc, p,
@@ -247,7 +247,7 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
 				return {nullptr};
 			}
 			if (!addAnnotation(logger, doc, p, "Selbstverschuldet",
-			                   "emphasized")) {
+			                   "emph")) {
 				return {nullptr};
 			}
 			if (!addText(logger, doc, p,
@@ -260,7 +260,7 @@ static Rooted<Document> constructAdvancedDocument(Manager &mgr, Logger &logger,
 			if (!addAnnotation(logger, doc, p,
 			                   "Sapere aude! Habe Mut, dich deines eigenen "
 			                   "Verstandes zu bedienen!",
-			                   "emphasized")) {
+			                   "emph")) {
 				return {nullptr};
 			}
 			if (!addText(logger, doc, p,

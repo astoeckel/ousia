@@ -98,7 +98,7 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	Rooted<Anchor> em_end{new Anchor(mgr, p)};
 	ASSERT_TRUE(addText(logger, doc, p, "bla"));
 	Rooted<Anchor> strong_end{new Anchor(mgr, p)};
-	buildAnnotationEntity(doc, logger, {"emphasized"}, em_start, em_end);
+	buildAnnotationEntity(doc, logger, {"emph"}, em_start, em_end);
 	buildAnnotationEntity(doc, logger, {"strong"}, strong_start, strong_end);
 
 #ifdef MANAGER_GRAPHVIZ_EXPORT

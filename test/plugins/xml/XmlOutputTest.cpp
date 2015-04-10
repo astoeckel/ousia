@@ -91,7 +91,7 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	Rooted<Anchor> em_end{new Anchor(mgr, p)};
 	ASSERT_TRUE(addText(logger, doc, p, "bla"));
 	Rooted<Anchor> strong_end{new Anchor(mgr, p)};
-	buildAnnotationEntity(doc, logger, {"emphasized"}, em_start, em_end);
+	buildAnnotationEntity(doc, logger, {"emph"}, em_start, em_end);
 	buildAnnotationEntity(doc, logger, {"strong"}, strong_start, strong_end);
 
 	// Check serialization.
@@ -103,9 +103,9 @@ TEST(DemoHTMLTransformer, AnnotationProcessing)
 	// In HTML the overlapping structure must be serialized as follows:
 	ASSERT_TRUE(
 	    res.find(
-	        "<a:start:emphasized/><book:text>bla</book:text><a:start:strong/"
-	        "><book:text>blub</book:text><a:end:emphasized/"
-	        "><book:text>bla</book:text><a:end:strong/>") != std::string::npos);
+	        "<a:start:emph/><book:text>bla</book:text><a:start:strong/>"
+	        "<book:text>blub</book:text><a:end:emph/>"
+	        "<book:text>bla</book:text><a:end:strong/>") != std::string::npos);
 }
 
 TEST(DemoHTMLTransformer, PrimitiveSubtreeFields)
