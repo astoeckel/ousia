@@ -190,6 +190,22 @@ struct Token {
 	static bool isSpecial(TokenId id) {return id > Tokens::MaxTokenId; }
 
 	/**
+	 * Returns the name of the token -- which is either its content or the name
+	 * of the special token (if it is one).
+	 *
+	 * @return the human readable name of this token instance.
+	 */
+	std::string name() const;
+
+	/**
+	 * Returns the name of the special token or an empty string if it is not a
+	 * special token.
+	 *
+	 * @param id
+	 */
+	static const char* specialName(TokenId id);
+
+	/**
 	 * The getLocation function allows the tokens to be directly passed as
 	 * parameter to Logger or LoggableException instances.
 	 *

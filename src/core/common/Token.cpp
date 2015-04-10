@@ -20,5 +20,31 @@
 
 namespace ousia {
 
+std::string Token::name() const
+{
+	if (isSpecial()) {
+		return specialName(id);
+	}
+	return content;
+}
+
+const char* Token::specialName(TokenId id)
+{
+	switch (id) {
+		case Tokens::Newline:
+			return "newline";
+		case Tokens::Paragraph:
+			return "paragraph";
+		case Tokens::Section:
+			return "section";
+		case Tokens::Indent:
+			return "indent";
+		case Tokens::Dedent:
+			return "dedent";
+	}
+	return "";
+}
+
+
 }
 
