@@ -1,17 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <document>
 	<ontology name="test">
-		<struct cardinality="{*}" name="a" root="true" transparent="false">
+		<struct name="a" root="true">
+			<field>
+				<childRef ref="a"/>
+			</field>
 			<syntax>
 				<short>§</short>
 				<open>&lt;&lt;</open>
 				<close>&gt;&gt;</close>
 			</syntax>
-			<attributes/>
-			<field optional="false" subtree="false">
-				<syntax/>
-				<childRef ref="a"/>
-			</field>
 		</struct>
 	</ontology>
 	<test:a>

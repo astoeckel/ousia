@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <document>
 	<ontology name="test">
-		<struct cardinality="{*}" name="a" root="true" transparent="false">
-			<syntax/>
+		<struct name="a" root="true">
 			<attributes>
 				<attribute name="type" type="bla.myEnum"/>
 			</attributes>
-			<primitive optional="false" subtree="false" type="bla.myStruct">
-				<syntax/>
-			</primitive>
+			<primitive type="bla.myStruct"/>
 		</struct>
 	</ontology>
 	<typesystem name="bla">

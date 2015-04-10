@@ -276,14 +276,17 @@ static Rooted<Element> transformFieldDescriptor(Handle<Element> parent,
 	std::map<std::string, std::string> attrs;
 	addNameAttribute(fd, attrs);
 	bool isSubtree = fd->getFieldType() == FieldDescriptor::FieldType::SUBTREE;
-	attrs.emplace("subtree", getStringForBool(isSubtree));
-	attrs.emplace("optional", getStringForBool(fd->isOptional()));
+	if (isSubtree) {
+		attrs.emplace("subtree", getStringForBool(true));
+	}
+	if (fd->isOptional()) {
+		attrs.emplace("optional", getStringForBool(true));
+	}
 	// TODO: whitespace mode?
 	// create the XML element itself.
 	Rooted<Element> fieldDescriptor{new Element(P.mgr, parent, tagName, attrs)};
 	// translate the syntax.
 	Rooted<Element> syntax{new Element(P.mgr, parent, "syntax")};
-	fieldDescriptor->addChild(syntax);
 	{
 		Rooted<Element> open =
 		    transformTokenDescriptor(syntax, fd->getOpenToken(), "open", P);
@@ -295,6 +298,9 @@ static Rooted<Element> transformFieldDescriptor(Handle<Element> parent,
 		if (close != nullptr) {
 			syntax->addChild(close);
 		}
+	}
+	if (!syntax->getChildren().empty()) {
+		fieldDescriptor->addChild(syntax);
 	}
 	if (!fd->isPrimitive()) {
 		// translate the child references.
@@ -323,7 +329,9 @@ static void transformDescriptor(Handle<Element> elem, Handle<Element> syntax,
 	    elem, "attributes", "attribute", d->getAttributesDescriptor(), P);
 	// remove the parent entry if it is there.
 	attributes->getAttributes().erase("parent");
-	elem->addChild(attributes);
+	if (!attributes->getChildren().empty()) {
+		elem->addChild(attributes);
+	}
 	// transform the syntactic sugar description.
 	{
 		Rooted<Element> open =
@@ -350,20 +358,25 @@ static Rooted<Element> transformStructuredClass(Handle<Element> parent,
 {
 	Rooted<Element> structuredClass{new Element(P.mgr, parent, "struct")};
 	// transform the specific StructuredClass properties.
-	structuredClass->getAttributes().emplace(
-	    "cardinality", toString(Variant(s->getCardinality()), P));
+	if (s->getCardinality() != Cardinality::any()) {
+		structuredClass->getAttributes().emplace(
+		    "cardinality", toString(Variant(s->getCardinality()), P));
+	}
 	if (s->getSuperclass() != nullptr) {
 		structuredClass->getAttributes().emplace(
 		    "isa", getStructuredClassRef(s, s->getSuperclass()));
 	}
-	structuredClass->getAttributes().emplace(
-	    "transparent", getStringForBool(s->isTransparent()));
-	structuredClass->getAttributes().emplace(
-	    "root", getStringForBool(s->hasRootPermission()));
+	if (s->isTransparent()) {
+		structuredClass->getAttributes().emplace("transparent",
+		                                         getStringForBool(true));
+	}
+	if (s->hasRootPermission()) {
+		structuredClass->getAttributes().emplace("root",
+		                                         getStringForBool(true));
+	}
 
 	// transform the syntactic sugar descriptors
 	Rooted<Element> syntax{new Element(P.mgr, structuredClass, "syntax")};
-	structuredClass->addChild(syntax);
 	{
 		Rooted<Element> shortForm =
 		    transformTokenDescriptor(syntax, s->getShortToken(), "short", P);
@@ -374,6 +387,9 @@ static Rooted<Element> transformStructuredClass(Handle<Element> parent,
 
 	// transform the descriptor properties
 	transformDescriptor(structuredClass, syntax, s, P);
+	if (!syntax->getChildren().empty()) {
+		structuredClass->addChild(syntax);
+	}
 	return structuredClass;
 }
 
@@ -383,8 +399,10 @@ static Rooted<Element> transformAnnotationClass(Handle<Element> parent,
 {
 	Rooted<Element> annotationClass{new Element(P.mgr, parent, "struct")};
 	Rooted<Element> syntax{new Element(P.mgr, annotationClass, "syntax")};
-	annotationClass->addChild(syntax);
 	transformDescriptor(annotationClass, syntax, a, P);
+	if (!syntax->getChildren().empty()) {
+		annotationClass->addChild(syntax);
+	}
 	return annotationClass;
 }
 

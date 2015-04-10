@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <document>
 	<ontology name="test">
-		<struct cardinality="{*}" name="a" root="true" transparent="false">
-			<syntax/>
-			<attributes/>
-			<field name="afield" optional="false" subtree="true">
-				<syntax/>
+		<struct name="a" root="true">
+			<field name="afield" subtree="true">
 				<childRef ref="a"/>
 			</field>
 		</struct>
