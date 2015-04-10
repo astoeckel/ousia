@@ -1,0 +1,10 @@
+\begin{document}
+	\begin{ontology#test}
+		\struct#a[root=true]
+			\syntax
+				\close{\newline}
+			\field
+				\childRef[ref=a]
+	\end{ontology}
+\a
+\end{document}

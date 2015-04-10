@@ -250,13 +250,13 @@ static Rooted<Element> transformTokenDescriptor(Handle<Element> parent,
 		return nullptr;
 	}
 	Rooted<Element> tag{new Element(P.mgr, parent, tagName)};
-	std::string str;
+	Rooted<xml::Node> token;
 	if (descr.special) {
-		// TODO: Handle this case
+		token = Rooted<Element>{
+		    new Element(P.mgr, tag, Token::specialName(descr.id))};
 	} else {
-		str = descr.token;
+		token = Rooted<Text>{new Text(P.mgr, tag, descr.token)};
 	}
-	Rooted<Text> token{new Text(P.mgr, parent, str)};
 	tag->addChild(token);
 	return tag;
 }
