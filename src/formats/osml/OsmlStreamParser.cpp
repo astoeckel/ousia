@@ -274,6 +274,11 @@ private:
 	TokenizedData data;
 
 	/**
+	 * Flag indicating whether the last parsed element was an annotation end.
+	 */
+	bool hadAnnotationEnd;
+
+	/**
 	 * Stack containing the current commands.
 	 */
 	std::stack<Command> commands;
@@ -401,9 +406,7 @@ public:
 /* Class OsmlStreamParserImpl */
 
 OsmlStreamParserImpl::OsmlStreamParserImpl(CharReader &reader, Logger &logger)
-    : reader(reader),
-      logger(logger),
-      data(reader.getSourceId())
+    : reader(reader), logger(logger), data(reader.getSourceId()), hadAnnotationEnd(false)
 {
 	tokens.backslash = tokenizer.registerToken("\\");
 	tokens.lineComment = tokenizer.registerToken("%");
@@ -687,6 +690,7 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parseCommand(
 			// If we got here, this is a valid ANNOTATION_END command, issue it
 			reader.peek(c);
 			reader.consumePeek();
+			hadAnnotationEnd = true;
 			return State::ANNOTATION_END;
 		}
 	}
@@ -752,6 +756,12 @@ void OsmlStreamParserImpl::pushCommand(Variant commandName,
 
 bool OsmlStreamParserImpl::checkIssueData()
 {
+	if (hadAnnotationEnd) {
+		hadAnnotationEnd = false;
+		if (data.firstCharIsWhitespace()) {
+			data.protect(0);
+		}
+	}
 	if (!data.empty()) {
 		location = data.getLocation();
 		reader.resetPeek();
@@ -771,8 +781,7 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 		const TokenId type = token.id;
 
 		// Special handling for Backslash and Text
-		if (type == tokens.backslash ||
-		    type == tokens.annotationStart) {
+		if (type == tokens.backslash || type == tokens.annotationStart) {
 			// Check whether a command starts now, without advancing the peek
 			// cursor
 			char c;
@@ -786,10 +795,16 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 			if (Utils::isIdentifierStartCharacter(c)) {
 				// Make sure to issue any data before it is to late
 				if (checkIssueData()) {
+					if (type == tokens.annotationStart &&
+					    data.hasNonWhitespaceChar() &&
+					    data.lastCharIsWhitespace()) {
+						data.protect(data.size() - 1);
+					}
 					return State::DATA;
 				}
 
 				// Parse the actual command
+				hadAnnotationEnd = false;
 				State res = parseCommand(token.location.getStart(),
 				                         type == tokens.annotationStart);
 				switch (res) {
@@ -875,6 +890,7 @@ OsmlStreamParserImpl::State OsmlStreamParserImpl::parse()
 			Variant annotationName = Variant::fromString("");
 			annotationName.setLocation(token.location);
 			pushCommand(annotationName, Variant::mapType{}, false);
+			hadAnnotationEnd = true;
 			return State::ANNOTATION_END;
 		} else {
 			logger.error("Unexpected token \"" + token.content + "\"", token);

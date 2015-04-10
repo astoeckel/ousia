@@ -1371,7 +1371,7 @@ TEST(OsmlStreamParser, annotationWithFields)
 
 	OsmlStreamParser parser(charReader, logger);
 
-	assertData(parser, "a", 0, 1);
+	assertData(parser, "a ", 0, 2);
 	assertAnnotationStart(parser, "b", Variant::mapType{}, 2, 5);
 	assertFieldStart(parser, false, 5, 6);
 	assertData(parser, "c", 6, 7);
