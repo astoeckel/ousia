@@ -386,13 +386,25 @@ private:
 	HandlerInfo &lastInfo();
 
 	/**
-	 * Returns a list containing the currently pending close tokens.
+	 * Returns the maximum stack depth that can be unrolled.
 	 *
-	 * @param token is a TokenId for which the result list should be filtered.
-	 * If set to Tokens::Empty, all tokens are returned.
+	 * @return the number of elements that can currently be removed from the
+	 * stack.
 	 */
-	std::vector<SyntaxDescriptor> pendingCloseTokens(
-	    TokenId token = Tokens::Empty) const;
+	size_t maxUnrollStackDepth() const;
+
+	/**
+	 * Returns the index of the next reachable handler on the stack having the
+	 * given token as close token -- or in case Tokens::Empty is given, the
+	 * index of the next reachable handler with a set close token.
+	 *
+	 * @param token is the TokenId of the close token that is being searched. If
+	 * Tokens::Empty is passed, the first handler with a non-empty close token
+	 * will be returned.
+	 * @return the index of the corresponding handler on the stack or a negative
+	 * value if no such handler could be found.
+	 */
+	ssize_t pendingCloseTokenHandlerIdx(TokenId token = Tokens::Empty) const;
 
 	/**
 	 * Returns a set containing the tokens that should currently be processed
@@ -650,23 +662,30 @@ std::string StackImpl::currentCommandName() const
 	return stack.empty() ? std::string{} : stack.back().name();
 }
 
-std::vector<SyntaxDescriptor> StackImpl::pendingCloseTokens(TokenId token) const
+size_t StackImpl::maxUnrollStackDepth() const
 {
-	// TODO: Are there cases in which the returned vector will contain more
-	// than one element?
-	std::vector<SyntaxDescriptor> res;
-	for (auto it = stack.crbegin(); it != stack.crend(); it++) {
-		if (it->closeToken != Tokens::Empty &&
-		    (token == Tokens::Empty || token == it->closeToken)) {
-			res.push_back(SyntaxDescriptor(Tokens::Empty, it->closeToken,
-			                               Tokens::Empty, it->tokenDesciptor,
-			                               -1));
-		}
-		if (it->range || it->inField) {
+	size_t res = 0;
+	for (ssize_t i = stack.size() - 1; i >= 0; i--) {
+		const HandlerInfo &info = stack[i];
+		if (info.range || (info.inField && !info.inImplicitDefaultField)) {
 			break;
 		}
+		res++;
 	}
 	return res;
+}
+
+ssize_t StackImpl::pendingCloseTokenHandlerIdx(TokenId token) const
+{
+	const ssize_t minIdx = std::max<ssize_t>(0, stack.size() - maxUnrollStackDepth() - 1);
+	for (ssize_t i = stack.size() - 1; i >= minIdx; i--) {
+		const HandlerInfo &info = stack[i];
+		if (info.closeToken != Tokens::Empty &&
+		    (token == Tokens::Empty || token == info.closeToken)) {
+			return i;
+		}
+	}
+	return -1;
 }
 
 TokenSet StackImpl::currentTokens() const
@@ -674,9 +693,9 @@ TokenSet StackImpl::currentTokens() const
 	TokenSet res;
 	if (currentInfo().state().supportsTokens) {
 		res = tokenStack.tokens();
-		std::vector<SyntaxDescriptor> pending = pendingCloseTokens();
-		for (const auto &descr : pending) {
-			res.insert(descr.close);
+		ssize_t idx = pendingCloseTokenHandlerIdx();
+		if (idx >= 0) {
+			res.insert(stack[idx].closeToken);
 		}
 	}
 	return res;
@@ -903,24 +922,52 @@ static void strayTokenError(const Token &token, TokenDescriptor &descr,
 bool StackImpl::handleCloseTokens(const Token &token,
                                   const std::vector<SyntaxDescriptor> &descrs)
 {
-	// Fetch the current information
-	HandlerInfo &info = currentInfo();
+	// Abort if the stack is empty -- nothing can be ended in that case
+	if (stack.empty()) {
+		return false;
+	}
 
-	// Iterate over all possible SyntaxDescriptors and try to end the token
-	for (const SyntaxDescriptor &descr : descrs) {
-		Handler::EndTokenResult res =
-		    info.handler->endToken(token.id, descr.descriptor);
-		switch (res) {
-			case Handler::EndTokenResult::ENDED_THIS:
-				endCurrentHandler();
-				return true;
-			case Handler::EndTokenResult::ENDED_HIDDEN:
-				return true;
-			case Handler::EndTokenResult::ENDED_NONE:
-				break;
+	// Check whether any of the given token descriptors can be ended -- select
+	// the one that needs the fewest unrolling
+	const size_t maxStackDepth = maxUnrollStackDepth();
+	const HandlerInfo &info = currentInfo();
+	size_t idx = 0;
+	EndTokenResult bestRes = EndTokenResult();
+	for (size_t i = 0; i < descrs.size(); i++) {
+		// Try to end the handler
+		const EndTokenResult res =
+		    info.handler->endToken(descrs[i].descriptor, maxStackDepth);
+
+		// Abort if the "endToken" function ended a transparent field -- in this
+		// case this method has already been successful
+		if (res.depth == 0 && res.found) {
+			return true;
+		}
+
+		// Otherwise check whether the result is positive and smaller than any
+		// previous result
+		if (res.found && (!bestRes.found || res.depth < bestRes.depth)) {
+			idx = i;
+			bestRes = res;
 		}
 	}
-	return false;
+
+	// Abort if no descriptor can be ended
+	if (!bestRes.found) {
+		return false;
+	}
+
+	// End as many handlers as indicated by the "depth" counter, repeat the
+	// process if needed
+	for (size_t i = 0; i < bestRes.depth; i++) {
+		endCurrentHandler();
+	}
+	if (!stack.empty() && bestRes.repeat) {
+		currentInfo().handler->endToken(
+	                                descrs[idx].descriptor,
+	                                0);
+	}
+	return true;
 }
 
 bool StackImpl::handleOpenTokens(Logger &logger, const Token &token,
@@ -978,32 +1025,46 @@ bool StackImpl::handleOpenTokens(Logger &logger, const Token &token,
 
 void StackImpl::handleToken(const Token &token)
 {
-	// Fetch the TokenDescriptor and the "pendingClose" list
-	TokenDescriptor descr = tokenStack.lookup(token.id);
-	std::vector<SyntaxDescriptor> pendingClose = pendingCloseTokens(token.id);
+	// If the token matches one from the "pendingCloseTokens" list, then just
+	// end the corresponding handler
+	const ssize_t pendingCloseIndex = pendingCloseTokenHandlerIdx(token.id);
+	if (pendingCloseIndex >= 0) {
+		for (ssize_t i = stack.size() - 1; i >= pendingCloseIndex; i--) {
+			endCurrentHandler();
+		}
+		return;
+	}
 
-	// Iterate until the stack can no longer be unwound
+	// Fetch the TokenDescriptor
+	TokenDescriptor descr = tokenStack.lookup(token.id);
+
+	// First try to close pending open tokens, issue an error if this does not
+	// work and no shortForm or open tokens are declared and the token is not
+	// a special whitespace token
+	if (handleCloseTokens(token, descr.close)) {
+		return;
+	} else if (descr.shortForm.empty() && descr.open.empty()) {
+		if (!Token::isSpecial(token.id)) {
+			strayTokenError(token, descr, logger());
+		}
+		return;
+	}
+
+	// Now try to handle open or short form tokens. Iterate until the stack can
+	// no longer be unwound.
 	while (!stack.empty()) {
 		LoggerFork loggerFork = logger().fork();
 
+		// TODO: Instead of using hadError flag here implement a "hasError"
+		// method for LoggerFork
 		bool hadError = false;
 		try {
-			// Try to close the current handlers
-			if (handleCloseTokens(token, pendingClose) ||
-			    (pendingClose.empty() &&
-			     handleCloseTokens(token, descr.close))) {
-				return;
-			}
-
 			// Try to open an implicit default field and try to start the token
 			// as short form or as start token
-			prepareCurrentHandler(pendingClose.empty());
-			if (pendingClose.empty()) {
-				if (handleOpenTokens(loggerFork, token, true,
-				                     descr.shortForm) ||
-				    handleOpenTokens(loggerFork, token, false, descr.open)) {
-					return;
-				}
+			prepareCurrentHandler(true);
+			if (handleOpenTokens(loggerFork, token, true, descr.shortForm) ||
+			    handleOpenTokens(loggerFork, token, false, descr.open)) {
+				return;
 			}
 		}
 		catch (LoggableException ex) {
@@ -1015,19 +1076,14 @@ void StackImpl::handleToken(const Token &token)
 		HandlerInfo &info = currentInfo();
 		if (info.inImplicitDefaultField && !stack.empty()) {
 			endCurrentHandler();
-		} else if (info.inDefaultField && info.closeToken == token.id) {
-			endCurrentField();
 		} else {
-			// Ignore close-only special (whitespace) rules, in all other cases
-			// issue an error
-			if (!Token::isSpecial(token.id) || descr.close.empty() ||
-			    !descr.open.empty() || !descr.shortForm.empty()) {
-				loggerFork.commit();
+			// Commit all encountered errors
+			loggerFork.commit();
 
-				// If there was no other error, issue a "stray token" error
-				if (!hadError) {
-					strayTokenError(token, descr, logger());
-				}
+			// If there was no other error message already, issue a "stray
+			// token" error
+			if (!hadError) {
+				strayTokenError(token, descr, logger());
 			}
 			return;
 		}

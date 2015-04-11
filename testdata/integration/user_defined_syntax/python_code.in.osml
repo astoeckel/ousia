@@ -1,0 +1,34 @@
+\document
+
+\ontology#python
+	\struct#code[root=true]
+		\field
+			\childRef[ref=block]
+	\struct#block[transparent=true]
+		\syntax
+			\open{\indent}
+			\close{\dedent}
+		\field
+			\childRef[ref=line]
+			\childRef[ref=block]
+	\struct#line[transparent=true]
+		\primitive[type=string]
+		\syntax
+			\close{\newline}
+
+\begin{code}
+import random
+import sys
+
+for i in range(int(sys.argv[1])):
+	randomNumber = random.randint(1, i)
+
+	print("Generated a random number between 1 and \{\}." \% i)
+	print("It is: \{\}" \% randomNumber)
+	for k in range(randomNumber):
+		print(k)
+
+	print("Done with this number!")
+
+print("Done.")
+\end{code}

@@ -66,7 +66,7 @@ struct Tracker {
 	bool startCommandResult;
 	bool startAnnotationResult;
 	bool startTokenResult;
-	Handler::EndTokenResult endTokenResult;
+	EndTokenResult endTokenResult;
 	bool fieldStartResult;
 	bool dataResult;
 
@@ -96,7 +96,7 @@ struct Tracker {
 		startCommandResult = true;
 		startAnnotationResult = true;
 		startTokenResult = true;
-		endTokenResult = Handler::EndTokenResult::ENDED_THIS;
+		endTokenResult = EndTokenResult();
 		fieldStartResult = true;
 		dataResult = true;
 
@@ -157,7 +157,7 @@ public:
 		return tracker.startTokenResult;
 	}
 
-	EndTokenResult endToken(const Token &token, Handle<Node> node) override
+	EndTokenResult endToken(Handle<Node> node, size_t maxStackDepth) override
 	{
 		tracker.endTokenCount++;
 		return tracker.endTokenResult;

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document>
+	<ontology name="python">
+		<struct name="code" root="true">
+			<field>
+				<childRef ref="block"/>
+			</field>
+		</struct>
+		<struct name="block" transparent="true">
+			<field>
+				<childRef ref="block"/>
+				<childRef ref="line"/>
+			</field>
+			<syntax>
+				<open>
+					<indent/>
+				</open>
+				<close>
+					<dedent/>
+				</close>
+			</syntax>
+		</struct>
+		<struct name="line" transparent="true">
+			<primitive type="string">
+				<syntax>
+					<close>
+						<newline/>
+					</close>
+				</syntax>
+			</primitive>
+		</struct>
+	</ontology>
+	<python:code>
+		<python:block>
+			<python:line>import random</python:line>
+			<python:line>import sys</python:line>
+			<python:line>for i in range(int(sys.argv[1])):</python:line>
+			<python:block>
+				<python:line>randomNumber = random.randint(1, i)</python:line>
+				<python:line>print(&quot;Generated a random number between 1 and {}.&quot; % i)</python:line>
+				<python:line>print(&quot;It is: {}&quot; % randomNumber)</python:line>
+				<python:line>for k in range(randomNumber):</python:line>
+				<python:block>
+					<python:line>print(k)</python:line>
+				</python:block>
+				<python:line>print(&quot;Done with this number!&quot;)</python:line>
+			</python:block>
+			<python:line>print(&quot;Done.&quot;)</python:line>
+		</python:block>
+	</python:code>
+</document>

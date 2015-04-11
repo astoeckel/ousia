@@ -222,7 +222,7 @@ public:
 	bool startCommand(Variant::mapType &args) override;
 	bool startAnnotation(Variant::mapType &args) override;
 	bool startToken(Handle<Node> node) override;
-	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
+	EndTokenResult endToken(Handle<Node> node, size_t maxStackDepth) override;
 	void end() override;
 	bool data() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;

@@ -60,6 +60,47 @@ class State;
 enum class HandlerType { COMMAND, ANNOTATION_START, ANNOTATION_END, TOKEN };
 
 /**
+ * Structure returned by the endToken method.
+ */
+struct EndTokenResult {
+	/**
+	 * Contains the number of explicit elements that need to be unrolled.
+	 */
+	size_t depth;
+
+	/**
+	 * Set to true if the given descriptor was found.
+	 */
+	bool found;
+
+	/**
+	 * Set to true if the endToken function must be called again after
+	 * unrolling.
+	 */
+	bool repeat;
+
+	/**
+	 * Default constructor, initializes all members to sane default values,
+	 * the descriptor has not been found.
+	 */
+	EndTokenResult() : depth(0), found(false), repeat(false) {}
+
+	/**
+	 * Constructor, initializes all member variables with the given values.
+	 *
+	 * @param depth is the number of explicit elements that need to be unrolled.
+	 * @param found if true, an element corresponding to the descriptor has been
+	 * found.
+	 * @param repeat if true, the endToken method needs to be called again once
+	 * the elements have been unrolled.
+	 */
+	EndTokenResult(size_t depth, bool found, bool repeat)
+	    : depth(depth), found(found), repeat(repeat)
+	{
+	}
+};
+
+/**
  * Class collecting all the data that is being passed to a Handler
  * instance.
  */
@@ -214,11 +255,6 @@ protected:
 
 public:
 	/**
-	 * Enum type representing the possible outcomes of the endToken() method.
-	 */
-	enum class EndTokenResult { ENDED_THIS, ENDED_HIDDEN, ENDED_NONE };
-
-	/**
 	 * Virtual destructor.
 	 */
 	virtual ~Handler();
@@ -362,22 +398,15 @@ public:
 
 	/**
 	 * Called whenever a token is marked as "end" token and this handler happens
-	 * to be the currently active handler. This operation may have three
-	 * outcomes:
-	 * <ol>
-	 *   <li>The token marks the end of the complete handler and the calling
-	 *   code should call the "end" method.</li>
-	 *   <li>The token marks the end of some element that is unknown the calling
-	 *   code. So the operation itself was a success, but the calling code
-	 *   should not call the "end" method.
-	 *   <li>The token did not match anything in this context. Basically this
-	 *   should never happen, but who knows.</li>
-	 * </ol>
+	 * to be the currently active handler.
 	 *
-	 * @param id is the Token for which the handler should be started.
-	 * @param node is the node for which this token was registered.
+	 * @param node is the node for for which a close token was found.
+	 * @param maxStackDepth contains the number of handlers on the stack that
+	 * can end.
+	 * @return an EndTokenResult instance specifiying how to procede.
 	 */
-	virtual EndTokenResult endToken(const Token &token, Handle<Node> node) = 0;
+	virtual EndTokenResult endToken(Handle<Node> node,
+	                                size_t maxStackDepth) = 0;
 
 	/**
 	 * Called before the command for which this handler is defined ends (is
@@ -439,7 +468,7 @@ public:
 	bool startCommand(Variant::mapType &args) override;
 	bool startAnnotation(Variant::mapType &args) override;
 	bool startToken(Handle<Node> node) override;
-	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
+	EndTokenResult endToken(Handle<Node> node, size_t maxStackDepth) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
 	void fieldEnd() override;
@@ -464,7 +493,7 @@ public:
 	bool startCommand(Variant::mapType &args) override;
 	bool startAnnotation(Variant::mapType &args) override;
 	bool startToken(Handle<Node> node) override;
-	EndTokenResult endToken(const Token &token, Handle<Node> node) override;
+	EndTokenResult endToken(Handle<Node> node, size_t maxStackDepth) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
 	void fieldEnd() override;

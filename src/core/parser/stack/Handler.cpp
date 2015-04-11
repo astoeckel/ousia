@@ -47,7 +47,8 @@ Handler::Handler(const HandlerData &handlerData)
 {
 }
 
-Handler::~Handler() {
+Handler::~Handler()
+{
 	while (tokenStackDepth > 0) {
 		popTokens();
 	}
@@ -90,7 +91,8 @@ void Handler::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 	handlerData.callbacks.pushTokens(tokens);
 }
 
-void Handler::popTokens() {
+void Handler::popTokens()
+{
 	assert(tokenStackDepth > 0 && "popTokens called too often");
 	tokenStackDepth--;
 	handlerData.callbacks.popTokens();
@@ -133,11 +135,10 @@ bool EmptyHandler::startToken(Handle<Node> node)
 	return false;
 }
 
-Handler::EndTokenResult EmptyHandler::endToken(const Token &token,
-                                               Handle<Node> node)
+EndTokenResult EmptyHandler::endToken(Handle<Node> node, size_t maxStackDepth)
 {
 	// There are no tokens to end here.
-	return EndTokenResult::ENDED_NONE;
+	return EndTokenResult();
 }
 
 void EmptyHandler::end()
@@ -179,10 +180,10 @@ bool StaticHandler::startAnnotation(Variant::mapType &args) { return false; }
 
 bool StaticHandler::startToken(Handle<Node> node) { return false; }
 
-Handler::EndTokenResult StaticHandler::endToken(const Token &token,
-                                                Handle<Node> node)
+EndTokenResult StaticHandler::endToken(Handle<Node> node, size_t maxStackDepth)
 {
-	return EndTokenResult::ENDED_NONE;
+	// There are no tokens to end here.
+	return EndTokenResult();
 }
 
 void StaticHandler::end()

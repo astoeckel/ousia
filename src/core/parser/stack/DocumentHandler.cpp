@@ -583,60 +583,70 @@ bool DocumentChildHandler::startToken(Handle<Node> node)
 	}
 }
 
-DocumentChildHandler::EndTokenResult DocumentChildHandler::endToken(
-    const Token &token, Handle<Node> node)
+EndTokenResult DocumentChildHandler::endToken(Handle<Node> node, size_t maxStackDepth)
 {
-	// Iterate over the transparent elements in the scope stack
+	// Fetch the current scope stack
 	const NodeVector<Node> &stack = scope().getStack();
-	ssize_t depth = -1;
-	for (auto sit = stack.crbegin(); sit != stack.crend(); sit++, depth++) {
+
+	bool found = false;            // true once the given node has been found
+	bool repeat = false;
+	size_t scopeStackDepth = 0;    // # of elems on the scope stack
+	size_t currentStackDepth = 0;  // # of "explicit" elems on the parser stack
+
+	// Iterate over the elements in the scope stack
+	for (auto sit = stack.crbegin(); sit != stack.crend();
+	     sit++, scopeStackDepth++) {
 		Rooted<Node> leaf = *sit;
+		bool isExplicit = false;
 		if (leaf->isa(&RttiTypes::DocumentField)) {
 			Rooted<DocumentField> field = leaf.cast<DocumentField>();
 			if (field->getDescriptor() == node) {
 				// If the field is transparent, end it by incrementing the depth
 				// counter -- both the field itself and the consecutive element
 				// need to be removed
+				found = true;
 				if (field->transparent) {
-					depth += 2;
-					break;
+					repeat = true;
+					scopeStackDepth++;
 				}
-				return EndTokenResult::ENDED_THIS;
 			}
-
-			// Abort if the field is explicit
-			if (!field->transparent) {
-				return EndTokenResult::ENDED_NONE;
-			}
-		}
-
-		if (leaf->isa(&RttiTypes::StructuredEntity)) {
+			isExplicit = field->explicitField;
+		} else if (leaf->isa(&RttiTypes::StructuredEntity)) {
 			Rooted<StructuredEntity> entity = leaf.cast<StructuredEntity>();
-			if (entity->getDescriptor() == node) {
-				// If the entity is transparent, end it by incrementing the
-				// depth counter and aborting
-				if (entity->isTransparent()) {
-					depth++;
-					break;
-				}
-				return EndTokenResult::ENDED_THIS;
-			}
-
-			// Abort if this entity is explicit
-			if (!entity->isTransparent()) {
-				return EndTokenResult::ENDED_NONE;
-			}
+			found = entity->getDescriptor() == node;
+			repeat = found && entity->isTransparent();
+			isExplicit = !entity->isTransparent();
 		}
 
 		// TODO: End annotations!
+
+		// If the given structure is a explicit sturcture (represents a handler)
+		// increment the stack depth and abort once the maximum stack depth has
+		// been surpassed.
+		if (isExplicit) {
+			currentStackDepth++;
+		}
+		if (found || currentStackDepth > maxStackDepth) {
+			break;
+		}
+	}
+
+	// Abort with a value smaller than zero if the element has not been found
+	if (!found || currentStackDepth > maxStackDepth) {
+		return EndTokenResult();
+	}
+
+	// If the element has been found, return the number of handlers that have to
+	// be popped from the parser stack
+	if (currentStackDepth > 0) {
+		return EndTokenResult(currentStackDepth, true, repeat);
 	}
 
 	// End all elements that were marked for being closed
-	for (ssize_t i = 0; i <= depth; i++) {
+	for (size_t i = 0; i < scopeStackDepth + 1; i++) {
 		scope().pop(logger());
 	}
-	return (depth >= 0) ? EndTokenResult::ENDED_HIDDEN
-	                    : EndTokenResult::ENDED_NONE;
+	return EndTokenResult(0, true, false);
 }
 
 void DocumentChildHandler::end()
