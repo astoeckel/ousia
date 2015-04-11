@@ -73,17 +73,29 @@ public:
  * Temporary Node that is being pushed onto the ParserScope in order to indicate
  * the field the parser is currently in. The name of the Node is stored in the
  * "name" field of the parent Node class.
+ *
+ * TODO: Invent some common base class for the DocumentField, StructuredEntity
+ * and AnnotationEntity classes.
  */
 class DocumentField : public Node {
 public:
 	const size_t fieldIdx;
 	const bool transparent;
+	const bool explicitField;
 
+	/**
+	 * Constructor of the DocumentField class.
+	 *
+	 * @param mgr is the parent Manager instance.
+	 * @param parent is the structure the field belongs to.
+	 * @param fieldIdx is the index of the field within the parent fields.
+	 * @param transparent is set to true if this field has been created as part
+	 * of an implicitly created structure.
+	 * @param explicitField is set to true if the field has been created as part
+	 * of an explicit field reference.
+	 */
 	DocumentField(Manager &mgr, Handle<Node> parent, size_t fieldIdx,
-	              bool transparent)
-	    : Node(mgr, parent), fieldIdx(fieldIdx), transparent(transparent)
-	{
-	}
+	              bool transparent, bool explicitField);
 
 	/**
 	 * Returns the FieldDescriptor represented by this DocumentField instance.
@@ -196,7 +208,7 @@ private:
 	 */
 	void pushDocumentField(Handle<Node> parent,
 	                       Handle<FieldDescriptor> fieldDescr, size_t fieldIdx,
-	                       bool transparent);
+	                       bool transparent, bool explicitField);
 
 	/**
 	 * Pops a DocumentField from the scope stack and retracts the permitted

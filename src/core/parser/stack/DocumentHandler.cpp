@@ -54,6 +54,15 @@ void DocumentHandler::end() { scope().pop(logger()); }
 
 /* DocumentField */
 
+DocumentField::DocumentField(Manager &mgr, Handle<Node> parent, size_t fieldIdx,
+                             bool transparent, bool explicitField)
+    : Node(mgr, parent),
+      fieldIdx(fieldIdx),
+      transparent(transparent),
+      explicitField(explicitField)
+{
+}
+
 Rooted<FieldDescriptor> DocumentField::getDescriptor()
 {
 	// Fetch the FieldDescriptor from the parent node. The parent node should
@@ -166,11 +175,12 @@ void DocumentChildHandler::pushScopeTokens()
 
 void DocumentChildHandler::pushDocumentField(Handle<Node> parent,
                                              Handle<FieldDescriptor> fieldDescr,
-                                             size_t fieldIdx, bool transparent)
+                                             size_t fieldIdx, bool transparent,
+                                             bool explicitField)
 {
 	// Push the field onto the scope
-	Rooted<DocumentField> field =
-	    new DocumentField(manager(), parent, fieldIdx, transparent);
+	Rooted<DocumentField> field = new DocumentField(manager(), parent, fieldIdx,
+	                                                transparent, explicitField);
 	field->setLocation(location());
 	scope().push(field);
 }
@@ -192,7 +202,7 @@ void DocumentChildHandler::createPath(const NodeVector<Node> &path,
 		    parent->getDescriptor()->getFieldDescriptorIndex();
 		const Rooted<FieldDescriptor> fieldDescr =
 		    parent->getDescriptor()->getFieldDescriptor(fieldIdx);
-		pushDocumentField(scope().getLeaf(), fieldDescr, fieldIdx, true);
+		pushDocumentField(scope().getLeaf(), fieldDescr, fieldIdx, true, false);
 
 		// add the transparent/implicit structure element.
 		Rooted<StructuredEntity> transparent =
@@ -208,7 +218,7 @@ void DocumentChildHandler::createPath(const NodeVector<Node> &path,
 	const ssize_t fieldIdx = parent->getDescriptor()->getFieldDescriptorIndex();
 	const Rooted<FieldDescriptor> fieldDescr =
 	    parent->getDescriptor()->getFieldDescriptor(fieldIdx);
-	pushDocumentField(scope().getLeaf(), fieldDescr, fieldIdx, true);
+	pushDocumentField(scope().getLeaf(), fieldDescr, fieldIdx, true, false);
 
 	// Generally allow explicit fields in the new field
 	scope().setFlag(ParserFlag::POST_EXPLICIT_FIELDS, false);
@@ -325,7 +335,7 @@ bool DocumentChildHandler::startCommand(Variant::mapType &args)
 						    parentNode,
 						    parent->getDescriptor()->getFieldDescriptor(
 						        newFieldIdx),
-						    newFieldIdx, false);
+						    newFieldIdx, false, true);
 						pushScopeTokens();
 						isExplicitField = true;
 						return true;
@@ -682,7 +692,7 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 	}
 
 	// push the field on the stack.
-	pushDocumentField(parentNode, fields[fieldIdx], fieldIdx, false);
+	pushDocumentField(parentNode, fields[fieldIdx], fieldIdx, false, false);
 	pushScopeTokens();
 
 	// Generally allow explicit fields in the new field
