@@ -201,7 +201,7 @@ struct Token {
 	 * Returns the name of the special token or an empty string if it is not a
 	 * special token.
 	 *
-	 * @param id
+	 * @param id is the TokenId for which the special name should be returned.
 	 */
 	static const char* specialName(TokenId id);
 
