@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document>
+	<ontology name="test">
+		<struct name="a" root="true">
+			<field>
+				<childRef ref="a"/>
+			</field>
+			<syntax>
+				<close>
+					<newline/>
+				</close>
+			</syntax>
+		</struct>
+	</ontology>
+	<test:a>
+		<test:a/>
+		<test:a/>
+	</test:a>
+</document>

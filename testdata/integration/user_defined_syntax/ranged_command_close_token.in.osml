@@ -1,0 +1,14 @@
+\document
+
+\begin{ontology#test}
+	\struct#a[root=true]
+		\syntax
+	\close{\newline}
+		\field
+		\childRef[ref=a]
+\end{ontology}
+
+\begin{a}
+\a
+\a
+\end{a}
