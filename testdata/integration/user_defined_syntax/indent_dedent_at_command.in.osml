@@ -1,0 +1,16 @@
+\begin{document}
+
+\begin{ontology#test}
+	\struct#a[root=true]
+		\syntax
+			\open{\indent}
+			\close{\dedent}
+		\field
+		\childRef[ref=a]
+\end{ontology}
+
+\begin{a}
+	\a{}
+\a{}
+\end{a}
+\end{document}
