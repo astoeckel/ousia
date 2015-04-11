@@ -147,6 +147,16 @@ struct Test {
 	    : name(name), infile(infile), shouldFail(true), success(false)
 	{
 	}
+
+	/**
+	 * Operator used for sorting the tests.
+	 *
+	 * @param t1 is the first test that should be compared.
+	 * @param t2 is the second test that should be compared.
+	 */
+	friend bool operator<(const Test &t1, const Test &t2) {
+		return t1.infile < t2.infile;
+	}
 };
 
 static bool parseFile(const std::string &infile, std::ostream &os)
@@ -328,6 +338,7 @@ static std::vector<Test> gatherTests(fs::path root)
 	}
 
 	// Return the unit test list
+	std::sort(res.begin(), res.end());
 	return res;
 }
 }
