@@ -882,7 +882,7 @@ static void strayTokenNote(const std::string &preamble,
 			type = " structure";
 		}
 		logger.note(preamble + " \"" + d.descriptor->getName() + "\"" + type +
-		                ", as specified here",
+		                ", specified here",
 		            *(d.descriptor));
 	}
 }
