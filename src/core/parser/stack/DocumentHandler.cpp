@@ -87,7 +87,9 @@ Rooted<FieldDescriptor> DocumentField::getDescriptor()
 /* DocumentChildHandler */
 
 DocumentChildHandler::DocumentChildHandler(const HandlerData &handlerData)
-    : Handler(handlerData), isExplicitField(false)
+    : Handler(handlerData),
+      isExplicitField(false),
+      inImplicitDefaultField(false)
 {
 	// Register all user defined tokens if this has not yet been done
 	if (!scope().getFlag(ParserFlag::POST_USER_DEFINED_TOKEN_REGISTRATION)) {
@@ -670,13 +672,15 @@ void DocumentChildHandler::end()
 	}
 }
 
-bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
+bool DocumentChildHandler::fieldStart(bool &isDefault, bool isImplicit,
+                                      size_t fieldIdx)
 {
 	if (isExplicitField) {
 		// In case of explicit fields we do not want to create another field.
 		isDefault = true;
 		return fieldIdx == 0;
 	}
+	inImplicitDefaultField = isImplicit;
 
 	Rooted<Node> parentNode = scope().getLeaf();
 	assert(parentNode->isa(&RttiTypes::StructuredEntity) ||
@@ -717,6 +721,7 @@ void DocumentChildHandler::fieldEnd()
 		popTokens();
 		rollbackPath();
 	}
+	inImplicitDefaultField = false;
 }
 
 bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,

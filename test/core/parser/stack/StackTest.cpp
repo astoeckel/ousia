@@ -76,6 +76,7 @@ struct Tracker {
 	bool fieldStartReturnValue;
 	size_t fieldStartIdx;
 	bool fieldStartIsDefault;
+	bool fieldStartIsImplicit;
 	bool fieldStartSetIsDefault;
 
 	Variant dataData;
@@ -105,6 +106,7 @@ struct Tracker {
 
 		fieldStartIdx = 0;
 		fieldStartIsDefault = false;
+		fieldStartIsImplicit = false;
 		fieldStartSetIsDefault = false;
 
 		dataData = Variant{};
@@ -165,9 +167,10 @@ public:
 
 	void end() override { tracker.endCount++; }
 
-	bool fieldStart(bool &isDefault, size_t fieldIdx) override
+	bool fieldStart(bool &isDefault, bool isImplicit, size_t fieldIdx) override
 	{
 		tracker.fieldStartIsDefault = isDefault;
+		tracker.fieldStartIsImplicit = isImplicit;
 		tracker.fieldStartIdx = fieldIdx;
 		if (tracker.fieldStartSetIsDefault) {
 			isDefault = true;

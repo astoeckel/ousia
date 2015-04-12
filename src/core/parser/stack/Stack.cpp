@@ -799,7 +799,8 @@ bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField,
 		// Try to start a new default field, abort if this did not work
 		if (startImplicitDefaultField) {
 			bool isDefault = true;
-			if (!info.handler->fieldStart(isDefault, info.fieldIdx)) {
+			if (!info.handler->fieldStart(isDefault, !info.range,
+			                              info.fieldIdx)) {
 				endCurrentHandler();
 				continue;
 			}
@@ -1211,8 +1212,9 @@ void StackImpl::handleFieldEnd(bool endRange)
 		if (info.range && endRange) {
 			if (!info.hadDefaultField) {
 				bool isDefault = true;
-				bool valid = info.handler->fieldStart(isDefault, true);
-				info.fieldStart(true, true, valid);
+				bool valid =
+				    info.handler->fieldStart(isDefault, false, info.fieldIdx);
+				info.fieldStart(true, false, valid);
 			}
 			endCurrentHandler();
 			return;
@@ -1453,7 +1455,8 @@ void StackImpl::fieldStart(bool isDefault)
 	bool valid = false;
 	if (handlersValid() && !info.hadDefaultField) {
 		try {
-			valid = info.handler->fieldStart(defaultField, info.fieldIdx);
+			valid =
+			    info.handler->fieldStart(defaultField, false, info.fieldIdx);
 		}
 		catch (LoggableException ex) {
 			logger().log(ex);

@@ -146,7 +146,8 @@ void EmptyHandler::end()
 	// Do nothing if a command ends
 }
 
-bool EmptyHandler::fieldStart(bool &isDefaultField, size_t fieldIndex)
+bool EmptyHandler::fieldStart(bool &isDefaultField, bool isImplicit,
+                              size_t fieldIndex)
 {
 	// Accept any field
 	return true;
@@ -191,7 +192,8 @@ void StaticHandler::end()
 	// Do nothing here
 }
 
-bool StaticHandler::fieldStart(bool &isDefault, size_t fieldIdx)
+bool StaticHandler::fieldStart(bool &isDefault, bool isImplicit,
+                               size_t fieldIdx)
 {
 	// Return true if either the default field is requested or the field index
 	// is zero. This simulates that there is exactly one field (a default field)

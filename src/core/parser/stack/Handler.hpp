@@ -425,9 +425,12 @@ public:
 	 * @param isDefault is set to true if the field that is being started is the
 	 * default/tree field. The handler should set the value of this variable to
 	 * true if the referenced field is indeed the default field.
+	 * @param isImplicit is set to true if the field was implicitly started
+	 * (if true, isDefault is also set to true).
 	 * @param fieldIdx is the numerical index of the field.
 	 */
-	virtual bool fieldStart(bool &isDefault, size_t fieldIdx) = 0;
+	virtual bool fieldStart(bool &isDefault, bool isImplicit,
+	                        size_t fieldIdx) = 0;
 
 	/**
 	 * Called when a previously opened field ends, while the handler is active.
@@ -470,7 +473,7 @@ public:
 	bool startToken(Handle<Node> node) override;
 	EndTokenResult endToken(Handle<Node> node, size_t maxStackDepth) override;
 	void end() override;
-	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
+	bool fieldStart(bool &isDefault, bool isImplicit, size_t fieldIdx) override;
 	void fieldEnd() override;
 	bool data() override;
 
@@ -495,7 +498,7 @@ public:
 	bool startToken(Handle<Node> node) override;
 	EndTokenResult endToken(Handle<Node> node, size_t maxStackDepth) override;
 	void end() override;
-	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
+	bool fieldStart(bool &isDefault, bool isImplicit, size_t fieldIdx) override;
 	void fieldEnd() override;
 	bool data() override;
 };

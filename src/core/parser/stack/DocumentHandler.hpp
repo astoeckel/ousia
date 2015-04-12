@@ -112,7 +112,12 @@ private:
 	/**
 	 * If set to true, this handler represents an explicit field.
 	 */
-	bool isExplicitField;
+	bool isExplicitField : 1;
+
+	/**
+	 * Set to true if the handler currently is in an implicit field.
+	 */
+	bool inImplicitDefaultField : 1;
 
 	/**
 	 * Registers all user defined tokens in the parser.
@@ -225,7 +230,7 @@ public:
 	EndTokenResult endToken(Handle<Node> node, size_t maxStackDepth) override;
 	void end() override;
 	bool data() override;
-	bool fieldStart(bool &isDefault, size_t fieldIdx) override;
+	bool fieldStart(bool &isDefault, bool isImplicit, size_t fieldIdx) override;
 	void fieldEnd() override;
 
 	/**
