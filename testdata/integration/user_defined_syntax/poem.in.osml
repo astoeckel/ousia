@@ -1,6 +1,6 @@
 \begin{document}
 
-\import[ontology]{./poem.osml}
+\import[ontology]{./ontologies/poem.osml}
 
 % To Autumn by John Keats (1820)
 % http://en.wikisource.org/wiki/Keats;_poems_published_in_1820/To_Autumn

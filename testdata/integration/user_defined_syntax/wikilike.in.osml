@@ -1,5 +1,5 @@
 \begin{document}
-\import[ontology]{./wikilike.osml}
+\import[ontology]{./ontologies/wikilike.osml}
 \begin{book}
 == This tests somewhat plays with user defined syntax ==
 

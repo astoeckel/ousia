@@ -4,7 +4,7 @@
 }%
 
 \document
-\import[ontology]{./token_escaping.osml}
+\import[ontology]{./ontologies/token_escaping.osml}
 \begin{a}
 = !=
 \end{a}
