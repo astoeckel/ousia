@@ -749,105 +749,104 @@ TEST(Stack, errorMultipleFieldEnds)
 
 TEST(Stack, errorOpenField)
 {
-    tracker.reset();
-    logger.reset();
+	tracker.reset();
+	logger.reset();
 
-    {
-        Stack s{parser, env.context, States::AnyHandlers};
-        s.commandStart("a", {});
-        tracker.expect(1, 0, 0, 0, 0); // scc, ec, fsc, fec, dc, sac, stc, etc
+	{
+		Stack s{parser, env.context, States::AnyHandlers};
+		s.commandStart("a", {});
+		tracker.expect(1, 0, 0, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
 
-        s.fieldStart(false);
-        ASSERT_FALSE(logger.hasError());
-    }
-    ASSERT_TRUE(logger.hasError());
-    tracker.expect(1, 1, 1, 1, 0); // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.fieldStart(false);
+		ASSERT_FALSE(logger.hasError());
+	}
+	ASSERT_TRUE(logger.hasError());
+	tracker.expect(1, 1, 1, 1, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
 }
 
 TEST(Stack, fieldEndWhenImplicitDefaultFieldOpen)
 {
-    tracker.reset();
-    logger.reset();
+	tracker.reset();
+	logger.reset();
 
-    {
-        Stack s{parser, env.context, States::AnyHandlers};
-        s.commandStart("a", {});
-        s.fieldStart(true);
-        s.commandStart("b", {});
-        s.data("test");
-        s.fieldEnd();
-        tracker.expect(2, 1, 2, 2, 1);  // scc, ec, fsc, fec, dc, sac, stc, etc
-    }
-    tracker.expect(2, 2, 2, 2, 1);  // scc, ec, fsc, fec, dc, sac, stc, etc
-    ASSERT_FALSE(logger.hasError());
+	{
+		Stack s{parser, env.context, States::AnyHandlers};
+		s.commandStart("a", {});
+		s.fieldStart(true);
+		s.commandStart("b", {});
+		s.data("test");
+		s.fieldEnd();
+		tracker.expect(2, 1, 2, 2, 1);  // scc, ec, fsc, fec, dc, sac, stc, etc
+	}
+	tracker.expect(2, 2, 2, 2, 1);  // scc, ec, fsc, fec, dc, sac, stc, etc
+	ASSERT_FALSE(logger.hasError());
 }
 
 TEST(Stack, fieldAfterDefaultField)
 {
-    tracker.reset();
-    logger.reset();
+	tracker.reset();
+	logger.reset();
 
-    {
-        Stack s{parser, env.context, States::AnyHandlers};
-        s.commandStart("a", {});
-        tracker.expect(1, 0, 0, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
-        s.fieldStart(true);
-        tracker.expect(1, 0, 1, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
+	{
+		Stack s{parser, env.context, States::AnyHandlers};
+		s.commandStart("a", {});
+		tracker.expect(1, 0, 0, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.fieldStart(true);
+		tracker.expect(1, 0, 1, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
 
-        s.commandStart("b", {});
-        tracker.expect(2, 0, 1, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.commandStart("b", {});
+		tracker.expect(2, 0, 1, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
 
-        s.fieldStart(false);
-        tracker.expect(2, 0, 2, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
-        s.data("f1");
-        tracker.expect(2, 0, 2, 0, 1);  // scc, ec, fsc, fec, dc, sac, stc, etc
-        s.fieldEnd();
-        tracker.expect(2, 0, 2, 1, 1);  // scc, ec, fsc, fec, dc, sac, stc, etc
-        tracker.fieldStartSetIsDefault = true;
+		s.fieldStart(false);
+		tracker.expect(2, 0, 2, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.data("f1");
+		tracker.expect(2, 0, 2, 0, 1);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.fieldEnd();
+		tracker.expect(2, 0, 2, 1, 1);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		tracker.fieldStartSetIsDefault = true;
 
-        s.fieldStart(false);
-        tracker.fieldStartSetIsDefault = false;
-        tracker.expect(2, 0, 3, 1, 1);  // scc, ec, fsc, fec, dc, sac, stc, etc
-        s.data("f2");
-        tracker.expect(2, 0, 3, 1, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
-        s.fieldEnd();
-        tracker.expect(2, 0, 3, 2, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.fieldStart(false);
+		tracker.fieldStartSetIsDefault = false;
+		tracker.expect(2, 0, 3, 1, 1);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.data("f2");
+		tracker.expect(2, 0, 3, 1, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.fieldEnd();
+		tracker.expect(2, 0, 3, 2, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
 
-        ASSERT_FALSE(logger.hasError());
-        s.fieldStart(false);
-        ASSERT_TRUE(logger.hasError());
-        logger.reset();
-        tracker.expect(2, 0, 3, 2, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
-        s.data("f3");
-        tracker.expect(2, 0, 3, 2, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
-        s.fieldEnd();
-        tracker.expect(2, 0, 3, 2, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		ASSERT_FALSE(logger.hasError());
+		s.fieldStart(false);
+		ASSERT_TRUE(logger.hasError());
+		logger.reset();
+		tracker.expect(2, 0, 3, 2, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.data("f3");
+		tracker.expect(2, 0, 3, 2, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.fieldEnd();
+		tracker.expect(2, 0, 3, 2, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
 
-        s.fieldEnd();
-        tracker.expect(2, 1, 3, 3, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
-    }
-    tracker.expect(2, 2, 3, 3, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
-    ASSERT_FALSE(logger.hasError());
+		s.fieldEnd();
+		tracker.expect(2, 1, 3, 3, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
+	}
+	tracker.expect(2, 2, 3, 3, 2);  // scc, ec, fsc, fec, dc, sac, stc, etc
+	ASSERT_FALSE(logger.hasError());
 }
 
 TEST(Stack, rangeCommandUnranged)
 {
-    tracker.reset();
-    logger.reset();
+	tracker.reset();
+	logger.reset();
 
-    {
-        Stack s{parser, env.context, States::AnyHandlers};
-        tracker.expect(0, 0, 0, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
-        s.commandStart("a", {}, true);
-        tracker.expect(1, 0, 0, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
-        s.commandStart("b", {});
-        tracker.expect(2, 0, 1, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
-        s.rangeEnd();
-        tracker.expect(2, 2, 1, 1, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
-    }
-    tracker.expect(2, 2, 1, 1, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
-    ASSERT_FALSE(logger.hasError());
+	{
+		Stack s{parser, env.context, States::AnyHandlers};
+		tracker.expect(0, 0, 0, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.commandStart("a", {}, true);
+		tracker.expect(1, 0, 0, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.commandStart("b", {});
+		tracker.expect(2, 0, 1, 0, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
+		s.rangeEnd();
+		tracker.expect(2, 2, 1, 1, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
+	}
+	tracker.expect(2, 2, 1, 1, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
+	ASSERT_FALSE(logger.hasError());
 }
-
 }
 }
