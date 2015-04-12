@@ -47,16 +47,18 @@ bool Utils::isIdentifierOrEmpty(const std::string &name)
 bool Utils::isNamespacedIdentifier(const std::string &name)
 {
 	bool first = true;
-	for (char c : name) {
+	for (size_t i = 0; i < name.size(); i++) {
+		const char c = name[i];
 		if (first && !isIdentifierStartCharacter(c)) {
 			return false;
 		}
-		if (!first && (!isIdentifierCharacter(c) && c != ':')) {
+		if (!first && (!(isIdentifierCharacter(c) || c == ':') ||
+		               (c == ':' && !isIdentifierEndCharacter(name[i - 1])))) {
 			return false;
 		}
 		first = (c == ':');
 	}
-	return !first;
+	return !first && isIdentifierEndCharacter(name.back());
 }
 
 bool Utils::hasNonWhitepaceChar(const std::string &s)

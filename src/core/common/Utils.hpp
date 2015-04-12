@@ -101,7 +101,8 @@ public:
 	/**
 	 * Returns true if the given string is in
 	 * \code{.txt}
-	 * ([A-Za-z][A-Za-z0-9_-]*)(:[A-Za-z][A-Za-z0-9_-]*)*
+	 * ([A-Za-z]([A-Za-z0-9_-][A-Za-z0-9])?)
+	 * (:[A-Za-z]([A-Za-z0-9_-][A-Za-z0-9])?)*
 	 * \endCode
 	 *
 	 * @param name is the string that should be tested.

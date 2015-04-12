@@ -408,19 +408,25 @@ TEST(Stack, invalidCommandName)
 	s.fieldEnd();
 	tracker.expect(1, 0, 1, 1, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
 
-	s.commandStart("a_", {});
+	s.commandStart("b", {});
 	tracker.expect(2, 1, 1, 1, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
 	s.fieldStart(true);
 	s.fieldEnd();
 	tracker.expect(2, 1, 2, 2, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
 
-	s.commandStart("a_:b", {});
+	s.commandStart("a:b", {});
 	tracker.expect(3, 2, 2, 2, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
 	s.fieldStart(true);
 	s.fieldEnd();
 	tracker.expect(3, 2, 3, 3, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
 
 	ASSERT_THROW(s.commandStart("_a", {}), LoggableException);
+	tracker.expect(3, 3, 3, 3, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
+
+	ASSERT_THROW(s.commandStart("a_", {}), LoggableException);
+	tracker.expect(3, 3, 3, 3, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
+
+	ASSERT_THROW(s.commandStart("a_:b", {}), LoggableException);
 	tracker.expect(3, 3, 3, 3, 0);  // scc, ec, fsc, fec, dc, sac, stc, etc
 
 	ASSERT_THROW(s.commandStart("a:", {}), LoggableException);

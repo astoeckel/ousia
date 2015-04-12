@@ -51,7 +51,9 @@ TEST(Utils, isNamespacedIdentifier)
 	EXPECT_TRUE(Utils::isNamespacedIdentifier("t0-_est:b"));
 	EXPECT_TRUE(Utils::isNamespacedIdentifier("test:test"));
 	EXPECT_TRUE(Utils::isNamespacedIdentifier("t0-_est:t0-_est"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier("test_"));
 	EXPECT_FALSE(Utils::isNamespacedIdentifier("test:_A"));
+	EXPECT_FALSE(Utils::isNamespacedIdentifier("test_:A"));
 	EXPECT_FALSE(Utils::isNamespacedIdentifier("test::a"));
 	EXPECT_FALSE(Utils::isNamespacedIdentifier(":test"));
 	EXPECT_FALSE(Utils::isNamespacedIdentifier("t0-_est:_t0-_EST"));
