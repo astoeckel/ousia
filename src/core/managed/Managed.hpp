@@ -551,15 +551,23 @@ private:
 
 	void addRef()
 	{
-		if (Handle<T>::ptr && owner) {
-			owner->getManager().addRef(Handle<T>::ptr, owner);
+		if (Handle<T>::ptr) {
+			if (owner) {
+				owner->getManager().addRef(Handle<T>::ptr, owner);
+			} else {
+				Handle<T>::ptr->getManager().addRef(Handle<T>::ptr, owner);
+			}
 		}
 	}
 
 	void deleteRef()
 	{
-		if (Handle<T>::ptr && owner) {
-			owner->getManager().deleteRef(Handle<T>::ptr, owner);
+		if (Handle<T>::ptr) {
+			if (owner) {
+				owner->getManager().deleteRef(Handle<T>::ptr, owner);
+			} else {
+				Handle<T>::ptr->getManager().deleteRef(Handle<T>::ptr, owner);
+			}
 		}
 	}
 
