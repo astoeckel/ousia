@@ -351,7 +351,7 @@ TEST(Descriptor, pathToCycles)
 	 * optimum this should not happen, though.
 	 */
 	NodeVector<Node> path = A->pathTo(B, logger);
-	ASSERT_EQ(1, path.size());
+	ASSERT_EQ(1U, path.size());
 	ASSERT_EQ(A_field, path[0]);
 }
 
@@ -454,7 +454,7 @@ TEST(Descriptor, getDefaultFieldsCycles)
 	 * if we correctly note all already visited nodes.
 	 */
 	NodeVector<FieldDescriptor> defaultFields = A->getDefaultFields();
-	ASSERT_EQ(1, defaultFields.size());
+	ASSERT_EQ(1U, defaultFields.size());
 	ASSERT_EQ(A_field, defaultFields[0]);
 }
 
@@ -516,7 +516,7 @@ TEST(Descriptor, getPermittedChildrenCycles)
 	 * if we correctly note all already visited nodes.
 	 */
 	NodeVector<StructuredClass> children = A->getPermittedChildren();
-	ASSERT_EQ(1, children.size());
+	ASSERT_EQ(1U, children.size());
 	ASSERT_EQ(A, children[0]);
 }
 
@@ -541,7 +541,7 @@ TEST(Descriptor, getSyntaxDescriptor)
 	SyntaxDescriptor stx = A->getSyntaxDescriptor();
 	ASSERT_EQ(Tokens::Indent, stx.open);
 	ASSERT_EQ(Tokens::Dedent, stx.close);
-	ASSERT_EQ(1, stx.shortForm);
+	ASSERT_EQ(1U, stx.shortForm);
 	ASSERT_EQ(A, stx.descriptor);
 	ASSERT_TRUE(stx.isStruct());
 	ASSERT_FALSE(stx.isAnnotation());
@@ -588,7 +588,7 @@ TEST(Descriptor, getPermittedTokens)
 
 	// check result.
 	std::vector<SyntaxDescriptor> stxs = A->getPermittedTokens();
-	ASSERT_EQ(3, stxs.size());
+	ASSERT_EQ(3U, stxs.size());
 	// the field should be first, because A itself should not be collected
 	// directly.
 	ASSERT_EQ(A_field, stxs[0].descriptor);
@@ -599,11 +599,11 @@ TEST(Descriptor, getPermittedTokens)
 	ASSERT_EQ(A, stxs[1].descriptor);
 	ASSERT_EQ(Tokens::Indent, stxs[1].open);
 	ASSERT_EQ(Tokens::Dedent, stxs[1].close);
-	ASSERT_EQ(1, stxs[1].shortForm);
+	ASSERT_EQ(1U, stxs[1].shortForm);
 	ASSERT_EQ(0, stxs[1].depth);
 	ASSERT_EQ(A_anno, stxs[2].descriptor);
-	ASSERT_EQ(7, stxs[2].open);
-	ASSERT_EQ(8, stxs[2].close);
+	ASSERT_EQ(7U, stxs[2].open);
+	ASSERT_EQ(8U, stxs[2].close);
 	ASSERT_EQ(Tokens::Empty, stxs[2].shortForm);
 	ASSERT_EQ(-1, stxs[2].depth);
 }
@@ -831,7 +831,7 @@ TEST(Ontology, getAllTokenDescriptors)
 
 	// A short token
 	ASSERT_EQ("<+>", tks[0]->token);
-	ASSERT_EQ(1, tks[0]->id);
+	ASSERT_EQ(1U, tks[0]->id);
 	ASSERT_FALSE(tks[0]->special);
 	// A start token
 	ASSERT_EQ("", tks[1]->token);
@@ -847,11 +847,11 @@ TEST(Ontology, getAllTokenDescriptors)
 	ASSERT_TRUE(tks[3]->special);
 	// A anno start token
 	ASSERT_EQ("<", tks[4]->token);
-	ASSERT_EQ(7, tks[4]->id);
+	ASSERT_EQ(7U, tks[4]->id);
 	ASSERT_FALSE(tks[4]->special);
 	// A anno end token
 	ASSERT_EQ(">", tks[5]->token);
-	ASSERT_EQ(8, tks[5]->id);
+	ASSERT_EQ(8U, tks[5]->id);
 	ASSERT_FALSE(tks[5]->special);
 }
 }
