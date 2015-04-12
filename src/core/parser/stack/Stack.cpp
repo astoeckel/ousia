@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <limits>
+
 #include <core/common/Logger.hpp>
 #include <core/common/Utils.hpp>
 #include <core/common/Exceptions.hpp>
@@ -677,7 +679,8 @@ size_t StackImpl::maxUnrollStackDepth() const
 
 ssize_t StackImpl::pendingCloseTokenHandlerIdx(TokenId token) const
 {
-	const ssize_t minIdx = std::max<ssize_t>(0, stack.size() - maxUnrollStackDepth() - 1);
+	const ssize_t minIdx =
+	    std::max<ssize_t>(0, stack.size() - maxUnrollStackDepth() - 1);
 	for (ssize_t i = stack.size() - 1; i >= minIdx; i--) {
 		const HandlerInfo &info = stack[i];
 		if (info.closeToken != Tokens::Empty &&
@@ -887,36 +890,107 @@ bool StackImpl::handleData()
 
 /* Token management */
 
-static void strayTokenNote(const std::string &preamble,
-                           const std::vector<SyntaxDescriptor> &descrs,
-                           Logger &logger)
+static void logTokenNote(const std::string &preamble,
+                         const SyntaxDescriptor &descr, Logger &logger)
 {
-	for (const auto &d : descrs) {
-		std::string type = "";
-		if (d.isAnnotation()) {
-			type = " annotation";
-		} else if (d.isFieldDescriptor()) {
-			type = " field";
-		} else if (d.isStruct()) {
-			type = " structure";
-		}
-		logger.note(preamble + " \"" + d.descriptor->getName() + "\"" + type +
-		                ", specified here",
-		            *(d.descriptor));
+	std::string type = "";
+	if (descr.isAnnotation()) {
+		type = " annotation";
+	} else if (descr.isFieldDescriptor()) {
+		type = " field";
+	} else if (descr.isStruct()) {
+		type = " structure";
+	}
+	logger.note(preamble + " \"" + descr.descriptor->getName() + "\"" + type +
+	                ", specified here",
+	            *(descr.descriptor));
+}
+
+static void logTokenNote(const std::string &preamble,
+                         const std::vector<SyntaxDescriptor> &descrs,
+                         Logger &logger)
+{
+	for (const auto &descr : descrs) {
+		logTokenNote(preamble, descr, logger);
 	}
 }
 
 static void strayTokenError(const Token &token, TokenDescriptor &descr,
                             Logger &logger)
 {
-	logger.error("Stray token", token);
+	logger.error("Stray \"" + token.name() + "\" token", token);
 	logger.note("This token must be used in one of the following contexts:",
-	            token, MessageMode::NO_CONTEXT);
-	strayTokenNote("To close a", descr.close, logger);
-	strayTokenNote("To open a", descr.open, logger);
-	strayTokenNote("As a short form of", descr.shortForm, logger);
+	            SourceLocation{}, MessageMode::NO_CONTEXT);
+	logTokenNote("To close a", descr.close, logger);
+	logTokenNote("To open a", descr.open, logger);
+	logTokenNote("As a short form of", descr.shortForm, logger);
 
 	return;
+}
+
+static void checkTokensAreUnambigous(const Token &token,
+                                     const TokenDescriptor &descr,
+                                     Logger &logger)
+{
+	const ssize_t maxDepth = std::numeric_limits<ssize_t>::max();
+	const SyntaxDescriptor none(Tokens::Empty, Tokens::Empty, Tokens::Empty,
+	                            nullptr, maxDepth);
+
+	// Check whether there is any ambiguity -- e.g. there are two tokens with
+	// the same depth (the effort they need to be created). The shortForm and
+	// open lists are assumed to be sorted by depth.
+	ssize_t errorDepth = maxDepth;
+	size_t i = 0;
+	size_t j = 0;
+	while (errorDepth == maxDepth &&
+	       (i < descr.open.size() || j < descr.shortForm.size())) {
+		const SyntaxDescriptor &di1 =
+		    i < descr.open.size() ? descr.open[i] : none;
+		const SyntaxDescriptor &di2 =
+		    (i + 1 < descr.open.size()) ? descr.open[i + 1] : none;
+		const SyntaxDescriptor &dj1 =
+		    j < descr.shortForm.size() ? descr.shortForm[j] : none;
+		const SyntaxDescriptor &dj2 =
+		    (j + 1 < descr.shortForm.size()) ? descr.shortForm[j + 1] : none;
+
+		if (di1.depth != maxDepth &&
+		    (di1.depth == di2.depth || di1.depth == dj1.depth ||
+		     di1.depth == dj2.depth)) {
+			errorDepth = di1.depth;
+		}
+		if (dj1.depth != maxDepth &&
+		    (dj1.depth == dj2.depth || di2.depth == dj1.depth)) {
+			errorDepth = dj1.depth;
+		}
+
+		i = i + ((di1.depth <= dj1.depth) ? 1 : 0);
+		j = j + ((di1.depth >= dj1.depth) ? 1 : 0);
+	}
+
+	// Issue an error message if an ambiguity exists
+	if (errorDepth != maxDepth) {
+		logger.error("Token \"" + token.name() + "\" is ambiguous!");
+		logger.note(
+		    "The token could be ambiguously used in one of the following "
+		    "contexts: ",
+		    SourceLocation{}, MessageMode::NO_CONTEXT);
+		for (size_t i = 0;
+		     i < descr.open.size() && descr.open[i].depth <= errorDepth; i++) {
+			if (descr.open[i].depth == errorDepth) {
+				logTokenNote("To start a", descr.open[i], logger);
+				break;
+			}
+		}
+		for (size_t i = 0; i < descr.shortForm.size() &&
+		                       descr.shortForm[i].depth <= errorDepth;
+		     i++) {
+			if (descr.shortForm[i].depth == errorDepth) {
+				logTokenNote("As a short form of a", descr.shortForm[i],
+				             logger);
+				break;
+			}
+		}
+	}
 }
 
 bool StackImpl::handleCloseTokens(const Token &token,
@@ -963,9 +1037,7 @@ bool StackImpl::handleCloseTokens(const Token &token,
 		endCurrentHandler();
 	}
 	if (!stack.empty() && bestRes.repeat) {
-		currentInfo().handler->endToken(
-	                                descrs[idx].descriptor,
-	                                0);
+		currentInfo().handler->endToken(descrs[idx].descriptor, 0);
 	}
 	return true;
 }
@@ -1049,6 +1121,9 @@ void StackImpl::handleToken(const Token &token)
 		}
 		return;
 	}
+
+	// Make sure the given open token descriptors are unambiguous
+	checkTokensAreUnambigous(token, descr, logger());
 
 	// Now try to handle open or short form tokens. Iterate until the stack can
 	// no longer be unwound.

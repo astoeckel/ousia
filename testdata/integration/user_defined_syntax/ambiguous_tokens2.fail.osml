@@ -1,0 +1,16 @@
+\document
+\ontology#test
+	\struct#test[root=true]
+		\field
+			\childRef[a]
+			\childRef[b]
+	\struct#a
+		\syntax
+			\open{=}
+	\struct#b
+		\syntax
+			\open{=}
+
+\begin{test}
+=
+\end{test}
