@@ -307,11 +307,15 @@ public:
 	 * enabled tokens.
 	 * @param mode is the whitespace mode that should be used when a text token
 	 * is returned.
+	 * @param endAtWhitespace if true, only delivers data until the first
+	 * whitespace character after a sequence of non-whitespace characters. Does
+	 * not affect the delivery of non-data tokens.
 	 * @return true if the operation was successful and there is a next token,
 	 * false if there are no more tokens.
 	 */
 	bool read(Token &token, const TokenSet &tokens = TokenSet{},
-	          WhitespaceMode mode = WhitespaceMode::TRIM);
+	          WhitespaceMode mode = WhitespaceMode::TRIM,
+	          bool endAtWhitespace = false);
 
 	/**
 	 * Stores the next token in the given token reference, returns true if the
@@ -323,11 +327,15 @@ public:
 	 * enabled tokens.
 	 * @param mode is the whitespace mode that should be used when a text token
 	 * is returned.
+	 * @param endAtWhitespace if true, only delivers data until the first
+	 * whitespace character after a sequence of non-whitespace characters. Does
+	 * not affect the delivery of non-data tokens.
 	 * @return true if the operation was successful and there is a next token,
 	 * false if there are no more tokens.
 	 */
 	bool peek(Token &token, const TokenSet &tokens = TokenSet{},
-	          WhitespaceMode mode = WhitespaceMode::TRIM);
+	          WhitespaceMode mode = WhitespaceMode::TRIM,
+	          bool endAtWhitespace = false);
 
 	/**
 	 * Consumes the peeked tokens, the read cursor will now be at the position

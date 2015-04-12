@@ -21,15 +21,17 @@
 
 namespace ousia {
 
-static void assertToken(TokenizedDataReader &reader, TokenId id,
-                 const std::string &text, const TokenSet &tokens = TokenSet{},
-                 WhitespaceMode mode = WhitespaceMode::TRIM,
-                 SourceOffset start = InvalidSourceOffset,
-                 SourceOffset end = InvalidSourceOffset,
-                 SourceId sourceId = InvalidSourceId)
+inline void assertToken(TokenizedDataReader &reader, TokenId id,
+                        const std::string &text,
+                        const TokenSet &tokens = TokenSet{},
+                        WhitespaceMode mode = WhitespaceMode::TRIM,
+                        SourceOffset start = InvalidSourceOffset,
+                        SourceOffset end = InvalidSourceOffset,
+                        SourceId sourceId = InvalidSourceId,
+                        bool endAtWhitespace = false)
 {
 	Token token;
-	ASSERT_TRUE(reader.read(token, tokens, mode));
+	ASSERT_TRUE(reader.read(token, tokens, mode, endAtWhitespace));
 	EXPECT_EQ(id, token.id);
 	EXPECT_EQ(text, token.content);
 	if (start != InvalidSourceOffset) {
@@ -41,23 +43,32 @@ static void assertToken(TokenizedDataReader &reader, TokenId id,
 	EXPECT_EQ(sourceId, token.getLocation().getSourceId());
 }
 
-static void assertText(TokenizedDataReader &reader, const std::string &text,
-                const TokenSet &tokens = TokenSet{},
-                WhitespaceMode mode = WhitespaceMode::TRIM,
-                SourceOffset start = InvalidSourceOffset,
-                SourceOffset end = InvalidSourceOffset,
-                SourceId id = InvalidSourceId)
+inline void assertText(TokenizedDataReader &reader, const std::string &text,
+                       const TokenSet &tokens = TokenSet{},
+                       WhitespaceMode mode = WhitespaceMode::TRIM,
+                       SourceOffset start = InvalidSourceOffset,
+                       SourceOffset end = InvalidSourceOffset,
+                       SourceId id = InvalidSourceId)
 {
 	assertToken(reader, Tokens::Data, text, tokens, mode, start, end, id);
 }
 
-static void assertEnd(TokenizedDataReader &reader)
+inline void assertTextEndAtWhitespace(
+    TokenizedDataReader &reader, const std::string &text,
+    const TokenSet &tokens = TokenSet{},
+    WhitespaceMode mode = WhitespaceMode::TRIM,
+    SourceOffset start = InvalidSourceOffset,
+    SourceOffset end = InvalidSourceOffset, SourceId id = InvalidSourceId)
+{
+	assertToken(reader, Tokens::Data, text, tokens, mode, start, end, id, true);
+}
+
+inline void assertEnd(TokenizedDataReader &reader)
 {
 	Token token;
 	ASSERT_TRUE(reader.atEnd());
 	ASSERT_FALSE(reader.read(token));
 }
-
 }
 
 #endif /* _OUSIA_TOKENIZED_DATA_TEST_UTILS_HPP_ */

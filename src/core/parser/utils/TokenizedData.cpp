@@ -367,11 +367,13 @@ public:
 	 * @param cursor is the position in the character buffer from which on the
 	 * next token should be read. The cursor will be updated to the position
 	 * beyond the returned token.
+	 * @param endAtWhitespace if true, only delivers data up to the next
+	 * whitespace.
 	 * @return true if a token was returned, false if no more tokens are
 	 * available.
 	 */
 	bool next(Token &token, WhitespaceMode mode, const TokenSet &tokens,
-	          TokenizedDataCursor &cursor) const
+	          TokenizedDataCursor &cursor, bool endAtWhitespace) const
 	{
 		// Some variables for convenient access
 		size_t &bufPos = cursor.bufPos;
@@ -394,12 +396,28 @@ public:
 
 		// Calculate the buffer start and end character, based on the returned
 		// TokenMark instance
-		const size_t end = (it != marks.end()) ? it->bufStart : buf.size();
+		size_t end = (it != marks.end()) ? it->bufStart : buf.size();
 
 		// Depending on the whitespace mode, fetch all the data between the
 		// cursor position and the calculated end position and return a token
 		// containing that data.
 		if (bufPos < end && bufPos < buf.size()) {
+			// If endAtWhitespace is set to true, limit copying to the the first
+			// whitespace character after non-whitespace
+			if (endAtWhitespace) {
+				bool hasNonWhitespace = false;
+				for (size_t i = bufPos; i < end; i++) {
+					const bool isWhitespace = Utils::isWhitespace(buf[i]);
+					if (isWhitespace) {
+						if (hasNonWhitespace) {
+							end = i;
+							break;
+						}
+					} else {
+						hasNonWhitespace = true;
+					}
+				}
+			}
 			switch (mode) {
 				case WhitespaceMode::PRESERVE: {
 					token = Token(
@@ -685,15 +703,15 @@ bool TokenizedDataReader::atEnd() const
 }
 
 bool TokenizedDataReader::read(Token &token, const TokenSet &tokens,
-                               WhitespaceMode mode)
+                               WhitespaceMode mode, bool endAtWhitespace)
 {
 	peekCursor = readCursor;
-	return impl->next(token, mode, tokens, readCursor);
+	return impl->next(token, mode, tokens, readCursor, endAtWhitespace);
 }
 
 bool TokenizedDataReader::peek(Token &token, const TokenSet &tokens,
-                               WhitespaceMode mode)
+                               WhitespaceMode mode, bool endAtWhitespace)
 {
-	return impl->next(token, mode, tokens, peekCursor);
+	return impl->next(token, mode, tokens, peekCursor, endAtWhitespace);
 }
 }

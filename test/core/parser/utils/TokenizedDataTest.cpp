@@ -348,12 +348,13 @@ TEST(TokenizedData, specialTokenIndent)
 	const TokenSet tokens{Tokens::Indent, Tokens::Dedent};
 
 	TokenizedDataReader reader = data.reader();
-	assertToken(reader, Tokens::Indent, "", tokens, WhitespaceMode::COLLAPSE,
-	            4, 4);
+	assertToken(reader, Tokens::Indent, "", tokens, WhitespaceMode::COLLAPSE, 4,
+	            4);
 	assertText(reader, "test", tokens, WhitespaceMode::COLLAPSE, 4, 8);
 	assertToken(reader, Tokens::Indent, "", tokens, WhitespaceMode::COLLAPSE,
 	            10, 10);
-	assertText(reader, "test2 test3 test4", tokens, WhitespaceMode::COLLAPSE, 10, 37);
+	assertText(reader, "test2 test3 test4", tokens, WhitespaceMode::COLLAPSE,
+	           10, 37);
 	assertToken(reader, Tokens::Dedent, "", tokens, WhitespaceMode::COLLAPSE,
 	            37, 37);
 	assertToken(reader, Tokens::Dedent, "", tokens, WhitespaceMode::COLLAPSE,
@@ -372,11 +373,11 @@ TEST(TokenizedData, specialTokenIndent2)
 
 	TokenizedDataReader reader = data.reader();
 	assertText(reader, "a", tokens, WhitespaceMode::COLLAPSE, 0, 1);
-	assertToken(reader, Tokens::Indent, "", tokens, WhitespaceMode::COLLAPSE,
-	            3, 3);
+	assertToken(reader, Tokens::Indent, "", tokens, WhitespaceMode::COLLAPSE, 3,
+	            3);
 	assertText(reader, "b", tokens, WhitespaceMode::COLLAPSE, 3, 4);
-	assertToken(reader, Tokens::Indent, "", tokens, WhitespaceMode::COLLAPSE,
-	            7, 7);
+	assertToken(reader, Tokens::Indent, "", tokens, WhitespaceMode::COLLAPSE, 7,
+	            7);
 	assertText(reader, "c", tokens, WhitespaceMode::COLLAPSE, 7, 8);
 	assertToken(reader, Tokens::Indent, "", tokens, WhitespaceMode::COLLAPSE,
 	            12, 12);
@@ -403,12 +404,13 @@ TEST(TokenizedData, specialTokenIndentOverlap)
 	data.mark(5, 4, 4);
 
 	TokenizedDataReader reader = data.reader();
-	assertToken(reader, Tokens::Indent, "", tokens, WhitespaceMode::COLLAPSE,
-	            4, 4);
+	assertToken(reader, Tokens::Indent, "", tokens, WhitespaceMode::COLLAPSE, 4,
+	            4);
 	assertToken(reader, 5, "test", tokens, WhitespaceMode::COLLAPSE, 4, 8);
 	assertToken(reader, Tokens::Indent, "", tokens, WhitespaceMode::COLLAPSE,
 	            10, 10);
-	assertText(reader, "test2 test3 test4", tokens, WhitespaceMode::COLLAPSE, 10, 37);
+	assertText(reader, "test2 test3 test4", tokens, WhitespaceMode::COLLAPSE,
+	           10, 37);
 	assertToken(reader, Tokens::Dedent, "", tokens, WhitespaceMode::COLLAPSE,
 	            37, 37);
 	assertToken(reader, Tokens::Dedent, "", tokens, WhitespaceMode::COLLAPSE,
@@ -417,5 +419,26 @@ TEST(TokenizedData, specialTokenIndentOverlap)
 	assertEnd(reader);
 }
 
+TEST(TokenizedData, endAtWhitespace)
+{
+	TokenizedData data;
+	data.append("    a    b c   d");
+	//           0123456789012345
+	//           0         1
+	const TokenSet tokens{};
+
+	data.mark(5, 4, 4);
+
+	TokenizedDataReader reader = data.reader();
+	assertTextEndAtWhitespace(reader, "    a", tokens, WhitespaceMode::PRESERVE,
+	                          0, 5);
+	assertTextEndAtWhitespace(reader, "    b", tokens, WhitespaceMode::PRESERVE,
+	                          5, 10);
+	assertTextEndAtWhitespace(reader, " c", tokens, WhitespaceMode::PRESERVE,
+	                          10, 12);
+	assertTextEndAtWhitespace(reader, "   d", tokens, WhitespaceMode::PRESERVE,
+	                          12, 16);
+	assertEnd(reader);
+}
 }
 
