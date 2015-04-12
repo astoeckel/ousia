@@ -136,7 +136,7 @@ private:
 	 * @param mode describes whether the file should be included or imported.
 	 * @return the parsed nodes or an empty list if something went wrong.
 	 */
-	NodeVector<Node> parse(ParserContext &ctx, const std::string &path,
+	ManagedVector<Node> parse(ParserContext &ctx, const std::string &path,
 	                       const std::string &mimetype, const std::string &rel,
 	                       const RttiSet &supportedTypes, ParseMode mode);
 
@@ -196,7 +196,7 @@ public:
 	 * checked, not the actual result.
 	 * @return the parsed nodes or an empty list if something went wrong.
 	 */
-	NodeVector<Node> include(ParserContext &ctx, const std::string &path,
+	ManagedVector<Node> include(ParserContext &ctx, const std::string &path,
 	                         const std::string &mimetype,
 	                         const std::string &rel,
 	                         const RttiSet &supportedTypes);

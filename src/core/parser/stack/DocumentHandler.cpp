@@ -144,7 +144,7 @@ void DocumentChildHandler::pushScopeTokens()
 
 	// Fetch the current scope stack and search the first non-transparent field
 	// or structure
-	const NodeVector<Node> &stack = scope().getStack();
+	const ManagedVector<Node> &stack = scope().getStack();
 	for (auto sit = stack.crbegin(); sit != stack.crend(); sit++) {
 		Rooted<Node> nd = *sit;
 
@@ -586,7 +586,7 @@ bool DocumentChildHandler::startToken(Handle<Node> node)
 EndTokenResult DocumentChildHandler::endToken(Handle<Node> node, size_t maxStackDepth)
 {
 	// Fetch the current scope stack
-	const NodeVector<Node> &stack = scope().getStack();
+	const ManagedVector<Node> &stack = scope().getStack();
 
 	bool found = false;            // true once the given node has been found
 	bool repeat = false;
@@ -686,7 +686,7 @@ bool DocumentChildHandler::fieldStart(bool &isDefault, size_t fieldIdx)
 
 	preamble(parentNode, dummy, parent);
 
-	NodeVector<FieldDescriptor> fields =
+	ManagedVector<FieldDescriptor> fields =
 	    parent->getDescriptor()->getFieldDescriptors();
 
 	if (isDefault) {
@@ -780,7 +780,7 @@ bool DocumentChildHandler::data()
 	// Search through all permitted default fields of the parent class that
 	// allow primitive content at this point and could be constructed via
 	// transparent intermediate entities.
-	NodeVector<FieldDescriptor> defaultFields = field->getDefaultFields();
+	ManagedVector<FieldDescriptor> defaultFields = field->getDefaultFields();
 
 	// Try to parse the data using the type specified by the respective field.
 	// If that does not work we proceed to the next possible field.

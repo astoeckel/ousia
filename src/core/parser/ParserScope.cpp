@@ -36,7 +36,8 @@ namespace ousia {
 
 ParserScopeBase::ParserScopeBase() {}
 
-ParserScopeBase::ParserScopeBase(const NodeVector<Node> &nodes) : nodes(nodes)
+ParserScopeBase::ParserScopeBase(const ManagedVector<Node> &nodes)
+    : nodes(nodes)
 {
 }
 
@@ -74,7 +75,7 @@ Rooted<Node> ParserScopeBase::getRoot() const { return nodes.front(); }
 
 Rooted<Node> ParserScopeBase::getLeaf() const { return nodes.back(); }
 
-const NodeVector<Node> &ParserScopeBase::getStack() const { return nodes; }
+const ManagedVector<Node> &ParserScopeBase::getStack() const { return nodes; }
 
 std::vector<Rtti const *> ParserScopeBase::getStackTypeSignature() const
 {
@@ -118,7 +119,7 @@ Rooted<Node> ParserScopeBase::selectOrThrow(RttiSet types, int maxDepth)
 
 /* Class DeferredResolution */
 
-DeferredResolution::DeferredResolution(const NodeVector<Node> &nodes,
+DeferredResolution::DeferredResolution(const ManagedVector<Node> &nodes,
                                        const std::vector<std::string> &path,
                                        const Rtti *type,
                                        ResolutionResultCallback resultCallback,
@@ -169,7 +170,7 @@ void DeferredResolution::fail(Logger &logger)
 
 /* Class ParserScope */
 
-ParserScope::ParserScope(const NodeVector<Node> &nodes,
+ParserScope::ParserScope(const ManagedVector<Node> &nodes,
                          const std::vector<ParserFlagDescriptor> &flags)
     : ParserScopeBase(nodes), flags(flags), topLevelDepth(nodes.size())
 {
@@ -261,7 +262,10 @@ void ParserScope::pop(Logger &logger)
 #endif
 }
 
-NodeVector<Node> ParserScope::getTopLevelNodes() const { return topLevelNodes; }
+ManagedVector<Node> ParserScope::getTopLevelNodes() const
+{
+	return topLevelNodes;
+}
 
 void ParserScope::setFlag(ParserFlag flag, bool value)
 {

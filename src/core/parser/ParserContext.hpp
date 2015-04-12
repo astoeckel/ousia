@@ -139,7 +139,7 @@ public:
 	 * @return the parsed nodes or an empty list if something goes wrong (or
 	 * there were indeed no objects to be parsed).
 	 */
-	NodeVector<Node> include(const std::string &path,
+	ManagedVector<Node> include(const std::string &path,
 	                         const std::string mimetype, const std::string rel,
 	                         const RttiSet &supportedTypes);
 

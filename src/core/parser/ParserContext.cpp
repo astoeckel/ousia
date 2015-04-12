@@ -47,7 +47,7 @@ Rooted<Node> ParserContext::import(const std::string &path,
 	return resourceManager.import(*this, path, mimetype, rel, supportedTypes);
 }
 
-NodeVector<Node> ParserContext::include(const std::string &path,
+ManagedVector<Node> ParserContext::include(const std::string &path,
                                     const std::string mimetype,
                                     const std::string rel,
                                     const RttiSet &supportedTypes)

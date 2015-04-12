@@ -142,23 +142,23 @@ TEST(StructuredClass, getFieldDescriptors)
 
 	// check all FieldDescriptors
 	{
-		NodeVector<FieldDescriptor> fds = A->getFieldDescriptors();
-		ASSERT_EQ(3, fds.size());
+		ManagedVector<FieldDescriptor> fds = A->getFieldDescriptors();
+		ASSERT_EQ(3U, fds.size());
 		ASSERT_EQ(A_a, fds[0]);
 		ASSERT_EQ(A_b, fds[1]);
 		ASSERT_EQ(A_main, fds[2]);
 	}
 	{
-		NodeVector<FieldDescriptor> fds = B->getFieldDescriptors();
-		ASSERT_EQ(4, fds.size());
+		ManagedVector<FieldDescriptor> fds = B->getFieldDescriptors();
+		ASSERT_EQ(4U, fds.size());
 		ASSERT_EQ(A_a, fds[0]);
 		ASSERT_EQ(B_b, fds[1]);
 		ASSERT_EQ(B_c, fds[2]);
 		ASSERT_EQ(B_main, fds[3]);
 	}
 	{
-		NodeVector<FieldDescriptor> fds = C->getFieldDescriptors();
-		ASSERT_EQ(4, fds.size());
+		ManagedVector<FieldDescriptor> fds = C->getFieldDescriptors();
+		ASSERT_EQ(4U, fds.size());
 		ASSERT_EQ(B_b, fds[0]);
 		ASSERT_EQ(B_c, fds[1]);
 		// superclass fields come before subclass fields (except for the TREE
@@ -182,8 +182,8 @@ TEST(StructuredClass, getFieldDescriptorsCycles)
 	    A, sys->getStringType(), logger, false, "a");
 	ASSERT_FALSE(ontology->validate(logger));
 	// if we call getFieldDescriptors that should still return a valid result.
-	NodeVector<FieldDescriptor> fds = A->getFieldDescriptors();
-	ASSERT_EQ(1, fds.size());
+	ManagedVector<FieldDescriptor> fds = A->getFieldDescriptors();
+	ASSERT_EQ(1U, fds.size());
 	ASSERT_EQ(A_a, fds[0]);
 }
 
@@ -453,7 +453,7 @@ TEST(Descriptor, getDefaultFieldsCycles)
 	 * Now try to get the default fields of A. This should not lead to cycles
 	 * if we correctly note all already visited nodes.
 	 */
-	NodeVector<FieldDescriptor> defaultFields = A->getDefaultFields();
+	ManagedVector<FieldDescriptor> defaultFields = A->getDefaultFields();
 	ASSERT_EQ(1U, defaultFields.size());
 	ASSERT_EQ(A_field, defaultFields[0]);
 }

@@ -74,7 +74,7 @@ protected:
 	 * List containing all nodes currently on the scope, with the newest nodes
 	 * being pushed to the back of the list.
 	 */
-	NodeVector<Node> nodes;
+	ManagedVector<Node> nodes;
 
 public:
 	/**
@@ -84,13 +84,12 @@ public:
 
 	/**
 	 * Creates a new instance of the ParserScopeBase class, copying the the
-	 *given
-	 * nodes as initial start value of the node stack. This could for example
-	 * be initialized with the path of a node.
+	 * given nodes as initial start value of the node stack. This could for
+	 * example be initialized with the path of a node.
 	 *
 	 * @param nodes is a node vector containing the current node stack.
 	 */
-	ParserScopeBase(const NodeVector<Node> &nodes);
+	ParserScopeBase(const ManagedVector<Node> &nodes);
 
 	/**
 	 * Tries to resolve a node for the given type and path for all nodes that
@@ -118,7 +117,7 @@ public:
 	 *
 	 * @return a const reference at the internal node stack.
 	 */
-	const NodeVector<Node> &getStack() const;
+	const ManagedVector<Node> &getStack() const;
 
 	/**
 	 * Returns a list containing the Rtti type of each Node that is currently
@@ -247,7 +246,7 @@ public:
 	 * the desired element has indeed been found.
 	 * @param owner is the node for which the resolution takes place.
 	 */
-	DeferredResolution(const NodeVector<Node> &nodes,
+	DeferredResolution(const ManagedVector<Node> &nodes,
 	                   const std::vector<std::string> &path, const Rtti *type,
 	                   ResolutionResultCallback resultCallback,
 	                   Handle<Node> owner);
@@ -376,12 +375,12 @@ private:
 	 * List of a all nodes that have been pushed onto the scope at the top level
 	 * depth.
 	 */
-	NodeVector<Node> topLevelNodes;
+	ManagedVector<Node> topLevelNodes;
 
 	/**
 	 * Private constructor used to create a ParserScope fork.
 	 */
-	ParserScope(const NodeVector<Node> &nodes,
+	ParserScope(const ManagedVector<Node> &nodes,
 	            const std::vector<ParserFlagDescriptor> &flags);
 
 public:
@@ -450,7 +449,7 @@ public:
 	 *
 	 * @return a node vector containing the top-level nodes.
 	 */
-	NodeVector<Node> getTopLevelNodes() const;
+	ManagedVector<Node> getTopLevelNodes() const;
 
 	/**
 	 * Sets a parser flag for the current stack depth.

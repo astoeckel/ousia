@@ -656,7 +656,7 @@ void transformChildren(DocumentEntity *parentEntity, Handle<Element> parent,
 
                        TransformParams &P)
 {
-	NodeVector<FieldDescriptor> fieldDescs =
+	ManagedVector<FieldDescriptor> fieldDescs =
 	    parentEntity->getDescriptor()->getFieldDescriptors();
 
 	for (size_t f = 0; f < fieldDescs.size(); f++) {

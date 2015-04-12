@@ -89,7 +89,7 @@ public:
 	bool isSuccess() { return success; }
 };
 
-NodeVector<Node> ResourceManager::parse(
+ManagedVector<Node> ResourceManager::parse(
     ParserContext &ctx, const std::string &path, const std::string &mimetype,
     const std::string &rel, const RttiSet &supportedTypes, ParseMode mode)
 {
@@ -105,11 +105,11 @@ NodeVector<Node> ResourceManager::parse(
 	Resource resource;
 	if (!req.deduce(registry, logger) ||
 	    !req.locate(registry, logger, resource)) {
-		return NodeVector<Node>{};
+		return ManagedVector<Node>{};
 	}
 
 	// initialize the output vector.
-	NodeVector<Node> parsedNodes;
+	ManagedVector<Node> parsedNodes;
 
 	// Allocate a new SourceId handle for this Resource
 	bool newResource = false;
@@ -208,7 +208,7 @@ NodeVector<Node> ResourceManager::parse(
 		catch (LoggableException ex) {
 			// Log the exception and return nullptr
 			logger.log(ex);
-			return NodeVector<Node>{};
+			return ManagedVector<Node>{};
 		}
 	}
 
@@ -235,7 +235,7 @@ Rooted<Node> ResourceManager::import(ParserContext &ctx,
                                      const std::string &rel,
                                      const RttiSet &supportedTypes)
 {
-	NodeVector<Node> res =
+	ManagedVector<Node> res =
 	    parse(ctx, path, mimetype, rel, supportedTypes, ParseMode::IMPORT);
 	if (res.size() == 1U) {
 		return res[0];
@@ -243,7 +243,7 @@ Rooted<Node> ResourceManager::import(ParserContext &ctx,
 	return nullptr;
 }
 
-NodeVector<Node> ResourceManager::include(ParserContext &ctx,
+ManagedVector<Node> ResourceManager::include(ParserContext &ctx,
                                           const std::string &path,
                                           const std::string &mimetype,
                                           const std::string &rel,

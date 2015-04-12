@@ -67,7 +67,7 @@ static NodeVector<Node> pathTo(const Node *start, Logger &logger,
 	if (start->isa(&RttiTypes::Descriptor)) {
 		const Descriptor *desc = static_cast<const Descriptor *>(start);
 		// initially put every field descriptor on the queue.
-		NodeVector<FieldDescriptor> fields = desc->getFieldDescriptors();
+		ManagedVector<FieldDescriptor> fields = desc->getFieldDescriptors();
 
 		for (auto fd : fields) {
 			if (fd == target) {
@@ -115,7 +115,7 @@ static NodeVector<Node> pathTo(const Node *start, Logger &logger,
 			    static_cast<const StructuredClass *>(current->node);
 
 			// look through all fields.
-			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
+			ManagedVector<FieldDescriptor> fields = strct->getFieldDescriptors();
 			for (auto fd : fields) {
 				// if we found our target, break off the search in this branch.
 				if (fd == target) {
@@ -182,9 +182,9 @@ struct CollectState {
  * TODO: @Benjmin Documentation!
  */
 template <typename F>
-static NodeVector<Node> collect(const Node *start, F match)
+static ManagedVector<Node> collect(const Node *start, F match)
 {
-	NodeVector<Node> res;
+	ManagedVector<Node> res;
 
 	// Queue and set for breadth-first search of the document graph
 	std::queue<CollectState> q;
@@ -205,7 +205,7 @@ static NodeVector<Node> collect(const Node *start, F match)
 			Rooted<Descriptor> strct{static_cast<Descriptor *>(state.n)};
 
 			// look through all fields.
-			NodeVector<FieldDescriptor> fields = strct->getFieldDescriptors();
+			ManagedVector<FieldDescriptor> fields = strct->getFieldDescriptors();
 			for (auto fd : fields) {
 				// Store all matching items
 				if (match(fd, state.depth)) {
@@ -403,7 +403,7 @@ bool FieldDescriptor::doValidate(Logger &logger) const
 
 static void gatherSubclasses(
     std::unordered_set<const StructuredClass *> &visited,
-    NodeVector<StructuredClass> &res, Handle<StructuredClass> strct)
+    ManagedVector<StructuredClass> &res, Handle<StructuredClass> strct)
 {
 	// this check is to prevent cycles.
 	if (!visited.insert(strct.get()).second) {
@@ -419,10 +419,11 @@ static void gatherSubclasses(
 	}
 }
 
-NodeVector<StructuredClass> FieldDescriptor::getChildrenWithSubclasses() const
+ManagedVector<StructuredClass> FieldDescriptor::getChildrenWithSubclasses()
+    const
 {
 	std::unordered_set<const StructuredClass *> visited;
-	NodeVector<StructuredClass> res;
+	ManagedVector<StructuredClass> res;
 	for (auto c : children) {
 		res.push_back(c);
 		gatherSubclasses(visited, res, c);
@@ -455,10 +456,11 @@ NodeVector<Node> FieldDescriptor::pathTo(Handle<FieldDescriptor> field,
 	bool success = false;
 	return ousia::pathTo(this, logger, field, success);
 }
-NodeVector<FieldDescriptor> FieldDescriptor::getDefaultFields() const
+
+ManagedVector<FieldDescriptor> FieldDescriptor::getDefaultFields() const
 {
 	// TODO: In principle a cast would be nicer here, but for now we copy.
-	NodeVector<Node> nodes = collect(this, [](Handle<Node> n, size_t depth) {
+	ManagedVector<Node> nodes = collect(this, [](Handle<Node> n, size_t depth) {
 		if (!n->isa(&RttiTypes::FieldDescriptor)) {
 			return false;
 		}
@@ -466,7 +468,7 @@ NodeVector<FieldDescriptor> FieldDescriptor::getDefaultFields() const
 		return f->getFieldType() == FieldDescriptor::FieldType::TREE &&
 		       f->isPrimitive();
 	});
-	NodeVector<FieldDescriptor> res;
+	ManagedVector<FieldDescriptor> res;
 	for (auto n : nodes) {
 		res.push_back(n.cast<FieldDescriptor>());
 	}
@@ -584,10 +586,10 @@ std::pair<NodeVector<Node>, bool> Descriptor::pathTo(
 	return std::make_pair(path, success);
 }
 
-NodeVector<FieldDescriptor> Descriptor::getDefaultFields() const
+ManagedVector<FieldDescriptor> Descriptor::getDefaultFields() const
 {
 	// TODO: In principle a cast would be nicer here, but for now we copy.
-	NodeVector<Node> nodes = collect(this, [](Handle<Node> n, size_t depth) {
+	ManagedVector<Node> nodes = collect(this, [](Handle<Node> n, size_t depth) {
 		if (!n->isa(&RttiTypes::FieldDescriptor)) {
 			return false;
 		}
@@ -595,7 +597,7 @@ NodeVector<FieldDescriptor> Descriptor::getDefaultFields() const
 		return f->getFieldType() == FieldDescriptor::FieldType::TREE &&
 		       f->isPrimitive();
 	});
-	NodeVector<FieldDescriptor> res;
+	ManagedVector<FieldDescriptor> res;
 	for (auto n : nodes) {
 		res.push_back(n.cast<FieldDescriptor>());
 	}
@@ -605,7 +607,7 @@ NodeVector<FieldDescriptor> Descriptor::getDefaultFields() const
 NodeVector<StructuredClass> Descriptor::getPermittedChildren() const
 {
 	// TODO: In principle a cast would be nicer here, but for now we copy.
-	NodeVector<Node> nodes = collect(this, [](Handle<Node> n, size_t depth) {
+	ManagedVector<Node> nodes = collect(this, [](Handle<Node> n, size_t depth) {
 		return n->isa(&RttiTypes::StructuredClass);
 	});
 	NodeVector<StructuredClass> res;
@@ -615,7 +617,7 @@ NodeVector<StructuredClass> Descriptor::getPermittedChildren() const
 	return res;
 }
 
-static ssize_t getFieldDescriptorIndex(const NodeVector<FieldDescriptor> &fds,
+static ssize_t getFieldDescriptorIndex(const ManagedVector<FieldDescriptor> &fds,
                                        const std::string &name)
 {
 	if (fds.empty()) {
@@ -644,7 +646,7 @@ static ssize_t getFieldDescriptorIndex(const NodeVector<FieldDescriptor> &fds,
 
 ssize_t Descriptor::getFieldDescriptorIndex(const std::string &name) const
 {
-	NodeVector<FieldDescriptor> fds = getFieldDescriptors();
+	ManagedVector<FieldDescriptor> fds = getFieldDescriptors();
 	return ousia::getFieldDescriptorIndex(fds, name);
 }
 
@@ -663,7 +665,7 @@ ssize_t Descriptor::getFieldDescriptorIndex(Handle<FieldDescriptor> fd) const
 Rooted<FieldDescriptor> Descriptor::getFieldDescriptor(
     const std::string &name) const
 {
-	NodeVector<FieldDescriptor> fds = getFieldDescriptors();
+	ManagedVector<FieldDescriptor> fds = getFieldDescriptors();
 	ssize_t idx = ousia::getFieldDescriptorIndex(fds, name);
 	if (idx != -1) {
 		return fds[idx];
@@ -673,7 +675,7 @@ Rooted<FieldDescriptor> Descriptor::getFieldDescriptor(
 
 Rooted<FieldDescriptor> Descriptor::getFieldDescriptor(size_t idx) const
 {
-	NodeVector<FieldDescriptor> fds = getFieldDescriptors();
+	ManagedVector<FieldDescriptor> fds = getFieldDescriptors();
 	if (idx < fds.size()) {
 		return fds[idx];
 	}
@@ -925,7 +927,7 @@ void StructuredClass::removeSubclass(Handle<StructuredClass> sc, Logger &logger)
 }
 
 Rooted<FieldDescriptor> StructuredClass::gatherFieldDescriptors(
-    NodeVector<FieldDescriptor> &current,
+    ManagedVector<FieldDescriptor> &current,
     std::unordered_set<const StructuredClass *> &visited,
     std::set<std::string> &overriddenFields, bool hasTREE) const
 {
@@ -934,7 +936,7 @@ Rooted<FieldDescriptor> StructuredClass::gatherFieldDescriptors(
 		return nullptr;
 	}
 	Rooted<FieldDescriptor> mainField;
-	NodeVector<FieldDescriptor> tmp;
+	ManagedVector<FieldDescriptor> tmp;
 	// first gather the non-overridden fields.
 	for (auto f : Descriptor::getFieldDescriptors()) {
 		if (overriddenFields.insert(f->getName()).second) {
@@ -965,10 +967,10 @@ Rooted<FieldDescriptor> StructuredClass::gatherFieldDescriptors(
 	return mainField;
 }
 
-NodeVector<FieldDescriptor> StructuredClass::getFieldDescriptors() const
+ManagedVector<FieldDescriptor> StructuredClass::getFieldDescriptors() const
 {
 	// in this case we return a NodeVector of Rooted entries without owner.
-	NodeVector<FieldDescriptor> vec;
+	ManagedVector<FieldDescriptor> vec;
 	std::unordered_set<const StructuredClass *> visited;
 	std::set<std::string> overriddenFields;
 	Rooted<FieldDescriptor> mainField =

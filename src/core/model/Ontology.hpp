@@ -300,7 +300,7 @@ public:
 	 * the Structure Tree of instances of this field including subclasses of
 	 * children, which are allowed directly.
 	 */
-	NodeVector<StructuredClass> getChildrenWithSubclasses() const;
+	ManagedVector<StructuredClass> getChildrenWithSubclasses() const;
 
 	/**
 	 * Adds a StructuredClass whose instances shall be allowed as children in
@@ -449,7 +449,7 @@ public:
 	 * @return a vector of all TREE fields that are allowed as structure tree
 	 *         children of an instance of this Descriptor.
 	 */
-	NodeVector<FieldDescriptor> getDefaultFields() const;
+	ManagedVector<FieldDescriptor> getDefaultFields() const;
 
 	/**
 	 * Returns the name of this FieldDescriptor or the default field name
@@ -643,9 +643,10 @@ public:
 	 *
 	 * @return the NodeVector of all FieldDescriptors of this Descriptor.
 	 */
-	virtual NodeVector<FieldDescriptor> getFieldDescriptors() const
+	virtual ManagedVector<FieldDescriptor> getFieldDescriptors() const
 	{
-		return fieldDescriptors;
+		return ManagedVector<FieldDescriptor>(const_cast<Descriptor*>(this), fieldDescriptors.begin(),
+		                                      fieldDescriptors.end());
 	}
 
 	/**
@@ -856,7 +857,7 @@ public:
 	 * @return a vector of all TREE fields that are allowed as structure tree
 	 *         children of an instance of this Descriptor.
 	 */
-	NodeVector<FieldDescriptor> getDefaultFields() const;
+	ManagedVector<FieldDescriptor> getDefaultFields() const;
 
 	/**
 	 * Returns a vector of all StructuredClasses that are allowed as children
@@ -1035,7 +1036,7 @@ private:
 	 * Helper method for getFieldDescriptors.
 	 */
 	Rooted<FieldDescriptor> gatherFieldDescriptors(
-	    NodeVector<FieldDescriptor> &current,
+	    ManagedVector<FieldDescriptor> &current,
 	    std::unordered_set<const StructuredClass *> &visited,
 	    std::set<std::string> &overriddenFields, bool hasTREE) const;
 
@@ -1170,7 +1171,7 @@ public:
 	 *
 	 * @return a NodeVector of all FieldDescriptors of this StructuredClass.
 	 */
-	NodeVector<FieldDescriptor> getFieldDescriptors() const override;
+	ManagedVector<FieldDescriptor> getFieldDescriptors() const override;
 
 	bool isTransparent() const { return transparent; }
 

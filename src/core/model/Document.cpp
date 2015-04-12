@@ -93,7 +93,8 @@ bool DocumentEntity::doValidate(Logger &logger) const
 	 * gather all fields of superclasses as well, that have not been
 	 * overridden in the subclasses.
 	 */
-	NodeVector<FieldDescriptor> fieldDescs = descriptor->getFieldDescriptors();
+	ManagedVector<FieldDescriptor> fieldDescs =
+	    descriptor->getFieldDescriptors();
 	// iterate over every field
 	for (unsigned int f = 0; f < fields.size(); f++) {
 		// we have a special check for primitive fields.
@@ -137,9 +138,9 @@ bool DocumentEntity::doValidate(Logger &logger) const
 
 		std::unordered_set<StructuredClass *> childClasses;
 		{
-			NodeVector<StructuredClass> tmp =
+			ManagedVector<StructuredClass> tmp =
 			    fieldDescs[f]->getChildrenWithSubclasses();
-			for (auto s : tmp) {
+			for (const auto &s : tmp) {
 				childClasses.insert(s.get());
 			}
 		}
