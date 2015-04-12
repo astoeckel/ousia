@@ -17,6 +17,7 @@
 */
 
 #include "Typesystem.hpp"
+#include "Ontology.hpp"
 
 #include <core/common/RttiBuilder.hpp>
 #include <core/common/Utils.hpp>
@@ -640,6 +641,48 @@ bool StructType::hasAttribute(const std::string &name) const
 	return indexOf(name) >= 0;
 }
 
+/* Class ReferenceType */
+
+ReferenceType::ReferenceType(Manager &mgr, const std::string &name,
+                             Handle<Descriptor> descriptor)
+    : Type(mgr, name, nullptr, false), descriptor(acquire(descriptor))
+{
+}
+
+bool ReferenceType::doBuild(Variant &data, Logger &logger,
+                            const MagicCallback &magicCallback) const
+{
+	// Null references are valid references
+	if (data.isNull()) {
+		return true;
+	}
+
+	if (data.isObject()) {
+		// TODO: Check: object is an instance of the entity descriptor
+		return true;
+	} else if (data.isString()) {
+		// TODO: Lookup referenced object
+		if (!Utils::isNamespacedIdentifier(data.asString())) {
+			throw LoggableException("Reference must be a valid identifier",
+			                        data);
+		}
+	}
+	return false;
+}
+
+bool ReferenceType::doCheckIsa(Handle<const Type> type) const
+{
+	// TODO: Implement correctly, check descriptor inheritance
+	return type->isa(&RttiTypes::ReferenceType);
+}
+
+Handle<Descriptor> ReferenceType::getDescriptor() { return descriptor; }
+
+void ReferenceType::setDescriptor(Handle<Descriptor> descriptor)
+{
+	this->descriptor = acquire(descriptor);
+}
+
 /* Class ArrayType */
 
 bool ArrayType::doBuild(Variant &data, Logger &logger,
@@ -811,6 +854,8 @@ const Rtti EnumType = RttiBuilder<ousia::EnumType>("EnumType").parent(&Type);
 const Rtti StructType = RttiBuilder<ousia::StructType>("StructType")
                             .parent(&Type)
                             .composedOf(&Attribute);
+const Rtti ReferenceType =
+    RttiBuilder<ousia::ReferenceType>("ReferenceType").parent(&Type);
 const Rtti ArrayType = RttiBuilder<ousia::ArrayType>("ArrayType").parent(&Type);
 const Rtti UnknownType =
     RttiBuilder<ousia::UnknownType>("UnknownType").parent(&Type);

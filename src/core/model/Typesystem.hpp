@@ -47,6 +47,7 @@ class CharReader;
 class Rtti;
 class Typesystem;
 class SystemTypesystem;
+class Descriptor;
 
 /**
  * The abstract Type class represents a type descriptor. Each Type node is part
@@ -980,6 +981,76 @@ public:
 };
 
 /**
+ * The ReferenceType class represents a reference to an entity in the document.
+ * The type of the entity can be specified by the user in the form of a
+ * ontology descriptor.
+ */
+class ReferenceType : public Type {
+private:
+	/**
+	 * Contains the reference at the descriptor element or nullptr if no such
+	 * element was given (the reference is a general reference) or the reference
+	 * type could not be resolved.
+	 */
+	Owned<Descriptor> descriptor;
+
+protected:
+	/**
+	 * Makes sure the given variant is either an array or a string that can be
+	 * resolved to an object of the given structure type.
+	 *
+	 * @param data is a Variant containing the data that should be checked.
+	 * @param logger is the Logger instance into which errors should be written.
+	 * @return true if the conversion was successful, false otherwise.
+	 */
+	bool doBuild(Variant &data, Logger &logger,
+	             const MagicCallback &magicCallback) const override;
+
+	/**
+	 * Returns true if this type is equivalent to another given ReferenceType,
+	 * uses the inheritance hierarchy of the underlying descriptor.
+	 *
+	 * @param type is the type that should be checked for the "isa"
+	 * relationship.
+	 * @return true if the given type is equivalent to this type, false
+	 * otherwise.
+	 */
+	bool doCheckIsa(Handle<const Type> type) const override;
+
+public:
+	/**
+	 * Constructor of the ReferenceType class.
+	 *
+	 * @param mgr is the parent Manager instance.
+	 * @param name is the name of the type.
+	 * @param descriptor is the entity descriptor specifying the ontological
+	 * type of the reference objects.
+	 */
+	ReferenceType(Manager &mgr, const std::string &name,
+	              Handle<Descriptor> descriptor);
+
+	/**
+	 * Create a new, empty variant containing an invalid (null) reference.
+	 *
+	 * @return a null reference.
+	 */
+	Variant create() const override { return Variant{}; }
+
+	/**
+	 * Returns the descriptor containing the ontological type of which an
+	 * instance is being referenced.
+	 *
+	 * @return the descriptor or nullptr if no descriptor has been set.
+	 */
+	Handle<Descriptor> getDescriptor();
+
+	/**
+	 * Sets the descriptor to the given value.
+	 */
+	void setDescriptor(Handle<Descriptor> descriptor);
+};
+
+/**
  * The ArrayType class represents an array with elements of a fixed inner type.
  * ArrayTypes are anonymous (they have an empty name) and always have the
  * Typesystem instance of the inner type as parent. ArrayType instances are
@@ -1444,6 +1515,11 @@ extern const Rtti EnumType;
  * Type information for the StructType class.
  */
 extern const Rtti StructType;
+
+/**
+ * Type information for the ReferenceType class.
+ */
+extern const Rtti ReferenceType;
 
 /**
  * Type information for the ArrayType class.
