@@ -75,5 +75,24 @@ TEST(TokenStack, lookup)
 	ASSERT_EQ(1U, descr.shortForm.size());
 	ASSERT_EQ(ListC[1], descr.shortForm[0]);
 }
+
+TEST(TokenStack, sorting)
+{
+	TokenStack ts;
+	std::vector<SyntaxDescriptor> descrs;
+	descrs.insert(descrs.end(), ListC.begin(), ListC.end());
+	descrs.insert(descrs.end(), ListA.begin(), ListA.end());
+	descrs.insert(descrs.end(), ListB.begin(), ListB.end());
+	ts.pushTokens(descrs);
+
+	TokenDescriptor descr = ts.lookup(3);
+	ASSERT_EQ(1U, descr.open.size());
+	ASSERT_EQ(0U, descr.close.size());
+	ASSERT_EQ(2U, descr.shortForm.size());
+	ASSERT_EQ(ListA[2], descr.open[0]);
+	ASSERT_EQ(ListB[1], descr.shortForm[0]);
+	ASSERT_EQ(ListC[1], descr.shortForm[1]);
+}
+
 }
 }
