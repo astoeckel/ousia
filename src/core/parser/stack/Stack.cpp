@@ -117,6 +117,12 @@ public:
 	bool hadDefaultField : 1;
 
 	/**
+	 * Set to false, if the handler is not greedy (true is the default value).
+	 * If false, the handler will only be passed one piece of "data" at most.
+	 */
+	bool greedy : 1;
+
+	/**
 	 * Default constructor of the HandlerInfo class.
 	 */
 	HandlerInfo();
@@ -187,7 +193,8 @@ HandlerInfo::HandlerInfo(std::shared_ptr<Handler> handler)
       inDefaultField(false),
       inImplicitDefaultField(false),
       inValidField(false),
-      hadDefaultField(false)
+      hadDefaultField(false),
+      greedy(true)
 {
 }
 
@@ -203,7 +210,8 @@ HandlerInfo::HandlerInfo(bool implicit, bool inField, bool inDefaultField,
       inDefaultField(inDefaultField),
       inImplicitDefaultField(inImplicitDefaultField),
       inValidField(true),
-      hadDefaultField(false)
+      hadDefaultField(false),
+      greedy(true)
 {
 }
 
@@ -1073,8 +1081,9 @@ bool StackImpl::handleOpenTokens(Logger &logger, const Token &token,
 		// the valid flag
 		HandlerInfo &info = currentInfo();
 		info.valid = false;
+		info.greedy = (!shortForm) || descr.greedyShortForm;
 		try {
-			info.valid = handler->startToken(descr.descriptor);
+			info.valid = handler->startToken(descr.descriptor, info.greedy);
 		}
 		catch (LoggableException ex) {
 			logger.log(ex);

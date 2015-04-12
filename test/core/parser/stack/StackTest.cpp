@@ -153,7 +153,7 @@ public:
 		return tracker.startAnnotationResult;
 	}
 
-	bool startToken(Handle<Node> node) override
+	bool startToken(Handle<Node> node, bool greedy) override
 	{
 		tracker.startTokenCount++;
 		return tracker.startTokenResult;

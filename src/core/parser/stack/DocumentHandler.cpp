@@ -89,6 +89,7 @@ Rooted<FieldDescriptor> DocumentField::getDescriptor()
 DocumentChildHandler::DocumentChildHandler(const HandlerData &handlerData)
     : Handler(handlerData),
       isExplicitField(false),
+      isGreedy(true),
       inImplicitDefaultField(false)
 {
 	// Register all user defined tokens if this has not yet been done
@@ -508,8 +509,13 @@ bool DocumentChildHandler::startAnnotation(Variant::mapType &args)
 	return true;
 }
 
-bool DocumentChildHandler::startToken(Handle<Node> node)
+bool DocumentChildHandler::startToken(Handle<Node> node, bool greedy)
 {
+	// Copy the "greedy" flag. If not greedy, set the inImplicitDefaultField
+	// flag to true, in order to push the tokens of the previous command.
+	isGreedy = greedy;
+	inImplicitDefaultField = !greedy;
+
 	bool isStruct = node->isa(&RttiTypes::StructuredClass);
 	//	bool isField = node->isa(&RttiTypes::FieldDescriptor);
 	//	bool isAnnotation = node->isa(&RttiTypes::AnnotationClass);

@@ -393,8 +393,10 @@ public:
 	 * tokenId() method.
 	 *
 	 * @param node is the node for which this token was registered.
+	 * @param greedy is set to false if the token should not behave in a greedy
+	 * fashion.
 	 */
-	virtual bool startToken(Handle<Node> node) = 0;
+	virtual bool startToken(Handle<Node> node, bool greedy) = 0;
 
 	/**
 	 * Called whenever a token is marked as "end" token and this handler happens
@@ -470,7 +472,7 @@ protected:
 public:
 	bool startCommand(Variant::mapType &args) override;
 	bool startAnnotation(Variant::mapType &args) override;
-	bool startToken(Handle<Node> node) override;
+	bool startToken(Handle<Node> node, bool greedy) override;
 	EndTokenResult endToken(Handle<Node> node, size_t maxStackDepth) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, bool isImplicit, size_t fieldIdx) override;
@@ -495,7 +497,7 @@ protected:
 public:
 	bool startCommand(Variant::mapType &args) override;
 	bool startAnnotation(Variant::mapType &args) override;
-	bool startToken(Handle<Node> node) override;
+	bool startToken(Handle<Node> node, bool greedy) override;
 	EndTokenResult endToken(Handle<Node> node, size_t maxStackDepth) override;
 	void end() override;
 	bool fieldStart(bool &isDefault, bool isImplicit, size_t fieldIdx) override;

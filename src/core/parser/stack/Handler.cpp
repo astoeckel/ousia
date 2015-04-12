@@ -129,7 +129,7 @@ bool EmptyHandler::startAnnotation(Variant::mapType &args)
 	return false;
 }
 
-bool EmptyHandler::startToken(Handle<Node> node)
+bool EmptyHandler::startToken(Handle<Node> node, bool greedy)
 {
 	// EmptyHandler does not support tokens.
 	return false;
@@ -179,7 +179,7 @@ bool StaticHandler::startCommand(Variant::mapType &args)
 
 bool StaticHandler::startAnnotation(Variant::mapType &args) { return false; }
 
-bool StaticHandler::startToken(Handle<Node> node) { return false; }
+bool StaticHandler::startToken(Handle<Node> node, bool greedy) { return false; }
 
 EndTokenResult StaticHandler::endToken(Handle<Node> node, size_t maxStackDepth)
 {

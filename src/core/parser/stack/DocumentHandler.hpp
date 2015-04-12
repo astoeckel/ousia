@@ -115,6 +115,12 @@ private:
 	bool isExplicitField : 1;
 
 	/**
+	 * Set to false, if this handler was started from a token and is not greedy.
+	 * True otherwise.
+	 */
+	bool isGreedy : 1;
+
+	/**
 	 * Set to true if the handler currently is in an implicit field.
 	 */
 	bool inImplicitDefaultField : 1;
@@ -226,7 +232,7 @@ public:
 
 	bool startCommand(Variant::mapType &args) override;
 	bool startAnnotation(Variant::mapType &args) override;
-	bool startToken(Handle<Node> node) override;
+	bool startToken(Handle<Node> node, bool greedy) override;
 	EndTokenResult endToken(Handle<Node> node, size_t maxStackDepth) override;
 	void end() override;
 	bool data() override;
