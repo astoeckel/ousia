@@ -995,7 +995,7 @@ private:
 protected:
 	/**
 	 * Makes sure the given variant is an array and its elements match the inner
-	 * type of the Arraqy.
+	 * type of the Array.
 	 *
 	 * @param data is a variant containing the array data that should be checked
 	 * and passed to the inner type validation function.
