@@ -117,6 +117,11 @@ public:
 	bool hadDefaultField : 1;
 
 	/**
+	 * Set to true once data was passed to the handler.
+	 */
+	bool hadData : 1;
+
+	/**
 	 * Set to false, if the handler is not greedy (true is the default value).
 	 * If false, the handler will only be passed one piece of "data" at most.
 	 */
@@ -194,6 +199,7 @@ HandlerInfo::HandlerInfo(std::shared_ptr<Handler> handler)
       inImplicitDefaultField(false),
       inValidField(false),
       hadDefaultField(false),
+      hadData(false),
       greedy(true)
 {
 }
@@ -211,6 +217,7 @@ HandlerInfo::HandlerInfo(bool implicit, bool inField, bool inDefaultField,
       inImplicitDefaultField(inImplicitDefaultField),
       inValidField(true),
       hadDefaultField(false),
+      hadData(false),
       greedy(true)
 {
 }
@@ -879,6 +886,9 @@ bool StackImpl::handleData()
 		catch (LoggableException ex) {
 			loggerFork.log(ex);
 		}
+
+		// Update the "hadData" flag
+		info.hadData = info.hadData || valid;
 
 		// Reset the logger instance of the handler as soon as possible
 		info.handler->resetLogger();
