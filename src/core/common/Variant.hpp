@@ -239,7 +239,7 @@ public:
 	using stringType = std::string;
 	using arrayType = std::vector<Variant>;
 	using mapType = std::map<std::string, Variant>;
-	using objectType = Rooted<Managed>;
+	using objectType = Owned<Managed>;
 	using cardinalityType = Cardinality;
 	using rangeType = Range<size_t>;
 	using functionType = std::shared_ptr<Function>;
@@ -483,13 +483,28 @@ public:
 	/**
 	 * Named constructor for object values.
 	 *
-	 * @param o is an object that can be converted to a Rooted handle.
+	 * @param o is an owned handle that should be copied.
 	 */
 	template <class T>
-	static Variant fromObject(T o)
+	static Variant fromObject(Owned<T> o)
 	{
 		Variant res;
 		res.setObject(o);
+		return res;
+	}
+
+	/**
+	 * Named constructor for object values.
+	 *
+	 * @param o is an object that can be converted to an Owned handle.
+	 * @param owner is the owner of the object handle. If nullptr is given, the
+	 * Owned handle will behave like a Rooted handle.
+	 */
+	template <class T>
+	static Variant fromObject(T o, Managed *owner = nullptr)
+	{
+		Variant res;
+		res.setObject(o, owner);
 		return res;
 	}
 
@@ -1104,15 +1119,31 @@ public:
 	}
 
 	/**
-	 * Sets the variant to the given managed object. The variant is equivalent
-	 * to a Rooted handle.
+	 * Sets the variant to the given owned handle.
+	 *
+	 * @param o is the owned handle that should be copied.
 	 */
 	template <class T>
-	void setObject(T o)
+	void setObject(const Owned<T> &o)
 	{
 		destroy();
 		meta.setType(VariantType::OBJECT);
 		ptrVal = new objectType(o);
+	}
+
+	/**
+	 * Sets the variant to the given object and an optional owner.
+	 *
+	 * @param o is an object that can be converted to a Handle.
+	 * @param owner is an optional owner of o. The object is guaranteed to live
+	 * as long as the owner is alive.
+	 */
+	template <class T>
+	void setObject(T o, Managed *owner = nullptr)
+	{
+		destroy();
+		meta.setType(VariantType::OBJECT);
+		ptrVal = new objectType(o, owner);
 	}
 
 	/**
@@ -1204,6 +1235,7 @@ public:
 	{
 		return meta.setLocation(location);
 	}
+
 	/*
 	 * Output stream operator.
 	 */
