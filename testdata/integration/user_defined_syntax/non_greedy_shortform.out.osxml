@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document xmlns:test="test">
+	<test:test>
+		<test:a>a</test:a>
+		<test:a>b</test:a>
+		<test:a>c</test:a>
+		<test:a/>
+		<test:a>d</test:a>
+		<test:b/>
+		<test:a/>
+		<test:b>
+			<test:a/>
+		</test:b>
+	</test:test>
+</document>

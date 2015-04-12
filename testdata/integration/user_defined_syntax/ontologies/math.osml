@@ -76,12 +76,12 @@
 	% TODO: Differentiate between lower and upper index vs. power operator?
 	\struct#power[isa=primitive]
 		\syntax
-			\short{^}
+			\short[greedy=false]{^}
 		\field
 			\childRef[ref=primitive]
 	\struct#index[isa=primitive]
 		\syntax
-			\short{_}
+			\short[greedy=false]{_}
 		\field
 			\childRef[ref=primitive]
 
@@ -211,12 +211,12 @@
 			\childRef[ref=upperLimit]
 	\struct#lowerLimit[cardinality={0,1}]
 		\syntax
-			\short{_}
+			\short[greedy=false]{_}
 		\field
 			\childRef[ref=primitive]
 	\struct#upperLimit[cardinality={0,1}]
 		\syntax
-			\short{^}
+			\short[greedy=false]{^}
 		\field
 			\childRef[ref=primitive]
 

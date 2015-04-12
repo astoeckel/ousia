@@ -145,6 +145,11 @@ void DocumentChildHandler::pushScopeTokens()
 	// List containing the unfiltered syntax descriptors
 	std::vector<SyntaxDescriptor> descrs;
 
+	// Skip the DocumentField and the curresponding StructuredEntity
+	// if we're currently in the implicit default field of a non-greedy
+	// structure.
+	size_t explicitSkipCount = (!isGreedy && inImplicitDefaultField) ? 2 : 0;
+
 	// Fetch the current scope stack and search the first non-transparent field
 	// or structure
 	const ManagedVector<Node> &stack = scope().getStack();
@@ -157,6 +162,10 @@ void DocumentChildHandler::pushScopeTokens()
 		if (nd->isa(&RttiTypes::DocumentField)) {
 			Rooted<DocumentField> field = nd.cast<DocumentField>();
 			if (!field->transparent) {
+				if (explicitSkipCount > 0) {
+					explicitSkipCount--;
+					continue;
+				}
 				descrs = field->getDescriptor()->getPermittedTokens();
 				break;
 			}
@@ -166,6 +175,10 @@ void DocumentChildHandler::pushScopeTokens()
 		if (nd->isa(&RttiTypes::StructuredEntity)) {
 			Rooted<StructuredEntity> entity = nd.cast<StructuredEntity>();
 			if (!entity->isTransparent()) {
+				if (explicitSkipCount > 0) {
+					explicitSkipCount--;
+					continue;
+				}
 				descrs = entity->getDescriptor()->getPermittedTokens();
 				break;
 			}
@@ -591,12 +604,13 @@ bool DocumentChildHandler::startToken(Handle<Node> node, bool greedy)
 	}
 }
 
-EndTokenResult DocumentChildHandler::endToken(Handle<Node> node, size_t maxStackDepth)
+EndTokenResult DocumentChildHandler::endToken(Handle<Node> node,
+                                              size_t maxStackDepth)
 {
 	// Fetch the current scope stack
 	const ManagedVector<Node> &stack = scope().getStack();
 
-	bool found = false;            // true once the given node has been found
+	bool found = false;  // true once the given node has been found
 	bool repeat = false;
 	size_t scopeStackDepth = 0;    // # of elems on the scope stack
 	size_t currentStackDepth = 0;  // # of "explicit" elems on the parser stack

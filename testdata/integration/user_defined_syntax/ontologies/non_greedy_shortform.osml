@@ -1,0 +1,15 @@
+\ontology#test
+	\struct#test[root=true]
+		\field
+			\childRef[a]
+			\childRef[b]
+	\struct#a
+		\syntax
+			\short[false]{?}
+		\primitive[optional=true,type=string]
+	\struct#b
+		\syntax
+			\short[false]{+}
+		\field
+			\childRef[a]
+

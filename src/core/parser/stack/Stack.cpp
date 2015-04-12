@@ -464,10 +464,14 @@ private:
 	 * startImplicitDefaultField is set to false. If false, prevents this method
 	 * from ending a handler if it potentially can have a default field, but did
 	 * not have one yet.
+	 * @param startImplicitDefaultFieldForNonGreedy is set to true, even starts
+	 * an implicit default field for greedy handlers. Otherwise these handlers
+	 * are ended.
 	 * @return true if the current command is in a valid field.
 	 */
 	bool prepareCurrentHandler(bool startImplicitDefaultField = true,
-	                           bool endHandlersWithoutDefaultField = true);
+	                           bool endHandlersWithoutDefaultField = true,
+	                           bool endNonGreedyHandlers = true);
 
 	/**
 	 * Returns true if all handlers on the stack are currently valid, or false
@@ -779,7 +783,8 @@ bool StackImpl::endCurrentHandler()
 }
 
 bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField,
-                                      bool endHandlersWithoutDefaultField)
+                                      bool endHandlersWithoutDefaultField,
+                                      bool endNonGreedyHandlers)
 {
 	// Repeat until a valid handler is found on the stack
 	while (!stack.empty()) {
@@ -787,9 +792,15 @@ bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField,
 		HandlerInfo &info = currentInfo();
 
 		// If the current Handler is in a field, there is nothing to be done,
-		// abort
+		// abort. Exception: If the handler is not greedy and currently is in
+		// its default field, then continue.
 		if (info.inField) {
-			return true;
+			if (!info.greedy && info.hadData && info.inImplicitDefaultField) {
+				endCurrentField();
+				continue;
+			} else {
+				return true;
+			}
 		}
 
 		// If the current field already had a default field or is not valid,
@@ -798,7 +809,7 @@ bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField,
 		    info.type() == HandlerType::COMMAND ||
 		    info.type() == HandlerType::TOKEN ||
 		    (info.type() == HandlerType::ANNOTATION_START && info.range);
-		if (info.hadDefaultField ||
+		if (info.hadDefaultField || (!info.greedy && endNonGreedyHandlers) ||
 		    (!startImplicitDefaultField && endHandlersWithoutDefaultField) ||
 		    !info.valid || !canHaveImplicitDefaultField) {
 			// We cannot end the command if it is marked as "range" command
@@ -845,7 +856,7 @@ bool StackImpl::handleData()
 	while (true) {
 		// Prepare the stack -- make sure all overdue handlers are ended and
 		// we currently are in an open field
-		if (stack.empty() || !prepareCurrentHandler()) {
+		if (stack.empty() || !prepareCurrentHandler(true, true, false)) {
 			throw LoggableException("Did not expect any data here");
 		}
 
@@ -948,8 +959,8 @@ static void strayTokenError(const Token &token, TokenDescriptor &descr,
 }
 
 static void checkTokensAreUnambiguous(const Token &token,
-                                     const TokenDescriptor &descr,
-                                     Logger &logger)
+                                      const TokenDescriptor &descr,
+                                      Logger &logger)
 {
 	// Some helper functions and constants
 	constexpr ssize_t MAX_DEPTH = std::numeric_limits<ssize_t>::max();
@@ -1158,7 +1169,7 @@ void StackImpl::handleToken(const Token &token)
 		try {
 			// Try to open an implicit default field and try to start the token
 			// as short form or as start token
-			prepareCurrentHandler(true);
+			prepareCurrentHandler();
 			if (handleOpenTokens(loggerFork, token, true, descr.shortForm) ||
 			    handleOpenTokens(loggerFork, token, false, descr.open)) {
 				return;
@@ -1417,7 +1428,7 @@ void StackImpl::data(const TokenizedData &data)
 	// Close all handlers that did already had or cannot have a default field
 	// and are not currently inside a field (repeat this after each chunk of
 	// data/text)
-	prepareCurrentHandler(false, false);
+	prepareCurrentHandler(false, false, false);
 
 	// Peek a token from the reader, repeat until all tokens have been read
 	Token token;
@@ -1434,7 +1445,7 @@ void StackImpl::data(const TokenizedData &data)
 			handleToken(token);
 			reader.consumePeek();
 		}
-		prepareCurrentHandler(false, false);
+		prepareCurrentHandler(false, false, false);
 	}
 }
 
@@ -1511,11 +1522,7 @@ void StackImpl::pushTokens(const std::vector<SyntaxDescriptor> &tokens)
 	tokenStack.pushTokens(tokens);
 }
 
-void StackImpl::popTokens()
-{
-	// Pop the last set of tokens from the token stack.
-	tokenStack.popTokens();
-}
+void StackImpl::popTokens() { tokenStack.popTokens(); }
 
 bool StackImpl::readToken(Token &token)
 {

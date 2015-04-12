@@ -1,0 +1,5 @@
+\document
+\import[ontology]{./ontologies/math}
+\begin{math}
+	\sum_{i=3}^{5} i_M^2
+\end{math}

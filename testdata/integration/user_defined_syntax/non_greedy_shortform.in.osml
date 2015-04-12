@@ -1,0 +1,2 @@
+\import[ontology]{./ontologies/non_greedy_shortform}
+\begin{test}?a ?b?c ??d + ?+{?} \end{test}
