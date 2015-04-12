@@ -158,10 +158,6 @@ public:
 	virtual Variant create() const = 0;
 
 	/**
-	 * Pure virtual function
-	 */
-
-	/**
 	 * Validates and completes the given variant which was read from a
 	 * user-supplied source.
 	 *
