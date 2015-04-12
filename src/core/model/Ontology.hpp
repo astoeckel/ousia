@@ -555,9 +555,9 @@ public:
 	 */
 	SyntaxDescriptor getSyntaxDescriptor(ssize_t depth = -1)
 	{
-		SyntaxDescriptor stx{openToken.id, closeToken.id, Tokens::Empty,
-		                     const_cast<FieldDescriptor *>(this), depth};
-		return stx;
+		return {openToken.id,  closeToken.id,
+		        Tokens::Empty, const_cast<FieldDescriptor *>(this),
+		        depth,         true};
 	}
 
 	/**
@@ -645,7 +645,8 @@ public:
 	 */
 	virtual ManagedVector<FieldDescriptor> getFieldDescriptors() const
 	{
-		return ManagedVector<FieldDescriptor>(const_cast<Descriptor*>(this), fieldDescriptors.begin(),
+		return ManagedVector<FieldDescriptor>(const_cast<Descriptor *>(this),
+		                                      fieldDescriptors.begin(),
 		                                      fieldDescriptors.end());
 	}
 
@@ -934,9 +935,8 @@ public:
 	 */
 	virtual SyntaxDescriptor getSyntaxDescriptor(ssize_t depth = -1)
 	{
-		SyntaxDescriptor stx{openToken.id, closeToken.id, Tokens::Empty,
-		                     const_cast<Descriptor *>(this), depth};
-		return stx;
+		return {openToken.id,                   closeToken.id, Tokens::Empty,
+		        const_cast<Descriptor *>(this), depth,         true};
 	}
 
 	/**
@@ -1227,10 +1227,9 @@ public:
 	 */
 	SyntaxDescriptor getSyntaxDescriptor(ssize_t depth = -1) override
 	{
-		SyntaxDescriptor stx{getOpenToken().id, getCloseToken().id,
-		                     shortToken.id, const_cast<StructuredClass *>(this),
-		                     depth};
-		return stx;
+		return {getOpenToken().id, getCloseToken().id,
+		        shortToken.id,     const_cast<StructuredClass *>(this),
+		        depth,             shortToken.greedy};
 	}
 };
 

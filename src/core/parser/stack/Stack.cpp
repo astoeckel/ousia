@@ -928,37 +928,39 @@ static void strayTokenError(const Token &token, TokenDescriptor &descr,
 	return;
 }
 
-static void checkTokensAreUnambigous(const Token &token,
+static void checkTokensAreUnambiguous(const Token &token,
                                      const TokenDescriptor &descr,
                                      Logger &logger)
 {
-	const ssize_t maxDepth = std::numeric_limits<ssize_t>::max();
-	const SyntaxDescriptor none(Tokens::Empty, Tokens::Empty, Tokens::Empty,
-	                            nullptr, maxDepth);
+	// Some helper functions and constants
+	constexpr ssize_t MAX_DEPTH = std::numeric_limits<ssize_t>::max();
+	static const SyntaxDescriptor EMPTY_DESCR(
+	    Tokens::Empty, Tokens::Empty, Tokens::Empty, nullptr, MAX_DEPTH, true);
+	static auto get = [](size_t i, const std::vector<SyntaxDescriptor> &descrs)
+	    -> const SyntaxDescriptor &
+	{
+		return (i < descrs.size()) ? descrs[i] : EMPTY_DESCR;
+	};
 
 	// Check whether there is any ambiguity -- e.g. there are two tokens with
 	// the same depth (the effort they need to be created). The shortForm and
 	// open lists are assumed to be sorted by depth.
-	ssize_t errorDepth = maxDepth;
+	ssize_t errorDepth = MAX_DEPTH;
 	size_t i = 0;
 	size_t j = 0;
-	while (errorDepth == maxDepth &&
+	while (errorDepth == MAX_DEPTH &&
 	       (i < descr.open.size() || j < descr.shortForm.size())) {
-		const SyntaxDescriptor &di1 =
-		    i < descr.open.size() ? descr.open[i] : none;
-		const SyntaxDescriptor &di2 =
-		    (i + 1 < descr.open.size()) ? descr.open[i + 1] : none;
-		const SyntaxDescriptor &dj1 =
-		    j < descr.shortForm.size() ? descr.shortForm[j] : none;
-		const SyntaxDescriptor &dj2 =
-		    (j + 1 < descr.shortForm.size()) ? descr.shortForm[j + 1] : none;
+		const SyntaxDescriptor &di1 = get(i, descr.open);
+		const SyntaxDescriptor &di2 = get(i + 1, descr.open);
+		const SyntaxDescriptor &dj1 = get(j, descr.shortForm);
+		const SyntaxDescriptor &dj2 = get(j + 1, descr.shortForm);
 
-		if (di1.depth != maxDepth &&
+		if (di1.depth != MAX_DEPTH &&
 		    (di1.depth == di2.depth || di1.depth == dj1.depth ||
 		     di1.depth == dj2.depth)) {
 			errorDepth = di1.depth;
 		}
-		if (dj1.depth != maxDepth &&
+		if (dj1.depth != MAX_DEPTH &&
 		    (dj1.depth == dj2.depth || di2.depth == dj1.depth)) {
 			errorDepth = dj1.depth;
 		}
@@ -968,7 +970,7 @@ static void checkTokensAreUnambigous(const Token &token,
 	}
 
 	// Issue an error message if an ambiguity exists
-	if (errorDepth != maxDepth) {
+	if (errorDepth != MAX_DEPTH) {
 		logger.error("Token \"" + token.name() + "\" is ambiguous!");
 		logger.note(
 		    "The token could be ambiguously used in one of the following "
@@ -1123,7 +1125,7 @@ void StackImpl::handleToken(const Token &token)
 	}
 
 	// Make sure the given open token descriptors are unambiguous
-	checkTokensAreUnambigous(token, descr, logger());
+	checkTokensAreUnambiguous(token, descr, logger());
 
 	// Now try to handle open or short form tokens. Iterate until the stack can
 	// no longer be unwound.

@@ -41,14 +41,22 @@ struct TokenDescriptor {
 	std::string token;
 
 	/**
+	 * An id to uniquely identify this token.
+	 */
+	TokenId id;
+
+	/**
 	 * A flag to be set true if this TokenDescriptor uses a special token.
 	 */
 	bool special;
 
 	/**
-	 * An id to uniquely identify this token.
+	 * A flag indicating whether the token is greedy or not. Currently only used
+	 * for "shortForm" tokens. Default value is true. If false, only one data
+	 * command is passed to the corresponding handler if the handler was opened
+	 * for the implicity default field.
 	 */
-	TokenId id;
+	bool greedy;
 
 	/**
 	 * Constructor for non-special tokens. The special flag is set to false and
@@ -58,7 +66,10 @@ struct TokenDescriptor {
 	 *              one.
 	 */
 	TokenDescriptor(std::string token = std::string())
-	    : token(std::move(token)), special(false), id(Tokens::Empty)
+	    : token(std::move(token)),
+	      id(Tokens::Empty),
+	      special(false),
+	      greedy(true)
 	{
 	}
 
@@ -68,7 +79,10 @@ struct TokenDescriptor {
 	 *
 	 * @param id the id of the special token.
 	 */
-	TokenDescriptor(TokenId id) : special(true), id(id) {}
+	TokenDescriptor(TokenId id, bool greedy = true)
+	    : id(id), special(true), greedy(greedy)
+	{
+	}
 
 	/**
 	 * Returns true if and only if neither a string nor an ID is given.
@@ -128,6 +142,13 @@ struct SyntaxDescriptor {
 	ssize_t depth;
 
 	/**
+	 * Set to true if the shortForm is greedy (default), to false if the
+	 * corresponding handler should receive at most one piece of data if it was
+	 * started implicitly.
+	 */
+	bool greedyShortForm;
+
+	/**
 	 * Default constructor, sets all token ids to Tokens::Empty and the
 	 * descriptor handle to nullptr.
 	 */
@@ -136,7 +157,8 @@ struct SyntaxDescriptor {
 	      close(Tokens::Empty),
 	      shortForm(Tokens::Empty),
 	      descriptor(nullptr),
-	      depth(-1)
+	      depth(-1),
+	      greedyShortForm(true)
 	{
 	}
 
@@ -150,14 +172,19 @@ struct SyntaxDescriptor {
 	 * @param depth Given the current leaf in the parsed document the depth of a
 	 * SyntaxDescriptor is defined as the number of transparent elements that
 	 * would be needed to construct an instance of the referenced descriptor.
+	 * @param greedyShortForm set to false if the shortForm token should be
+	 * treated in a non-greedy way, meaning that it should be given at most
+	 * one piece of data if it was started implicitly.
 	 */
 	SyntaxDescriptor(TokenId open, TokenId close, TokenId shortForm,
-	                 Handle<Node> descriptor, ssize_t depth)
+	                 Handle<Node> descriptor, ssize_t depth,
+	                 bool greedyShortForm)
 	    : open(open),
 	      close(close),
 	      shortForm(shortForm),
 	      descriptor(descriptor),
-	      depth(depth)
+	      depth(depth),
+	      greedyShortForm(greedyShortForm)
 	{
 	}
 

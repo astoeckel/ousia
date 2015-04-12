@@ -30,18 +30,18 @@ static Rooted<Node> nd2{new Node(mgr)};
 static Rooted<Node> nd3{new Node(mgr)};
 
 static const std::vector<SyntaxDescriptor> ListA{
-    SyntaxDescriptor(Tokens::Empty, 1, Tokens::Empty, nd1, 0),
-    SyntaxDescriptor(2, Tokens::Empty, Tokens::Empty, nd2, 2),
-    SyntaxDescriptor(3, Tokens::Empty, Tokens::Empty, nd3, 1)};
+    SyntaxDescriptor(Tokens::Empty, 1, Tokens::Empty, nd1, 0, true),
+    SyntaxDescriptor(2, Tokens::Empty, Tokens::Empty, nd2, 2, true),
+    SyntaxDescriptor(3, Tokens::Empty, Tokens::Empty, nd3, 1, true)};
 
 static const std::vector<SyntaxDescriptor> ListB{
-    SyntaxDescriptor(Tokens::Empty, 1, Tokens::Empty, nd1, -1),
-    SyntaxDescriptor(2, Tokens::Empty, 3, nd3, 3),
+    SyntaxDescriptor(Tokens::Empty, 1, Tokens::Empty, nd1, -1, true),
+    SyntaxDescriptor(2, Tokens::Empty, 3, nd3, 3, true),
 };
 
 static const std::vector<SyntaxDescriptor> ListC{
-    SyntaxDescriptor(Tokens::Empty, Tokens::Empty, 4, nd2, 5),
-    SyntaxDescriptor(Tokens::Empty, Tokens::Empty, 3, nd3, 6),
+    SyntaxDescriptor(Tokens::Empty, Tokens::Empty, 4, nd2, 5, true),
+    SyntaxDescriptor(Tokens::Empty, Tokens::Empty, 3, nd3, 6, true),
 };
 
 TEST(TokenStack, tokens)

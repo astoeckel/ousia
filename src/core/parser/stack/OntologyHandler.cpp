@@ -502,11 +502,16 @@ bool OntologyOpenCloseShortHandler::data()
 
 void OntologyOpenCloseShortHandler::end()
 {
+	// Make sure data was given
 	if (descr->isEmpty()) {
 		logger().error(std::string("Expected valid token for ") + name() +
 		                   std::string(" syntax descriptor."),
 		               location());
 	}
+
+	// Update the greedy flag
+	descr->greedy = greedy;
+
 	scope().pop(logger());
 }
 
