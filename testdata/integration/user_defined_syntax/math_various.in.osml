@@ -3,5 +3,5 @@
 	\sum_{i=5}^10 \\
 	\int_{\var{x} -> -1}^{\var{x} -> 1} \sqrt{x^{2} - 1} dx &= \frac{π}{2}\\
 	\fun{f}{x, y} |-> \frac{x^{2}}{2} + y^2\\
-	$a^2 + \var{b}^2 &= $c^{2}
+	$ a ^ 2 + \var{b}^2 &= $c^{2}
 \end{math}
