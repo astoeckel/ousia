@@ -337,7 +337,7 @@ enum class TokenType { OPEN, CLOSE, SHORT };
 
 OntologyOpenCloseShortHandler::OntologyOpenCloseShortHandler(
     const HandlerData &handlerData)
-    : StaticHandler(handlerData), descr(nullptr)
+    : StaticHandler(handlerData), descr(nullptr), greedy(true)
 {
 }
 
@@ -464,6 +464,14 @@ bool OntologyOpenCloseShortHandler::startCommand(Variant::mapType &args)
 			scope().push(new ParserSyntaxShortNode(manager(), descr));
 			break;
 	}
+
+	// Read the "greedy" attribute (default values is "true"). The
+	// TokenDescriptor is updated accordingly in the "end()" method.
+	auto it = args.find("greedy");
+	if (it != args.end()) {
+		greedy = it->second.asBool();
+	}
+
 	return true;
 }
 
@@ -730,7 +738,7 @@ const State OntologySyntaxShort =
         .parent(&OntologySyntax)
         .createdNodeType(&RttiTypes::ParserSyntaxShortNode)
         .elementHandler(OntologyOpenCloseShortHandler::create)
-        .arguments(Arguments{});
+        .arguments({Argument::Bool("greedy", true)});
 
 const State OntologySyntaxWhitespace =
     StateBuilder()

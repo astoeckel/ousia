@@ -198,6 +198,7 @@ public:
 class OntologyOpenCloseShortHandler : public StaticHandler {
 public:
 	TokenDescriptor *descr;
+	bool greedy;
 
 	OntologyOpenCloseShortHandler(const HandlerData &handlerData);
 
