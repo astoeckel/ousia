@@ -1528,8 +1528,11 @@ bool StackImpl::readToken(Token &token)
 {
 	if (dataReader != nullptr) {
 		dataReader->resetPeek();
-		return dataReader->peek(token, currentTokens(),
-		                        currentWhitespaceMode());
+		const HandlerInfo &info = currentInfo();
+		const bool endAtWhitespace =
+		    (!info.greedy && info.inImplicitDefaultField);
+		return dataReader->peek(token, currentTokens(), currentWhitespaceMode(),
+		                        endAtWhitespace);
 	}
 	return false;
 }

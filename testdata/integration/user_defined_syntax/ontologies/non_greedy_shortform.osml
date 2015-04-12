@@ -3,6 +3,7 @@
 		\field
 			\childRef[a]
 			\childRef[b]
+			\childRef[text]
 	\struct#a
 		\syntax
 			\short[false]{?}
@@ -12,4 +13,5 @@
 			\short[false]{+}
 		\field
 			\childRef[a]
-
+	\struct#text[transparent=true]
+		\primitive[type=string]
