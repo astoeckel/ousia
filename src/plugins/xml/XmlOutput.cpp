@@ -258,6 +258,9 @@ static Rooted<Element> transformTokenDescriptor(Handle<Element> parent,
 		token = Rooted<Text>{new Text(P.mgr, tag, descr.token)};
 	}
 	tag->addChild(token);
+	if (!descr.greedy) {
+		tag->getAttributes()["greedy"] = "false";
+	}
 	return tag;
 }
 
