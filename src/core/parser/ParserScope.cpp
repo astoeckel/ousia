@@ -344,14 +344,16 @@ bool ParserScope::resolveType(const std::vector<std::string> &path,
 {
 	// Check whether the given path denotes an array, if yes recursively resolve
 	// the inner type and wrap it in an array type (this allows multi
-	// dimensional arrays).
+	// dimensional arrays). Perform a similar procedure for reference types,
+	// denoted using '@'.
 	if (!path.empty()) {
 		const std::string &last = path.back();
+		const std::string &first = path.front();
 		if (last.size() >= 2 && last.substr(last.size() - 2, 2) == "[]") {
 			// Type ends with "[]", remove this from the last element in the
 			// list
 			std::vector<std::string> p = path;
-			p.back() = p.back().substr(0, last.size() - 2);
+			p.back() = last.substr(0, last.size() - 2);
 
 			// Resolve the rest of the type
 			return resolveType(p, owner, logger,
@@ -359,12 +361,28 @@ bool ParserScope::resolveType(const std::vector<std::string> &path,
 			                                    Handle<Node> owner,
 			                                    Logger &logger) {
 				if (resolved != nullptr) {
-					Rooted<ArrayType> arr{new ArrayType{resolved.cast<Type>()}};
+					Rooted<ArrayType> arr{new ArrayType(resolved.cast<Type>())};
 					resultCallback(arr, owner, logger);
 				} else {
 					resultCallback(nullptr, owner, logger);
 				}
 			});
+		} else if (first.size() >= 1 && first[0] == '@') {
+			// If only the '@' is given, create and return an empty reference
+			// type.
+			if (first.size() == 1 && path.size() == 1) {
+				resultCallback(
+				    new ReferenceType(owner->getManager(), "@", nullptr), owner,
+				    logger);
+				return true;
+			}
+
+			// Remove the '@', try to resolve the rest as an element of the
+			// class "Descriptor"
+			std::vector<std::string> p = path;
+			p.front() = first.substr(1, first.size() - 1);
+			return resolve(&RttiTypes::Descriptor, p, owner, logger,
+			               resultCallback);
 		}
 	}
 
