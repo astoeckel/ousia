@@ -91,14 +91,14 @@ public:
 		 * map key describes the object which points at this object, the map
 		 * value contains the reference count from this object.
 		 */
-		std::map<Managed *, int> refIn;
+		std::unordered_map<Managed *, int> refIn;
 
 		/**
 		 * Map containing all references pointing from this managed object to
 		 * other managed objects. The map key describes the target object and
 		 * the map value the reference count.
 		 */
-		std::map<Managed *, int> refOut;
+		std::unordered_map<Managed *, int> refOut;
 
 		/**
 		 * Default constructor of the ObjectDescriptor class.
