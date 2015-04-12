@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document xmlns:math="math">
+	<import rel="ontology" src="/home/andreas/source/ousia-src/testdata/integration/user_defined_syntax/ontologies/math.osml"/>
+	<math:math>
+		<math:equation>
+			<math:field>
+				<math:var>a</math:var>
+				<math:power>
+					<math:number>2</math:number>
+				</math:power>
+				<math:plus/>
+				<math:var>b</math:var>
+				<math:power>
+					<math:number>2</math:number>
+				</math:power>
+				<math:equals/>
+				<math:var>c</math:var>
+				<math:power>
+					<math:number>2</math:number>
+				</math:power>
+			</math:field>
+		</math:equation>
+	</math:math>
+</document>

@@ -41,6 +41,8 @@
 		Variables and functions
 	}%
 	\struct#var[isa=primitive]
+		\syntax
+			\short[false]{$}
 		\primitive#name[type=string]
 	\struct#fun[isa=primitive]
 		\primitive#name[subtree=true,type=string,optional=false]
