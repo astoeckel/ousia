@@ -105,5 +105,26 @@
 				</math:power>
 			</math:field>
 		</math:equation>
+		<math:equation>
+			<math:field>
+				<math:text>a</math:text>
+				<math:power>
+					<math:frac>
+						<denominator>
+							<math:number>1</math:number>
+						</denominator>
+						<nominator>
+							<math:number>2</math:number>
+						</nominator>
+					</math:frac>
+				</math:power>
+			</math:field>
+			<math:field>
+				<math:equals/>
+				<math:sqrt base="2">
+					<math:text>a</math:text>
+				</math:sqrt>
+			</math:field>
+		</math:equation>
 	</math:math>
 </document>

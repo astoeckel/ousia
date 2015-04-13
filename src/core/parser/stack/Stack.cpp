@@ -119,7 +119,7 @@ public:
 	/**
 	 * Set to true once data was passed to the handler.
 	 */
-	bool hadData : 1;
+	bool hasContent : 1;
 
 	/**
 	 * Set to false, if the handler is not greedy (true is the default value).
@@ -130,19 +130,38 @@ public:
 	/**
 	 * Default constructor of the HandlerInfo class.
 	 */
-	HandlerInfo();
-
-	/**
-	 * Constructor of the HandlerInfo class, allows to set some flags manually.
-	 */
-	HandlerInfo(bool implicit, bool inField, bool inDefaultField,
-	            bool inImplicitDefaultField);
+	HandlerInfo() : HandlerInfo(nullptr) {}
 
 	/**
 	 * Constructor of the HandlerInfo class, taking a shared_ptr to the handler
 	 * to which additional information should be attached.
 	 */
-	HandlerInfo(std::shared_ptr<Handler> handler);
+	HandlerInfo(std::shared_ptr<Handler> handler)
+	    : HandlerInfo(false, false, false, false, handler)
+	{
+	}
+
+	/**
+	 * Constructor of the HandlerInfo class, allows to set some flags manually.
+	 */
+	HandlerInfo(bool implicit, bool inField, bool inDefaultField,
+	            bool inImplicitDefaultField,
+	            std::shared_ptr<Handler> handler = nullptr)
+	    : handler(handler),
+	      fieldIdx(0),
+	      closeToken(Tokens::Empty),
+	      valid(true),
+	      implicit(implicit),
+	      range(false),
+	      inField(inField),
+	      inDefaultField(inDefaultField),
+	      inImplicitDefaultField(inImplicitDefaultField),
+	      inValidField(false),
+	      hadDefaultField(false),
+	      hasContent(false),
+	      greedy(true)
+	{
+	}
 
 	/**
 	 * Destructor of the HandlerInfo class (to allow Handler to be forward
@@ -166,7 +185,10 @@ public:
 	 *
 	 * @return the current handler name.
 	 */
-	std::string name() const;
+	std::string name() const
+	{
+		return handler == nullptr ? std::string{} : handler->name();
+	}
 
 	/**
 	 * Returns the type of the referenced handler or COMMAND if no handler is
@@ -174,68 +196,22 @@ public:
 	 *
 	 * @return the current handler type.
 	 */
-	HandlerType type() const;
+	HandlerType type() const
+	{
+		return handler == nullptr ? HandlerType::COMMAND : handler->type();
+	}
 
 	/**
 	 * Returns the current state the handler is on or States::None if no handler
 	 * is present.
 	 *
-	 * @return the current state machine state.
+	 * @return the current state machine statE.
 	 */
-	const State &state() const;
+	const State &state() const
+	{
+		return handler == nullptr ? States::None : handler->state();
+	}
 };
-
-HandlerInfo::HandlerInfo() : HandlerInfo(nullptr) {}
-
-HandlerInfo::HandlerInfo(std::shared_ptr<Handler> handler)
-    : handler(handler),
-      fieldIdx(0),
-      closeToken(Tokens::Empty),
-      valid(true),
-      implicit(false),
-      range(false),
-      inField(false),
-      inDefaultField(false),
-      inImplicitDefaultField(false),
-      inValidField(false),
-      hadDefaultField(false),
-      hadData(false),
-      greedy(true)
-{
-}
-
-HandlerInfo::HandlerInfo(bool implicit, bool inField, bool inDefaultField,
-                         bool inImplicitDefaultField)
-    : handler(nullptr),
-      fieldIdx(0),
-      closeToken(Tokens::Empty),
-      valid(true),
-      implicit(implicit),
-      range(false),
-      inField(inField),
-      inDefaultField(inDefaultField),
-      inImplicitDefaultField(inImplicitDefaultField),
-      inValidField(true),
-      hadDefaultField(false),
-      hadData(false),
-      greedy(true)
-{
-}
-
-std::string HandlerInfo::name() const
-{
-	return handler == nullptr ? std::string{} : handler->name();
-}
-
-HandlerType HandlerInfo::type() const
-{
-	return handler == nullptr ? HandlerType::COMMAND : handler->type();
-}
-
-const State &HandlerInfo::state() const
-{
-	return handler == nullptr ? States::None : handler->state();
-}
 
 HandlerInfo::~HandlerInfo()
 {
@@ -467,11 +443,14 @@ private:
 	 * @param startImplicitDefaultFieldForNonGreedy is set to true, even starts
 	 * an implicit default field for greedy handlers. Otherwise these handlers
 	 * are ended.
+	 * @param endNonGreedyHandlers if set to true, ends non-greedy handlers.
+	 * This behaviour is needed to end non-greedy short form tokens if another
+	 * token is found.
 	 * @return true if the current command is in a valid field.
 	 */
 	bool prepareCurrentHandler(bool startImplicitDefaultField = true,
 	                           bool endHandlersWithoutDefaultField = true,
-	                           bool endNonGreedyHandlers = true);
+	                           bool endNonGreedyHandlers = false);
 
 	/**
 	 * Returns true if all handlers on the stack are currently valid, or false
@@ -795,7 +774,8 @@ bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField,
 		// abort. Exception: If the handler is not greedy and currently is in
 		// its default field, then continue.
 		if (info.inField) {
-			if (!info.greedy && info.hadData && info.inImplicitDefaultField) {
+			if (!info.greedy && info.hasContent &&
+			    info.inImplicitDefaultField) {
 				endCurrentField();
 				continue;
 			} else {
@@ -856,7 +836,7 @@ bool StackImpl::handleData()
 	while (true) {
 		// Prepare the stack -- make sure all overdue handlers are ended and
 		// we currently are in an open field
-		if (stack.empty() || !prepareCurrentHandler(true, true, false)) {
+		if (stack.empty() || !prepareCurrentHandler(true, true)) {
 			throw LoggableException("Did not expect any data here");
 		}
 
@@ -898,9 +878,6 @@ bool StackImpl::handleData()
 			loggerFork.log(ex);
 		}
 
-		// Update the "hadData" flag
-		info.hadData = info.hadData || valid;
-
 		// Reset the logger instance of the handler as soon as possible
 		info.handler->resetLogger();
 
@@ -911,6 +888,9 @@ bool StackImpl::handleData()
 			endCurrentHandler();
 			continue;
 		}
+
+		// Update the "hadData" flag
+		info.hasContent = true;
 
 		// Commit the content of the logger fork. Do not change the valid flag.
 		loggerFork.commit();
@@ -1113,6 +1093,7 @@ bool StackImpl::handleOpenTokens(Logger &logger, const Token &token,
 		// End the handler again if an error occured
 		if (!info.valid) {
 			endCurrentHandler();
+			continue;
 		}
 
 		// If this is not a short form token and the "close" descriptor is
@@ -1169,9 +1150,11 @@ void StackImpl::handleToken(const Token &token)
 		try {
 			// Try to open an implicit default field and try to start the token
 			// as short form or as start token
-			prepareCurrentHandler();
+			prepareCurrentHandler(true, true, true);
 			if (handleOpenTokens(loggerFork, token, true, descr.shortForm) ||
 			    handleOpenTokens(loggerFork, token, false, descr.open)) {
+				// Mark the "hasContent" flag of the last info
+				lastInfo().hasContent = true;
 				return;
 			}
 		}
@@ -1393,6 +1376,7 @@ void StackImpl::commandStart(const Variant &name, const Variant::mapType &args,
 		// If we ended up here, starting the command may or may not have
 		// worked, but after all, we cannot unroll the stack any further. Update
 		// the "valid" flag, commit any potential error messages and return.
+		parentInfo.hasContent = true;
 		info.valid = parentInfo.valid && info.valid;
 		info.range = range;
 		loggerFork.commit();
@@ -1428,7 +1412,7 @@ void StackImpl::data(const TokenizedData &data)
 	// Close all handlers that did already had or cannot have a default field
 	// and are not currently inside a field (repeat this after each chunk of
 	// data/text)
-	prepareCurrentHandler(false, false, false);
+	prepareCurrentHandler(false, false);
 
 	// Peek a token from the reader, repeat until all tokens have been read
 	Token token;
@@ -1445,7 +1429,7 @@ void StackImpl::data(const TokenizedData &data)
 			handleToken(token);
 			reader.consumePeek();
 		}
-		prepareCurrentHandler(false, false, false);
+		prepareCurrentHandler(false, false);
 	}
 }
 
