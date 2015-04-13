@@ -431,7 +431,7 @@ bool ParserScope::resolveValue(Variant &data, Handle<Type> type, Logger &logger)
 		    }
 
 		    // Set the data to the value of the constant (even if an error
-		    // happend -- probably the type is was not that wrong -- who knows?
+		    // happend -- probably the type was not that wrong -- who knows?)
 		    innerData = constant->getValue();
 
 		    return res;
