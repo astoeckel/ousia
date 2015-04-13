@@ -371,9 +371,9 @@ bool ParserScope::resolveType(const std::vector<std::string> &path,
 			// If only the '@' is given, create and return an empty reference
 			// type.
 			if (first.size() == 1 && path.size() == 1) {
-				resultCallback(
-				    new ReferenceType(owner->getManager(), "@", nullptr), owner,
-				    logger);
+				Rooted<ReferenceType> ref{
+				    new ReferenceType(owner->getManager(), "@", nullptr)};
+				resultCallback(ref, owner, logger);
 				return true;
 			}
 
@@ -381,8 +381,20 @@ bool ParserScope::resolveType(const std::vector<std::string> &path,
 			// class "Descriptor"
 			std::vector<std::string> p = path;
 			p.front() = first.substr(1, first.size() - 1);
-			return resolve(&RttiTypes::Descriptor, p, owner, logger,
-			               resultCallback);
+			std::string name = "@" + p.back();
+			return resolve(
+			    &RttiTypes::Descriptor, p, owner, logger,
+			    [resultCallback, name](Handle<Node> resolved,
+			                           Handle<Node> owner, Logger &logger) {
+				    if (resolved != nullptr) {
+					    Rooted<ReferenceType> ref{
+					        new ReferenceType(owner->getManager(), name,
+					                          resolved.cast<Descriptor>())};
+					    resultCallback(ref, owner, logger);
+				    } else {
+					    resultCallback(nullptr, owner, logger);
+				    }
+				});
 		}
 	}
 
