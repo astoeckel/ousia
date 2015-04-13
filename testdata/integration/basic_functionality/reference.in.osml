@@ -1,0 +1,14 @@
+\document
+\ontology#test
+	\struct#test[root=true]
+		\field
+			\childRef[a]
+			\childRef[b]
+	\struct#b
+		\primitive[type=@a]
+	\struct#a
+
+\test
+	\a#foo
+	\b{foo}
+
