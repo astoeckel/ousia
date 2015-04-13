@@ -666,8 +666,13 @@ bool ReferenceType::doBuild(Variant &data, Logger &logger,
 			throw LoggableException("Reference must be a valid identifier",
 			                        data);
 		}
+		data = Variant{};
+		return true;
 	}
-	return false;
+
+	// Throw an exception if no valid data is given
+	throw LoggableException(
+	    "Expected object or string for constructing a reference", data);
 }
 
 bool ReferenceType::doCheckIsa(Handle<const Type> type) const
@@ -675,6 +680,8 @@ bool ReferenceType::doCheckIsa(Handle<const Type> type) const
 	// TODO: Implement correctly, check descriptor inheritance
 	return type->isa(&RttiTypes::ReferenceType);
 }
+
+Variant ReferenceType::create() const { return Variant{}; }
 
 Handle<Descriptor> ReferenceType::getDescriptor() { return descriptor; }
 

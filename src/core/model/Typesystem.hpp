@@ -1034,7 +1034,7 @@ public:
 	 *
 	 * @return a null reference.
 	 */
-	Variant create() const override { return Variant{}; }
+	Variant create() const override;
 
 	/**
 	 * Returns the descriptor containing the ontological type of which an
