@@ -39,15 +39,24 @@
     <style id="boolean" _name="Boolean Value" map-to="def:boolean"/>
     <style id="type" _name="Data Type" map-to="def:type"/>
     <style id="special-char" _name="Special Character" map-to="def:special-char"/>
+    <style id="annotation" _name="Annotation" map-to="def:statement"/>
   </styles>
   <definitions>
     <!-- An ousia command -->
-    <define-regex id="identifier">[a-zA-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])?</define-regex>
+    <define-regex id="identifier">[a-zA-Z]([a-zA-Z0-9_-]*[a-zA-Z0-9])?</define-regex>
     <define-regex id="identifierWithNS">\%{identifier}(:\%{identifier})*</define-regex>
     <define-regex id="command">(?P&lt;command_cmd&gt;\\\%{identifierWithNS})(?P&lt;command_name&gt;#\%{identifier})?</define-regex>
     <define-regex id="begin_command">(?P&lt;begin&gt;\\begin){(?P&lt;begin_cmd&gt;\%{identifierWithNS})(?P&lt;begin_name&gt;#\%{identifier})?}</define-regex>
     <define-regex id="end_command">(?P&lt;end&gt;\\end){(?P&lt;end_cmd&gt;\%{identifierWithNS})}</define-regex>
+    <define-regex id="annotation-start">(?P&lt;annotation_start_cmd&gt;&lt;\\\%{identifierWithNS})(?P&lt;annotation_start_name&gt;#\%{identifier})?</define-regex>
+    <define-regex id="annotation-start-begin">(?P&lt;annotation_start_begin_char&gt;&lt;)(?P&lt;annotation_start_begin&gt;\\begin){(?P&lt;annotation_start_begin_cmd&gt;\%{identifierWithNS})(?P&lt;annotation_start_begin_name&gt;#\%{identifier})?}</define-regex>
+    <define-regex id="annotation-end">(?P&lt;annotation_end_cmd&gt;\\\%{identifierWithNS})(?P&lt;annotation_end_name&gt;#\%{identifier})?(?P&lt;annotation_end_char&gt;&gt;)</define-regex>
     <define-regex id="builtin">\\(import|include)</define-regex>
+
+    <!-- Escaped characters -->
+    <context id="escape" class="no-spell-check" style-ref="special-char">
+      <match>\\[^a-zA-Z]</match>
+    </context>
 
     <!-- Any command -->
     <context id="command" class="no-spell-check">
@@ -82,7 +91,25 @@
       <start>\[</start>
       <end>\]</end>
       <include>
-        <context ref="map"/>
+        <context ref="map-inner"/>
+        <context ref="map-key"/>
+        <context ref="def:string" style-ref="string"/>
+        <context ref="def:single-quoted-string" style-ref="string"/>
+        <context ref="def:float"/>
+        <context ref="def:decimal"/>
+        <context ref="def:hexadecimal"/>
+        <context ref="boolean"/>
+        <context ref="type"/>
+        <context ref="cardinality"/>
+      </include>
+    </context>
+
+    <!-- Maps within argument lists -->
+    <context id="map-inner">
+      <start>\[</start>
+      <end>\]</end>
+      <include>
+        <context ref="map-inner"/>
         <context ref="map-key"/>
         <context ref="def:string" style-ref="string"/>
         <context ref="def:single-quoted-string" style-ref="string"/>
@@ -139,7 +166,7 @@
       <end>$</end>
     </context>
 
-    <!-- Field -->
+    <!-- Default field marker -->
     <context id="default-field">
       <match>{(!)</match>
       <include>
@@ -147,9 +174,46 @@
       </include>
     </context>
 
+    <!-- Annotation -->
+    <context id="annotation-start">
+      <match>\%{annotation-start}</match>
+      <include>
+        <context sub-pattern="annotation_start_cmd" style-ref="annotation"/>
+        <context sub-pattern="annotation_start_name" style-ref="name"/>
+      </include>
+    </context>
+
+    <context id="annotation-start-begin">
+      <match>\%{annotation-start-begin}</match>
+      <include>
+        <context sub-pattern="annotation_start_begin_char" style-ref="annotation"/>
+        <context sub-pattern="annotation_start_begin" style-ref="common-commands"/>
+        <context sub-pattern="annotation_start_begin_cmd" style-ref="command"/>
+        <context sub-pattern="annotation_start_begin_name" style-ref="name"/>
+      </include>
+    </context>
+
+    <context id="annotation-short-end" style-ref="annotation">
+      <match>\\&gt;</match>
+    </context>
+
+    <context id="annotation-end">
+      <match>\%{annotation-end}</match>
+      <include>
+        <context sub-pattern="annotation_end_cmd" style-ref="annotation"/>
+        <context sub-pattern="annotation_end_name" style-ref="name"/>
+        <context sub-pattern="annotation_end_char" style-ref="annotation"/>
+      </include>
+    </context>
+
     <!-- Main context -->
     <context id="ousia">
       <include>
+        <context ref="annotation-short-end"/>
+        <context ref="annotation-start-begin"/>
+        <context ref="annotation-start"/>
+        <context ref="annotation-end"/>
+        <context ref="escape"/>
         <context ref="begin-command"/>
         <context ref="end-command"/>
         <context ref="common-commands"/>
