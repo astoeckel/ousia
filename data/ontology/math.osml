@@ -5,8 +5,8 @@
 	}%
 	\struct#math[root=true]
 		\syntax
-			\open{\\[}
-			\close{\\]}
+			\open{\\\[}
+			\close{\\\]}
 		\field
 			\childRef[ref=equation]
 
