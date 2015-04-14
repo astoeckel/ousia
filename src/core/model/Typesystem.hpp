@@ -39,6 +39,7 @@
 
 #include "Node.hpp"
 #include "RootNode.hpp"
+#include "ResolutionCallbacks.hpp"
 
 namespace ousia {
 
@@ -59,45 +60,6 @@ class Descriptor;
  * definitions.
  */
 class Type : public Node {
-public:
-	/**
-	 * Enum describing the result of the MagicCallback.
-	 */
-	enum class MagicCallbackResult {
-		/**
-	     * A magic value with the given name could not be resolved.
-	     */
-		NOT_FOUND,
-
-		/**
-	     * A magic value with the given name could be resolved, but is of the
-	     * wrong type.
-	     */
-		FOUND_INVALID,
-
-		/**
-	     * A magic value with the given name could be resolved and is of the
-	     * correct type.
-	     */
-		FOUND_VALID
-	};
-
-	/**
-	 * Callback function called when a variant with "magic" value is reached.
-	 * This callback allows to transform these magic values into something else.
-	 * This mechanism is used to resolve constants.
-	 *
-	 * @param data is the magic value that should be looked up and the variant
-	 * to which the value of the looked up constant should be written.
-	 * @param type is a const pointer at the type. TODO: Replace this with a
-	 * "ConstHandle".
-	 * @return a MagicCallbackResult describing whether the magic value could
-	 * not be resolved, could be resolved but is of the wrong type or could be
-	 * resolved and is of the correct type.
-	 */
-	using MagicCallback =
-	    std::function<MagicCallbackResult(Variant &data, const Type *type)>;
-
 protected:
 	/**
 	 * Protected constructor to be called by the classes derived from the Type
@@ -125,12 +87,12 @@ protected:
 	 * -- if possible and necessary -- converted to a variant adhering to the
 	 * internal representation used by the Type class.
 	 * @param logger is the Logger instance into which errors should be written.
-	 * @param magicCallback is a callback that should be called to other "build"
+	 * @param resolveCallback is a callback that should be called to other "build"
 	 * functions.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	virtual bool doBuild(Variant &data, Logger &logger,
-	                     const MagicCallback &magicCallback) const = 0;
+	                     const ResolveCallback &resolveCallback) const = 0;
 
 	/**
 	 * May be overriden to check whether an instance of this type logically is
@@ -167,12 +129,12 @@ public:
 	 * internal representation used by the Type class.
 	 * @param logger is the Logger instance into which errors should be
 	 * written.
-	 * @param magicCallback is the callback function to be called whenever
+	 * @param resolveCallback is the callback function to be called whenever
 	 * a variant with "magic" value is reached.
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool build(Variant &data, Logger &logger,
-	           const MagicCallback &magicCallback) const;
+	           const ResolveCallback &resolveCallback) const;
 
 	/**
 	 * Validates and completes the given variant which was read from a
@@ -241,7 +203,7 @@ protected:
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool doBuild(Variant &data, Logger &logger,
-	             const MagicCallback &magicCallback) const override;
+	             const ResolveCallback &resolveCallback) const override;
 
 public:
 	/**
@@ -280,7 +242,7 @@ protected:
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool doBuild(Variant &data, Logger &logger,
-	             const MagicCallback &magicCallback) const override;
+	             const ResolveCallback &resolveCallback) const override;
 
 public:
 	/**
@@ -319,7 +281,7 @@ protected:
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool doBuild(Variant &data, Logger &logger,
-	             const MagicCallback &magicCallback) const override;
+	             const ResolveCallback &resolveCallback) const override;
 
 public:
 	/**
@@ -358,7 +320,7 @@ protected:
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool doBuild(Variant &data, Logger &logger,
-	             const MagicCallback &magicCallback) const override;
+	             const ResolveCallback &resolveCallback) const override;
 
 public:
 	/**
@@ -396,7 +358,7 @@ protected:
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool doBuild(Variant &data, Logger &logger,
-	             const MagicCallback &magicCallback) const override;
+	             const ResolveCallback &resolveCallback) const override;
 
 public:
 	/**
@@ -452,7 +414,7 @@ protected:
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool doBuild(Variant &data, Logger &logger,
-	             const MagicCallback &magicCallback) const override;
+	             const ResolveCallback &resolveCallback) const override;
 
 	/**
 	 * Returns true if the internal value list is non-empty.
@@ -751,7 +713,7 @@ private:
 	 * @return true if the operation is successful, false otherwise.
 	 */
 	bool buildFromArray(Variant &data, Logger &logger,
-	                    const MagicCallback &magicCallback, bool trim) const;
+	                    const ResolveCallback &resolveCallback, bool trim) const;
 
 	/**
 	 * Checks a map and its entries for validity and if possible updates its
@@ -764,7 +726,7 @@ private:
 	 * @return true if the operation is successful, false otherwise.
 	 */
 	bool buildFromMap(Variant &data, Logger &logger,
-	                  const MagicCallback &magicCallback, bool trim) const;
+	                  const ResolveCallback &resolveCallback, bool trim) const;
 
 	/**
 	 * Checks a map or an array for validity and if possible updates its content
@@ -777,7 +739,7 @@ private:
 	 * @return true if the operation is successful, false otherwise.
 	 */
 	bool buildFromArrayOrMap(Variant &data, Logger &logger,
-	                         const MagicCallback &magicCallback,
+	                         const ResolveCallback &resolveCallback,
 	                         bool trim) const;
 
 	/**
@@ -811,7 +773,7 @@ protected:
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool doBuild(Variant &data, Logger &logger,
-	             const MagicCallback &magicCallback) const override;
+	             const ResolveCallback &resolveCallback) const override;
 
 	/**
 	 * Checks the struct descriptor for being valid.
@@ -1004,7 +966,7 @@ protected:
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool doBuild(Variant &data, Logger &logger,
-	             const MagicCallback &magicCallback) const override;
+	             const ResolveCallback &resolveCallback) const override;
 
 	/**
 	 * Returns true if this type is equivalent to another given ReferenceType,
@@ -1074,7 +1036,7 @@ protected:
 	 * @return true if the conversion was successful, false otherwise.
 	 */
 	bool doBuild(Variant &data, Logger &logger,
-	             const MagicCallback &magicCallback) const override;
+	             const ResolveCallback &resolveCallback) const override;
 
 	/**
 	 * Returns true if this type is equivalent to another given ArrayType.
@@ -1134,7 +1096,7 @@ protected:
 	 *
 	 * @return always true.
 	 */
-	bool doBuild(Variant &, Logger &, const MagicCallback &) const override;
+	bool doBuild(Variant &, Logger &, const ResolveCallback &) const override;
 
 public:
 	/**

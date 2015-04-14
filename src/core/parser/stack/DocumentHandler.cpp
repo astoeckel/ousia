@@ -768,7 +768,9 @@ bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
 	}
 
 	// Now try to resolve the value for the primitive type
-	return valid && scope().resolveValue(data, type, logger);
+	return valid &&
+	       scope().resolveValue(data, field->getParent().cast<Node>(), type,
+	                            logger);
 }
 
 bool DocumentChildHandler::data()

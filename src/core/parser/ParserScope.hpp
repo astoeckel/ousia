@@ -28,6 +28,7 @@
 #include <core/common/Rtti.hpp>
 #include <core/common/Utils.hpp>
 #include <core/model/Node.hpp>
+#include <core/model/ResolutionCallbacks.hpp>
 
 /**
  * @file ParserScope.hpp
@@ -46,23 +47,6 @@ class Logger;
 class ParserScope;
 class Type;
 class Variant;
-
-/**
- * Callback function type used for creating a dummy object while no correct
- * object is available for resolution.
- */
-using ResolutionImposterCallback = std::function<Rooted<Node>()>;
-
-/**
- * Callback function type called whenever the result of a resolution is
- * available.
- *
- * @param resolved is the new, resolved node.
- * @param owner is the node that was passed as "owner".
- * @param logger is the logger to which errors should be logged.
- */
-using ResolutionResultCallback = std::function<
-    void(Handle<Node> resolved, Handle<Node> owner, Logger &logger)>;
 
 /**
  * Base class for the ParserScope, does not contain the mechanisms for deferred
@@ -288,14 +272,14 @@ enum class ParserFlag {
 	POST_HEAD,
 
 	/**
-	 * Set to the boolean value "true" if explicit fields may no longer be
-	 * defined inside a structure element.
-	 */
+     * Set to the boolean value "true" if explicit fields may no longer be
+     * defined inside a structure element.
+     */
 	POST_EXPLICIT_FIELDS,
 
 	/**
-	 * Set to true if all user defined tokens have been registered.
-	 */
+     * Set to true if all user defined tokens have been registered.
+     */
 	POST_USER_DEFINED_TOKEN_REGISTRATION
 };
 
@@ -716,12 +700,14 @@ public:
 	 * @param data is a reference at a variant that may contain magic values
 	 * (even in inner structures). The data will be passed to the "build"
 	 * function of the given type.
+	 * @param owner is the node for which the resolution takes place.
 	 * @param type is the Typesystem type the data should be interpreted with.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
 	 * @return true if the value was successfully built.
 	 */
-	bool resolveValue(Variant &data, Handle<Type> type, Logger &logger);
+	bool resolveValue(Variant &data, Handle<Node> owner, Handle<Type> type,
+	                  Logger &logger);
 
 	/**
 	 * Resolves a type and makes sure the corresponding value is of the correct

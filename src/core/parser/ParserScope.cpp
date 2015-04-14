@@ -409,45 +409,20 @@ bool ParserScope::resolveType(const std::string &name, Handle<Node> owner,
 	return resolveType(Utils::split(name, '.'), owner, logger, resultCallback);
 }
 
-bool ParserScope::resolveValue(Variant &data, Handle<Type> type, Logger &logger)
+bool ParserScope::resolveValue(Variant &data, Handle<Node> owner,
+                               Handle<Type> type, Logger &logger)
 {
-	return type->build(
-	    data, logger,
-	    [&](Variant &innerData,
-	        const Type *innerType) mutable -> Type::MagicCallbackResult {
-		    // Try to resolve the node
-		    Rooted<Constant> constant =
-		        ParserScopeBase::resolve(&RttiTypes::Constant,
-		                                 Utils::split(innerData.asMagic(), '.'),
-		                                 logger).cast<Constant>();
-
-		    // Abort if nothing was found
-		    if (constant == nullptr) {
-			    return Type::MagicCallbackResult::NOT_FOUND;
-		    }
-
-		    // Check whether the inner type of the constant is correct
-		    Type::MagicCallbackResult res =
-		        Type::MagicCallbackResult::FOUND_VALID;
-		    Rooted<Type> constantType = constant->getType();
-		    if (!constantType->checkIsa(innerType)) {
-			    logger.error(std::string("Expected value of type \"") +
-			                     innerType->getName() +
-			                     std::string("\" but found constant \"") +
-			                     constant->getName() +
-			                     std::string("\" of type \"") +
-			                     constantType->getName() + "\" instead.",
-			                 innerData);
-			    logger.note("Constant was defined here:", *constant);
-			    res = Type::MagicCallbackResult::FOUND_INVALID;
-		    }
-
-		    // Set the data to the value of the constant (even if an error
-		    // happend -- probably the type was not that wrong -- who knows?)
-		    innerData = constant->getValue();
-
-		    return res;
-		});
+	return type->build(data, logger,
+	                   [&](bool async, const Rtti *rttiType,
+	                       const std::vector<std::string> &path,
+	                       ResolutionResultCallback resultCallback) mutable {
+		if (!async) {
+			Rooted<Node> resolved = ParserScopeBase::resolve(rttiType, path, logger);
+			resultCallback(resolved, owner, logger);
+			return resolved != nullptr;
+		}
+		return resolve(rttiType, path, type, logger, resultCallback);
+	});
 }
 
 bool ParserScope::resolveTypeWithValue(const std::vector<std::string> &path,
@@ -465,7 +440,7 @@ bool ParserScope::resolveTypeWithValue(const std::vector<std::string> &path,
 	    [=](Handle<Node> resolved, Handle<Node> owner, Logger &logger) mutable {
 		    if (resolved != nullptr) {
 			    Rooted<Type> type = resolved.cast<Type>();
-			    scope.resolveValue(*valuePtr, type, logger);
+			    scope.resolveValue(*valuePtr, owner, type, logger);
 		    }
 
 		    // Call the result callback with the type
