@@ -184,6 +184,7 @@ ADD_LIBRARY(ousia_core
 	src/core/model/Node
 	src/core/model/Project
 	src/core/model/RootNode
+	src/core/model/ResolutionCallbacks
 	src/core/model/Style
 	src/core/model/Syntax
 	src/core/model/Typesystem
