@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document>
+	<ontology name="test">
+		<struct name="test" root="true">
+			<field>
+				<childRef ref="a"/>
+				<childRef ref="b"/>
+			</field>
+		</struct>
+		<struct name="a">
+			<primitive type="color.color"/>
+		</struct>
+		<struct name="b">
+			<primitive type="color.multipleColors"/>
+		</struct>
+	</ontology>
+	<typesystem name="color">
+		<struct name="color">
+			<field name="r" type="int"/>
+			<field name="g" type="int"/>
+			<field name="b" type="int"/>
+		</struct>
+		<struct name="multipleColors">
+			<field default="[
+	0,
+	255,
+	0
+]" name="c1" type="color"/>
+			<field default="[
+	255,
+	0,
+	0
+]" name="c2" type="color"/>
+		</struct>
+		<constant name="green" type="color" value="[
+	0,
+	255,
+	0
+]"/>
+		<constant name="red" type="color" value="[
+	255,
+	0,
+	0
+]"/>
+	</typesystem>
+	<test:test>
+		<test:a>[
+	&quot;b&quot;= 0,
+	&quot;g&quot;= 0,
+	&quot;r&quot;= 255
+]</test:a>
+		<test:a>[
+	&quot;b&quot;= 0,
+	&quot;g&quot;= 255,
+	&quot;r&quot;= 0
+]</test:a>
+		<test:b>[
+	&quot;c1&quot;= [
+		0,
+		255,
+		0
+	],
+	&quot;c2&quot;= [
+		100,
+		20,
+		30
+	]
+]</test:b>
+	</test:test>
+</document>

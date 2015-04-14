@@ -1,0 +1,26 @@
+\document
+\typesystem#color
+	\struct#color
+		\field#r[type=int]
+		\field#g[type=int]
+		\field#b[type=int]
+	\constant#green[type=color, value=[r=0,g=255,b=0]]
+	\constant#red[type=color, value=[r=255,g=0,b=0]]
+	\struct#multipleColors
+		\field#c1[type=color,default=green]
+		\field#c2[type=color,default=red]
+\ontology#test
+	\struct#test[root=true]
+		\field
+			\childRef[ref=a]
+			\childRef[ref=b]
+	\struct#a
+		\primitive[type=color]
+	\struct#b
+		\primitive[type=multipleColors]
+
+\begin{test}
+	\a{red}
+	\a{green}
+	\b{[c2=[100, 20, 30]]}
+\end{test}
