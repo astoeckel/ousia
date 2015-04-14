@@ -240,6 +240,7 @@ std::pair<bool, std::shared_ptr<XmlNode>> parseXml(
 			break;
 		}
 	}
+	XML_ParserFree(parser);
 
 	return std::pair<bool, std::shared_ptr<XmlNode>>(ok, root);
 }
