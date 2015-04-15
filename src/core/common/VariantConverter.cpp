@@ -225,22 +225,26 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 	const VariantType type = var.getType();
 	switch (type) {
 		case VariantType::NULLPTR:
-			logger.warning(msgImplicitConversion(type, VariantType::STRING), var);
+			logger.warning(msgImplicitConversion(type, VariantType::STRING),
+			               var);
 			var = "null";
 			return true;
 		case VariantType::BOOL:
-			logger.warning(msgImplicitConversion(type, VariantType::STRING), var);
+			logger.warning(msgImplicitConversion(type, VariantType::STRING),
+			               var);
 			var = var.asBool() ? "true" : "false";
 			return true;
 		case VariantType::INT: {
-			logger.warning(msgImplicitConversion(type, VariantType::STRING), var);
+			logger.warning(msgImplicitConversion(type, VariantType::STRING),
+			               var);
 			std::stringstream ss;
 			ss << var.asInt();
 			var = ss.str().c_str();
 			return true;
 		}
 		case VariantType::DOUBLE: {
-			logger.warning(msgImplicitConversion(type, VariantType::STRING), var);
+			logger.warning(msgImplicitConversion(type, VariantType::STRING),
+			               var);
 			std::stringstream ss;
 			ss << var.asDouble();
 			var = ss.str().c_str();
@@ -401,7 +405,8 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 		Variant::cardinalityType &card = var.asCardinality();
 		if (value < 0) {
 			logger.error(
-			    "A value smaller 0 can not be converted to a cardinality!", var);
+			    "A value smaller 0 can not be converted to a cardinality!",
+			    var);
 			return false;
 		}
 		card.merge({(unsigned int)value});
@@ -432,7 +437,8 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 				if (value < 0) {
 					logger.error(
 					    "A value smaller 0 can not be converted to a "
-					    "cardinality!", var);
+					    "cardinality!",
+					    var);
 					return false;
 				}
 				card.merge({(unsigned int)value});
@@ -448,14 +454,16 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 					if (!startVar.isInt()) {
 						logger.error(
 						    "A non-integer can not be interpreted as the start "
-						    "of a range", startVar);
+						    "of a range",
+						    startVar);
 						return false;
 					}
 					int start = startVar.asInt();
 					if (start < 0) {
 						logger.error(
 						    "A value smaller 0 can not be converted to a "
-						    "cardinality!", startVar);
+						    "cardinality!",
+						    startVar);
 						return false;
 					}
 					it++;
@@ -466,16 +474,18 @@ bool VariantConverter::toCardinality(Variant &var, Logger &logger, Mode mode)
 					if (!endVar.isInt()) {
 						logger.error(
 						    "A non-integer can not be interpreted as the end "
-						    "of a range", endVar);
+						    "of a range",
+						    endVar);
 						return false;
 					}
 					int end = endVar.asInt();
 					if (end < start) {
 						logger.error(
 						    std::string("The supposed start value ") +
-						    std::to_string(start) +
-						    " was bigger than the supposed end value " +
-						    std::to_string(end) + " of the Range.", endVar);
+						        std::to_string(start) +
+						        " was bigger than the supposed end value " +
+						        std::to_string(end) + " of the Range.",
+						    endVar);
 						return false;
 					}
 					card.merge({(unsigned int)start, (unsigned int)end});
@@ -561,7 +571,8 @@ bool VariantConverter::convert(Variant &var, const Rtti *type,
 	// Make sure the object type is correct
 	if (!var.getRtti()->isa(type)) {
 		logger.error(std::string("Expected object of type ") + type->name +
-		             " but got object of type " + var.getRtti()->name, var);
+		                 " but got object of type " + var.getRtti()->name,
+		             var);
 		var.setObject(nullptr);
 		return false;
 	}

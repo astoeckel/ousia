@@ -80,29 +80,28 @@ struct VariantMetadata {
 	 * Structure holding the actual metadata.
 	 */
 	struct Meta {
+		/**
+		 * Field used to store the type of a Variant (4 Bit, space for 16
+		 * objects).
+		 */
+		uint8_t variantType : 4;
 
-			/**
-			 * Field used to store the type of a Variant (4 Bit, space for 16
-			 * objects).
-			 */
-			uint8_t variantType : 4;
+		/**
+		 * Field used to store the location at which the Variant was found
+		 * (30 Bit).
+		 */
+		uint32_t locationOffset : 30;  // Enough for 1GB
 
-			/**
-			 * Field used to store the location at which the Variant was found
-			 * (30 Bit).
-			 */
-			uint32_t locationOffset : 30;  // Enough for 1GB
+		/**
+		 * Field used to store the length of the value from which the
+		 * variant was parsed (14 Bit).
+		 */
+		uint16_t locationLength : 14;  // 16.000 Bytes of context
 
-			/**
-			 * Field used to store the length of the value from which the
-			 * variant was parsed (14 Bit).
-			 */
-			uint16_t locationLength : 14;  // 16.000 Bytes of context
-
-			/**
-			 * Unique id of the file from which the variant was parsed.
-			 */
-			uint16_t locationSourceId : 16;  // 65.000 Source files
+		/**
+		 * Unique id of the file from which the variant was parsed.
+		 */
+		uint16_t locationSourceId : 16;  // 65.000 Source files
 	};
 
 	union {
