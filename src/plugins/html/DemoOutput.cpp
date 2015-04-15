@@ -375,6 +375,16 @@ void DemoHTMLTransformer::writeHTML(Handle<Document> doc, std::ostream &out,
 	head->addChild(title);
 	title->addChild(
 	    new xml::Text(mgr, title, "Test HTML Output for " + doc->getName()));
+	// add some stylish styles
+	Rooted<xml::Element> style{
+	    new xml::Element{mgr, head, "style", {{"type", "text/css"}}}};
+	head->addChild(style);
+	Rooted<xml::Text> css{new xml::Text{mgr, style,
+	                                    "body { font-family: 'CMU Serif', "
+	                                    "serif;}\n p { text-align: justify; "
+	                                    "hyphens: auto; }"}};
+	style->addChild(css);
+
 	// add the body Element
 	Rooted<xml::Element> body{new xml::Element{mgr, html, "body"}};
 	html->addChild(body);
