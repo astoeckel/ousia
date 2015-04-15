@@ -2,12 +2,12 @@
 <document xmlns:test="test">
 	<test:test>
 		<test:c>
-			<test:b>foo_1</test:b>
+			<test:b>foo</test:b>
 			<test:b>foo2</test:b>
-			<test:a id="foo_1" name="foo"/>
+			<test:a id="foo" name="foo"/>
 		</test:c>
 		<test:c>
-			<test:b>foo_1</test:b>
+			<test:b>foo</test:b>
 			<test:a name="foo"/>
 		</test:c>
 		<test:c>
