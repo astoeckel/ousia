@@ -42,6 +42,20 @@ Rooted<Managed> Managed::readData(const std::string &key)
 	return mgr.readData(this, key);
 }
 
+Rooted<Managed> Managed::readData(const std::string &key, const Rtti *type)
+{
+	Rooted<Managed> res = mgr.readData(this, key);
+	if (res != nullptr && res->type()->isa(type)) {
+		return res;
+	}
+	return nullptr;
+}
+
+Managed* Managed::readDataPtr(const std::string &key, const std::type_info &type)
+{
+	return readData(key, RttiStore::lookup(type)).get();
+}
+
 std::map<std::string, Rooted<Managed>> Managed::readData()
 {
 	auto map = mgr.readData(this);

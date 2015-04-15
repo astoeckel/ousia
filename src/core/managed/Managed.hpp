@@ -28,6 +28,8 @@
 #ifndef _OUSIA_MANAGED_HPP_
 #define _OUSIA_MANAGED_HPP_
 
+#include <typeinfo>
+
 #include "Manager.hpp"
 
 namespace ousia {
@@ -66,6 +68,16 @@ protected:
 	 * managed object.
 	 */
 	Manager &mgr;
+
+	/**
+	 * Used internally to retrieve the pointer of a stored data element. Behaves
+	 * just like readData but returns a pointer.
+	 *
+	 * @param key is the key specifying the data slot.
+	 * @param type is the type that is expected for the data with the given key.
+	 * @return previously stored data or nullptr.
+	 */
+	Managed* readDataPtr(const std::string &key, const std::type_info &type);
 
 public:
 	/**
@@ -169,6 +181,36 @@ public:
 	 * key.
 	 */
 	Rooted<Managed> readData(const std::string &key);
+
+	/**
+	 * Returns data previously stored under the given key. Makes sure the data
+	 * is of the given type.
+	 *
+	 * @param key is the key specifying the slot from which the data should be
+	 * read.
+	 * @param type is the type that is expected for the data with the given key.
+	 * @return previously stored data or nullptr if no data was stored for this
+	 * key. Nullptr is returned if the stored data does not have the correct
+	 * type.
+	 */
+	Rooted<Managed> readData(const std::string &key, const Rtti *type);
+
+	/**
+	 * Returns data previously stored under the given key. Makes sure the data
+	 * is of the given type.
+	 *
+	 * @param key is the key specifying the slot from which the data should be
+	 * read.
+	 * @param type is the type that is expected for the data with the given key.
+	 * @return previously stored data or nullptr if no data was stored for this
+	 * key. Nullptr is returned if the stored data does not have the correct
+	 * type.
+	 */
+	template<typename T>
+	Rooted<T> readData(const std::string &key)
+	{
+		return Rooted<T>(static_cast<T*>(readDataPtr(key, typeid(T))));
+	}
 
 	/**
 	 * Returns a copy of all data that was attached to the node.
