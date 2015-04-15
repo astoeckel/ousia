@@ -269,6 +269,9 @@ TARGET_LINK_LIBRARIES(ousia_html
 
 ADD_LIBRARY(ousia_xml
 	src/plugins/xml/XmlOutput
+	# TODO: This dependency is temporary -- remove once we have a proper
+	# transformation pipeline
+	src/transformations/uniqueid/UniqueIdTransformation
 )
 
 TARGET_LINK_LIBRARIES(ousia_xml
