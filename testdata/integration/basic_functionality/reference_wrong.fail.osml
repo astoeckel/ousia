@@ -1,0 +1,5 @@
+\import[ontology]{./ontologies/reference_tests.osml}
+\test
+	\b{foo}
+	\c#foo
+

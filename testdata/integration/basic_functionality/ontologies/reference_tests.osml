@@ -1,0 +1,11 @@
+\ontology#test
+	\struct#test[root=true]
+		\field
+			\childRef[a]
+			\childRef[b]
+			\childRef[c]
+	\struct#b
+		\primitive[type=@a]
+	\struct#c
+	\struct#a
+	\struct#d[isa=a]
