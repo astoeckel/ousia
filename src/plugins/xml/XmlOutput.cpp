@@ -27,6 +27,9 @@
 namespace ousia {
 namespace xml {
 
+// TODO: Use impl class to avoid having to pass so many parameters to static
+// functions (like e.g. in UniqueIdTransformation.cpp)
+
 /**
  * Wrapper structure for transformation parameters.
  */
@@ -409,8 +412,8 @@ static Rooted<Element> transformAnnotationClass(Handle<Element> parent,
 	return annotationClass;
 }
 
-Rooted<Element> transformOntology(Handle<Element> parent, Handle<Ontology> o,
-                                  TransformParams &P)
+static Rooted<Element> transformOntology(Handle<Element> parent,
+                                         Handle<Ontology> o, TransformParams &P)
 {
 	// only transform this ontology if it was not transformed already.
 	if (o->getLocation().getSourceId() != P.documentId) {
@@ -462,7 +465,8 @@ Rooted<Element> transformOntology(Handle<Element> parent, Handle<Ontology> o,
  * Typesystem transformation functions.
  */
 
-std::string getTypeRef(Handle<Typesystem> referencing, Handle<Type> referenced)
+static std::string getTypeRef(Handle<Typesystem> referencing,
+                              Handle<Type> referenced)
 {
 	std::string typeRef;
 	if (referencing != referenced->getTypesystem() &&
@@ -476,11 +480,11 @@ std::string getTypeRef(Handle<Typesystem> referencing, Handle<Type> referenced)
 	return typeRef;
 }
 
-Rooted<Element> transformStructTypeEntry(Handle<Element> parent,
-                                         const std::string &tagName,
-                                         Handle<StructType> t,
-                                         Handle<Attribute> a,
-                                         TransformParams &P)
+static Rooted<Element> transformStructTypeEntry(Handle<Element> parent,
+                                                const std::string &tagName,
+                                                Handle<StructType> t,
+                                                Handle<Attribute> a,
+                                                TransformParams &P)
 {
 	// create an xml element for the attribute.
 	Rooted<Element> attribute{new Element(P.mgr, parent, tagName)};
@@ -500,10 +504,11 @@ Rooted<Element> transformStructTypeEntry(Handle<Element> parent,
 	return attribute;
 }
 
-Rooted<Element> transformStructType(Handle<Element> parent,
-                                    const std::string &structTagName,
-                                    const std::string &fieldTagName,
-                                    Handle<StructType> t, TransformParams &P)
+static Rooted<Element> transformStructType(Handle<Element> parent,
+                                           const std::string &structTagName,
+                                           const std::string &fieldTagName,
+                                           Handle<StructType> t,
+                                           TransformParams &P)
 {
 	// create an xml element for the struct type itself.
 	Rooted<Element> structType{new Element(P.mgr, parent, structTagName)};
@@ -556,8 +561,9 @@ static Rooted<Element> transformConstant(Handle<Element> parent,
 	return constant;
 }
 
-Rooted<Element> transformTypesystem(Handle<Element> parent,
-                                    Handle<Typesystem> t, TransformParams &P)
+static Rooted<Element> transformTypesystem(Handle<Element> parent,
+                                           Handle<Typesystem> t,
+                                           TransformParams &P)
 {
 	// do not transform the system typesystem.
 	if (t->isa(&RttiTypes::SystemTypesystem)) {
@@ -615,9 +621,8 @@ Rooted<Element> transformTypesystem(Handle<Element> parent,
  * DocumentEntity attributes transform functions.
  */
 
-std::map<std::string, std::string> transformAttributes(const std::string &name,
-                                                       DocumentEntity *entity,
-                                                       TransformParams &P)
+static std::map<std::string, std::string> transformAttributes(
+    const std::string &name, DocumentEntity *entity, TransformParams &P)
 {
 	// copy the attributes.
 	Variant attrs = entity->getAttributes();
@@ -642,8 +647,8 @@ std::map<std::string, std::string> transformAttributes(const std::string &name,
 	return xmlAttrs;
 }
 
-void addNameAttribute(Handle<ousia::Node> n,
-                      std::map<std::string, std::string> &attrs)
+static void addNameAttribute(Handle<ousia::Node> n,
+                             std::map<std::string, std::string> &attrs)
 {
 	// copy the name attribute.
 	if (!n->getName().empty()) {
@@ -655,9 +660,8 @@ void addNameAttribute(Handle<ousia::Node> n,
  * StructureNode transform functions.
  */
 
-void transformChildren(DocumentEntity *parentEntity, Handle<Element> parent,
-
-                       TransformParams &P)
+static void transformChildren(DocumentEntity *parentEntity,
+                              Handle<Element> parent, TransformParams &P)
 {
 	ManagedVector<FieldDescriptor> fieldDescs =
 	    parentEntity->getDescriptor()->getFieldDescriptors();
@@ -706,22 +710,24 @@ void transformChildren(DocumentEntity *parentEntity, Handle<Element> parent,
 	}
 }
 
-Rooted<Element> transformStructuredEntity(Handle<Element> parent,
-                                          Handle<StructuredEntity> s,
-                                          TransformParams &P)
+static Rooted<Element> transformStructuredEntity(Handle<Element> parent,
+                                                 Handle<StructuredEntity> s,
+                                                 TransformParams &P)
 {
 	// create the XML element itself.
 	Rooted<Element> elem{new Element{
 	    P.mgr, parent, s->getDescriptor()->getName(),
 	    transformAttributes(s->getName(), s.get(), P),
 	    s->getDescriptor()->getParent().cast<Ontology>()->getName()}};
+	attachId(elem, s);
+
 	// then transform the children.
 	transformChildren(s.get(), elem, P);
 	return elem;
 }
 
-Rooted<Element> transformAnchor(Handle<Element> parent, Handle<Anchor> a,
-                                TransformParams &P)
+static Rooted<Element> transformAnchor(Handle<Element> parent, Handle<Anchor> a,
+                                       TransformParams &P)
 {
 	Rooted<Element> elem;
 	if (a->isStart()) {
@@ -757,7 +763,7 @@ Rooted<Element> transformAnchor(Handle<Element> parent, Handle<Anchor> a,
  * Primitive transform functions.
  */
 
-std::string toString(Variant v, TransformParams &P)
+static std::string toString(Variant v, TransformParams &P)
 {
 	if (v.isString()) {
 		return v.asString();
@@ -766,8 +772,10 @@ std::string toString(Variant v, TransformParams &P)
 	}
 }
 
-Rooted<Text> transformPrimitive(Handle<Element> parent, Handle<Type> type,
-                                Handle<DocumentPrimitive> p, TransformParams &P)
+static Rooted<Text> transformPrimitive(Handle<Element> parent,
+                                       Handle<Type> type,
+                                       Handle<DocumentPrimitive> p,
+                                       TransformParams &P)
 {
 	// transform the primitive content.
 	Variant content = p->getContent();
