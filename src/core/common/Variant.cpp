@@ -22,11 +22,12 @@
 
 #include "Location.hpp"
 #include "Logger.hpp"
+#include "Rtti.hpp"
+#include "RttiBuilder.hpp"
 #include "Utils.hpp"
 #include "Variant.hpp"
 #include "VariantConverter.hpp"
 #include "VariantWriter.hpp"
-#include "Rtti.hpp"
 
 namespace ousia {
 
@@ -188,6 +189,11 @@ Variant::cardinalityType Variant::toCardinality() const
 	return res.asCardinality();
 }
 
+Rooted<ManagedVariant> Variant::toManaged(Manager &mgr) const
+{
+	return Rooted<ManagedVariant>(new ManagedVariant(mgr, *this));
+}
+
 /* Type management */
 
 const Rtti *Variant::getRtti() const
@@ -306,5 +312,10 @@ bool operator!=(const Variant &lhs, const Variant &rhs)
 {
 	return !(lhs == rhs);
 }
+
+namespace RttiTypes {
+const Rtti ManagedVariant = RttiBuilder<ousia::ManagedVariant>("Variant");
+}
+
 }
 

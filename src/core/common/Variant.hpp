@@ -52,6 +52,7 @@ namespace ousia {
 class Function;
 class Rtti;
 class SourceLocation;
+class ManagedVariant;
 
 /**
  * Enum containing the possible types a variant may have.
@@ -1006,6 +1007,15 @@ public:
 	cardinalityType toCardinality() const;
 
 	/**
+	 * Returns the Variant as a new ManagedVariant instance.
+	 *
+	 * @param mgr is the Manager instance the returned variant should belong to.
+	 * @return a new ManagedVariant instance containing the value of this
+	 * Variant instance.
+	 */
+	Rooted<ManagedVariant> toManaged(Manager &mgr) const;
+
+	/**
 	 * Sets the variant to null.
 	 */
 	void setNull()
@@ -1318,6 +1328,38 @@ public:
 	friend bool operator!=(const Variant &lhs, const Variant &rhs);
 };
 
+/**
+ * The ManagedVariant class allows to store a variant as a Managed object. This
+ * class is used to store Variants as the data of "Managed" objects.
+ *
+ * TODO: Eventually Managed objects should support storing Variants as "data"
+ * directly. Yet is hard to get the dependencies right...
+ */
+class ManagedVariant : public Managed {
+public:
+	/**
+	 * Variant value of the ManagedVariant class.
+	 */
+	Variant v;
+
+	/**
+	 * Creates a new ManagedVariant instance, the variant is initialized to
+	 * null.
+	 *
+	 * @param mgr is the Manager the ManagedVariant belongs to.
+	 */
+	ManagedVariant(Manager &mgr) : Managed(mgr){};
+
+	/**
+	 * Create a new ManagedVariant instance and initializes it with the given
+	 * variant value.
+	 *
+	 * @param mgr is the Manager the ManagedVariant belongs to.
+	 * @param v is the initial value for the Variant.
+	 */
+	ManagedVariant(Manager &mgr, const Variant &v) : Managed(mgr), v(v){};
+};
+
 /* Static Assertions */
 
 // Make sure VariantData has a length of 8 bytes
@@ -1327,6 +1369,12 @@ static_assert(sizeof(VariantMetadata) == 8,
 // Make sure VariantData has a length of 16 bytes
 static_assert(sizeof(Variant) == 16,
               "Variant should have a length of 16 bytes");
+
+/* RttiTypes */
+
+namespace RttiTypes {
+extern const Rtti ManagedVariant;
+}
 }
 
 #endif /* _OUSIA_VARIANT_HPP_ */
