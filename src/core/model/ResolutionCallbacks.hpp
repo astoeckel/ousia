@@ -57,20 +57,19 @@ using ResolutionResultCallback = std::function<
 /**
  * The ResolveCallback can be used to trigger the resolution of a certain node.
  *
- * @param async if true, the resolution may be deferred. In this case the
- * resultCallback may be called at any later point in the program.
  * @param type is the type of node that should be resolved.
  * @param path is the path for which a node should be resolved.
- * @param resultCallback is the callback function to which the result of
- * the resolution process is passed. This function is called once the
- * resolution was successful.
- * @return true if the resolution was immediately successful. This does not
- * mean, that the resolved object does not exist, as it may be resolved
- * later.
+ * @return a the resolved node or nullptr if the resolution was not successful.
  */
 using ResolveCallback = std::function<
-    bool(bool async, const Rtti *type, const std::vector<std::string> &path,
-         ResolutionResultCallback resultCallback)>;
+    Rooted<Node>(const Rtti *type, const std::vector<std::string> &path)>;
+
+/**
+ * Empty implementation of the ResolveCallback, always returns nullptr.
+ */
+Rooted<Node> NullResolveCallback(const Rtti *,
+                                 const std::vector<std::string> &);
+
 }
 
 #endif /* _OUSIA_RESOLUTION_CALLBACKS_HPP_ */

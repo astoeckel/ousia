@@ -25,15 +25,6 @@
 
 namespace ousia {
 
-/* Static helper functions */
-
-static bool NullResolveCallback(bool, const Rtti *,
-                                const std::vector<std::string> &,
-                                ResolutionResultCallback)
-{
-	return false;
-}
-
 /* Class Type */
 
 bool Type::build(Variant &data, Logger &logger,
@@ -41,15 +32,13 @@ bool Type::build(Variant &data, Logger &logger,
 {
 	// If the given variant is marked as "magic", try to resolve the real value
 	if (data.isMagic()) {
-		Rooted<Constant> constant;
-		if (resolveCallback(
-		        false, &RttiTypes::Constant, Utils::split(data.asMagic(), '.'),
-		        [&constant](Handle<Node> resolved, Handle<Node> owner,
-		                    Logger &logger) mutable {
-			        // Copy the resolution result out of this function
-			        constant = resolved.cast<Constant>();
-			    })) {
-			// Check whether the inner type of the constant is correct
+		// Try to resolve a constant
+		Rooted<Constant> constant =
+		    resolveCallback(&RttiTypes::Constant,
+		                    Utils::split(data.asMagic(), '.')).cast<Constant>();
+
+		// Check whether the inner type of the constant is correct
+		if (constant != nullptr) {
 			Rooted<Type> constantType = constant->getType();
 			if (!constantType->checkIsa(this)) {
 				logger.error(

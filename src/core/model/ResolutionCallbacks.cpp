@@ -19,5 +19,8 @@
 #include "ResolutionCallbacks.hpp"
 
 namespace ousia {
-	// Do nothing here, just make sure the header compiles
+Rooted<Node> NullResolveCallback(const Rtti *, const std::vector<std::string> &)
+{
+	return nullptr;
+}
 }

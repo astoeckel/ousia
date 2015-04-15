@@ -700,14 +700,12 @@ public:
 	 * @param data is a reference at a variant that may contain magic values
 	 * (even in inner structures). The data will be passed to the "build"
 	 * function of the given type.
-	 * @param owner is the node for which the resolution takes place.
 	 * @param type is the Typesystem type the data should be interpreted with.
 	 * @param logger is the logger instance into which resolution problems
 	 * should be logged.
 	 * @return true if the value was successfully built.
 	 */
-	bool resolveValue(Variant &data, Handle<Node> owner, Handle<Type> type,
-	                  Logger &logger);
+	bool resolveValue(Variant &data, Handle<Type> type, Logger &logger);
 
 	/**
 	 * Resolves a type and makes sure the corresponding value is of the correct

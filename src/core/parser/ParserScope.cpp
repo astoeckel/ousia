@@ -409,20 +409,15 @@ bool ParserScope::resolveType(const std::string &name, Handle<Node> owner,
 	return resolveType(Utils::split(name, '.'), owner, logger, resultCallback);
 }
 
-bool ParserScope::resolveValue(Variant &data, Handle<Node> owner,
-                               Handle<Type> type, Logger &logger)
+bool ParserScope::resolveValue(Variant &data, Handle<Type> type, Logger &logger)
 {
-	return type->build(data, logger,
-	                   [&](bool async, const Rtti *rttiType,
-	                       const std::vector<std::string> &path,
-	                       ResolutionResultCallback resultCallback) mutable {
-		if (!async) {
-			Rooted<Node> resolved = ParserScopeBase::resolve(rttiType, path, logger);
-			resultCallback(resolved, owner, logger);
-			return resolved != nullptr;
-		}
-		return resolve(rttiType, path, type, logger, resultCallback);
-	});
+	// Run the build function
+	return type->build(
+	    data, logger,
+	    [&logger, this](const Rtti *rttiType,
+	                    const std::vector<std::string> &path) mutable {
+		    return ParserScopeBase::resolve(rttiType, path, logger);
+		});
 }
 
 bool ParserScope::resolveTypeWithValue(const std::vector<std::string> &path,
@@ -440,7 +435,7 @@ bool ParserScope::resolveTypeWithValue(const std::vector<std::string> &path,
 	    [=](Handle<Node> resolved, Handle<Node> owner, Logger &logger) mutable {
 		    if (resolved != nullptr) {
 			    Rooted<Type> type = resolved.cast<Type>();
-			    scope.resolveValue(*valuePtr, owner, type, logger);
+			    scope.resolveValue(*valuePtr, type, logger);
 		    }
 
 		    // Call the result callback with the type
