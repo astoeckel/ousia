@@ -224,6 +224,14 @@ public:
 	void setAttributes(const Variant &a);
 
 	/**
+	 * Returns a vector of NodeVectors, containing the StructureNode instances
+	 * stored within the fields.
+	 *
+	 * @return a vector containing a NodeVector for each field.
+	 */
+	const std::vector<NodeVector<StructureNode>> &getFields() const { return fields; }
+
+	/**
 	 * This returns the vector of entities containing all members of the field
 	 * with the given name.
 	 *
