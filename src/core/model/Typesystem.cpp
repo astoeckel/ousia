@@ -16,8 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Typesystem.hpp"
+#include "Document.hpp"
 #include "Ontology.hpp"
+#include "Typesystem.hpp"
 
 #include <core/common/RttiBuilder.hpp>
 #include <core/common/Utils.hpp>
@@ -663,16 +664,34 @@ ReferenceType::ReferenceType(Manager &mgr, const std::string &name,
 bool ReferenceType::doBuild(Variant &data, Logger &logger,
                             const ResolveCallback &resolveCallback) const
 {
-	// Null references are valid references
+	// Null references are valid references (these are mostly generated as a
+	// result of errors)
 	if (data.isNull()) {
 		return true;
 	}
 
 	if (data.isObject()) {
-		// TODO: Check: object is an instance of the entity descriptor
+		// Fetch the descriptor of the given object
+		Rooted<Managed> obj = data.asObject();
+		Rooted<Descriptor> objectDescriptor;
+		if (obj->isa(&RttiTypes::AnnotationEntity)) {
+			objectDescriptor = obj.cast<AnnotationEntity>()->getDescriptor();
+		} else if (obj->isa(&RttiTypes::StructuredEntity)) {
+			objectDescriptor = obj.cast<StructuredEntity>()->getDescriptor();
+		} else {
+			throw LoggableException("Reference targets wrong internal type \"" +
+			                        obj->type()->name + "\"!");
+		}
+
+		// Make sure the referenced object has the correct type
+		if (!objectDescriptor->inheritsFrom(descriptor)) {
+			throw LoggableException(
+			    "Referenced entity of type \"" + objectDescriptor->getName() +
+			    "\" is not compatible to reference type \"" +
+			    descriptor->getName() + "\"");
+		}
 		return true;
 	} else if (data.isString()) {
-		// TODO: Lookup referenced object
 		if (!Utils::isNamespacedIdentifier(data.asString())) {
 			throw LoggableException("Reference must be a valid identifier",
 			                        data);

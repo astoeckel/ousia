@@ -768,9 +768,36 @@ bool DocumentChildHandler::convertData(Handle<FieldDescriptor> field,
 	}
 
 	// Now try to resolve the value for the primitive type
-	return valid &&
-	       scope().resolveValue(data, field->getParent().cast<Node>(), type,
-	                            logger);
+	return valid && scope().resolveValue(data, type, logger);
+}
+
+static void createPrimitive(ParserScope &scope, Logger &logger,
+                            Handle<FieldDescriptor> field,
+                            DocumentEntity *parent, const Variant &data,
+                            ssize_t fieldIdx = -1)
+{
+	// Create the primitive field
+	Rooted<DocumentPrimitive> primitive;
+	if (fieldIdx < 0) {
+		primitive = parent->createChildDocumentPrimitive(data);
+	} else {
+		primitive = parent->createChildDocumentPrimitive(data, fieldIdx);
+	}
+
+	// Fetch the primitive type, check whether it is a ReferenceType -- if yes,
+	// resolve the referenced object and set it once the resolution has finished
+	Rooted<Type> type = field->getPrimitiveType();
+	if (type->isa(&RttiTypes::ReferenceType)) {
+		if (data.isString()) {
+			scope.resolve(
+			    &RttiTypes::DocumentNode, Utils::split(data.asString(), ':'),
+			    primitive, logger,
+			    [](Handle<Node> resolved, Handle<Node> owner, Logger &logger) {
+				    owner.cast<DocumentPrimitive>()->getContent().setObject(
+				        resolved, owner.get());
+				});
+		}
+	}
 }
 
 bool DocumentChildHandler::data()
@@ -799,8 +826,7 @@ bool DocumentChildHandler::data()
 		if (!convertData(field, text, logger())) {
 			return false;
 		}
-
-		parent->createChildDocumentPrimitive(text, fieldIdx);
+		createPrimitive(scope(), logger(), field, parent, text, fieldIdx);
 		return true;
 	}
 
@@ -830,7 +856,7 @@ bool DocumentChildHandler::data()
 		createPath(fieldIdx, path, parent);
 
 		// Then create the primitive element
-		parent->createChildDocumentPrimitive(text);
+		createPrimitive(scope(), logger(), primitiveField, parent, text);
 		return true;
 	}
 
