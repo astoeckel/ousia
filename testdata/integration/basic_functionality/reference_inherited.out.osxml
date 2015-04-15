@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document xmlns:test="test">
+	<test:test>
+		<test:b>foo</test:b>
+		<test:d id="foo" name="foo"/>
+	</test:test>
+</document>

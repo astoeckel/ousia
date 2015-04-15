@@ -7,5 +7,9 @@
 	\struct#b
 		\primitive[type=@a]
 	\struct#c
+		\field
+			\childRef[a]
+			\childRef[b]
+			\childRef[c]
 	\struct#a
 	\struct#d[isa=a]

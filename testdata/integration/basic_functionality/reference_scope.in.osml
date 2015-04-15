@@ -1,0 +1,19 @@
+\import[ontology]{./ontologies/reference_tests.osml}
+\begin{test}
+	\begin{c}
+		\b{foo}
+		\b{foo2}
+		\a#foo
+	\end{c}
+	\begin{c}
+		\b{foo}
+		\a#foo
+	\end{c}
+	\begin{c}
+		% TODO: Getting ambiguous reference error here. This is still a bug!
+		%\b{foo}
+		\a#foo
+		\a#foo2
+	\end{c}
+	\a#foo2
+\end{test}
