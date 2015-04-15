@@ -304,15 +304,27 @@ bool VariantConverter::toString(Variant &var, Logger &logger, Mode mode)
 				return true;
 			}
 			case VariantType::OBJECT: {
-				// Print object address and type
+				// Fetch the attached object, abort if it is a nullptr
 				Variant::objectType obj = var.asObject();
-				std::stringstream ss;
-				ss << "<object " << obj.get();
-				if (obj.get() != nullptr) {
-					ss << " (" << obj->type()->name << ")";
+				if (obj == nullptr) {
+					var = "<null>";
+					return true;
 				}
-				ss << ">";
+
+				// Check whether the object has an id attached -- if yes, output
+				// that id
+				Rooted<ManagedVariant> id = obj->readData<ManagedVariant>("id");
+				if (id != nullptr && id->v.isString()) {
+					var = id->v;
+					return true;
+				}
+
+				// Otherwise print object address and type
+				std::stringstream ss;
+				ss << "<object " << obj.get() << " (" << obj->type()->name
+				   << ")>";
 				var = ss.str().c_str();
+
 				return true;
 			}
 			case VariantType::FUNCTION: {

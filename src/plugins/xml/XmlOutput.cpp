@@ -24,6 +24,10 @@
 #include <core/common/Variant.hpp>
 #include <core/common/VariantWriter.hpp>
 
+// TODO: This should not be here -- remove this once we have a proper
+// transformation system.
+#include <transformations/uniqueid/UniqueIdTransformation.hpp>
+
 namespace ousia {
 namespace xml {
 
@@ -52,6 +56,23 @@ struct TransformParams {
 	{
 	}
 };
+
+/**
+ * Helper function used for attaching the unique id of nodes (if available) to
+ * the XML elements.
+ *
+ * @param elem is the XML element to which the unique id should be attached.
+ * @param managed is the managed object from which the id should be looked up.
+ */
+static void attachId(Handle<Element> elem, Handle<Managed> managed)
+{
+	// Check whether the managed object has an "id" attached to it
+	Rooted<ManagedVariant> id = managed->readData<ManagedVariant>("id");
+	if (id != nullptr && id->v.isString()) {
+		// We have an id that is a string, add it to the element
+		elem->getAttributes().emplace("id", id->v.asString());
+	}
+}
 
 /*
  * These are forward method declarations to allow for cross-references of
@@ -156,6 +177,9 @@ void XmlTransformer::writeXml(Handle<Document> doc, std::ostream &out,
                               Logger &logger, ResourceManager &resourceManager,
                               bool pretty, bool flat)
 {
+	// Create unique ids for the nodes
+	UniqueIdTransformation::transform(doc);
+
 	Manager &mgr = doc->getManager();
 	// the outermost tag is the document itself.
 	Rooted<Element> document{new Element{mgr, {nullptr}, "document"}};
@@ -741,6 +765,9 @@ static Rooted<Element> transformAnchor(Handle<Element> parent, Handle<Anchor> a,
 		    attrs, "a:start")};
 		// and handle the children.
 		transformChildren(a->getAnnotation().get(), elem, P);
+
+		// attach a possible id to the anchor
+		attachId(elem, a->getAnnotation());
 	} else if (a->isEnd()) {
 		/*
 		 * in principle !a->isStart() should imply a->isEnd() but if no
