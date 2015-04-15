@@ -688,7 +688,6 @@ bool ReferenceType::doBuild(Variant &data, Logger &logger,
 			throw LoggableException("Reference must be a valid identifier",
 			                        data);
 		}
-		data = Variant{};
 		return true;
 	}
 
