@@ -598,7 +598,7 @@ bool StructureNode::doValidate(Logger &logger) const
 
 StructureNode::StructureNode(Manager &mgr, std::string name,
                              Handle<Node> parent, const std::string &fieldName)
-    : Node(mgr, std::move(name), parent)
+    : DocumentNode(mgr, std::move(name), parent)
 {
 	if (parent->isa(&RttiTypes::StructuredEntity)) {
 		parent.cast<StructuredEntity>()->addStructureNode(this, fieldName);
@@ -611,7 +611,7 @@ StructureNode::StructureNode(Manager &mgr, std::string name,
 
 StructureNode::StructureNode(Manager &mgr, std::string name,
                              Handle<Node> parent, size_t fieldIdx)
-    : Node(mgr, std::move(name), parent)
+    : DocumentNode(mgr, std::move(name), parent)
 {
 	if (parent->isa(&RttiTypes::StructuredEntity)) {
 		parent.cast<StructuredEntity>()->addStructureNode(this, fieldIdx);
@@ -620,6 +620,12 @@ StructureNode::StructureNode(Manager &mgr, std::string name,
 	} else {
 		throw OusiaException("The proposed parent was no DocumentEntity!");
 	}
+}
+
+StructureNode::StructureNode(Manager &mgr, std::string name,
+                             Handle<Node> parent)
+    : DocumentNode(mgr, std::move(name), parent)
+{
 }
 
 /* Class StructuredEntity */
@@ -639,6 +645,13 @@ StructuredEntity::StructuredEntity(Manager &mgr, Handle<Node> parent,
     : StructureNode(mgr, std::move(name), parent),
       DocumentEntity(this, descriptor, std::move(attributes))
 {
+}
+
+void StructuredEntity::doResolve(ResolutionState &state)
+{
+	for (const auto &field : getFields()) {
+		continueResolveComposita(field, field.getIndex(), state);
+	}
 }
 
 bool StructuredEntity::doValidate(Logger &logger) const
@@ -732,7 +745,7 @@ AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
                                    Handle<AnnotationClass> descriptor,
                                    Handle<Anchor> start, Handle<Anchor> end,
                                    Variant attributes, std::string name)
-    : Node(mgr, std::move(name), parent),
+    : DocumentNode(mgr, std::move(name), parent),
       DocumentEntity(this, descriptor, attributes)
 {
 	if (parent != nullptr) {
@@ -740,6 +753,13 @@ AnnotationEntity::AnnotationEntity(Manager &mgr, Handle<Document> parent,
 	}
 	setStart(start);
 	setEnd(end);
+}
+
+void AnnotationEntity::doResolve(ResolutionState &state)
+{
+	for (const auto &field : getFields()) {
+		continueResolveComposita(field, field.getIndex(), state);
+	}
 }
 
 bool AnnotationEntity::doValidate(Logger &logger) const
@@ -986,8 +1006,10 @@ namespace RttiTypes {
 const Rtti Document = RttiBuilder<ousia::Document>("Document")
                           .parent(&RootNode)
                           .composedOf({&AnnotationEntity, &StructuredEntity});
+const Rtti DocumentNode =
+    RttiBuilder<ousia::DocumentNode>("DocumentNode").parent(&Node);
 const Rtti StructureNode =
-    RttiBuilder<ousia::StructureNode>("StructureNode").parent(&Node);
+    RttiBuilder<ousia::StructureNode>("StructureNode").parent(&DocumentNode);
 const Rtti StructuredEntity =
     RttiBuilder<ousia::StructuredEntity>("StructuredEntity")
         .parent(&StructureNode)
@@ -997,7 +1019,7 @@ const Rtti DocumentPrimitive = RttiBuilder<ousia::DocumentPrimitive>(
 const Rtti Anchor = RttiBuilder<ousia::Anchor>("Anchor").parent(&StructureNode);
 const Rtti AnnotationEntity =
     RttiBuilder<ousia::AnnotationEntity>("AnnotationEntity")
-        .parent(&Node)
+        .parent(&DocumentNode)
         .composedOf({&StructuredEntity, &DocumentPrimitive, &Anchor});
 }
 }

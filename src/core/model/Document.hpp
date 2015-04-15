@@ -172,6 +172,8 @@ private:
 protected:
 	bool doValidate(Logger &logger) const;
 
+	std::vector<NodeVector<StructureNode>> &getFields() { return fields; }
+
 public:
 	/**
 	 * The constructor for a DocumentEntity. Node that this does not inherit
@@ -498,10 +500,19 @@ public:
 };
 
 /**
+ * The DocumentNode class is a dummy class for being capable of selecting
+ * all nodes in the document graph e.g. when resolving element names.
+ */
+class DocumentNode : public Node {
+public:
+	using Node::Node;
+};
+
+/**
  * A StructureNode is a Node of the StructureTree of the document. This is a
  * common superclass for StructuredEntity, Anchor and DocumentPrimitive.
  */
-class StructureNode : public Node {
+class StructureNode : public DocumentNode {
 	friend DocumentEntity;
 
 protected:
@@ -524,10 +535,7 @@ public:
 	 * Constructor for an empty StructureNode.
 	 */
 	StructureNode(Manager &mgr, std::string name = "",
-	              Handle<Node> parent = nullptr)
-	    : Node(mgr, std::move(name), parent)
-	{
-	}
+	              Handle<Node> parent = nullptr);
 };
 
 /**
@@ -541,6 +549,7 @@ private:
 	bool transparent = false;
 
 protected:
+	void doResolve(ResolutionState &state) override;
 	bool doValidate(Logger &logger) const override;
 
 public:
@@ -675,6 +684,7 @@ public:
 	    : StructureNode(mgr, "", parent, fieldName), content(content)
 	{
 	}
+
 	/**
 	 * Constructor for a DocumentPrimitive.
 	 *
@@ -697,11 +707,18 @@ public:
 	}
 
 	/**
+	 * Returns the content of this DocumentPrimitive as a const reference.
+	 *
+	 * @return the content of this DocumentPrimitive.
+	 */
+	const Variant &getContent() const { return content; }
+
+	/**
 	 * Returns the content of this DocumentPrimitive.
 	 *
 	 * @return the content of this DocumentPrimitive.
 	 */
-	Variant getContent() const { return content; }
+	Variant &getContent() { return content; }
 
 	/**
 	 * Sets the content of this DocumentPrimitive to the given Variant.
@@ -828,7 +845,7 @@ public:
  * the two text exerpts "emphasized" and "and" separately.
  *
  */
-class AnnotationEntity : public Node, public DocumentEntity {
+class AnnotationEntity : public DocumentNode, public DocumentEntity {
 	friend DocumentEntity;
 	friend Document;
 
@@ -837,6 +854,7 @@ private:
 	Owned<Anchor> end;
 
 protected:
+	void doResolve(ResolutionState &state) override;
 	bool doValidate(Logger &logger) const override;
 
 public:
@@ -1081,6 +1099,7 @@ public:
 
 namespace RttiTypes {
 extern const Rtti Document;
+extern const Rtti DocumentNode;
 extern const Rtti DocumentEntity;
 extern const Rtti AnnotationEntity;
 extern const Rtti StructureNode;
