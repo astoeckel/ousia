@@ -51,9 +51,6 @@ static std::string escapePredefinedEntities(const std::string &input)
 			case '&':
 				ss << "&amp;";
 				break;
-			case '\'':
-				ss << "&apos;";
-				break;
 			case '\"':
 				ss << "&quot;";
 				break;
