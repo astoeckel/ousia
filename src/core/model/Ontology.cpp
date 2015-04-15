@@ -571,6 +571,16 @@ bool Descriptor::doValidate(Logger &logger) const
 	return valid & continueValidationCheckDuplicates(fds, logger);
 }
 
+bool Descriptor::doCheckInheritsFrom(Handle<Descriptor> c) const
+{
+	return false;
+}
+
+bool Descriptor::inheritsFrom(Handle<Descriptor> c) const
+{
+	return (c == this) || ((c != nullptr) && (c->type() == type()) && doCheckInheritsFrom(c));
+}
+
 NodeVector<Node> Descriptor::pathTo(Handle<StructuredClass> target,
                                     Logger &logger) const
 {
@@ -811,6 +821,11 @@ StructuredClass::StructuredClass(Manager &mgr, std::string name,
 	if (ontology != nullptr) {
 		ontology->addStructuredClass(this);
 	}
+}
+
+bool StructuredClass::doCheckInheritsFrom(Handle<Descriptor> c) const
+{
+	return isSubclassOf(c.cast<StructuredClass>());
 }
 
 bool StructuredClass::doValidate(Logger &logger) const

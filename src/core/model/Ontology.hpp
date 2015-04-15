@@ -618,6 +618,16 @@ protected:
 
 	bool doValidate(Logger &logger) const override;
 
+	/**
+	 * Called when the "inheritsFrom" function is called, and this instance and
+	 * c are of the same type, but not the same instance. Default implementation
+	 * return false.
+	 *
+	 * @param c is the descriptor that should be checked for inheritance.
+	 * @return true if this instance inherits from c.
+	 */
+	virtual bool doCheckInheritsFrom(Handle<Descriptor> c) const;
+
 public:
 	Descriptor(Manager &mgr, std::string name, Handle<Ontology> ontology)
 	    : Node(mgr, std::move(name), ontology),
@@ -625,6 +635,16 @@ public:
 	      fieldDescriptors(this)
 	{
 	}
+
+	/**
+	 * Returns true if this class is a subclass of the given class or the given
+	 * class itself.
+	 *
+	 * @param c is the class that should be checked for inheriting from this
+	 * class.
+	 * @return true if c either is this class or c inherits from this class.
+	 */
+	bool inheritsFrom(Handle<Descriptor> c) const;
 
 	/**
 	 * Returns a reference to the StructType that specifies the attribute keys
@@ -1042,6 +1062,7 @@ private:
 
 protected:
 	bool doValidate(Logger &logger) const override;
+	bool doCheckInheritsFrom(Handle<Descriptor> c) const override;
 
 public:
 	/**
