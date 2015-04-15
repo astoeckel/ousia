@@ -40,8 +40,17 @@
 	%{
 		Variables and functions
 	}%
+	\struct#def[isa=primitive]
+		\field#representation[subtree=true, optional=true]
+			\childRef[ref=primitive]
+			% this should rather be a field incorporating text elements
+		\primitive#shortDescription[subtree=true, type=string, optional=true]
+		\primitive#description[type=string, optional=true]
+
 	\struct#var[isa=primitive]
-		\primitive#name[type=string]
+		\syntax
+			\short[greedy=false]{$}
+		\primitive#ref[type=@def]
 	\struct#fun[isa=primitive]
 		\primitive#name[subtree=true,type=string,optional=false]
 		\field#arguments[subtree=true,optional=true]
@@ -79,12 +88,12 @@
 	% TODO: Differentiate between lower and upper index vs. power operator?
 	\struct#power[isa=primitive]
 		\syntax
-			\short{^}
+			\short[greedy=false]{^}
 		\field
 			\childRef[ref=primitive]
 	\struct#index[isa=primitive]
 		\syntax
-			\short{_}
+			\short[greedy=false]{_}
 		\field
 			\childRef[ref=primitive]
 
@@ -214,12 +223,12 @@
 			\childRef[ref=upperLimit]
 	\struct#lowerLimit[cardinality={0,1}]
 		\syntax
-			\short{_}
+			\short[greedy=false]{_}
 		\field
 			\childRef[ref=primitive]
 	\struct#upperLimit[cardinality={0,1}]
 		\syntax
-			\short{^}
+			\short[greedy=false]{^}
 		\field
 			\childRef[ref=primitive]
 
