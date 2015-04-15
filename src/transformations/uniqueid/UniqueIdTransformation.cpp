@@ -43,6 +43,11 @@ private:
 	ManagedVector<Node> nodesWithoutId;
 
 	/**
+	 * Set preventing multi-insertion into the nodesWithoutId vector.
+	 */
+	std::unordered_set<Managed *> nodesWithoutIdSet;
+
+	/**
 	 * Traverse the document tree -- find all elements with primitive content.
 	 */
 	std::queue<Rooted<StructuredEntity>> queue;
@@ -80,7 +85,10 @@ void UniqueIdTransformationImpl::processVariant(const Variant &var)
 	} else if (var.isObject()) {
 		Rooted<Managed> obj = var.asObject();
 		if (!obj->hasDataKey("id") && obj->isa(&RttiTypes::Node)) {
-			nodesWithoutId.push_back(obj.cast<Node>());
+			if (nodesWithoutIdSet.count(obj.get()) == 0) {
+				nodesWithoutId.push_back(obj.cast<Node>());
+				nodesWithoutIdSet.insert(obj.get());
+			}
 		}
 	}
 }
