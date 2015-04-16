@@ -20,6 +20,7 @@
 #include <set>
 #include <string>
 
+#include <core/common/Utils.hpp>
 #include <core/common/Variant.hpp>
 
 #include "UniqueIdTransformation.hpp"
@@ -62,6 +63,13 @@ private:
 	 * Searches the variant for any object references.
 	 */
 	void processVariant(const Variant &data);
+
+	/**
+	 * Used to build the id prefix.
+	 *
+	 * @return a string containing the prefix.
+	 */
+	std::string buildId(Handle<Node> node);
 
 public:
 	/**
@@ -117,6 +125,29 @@ void UniqueIdTransformationImpl::processFields(const DocumentEntity *entity)
 	}
 }
 
+std::string UniqueIdTransformationImpl::buildId(Handle<Node> node)
+{
+	// Fetch the name of the node -- if non is set, use the type name
+	std::string name = node->getName().empty() ? node->type()->name : node->getName();
+
+	// Try to fetch a Descriptor instance for the node
+	Rooted<Descriptor> descriptor;
+	if (node->isa(&RttiTypes::StructuredEntity)) {
+		descriptor = node.cast<StructuredEntity>()->getDescriptor();
+	} else if (node->isa(&RttiTypes::AnnotationEntity)) {
+		descriptor = node.cast<AnnotationEntity>()->getDescriptor();
+	}
+
+	// If a Descriptor instance is found, preprend the path to the Descriptor
+	// declaration
+	if (descriptor != nullptr) {
+		return Utils::join(descriptor->path(), "_") + "_" + name;
+	}
+
+	// Otherwise just return the name
+	return name;
+}
+
 void UniqueIdTransformationImpl::transform(Handle<Document> doc)
 {
 	// Push the document root element onto the queue
@@ -136,13 +167,8 @@ void UniqueIdTransformationImpl::transform(Handle<Document> doc)
 	// Generate ids for all referenced elements that do not yet have ids
 	std::map<std::string, size_t> seqNos;
 	for (Rooted<Node> node : nodesWithoutId) {
-		// Generate a first id -- use the node name if it is available,
-		// otherwise use the internal type name and append the internal unique
-		// id.
-		std::string id =
-		    node->getName().empty()
-		        ? node->type()->name + "_" + std::to_string(node->getUid())
-		        : node->getName();
+		// Generate a first id
+		std::string id = buildId(node);
 
 		// If the id name is not unique, append a sequence number
 		if (ids.count(id) != 0) {

@@ -2,18 +2,18 @@
 <document xmlns:test="test">
 	<test:test>
 		<test:c>
-			<test:b>foo</test:b>
-			<test:b>foo2</test:b>
-			<test:a id="foo" name="foo"/>
+			<test:b>test_a_foo</test:b>
+			<test:b>test_a_foo2</test:b>
+			<test:a id="test_a_foo" name="foo"/>
 		</test:c>
 		<test:c>
-			<test:b>foo</test:b>
+			<test:b>test_a_foo</test:b>
 			<test:a name="foo"/>
 		</test:c>
 		<test:c>
 			<test:a name="foo"/>
 			<test:a name="foo2"/>
 		</test:c>
-		<test:a id="foo2" name="foo2"/>
+		<test:a id="test_a_foo2" name="foo2"/>
 	</test:test>
 </document>

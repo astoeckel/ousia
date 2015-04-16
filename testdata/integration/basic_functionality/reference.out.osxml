@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <document xmlns:test="test">
 	<test:test>
-		<test:b>foo</test:b>
-		<test:a id="foo" name="foo"/>
+		<test:b>test_a_foo</test:b>
+		<test:a id="test_a_foo" name="foo"/>
 	</test:test>
 </document>
