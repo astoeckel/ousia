@@ -692,7 +692,7 @@ ssize_t StackImpl::pendingCloseTokenHandlerIdx(TokenId token) const
 TokenSet StackImpl::currentTokens() const
 {
 	TokenSet res;
-	if (currentInfo().state().supportsTokens) {
+	if (currentInfo().valid && currentInfo().state().supportsTokens) {
 		res = tokenStack.tokens();
 		ssize_t idx = pendingCloseTokenHandlerIdx();
 		if (idx >= 0) {
@@ -1111,6 +1111,12 @@ bool StackImpl::handleOpenTokens(Logger &logger, const Token &token,
 
 void StackImpl::handleToken(const Token &token)
 {
+	// If the current handler is not valid, just ignore the token
+	// TODO: Unify the handling of invalid elements across this class
+	if (!handlersValid()) {
+		return;
+	}
+
 	// If the token matches one from the "pendingCloseTokens" list, then just
 	// end the corresponding handler
 	const ssize_t pendingCloseIndex = pendingCloseTokenHandlerIdx(token.id);

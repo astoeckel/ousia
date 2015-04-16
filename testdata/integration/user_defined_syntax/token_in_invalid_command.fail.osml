@@ -1,0 +1,15 @@
+\document
+
+\ontology#test
+	\struct#test[root=true]
+		\field
+			\childRef[ref=a]
+	\struct#a
+		\syntax
+			\short{-}
+
+\begin{test}
+	\b{a-}
+	\b{a-}
+\end{test}
+
