@@ -772,7 +772,7 @@ bool StackImpl::prepareCurrentHandler(bool startImplicitDefaultField,
 
 		// If the current Handler is in a field, there is nothing to be done,
 		// abort. Exception: If the handler is not greedy and currently is in
-		// its default field, then continue.
+		// its default field, then end the implicit default field continue.
 		if (info.inField) {
 			if (!info.greedy && info.hasContent &&
 			    info.inImplicitDefaultField) {
@@ -1158,7 +1158,7 @@ void StackImpl::handleToken(const Token &token)
 			// as short form or as start token
 			prepareCurrentHandler(true, true, true);
 			if (handleOpenTokens(loggerFork, token, true, descr.shortForm) ||
-			    handleOpenTokens(loggerFork, token, false, descr.open)) {
+				handleOpenTokens(loggerFork, token, false, descr.open)) {
 				// Mark the "hasContent" flag of the last info
 				lastInfo().hasContent = true;
 				return;
