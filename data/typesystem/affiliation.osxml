@@ -6,5 +6,5 @@
 		<field name="institution" type="string"/>
 	</struct>
 
-	<constant name="citec.sc" type="affiliation" value="[workgroup=Semantic Computing Group,departement=Center of Excellence Cognitive Interaction Technology (CITEC), institution=Bielefeld University]"/>
+	<constant name="citec" type="affiliation" value="[workgroup=Semantic Computing Group,departement=Center of Excellence Cognitive Interaction Technology (CITEC), institution=Bielefeld University]"/>
 </typesystem>
