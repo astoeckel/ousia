@@ -49,12 +49,6 @@ OPTION(BUILD_DOCUMENTATION
 # Enable C++11 and all warnings
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic-errors -std=c++11")
 
-# Flag for enabling the generation of data for gcov
-OPTION(ENABLE_GCOV "Enables the compiler flags needed for gcov/lcov" OFF)
-IF (ENABLE_GCOV)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
-ENDIF()
-
 # Include expat and mozjs-24 via PkgConfig
 FIND_PACKAGE(PkgConfig REQUIRED)
 #PKG_CHECK_MODULES(MOZJS REQUIRED mozjs-24)
